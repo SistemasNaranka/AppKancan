@@ -19,43 +19,40 @@ export async function getUserArea() {
 /**
  * Retorna registros de la tabla Apps
  * ✅ Ahora con refresh automático si el token está expirado
- */
-export async function getApps() {
+ */export async function getApps() {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("app_usuario", {
-          fields: [   
+          fields: [
             "id",
             "app_id.id",
             "app_id.nombre",
             "app_id.ruta",
             "app_id.categoria",
+            "app_id.icono_app",
+            "app_id.icono_categoria",
             "app_id.rol.name",
-
           ],
         })
       )
     );
-    console.log(items)
 
-    // Mapear el resultado para devolver solo los datos del app
+    // 🔹 Aplanar los datos
     const apps = items.map((item: any) => ({
       id: item.app_id.id,
       nombre: item.app_id.nombre,
-      categoria: item.app_id.categoria,
       ruta: item.app_id.ruta,
-      rol: item.app_id.rol?.name ?? null,
+      categoria: item.app_id.categoria,
+      icono_app: item.app_id.icono_app,
+      icono_categoria: item.app_id.icono_categoria,
+      rol: item.app_id.rol?.name,
     }));
-    console.log(apps)
-    return apps;
-  } catch (error: any) {
-    if (error?.response?.status === 403) {
-      console.warn("⚠️ Usuario sin permisos para ver apps. Continuando sin apps...");
-      return [];
-    }
 
-    console.error("❌ Error cargando apps:", error);
-    throw error;
+    console.log("📦 Apps cargadas:", apps);
+    return apps;
+  } catch (error) {
+    console.error("❌ Error al cargar apps:", error);
+    return [];
   }
 }

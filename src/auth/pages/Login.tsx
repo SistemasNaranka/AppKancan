@@ -2,7 +2,7 @@ import LogoBlack from "@/assets/logo_black.png";
 import Button from "@mui/material/Button";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import InputWithIcon from "@/auth/components/email"; 
+import InputWithIcon from "@/auth/components/inputs"; 
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";

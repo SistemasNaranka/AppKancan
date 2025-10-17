@@ -62,7 +62,7 @@ export async function refreshDirectus(refresh_token: string): Promise<LoginRespo
 export async function getCurrentUser() {
   return await withAutoRefresh(() =>
     directus.request(readMe({
-      fields: ['email', 'codigo_ultra', 'rol_usuario.area','id'], // incluye tu campo personalizado aquí
+      fields: ['email', 'codigo_ultra', 'first_name', 'last_name','rol_usuario.area','id'], // incluye tu campo personalizado aquí
     }))
   );
 }

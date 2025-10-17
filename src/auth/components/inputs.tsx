@@ -62,7 +62,7 @@ const InputWithIcon: React.FC<InputWithIconProps> = ({
         },
       }}
       sx={{
-        ".css-1ew92b2-MuiFormLabel-root-MuiInputLabel-root": {
+        ".css-1ensfe1-MuiFormLabel-root-MuiInputLabel-root": {
           fontSize: "1.2rem",
         },
         ".css-1nowbqt-MuiInputAdornment-root": { marginRight: "0px" },

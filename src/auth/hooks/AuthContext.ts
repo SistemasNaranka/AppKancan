@@ -7,7 +7,7 @@ export type App = {
   // otros campos de la colección que quieras tipar
 };
 //Tipado de objeto con id y email en string o null
-export type User = {email: string, id: string } | null;
+export type User = {email: string, id: string, nombre:string, apellido:string} | null;
 /**
    *  Tipado de los valores que otorgara el Provider a sus hijos
 */

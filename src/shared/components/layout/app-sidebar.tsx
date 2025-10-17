@@ -1,45 +1,31 @@
-import { useState, useMemo } from "react";
-import {
-  Drawer,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  IconButton,
-  Box,
-  Toolbar,
-  Collapse,
-  useMediaQuery,
-  Tooltip,
-} from "@mui/material";
-import {
-  Home,
-  Inventory2,
-  Logout,
-  Menu,
-  ChevronLeft,
-  ChevronRight,
-  ExpandLess,
-  ExpandMore,
-  Folder,
-} from "@mui/icons-material";
-import { Link, useLocation, Navigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Drawer, Box, useMediaQuery, Toolbar, IconButton, Divider } from "@mui/material";
+import { Menu } from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
+import { useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
-import { useTheme } from "@mui/material/styles";
+
+import { SidebarHeader } from "@/shared/components/ui-sidebar/SidebarHeader";
+import { SidebarList } from "@/shared/components/ui-sidebar/SidebarList";
+import { SidebarFooter } from "@/shared/components/ui-sidebar/SidebarFooter";
 
 const drawerWidth = 240;
 const collapsedWidth = 64;
 
-export function AppSidebar() {
-  const { isAuthenticated, logout } = useAuth();
+interface Props {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}
+
+export function AppSidebar({ open, setOpen }: Props) {
+  const { isAuthenticated } = useAuth();
   const { apps, loading } = useApps();
-  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const location = useLocation();
 
-  const [open, setOpen] = useState(!isMobile);
+  // Estado local solo para expandir categorías del menú (NO controla si drawer está abierto)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   if (!isAuthenticated) return <Navigate to="/login" />;
@@ -59,131 +45,28 @@ export function AppSidebar() {
     return groups;
   }, [apps]);
 
-  /** === ESTILOS BASE Y FUNCIONALIDAD === **/
-  const getItemStyles = (selected: boolean, level = 0) => ({
-    borderRadius: 2,
-    mx: 1,
-    my: 0.5,
-    pl: open ? 2 + level * 2 : 0,
-    justifyContent: open ? "flex-start" : "center",
-    transition: "all 0.2s ease-in-out",
-    color: selected ? theme.palette.primary.main : theme.palette.text.primary,
-    backgroundColor: selected ? `${theme.palette.primary.main}22` : "transparent",
-    "& .MuiListItemIcon-root": {
-      minWidth: 0,
-      mr: open ? 1 : 0,
-      display: "flex",
-      justifyContent: "center",
-      color: selected ? theme.palette.primary.main : theme.palette.text.primary,
-      width: open ? "auto" : "100%",
-    },
-    "& .MuiListItemText-root": {
-      display: open ? "block" : "none",
-    },
-    "&:hover": {
-      backgroundColor: theme.palette.action.hover,
-      "& .MuiListItemIcon-root, & .MuiListItemText-primary": {
-        color: theme.palette.primary.main,
-      },
-    },
-  });
-
-  /** === CONTENIDO DEL SIDEBAR === **/
   const drawerContent = (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* HEADER */}
-      <Toolbar
-        sx={{
-          display: "flex",
-          justifyContent: open ? "space-between" : "center",
-          alignItems: "center",
-        }}
-      >
-        {open && <span style={{ fontWeight: "bold" }}>App Kancan</span>}
-        <IconButton onClick={toggleDrawer}>
-          {open ? <ChevronLeft /> : <ChevronRight />}
-        </IconButton>
-      </Toolbar>
-
+      <SidebarHeader open={open} toggleDrawer={toggleDrawer} />
       <Divider />
-
-      {/* MENÚ PRINCIPAL */}
-      <List sx={{ flexGrow: 1 }}>
-        {/* === INICIO === */}
-        <Tooltip title={!open ? "Inicio" : ""} placement="right">
-          <ListItemButton
-            component={Link}
-            to="/home"
-            selected={location.pathname === "/home"}
-            sx={getItemStyles(location.pathname === "/home")}
-          >
-            <ListItemIcon>
-              <Home />
-            </ListItemIcon>
-            <ListItemText primary="Inicio" />
-          </ListItemButton>
-        </Tooltip>
-
-        <Divider sx={{ my: 1 }} />
-
-        {/* === CATEGORÍAS === */}
-        {!loading &&
-          Object.entries(groupedApps).map(([categoria, appsCat]) => (
-            <Box key={categoria}>
-              <ListItemButton onClick={() => toggleCategory(categoria)} sx={getItemStyles(false)}>
-                <ListItemIcon>
-                  <Folder />
-                </ListItemIcon>
-                {open && (
-                  <>
-                    <ListItemText primary={categoria} />
-                    {expanded[categoria] ? <ExpandLess /> : <ExpandMore />}
-                  </>
-                )}
-              </ListItemButton>
-
-              <Collapse in={expanded[categoria]} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding>
-                  {appsCat.map((app) => (
-                    <ListItemButton
-                      key={app.id}
-                      component={Link}
-                      to={app.ruta}
-                      selected={location.pathname === app.ruta}
-                      sx={getItemStyles(location.pathname === app.ruta, 1)} // nivel 1 = hijo
-                    >
-                      <ListItemIcon>
-                        <Inventory2 />
-                      </ListItemIcon>
-                      <ListItemText primary={app.nombre} />
-                    </ListItemButton>
-                  ))}
-                </List>
-              </Collapse>
-            </Box>
-          ))}
-      </List>
-
+      <SidebarList
+        open={open}
+        expanded={expanded}
+        groupedApps={groupedApps}
+        toggleCategory={toggleCategory}
+        loading={loading}
+        location={location}
+      />
       <Divider />
-
-      {/* === FOOTER === */}
-      <List sx={{ pb: 1 }}>
-        <Tooltip title={!open ? "Cerrar sesión" : ""} placement="right">
-          <ListItemButton onClick={logout} sx={getItemStyles(false)}>
-            <ListItemIcon>
-              <Logout />
-            </ListItemIcon>
-            <ListItemText primary="Cerrar sesión" />
-          </ListItemButton>
-        </Tooltip>
-      </List>
+      <SidebarFooter open={open} />
     </Box>
   );
 
-  /** === VERSION MÓVIL === **/
+  // === MÓVIL: Drawer temporal (overlay) ===
   if (isMobile) {
     return (
       <Box sx={{ position: "relative" }}>
+        {/* toolbar que está fijo en móvil - el layout ya añade espacio con <Toolbar/> */}
         <Toolbar
           sx={{
             display: "flex",
@@ -221,7 +104,7 @@ export function AppSidebar() {
     );
   }
 
-  /** === VERSION ESCRITORIO === **/
+  // === DESKTOP: Drawer permanente con ancho animado ===
   return (
     <Drawer
       variant="permanent"
@@ -234,7 +117,7 @@ export function AppSidebar() {
           overflowX: "hidden",
           transition: theme.transitions.create("width", {
             easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.standard,
+            duration: 300,
           }),
         },
       }}
