@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
+import { useTheme } from "@mui/material/styles";
 
 interface InputWithIconProps {
   id: string;
@@ -30,6 +31,7 @@ const InputWithIcon: React.FC<InputWithIconProps> = ({
 }) => {
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const theme = useTheme();
 
   return (
     <TextField
@@ -47,27 +49,46 @@ const InputWithIcon: React.FC<InputWithIconProps> = ({
       onBlur={() => setFocused(false)}
       slotProps={{
         input: {
-          inputRef, 
+          inputRef,
           startAdornment: (
             <InputAdornment position="start">
               <IconButton
-                onClick={() => inputRef.current?.focus()} 
+                onClick={() => inputRef.current?.focus()}
                 edge="start"
                 size="small"
               >
-                <Icon color={focused ? "primary" : "action"} />
+                <Icon
+                  sx={{
+                    color: focused
+                      ? theme.palette.secondary.main // azul al enfocar
+                      : theme.palette.primary.main, // gris neutro base
+                    transition: "color 0.3s ease",
+                  }}
+                />
               </IconButton>
             </InputAdornment>
           ),
         },
       }}
       sx={{
-        ".css-1ensfe1-MuiFormLabel-root-MuiInputLabel-root": {
+        "& .MuiInputLabel-root": {
+          color: theme.palette.primary.main,
           fontSize: "1.2rem",
         },
-        ".css-1nowbqt-MuiInputAdornment-root": { marginRight: "0px" },
+        "& .MuiInputLabel-root.Mui-focused": {
+          color: theme.palette.secondary.main,
+        },
+        "& .MuiInputBase-input": {
+          color: theme.palette.text.primary,
+        },
+        "& .MuiInput-underline:before": {
+          borderBottomColor: theme.palette.primary.light,
+        },
         "& .MuiInput-underline:hover:before": {
-          borderBottomColor: "primary.main",
+          borderBottomColor: theme.palette.secondary.main,
+        },
+        "& .MuiInput-underline:after": {
+          borderBottomColor: theme.palette.secondary.main,
         },
       }}
     />

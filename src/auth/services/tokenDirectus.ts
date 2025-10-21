@@ -68,6 +68,7 @@ export function cargarTokenStorage(): StoredTokens | null {
    */
 export function borrarTokenStorage(): void {
   localStorage.removeItem(STORAGE_KEY);
+  sessionStorage.clear(); 
   console.log("🗑️ Tokens borrados del localStorage");
 }
 

@@ -7,16 +7,17 @@ interface Props {
 }
 
 export const SidebarHeader = ({ open, toggleDrawer }: Props) => (
-  <Toolbar
-    sx={{
-      display: "flex",
-      justifyContent: open ? "space-between" : "center",
-      alignItems: "center",
-    }}
-  >
-    {open && <span style={{ fontWeight: "bold" }}>App Kancan</span>}
-    <IconButton onClick={toggleDrawer}>
+    <Toolbar
+      sx={{
+        display: "flex",
+        justifyContent: open ? "space-between" : "center",
+        alignItems: "center",
+      }}
+    >
+    {open && <span style={{ fontWeight: "bold", fontSize:20}}>App Kancan</span>}
+        <IconButton onClick={toggleDrawer}>
       {open ? <ChevronLeft /> : <ChevronRight />}
-    </IconButton>
-  </Toolbar>
-);
+        </IconButton>
+    </Toolbar>
+  );
+ 

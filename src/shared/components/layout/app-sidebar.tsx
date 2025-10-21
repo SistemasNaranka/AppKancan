@@ -5,7 +5,6 @@ import { useTheme } from "@mui/material/styles";
 import { useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
-
 import { SidebarHeader } from "@/shared/components/ui-sidebar/SidebarHeader";
 import { SidebarList } from "@/shared/components/ui-sidebar/SidebarList";
 import { SidebarFooter } from "@/shared/components/ui-sidebar/SidebarFooter";
@@ -46,27 +45,60 @@ export function AppSidebar({ open, setOpen }: Props) {
   }, [apps]);
 
   const drawerContent = (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden", // 🔹 evita que el footer sea desplazado
+      }}
+    >
+      {/* HEADER */}
       <SidebarHeader open={open} toggleDrawer={toggleDrawer} />
       <Divider />
-      <SidebarList
-        open={open}
-        expanded={expanded}
-        groupedApps={groupedApps}
-        toggleCategory={toggleCategory}
-        loading={loading}
-        location={location}
-      />
+
+      {/* LISTA con scroll independiente */}
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflowY: "auto",       // 🔹 solo la lista hace scroll
+          overflowX: "hidden",
+        }}
+      >
+        <SidebarList
+          open={open}
+          expanded={expanded}
+          groupedApps={groupedApps}
+          toggleCategory={toggleCategory}
+          loading={loading}
+          location={location}
+        />
+      </Box>
+
       <Divider />
-      <SidebarFooter open={open} />
+
+      {/* FOOTER fijo */}
+      <Box
+        sx={{
+          flexShrink: 0,
+
+          borderTop: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "background.paper",
+        }}
+      >
+        <SidebarFooter open={open} />
+      </Box>
     </Box>
   );
 
-  // === MÓVIL: Drawer temporal (overlay) ===
+// === MÓVIL: Drawer temporal (overlay) ===
   if (isMobile) {
+    
+
     return (
       <Box sx={{ position: "relative" }}>
-        {/* toolbar que está fijo en móvil - el layout ya añade espacio con <Toolbar/> */}
+        {/* toolbar fijo en móvil */}
         <Toolbar
           sx={{
             display: "flex",
@@ -79,12 +111,17 @@ export function AppSidebar({ open, setOpen }: Props) {
             background: "white",
             zIndex: 1200,
             height: "64px",
+            px: 1,
           }}
         >
-          <span style={{ fontWeight: "bold", marginLeft: 8 }}>App Kancan</span>
-          <IconButton onClick={toggleDrawer}>
-            <Menu />
-          </IconButton>
+          {/* Botón de menú */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <IconButton onClick={toggleDrawer}>
+              <Menu />
+            </IconButton>
+            <span style={{ fontWeight: "bold" }}>App Kancan</span>
+          </Box>
+
         </Toolbar>
 
         <Box sx={{ height: "64px" }} />
@@ -103,6 +140,7 @@ export function AppSidebar({ open, setOpen }: Props) {
       </Box>
     );
   }
+
 
   // === DESKTOP: Drawer permanente con ancho animado ===
   return (
