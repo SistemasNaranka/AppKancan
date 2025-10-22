@@ -41,27 +41,26 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-
-
 body {
   margin: 0;
   padding: 0;
   font-family: sans-serif;
+  transition: background-color 0.6s ease, color 0.6s ease,
+    background-image 0.8s ease;
 }
 
 /* Tema claro */
 body {
-  background-image: url('assets/fondo.jpg');
+  background-image: url("assets/fondo.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-position: center;
 }
 
-
 /* Tema oscuro */
 body.dark {
-  background-image: url('assets/fondo_black.png');
+  background-image: url("assets/fondo_black.png");
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;

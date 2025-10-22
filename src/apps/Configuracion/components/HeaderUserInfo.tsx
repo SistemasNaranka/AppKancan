@@ -5,9 +5,7 @@ interface Props {
   area?: string;
 }
 
-const avatarColors = [
-  "#0288d1", // celeste
-];
+const avatarColors = ["#0288d1"];
 
 const getInitials = (nombre: string) => {
   const p = nombre.trim().split(" ");
@@ -16,11 +14,8 @@ const getInitials = (nombre: string) => {
 
 export const HeaderUserInfo = ({ user, area }: Props) => {
   const storageKey = `avatarColor_${user?.email ?? "default"}`;
-
-  // 1️⃣ Buscar el color guardado (mismo que en SidebarFooter)
   let avatarColor = sessionStorage.getItem(storageKey);
 
-  // 2️⃣ Si no hay, generar uno nuevo (solo en casos raros)
   if (!avatarColor) {
     const randomIndex = Math.floor(Math.random() * avatarColors.length);
     avatarColor = avatarColors[randomIndex];
@@ -28,12 +23,21 @@ export const HeaderUserInfo = ({ user, area }: Props) => {
   }
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", p: 4, gap: 3 }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: { xs: "column", sm: "row" },
+        alignItems: "center",
+        textAlign: { xs: "center", sm: "left" },
+        p: { xs: 3, sm: 4 },
+        gap: { xs: 2, sm: 3 },
+      }}
+    >
       <Avatar
         sx={{
-          width: 80,
-          height: 80,
-          fontSize: 32,
+          width: { xs: 64, sm: 80 },
+          height: { xs: 64, sm: 80 },
+          fontSize: { xs: 24, sm: 32 },
           fontWeight: "bold",
           bgcolor: avatarColor,
         }}
@@ -42,10 +46,21 @@ export const HeaderUserInfo = ({ user, area }: Props) => {
       </Avatar>
 
       <Box sx={{ flex: 1 }}>
-        <Typography fontWeight="bold" variant="h6">
+        <Typography
+          fontWeight="bold"
+          variant="h6"
+          sx={{ fontSize: { xs: 20, sm: 20 } }}
+        >
           {user?.nombre ?? "Usuario"}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            wordBreak: "break-all", // evita desbordes
+            fontSize: { xs: 15, sm: 15 },
+          }}
+        >
           {user?.email ?? "usuario@kancan.com"}
         </Typography>
         <Box
@@ -57,7 +72,7 @@ export const HeaderUserInfo = ({ user, area }: Props) => {
             py: 0.5,
             mt: 1,
             display: "inline-block",
-            fontSize: 13,
+            fontSize: { xs: 12, sm: 13 },
             fontWeight: 500,
           }}
         >

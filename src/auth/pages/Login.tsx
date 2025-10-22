@@ -54,11 +54,24 @@ function Login() {
       <div className="min-h-screen flex items-center justify-center bg-cover bg-center px-4 sm:px-6">
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg p-6 sm:p-8 mx-2 sm:mx-0 relative">
           <div className="absolute top-4 right-4">
-            <IconButton onClick={() => toggleTheme(!darkMode)}>
+            <IconButton
+              onClick={() => toggleTheme(!darkMode)}
+              sx={{
+                transition: "transform 0.3s ease-in-out",
+                transform: darkMode ? "rotate(180deg)" : "rotate(0deg)",
+                "& .MuiSvgIcon-root": {
+                  transition: "color 0.3s ease-in-out",
+                },
+              }}
+            >
               {darkMode ? (
-                <LightModeIcon sx={{ color: "#f5d742", fontSize: 28 }} />
+                <LightModeIcon
+                  sx={{ color: darkMode ? "#f5d742" : "#004680", fontSize: 28 }}
+                />
               ) : (
-                <DarkModeIcon sx={{ color: "#004680", fontSize: 28 }} />
+                <DarkModeIcon
+                  sx={{ color: darkMode ? "#f5d742" : "#004680", fontSize: 28 }}
+                />
               )}
             </IconButton>
           </div>

@@ -14,14 +14,21 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useAppTheme = () => useContext(ThemeContext);
 
-export const AppThemeProvider = ({ children }: { children: React.ReactNode }) => {
+export const AppThemeProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [darkMode, setDarkMode] = useState(() => {
     // Primero intenta leer de localStorage
     const saved = localStorage.getItem("darkMode");
     if (saved !== null) return JSON.parse(saved);
 
     // Si no hay valor guardado, usar preferencia del sistema
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    );
   });
 
   // Cambiar clase del body
@@ -58,7 +65,17 @@ export const AppThemeProvider = ({ children }: { children: React.ReactNode }) =>
 
   return (
     <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
-      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+      <ThemeProvider theme={theme}>
+        <div
+          style={{
+            transition: "background-color 0.6s ease, color 0.6s ease",
+
+            minHeight: "100vh",
+          }}
+        >
+          {children}
+        </div>
+      </ThemeProvider>
     </ThemeContext.Provider>
   );
 };
