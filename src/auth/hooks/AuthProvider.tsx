@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const me = await getCurrentUser();
      
       // Poner valor en el state de user
-      setUser({ email: me.email, id: me.id });
+      setUser({ email: me.email, id: me.id, nombre: me.first_name, apellido: me.last_name });
       console.log("hola mundo", me);
     } catch (error) {
       console.error("❌ Error en login:", error);
@@ -115,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Obtener info del usuario
         const me = await getCurrentUser();
-        setUser({ email: me.email, id:me.id });
+        setUser({ email: me.email, id:me.id, nombre:me.first_name, apellido: me.last_name});
         
         console.log("✅ Sesión restaurada exitosamente");
       } catch (error) {

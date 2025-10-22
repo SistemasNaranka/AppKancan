@@ -6,13 +6,12 @@ import AppRoutes from "./router/AppRoutes";
 import { AuthProvider } from "@/auth/hooks/AuthProvider";
 import { AppProvider } from "./apps/hooks/AppProvider";
 import { client } from "./services/tankstack/QueryClient";
-import Apptheme from "./shared/hooks/Apptheme";
-import { ThemeProvider } from "@emotion/react";
+import { AppThemeProvider } from "@/shared/hooks/ThemeContext";
 
 function App() {
   return (
     <QueryClientProvider client={client}>
-      <ThemeProvider theme={Apptheme}>
+      <AppThemeProvider>
         <BrowserRouter>
           <AuthProvider>
             <AppProvider>
@@ -20,7 +19,7 @@ function App() {
             </AppProvider>
           </AuthProvider>
         </BrowserRouter>
-      </ThemeProvider>
+      </AppThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
