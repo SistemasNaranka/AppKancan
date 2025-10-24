@@ -1,11 +1,20 @@
-import App from './src/App';
-
 import { RouteObject } from "react-router-dom";
+import PromotionsLayout from "./layouts/PromotionsLayout";
+import CreatePromotionPage from "./components/CreatePromotionPage";
+import { PromotionsFilterProvider } from "./hooks/PromotionsFilterProvider";
 
-const routes : RouteObject[] = [
+const routes: RouteObject[] = [
   {
-    path: "/promociones", // <- se monta como /reportes
-    element: <App />,
+    path: "/promociones",
+    element: (
+      <PromotionsFilterProvider>
+        <PromotionsLayout />
+      </PromotionsFilterProvider>
+    ),
+  },
+  {
+    path: "/promociones/crear",
+    element: <CreatePromotionPage />,
   },
 ];
 
