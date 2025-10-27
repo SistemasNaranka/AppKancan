@@ -1,100 +1,120 @@
-import React from 'react';
-import { Paper, Box, Typography, Chip } from '@mui/material';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import PendingActionsIcon from '@mui/icons-material/PendingActions';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import type { Traslado } from './TrasladoCard';
-
-
-
-
-// esta parte es para que aparezca de estado pendiente ha estado de embarque 
+import React from "react";
+import { Paper, Box, Typography, Chip } from "@mui/material";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import { Traslado } from "../hooks/types";
 interface Props {
   traslado: Traslado;
-  onTrasladoClick?: (t: Traslado) => void;
+  onTrasladoClick?: () => void;
   compact?: boolean;
-  estado?: 'pendiente' | 'embarque' | 'aprobado'; 
+  isSelected?: boolean;
 }
 
+const TrasladoListItem: React.FC<Props> = ({
+  traslado,
+  onTrasladoClick,
+  compact,
+  isSelected,
+}) => {
+  return (
+    <Paper
+      id={`traslado-card-${traslado.traslado}`}
+      onClick={onTrasladoClick}
+      elevation={isSelected ? 8 : 3}
+      sx={(theme) => ({
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        p: compact ? 1 : 1.5,
+        gap: 0.8,
+        borderRadius: 2,
+        width: "100%",
+        maxWidth: 280,
+        mb: 1,
+        minWidth: 240,
+        boxSizing: "border-box",
 
-const TrasladoListItem: React.FC<Props> = ({ traslado, onTrasladoClick, compact, estado = 'pendiente' }) => (
-  // --- MODIFICACIÓN: id único para animación visual desde PanelSeleccionados ---
-  <Paper
-    id={`traslado-card-${traslado.id}`}
-    sx={{
-      display: 'flex',
-      flexDirection : 'column',
-      alignItems: 'flex-start',
-      p: compact ? 0.5 : 1.3,
-      mb: compact ?0.5 : 1.3,
-      border: '1px solid #e0e0e0',
-      boxShadow: 2,
-      borderRadius: compact ? 1.5 : 2,
-      background: 'white',
-      transition: 'all 0.25s',
-      cursor: onTrasladoClick ? 'pointer' : 'default',
-      minWidth: compact ? 0 : undefined,
-      maxWidth: compact ? 280 : 340 ,
-      width: '100%',
-      '&:hover': onTrasladoClick ? { boxShadow: 6, transform: 'translateY(-2px)' } : {},
-      userSelect: 'none', 
-    }}
-    onClick={() => onTrasladoClick && onTrasladoClick(traslado)}
+        // 🎨 Fondo y borde dinámicos
+        backgroundColor: isSelected
+          ? theme.palette.primary.light
+          : theme.palette.background.paper,
+        border: `1px solid ${
+          isSelected ? theme.palette.primary.main : theme.palette.divider
+        }`,
+        boxShadow: isSelected
+          ? `0 1 10px ${theme.palette.primary.main}55`
+          : theme.palette.primary.main,
 
-    
-  >
-    <Box sx={{ mr: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <LocalShippingIcon sx={{ fontSize: compact ? 20 : 28, color: '#26c6da', mb: 0.3 }} />
-      <Chip
-  label={
-    estado === 'embarque'
-      ? 'En embarque'
-      : estado === 'aprobado'
-      ? 'Aprobado'
-      : 'Pendiente'
-  }
-  color={
-    estado === 'embarque'
-      ? 'info'
-      : estado === 'aprobado'
-      ? 'success'
-      : 'warning'
-  }
-  size="small"
-  icon={
-    estado === 'embarque' ? (
-      <LocalShippingIcon sx={{ fontSize: compact ? 15 : 18 }} />
-    ) : estado === 'aprobado' ? (
-      <CheckCircleIcon sx={{ fontSize: compact ? 15 : 18 }} />
-    ) : (
-      <PendingActionsIcon sx={{ fontSize: compact ? 13 : 16 }} />
-    )
-  }
-  sx={{ fontWeight: 700, borderRadius: 1, mt: 0.5 }}
-/>
-    </Box>
+        // 🎨 Color de texto global
+        color: isSelected
+          ? theme.palette.text.primary
+          : theme.palette.text.primary,
 
-    <Box sx={{ flex: 1 }}>
-      <Typography fontWeight={700}
-       color="text.primary"
-       fontSize={compact ? 12 : 13}>
-      {traslado.nombre_Origen} <span style={{ fontWeight: 400, color: '#888' }}>→</span> {traslado.nombre_Destino}
+        cursor: onTrasladoClick ? "pointer" : "default",
+        transition: "all 0.25s ease",
+        "&:hover": onTrasladoClick
+          ? {
+              boxShadow: theme.shadows[6],
+              transform: "translateY(-3px)",
+            }
+          : {},
+      })}
+    >
+      {/* Detalles */}
+      <Typography fontWeight={700} fontSize={compact ? 16 : 12}>
+        Traslado: {traslado.traslado}
       </Typography>
 
-
-      <Typography variant="body2"
-       color="text.secondary" fontSize={compact ? 11.5 : 14}>
+      <Typography variant="body2" fontSize={compact ? 12 : 10} color="inherit">
         Fecha: {traslado.fecha}
-        </Typography>
-
-      <Typography variant="body2"
-       color="text.secondary"
-       fontSize={compact ? 11 : 13}>
-        Unidades: {traslado.unidades} | Origen: {traslado.bodega_Origen} | Destino: {traslado.bodega_Destino}
       </Typography>
 
-    </Box>
-  </Paper>
-);
+      <Typography variant="body2" fontSize={compact ? 12 : 10} color="inherit">
+        Unidades: {traslado.unidades}
+      </Typography>
+
+      {/* Encabezado */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {/* 👇 Mostrar el ícono solo si NO está seleccionado */}
+
+        <Typography
+          fontSize={compact ? 13 : 10}
+          noWrap
+          color="inherit" // hereda del Paper
+        >
+          {traslado.nombre_origen} → {traslado.nombre_destino}
+        </Typography>
+      </Box>
+
+      {/* Chip cuando está seleccionado */}
+      {
+        <Chip
+          label="En tránsito"
+          color="info"
+          size="small"
+          icon={<LocalShippingIcon sx={{ fontSize: 16 }} />}
+          sx={(theme) => ({
+            position: "absolute",
+            top: 8,
+            right: 8,
+            zIndex: 2,
+
+            boxShadow: `0 0 1px 1px ${theme.palette.primary.light}`,
+            backgroundColor: isSelected
+              ? theme.palette.primary.main
+              : theme.palette.background.paper,
+            color: isSelected
+              ? theme.palette.primary.contrastText
+              : theme.palette.primary.main,
+            "& .MuiChip-icon": {
+              color: isSelected
+                ? theme.palette.primary.contrastText
+                : theme.palette.primary.main,
+            },
+          })}
+        />
+      }
+    </Paper>
+  );
+};
 
 export default TrasladoListItem;

@@ -1,150 +1,346 @@
-import React from 'react';
-import { Paper, Typography, Box, Button, Divider, Fade } from '@mui/material';
-import { Global } from '@emotion/react'; 
-import PendingActionsIcon from '@mui/icons-material/PendingActions';
-import type { Traslado } from './TrasladoCard';
-import PendientesFilters from './PendientesFilters';
-import TrasladoListItem from './TrasladoListItem';
-import { useCountAnimation } from '../hooks/useCountAnimation'; // Ajusta la ruta si es necesario
+import React, { useState } from "react";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { Paper, Typography, Box, Divider } from "@mui/material";
+import { Global } from "@emotion/react";
+import { Traslado } from "../hooks/types";
+import PendientesFilters from "./PendientesFilters";
+import ConfirmacionAprobacion from "./ConfirmacionAprobacion";
+import ContadorPendientesYSeleccionados from "./ContadorPendientesYSeleccionados";
+import { ControlesSuperiores } from "./ControlesSuperiores";
+import { ListaTraslados } from "./ListaTraslados";
 
 type PanelPendientesProps = {
-  filtroBodega: string;
-  setFiltroBodega: (v: string) => void;
+  filtroBodegaDestino: string;
+  setFiltroBodegaDestino: (v: string) => void;
   filtroNombre: string;
   setFiltroNombre: (v: string) => void;
   filtrados: Traslado[];
-  handleAprobarTodosPendientes: () => void;
+  bodegasDestino: string[];
   loading: boolean;
-  onTrasladoClick?: (t: Traslado) => void;
-  todasLasBodegas: string[];
-  totalPendientes: number; 
+  idsSeleccionados: number[];
+  onToggleSeleccion: (id: number) => void;
+  onToggleSeleccionarTodos: (seleccionar: boolean) => void;
+  totalPendientes: number;
+  onEliminarTrasladosAprobados?: (
+    ids: number[],
+    clave: string
+  ) => Promise<void>;
 };
 
 export const PanelPendientes: React.FC<PanelPendientesProps> = ({
-  filtroBodega,
-  setFiltroBodega,
+  filtroBodegaDestino,
+  setFiltroBodegaDestino,
   filtroNombre,
   setFiltroNombre,
   filtrados,
-  todasLasBodegas,
-  handleAprobarTodosPendientes,
+  bodegasDestino,
   loading,
-  onTrasladoClick,
+  idsSeleccionados,
+  onToggleSeleccion,
+  onToggleSeleccionarTodos,
   totalPendientes,
+  onEliminarTrasladosAprobados,
 }) => {
-  // Animación del contador
-  const animatedCount = useCountAnimation(totalPendientes);
+  const [dialogoAprobacionAbierto, setDialogoAprobacionAbierto] =
+    useState(false);
+  const [modalCargando, setModalCargando] = useState(false);
+  const [aprobado, setAprobado] = useState(false);
+  const [errorAprobacion, setErrorAprobacion] = useState<string | null>(null);
 
-  //  Detectar si el número disminuyó para activar el "pulso"
-  const prevCountRef = React.useRef(totalPendientes);
-  const [shouldPulse, setShouldPulse] = React.useState(false);
+  const todosSeleccionados =
+    filtrados.length > 0 &&
+    filtrados.every(
+      (t) => t.traslado !== undefined && idsSeleccionados.includes(t.traslado)
+    );
 
-  React.useEffect(() => {
-    if (totalPendientes < prevCountRef.current) {
-      setShouldPulse(true);
-      const timer = setTimeout(() => setShouldPulse(false), 600);
-      return () => clearTimeout(timer);
+  const algunSeleccionado =
+    filtrados.length > 0 &&
+    filtrados.some(
+      (t) => t.traslado !== undefined && idsSeleccionados.includes(t.traslado)
+    );
+
+  // ✅ Función que se ejecuta al confirmar en el modal (recibe la contraseña)
+  const iniciarAprobacion = async (clave: string) => {
+    setDialogoAprobacionAbierto(false); // Cerrar modal de confirmación
+    setModalCargando(true); // Abrir modal de carga
+    setAprobado(false);
+    setErrorAprobacion(null);
+
+    try {
+      // ✅ Ejecutar la función del padre pasando los IDs y la CLAVE
+      if (onEliminarTrasladosAprobados) {
+        console.log("🔹 Aprobando traslados con clave:", {
+          cantidad: idsSeleccionados.length,
+          ids: idsSeleccionados,
+        });
+
+        // 🔥 LLAMADA A LA FUNCIÓN PADRE CON LA CLAVE
+        await onEliminarTrasladosAprobados(idsSeleccionados, clave);
+      }
+
+      // ✅ Limpiar selección
+      onToggleSeleccionarTodos(false);
+
+      // Mostrar icono de éxito por 1.2s
+      setAprobado(true);
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    } catch (error: any) {
+      setErrorAprobacion(
+        error?.message ||
+          "Ocurrió un error al aprobar los traslados. Intenta nuevamente."
+      );
+      console.error("❌ Error al aprobar traslados:", error);
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    } finally {
+      setModalCargando(false);
+      setAprobado(false);
+      setErrorAprobacion(null);
     }
-    prevCountRef.current = totalPendientes;
-  }, [totalPendientes]);
+  };
 
   return (
     <Paper
-      elevation={8}
+      elevation={10}
       sx={{
-        p: 3,
-        borderRadius: 5,
-        minHeight: 500,
-        background: 'linear-gradient(135deg, 0%,  100%)',
-        backgroundColor: 'background.paper', 
-        boxShadow: '0 1px 5px 0 #004680',
-        border: '1.5px solid ',
-        borderColor:'primary.main',
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "background.paper",
+        border: "2px solid",
+        boxShadow: "0 1px 5px 0 ",
+        borderColor: "primary.dark",
+        borderRadius: 3,
+        p: { xs: 1, sm: 2 },
+        height: "100%",
+        width: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
       }}
     >
-      {/* Definir la animación global */}
       <Global
         styles={{
-          '@keyframes pulse': {
-            '0%': { transform: 'scale(1)' },
-            '50%': { transform: 'scale(1.15)', color: '#5eb0b6ff' },
-            '100%': { transform: 'scale(1)' },
+          "@keyframes pulse": {
+            "0%": { transform: "scale(1)" },
+            "50%": { transform: "scale(1.15)", color: "#5eb0b6ff" },
+            "100%": { transform: "scale(1)" },
           },
         }}
       />
 
-      {/* 📌 Título con contador animado */}
-      <Typography
-        variant="h5"
-        fontWeight={900}
-        color="primary.main"
-        gutterBottom
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          mb: 1,
-          userSelect: 'none',
-          
+      {/* ===== MODAL DE CARGA/PROCESAMIENTO ===== */}
+      <Dialog
+        open={modalCargando}
+        disableEscapeKeyDown
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 4,
+              p: 0,
+              background: "rgba(255,255,255,0.98)",
+              boxShadow: "0 10px 40px 0 rgba(0,0,0,0.18)",
+              minWidth: 340,
+            },
+          },
+          backdrop: {
+            sx: {
+              background: "rgba(33, 150, 243, 0.18)",
+              backdropFilter: "blur(2px)",
+            },
+          },
         }}
       >
-        <PendingActionsIcon sx={{ mr: 1, fontSize: 32, color: 'primary.main' }} />
-        Traslados Pendientes (<span>{animatedCount}</span>)
-      </Typography>
-
-      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, userSelect: 'none' }}>
-        Visualiza y filtra los traslados pendientes que deseas Aprobar.
-      </Typography>
-
-      <PendientesFilters
-        filtroBodega={filtroBodega}
-        setFiltroBodega={setFiltroBodega}
-        filtroNombre={filtroNombre}
-        setFiltroNombre={setFiltroNombre}
-        bodegas={todasLasBodegas}
-      />
-
-      <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleAprobarTodosPendientes}
-          disabled={filtrados.length === 0 || loading}
-          sx={{ fontWeight: 700, borderRadius: 2 }}
+        <DialogContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 200,
+            py: 4,
+            px: 3,
+            gap: 2,
+          }}
         >
-          PASAR TODOS
-        </Button>
-      </Box>
+          {errorAprobacion ? (
+            <>
+              <ErrorOutlineIcon
+                sx={{
+                  fontSize: 54,
+                  color: "error.main",
+                  mb: 2,
+                }}
+              />
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 700, color: "error.main", mb: 1 }}
+              >
+                Error al aprobar
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: "center", mb: 1 }}
+              >
+                {errorAprobacion}
+              </Typography>
+            </>
+          ) : !aprobado ? (
+            <>
+              <AutorenewIcon
+                sx={{
+                  fontSize: 54,
+                  color: "primary.main",
+                  mb: 2,
+                  animation: "spin 1.2s linear infinite",
+                }}
+              />
+              <Typography
+                variant="h6"
+                sx={{
+                  mt: 1,
+                  fontWeight: 700,
+                  color: "primary.main",
+                  letterSpacing: 0.5,
+                }}
+              >
+                Procesando traslados...
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5, textAlign: "center" }}
+              >
+                Por favor espera unos segundos mientras procesamos tu solicitud.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <CheckCircleIcon
+                sx={{
+                  fontSize: 60,
+                  color: "success.main",
+                  mb: 1,
+                  animation: "pop 0.5s",
+                }}
+              />
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 700, color: "success.main" }}
+              >
+                ¡Traslados aprobados!
+              </Typography>
+            </>
+          )}
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            @keyframes pop {
+              0% { transform: scale(0.7); opacity: 0; }
+              80% { transform: scale(1.15); opacity: 1; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
+        </DialogContent>
+      </Dialog>
 
-      <Divider sx={{ mb: 2, borderColor: '#b2dfdb' }} />
+      {/* ===== CONTENIDO PRINCIPAL ===== */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 1,
+          flexWrap: "wrap",
+          gap: 2,
+          rowGap: 1,
+          "@media (max-width: 700px)": {
+            flexDirection: "column",
+            alignItems: "flex-start",
+          },
+        }}
+      >
+        <ContadorPendientesYSeleccionados
+          pendientes={totalPendientes - idsSeleccionados.length}
+          seleccionados={idsSeleccionados.length}
+        />
+
+        <ControlesSuperiores
+          idsSeleccionadosLength={idsSeleccionados.length}
+          loading={loading}
+          onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+          onAbrirDialogoAprobacion={() => setDialogoAprobacionAbierto(true)}
+        />
+      </Box>
 
       <Box
         sx={{
-          overflowX: 'hidden',
-          pr: 1,
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          mb: 1,
           gap: 2,
-          boxSizing: 'border-box',
-          alignItems: 'start',
         }}
       >
-        {filtrados.length === 0 ? (
-          <Fade in timeout={500}>
-            <Box sx={{ userSelect: 'none' }}>
-              <Typography color="text.secondary">No hay traslados pendientes.</Typography>
-            </Box>
-          </Fade>
-        ) : (
-          filtrados.map((t, idx) => (
-            <TrasladoListItem
-              key={t.id ?? idx}
-              traslado={t}
-              onTrasladoClick={() => onTrasladoClick && onTrasladoClick(t)}
-              compact
-            />
-          ))
-        )}
+        <PendientesFilters
+          filtroBodegaDestino={filtroBodegaDestino}
+          setFiltroBodegaDestino={setFiltroBodegaDestino}
+          filtroNombre={filtroNombre}
+          setFiltroNombre={setFiltroNombre}
+          bodegasDestino={bodegasDestino}
+          filtradosLength={filtrados.length}
+          todosSeleccionados={todosSeleccionados}
+          algunSeleccionado={algunSeleccionado}
+          onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+        />
+
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{
+            userSelect: "none",
+            fontSize: "0.85rem",
+            textAlign: "right",
+            flexShrink: 0,
+            mr: { xs: 0, sm: 2, md: 4 },
+            ml: { xs: 0, sm: "auto" },
+            maxWidth: { xs: "100%", sm: "45%" },
+            "@media (max-width: 700px)": {
+              width: "100%",
+              textAlign: "center",
+              mt: 1,
+            },
+          }}
+        >
+          Visualiza, filtra y selecciona los traslados pendientes que deseas
+          Aprobar.
+        </Typography>
       </Box>
+
+      <Divider sx={{ mb: 2, borderColor: "primary.main" }} />
+
+      {/* ===== LISTA DE TRASLADOS ===== */}
+      <Box sx={{ flex: 1, overflowY: "auto", pr: 1 }}>
+        <ListaTraslados
+          filtrados={filtrados}
+          idsSeleccionados={idsSeleccionados}
+          onToggleSeleccion={onToggleSeleccion}
+        />
+      </Box>
+
+      {/* ===== MODAL DE CONFIRMACIÓN (solicita contraseña) ===== */}
+      <ConfirmacionAprobacion
+        open={dialogoAprobacionAbierto}
+        onClose={() => setDialogoAprobacionAbierto(false)}
+        onConfirm={iniciarAprobacion}
+        cantidadTraslados={idsSeleccionados.length}
+      />
     </Paper>
   );
 };

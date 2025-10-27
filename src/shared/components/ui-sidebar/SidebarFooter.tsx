@@ -1,10 +1,4 @@
-import {
-  Box,
-  Avatar,
-  Typography,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
+import { Box, Avatar, Typography, IconButton, Tooltip } from "@mui/material";
 import { Logout, Settings } from "@mui/icons-material";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
@@ -77,7 +71,7 @@ export const SidebarFooter = ({ open }: Props) => {
           sx={{
             display: "flex",
             alignItems: "center",
-            mt: open ? 0 :1,
+            mt: open ? 0 : 1,
             flexDirection: open ? "row" : "column",
             gap: open ? 1 : 0.5,
           }}
@@ -91,7 +85,9 @@ export const SidebarFooter = ({ open }: Props) => {
               fontWeight: "bold",
             }}
           >
-            {getInitials(`${user?.nombre ?? ""} ${user?.apellido ?? ""}`.trim())}
+            {getInitials(
+              `${user?.nombre ?? ""} ${user?.apellido ?? ""}`.trim()
+            )}
           </Avatar>
 
           {open && (

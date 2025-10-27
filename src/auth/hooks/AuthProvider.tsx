@@ -1,10 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { isExpired,guardarTokenStorage, borrarTokenStorage, cargarTokenStorage } from "../services/tokenDirectus";
+import {
+  isExpired,
+  guardarTokenStorage,
+  borrarTokenStorage,
+  cargarTokenStorage,
+} from "../services/tokenDirectus";
 import { type User, AuthContext } from "./AuthContext";
-import { loginDirectus, logoutDirectus, getCurrentUser, setTokenDirectus, refreshDirectus} from "@/services/directus/auth";
+import {
+  loginDirectus,
+  logoutDirectus,
+  getCurrentUser,
+  setTokenDirectus,
+  refreshDirectus,
+} from "@/services/directus/auth";
 //import { registerLogoutCallback } from "../services/directusInterceptor";
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   // Declarar los estados de usuario y su carga
   const [user, setUser] = useState<User>(null);
   const [loading, setLoading] = useState(true);
@@ -21,9 +34,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setTokenDirectus(res.access_token);
       // Llama los datos de si mismo
       const me = await getCurrentUser();
-     
+
       // Poner valor en el state de user
-      setUser({ email: me.email, id: me.id, nombre: me.first_name, apellido: me.last_name });
+      setUser({
+        email: me.email,
+        id: me.id,
+        nombre: me.first_name,
+        apellido: me.last_name,
+        codigo_ultra: me.codigo_ultra,
+        empresa: me.empresa,
+      });
       console.log("hola mundo", me);
     } catch (error) {
       console.error("❌ Error en login:", error);
@@ -37,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     // Tomar los token del storage
     const tokens = cargarTokenStorage();
-    
+
     // Intentar logout en servidor (best effort)
     //Si existe el token refresh
     if (tokens?.refresh) {
@@ -49,16 +69,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn("⚠️ No se pudo hacer logout en servidor:", err);
       }
     }
-    
+
     // Borrar en el storage
     borrarTokenStorage();
-    
+
     setUser(null);
     await setTokenDirectus(null);
   };
-
-
-
 
   /**
    * Inicialización: Verificar si hay sesión válida
@@ -78,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Verificar si el token expiró
         if (isExpired(tokens.expires_at)) {
           console.log("🔄 Token expirado al iniciar, intentando refrescar...");
-          
+
           try {
             // Refrescar el token
             console.log("🔄 Refrescando tokens...");
@@ -87,18 +104,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               throw new Error("No se pudieron refrescar los tokens");
             }
 
-            guardarTokenStorage(res.access_token, res.refresh_token, res.expires_at);
+            guardarTokenStorage(
+              res.access_token,
+              res.refresh_token,
+              res.expires_at
+            );
 
             // Usar los tokens nuevos
             await setTokenDirectus(res.access_token);
 
             console.log("✅ Token refrescado exitosamente al iniciar");
-
           } catch (refreshError) {
-
-            console.error("❌ Error al refrescar tokens en inicialización:", refreshError);
+            console.error(
+              "❌ Error al refrescar tokens en inicialización:",
+              refreshError
+            );
             // Si falla el refresh en la inicialización, cerrar sesión y redirigir
-            console.log("🚫 Refresh falló - limpiando sesión y redirigiendo al login");
+            console.log(
+              "🚫 Refresh falló - limpiando sesión y redirigiendo al login"
+            );
             borrarTokenStorage();
             setUser(null);
             await setTokenDirectus(null);
@@ -115,13 +139,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Obtener info del usuario
         const me = await getCurrentUser();
-        setUser({ email: me.email, id:me.id, nombre:me.first_name, apellido: me.last_name});
-        
+        setUser({
+          email: me.email,
+          id: me.id,
+          nombre: me.first_name,
+          apellido: me.last_name,
+          codigo_ultra: me.codigo_ultra,
+          empresa: me.empresa,
+        });
+
         console.log("✅ Sesión restaurada exitosamente");
       } catch (error) {
         console.error("❌ Error al inicializar autenticación:", error);
         // Si falla obtener el usuario (por ejemplo, token inválido), cerrar sesión
-        console.log("🚫 Error en inicialización - limpiando sesión y redirigiendo al login");
+        console.log(
+          "🚫 Error en inicialización - limpiando sesión y redirigiendo al login"
+        );
         borrarTokenStorage();
         setUser(null);
         await setTokenDirectus(null);
@@ -144,7 +177,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // El refresh ahora se hará bajo demanda en cada petición a Directus
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, isAuthenticated, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
