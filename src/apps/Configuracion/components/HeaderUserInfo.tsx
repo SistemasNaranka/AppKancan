@@ -1,11 +1,38 @@
-import { Box, Typography, Avatar } from "@mui/material";
+import { Box, Typography, Avatar, useTheme } from "@mui/material";
+import { useMemo } from "react";
 
 interface Props {
   user?: any;
   area?: string;
 }
 
-const avatarColors = ["#0288d1"];
+// 🎨 Paleta clara
+const avatarColorsLight = [
+  "#1976d2", // azul
+  "#9c27b0", // morado
+  "#2e7d32", // verde
+  "#f57c00", // naranja
+  "#d32f2f", // rojo
+  "#0288d1", // celeste
+  "#7b1fa2", // violeta
+  "#00897b", // verde azulado
+  "#c2185b", // rosa oscuro
+  "#5d4037", // marrón
+];
+
+// 🌙 Paleta oscura
+const avatarColorsDark = [
+  "#64b5f6", // azul claro
+  "#ba68c8", // morado claro
+  "#81c784", // verde suave
+  "#ffb74d", // naranja suave
+  "#e57373", // rojo suave
+  "#4dd0e1", // celeste
+  "#9575cd", // violeta
+  "#4db6ac", // verde azulado claro
+  "#f06292", // rosa brillante
+  "#8d6e63", // marrón claro
+];
 
 const getInitials = (nombre: string) => {
   const p = nombre.trim().split(" ");
@@ -13,14 +40,24 @@ const getInitials = (nombre: string) => {
 };
 
 export const HeaderUserInfo = ({ user, area }: Props) => {
-  const storageKey = `avatarColor_${user?.email ?? "default"}`;
-  let avatarColor = sessionStorage.getItem(storageKey);
+  const theme = useTheme();
 
-  if (!avatarColor) {
-    const randomIndex = Math.floor(Math.random() * avatarColors.length);
-    avatarColor = avatarColors[randomIndex];
-    sessionStorage.setItem(storageKey, avatarColor);
-  }
+  // 🎨 Reutiliza el mismo sistema de color que SidebarFooter
+  const avatarColor = useMemo(() => {
+    const palette =
+      theme.palette.mode === "dark" ? avatarColorsDark : avatarColorsLight;
+    const storageKey = `avatarColor_${user?.email ?? "default"}_${
+      theme.palette.mode
+    }`;
+
+    const storedColor = sessionStorage.getItem(storageKey);
+    if (storedColor) return storedColor;
+
+    const randomIndex = Math.floor(Math.random() * palette.length);
+    const color = palette[randomIndex];
+    sessionStorage.setItem(storageKey, color);
+    return color;
+  }, [user, theme.palette.mode]);
 
   return (
     <Box
@@ -57,7 +94,7 @@ export const HeaderUserInfo = ({ user, area }: Props) => {
           variant="body2"
           color="text.secondary"
           sx={{
-            wordBreak: "break-all", // evita desbordes
+            wordBreak: "break-all",
             fontSize: { xs: 15, sm: 15 },
           }}
         >

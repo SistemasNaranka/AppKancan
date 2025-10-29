@@ -1,12 +1,19 @@
-import { Box, Avatar, Typography, IconButton, Tooltip } from "@mui/material";
+import { useState, useMemo } from "react";
+import {
+  Box,
+  Avatar,
+  Typography,
+  IconButton,
+  Tooltip,
+  useTheme,
+} from "@mui/material";
 import { Logout, Settings } from "@mui/icons-material";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
-import { useState, useMemo } from "react";
 import { ConfigPanel } from "@/apps/Configuracion/pages/ConfigPanel";
 
-// 🎨 Paleta de colores amigables
-const avatarColors = [
+// 🎨 Paleta clara
+const avatarColorsLight = [
   "#1976d2", // azul
   "#9c27b0", // morado
   "#2e7d32", // verde
@@ -19,6 +26,20 @@ const avatarColors = [
   "#5d4037", // marrón
 ];
 
+// 🌙 Paleta oscura (más suaves para contraste sobre fondo oscuro)
+const avatarColorsDark = [
+  "#64b5f6", // azul claro
+  "#ba68c8", // morado claro
+  "#81c784", // verde suave
+  "#ffb74d", // naranja suave
+  "#e57373", // rojo suave
+  "#4dd0e1", // celeste
+  "#9575cd", // violeta
+  "#4db6ac", // verde azulado claro
+  "#f06292", // rosa brillante
+  "#8d6e63", // marrón claro
+];
+
 interface Props {
   open: boolean;
 }
@@ -27,24 +48,25 @@ export const SidebarFooter = ({ open }: Props) => {
   const { user, logout } = useAuth();
   const { area } = useApps();
   const [openConfig, setOpenConfig] = useState(false);
+  const theme = useTheme(); // 🎨 Detecta si es dark o light
 
-  // 🌀 Mantener el color durante toda la sesión
   const avatarColor = useMemo(() => {
-    const storageKey = `avatarColor_${user?.email ?? "default"}`;
+    const palette =
+      theme.palette.mode === "dark" ? avatarColorsDark : avatarColorsLight;
+    const storageKey = `avatarColor_${user?.email ?? "default"}_${
+      theme.palette.mode
+    }`;
 
-    // 1️⃣ Verificar si ya hay un color guardado en sessionStorage
+    // ✅ Si ya hay color guardado para ese tema → úsalo
     const storedColor = sessionStorage.getItem(storageKey);
     if (storedColor) return storedColor;
 
-    // 2️⃣ Si no hay, generar uno nuevo aleatorio
-    const randomIndex = Math.floor(Math.random() * avatarColors.length);
-    const color = avatarColors[randomIndex];
-
-    // 3️⃣ Guardar en sessionStorage
+    // 🔄 Si no, genera uno nuevo
+    const randomIndex = Math.floor(Math.random() * palette.length);
+    const color = palette[randomIndex];
     sessionStorage.setItem(storageKey, color);
-
     return color;
-  }, [user]);
+  }, [user, theme.palette.mode]);
 
   const getInitials = (nombre: string) => {
     const p = nombre.trim().split(" ");

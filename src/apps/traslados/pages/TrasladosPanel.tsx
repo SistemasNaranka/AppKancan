@@ -1,16 +1,22 @@
+// Archivo: src/apps/traslados/pages/TrasladosPanel.tsx
 import React, { useMemo, useState } from "react";
 import { Box, Snackbar, Alert } from "@mui/material";
 import { PanelPendientes } from "../components/PanelPendientes";
+import { AccessValidationModal } from "../components/ValidarAccesso";
 import { useAuth } from "@/auth/hooks/useAuth";
+import { useAccessValidation } from "../hooks/useAccessValidation";
 import type { Traslado } from "../hooks/types";
 import { obtenerTraslados } from "../api/obtenerTraslados";
 import { aprobarTraslados } from "../api/obtenerTraslados";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 const TrasladosPanel: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  const accessValidation = useAccessValidation(user);
+  const navigate = useNavigate();
   const [filtroBodegaDestino, setFiltroBodegaDestino] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [idsSeleccionados, setIdsSeleccionados] = useState<number[]>([]);
@@ -35,9 +41,10 @@ const TrasladosPanel: React.FC = () => {
 
       return await obtenerTraslados(codigo, empresa);
     },
-    staleTime: 1000 * 60 * 60, // 1 hora - los datos se consideran frescos
-    gcTime: 1000 * 60 * 60 * 2, // 2 horas - tiempo antes de limpiar el cache
-    enabled: !!user?.codigo_ultra && !!user?.empresa, // Solo ejecutar si hay usuario
+    staleTime: 1000 * 60 * 60,
+    gcTime: 1000 * 60 * 60 * 2,
+    enabled:
+      !!user?.codigo_ultra && !!user?.empresa && accessValidation.isValid,
   });
 
   // ✅ Mostrar errores de la query
@@ -61,7 +68,7 @@ const TrasladosPanel: React.FC = () => {
     return Array.from(bodegas.values()).sort();
   }, [pendientes]);
 
-  // ✅ Filtrado solo por bodega destino
+  // ✅ Filtrado por bodega destino y nombre
   const filtrados = useMemo(() => {
     return pendientes.filter((t) => {
       const coincideBodega =
@@ -106,12 +113,10 @@ const TrasladosPanel: React.FC = () => {
     clave: string
   ) => {
     try {
-      // ✅ Verificar que tenemos los datos necesarios del usuario
       if (!user?.empresa || !user?.codigo_ultra) {
         throw new Error("Faltan datos de usuario para aprobar traslados");
       }
 
-      // ✅ Obtener los traslados completos seleccionados
       const trasladosSeleccionados = pendientes.filter((t) =>
         ids.includes(t.traslado)
       );
@@ -119,6 +124,7 @@ const TrasladosPanel: React.FC = () => {
       if (trasladosSeleccionados.length === 0) {
         throw new Error("No se encontraron traslados para aprobar");
       }
+
       console.log(
         "Informacion enviada",
         trasladosSeleccionados,
@@ -127,7 +133,6 @@ const TrasladosPanel: React.FC = () => {
         clave
       );
 
-      // 🔹 LLAMADA REAL A LA API CON LA ESTRUCTURA CORRECTA
       const resultado = await aprobarTraslados(
         trasladosSeleccionados,
         user.empresa,
@@ -137,7 +142,7 @@ const TrasladosPanel: React.FC = () => {
 
       console.log("✅ Respuesta de aprobación:", resultado);
 
-      // ✅ Actualizar el cache de TanStack Query (eliminar los aprobados)
+      // ✅ Actualizar el cache de TanStack Query
       queryClient.setQueryData<Traslado[]>(
         ["traslados_pendientes", user?.codigo_ultra, user?.empresa],
         (old = []) => old.filter((p) => !ids.includes(p.traslado))
@@ -150,8 +155,19 @@ const TrasladosPanel: React.FC = () => {
     } catch (err: any) {
       console.error("❌ Error al aprobar traslados:", err);
       setError(err.message || "Error al aprobar traslados");
-      throw err; // Re-lanzar para que el hijo maneje el error
+      throw err;
     }
+  };
+
+  // 🔄 CAMBIO: Agregar función para reintentar la carga
+  const handleRetry = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["traslados_pendientes", user?.codigo_ultra, user?.empresa],
+    });
+  };
+
+  const handleGoHome = () => {
+    navigate("/");
   };
 
   return (
@@ -165,44 +181,58 @@ const TrasladosPanel: React.FC = () => {
         p: { xs: 1, sm: 2, md: 3 },
       }}
     >
-      <PanelPendientes
-        totalPendientes={pendientes.length}
-        filtroBodegaDestino={filtroBodegaDestino}
-        setFiltroBodegaDestino={setFiltroBodegaDestino}
-        filtroNombre={filtroNombre}
-        setFiltroNombre={setFiltroNombre}
-        filtrados={filtrados}
-        bodegasDestino={bodegasDestino}
-        loading={loading}
-        idsSeleccionados={idsSeleccionados}
-        onToggleSeleccion={handleToggleSeleccion}
-        onToggleSeleccionarTodos={handleToggleSeleccionarTodos}
-        onEliminarTrasladosAprobados={handleEliminarTrasladosAprobados}
+      {/* Modal de validación de acceso */}
+      <AccessValidationModal
+        open={!accessValidation.isValid}
+        errorType={accessValidation.errorType}
+        onHome={handleGoHome}
       />
 
-      {/* Snackbar de éxito */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert severity="success" variant="filled">
-          ¡Traslados aprobados con éxito!
-        </Alert>
-      </Snackbar>
+      {/* Contenido principal */}
+      {accessValidation.isValid && (
+        <>
+          <PanelPendientes
+            totalPendientes={pendientes.length}
+            filtroBodegaDestino={filtroBodegaDestino}
+            setFiltroBodegaDestino={setFiltroBodegaDestino}
+            filtroNombre={filtroNombre}
+            setFiltroNombre={setFiltroNombre}
+            filtrados={filtrados}
+            bodegasDestino={bodegasDestino}
+            loading={loading}
+            isError={isError}
+            idsSeleccionados={idsSeleccionados}
+            onToggleSeleccion={handleToggleSeleccion}
+            onToggleSeleccionarTodos={handleToggleSeleccionarTodos}
+            onEliminarTrasladosAprobados={handleEliminarTrasladosAprobados}
+            onRetry={handleRetry}
+          />
 
-      {/* Snackbar de error */}
-      <Snackbar
-        open={!!error}
-        autoHideDuration={4000}
-        onClose={() => setError(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity="error" variant="filled">
-          {error}
-        </Alert>
-      </Snackbar>
+          {/* Snackbar de éxito */}
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={3000}
+            onClose={() => setSnackbarOpen(false)}
+            anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          >
+            <Alert severity="success" variant="filled">
+              ¡Traslados aprobados con éxito!
+            </Alert>
+          </Snackbar>
+
+          {/* Snackbar de error */}
+          <Snackbar
+            open={!!error}
+            autoHideDuration={4000}
+            onClose={() => setError(null)}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          >
+            <Alert severity="error" variant="filled">
+              {error}
+            </Alert>
+          </Snackbar>
+        </>
+      )}
     </Box>
   );
 };

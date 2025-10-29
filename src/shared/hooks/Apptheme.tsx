@@ -15,53 +15,56 @@ export const darkTheme = createTheme({
   palette: {
     mode: "dark",
     primary: {
-      main: "#008CFF",
-      light: "#48A9A6",
-      dark: "#004680",
+      main: "#006ACC", // Azul principal brillante (resalta bien en fondo oscuro)
+      light: "#B8DCFF", // Azul claro para hover o resaltes
+      dark: "#003D75", // Azul más profundo
       contrastText: "#FFFFFF",
     },
     secondary: {
-      main: "#48A9A6",
-      light: "#117888",
+      main: "#48A9A6", // Verde azulado (igual que el claro, pero resalta sobre fondo oscuro)
+      light: "#6FC7C4",
+      dark: "#2D7E7B",
       contrastText: "#FFFFFF",
     },
     error: {
-      main: "#B7324B",
-      light: "#88112F",
+      main: "#E57373", // Rojo claro (más legible en dark)
+      light: "#EF9A9A",
+      dark: "#B71C1C",
       contrastText: "#FFFFFF",
     },
     warning: {
-      main: "#FFD54F",
-      light: "#E6A700",
-      contrastText: "#333333",
+      main: "#FFB74D", // Ámbar suave
+      light: "#FFD54F",
+      dark: "#E6A700",
+      contrastText: "#1E1E1E",
     },
     success: {
-      main: "#6FBF73",
-      light: "#3B8E4D",
+      main: "#428F44", // Verde suave
+      light: "#CEE9CF",
+      dark: "#255026",
       contrastText: "#FFFFFF",
     },
     info: {
-      main: "#2196F3",
-      light: "#64B5F6",
-      dark: "#1976D2",
+      main: "#4FC3F7", // Azul claro (resalta sin saturar)
+      light: "#81D4FA",
+      dark: "#0288D1",
       contrastText: "#FFFFFF",
     },
     background: {
-      default: "#121212",
-      paper: "#2A2A2A",
+      default: "#121212", // Fondo general
+      paper: "#1E1E1E", // Superficies elevadas (tarjetas, paneles)
     },
     text: {
       primary: "#FFFFFF",
-      secondary: "#B0B0B0",
+      secondary: "#B0BEC5", // Gris azulado suave
     },
-    divider: "#444",
-    bgAlt: "#3B3B3B", // fondo alternativo para tarjetas o secciones
+    divider: "#333",
+    bgAlt: "#2B2B2B", // Fondo alternativo para secciones o áreas intermedias
   },
   typography: {
     fontFamily: "'Poppins', 'Roboto', sans-serif",
     fontSize: 15,
   },
-
   components: {
     MuiPaper: {
       styleOverrides: {
@@ -100,8 +103,9 @@ export const lightTheme = createTheme({
       contrastText: "#333333",
     },
     success: {
-      main: "#3B8E4D",
-      light: "#6FBF73",
+      main: "#50AF53", // Verde suave
+      light: "#CEE9CF",
+      dark: "#337035",
       contrastText: "#FFFFFF",
     },
     info: {

@@ -6,24 +6,20 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "ignoreDeprecations": "6.0",
-
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"],
+      "@resoluciones/*": ["./src/apps/promociones/src/*"]
     }
   },
   "include": ["src"],

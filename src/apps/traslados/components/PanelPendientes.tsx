@@ -20,6 +20,7 @@ type PanelPendientesProps = {
   setFiltroNombre: (v: string) => void;
   filtrados: Traslado[];
   bodegasDestino: string[];
+  isError?: boolean;
   loading: boolean;
   idsSeleccionados: number[];
   onToggleSeleccion: (id: number) => void;
@@ -29,6 +30,7 @@ type PanelPendientesProps = {
     ids: number[],
     clave: string
   ) => Promise<void>;
+  onRetry?: () => void; // ✅ YA EXISTE - no cambios
 };
 
 export const PanelPendientes: React.FC<PanelPendientesProps> = ({
@@ -39,11 +41,13 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
   filtrados,
   bodegasDestino,
   loading,
+  isError,
   idsSeleccionados,
   onToggleSeleccion,
   onToggleSeleccionarTodos,
   totalPendientes,
   onEliminarTrasladosAprobados,
+  onRetry,
 }) => {
   const [dialogoAprobacionAbierto, setDialogoAprobacionAbierto] =
     useState(false);
@@ -250,87 +254,97 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
       </Dialog>
 
       {/* ===== CONTENIDO PRINCIPAL ===== */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 1,
-          flexWrap: "wrap",
-          gap: 2,
-          rowGap: 1,
-          "@media (max-width: 700px)": {
-            flexDirection: "column",
-            alignItems: "flex-start",
-          },
-        }}
-      >
-        <ContadorPendientesYSeleccionados
-          pendientes={totalPendientes - idsSeleccionados.length}
-          seleccionados={idsSeleccionados.length}
-        />
+      {/* 🔄 CAMBIO 1: Ocultar controles si está cargando */}
+      {!loading && (
+        <>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 3,
+              flexWrap: "wrap",
+              gap: 2,
+              rowGap: 1,
+              "@media (max-width: 700px)": {
+                flexDirection: "column",
+                alignItems: "flex-start",
+              },
+            }}
+          >
+            <ContadorPendientesYSeleccionados
+              pendientes={totalPendientes - idsSeleccionados.length}
+              seleccionados={idsSeleccionados.length}
+            />
 
-        <ControlesSuperiores
-          idsSeleccionadosLength={idsSeleccionados.length}
-          loading={loading}
-          onToggleSeleccionarTodos={onToggleSeleccionarTodos}
-          onAbrirDialogoAprobacion={() => setDialogoAprobacionAbierto(true)}
-        />
-      </Box>
+            <ControlesSuperiores
+              idsSeleccionadosLength={idsSeleccionados.length}
+              loading={loading}
+              onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+              onAbrirDialogoAprobacion={() => setDialogoAprobacionAbierto(true)}
+            />
+          </Box>
 
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          mb: 1,
-          gap: 2,
-        }}
-      >
-        <PendientesFilters
-          filtroBodegaDestino={filtroBodegaDestino}
-          setFiltroBodegaDestino={setFiltroBodegaDestino}
-          filtroNombre={filtroNombre}
-          setFiltroNombre={setFiltroNombre}
-          bodegasDestino={bodegasDestino}
-          filtradosLength={filtrados.length}
-          todosSeleccionados={todosSeleccionados}
-          algunSeleccionado={algunSeleccionado}
-          onToggleSeleccionarTodos={onToggleSeleccionarTodos}
-        />
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              mb: 1,
+              gap: 2,
+            }}
+          >
+            <PendientesFilters
+              filtroBodegaDestino={filtroBodegaDestino}
+              setFiltroBodegaDestino={setFiltroBodegaDestino}
+              filtroNombre={filtroNombre}
+              setFiltroNombre={setFiltroNombre}
+              bodegasDestino={bodegasDestino}
+              filtradosLength={filtrados.length}
+              todosSeleccionados={todosSeleccionados}
+              algunSeleccionado={algunSeleccionado}
+              onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+            />
 
-        <Typography
-          variant="subtitle2"
-          color="text.secondary"
-          sx={{
-            userSelect: "none",
-            fontSize: "0.85rem",
-            textAlign: "right",
-            flexShrink: 0,
-            mr: { xs: 0, sm: 2, md: 4 },
-            ml: { xs: 0, sm: "auto" },
-            maxWidth: { xs: "100%", sm: "45%" },
-            "@media (max-width: 700px)": {
-              width: "100%",
-              textAlign: "center",
-              mt: 1,
-            },
-          }}
-        >
-          Visualiza, filtra y selecciona los traslados pendientes que deseas
-          Aprobar.
-        </Typography>
-      </Box>
+            <Typography
+              variant="subtitle2"
+              color="text.secondary"
+              sx={{
+                userSelect: "none",
+                fontSize: "0.85rem",
+                textAlign: "right",
+                flexShrink: 0,
+                mr: { xs: 0, sm: 2, md: 4 },
+                ml: { xs: 0, sm: "auto" },
+                maxWidth: { xs: "100%", sm: "45%" },
+                "@media (max-width: 700px)": {
+                  width: "100%",
+                  textAlign: "center",
+                  mt: 1,
+                },
+              }}
+            >
+              Visualiza, filtra y selecciona los traslados pendientes que deseas
+              Aprobar.
+            </Typography>
+          </Box>
 
-      <Divider sx={{ mb: 2, borderColor: "primary.main" }} />
+          <Divider sx={{ mb: 2, borderColor: "primary.main" }} />
+        </>
+      )}
 
       {/* ===== LISTA DE TRASLADOS ===== */}
+      {/* 🔄 CAMBIO 2: Pasar props necesarios para skeletons */}
       <Box sx={{ flex: 1, overflowY: "auto", pr: 1 }}>
         <ListaTraslados
           filtrados={filtrados}
           idsSeleccionados={idsSeleccionados}
           onToggleSeleccion={onToggleSeleccion}
+          loading={loading} // ✅ Estado de carga
+          isError={isError} // ✅ Estado de error
+          totalPendientes={totalPendientes} // ✅ Total para diferenciar "sin datos" vs "sin coincidencias"
+          onRetry={onRetry} // ✅ Función para reintentar
         />
       </Box>
 

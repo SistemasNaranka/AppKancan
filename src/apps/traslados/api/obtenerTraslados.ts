@@ -73,12 +73,16 @@ export async function aprobarTraslados(
   }));
 
   // ✅ Construir el payload con la estructura exacta
+  const codigo_ultra_str = String(codigo_ultra);
+
   const payload: AprobacionTrasladosRequest = {
     traslados: trasladosFormateados,
     empresa,
-    codigo_ultra,
+    codigo_ultra: codigo_ultra_str,
     clave,
   };
+
+  console.log("informacion", payload);
 
   console.log("📤 Enviando traslados para aprobación:", payload);
 

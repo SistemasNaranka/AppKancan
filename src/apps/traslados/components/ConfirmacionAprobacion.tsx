@@ -114,7 +114,9 @@ const ConfirmacionAprobacion: React.FC<Props> = ({
             value={identificacion}
             onChange={(e) => {
               const valor = e.target.value.replace(/[^0-9]/g, "");
-              setIdentificacion(valor);
+              if (valor.length <= 10) {
+                setIdentificacion(valor);
+              }
             }}
             type={mostrarIdentificacion ? "text" : "password"}
             error={!!error}

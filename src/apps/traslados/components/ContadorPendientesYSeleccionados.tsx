@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import { PendingActions, CheckCircle } from "@mui/icons-material";
 
 interface Props {
@@ -11,6 +11,9 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
   pendientes,
   seleccionados,
 }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
   return (
     <Box
       sx={{
@@ -20,7 +23,6 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
         flexWrap: "wrap",
         mb: 3,
         alignItems: "center",
-        minWidth: "auto",
       }}
     >
       {/* —— DOCUMENTOS PENDIENTES —— */}
@@ -29,23 +31,33 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
           display: "flex",
           alignItems: "center",
           gap: 1,
-          backgroundColor: "#e3f2fd", // Fondo azul claro (no blanco)
+          backgroundColor: isDark
+            ? theme.palette.primary.light
+            : theme.palette.primary.light,
           borderRadius: "8px",
           padding: "6px 12px",
         }}
       >
-        <PendingActions sx={{ color: "#004680", fontSize: 35 }} />
+        <PendingActions
+          sx={{
+            color: isDark
+              ? theme.palette.primary.dark
+              : theme.palette.primary.main,
+            fontSize: 35,
+          }}
+        />
         <Typography
           variant="body1"
           fontWeight={700}
           component="span"
           sx={{
-            color: "#004680",
+            color: isDark
+              ? theme.palette.primary.dark
+              : theme.palette.primary.main,
             fontSize: "1.5rem",
             whiteSpace: "nowrap",
-            overflow: "visible",
-            userSelect: "none", //  Esto evita la selección de texto
-            cursor: "default", // Opcional: evita que parezca interactivo
+            userSelect: "none",
+            cursor: "default",
           }}
         >
           Documentos Pendientes ({pendientes})
@@ -59,23 +71,33 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
             display: "flex",
             alignItems: "center",
             gap: 1,
-            backgroundColor: "#e8f5e9", // Fondo verde claro
+            backgroundColor: isDark
+              ? theme.palette.success.main
+              : theme.palette.success.main,
             borderRadius: "8px",
             padding: "6px 12px",
           }}
         >
-          <CheckCircle sx={{ color: "#388e3c", fontSize: 30 }} />
+          <CheckCircle
+            sx={{
+              color: isDark
+                ? theme.palette.success.light
+                : theme.palette.success.contrastText,
+              fontSize: 30,
+            }}
+          />
           <Typography
             variant="body1"
             fontWeight={700}
             component="span"
             sx={{
-              color: "#388e3c",
+              color: isDark
+                ? theme.palette.success.light
+                : theme.palette.success.contrastText,
               fontSize: "1.3rem",
               whiteSpace: "nowrap",
-              overflow: "visible",
-              userSelect: "none", //  Esto evita la selección de texto
-              cursor: "default", //  evita que parezca interactivo
+              userSelect: "none",
+              cursor: "default",
             }}
           >
             Documentos seleccionados ({seleccionados})

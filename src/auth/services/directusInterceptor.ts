@@ -5,7 +5,7 @@ import { refreshDirectus, setTokenDirectus } from "@/services/directus/auth";
 /**
  * Interceptor que verifica y refresca el token antes de cada petición
  */
-async function ensureValidToken(): Promise<void> {
+export async function ensureValidToken(): Promise<void> {
 
   const tokens = cargarTokenStorage();
   // Si no hay tokens, no hacer nada (el usuario no está autenticado)

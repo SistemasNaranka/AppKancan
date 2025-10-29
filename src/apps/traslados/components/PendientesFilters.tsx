@@ -4,11 +4,13 @@ import {
   TextField,
   InputAdornment,
   Checkbox,
+  useTheme,
   FormControlLabel,
+  FormGroup,
+  Typography,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import Autocomplete from "@mui/material/Autocomplete";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 
 type Props = {
   filtroBodegaDestino: string;
@@ -34,6 +36,8 @@ const PendientesFilters: React.FC<Props> = ({
   onToggleSeleccionarTodos,
 }) => {
   const opcionesDestino = ["Todas las bodegas", ...bodegasDestino];
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
 
   return (
     <Box
@@ -50,7 +54,8 @@ const PendientesFilters: React.FC<Props> = ({
       <Autocomplete
         disablePortal
         options={opcionesDestino}
-        value={filtroBodegaDestino === "" ? "" : filtroBodegaDestino}
+        freeSolo={false}
+        value={filtroBodegaDestino === "" ? null : filtroBodegaDestino}
         onChange={(_, newValue) => {
           if (newValue === "Todas las bodegas" || newValue === null) {
             setFiltroBodegaDestino("");
@@ -64,7 +69,6 @@ const PendientesFilters: React.FC<Props> = ({
             label="Bodega Destino"
             size="small"
             sx={{
-              minWidth: { xs: "100%", sm: 240 },
               background: "#fff",
               borderRadius: 2,
               boxShadow: 1,
@@ -79,24 +83,42 @@ const PendientesFilters: React.FC<Props> = ({
               {...rest}
               style={{ display: "flex", alignItems: "center" }}
             >
-              <LocalShippingIcon
-                sx={{ mr: 1, fontSize: 18, color: "success.main" }}
-              />
               {option}
             </li>
           );
         }}
         isOptionEqualToValue={(option, value) => option === value}
-        clearIcon={null}
-        sx={{ width: { xs: "100%", sm: 240 } }}
+        sx={{
+          flex: 1,
+          minWidth: { xs: "100%", sm: 280 },
+          maxWidth: "100%",
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              maxWidth: "100%",
+              "& .MuiAutocomplete-listbox": {
+                maxWidth: "100%",
+                "& li": {
+                  maxWidth: "100%",
+                },
+              },
+            },
+          },
+        }}
       />
-
       {/* Campo de búsqueda por nombre */}
       <TextField
         label="Filtrar por Traslado"
         size="small"
         value={filtroNombre}
-        onChange={(e) => setFiltroNombre(e.target.value)}
+        onChange={(e) => {
+          const valor = e.target.value;
+
+          if (/^\d*$/.test(valor) && valor.length <= 12) {
+            setFiltroNombre(valor);
+          }
+        }}
         slotProps={{
           input: {
             endAdornment: (
@@ -116,25 +138,62 @@ const PendientesFilters: React.FC<Props> = ({
 
       {/* Checkbox de Seleccionar Todo */}
       {filtradosLength > 0 && (
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={todosSeleccionados}
-              indeterminate={!todosSeleccionados && algunSeleccionado}
-              onChange={(e) => onToggleSeleccionarTodos(e.target.checked)}
-              color="primary"
-            />
-          }
-          label="Seleccionar todo"
+        <Box
           sx={{
-            ml: { xs: 0, sm: 1 },
-            userSelect: "none",
-            "& .MuiFormControlLabel-label": {
-              fontSize: "0.9rem",
-              fontWeight: "bold",
-            },
+            minWidth: { xs: "100%", sm: 240 },
+            background: theme.palette.background.paper,
+            borderRadius: 2,
+            boxShadow: 1,
+            display: "flex",
+            alignItems: "center",
+            p: 1.5,
+            transition: "box-shadow 0.3s ease",
           }}
-        />
+        >
+          <FormGroup
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={todosSeleccionados}
+                  indeterminate={!todosSeleccionados && algunSeleccionado}
+                  onChange={(e) => onToggleSeleccionarTodos(e.target.checked)}
+                  color="primary"
+                  size="medium"
+                  sx={{
+                    "&.MuiCheckbox-root": {
+                      padding: 0,
+                      marginRight: 1,
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 600,
+                    color: theme.palette.text.primary,
+                  }}
+                >
+                  Seleccionar todo ({filtradosLength})
+                </Typography>
+              }
+              sx={{
+                margin: 0,
+                justifyContent: "flex-start",
+                "& .MuiFormControlLabel-label": {
+                  marginLeft: 0.5,
+                },
+              }}
+            />
+          </FormGroup>
+        </Box>
       )}
     </Box>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Button } from "@mui/material";
+import { Box, Button, useTheme } from "@mui/material";
 
 type Props = {
   idsSeleccionadosLength: number;
@@ -11,9 +11,11 @@ type Props = {
 export const ControlesSuperiores: React.FC<Props> = ({
   idsSeleccionadosLength,
   loading,
-
   onAbrirDialogoAprobacion,
 }) => {
+  // ✅ useTheme debe ir *dentro* del componente
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   return (
     <Box
       sx={{
@@ -36,11 +38,13 @@ export const ControlesSuperiores: React.FC<Props> = ({
           px: 4,
           py: 1.2,
           fontSize: "1rem",
-          boxShadow: "0 3px 8px rgba(56,142,60,0.3)",
           opacity: idsSeleccionadosLength === 0 ? 0.5 : 1,
           cursor: idsSeleccionadosLength === 0 ? "not-allowed" : "pointer",
           transition: "transform 0.15s",
           "&:hover": {
+            backgroundColor: isDark
+              ? theme.palette.success.dark
+              : theme.palette.success.dark,
             transform: idsSeleccionadosLength === 0 ? "none" : "scale(1.03)",
           },
         }}

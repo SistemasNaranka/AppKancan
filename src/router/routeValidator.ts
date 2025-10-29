@@ -89,7 +89,7 @@ function validateRouteObject(
   }
 
   if (route.path) {
-    const esDinamica = route.path.startsWith(":");
+    
 
     if (!isChild && !route.path.startsWith("/")) {
       throw new RouteValidationError(
@@ -99,13 +99,7 @@ function validateRouteObject(
       );
     }
 
-    if (isChild && !(esDinamica)) {
-      throw new RouteValidationError(
-        filePath,
-        `PATH_FORMATO_INCORRECTO [${index}]`,
-        `Las rutas hijas deben ser dinamicas (":id"), recibido: "${route.path}".`
-      );
-    }
+    
   }
 
   if (!route.element && !route.children && !route.Component) {

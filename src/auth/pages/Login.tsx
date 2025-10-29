@@ -26,6 +26,8 @@ function Login() {
   const {
     control,
     handleSubmit,
+    setValue,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
@@ -36,13 +38,23 @@ function Login() {
       setLoading(true);
       await login(data.email, data.password);
     } catch (error: any) {
-      console.error("Error al iniciar sesión:", error);
-      let message = "Error interno de Servidor. Inténtalo más tarde.";
+      let message;
+
       if (error?.response?.status === 401) {
         message = "Credenciales incorrectas.";
+        setValue("password", ""); // limpia solo la contraseña
+      } else if (
+        error?.response?.data?.errors?.[0]?.message === "User suspended"
+      ) {
+        message = "Tu cuenta está suspendida. Contacta al administrador.";
+        reset();
       } else if (error?.message?.includes("Network Error")) {
         message = "No se pudo conectar con el servidor.";
+      } else {
+        message = "Error interno del servidor. Inténtalo más tarde.";
+        setValue("password", "");
       }
+
       showSnackbar(message, "error");
     } finally {
       setLoading(false);
