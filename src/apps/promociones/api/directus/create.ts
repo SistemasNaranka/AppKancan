@@ -1,6 +1,9 @@
 import directus from "@/services/directus/directus";
 import { createItem, createItems } from "@directus/sdk";
-import { withAutoRefresh, ensureValidToken } from "@/auth/services/directusInterceptor";
+import {
+  withAutoRefresh,
+  ensureValidToken,
+} from "@/auth/services/directusInterceptor";
 // Tipos para la creación de promociones
 export interface CreatePromocionData {
   nombre: string;
@@ -24,17 +27,17 @@ export interface PromoTienda {
  */
 function formatearHora(hora: string | null | undefined): string | null {
   if (!hora) return null;
-  
+
   // Si ya tiene formato HH:MM:SS, retornar tal cual
-  if (hora.split(':').length === 3) {
+  if (hora.split(":").length === 3) {
     return hora;
   }
-  
+
   // Si tiene formato HH:MM, agregar :00
-  if (hora.split(':').length === 2) {
+  if (hora.split(":").length === 2) {
     return `${hora}:00`;
   }
-  
+
   return hora;
 }
 
@@ -54,22 +57,19 @@ export async function crearPromocion(data: CreatePromocionData) {
       tipo_id: Number(data.tipo_id),
     };
 
-    console.log("📤 Enviando datos a Directus:", dataFormateada);
+    const result = await withAutoRefresh(() =>
+      directus.request(createItem("promo", dataFormateada))
+    );
 
-    const result = await withAutoRefresh(()=> directus.request(
-      createItem("promo", dataFormateada)
-    ))
-    
-    console.log("✅ Promoción creada exitosamente:", result);
     return result;
   } catch (error: any) {
     console.error("❌ Error al crear promoción:", error);
-    
+
     // Mostrar detalles del error si están disponibles
     if (error?.errors) {
       console.error("Detalles del error:", error.errors);
     }
-    
+
     throw error;
   }
 }
@@ -81,10 +81,7 @@ export async function asociarTiendasPromocion(
   promoId: number,
   tiendasIds: (number | string)[]
 ) {
-
-  await ensureValidToken()
-
-
+  await ensureValidToken();
 
   try {
     const promoTiendas: PromoTienda[] = tiendasIds.map((tiendaId) => ({
@@ -93,25 +90,18 @@ export async function asociarTiendasPromocion(
       estado: "Activo",
     }));
 
-    console.log("📤 Asociando tiendas a la promoción:", {
-      promoId,
-      cantidadTiendas: promoTiendas.length,
-      tiendas: promoTiendas
-    });
-
     const result = await directus.request(
       createItems("promo_tiendas", promoTiendas)
     );
-    
-    console.log("✅ Tiendas asociadas exitosamente:", result);
+
     return result;
   } catch (error: any) {
     console.error("❌ Error al asociar tiendas:", error);
-    
+
     if (error?.errors) {
       console.error("Detalles del error:", error.errors);
     }
-    
+
     throw error;
   }
 }
@@ -127,36 +117,37 @@ export interface CrearPromocionCompletaParams {
 /**
  * Crear promoción completa (promoción + asociaciones de tiendas)
  */
+// En create.ts
 export async function crearPromocionCompleta(
   params: CrearPromocionCompletaParams
 ) {
-  try {
-    console.log("🚀 Iniciando creación de promoción completa");
-    console.log("Datos de promoción:", params.promocionData);
-    console.log("IDs de tiendas:", params.tiendasIds);
+  let promocionCreada: any = null;
 
+  try {
     // 1. Crear la promoción
-    const promocion = await crearPromocion(params.promocionData);
-    
-    if (!promocion || !promocion.id) {
+    promocionCreada = await crearPromocion(params.promocionData);
+
+    if (!promocionCreada || !promocionCreada.id) {
       throw new Error("No se pudo crear la promoción - ID no recibido");
     }
 
     // 2. Asociar tiendas si hay alguna seleccionada
     if (params.tiendasIds.length > 0) {
-      await asociarTiendasPromocion(promocion.id, params.tiendasIds);
+      try {
+        await asociarTiendasPromocion(promocionCreada.id, params.tiendasIds);
+      } catch (tiendaError) {
+        // Si falla la asociación, intentar eliminar la promoción creada
+        console.error("❌ Error al asociar tiendas, revertiendo creación...");
+        // TODO: Implementar eliminación de promoción
+        throw new Error(
+          "Error al asociar tiendas a la promoción. Por favor, intente nuevamente."
+        );
+      }
     }
 
-    console.log("✅ Promoción completa creada con éxito");
-    return promocion;
+    return promocionCreada;
   } catch (error: any) {
     console.error("❌ Error al crear promoción completa:", error);
-    
-    // Proporcionar un mensaje de error más útil
-    if (error?.message) {
-      throw new Error(`Error al crear promoción: ${error.message}`);
-    }
-    
     throw error;
   }
 }

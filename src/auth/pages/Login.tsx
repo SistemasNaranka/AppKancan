@@ -1,4 +1,4 @@
-import LogoBlack from "@/assets/logo_black.png";
+import LogoBlack from "@/assets/Logo_letras.png";
 import Button from "@mui/material/Button";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -15,7 +15,7 @@ import { useAppTheme } from "@/shared/hooks/ThemeContext";
 import IconButton from "@mui/material/IconButton";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
-import { loginTheme } from "@/shared/hooks/loginTheme"; // 👈 nuevo tema
+import { loginTheme } from "@/shared/hooks/loginTheme";
 import { ThemeProvider } from "@mui/material/styles";
 
 function Login() {
@@ -64,36 +64,40 @@ function Login() {
   return (
     <ThemeProvider theme={loginTheme}>
       <div className="min-h-screen flex items-center justify-center bg-cover bg-center px-4 sm:px-6">
+        <div className="absolute top-4 right-4">
+          <IconButton
+            onClick={() => toggleTheme(!darkMode)}
+            sx={{
+              transition: "transform 0.3s ease-in-out",
+              transform: darkMode ? "rotate(180deg)" : "rotate(0deg)",
+              "& .MuiSvgIcon-root": {
+                transition: "color 0.3s ease-in-out",
+              },
+            }}
+          >
+            {darkMode ? (
+              <LightModeIcon
+                sx={{ color: darkMode ? "#f5d742" : "#004680", fontSize: 28 }}
+              />
+            ) : (
+              <DarkModeIcon
+                sx={{ color: darkMode ? "#f5d742" : "#004680", fontSize: 28 }}
+              />
+            )}
+          </IconButton>
+        </div>
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg p-6 sm:p-8 mx-2 sm:mx-0 relative">
-          <div className="absolute top-4 right-4">
-            <IconButton
-              onClick={() => toggleTheme(!darkMode)}
-              sx={{
-                transition: "transform 0.3s ease-in-out",
-                transform: darkMode ? "rotate(180deg)" : "rotate(0deg)",
-                "& .MuiSvgIcon-root": {
-                  transition: "color 0.3s ease-in-out",
-                },
-              }}
-            >
-              {darkMode ? (
-                <LightModeIcon
-                  sx={{ color: darkMode ? "#f5d742" : "#004680", fontSize: 28 }}
-                />
-              ) : (
-                <DarkModeIcon
-                  sx={{ color: darkMode ? "#f5d742" : "#004680", fontSize: 28 }}
-                />
-              )}
-            </IconButton>
-          </div>
-
           {/* Logo */}
-          <h2 className="mb-6 text-center">
+          <h2 className="m-6 text-center">
             <img
               src={LogoBlack}
               alt="logo"
-              className="mx-auto max-h-16 sm:max-h-20 md:max-h-24 object-contain"
+              style={{
+                width: "360px",
+                height: "auto",
+                objectFit: "contain",
+                margin: "0 auto",
+              }}
             />
           </h2>
 

@@ -44,7 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         codigo_ultra: me.codigo_ultra,
         empresa: me.empresa,
       });
-      console.log("hola mundo", me);
     } catch (error) {
       console.error("❌ Error en login:", error);
       throw error; // Propagar para que el componente Login lo maneje
@@ -64,7 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         // Cerrar sesion en directus
         await logoutDirectus(tokens.refresh);
-        console.log("✅ Logout exitoso en servidor");
       } catch (err) {
         console.warn("⚠️ No se pudo hacer logout en servidor:", err);
       }
@@ -87,18 +85,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Si no hay tokens, no hay sesión
       if (!tokens) {
-        console.log("ℹ️ No hay tokens guardados");
         setLoading(false);
         return;
       }
       try {
         // Verificar si el token expiró
         if (isExpired(tokens.expires_at)) {
-          console.log("🔄 Token expirado al iniciar, intentando refrescar...");
-
           try {
             // Refrescar el token
-            console.log("🔄 Refrescando tokens...");
+
             const res = await refreshDirectus(tokens.refresh);
             if (!res) {
               throw new Error("No se pudieron refrescar los tokens");
@@ -112,8 +107,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
             // Usar los tokens nuevos
             await setTokenDirectus(res.access_token);
-
-            console.log("✅ Token refrescado exitosamente al iniciar");
           } catch (refreshError) {
             console.error(
               "❌ Error al refrescar tokens en inicialización:",
@@ -133,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         } else {
           // Token válido, usarlo
-          console.log("✅ Token válido, usando token existente");
+
           await setTokenDirectus(tokens.access);
         }
 
@@ -147,8 +140,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           codigo_ultra: me.codigo_ultra,
           empresa: me.empresa,
         });
-
-        console.log("✅ Sesión restaurada exitosamente");
       } catch (error) {
         console.error("❌ Error al inicializar autenticación:", error);
         // Si falla obtener el usuario (por ejemplo, token inválido), cerrar sesión

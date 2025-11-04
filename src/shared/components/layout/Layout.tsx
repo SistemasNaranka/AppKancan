@@ -42,15 +42,24 @@ export default function Layout() {
           flexGrow: 1,
           height: "100vh",
           overflowY: "auto",
+          overflowX: "hidden",
           transition: "margin-left 0.5s ease",
-          marginLeft: isMobile ? 0 : open ? `${drawerWidth}px` : `${collapsedWidth}px`,
+          marginLeft: isMobile
+            ? 0
+            : open
+            ? `${drawerWidth}px`
+            : `${collapsedWidth}px`,
         }}
       >
         {/* En móvil, el AppSidebar se muestra dentro del flujo (overlay controlado) */}
+        {isMobile && <AppSidebar open={open} setOpen={setOpen} />}
         {isMobile && (
-          <AppSidebar open={open} setOpen={setOpen} />
+          <Toolbar
+            sx={{
+              margin: -3,
+            }}
+          />
         )}
-        {isMobile && <Toolbar />}
         <Outlet />
       </Box>
     </Box>

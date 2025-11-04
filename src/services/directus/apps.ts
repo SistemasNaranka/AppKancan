@@ -2,24 +2,24 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems } from "@directus/sdk";
 
-
-
 /**
  * Obtiene el area del usuario autenticado
  * ✅ Ahora con refresh automático si el token está expirado
  */
 export async function getUserArea() {
   return await withAutoRefresh(() =>
-    directus.request(readItems('rol_usuario', {
-      fields: ['id', 'area', 'rol_id.name'],
-    }))
+    directus.request(
+      readItems("rol_usuario", {
+        fields: ["id", "area", "rol_id.name"],
+      })
+    )
   );
 }
 
 /**
  * Retorna registros de la tabla Apps
  * ✅ Ahora con refresh automático si el token está expirado
- */export async function getApps() {
+ */ export async function getApps() {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -49,7 +49,6 @@ export async function getUserArea() {
       rol: item.app_id.rol?.name,
     }));
 
-    console.log("📦 Apps cargadas:", apps);
     return apps;
   } catch (error) {
     console.error("❌ Error al cargar apps:", error);

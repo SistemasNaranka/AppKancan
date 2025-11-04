@@ -124,6 +124,7 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
         onChange={(e) => onNombreChange(e.target.value)}
         placeholder={`Ej: Promoción ${tipoSeleccionado?.nombre || ""} 2025`}
         required
+        autoFocus
       />
 
       {/* Fechas */}

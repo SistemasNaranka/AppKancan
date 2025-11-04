@@ -239,95 +239,76 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
               </Typography>
             </>
           )}
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-            @keyframes pop {
-              0% { transform: scale(0.7); opacity: 0; }
-              80% { transform: scale(1.15); opacity: 1; }
-              100% { transform: scale(1); opacity: 1; }
-            }
-          `}</style>
         </DialogContent>
       </Dialog>
 
       {/* ===== CONTENIDO PRINCIPAL ===== */}
-      {/* 🔄 CAMBIO 1: Ocultar controles si está cargando */}
       {!loading && (
         <>
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
-              mb: 3,
+              alignItems: "flex-start",
+              mb: 2,
               flexWrap: "wrap",
-              gap: 2,
-              rowGap: 1,
-              "@media (max-width: 700px)": {
+              gap: 3,
+              "@media (max-width: 600px)": {
                 flexDirection: "column",
-                alignItems: "flex-start",
+                alignItems: "stretch",
               },
             }}
           >
-            <ContadorPendientesYSeleccionados
-              pendientes={totalPendientes - idsSeleccionados.length}
-              seleccionados={idsSeleccionados.length}
-            />
-
-            <ControlesSuperiores
-              idsSeleccionadosLength={idsSeleccionados.length}
-              loading={loading}
-              onToggleSeleccionarTodos={onToggleSeleccionarTodos}
-              onAbrirDialogoAprobacion={() => setDialogoAprobacionAbierto(true)}
-            />
-          </Box>
-
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              mb: 1,
-              gap: 2,
-            }}
-          >
-            <PendientesFilters
-              filtroBodegaDestino={filtroBodegaDestino}
-              setFiltroBodegaDestino={setFiltroBodegaDestino}
-              filtroNombre={filtroNombre}
-              setFiltroNombre={setFiltroNombre}
-              bodegasDestino={bodegasDestino}
-              filtradosLength={filtrados.length}
-              todosSeleccionados={todosSeleccionados}
-              algunSeleccionado={algunSeleccionado}
-              onToggleSeleccionarTodos={onToggleSeleccionarTodos}
-            />
-
-            <Typography
-              variant="subtitle2"
-              color="text.secondary"
+            {/* 🔹 COLUMNA IZQUIERDA: Filtros + Contadores */}
+            <Box
               sx={{
-                userSelect: "none",
-                fontSize: "0.85rem",
-                textAlign: "right",
-                flexShrink: 0,
-                mr: { xs: 0, sm: 2, md: 4 },
-                ml: { xs: 0, sm: "auto" },
-                maxWidth: { xs: "100%", sm: "45%" },
-                "@media (max-width: 700px)": {
-                  width: "100%",
-                  textAlign: "center",
-                  mt: 1,
-                },
+                display: "flex",
+                flexDirection: "column",
+                flex: 1,
+                maxWidth: 830,
+                gap: 2,
               }}
             >
-              Visualiza, filtra y selecciona los traslados pendientes que deseas
-              Aprobar.
-            </Typography>
+              <ContadorPendientesYSeleccionados
+                pendientes={totalPendientes - idsSeleccionados.length}
+                seleccionados={idsSeleccionados.length}
+              />
+
+              <PendientesFilters
+                filtroBodegaDestino={filtroBodegaDestino}
+                setFiltroBodegaDestino={setFiltroBodegaDestino}
+                filtroNombre={filtroNombre}
+                setFiltroNombre={setFiltroNombre}
+                bodegasDestino={bodegasDestino}
+                filtradosLength={filtrados.length}
+                todosSeleccionados={todosSeleccionados}
+                algunSeleccionado={algunSeleccionado}
+                onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+              />
+            </Box>
+
+            {/* 🔹 COLUMNA DERECHA: Controles (Aprobar + Ayuda) */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 2,
+                flexShrink: 0,
+                minWidth: 220,
+              }}
+            >
+              {/* Botón Aprobar centrado y más grande */}
+              <ControlesSuperiores
+                idsSeleccionadosLength={idsSeleccionados.length}
+                loading={loading}
+                onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+                onAbrirDialogoAprobacion={() =>
+                  setDialogoAprobacionAbierto(true)
+                }
+              />
+            </Box>
           </Box>
 
           <Divider sx={{ mb: 2, borderColor: "primary.main" }} />

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { Box, Button, Typography, Chip } from "@mui/material";
 import CustomSelectionModal from "@/shared/components/selectionmodal/CustomSelectionModal";
 import { useSelectionModal } from "@/shared/components/selectionmodal/useSelectionModal";
@@ -34,6 +34,27 @@ export const PromotionStoresSection: React.FC<PromotionStoresSectionProps> = ({
       .map((s) => s.nombre);
   }, [stores, tiendasSeleccionadas]);
 
+  // 🔧 Maneja la confirmación de selección
+  const handleConfirmSelection = useCallback(
+    (selected: (string | number)[]) => {
+      onStoresSelected(selected);
+      closeModal();
+    },
+    [onStoresSelected, closeModal]
+  );
+
+  // 🔧 Maneja la cancelación
+  const handleCancelSelection = useCallback(() => {
+    console.log("❌ Selección cancelada");
+    closeModal();
+  }, [closeModal]);
+
+  // 🔥 SOLUCIÓN: Crear una key única basada en las tiendas seleccionadas
+  // Esto fuerza al modal a re-renderizarse y leer initialSelected nuevamente
+  const modalKey = useMemo(() => {
+    return `modal-${tiendasSeleccionadas.join("-")}`;
+  }, [tiendasSeleccionadas]);
+
   return (
     <Box>
       <Typography variant="subtitle2" gutterBottom fontWeight={600}>
@@ -51,18 +72,20 @@ export const PromotionStoresSection: React.FC<PromotionStoresSectionProps> = ({
           : "Seleccionar tiendas"}
       </Button>
 
+      {/* 🔥 CLAVE: Agregamos key={modalKey} para forzar re-render */}
       <CustomSelectionModal
+        key={modalKey} // ⭐ ESTO RESUELVE EL PROBLEMA
         title="Seleccionar Tiendas"
         open={open}
-        onClose={closeModal}
-        onConfirm={onStoresSelected}
+        onClose={handleCancelSelection}
+        onConfirm={handleConfirmSelection}
         items={storeItems}
         initialSelected={tiendasSeleccionadas}
         labelKey="label"
       />
 
       {selectedStoreNames.length > 0 && (
-        <Box display="flex" flexWrap="wrap" gap={1}>
+        <Box display="flex" flexWrap="wrap" gap={1} mt={2}>
           {selectedStoreNames.map((storeName) => (
             <Chip
               key={storeName}

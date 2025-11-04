@@ -1,14 +1,16 @@
 import { useAuth } from "@/auth/hooks/useAuth";
-import { getApps, getUserArea} from "@/services/directus/apps";
+import { getApps, getUserArea } from "@/services/directus/apps";
 import React, { useCallback, useEffect, useState } from "react";
 import { AppContext, type App } from "@/apps/hooks/AppContext";
 
 /**
  * Provider que otorga a sus hijos las aplicaciones obtenidas de Directus
  */
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated} = useAuth();
-  
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isAuthenticated } = useAuth();
+
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
   const [area, setArea] = useState<string | null>(null);
@@ -27,17 +29,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       setLoading(true);
-      console.log("📱 Cargando apps desde Directus...");
-      
+
       const data = await getApps();
-      console.log(data)
+
       setApps(data);
 
       // Estableciendo area apartir del id del usuario
-      const areaUsuario = await getUserArea()
-      console.log(areaUsuario)
+      const areaUsuario = await getUserArea();
 
-    
       if (areaUsuario.length < 1) {
         console.warn("⚠️ Este usuario no tiene rol'");
         setArea(null);
@@ -47,9 +46,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else {
         const areaValue = areaUsuario[0].area?.toLowerCase() || null;
         setArea(areaValue);
-        console.log(`🏠 Área principal establecida: ${areaValue}`);
       }
-
     } catch (err) {
       console.error("❌ Error cargando apps:", err);
       setApps([]);
@@ -57,7 +54,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setLoading(false);
     }
-  },[isAuthenticated])
+  }, [isAuthenticated]);
 
   // ✅ FIX: Solo depender de isAuthenticated, NO de area
   useEffect(() => {
@@ -65,12 +62,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [cargarApps]); // Solo se recarga cuando cambia la autenticación
 
   return (
-    <AppContext.Provider 
-      value={{ 
-        area, 
-        apps, 
-        loading, 
-        reloadApps: cargarApps 
+    <AppContext.Provider
+      value={{
+        area,
+        apps,
+        loading,
+        reloadApps: cargarApps,
       }}
     >
       {children}

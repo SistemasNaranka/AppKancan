@@ -66,7 +66,12 @@ export const usePromotionForm = () => {
     if (!nombre.trim()) return "Por favor ingresa un nombre para la promoción";
     if (!fechaInicio) return "Por favor selecciona una fecha de inicio";
     if (!horaInicio) return "Por favor selecciona una hora de inicio";
-
+    if (nombre.trim().length < 3) {
+      return "El nombre debe tener al menos 3 caracteres";
+    }
+    if (!/^[a-zA-Z0-9\s\-_áéíóúÁÉÍÓÚñÑ]+$/.test(nombre)) {
+      return "El nombre contiene caracteres no permitidos";
+    }
     if (duracion === "temporal") {
       if (!fechaFinal)
         return "Las promociones temporales requieren fecha final";
@@ -99,6 +104,16 @@ export const usePromotionForm = () => {
       return "La fecha de inicio no puede ser anterior a la fecha actual";
     }
 
+    if (duracion === "temporal" && fechaFinal && horaFinal) {
+      const datetimeFinal = fechaFinal
+        .clone()
+        .hour(horaFinal.hour())
+        .minute(horaFinal.minute());
+
+      if (datetimeFinal.isBefore(ahora)) {
+        return "La fecha final no puede ser anterior a la fecha actual";
+      }
+    }
     if (descuento < 1 || descuento > 100) {
       return "El descuento debe estar entre 1% y 100%";
     }

@@ -8,6 +8,7 @@ import {
   FormControlLabel,
   FormGroup,
   Typography,
+  Paper,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -37,17 +38,27 @@ const PendientesFilters: React.FC<Props> = ({
 }) => {
   const opcionesDestino = ["Todas las bodegas", ...bodegasDestino];
   const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
+  const capitalizarPalabras = (texto: string) =>
+    texto
+      .toLowerCase()
+      .split(" ")
+      .map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+      .join(" ");
 
   return (
-    <Box
+    <Paper
+      elevation={3}
       sx={{
+        p: 2,
+        borderRadius: 3,
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
         alignItems: { xs: "stretch", sm: "center" },
         gap: { xs: 2, sm: 3 },
-        mb: 2,
+        mb: 1,
         flexWrap: "wrap",
+        backgroundColor: theme.palette.background.paper,
+        boxShadow: `0px 1px 3px ${theme.palette.primary.main}`,
       }}
     >
       {/* Filtro por Bodega Destino */}
@@ -60,7 +71,7 @@ const PendientesFilters: React.FC<Props> = ({
           if (newValue === "Todas las bodegas" || newValue === null) {
             setFiltroBodegaDestino("");
           } else {
-            setFiltroBodegaDestino(newValue);
+            setFiltroBodegaDestino(capitalizarPalabras(newValue)); // 👈 transformar antes de guardar
           }
         }}
         renderInput={(params) => (
@@ -69,7 +80,7 @@ const PendientesFilters: React.FC<Props> = ({
             label="Bodega Destino"
             size="small"
             sx={{
-              background: "#fff",
+              background: theme.palette.background.paper,
               borderRadius: 2,
               boxShadow: 1,
             }}
@@ -83,30 +94,19 @@ const PendientesFilters: React.FC<Props> = ({
               {...rest}
               style={{ display: "flex", alignItems: "center" }}
             >
-              {option}
+              {capitalizarPalabras(option)}
             </li>
           );
         }}
         isOptionEqualToValue={(option, value) => option === value}
         sx={{
           flex: 1,
-          minWidth: { xs: "100%", sm: 280 },
-          maxWidth: "100%",
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              maxWidth: "100%",
-              "& .MuiAutocomplete-listbox": {
-                maxWidth: "100%",
-                "& li": {
-                  maxWidth: "100%",
-                },
-              },
-            },
-          },
+          minWidth: { xs: "100%", sm: 240 },
+          maxWidth: 260,
+          flexShrink: 0, // ✅ Evita que se estire o reduzca por flex
         }}
       />
+
       {/* Campo de búsqueda por nombre */}
       <TextField
         label="Filtrar por Traslado"
@@ -114,7 +114,6 @@ const PendientesFilters: React.FC<Props> = ({
         value={filtroNombre}
         onChange={(e) => {
           const valor = e.target.value;
-
           if (/^\d*$/.test(valor) && valor.length <= 12) {
             setFiltroNombre(valor);
           }
@@ -123,13 +122,13 @@ const PendientesFilters: React.FC<Props> = ({
           input: {
             endAdornment: (
               <InputAdornment position="end">
-                <SearchIcon />
+                <SearchIcon color="action" />
               </InputAdornment>
             ),
           },
         }}
         sx={{
-          background: "#fff",
+          background: theme.palette.background.paper,
           borderRadius: 2,
           boxShadow: 1,
           minWidth: { xs: "100%", sm: 240 },
@@ -140,10 +139,10 @@ const PendientesFilters: React.FC<Props> = ({
       {filtradosLength > 0 && (
         <Box
           sx={{
-            minWidth: { xs: "100%", sm: 240 },
+            minWidth: { xs: "100%", sm: 230 },
             background: theme.palette.background.paper,
             borderRadius: 2,
-            boxShadow: 1,
+            boxShadow: `0px 1px 2px ${theme.palette.text.primary}`,
             display: "flex",
             alignItems: "center",
             p: 1.5,
@@ -178,7 +177,7 @@ const PendientesFilters: React.FC<Props> = ({
                   variant="body2"
                   sx={{
                     fontWeight: 600,
-                    color: theme.palette.text.primary,
+                    color: theme.palette.text.secondary,
                   }}
                 >
                   Seleccionar todo ({filtradosLength})
@@ -187,15 +186,12 @@ const PendientesFilters: React.FC<Props> = ({
               sx={{
                 margin: 0,
                 justifyContent: "flex-start",
-                "& .MuiFormControlLabel-label": {
-                  marginLeft: 0.5,
-                },
               }}
             />
           </FormGroup>
         </Box>
       )}
-    </Box>
+    </Paper>
   );
 };
 

@@ -59,7 +59,9 @@ export const SidebarList = ({
               justifyContent: "center", // 👈 centra el ícono
             }}
           >
-            <Home color={location.pathname === "/home" ? "primary" : "inherit"} />
+            <Home
+              color={location.pathname === "/home" ? "primary" : "inherit"}
+            />
           </ListItemIcon>
           {open && <ListItemText primary="Inicio" />}
         </ListItemButton>
@@ -100,13 +102,21 @@ export const SidebarList = ({
             <Collapse in={expanded[categoria]} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
                 {apps.map((app) => (
-                  <Tooltip key={app.id} title={!open ? app.nombre : ""} placement="right">
+                  <Tooltip
+                    key={app.id}
+                    title={!open ? app.nombre : ""}
+                    placement="right"
+                  >
                     <ListItemButton
                       component={Link}
                       to={app.ruta}
                       selected={location.pathname === app.ruta}
                       sx={{
-                        ...getItemStyles(location.pathname === app.ruta, open, 1),
+                        ...getItemStyles(
+                          location.pathname === app.ruta,
+                          open,
+                          1
+                        ),
                         justifyContent: open ? "initial" : "center",
                         px: open ? 4 : 1,
                       }}

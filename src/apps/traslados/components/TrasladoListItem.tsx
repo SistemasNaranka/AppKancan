@@ -1,6 +1,5 @@
 import React from "react";
 import { Paper, Box, Typography, Chip } from "@mui/material";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import { Traslado } from "../hooks/types";
 interface Props {
   traslado: Traslado;
@@ -64,13 +63,17 @@ const TrasladoListItem: React.FC<Props> = ({
         Traslado: {traslado.traslado}
       </Typography>
 
-      <Typography variant="body2" fontSize={compact ? 12 : 10} color="inherit">
-        Fecha: {traslado.fecha}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {/* 👇 Mostrar el ícono solo si NO está seleccionado */}
 
-      <Typography variant="body2" fontSize={compact ? 12 : 10} color="inherit">
-        Unidades: {traslado.unidades}
-      </Typography>
+        <Typography
+          variant="body2"
+          fontSize={compact ? 12 : 10}
+          color="inherit"
+        >
+          Fecha: {traslado.fecha}
+        </Typography>
+      </Box>
 
       {/* Encabezado */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -81,17 +84,18 @@ const TrasladoListItem: React.FC<Props> = ({
           noWrap
           color="inherit" // hereda del Paper
         >
-          {traslado.nombre_origen} → {traslado.nombre_destino}
+          Origen: {traslado.nombre_origen}
         </Typography>
       </Box>
-
+      <Typography variant="body2" fontSize={compact ? 13 : 9} color="inherit">
+        Destino: {traslado.nombre_destino}
+      </Typography>
       {/* Chip cuando está seleccionado */}
       {
         <Chip
-          label="En tránsito"
+          label={`${traslado.unidades} Unds`}
           color="info"
           size="small"
-          icon={<LocalShippingIcon sx={{ fontSize: 16 }} />}
           sx={(theme) => ({
             position: "absolute",
             top: 8,

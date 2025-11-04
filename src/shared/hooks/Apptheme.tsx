@@ -1,4 +1,14 @@
 import { createTheme } from "@mui/material/styles";
+// removed generic fontsource import because TypeScript lacks module declarations; keep explicit css imports
+import "@fontsource/inter/400.css"; // Specify weight
+import "@fontsource/inter/400-italic.css"; // Specify weight and style
+
+const interTypography = {
+  fontFamily: "'Inter', sans-serif",
+  allVariants: {
+    fontFamily: "'Inter', sans-serif",
+  },
+};
 
 // 🧩 Extiende la paleta para agregar colores personalizados (opcional)
 declare module "@mui/material/styles" {
@@ -62,8 +72,8 @@ export const darkTheme = createTheme({
     bgAlt: "#2B2B2B", // Fondo alternativo para secciones o áreas intermedias
   },
   typography: {
-    fontFamily: "'Poppins', 'Roboto', sans-serif",
-    fontSize: 15,
+    ...interTypography,
+    fontSize: 13,
   },
   components: {
     MuiPaper: {
@@ -127,8 +137,8 @@ export const lightTheme = createTheme({
     bgAlt: "#F5F5F5", // fondo alternativo para tarjetas o secciones
   },
   typography: {
-    fontFamily: "'Poppins', 'Roboto', sans-serif",
-    fontSize: 15,
+    ...interTypography,
+    fontSize: 13,
   },
   components: {
     MuiPaper: {

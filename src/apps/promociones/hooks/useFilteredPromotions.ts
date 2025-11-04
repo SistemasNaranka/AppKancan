@@ -14,14 +14,14 @@ dayjs.extend(isSameOrBefore);
  */
 export const useFilteredPromotions = (): Promotion[] => {
   const { data: promotions = [], isLoading, isError } = usePromotions();
-  const { 
-    tipos, 
-    descuentoRange, 
-    duracion, 
-    tiendas, 
-    soloVigentes, 
+  const {
+    tipos,
+    descuentoRange,
+    duracion,
+    tiendas,
+    soloVigentes,
     focusedYear,
-    selectedView 
+    selectedView,
   } = usePromotionsFilter();
 
   const filteredPromotions = useMemo(() => {
@@ -32,12 +32,7 @@ export const useFilteredPromotions = (): Promotion[] => {
 
     const today = dayjs();
 
-    
     return promotions.filter((promo) => {
-      console.log(
-  "Fecha original:", promo.fecha_inicio,
-  "| Interpretada:", dayjs(promo.fecha_inicio).format(),
-);
       // 🔹 Filtro por duración
       if (duracion && promo.duracion !== duracion) return false;
 
@@ -45,12 +40,16 @@ export const useFilteredPromotions = (): Promotion[] => {
       if (tipos.length > 0 && !tipos.includes(promo.tipo)) return false;
 
       // 🔹 Filtro por rango de descuento
-      if (promo.descuento < descuentoRange.min || promo.descuento > descuentoRange.max) return false;
+      if (
+        promo.descuento < descuentoRange.min ||
+        promo.descuento > descuentoRange.max
+      )
+        return false;
 
       // 🔹 Filtro por tiendas seleccionadas
       if (tiendas.length > 0) {
         // Verificar si alguna tienda de la promoción está en las seleccionadas
-        const hasMatchingStore = promo.tiendas.some((tienda) => 
+        const hasMatchingStore = promo.tiendas.some((tienda) =>
           tiendas.includes(tienda)
         );
         if (!hasMatchingStore) return false;
@@ -65,7 +64,10 @@ export const useFilteredPromotions = (): Promotion[] => {
 
         // Si tiene fecha final, verificar que hoy esté dentro del rango
         if (end) {
-          if (!today.isSameOrAfter(start, "day") || !today.isSameOrBefore(end, "day")) {
+          if (
+            !today.isSameOrAfter(start, "day") ||
+            !today.isSameOrBefore(end, "day")
+          ) {
             return false;
           }
         } else {
@@ -89,8 +91,10 @@ export const useFilteredPromotions = (): Promotion[] => {
 
         if (end) {
           // Promoción temporal: debe intersectar con el año
-          const startsBeforeYearEnd = start.isBefore(yearEnd) || start.isSame(yearEnd, "day");
-          const endsAfterYearStart = end.isAfter(yearStart) || end.isAfter(yearStart, "day");
+          const startsBeforeYearEnd =
+            start.isBefore(yearEnd) || start.isSame(yearEnd, "day");
+          const endsAfterYearStart =
+            end.isAfter(yearStart) || end.isAfter(yearStart, "day");
           if (!startsBeforeYearEnd || !endsAfterYearStart) return false;
         } else {
           // Promoción fija: solo mostrar si inicia en este año
@@ -100,7 +104,18 @@ export const useFilteredPromotions = (): Promotion[] => {
 
       return true;
     });
-  }, [promotions, tipos, descuentoRange, duracion, tiendas, soloVigentes, focusedYear, selectedView, isLoading, isError]);
+  }, [
+    promotions,
+    tipos,
+    descuentoRange,
+    duracion,
+    tiendas,
+    soloVigentes,
+    focusedYear,
+    selectedView,
+    isLoading,
+    isError,
+  ]);
 
   return filteredPromotions;
 };

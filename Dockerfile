@@ -1,17 +1,38 @@
-FROM node:20-alpine
+# ===========================
+# 🏗️ Etapa 1: Construcción
+# ===========================
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-COPY package.json .
+# Copiar archivos necesarios para instalar dependencias
+COPY package*.json ./
 
-RUN npm install
+# Instalar dependencias exactas (más rápido y confiable que npm install)
+RUN npm ci
 
-RUN npm i -g serve
-
+# Copiar el resto del proyecto
 COPY . .
 
+# Compilar la aplicación (Vite)
 RUN npm run build
 
-EXPOSE 3000
 
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# ===========================
+# 🚀 Etapa 2: Producción
+# ===========================
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Instalar servidor estático
+RUN npm i -g serve
+
+# Copiar solo la carpeta de build desde la etapa anterior
+COPY --from=build /app/dist ./dist
+
+# Exponer el puerto de producción
+EXPOSE 11000
+
+# Servir la app
+CMD ["serve", "-s", "dist", "-l", "11000"]

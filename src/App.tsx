@@ -20,7 +20,7 @@ function App() {
           </AuthProvider>
         </BrowserRouter>
       </AppThemeProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
     </QueryClientProvider>
   );
 }

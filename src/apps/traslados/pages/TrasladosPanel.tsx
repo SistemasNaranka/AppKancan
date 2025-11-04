@@ -140,8 +140,6 @@ const TrasladosPanel: React.FC = () => {
         clave
       );
 
-      console.log("✅ Respuesta de aprobación:", resultado);
-
       // ✅ Actualizar el cache de TanStack Query
       queryClient.setQueryData<Traslado[]>(
         ["traslados_pendientes", user?.codigo_ultra, user?.empresa],

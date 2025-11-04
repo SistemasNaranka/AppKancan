@@ -19,26 +19,24 @@ export const AppThemeProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  // 🔹 Forzamos siempre modo claro
+  const darkMode = false;
+
+  // 🔹 Desactiva todos los efectos relacionados con dark mode
+  /*
   const [darkMode, setDarkMode] = useState(() => {
-    // Primero intenta leer de localStorage
     const saved = localStorage.getItem("darkMode");
     if (saved !== null) return JSON.parse(saved);
-
-    // Si no hay valor guardado, usar preferencia del sistema
     return (
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches
     );
   });
 
-  // Cambiar clase del body
   useEffect(() => {
     document.body.classList.toggle("dark", darkMode);
-    // Solo sincronizamos localStorage si el usuario cambia manualmente
-    // no sobrescribimos si queremos respetar la preferencia del sistema
   }, [darkMode]);
 
-  // Escuchar cambios en localStorage desde otras pestañas
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === "darkMode" && event.newValue !== null) {
@@ -49,18 +47,20 @@ export const AppThemeProvider = ({
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Escuchar cambios en la preferencia del sistema en tiempo real
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) => setDarkMode(e.matches);
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
+  */
 
   const theme = useMemo(() => (darkMode ? darkTheme : lightTheme), [darkMode]);
   const toggleTheme = (value: boolean) => {
+    /* 
     setDarkMode(value);
-    localStorage.setItem("darkMode", JSON.stringify(value)); // solo si el usuario cambia manualmente
+    localStorage.setItem("darkMode", JSON.stringify(value));  */
+    // solo si el usuario cambia manualmente
   };
 
   return (
@@ -69,7 +69,6 @@ export const AppThemeProvider = ({
         <div
           style={{
             transition: "background-color 0.6s ease, color 0.6s ease",
-
             minHeight: "100vh",
           }}
         >

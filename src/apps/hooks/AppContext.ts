@@ -7,18 +7,19 @@ export type App = {
   id: string;
   nombre: string;
   ruta: string;
-  area?: string;           // ✅ Área de la app (ej: "ventas", "contabilidad")
-  categoria?: string;      // ✅ Categoría ("principal" u otro valor)
+  area?: string; // ✅ Área de la app (ej: "ventas", "contabilidad")
+  categoria?: string; // ✅ Categoría ("principal" u otro valor)
+  icono_app?: string;
 };
 
 /**
  * Interfaz de los valores que otorgará el Provider
  */
 export interface AppContextType {
-  apps: App[];                           // Lista de apps cargadas
-  area: string | null;                   // ✅ Área del home principal
-  loading: boolean;                      // Estado de carga
-  reloadApps: () => Promise<void>;       // Función para recargar apps manualmente
+  apps: App[]; // Lista de apps cargadas
+  area: string | null; // ✅ Área del home principal
+  loading: boolean; // Estado de carga
+  reloadApps: () => Promise<void>; // Función para recargar apps manualmente
 }
 
 /**

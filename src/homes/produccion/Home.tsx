@@ -18,6 +18,21 @@ import { useApps } from "@/apps/hooks/useApps";
 import { useNavigate } from "react-router-dom";
 import { DynamicIcon } from "@/shared/utils/DynamicIcon";
 
+// Definir el tipo para appTabs
+interface AppTabsType {
+  gmailTab: Window | null;
+  driveTab: Window | null;
+  sheetsTab: Window | null;
+  [key: string]: Window | null; // Index signature para acceso dinámico
+}
+
+// Mantener las referencias a las pestañas fuera del componente
+const appTabs: AppTabsType = {
+  gmailTab: null,
+  driveTab: null,
+  sheetsTab: null,
+};
+
 function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -98,6 +113,7 @@ function Home() {
       month: "long",
       year: "numeric",
     });
+
   const formatTime = () =>
     currentTime.toLocaleTimeString("es-ES", {
       hour: "2-digit",
@@ -105,17 +121,47 @@ function Home() {
       second: "2-digit",
     });
 
-  const openApp = (url: string) => {
-    const windowName = url.includes("gmail")
-      ? "Gmail"
-      : url.includes("drive")
-      ? "GoogleDrive"
-      : "GoogleSheets";
-    const existingWindow = window.open("", windowName);
-    if (existingWindow && existingWindow.location.href !== "about:blank") {
-      existingWindow.focus();
-    } else {
-      window.open(url, windowName, "width=1200,height=800");
+  const openApp = (url: string): void => {
+    // Definimos un nombre único por app según la URL
+    let windowName = "";
+
+    if (url.includes("mail.google.com")) {
+      windowName = "gmailTab";
+    } else if (url.includes("drive.google.com")) {
+      windowName = "driveTab";
+    } else if (url.includes("docs.google.com/spreadsheets")) {
+      windowName = "sheetsTab";
+    }
+
+    if (!windowName) {
+      console.error("URL no reconocida:", url);
+      return;
+    }
+
+    try {
+      // Verificar si ya existe una pestaña abierta
+      const existingTab = appTabs[windowName];
+
+      if (existingTab && !existingTab.closed) {
+        // Si existe y no está cerrada, solo enfocarla
+        existingTab.focus();
+        return;
+      }
+
+      // Si no existe o fue cerrada, abrir una nueva
+      const newTab = window.open(url, windowName);
+
+      if (newTab) {
+        // Guardar la referencia
+        appTabs[windowName] = newTab;
+        newTab.focus();
+      } else {
+        alert(
+          "Por favor permite abrir pestañas emergentes para esta aplicación."
+        );
+      }
+    } catch (error) {
+      console.error("Error al abrir la aplicación:", error);
     }
   };
 
@@ -123,11 +169,11 @@ function Home() {
     const iconProps = { sx: { fontSize: { xs: 24, md: 30 }, color: "white" } };
     if (!connectionStatus.online) return <SignalWifiOff {...iconProps} />;
     const icons = [
-      <SignalWifiOff {...iconProps} />,
-      <SignalWifi1Bar {...iconProps} />,
-      <SignalWifi2Bar {...iconProps} />,
-      <SignalWifi3Bar {...iconProps} />,
-      <SignalWifi4Bar {...iconProps} />,
+      <SignalWifiOff key="wifi-off" {...iconProps} />,
+      <SignalWifi1Bar key="wifi-1" {...iconProps} />,
+      <SignalWifi2Bar key="wifi-2" {...iconProps} />,
+      <SignalWifi3Bar key="wifi-3" {...iconProps} />,
+      <SignalWifi4Bar key="wifi-4" {...iconProps} />,
     ];
     return icons[connectionStatus.strength];
   };
@@ -149,6 +195,7 @@ function Home() {
     "linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)",
     "linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%)",
   ];
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "¡Buenos días!";
@@ -585,7 +632,7 @@ function Home() {
               {[
                 {
                   icon: Mail,
-                  label: "Gmail API",
+                  label: "Gmail",
                   url: "https://mail.google.com",
                   bg: "linear-gradient(135deg, #ea4335 0%, #e57373 100%)",
                 },

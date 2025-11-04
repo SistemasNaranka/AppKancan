@@ -35,7 +35,23 @@ export interface DirectusTienda {
   codigo_ultra: number;
   empresa: string;
 }
+function formatearHoraDisplay(hora: string | null | undefined): string | null {
+  if (!hora) return null;
 
+  // Si ya es HH:MM, retornar tal cual
+  if (hora.length === 5 && hora.includes(":")) {
+    return hora;
+  }
+
+  // Si es HH:MM:SS, quitar los segundos
+  if (hora.length === 8 && hora.split(":").length === 3) {
+    return hora.substring(0, 5);
+  }
+
+  // Caso inesperado
+  console.warn(`⚠️ Formato de hora inesperado: ${hora}`);
+  return hora;
+}
 // ==================== FUNCIONES DE LECTURA ====================
 
 /**
@@ -52,7 +68,6 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
       )
     );
 
-    console.log("✅ Tiendas obtenidas:", data.length);
     return data as DirectusTienda[];
   } catch (error) {
     console.error("❌ Error al obtener tiendas:", error);
@@ -74,7 +89,6 @@ export async function obtenerTiposPromocion(): Promise<DirectusPromoTipo[]> {
       )
     );
 
-    console.log("✅ Tipos de promoción obtenidos:", data.length);
     return data as DirectusPromoTipo[];
   } catch (error) {
     console.error("❌ Error al obtener tipos de promoción:", error);
@@ -108,8 +122,7 @@ export async function obtenerPromociones(): Promise<Promotion[]> {
         })
       )
     );
-    console.log("🧩 Ejemplo de fechas crudas de Directus:");
-    console.log(promos[0].fecha_inicio, promos[0].fecha_final);
+
     // 2. Obtener todas las relaciones promo-tiendas
     const promoTiendas = await directus.request(
       readItems("promo_tiendas", {
@@ -154,15 +167,14 @@ export async function obtenerPromociones(): Promise<Promotion[]> {
         tiendas: tiendas,
         fecha_inicio: promo.fecha_inicio,
         fecha_final: promo.fecha_final,
-        hora_inicio: promo.hora_inicio?.substring(0, 5) || "", // HH:MM:SS -> HH:MM
-        hora_fin: promo.hora_fin?.substring(0, 5) || null,
+        hora_inicio: formatearHoraDisplay(promo.hora_inicio) || "",
+        hora_fin: formatearHoraDisplay(promo.hora_fin),
         descuento: promo.descuento,
         duracion: tipo?.duracion || "temporal",
         color: tipo?.color || "#888", // 👈 nuevo campo
       };
     });
 
-    console.log("✅ Promociones obtenidas:", promociones.length);
     return promociones;
   } catch (error) {
     console.error("❌ Error al obtener promociones:", error);
@@ -239,8 +251,8 @@ export async function obtenerPromocionPorId(
       tiendas: tiendas,
       fecha_inicio: promoData.fecha_inicio,
       fecha_final: promoData.fecha_final,
-      hora_inicio: promoData.hora_inicio?.substring(0, 5) || "",
-      hora_fin: promoData.hora_fin?.substring(0, 5) || null,
+      hora_inicio: formatearHoraDisplay(promoData.hora_inicio) || "",
+      hora_fin: formatearHoraDisplay(promoData.hora_fin),
       descuento: promoData.descuento,
       duracion: tipo?.duracion || "temporal",
       color: tipo?.color || "#888",
