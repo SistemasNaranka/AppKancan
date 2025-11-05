@@ -17,7 +17,7 @@ import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { useNavigate } from "react-router-dom";
 import { DynamicIcon } from "@/shared/utils/DynamicIcon";
-
+const windowRefs: { [key: string]: Window | null } = {};
 function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -107,15 +107,23 @@ function Home() {
 
   const openApp = (url: string) => {
     const windowName = url.includes("gmail")
-      ? "Gmail"
+      ? "MyApp_Gmail"
       : url.includes("drive")
-      ? "GoogleDrive"
-      : "GoogleSheets";
-    const existingWindow = window.open("", windowName);
-    if (existingWindow && existingWindow.location.href !== "about:blank") {
-      existingWindow.focus();
+      ? "MyApp_GoogleDrive"
+      : "MyApp_GoogleSheets";
+
+    // Verificar si tenemos una referencia guardada y si la ventana sigue abierta
+    if (windowRefs[windowName] && !windowRefs[windowName]?.closed) {
+      // La ventana existe, solo enfocarla
+      windowRefs[windowName]?.focus();
     } else {
-      window.open(url, windowName, "width=1200,height=800");
+      // Abrir nueva ventana o reutilizar una con el mismo nombre
+      windowRefs[windowName] = window.open(
+        url,
+        windowName,
+        "width=1200,height=800"
+      );
+      windowRefs[windowName]?.focus();
     }
   };
 

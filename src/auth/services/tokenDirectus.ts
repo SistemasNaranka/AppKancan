@@ -32,10 +32,10 @@ export function guardarTokenStorage(
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
 
   // Debug: Mostrar cuándo expira el token y cuánto tiempo queda
-  const expirationDate = new Date(expires_at);
+  /*   const expirationDate = new Date(expires_at);
   const diffInSeconds = Math.floor((expires_at - Date.now()) / 1000);
   const minutes = Math.floor(diffInSeconds / 60);
-  const seconds = diffInSeconds % 60;
+  const seconds = diffInSeconds % 60; */
 }
 
 /**
@@ -110,12 +110,11 @@ export const isExpired = (expiresAt: number): boolean => {
   const expired = now >= expiresAt;
 
   // Calcular diferencia total en segundos
-  const diffInSeconds = Math.abs(Math.floor((expiresAt - now) / 1000));
-  const minutes = Math.floor(diffInSeconds / 60);
-  const seconds = diffInSeconds % 60;
+  /*  const diffInSeconds = Math.abs(Math.floor((expiresAt - now) / 1000)); */
+  /*  const minutes = Math.floor(diffInSeconds / 60);
+  const seconds = diffInSeconds % 60; */
 
   if (expired) {
-    console.log(`⏱️ Token expiró hace ${minutes}m ${seconds}s`);
   } else {
   }
 

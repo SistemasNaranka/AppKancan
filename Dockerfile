@@ -1,43 +1,41 @@
 # ===========================
-# 🏗️ Etapa 1: Build
+# Etapa 1: Build (Node Debian)
 # ===========================
-FROM node:20-alpine AS builder
+FROM node:20-bullseye-slim AS builder
 
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copiar solo package.json primero
 COPY package*.json ./
 
-# Instalar dependencias (usando cache de npm)
-RUN npm ci --only=production
+# ⚙️ Instalar dependencias sin usar el lockfile de Windows
+RUN npm install --no-optional --force
 
-# Copiar el código fuente
+# Copiar el resto del código
 COPY . .
 
-# Construir la aplicación
+# ⚙️ Instalar manualmente la versión nativa de rollup
+RUN npm install @rollup/rollup-linux-x64-gnu --force
+
+# 🔧 Construir el proyecto
 RUN npm run build
 
 # ===========================
-# 🚀 Etapa 2: Producción con NGINX
+# Etapa 2: Producción (NGINX Alpine)
 # ===========================
 FROM nginx:alpine
 
-# Copiar los archivos compilados desde la etapa de build
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copiar configuración personalizada de nginx para SPA
 RUN echo 'server { \
-    listen 80; \
+    listen 11000; \
+    root /usr/share/nginx/html; \
+    index index.html; \
     location / { \
-        root /usr/share/nginx/html; \
-        index index.html; \
         try_files $uri $uri/ /index.html; \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-# Exponer puerto 80
-EXPOSE 80
+EXPOSE 11000
 
-# Iniciar nginx
 CMD ["nginx", "-g", "daemon off;"]

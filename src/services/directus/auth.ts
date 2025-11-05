@@ -57,8 +57,6 @@ export async function refreshDirectus(
 
   const res = await directus.request(refresh({ mode: "json", refresh_token }));
 
-  console.log("📥 Respuesta del refresh:", res);
-
   // Normalizar la respuesta (calculará expires_at)
   return normalizeTokenResponse(res);
 }

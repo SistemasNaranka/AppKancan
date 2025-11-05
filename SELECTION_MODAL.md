@@ -7,29 +7,34 @@
 ### Características Principales
 
 ✨ **Diseño Moderno**
+
 - Gradientes de color atractivos (púrpura/azul)
 - Animaciones suaves y transiciones
 - Interfaz responsiva y accesible
 
 🔍 **Autocomplete Inteligente**
+
 - Menú desplegable mientras escribes
 - Filtrado en tiempo real
 - Búsqueda en label y descripción
 - Selección directa desde el dropdown
 
 ✅ **Selección Múltiple**
+
 - Seleccionar/deseleccionar elementos individuales
 - Botones separados: "Seleccionar todo" y "Deseleccionar todo"
 - Indicador visual de elementos seleccionados
 - Contador de seleccionados
 
 📱 **Grid Responsivo**
+
 - Máximo 3 columnas en pantallas grandes
 - 2 columnas en tablets
 - 1 columna en móviles
 - Scroll interno sin afectar la estructura
 
 👁️ **Modo Consulta**
+
 - Visualización de solo lectura
 - Perfecto para mostrar información
 - Sin botones de confirmación
@@ -49,8 +54,8 @@ pnpm add @mui/material@7.3.4 @mui/icons-material @emotion/react @emotion/styled
 ### 2. Importar el Componente
 
 ```typescript
-import SelectionModal, { SelectionItem } from '@/components/SelectionModal';
-import { useSelectionModal } from '@/hooks/useSelectionModal';
+import SelectionModal, { SelectionItem } from "@/components/SelectionModal";
+import { useSelectionModal } from "@/hooks/useSelectionModal";
 ```
 
 ---
@@ -60,15 +65,15 @@ import { useSelectionModal } from '@/hooks/useSelectionModal';
 ### Ejemplo Simple
 
 ```typescript
-import React, { useState } from 'react';
-import { Button } from '@mui/material';
-import SelectionModal, { SelectionItem } from '@/components/SelectionModal';
-import { useSelectionModal } from '@/hooks/useSelectionModal';
+import React, { useState } from "react";
+import { Button } from "@mui/material";
+import SelectionModal, { SelectionItem } from "@/components/SelectionModal";
+import { useSelectionModal } from "@/hooks/useSelectionModal";
 
 const items: SelectionItem[] = [
-  { id: 1, label: 'Elemento A', description: 'Descripción A' },
-  { id: 2, label: 'Elemento B', description: 'Descripción B' },
-  { id: 3, label: 'Elemento C', description: 'Descripción C' },
+  { id: 1, label: "Elemento A", description: "Descripción A" },
+  { id: 2, label: "Elemento B", description: "Descripción B" },
+  { id: 3, label: "Elemento C", description: "Descripción C" },
 ];
 
 export default function MyComponent() {
@@ -77,7 +82,6 @@ export default function MyComponent() {
 
   const handleConfirm = (selectedIds: (string | number)[]) => {
     setSelected(selectedIds);
-    console.log('Seleccionados:', selectedIds);
   };
 
   return (
@@ -107,25 +111,25 @@ export default function MyComponent() {
 
 ### `SelectionModalProps`
 
-| Prop | Tipo | Requerido | Descripción |
-|------|------|-----------|-------------|
-| `open` | `boolean` | ✅ | Controla si el modal está abierto |
-| `onClose` | `() => void` | ✅ | Callback cuando se cierra el modal |
-| `onConfirm` | `(selected: (string \| number)[]) => void` | ✅ | Callback cuando se confirma la selección |
-| `items` | `SelectionItem[]` | ✅ | Array de elementos a mostrar |
-| `title` | `string` | ❌ | Título del modal (default: "Selecciona elementos") |
-| `mode` | `'select' \| 'view'` | ❌ | Modo del modal (default: "select") |
-| `initialSelected` | `(string \| number)[]` | ❌ | IDs inicialmente seleccionados (default: []) |
-| `modalHeight` | `number \| string` | ❌ | Altura fija del modal (default: 600) |
-| `maxColumns` | `number` | ❌ | Número máximo de columnas en el grid (default: 3) |
+| Prop              | Tipo                                       | Requerido | Descripción                                        |
+| ----------------- | ------------------------------------------ | --------- | -------------------------------------------------- |
+| `open`            | `boolean`                                  | ✅        | Controla si el modal está abierto                  |
+| `onClose`         | `() => void`                               | ✅        | Callback cuando se cierra el modal                 |
+| `onConfirm`       | `(selected: (string \| number)[]) => void` | ✅        | Callback cuando se confirma la selección           |
+| `items`           | `SelectionItem[]`                          | ✅        | Array de elementos a mostrar                       |
+| `title`           | `string`                                   | ❌        | Título del modal (default: "Selecciona elementos") |
+| `mode`            | `'select' \| 'view'`                       | ❌        | Modo del modal (default: "select")                 |
+| `initialSelected` | `(string \| number)[]`                     | ❌        | IDs inicialmente seleccionados (default: [])       |
+| `modalHeight`     | `number \| string`                         | ❌        | Altura fija del modal (default: 600)               |
+| `maxColumns`      | `number`                                   | ❌        | Número máximo de columnas en el grid (default: 3)  |
 
 ### `SelectionItem`
 
 ```typescript
 interface SelectionItem {
-  id: string | number;      // ID único del elemento
-  label: string;            // Texto visible del elemento
-  description?: string;     // Descripción opcional
+  id: string | number; // ID único del elemento
+  label: string; // Texto visible del elemento
+  description?: string; // Descripción opcional
 }
 ```
 
@@ -167,7 +171,7 @@ interface SelectionItem {
 <SelectionModal
   open={modal.open}
   onClose={modal.closeModal}
-  onConfirm={() => {}}  // No se usa en modo view
+  onConfirm={() => {}} // No se usa en modo view
   items={items}
   mode="view"
   title="Elementos disponibles"
@@ -186,15 +190,15 @@ El hook `useSelectionModal` simplifica el manejo del estado del modal:
 const modal = useSelectionModal();
 
 // Propiedades disponibles:
-modal.open      // boolean - Estado del modal
-modal.openModal  // () => void - Abre el modal
-modal.closeModal // () => void - Cierra el modal
+modal.open; // boolean - Estado del modal
+modal.openModal; // () => void - Abre el modal
+modal.closeModal; // () => void - Cierra el modal
 ```
 
 ### Ejemplo Completo
 
 ```typescript
-import { useSelectionModal } from '@/hooks/useSelectionModal';
+import { useSelectionModal } from "@/hooks/useSelectionModal";
 
 export default function Component() {
   const modal = useSelectionModal();
@@ -226,6 +230,7 @@ El componente incluye un autocomplete inteligente que muestra coincidencias mien
 ```
 
 **Características:**
+
 - Búsqueda en tiempo real
 - Menú desplegable automático
 - Selección directa desde el dropdown
@@ -244,12 +249,13 @@ El componente utiliza un grid responsive que se adapta al tamaño de la pantalla
 // Pantallas grandes: 3 columnas (máximo)
 
 <SelectionModal
-  maxColumns={3}  // Puedes cambiar el máximo de columnas
+  maxColumns={3} // Puedes cambiar el máximo de columnas
   // ... otras props
 />
 ```
 
 **Breakpoints:**
+
 - `xs` (0px): 1 columna
 - `sm` (600px): 2 columnas
 - `md` (960px): 3 columnas (máximo)
@@ -287,7 +293,7 @@ color: '#10b981',
 
 ```typescript
 <SelectionModal
-  modalHeight={700}  // Aumenta la altura fija
+  modalHeight={700} // Aumenta la altura fija
   // ... otras props
 />
 ```
@@ -308,10 +314,10 @@ const largeDataset = Array.from({ length: 1000 }, (_, i) => ({
 
 <SelectionModal
   items={largeDataset}
-  modalHeight={600}  // Altura fija
-  maxColumns={3}     // Grid responsivo
+  modalHeight={600} // Altura fija
+  maxColumns={3} // Grid responsivo
   // ... otras props
-/>
+/>;
 ```
 
 ---
@@ -321,9 +327,9 @@ const largeDataset = Array.from({ length: 1000 }, (_, i) => ({
 ### Ejemplo con React Hook Form
 
 ```typescript
-import { useForm } from 'react-hook-form';
-import SelectionModal from '@/components/SelectionModal';
-import { useSelectionModal } from '@/hooks/useSelectionModal';
+import { useForm } from "react-hook-form";
+import SelectionModal from "@/components/SelectionModal";
+import { useSelectionModal } from "@/hooks/useSelectionModal";
 
 export default function FormComponent() {
   const { register, watch, setValue } = useForm({
@@ -333,10 +339,10 @@ export default function FormComponent() {
   });
 
   const modal = useSelectionModal();
-  const selectedItems = watch('selectedItems');
+  const selectedItems = watch("selectedItems");
 
   const handleConfirm = (selected: (string | number)[]) => {
-    setValue('selectedItems', selected);
+    setValue("selectedItems", selected);
   };
 
   return (
@@ -400,10 +406,10 @@ Verifica que los items tengan propiedades `label` válidas:
 
 ```typescript
 // ❌ Incorrecto
-const items = [{ id: 1 }];  // Falta label
+const items = [{ id: 1 }]; // Falta label
 
 // ✅ Correcto
-const items = [{ id: 1, label: 'Elemento 1' }];
+const items = [{ id: 1, label: "Elemento 1" }];
 ```
 
 ### El grid no se adapta
@@ -412,7 +418,7 @@ Asegúrate de que `maxColumns` sea un número válido:
 
 ```typescript
 <SelectionModal
-  maxColumns={3}  // Debe ser un número entre 1 y 4
+  maxColumns={3} // Debe ser un número entre 1 y 4
   // ... otras props
 />
 ```
@@ -439,8 +445,8 @@ client/src/
 
 ```typescript
 const categories = [
-  { id: 'cat1', label: 'Electrónica', description: 'Productos electrónicos' },
-  { id: 'cat2', label: 'Ropa', description: 'Prendas de vestir' },
+  { id: "cat1", label: "Electrónica", description: "Productos electrónicos" },
+  { id: "cat2", label: "Ropa", description: "Prendas de vestir" },
   // ...
 ];
 
@@ -450,16 +456,16 @@ const categories = [
   onConfirm={handleCategories}
   mode="select"
   // ...
-/>
+/>;
 ```
 
 ### 2. Asignación de Permisos
 
 ```typescript
 const permissions = [
-  { id: 'read', label: 'Lectura', description: 'Permite leer contenido' },
-  { id: 'write', label: 'Escritura', description: 'Permite crear/editar' },
-  { id: 'delete', label: 'Eliminación', description: 'Permite eliminar' },
+  { id: "read", label: "Lectura", description: "Permite leer contenido" },
+  { id: "write", label: "Escritura", description: "Permite crear/editar" },
+  { id: "delete", label: "Eliminación", description: "Permite eliminar" },
   // ...
 ];
 
@@ -470,7 +476,7 @@ const permissions = [
   onConfirm={handlePermissions}
   maxColumns={2}
   // ...
-/>
+/>;
 ```
 
 ### 3. Visualización de Elementos Seleccionados
@@ -526,6 +532,7 @@ Este componente es parte del proyecto `mui-selection-modal` y está disponible p
 ## Changelog
 
 ### v2.0.0
+
 - ✨ Altura fija del modal (no cambia según items)
 - ✨ Botones separados para Seleccionar/Deseleccionar todo
 - ✨ Grid responsivo (máximo 3 columnas)
@@ -534,5 +541,5 @@ Este componente es parte del proyecto `mui-selection-modal` y está disponible p
 - 🎨 Mejor visualización en dispositivos móviles
 
 ### v1.0.0
-- 🎉 Versión inicial del componente
 
+- 🎉 Versión inicial del componente

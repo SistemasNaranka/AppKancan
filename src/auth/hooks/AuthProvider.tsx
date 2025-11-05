@@ -45,7 +45,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         empresa: me.empresa,
       });
     } catch (error) {
-      console.error("❌ Error en login:", error);
       throw error; // Propagar para que el componente Login lo maneje
     }
   };
