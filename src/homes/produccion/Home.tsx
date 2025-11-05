@@ -387,7 +387,11 @@ function Home() {
                   fontSize: { xs: "1rem", md: "1.25rem" },
                 }}
               >
-                {user?.nombre ?? "Usuario"}
+                {user?.nombre && user?.apellido
+                  ? `${user.nombre} ${user.apellido}`
+                  : user?.nombre
+                  ? user.nombre
+                  : "Usuario"}
               </Typography>
               <Chip
                 label={`Área de ${area ?? "No Definida"}`}

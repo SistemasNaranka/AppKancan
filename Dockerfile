@@ -1,38 +1,43 @@
 # ===========================
-# 🏗️ Etapa 1: Construcción
+# 🏗️ Etapa 1: Build
 # ===========================
-FROM node:20-alpine AS build
+FROM node:20-alpine AS builder
 
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos necesarios para instalar dependencias
+# Copiar archivos de dependencias
 COPY package*.json ./
 
-# Instalar dependencias exactas (más rápido y confiable que npm install)
-RUN npm ci
+# Instalar dependencias (usando cache de npm)
+RUN npm ci --only=production
 
-# Copiar el resto del proyecto
+# Copiar el código fuente
 COPY . .
 
-# Compilar la aplicación (Vite)
+# Construir la aplicación
 RUN npm run build
 
-
 # ===========================
-# 🚀 Etapa 2: Producción
+# 🚀 Etapa 2: Producción con NGINX
 # ===========================
-FROM node:20-alpine AS production
+FROM nginx:alpine
 
-WORKDIR /app
+# Copiar los archivos compilados desde la etapa de build
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Instalar servidor estático
-RUN npm i -g serve
+# Copiar configuración personalizada de nginx para SPA
+RUN echo 'server { \
+    listen 80; \
+    location / { \
+        root /usr/share/nginx/html; \
+        index index.html; \
+        try_files $uri $uri/ /index.html; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
 
-# Copiar solo la carpeta de build desde la etapa anterior
-COPY --from=build /app/dist ./dist
+# Exponer puerto 80
+EXPOSE 80
 
-# Exponer el puerto de producción
-EXPOSE 11000
-
-# Servir la app
-CMD ["serve", "-s", "dist", "-l", "11000"]
+# Iniciar nginx
+CMD ["nginx", "-g", "daemon off;"]
