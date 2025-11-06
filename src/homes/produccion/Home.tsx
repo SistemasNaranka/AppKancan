@@ -18,15 +18,13 @@ import { useApps } from "@/apps/hooks/useApps";
 import { useNavigate } from "react-router-dom";
 import { DynamicIcon } from "@/shared/utils/DynamicIcon";
 
-// Definir el tipo para appTabs
 interface AppTabsType {
   gmailTab: Window | null;
   driveTab: Window | null;
   sheetsTab: Window | null;
-  [key: string]: Window | null; // Index signature para acceso dinámico
+  [key: string]: Window | null;
 }
 
-// Mantener las referencias a las pestañas fuera del componente
 const appTabs: AppTabsType = {
   gmailTab: null,
   driveTab: null,
@@ -122,7 +120,6 @@ function Home() {
     });
 
   const openApp = (url: string): void => {
-    // Definimos un nombre único por app según la URL
     let windowName = "";
 
     if (url.includes("mail.google.com")) {
@@ -139,20 +136,16 @@ function Home() {
     }
 
     try {
-      // Verificar si ya existe una pestaña abierta
       const existingTab = appTabs[windowName];
 
       if (existingTab && !existingTab.closed) {
-        // Si existe y no está cerrada, solo enfocarla
         existingTab.focus();
         return;
       }
 
-      // Si no existe o fue cerrada, abrir una nueva
       const newTab = window.open(url, windowName);
 
       if (newTab) {
-        // Guardar la referencia
         appTabs[windowName] = newTab;
         newTab.focus();
       } else {
@@ -166,8 +159,7 @@ function Home() {
   };
 
   const getConnectionIcon = () => {
-    const iconProps = { sx: { fontSize: { xs: 24, md: 30 }, color: "white" } };
-    if (!connectionStatus.online) return <SignalWifiOff {...iconProps} />;
+    const iconProps = { sx: { fontSize: { xs: 24, md: 30 } } };
     const icons = [
       <SignalWifiOff key="wifi-off" {...iconProps} />,
       <SignalWifi1Bar key="wifi-1" {...iconProps} />,
@@ -178,23 +170,11 @@ function Home() {
     return icons[connectionStatus.strength];
   };
 
-  const getConnectionBg = () => {
-    if (!connectionStatus.online)
-      return "linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)";
-    const bgs = [
-      "",
-      "linear-gradient(135deg, #f97316 0%, #fb923c 100%)",
-      "linear-gradient(135deg, #eab308 0%, #facc15 100%)",
-      "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-      "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-    ];
-    return bgs[connectionStatus.strength];
+  const getConnectionColor = () => {
+    if (!connectionStatus.online) return "#6b7280";
+    const colors = ["#6b7280", "#f97316", "#eab308", "#22c55e", "#16a34a"];
+    return colors[connectionStatus.strength];
   };
-
-  const appColors = [
-    "linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)",
-    "linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%)",
-  ];
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -202,6 +182,26 @@ function Home() {
     if (hour < 18) return "¡Buenas tardes!";
     return "¡Buenas noches!";
   };
+
+  // Función auxiliar para convertir hex a rgba
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  // Array de colores para las apps
+  const appColors = [
+    "#ff6b6b",
+    "#4ecdc4",
+    "#45b7d1",
+    "#f9ca24",
+    "#6c5ce7",
+    "#a29bfe",
+    "#fd79a8",
+    "#fdcb6e",
+  ];
 
   return (
     <Box
@@ -212,7 +212,6 @@ function Home() {
         flexDirection: "column",
       }}
     >
-      {/* Layout Principal - Responsive */}
       <Box
         sx={{
           flex: 1,
@@ -231,28 +230,38 @@ function Home() {
             flexWrap: { xs: "wrap", lg: "nowrap" },
           }}
         >
-          {/* Hora/Fecha */}
+          {/* Hora/Fecha - Fondo blanco con borde naranja */}
           <Paper
-            elevation={8}
+            elevation={2}
             sx={{
-              background: "linear-gradient(135deg, #FFAF2E 0%, #f9a825 100%)",
+              bgcolor: "white",
               borderRadius: 3,
+              border: "1px solid #e0e0e0",
               p: { xs: 2, md: 3 },
-              color: "white",
               flex: {
                 xs: "1 1 calc(50% - 8px)",
                 sm: "1 1 calc(50% - 12px)",
                 lg: "0 0 auto",
               },
               minWidth: { xs: "calc(50% - 8px)", sm: 200 },
+              transition: "all 0.3s",
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-              <CalendarToday sx={{ fontSize: { xs: 30, md: 40 }, mr: 1 }} />
+              <CalendarToday
+                sx={{
+                  fontSize: { xs: 30, md: 40 },
+                  mr: 1,
+                  color: "#FFAF2E",
+                }}
+              />
               <Typography
                 variant="h6"
                 fontWeight="bold"
-                sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+                sx={{
+                  fontSize: { xs: "1rem", md: "1.25rem" },
+                  color: "#1a1a1a",
+                }}
               >
                 {formatTime().split(":")[0]}:{formatTime().split(":")[1]}
               </Typography>
@@ -262,39 +271,36 @@ function Home() {
               sx={{
                 textTransform: "capitalize",
                 fontSize: { xs: "0.75rem", md: "0.875rem" },
+                color: "#666",
               }}
             >
               {formatDate()}
             </Typography>
-
-            <Typography
-              variant="subtitle1"
-              fontWeight="bold"
-              sx={{
-                mt: 1,
-                fontSize: { xs: "0.85rem", md: "1rem" },
-              }}
-            ></Typography>
           </Paper>
 
-          {/* Clima Mejorado */}
+          {/* Sección en Desarrollo - Fondo blanco con borde morado */}
           <Paper
-            elevation={8}
+            elevation={2}
             sx={{
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              bgcolor: "white",
               borderRadius: 3,
+              border: "1px solid #e0e0e0",
               p: { xs: 2, md: 3 },
-              color: "white",
               flex: 1,
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
               alignItems: "center",
               minHeight: 200,
+              transition: "all 0.3s",
             }}
           >
             <Construction
-              sx={{ fontSize: { xs: 60, md: 80 }, mb: 2, opacity: 0.9 }}
+              sx={{
+                fontSize: { xs: 60, md: 80 },
+                mb: 2,
+                color: "#667eea",
+              }}
             />
             <Typography
               variant="h6"
@@ -303,6 +309,7 @@ function Home() {
                 mb: 1,
                 textAlign: "center",
                 fontSize: { xs: "1rem", md: "1.25rem" },
+                color: "#1a1a1a",
               }}
             >
               Sección en Desarrollo
@@ -310,9 +317,9 @@ function Home() {
             <Typography
               variant="body2"
               sx={{
-                opacity: 0.8,
                 textAlign: "center",
                 fontSize: { xs: "0.75rem", md: "0.875rem" },
+                color: "#666",
               }}
             >
               Próximamente: Noticias, cambios y nuevas funcionalidades
@@ -321,14 +328,12 @@ function Home() {
               label="Próximamente"
               sx={{
                 mt: 2,
-                bgcolor: "rgba(255,255,255,0.2)",
+                bgcolor: "#667eea",
                 color: "white",
                 fontWeight: 600,
               }}
             />
           </Paper>
-
-          {/* Estadísticas Rápidas */}
         </Box>
 
         {/* COLUMNA CENTRAL */}
@@ -341,22 +346,23 @@ function Home() {
             minWidth: 0,
           }}
         >
-          {/* Bienvenida + Conexión combinadas en una sola tarjeta */}
+          {/* Bienvenida + Conexión */}
           <Paper
-            elevation={12}
+            elevation={2}
             sx={{
-              background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
-              borderRadius: 4,
-              border: "3px solid #667eea",
+              bgcolor: "white",
+              borderRadius: 3,
+              border: "1px solid #e0e0e0",
               p: { xs: 2, md: 3 },
               display: "flex",
               flexDirection: { xs: "column", md: "row" },
               alignItems: "center",
               justifyContent: "space-between",
               gap: { xs: 2, md: 3 },
+              transition: "all 0.3s",
             }}
           >
-            {/* Izquierda: Bienvenida */}
+            {/* Bienvenida */}
             <Box
               sx={{
                 flex: 1,
@@ -370,10 +376,7 @@ function Home() {
                 variant="h4"
                 fontWeight="bold"
                 sx={{
-                  background:
-                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  color: "#667eea",
                   fontSize: { xs: "1.5rem", md: "2rem" },
                 }}
               >
@@ -383,7 +386,7 @@ function Home() {
                 variant="h6"
                 sx={{
                   mt: 1,
-                  opacity: 0.9,
+                  color: "#1a1a1a",
                   fontSize: { xs: "1rem", md: "1.25rem" },
                 }}
               >
@@ -404,36 +407,233 @@ function Home() {
               />
             </Box>
 
-            {/* Derecha: Conexión */}
+            {/* Conexión */}
             <Tooltip
+              arrow
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor: "white",
+                    color: "#1a1a1a",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                    borderRadius: 2,
+                    border: `2px solid ${getConnectionColor()}`,
+                    p: 0,
+                    maxWidth: 280,
+                  },
+                },
+                arrow: {
+                  sx: {
+                    color: "white",
+                    "&::before": {
+                      border: `2px solid ${getConnectionColor()}`,
+                    },
+                  },
+                },
+              }}
               title={
-                <Box sx={{ p: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Estado de Conexión
-                  </Typography>
-                  <Typography variant="caption">
-                    Estado:{" "}
-                    {connectionStatus.online ? "Conectado" : "Sin conexión"}
-                  </Typography>
-                  <br />
-                  <Typography variant="caption">
-                    Calidad: {connectionStatus.quality}
-                  </Typography>
-                  {connectionStatus.online && connectionStatus.ping > 0 && (
-                    <>
-                      <br />
-                      <Typography variant="caption">
-                        Latencia: {connectionStatus.ping}ms
+                <Box sx={{ p: 2 }}>
+                  {/* Header con icono y título */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                      pb: 1.5,
+                      borderBottom: `2px solid ${getConnectionColor()}20`,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        bgcolor: `${getConnectionColor()}15`,
+                        borderRadius: 2,
+                        p: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Box
+                        sx={{ color: getConnectionColor(), display: "flex" }}
+                      >
+                        {getConnectionIcon()}
+                      </Box>
+                    </Box>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 700,
+                        color: getConnectionColor(),
+                        fontSize: "1rem",
+                      }}
+                    >
+                      Estado de Conexión
+                    </Typography>
+                  </Box>
+
+                  {/* Información de conexión */}
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                  >
+                    {/* Estado */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#666",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          fontSize: "0.7rem",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        Estado
                       </Typography>
-                    </>
-                  )}
+                      <Chip
+                        label={
+                          connectionStatus.online ? "Conectado" : "Sin conexión"
+                        }
+                        size="small"
+                        sx={{
+                          bgcolor: connectionStatus.online
+                            ? `${getConnectionColor()}15`
+                            : "#f3f4f6",
+                          color: connectionStatus.online
+                            ? getConnectionColor()
+                            : "#6b7280",
+                          fontWeight: 600,
+                          fontSize: "0.7rem",
+                          height: 24,
+                        }}
+                      />
+                    </Box>
+
+                    {/* Calidad */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#666",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          fontSize: "0.7rem",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        Calidad
+                      </Typography>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                      >
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            bgcolor: getConnectionColor(),
+                            boxShadow: `0 0 8px ${getConnectionColor()}60`,
+                          }}
+                        />
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            color: getConnectionColor(),
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {connectionStatus.quality}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Latencia */}
+                    {connectionStatus.online && connectionStatus.ping > 0 && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#666",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            fontSize: "0.7rem",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          Latencia
+                        </Typography>
+                        <Box
+                          sx={{
+                            bgcolor: `${getConnectionColor()}10`,
+                            borderRadius: 1.5,
+                            px: 1.5,
+                            py: 0.5,
+                            border: `1px solid ${getConnectionColor()}30`,
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 700,
+                              color: getConnectionColor(),
+                              fontSize: "0.75rem",
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            {connectionStatus.ping}ms
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {/* Footer informativo */}
+                  <Box
+                    sx={{
+                      mt: 2,
+                      pt: 1.5,
+                      borderTop: `1px solid ${getConnectionColor()}15`,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#999",
+                        fontSize: "0.65rem",
+                        fontStyle: "italic",
+                        display: "block",
+                        textAlign: "center",
+                      }}
+                    >
+                      Actualización automática cada 10 segundos
+                    </Typography>
+                  </Box>
                 </Box>
               }
-              arrow
             >
               <Box
                 sx={{
-                  background: getConnectionBg(),
+                  bgcolor: "white",
+                  border: `3px solid ${getConnectionColor()}`,
                   borderRadius: 3,
                   px: { xs: 2, md: 3 },
                   py: { xs: 1.5, md: 2 },
@@ -444,16 +644,23 @@ function Home() {
                   minWidth: { xs: "100%", md: 200 },
                   cursor: "pointer",
                   transition: "all 0.3s",
-                  "&:hover": { transform: "scale(1.03)" },
-                  color: "white",
-                  boxShadow: "0 4px 20px rgba(102,126,234,0.3)",
+                  "&:hover": {
+                    transform: "scale(1.03)",
+                    boxShadow: `0 4px 20px ${getConnectionColor()}40`,
+                  },
                 }}
               >
-                {getConnectionIcon()}
+                <Box sx={{ color: getConnectionColor() }}>
+                  {getConnectionIcon()}
+                </Box>
                 <Box sx={{ textAlign: "left" }}>
                   <Typography
                     variant="caption"
-                    sx={{ fontWeight: 600, display: "block" }}
+                    sx={{
+                      fontWeight: 600,
+                      display: "block",
+                      color: "#666",
+                    }}
                   >
                     CONEXIÓN
                   </Typography>
@@ -462,6 +669,7 @@ function Home() {
                     sx={{
                       fontWeight: 700,
                       fontSize: { xs: "0.875rem", md: "1rem" },
+                      color: getConnectionColor(),
                     }}
                   >
                     {connectionStatus.quality}
@@ -472,9 +680,10 @@ function Home() {
                       size="small"
                       sx={{
                         mt: 0.5,
-                        color: "white",
-                        bgcolor: "rgba(255,255,255,0.2)",
+                        bgcolor: `${getConnectionColor()}20`,
+                        color: getConnectionColor(),
                         fontSize: "0.7rem",
+                        fontWeight: 600,
                       }}
                     />
                   )}
@@ -485,10 +694,11 @@ function Home() {
 
           {/* Mis Aplicaciones */}
           <Paper
-            elevation={8}
+            elevation={2}
             sx={{
-              background: "white",
+              bgcolor: "white",
               borderRadius: 3,
+              border: "1px solid #e0e0e0",
               p: { xs: 2, md: 3 },
               flex: 1,
               display: "flex",
@@ -506,7 +716,10 @@ function Home() {
               <Typography
                 variant="h5"
                 fontWeight="bold"
-                sx={{ fontSize: { xs: "1.25rem", md: "1.5rem" } }}
+                sx={{
+                  fontSize: { xs: "1.25rem", md: "1.5rem" },
+                  color: "#1a1a1a",
+                }}
               >
                 Mis Aplicaciones
               </Typography>
@@ -541,46 +754,70 @@ function Home() {
                     minHeight: 200,
                   }}
                 >
-                  <Typography>Cargando aplicaciones...</Typography>
+                  <Typography color="#666">Cargando aplicaciones...</Typography>
                 </Box>
               ) : apps && apps.length > 0 ? (
-                apps.map((app, index) => (
-                  <Paper
-                    key={app.id}
-                    elevation={4}
-                    sx={{
-                      aspectRatio: "1/1",
-                      background: appColors[index % appColors.length],
-                      color: "white",
-                      borderRadius: 3,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      transition: "all 0.3s",
-                      "&:hover": {
-                        transform: "scale(1.05)",
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-                      },
-                      p: 2,
-                    }}
-                    onClick={() => navigate(app.ruta)}
-                  >
-                    <DynamicIcon
-                      iconName={app.icono_app}
-                      sx={{ fontSize: { xs: 45, sm: 55 }, mb: 1 }}
-                    />
-                    <Typography
-                      variant="body2"
-                      fontWeight="bold"
-                      textAlign="center"
-                      sx={{ fontSize: { xs: "0.8rem", sm: "0.9rem" } }}
+                apps.map((app, index) => {
+                  const appColor = appColors[index % appColors.length];
+                  return (
+                    <Paper
+                      key={app.id}
+                      elevation={1}
+                      sx={{
+                        aspectRatio: "1/1",
+                        bgcolor: "white",
+                        border: `3px solid ${appColor}`,
+                        borderRadius: 3,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                        p: 2,
+                        "&:hover": {
+                          transform: "scale(1.05)",
+                          boxShadow: `0 1px 1px ${appColor}40`,
+                          bgcolor: hexToRgba(appColor, 0.15), // ✨ Fondo suave con 15% de opacidad
+                          borderColor: appColor,
+                          "& .app-icon": {
+                            color: `${appColor} !important`,
+                            transform: "scale(1.1)",
+                          },
+                          "& .app-text": {
+                            color: `${appColor} !important`,
+                            fontWeight: 700,
+                          },
+                        },
+                      }}
+                      onClick={() => navigate(app.ruta)}
                     >
-                      {app.nombre}
-                    </Typography>
-                  </Paper>
-                ))
+                      <DynamicIcon
+                        iconName={app.icono_app}
+                        className="app-icon"
+                        sx={{
+                          fontSize: { xs: 45, sm: 55 },
+                          mb: 1,
+                          color: appColor,
+                          transition: "all 0.3s ease",
+                        }}
+                      />
+                      <Typography
+                        className="app-text"
+                        variant="body2"
+                        fontWeight="bold"
+                        textAlign="center"
+                        sx={{
+                          fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                          color: "#1a1a1a",
+                          transition: "all 0.3s ease",
+                        }}
+                      >
+                        {app.nombre}
+                      </Typography>
+                    </Paper>
+                  );
+                })
               ) : (
                 <Box
                   sx={{
@@ -590,7 +827,7 @@ function Home() {
                     justifyContent: "center",
                     alignItems: "center",
                     minHeight: 200,
-                    color: "text.secondary",
+                    color: "#666",
                   }}
                 >
                   <Schedule sx={{ fontSize: 60, mb: 2, opacity: 0.5 }} />
@@ -606,13 +843,14 @@ function Home() {
           </Paper>
         </Box>
 
-        {/* COLUMNA DERECHA */}
+        {/* COLUMNA DERECHA - Apps Externas */}
         <Box sx={{ width: { xs: "100%", lg: 280 } }}>
           <Paper
-            elevation={8}
+            elevation={2}
             sx={{
-              background: "white",
+              bgcolor: "white",
               borderRadius: 3,
+              border: "1px solid #e0e0e0",
               p: { xs: 2, md: 3 },
               height: { xs: "auto", lg: "100%" },
             }}
@@ -621,7 +859,10 @@ function Home() {
               variant="h5"
               fontWeight="bold"
               mb={3}
-              sx={{ fontSize: { xs: "1.25rem", md: "1.5rem" } }}
+              sx={{
+                fontSize: { xs: "1.25rem", md: "1.5rem" },
+                color: "#1a1a1a",
+              }}
             >
               Apps Externas
             </Typography>
@@ -638,37 +879,51 @@ function Home() {
                   icon: Mail,
                   label: "Gmail",
                   url: "https://mail.google.com",
-                  bg: "linear-gradient(135deg, #ea4335 0%, #e57373 100%)",
+                  color: "#ea4335",
                 },
                 {
                   icon: Cloud,
                   label: "Drive",
                   url: "https://drive.google.com",
-                  bg: "linear-gradient(135deg, #0f9d58 0%, #66bb6a 100%)",
+                  color: "#0f9d58",
                 },
                 {
                   icon: GridOn,
                   label: "Sheets",
                   url: "https://docs.google.com/spreadsheets",
-                  bg: "linear-gradient(135deg, #0f9d58 0%, #34a853 100%)",
+                  color: "#0f9d58",
                 },
-              ].map(({ icon: Icon, label, url, bg }) => (
+              ].map(({ icon: Icon, label, url, color }) => (
                 <Paper
                   key={label}
-                  elevation={4}
+                  elevation={1}
                   sx={{
-                    background: bg,
+                    bgcolor: "white",
+                    border: `3px solid ${color}`,
                     p: 2,
                     borderRadius: 2,
                     cursor: "pointer",
-                    transition: "transform 0.3s",
-                    "&:hover": { transform: "scale(1.05)" },
+                    transition: "all 0.3s ease",
                     flex: {
                       xs: "1 1 calc(33.333% - 11px)",
                       sm: "1 1 calc(33.333% - 11px)",
                       lg: "0 0 auto",
                     },
                     minWidth: { xs: "calc(33.333% - 11px)", sm: 120 },
+                    "&:hover": {
+                      transform: "scale(1.05)",
+                      boxShadow: `0 1px 1px ${color}30`,
+                      bgcolor: hexToRgba(color, 0.15), // ✨ Fondo suave con 15% de opacidad
+                      borderColor: color,
+                      "& .external-icon": {
+                        color: `${color} !important`,
+                        transform: "scale(1.1)",
+                      },
+                      "& .external-text": {
+                        color: `${color} !important`,
+                        fontWeight: 700,
+                      },
+                    },
                   }}
                   onClick={() => openApp(url)}
                 >
@@ -677,11 +932,19 @@ function Home() {
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      color: "white",
                     }}
                   >
-                    <Icon sx={{ fontSize: { xs: 40, md: 50 }, mb: 1 }} />
+                    <Icon
+                      className="external-icon"
+                      sx={{
+                        fontSize: { xs: 40, md: 50 },
+                        mb: 1,
+                        color: color,
+                        transition: "all 0.3s ease",
+                      }}
+                    />
                     <Typography
+                      className="external-text"
                       variant="body1"
                       fontWeight="bold"
                       sx={{
@@ -690,6 +953,8 @@ function Home() {
                           sm: "0.875rem",
                           md: "1rem",
                         },
+                        color: "#1a1a1a",
+                        transition: "all 0.3s ease",
                       }}
                     >
                       {label}

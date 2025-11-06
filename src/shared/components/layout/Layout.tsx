@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import { AppSidebar } from "@/shared/components/layout/app-sidebar";
 import { Toolbar, Box, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const drawerWidth = 240;
 const collapsedWidth = 64;
@@ -10,12 +10,12 @@ const collapsedWidth = 64;
 export default function Layout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [open, setOpen] = useState(!isMobile);
+  const [open, setOpen] = useState(false);
 
-  useEffect(() => {
+  /*   useEffect(() => {
     setOpen(!isMobile);
   }, [isMobile]);
-
+ */
   return (
     <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* Sidebar */}
