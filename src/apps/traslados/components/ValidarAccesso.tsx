@@ -132,7 +132,8 @@ export const AccessValidationModal: React.FC<AccessValidationModalProps> = ({
           Tu usuario aún no está configurado para usar este apartado o tiene
           información incompleta. <br />
           Por favor comunícate con el área de{" "}
-          <strong style={{ color: titleColor }}>sistemas</strong> para que
+          <strong style={{ color: titleColor }}>sistemas</strong> o
+          <strong style={{ color: titleColor }}> Soporte</strong> para que
           puedan ayudarte a habilitar el acceso.
         </Typography>
       </DialogContent>
