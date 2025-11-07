@@ -6,9 +6,10 @@ services:
     ports:
       - "11000:11000"
     environment:
-      - VITE_DIRECTUS_URL=${VITE_DIRECTUS_URL}
-      - VITE_WEBHOOK_URL_TRASLADOS=${VITE_WEBHOOK_URL_TRASLADOS}
-      - VITE_WEBHOOK_USERNAME=${VITE_WEBHOOK_USERNAME}
-      - VITE_WEBHOOK_PASSWORD=${VITE_WEBHOOK_PASSWORD}
-      - VITE_WEBHOOK_URL_POST=${VITE_WEBHOOK_URL_POST}
+      - VITE_DIRECTUS_URL='http://192.168.19.153:8055/'
+      - VITE_WEBHOOK_URL_TRASLADOS='http://192.168.19.133:5678/webhook/traslados'
+      - VITE_WEBHOOK_USERNAME='soporte'
+      - VITE_WEBHOOK_PASSWORD='Soporte2023'
+      - VITE_WEBHOOK_URL_POST='http://192.168.19.240:1880/webhook/traslados'
     restart: unless-stopped
+
