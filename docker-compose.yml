@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  appkancan:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "11000:11000"
+    environment:
+      - VITE_DIRECTUS_URL=${VITE_DIRECTUS_URL}
+      - VITE_WEBHOOK_URL_TRASLADOS=${VITE_WEBHOOK_URL_TRASLADOS}
+      - VITE_WEBHOOK_USERNAME=${VITE_WEBHOOK_USERNAME}
+      - VITE_WEBHOOK_PASSWORD=${VITE_WEBHOOK_PASSWORD}
+      - VITE_WEBHOOK_URL_POST=${VITE_WEBHOOK_URL_POST}
+    restart: unless-stopped

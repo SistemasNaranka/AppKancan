@@ -69,9 +69,7 @@ export const usePromotionForm = () => {
     if (nombre.trim().length < 3) {
       return "El nombre debe tener al menos 3 caracteres";
     }
-    if (!/^[a-zA-Z0-9\s\-_áéíóúÁÉÍÓÚñÑ]+$/.test(nombre)) {
-      return "El nombre contiene caracteres no permitidos";
-    }
+
     if (duracion === "temporal") {
       if (!fechaFinal)
         return "Las promociones temporales requieren fecha final";
@@ -99,10 +97,6 @@ export const usePromotionForm = () => {
       .clone()
       .hour(horaInicio.hour())
       .minute(horaInicio.minute());
-
-    if (datetimeInicio.isBefore(ahora)) {
-      return "La fecha de inicio no puede ser anterior a la fecha actual";
-    }
 
     if (duracion === "temporal" && fechaFinal && horaFinal) {
       const datetimeFinal = fechaFinal
