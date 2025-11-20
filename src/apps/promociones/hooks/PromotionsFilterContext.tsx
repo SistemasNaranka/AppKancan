@@ -4,8 +4,8 @@ import { Dayjs } from "dayjs";
 export type ViewType = "anual" | "mensual" | "semanal" | "dia";
 
 interface FilterState {
-  duracion: "temporal" | "fija" | null;
-  setDuracion: (d: "temporal" | "fija") => void;
+  duracion: ("temporal" | "fija")[];
+  setDuracion: (d: ("temporal" | "fija")[]) => void;
 
   tipos: string[];
   setTipos: (types: string[]) => void;
@@ -32,5 +32,7 @@ interface FilterState {
   focusedYear: number;
 }
 
-const PromotionsFilterContext = createContext<FilterState | undefined>(undefined);
+const PromotionsFilterContext = createContext<FilterState | undefined>(
+  undefined
+);
 export default PromotionsFilterContext;

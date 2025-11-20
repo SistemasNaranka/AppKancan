@@ -1,21 +1,44 @@
-import React from "react";
+import React, { useEffect, Suspense, lazy } from "react";
 import { Box, Typography, Chip, Button, Card } from "@mui/material";
 import { Add } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import SnackbarAlert from "@/auth/components/SnackbarAlert";
+import { useSnackbar } from "@/auth/hooks/useSnackbar";
+import LoadingSpinner from "@/shared/components/LoadingSpinner";
 import PromotionsFilterBar from "../components/PromotionsFilterBar";
 import PromotionsList from "../components/PromotionsList";
-import YearViewSummary from "../components/views/YearViewSummary";
-import PromotionsCalendarMonth from "../components/views/PromotionsCalendarMonth";
-import PromotionsCalendarWeek from "../components/views/PromotionsCalendarWeek";
-import PromotionsCalendarDay from "../components/views/PromotionsCalendarDay";
 import { usePromotionsFilter } from "../hooks/usePromotionsFilter";
 import { ViewType } from "../hooks/PromotionsFilterContext";
+
+// Lazy load calendar views for better bundle splitting
+const YearViewSummary = lazy(
+  () => import("../components/views/YearViewSummary")
+);
+const PromotionsCalendarMonth = lazy(
+  () => import("../components/views/PromotionsCalendarMonth")
+);
+const PromotionsCalendarWeek = lazy(
+  () => import("../components/views/PromotionsCalendarWeek")
+);
+const PromotionsCalendarDay = lazy(
+  () => import("../components/views/PromotionsCalendarDay")
+);
 
 const VIEW_TYPES: ViewType[] = ["anual", "mensual", "semanal", "dia"];
 
 const PromotionsLayout: React.FC = () => {
   const { selectedView, setSelectedView } = usePromotionsFilter();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      showSnackbar(location.state.successMessage, "success");
+      // Limpiar el state para evitar que se muestre nuevamente
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, []); // Solo ejecutar una vez al montar el componente
 
   return (
     <Box
@@ -154,10 +177,16 @@ const PromotionsLayout: React.FC = () => {
             maxHeight: { xs: "auto", md: "calc(100vh - 200px)" },
           }}
         >
-          {selectedView === "anual" && <YearViewSummary />}
-          {selectedView === "mensual" && <PromotionsCalendarMonth />}
-          {selectedView === "semanal" && <PromotionsCalendarWeek />}
-          {selectedView === "dia" && <PromotionsCalendarDay />}
+          <Suspense
+            fallback={
+              <LoadingSpinner message="Cargando vista..." size="medium" />
+            }
+          >
+            {selectedView === "anual" && <YearViewSummary />}
+            {selectedView === "mensual" && <PromotionsCalendarMonth />}
+            {selectedView === "semanal" && <PromotionsCalendarWeek />}
+            {selectedView === "dia" && <PromotionsCalendarDay />}
+          </Suspense>
         </Card>
 
         {/* Lista de promociones */}
@@ -175,6 +204,14 @@ const PromotionsLayout: React.FC = () => {
           <PromotionsList />
         </Card>
       </Box>
+
+      <SnackbarAlert
+        open={snackbar.open}
+        message={snackbar.message}
+        severity={snackbar.severity}
+        autoHideDuration={4000}
+        onClose={closeSnackbar}
+      />
     </Box>
   );
 };

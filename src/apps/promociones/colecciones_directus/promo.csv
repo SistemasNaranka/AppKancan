@@ -1,4 +1,0 @@
-id;nombre;fecha_inicio;fecha_final;hora_inicio;hora_final;descuento;tipo_id
-1;Promocion por temporada black Friday;2025-11-23;2025-11-28;02:00;12:00;20;1
-2;Promocion por liquidacion;2025-06-13;null;13:00;null;15;4
-3;Promocion por descuento;2025-08-23;null;15:00;null;30;5

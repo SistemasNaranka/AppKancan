@@ -77,10 +77,12 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
     try {
       // ✅ Ejecutar la función del padre pasando los IDs y la CLAVE
       if (onEliminarTrasladosAprobados) {
-        console.log("🔹 Aprobando traslados con clave:", {
-          cantidad: idsSeleccionados.length,
-          ids: idsSeleccionados,
-        });
+        if (import.meta.env.DEV) {
+          console.log("🔹 Aprobando traslados con clave:", {
+            cantidad: idsSeleccionados.length,
+            ids: idsSeleccionados,
+          });
+        }
 
         // 🔥 LLAMADA A LA FUNCIÓN PADRE CON LA CLAVE
         await onEliminarTrasladosAprobados(idsSeleccionados, clave);

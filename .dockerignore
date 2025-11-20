@@ -15,13 +15,6 @@ build
 coverage
 .nyc_output
 
-# Environment
-
-.env.local
-.env.*.local
-.env.development
-.env.test
-.env.production
 
 # IDE
 .vscode

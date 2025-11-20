@@ -65,41 +65,26 @@ const PromotionsFilterBar: React.FC = () => {
 
   // Filtrar tipos disponibles según duración seleccionada
   const availableTipos = useMemo(() => {
-    if (!duracion) return tiposPromocion;
-    return tiposPromocion.filter((tipo) => tipo.duracion === duracion);
+    if (duracion.length === 0) return tiposPromocion;
+    return tiposPromocion.filter((tipo) => duracion.includes(tipo.duracion));
   }, [duracion, tiposPromocion]);
-
-  // Crear mapa de colores desde los tipos de promoción
-  const tipoColorsMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    tiposPromocion.forEach((tipo) => {
-      map[tipo.nombre] = tipo.color || "#000000ff";
-    });
-    return map;
-  }, [tiposPromocion]);
 
   // Duración por defecto
   React.useEffect(() => {
-    if (!duracion) setDuracion("temporal");
+    if (duracion.length === 0) setDuracion(["temporal"]);
   }, [duracion, setDuracion]);
 
-  const handleToggleTipo = useCallback(
-    (tipo: string) => {
-      setTipos(
-        selected.includes(tipo)
-          ? selected.filter((t) => t !== tipo)
-          : [...selected, tipo]
-      );
+  const handleToggleDuracion = useCallback(
+    (d: "temporal" | "fija") => {
+      const newDuracion = duracion.includes(d)
+        ? duracion.filter((item) => item !== d)
+        : [...duracion, d];
+      if (newDuracion.length > 0) {
+        setDuracion(newDuracion);
+        setTipos([]);
+      }
     },
-    [selected, setTipos]
-  );
-
-  const handleSelectDuracion = useCallback(
-    (d: "temporal" | "fija" | null) => {
-      setDuracion(d);
-      setTipos([]);
-    },
-    [setDuracion, setTipos]
+    [duracion, setDuracion, setTipos]
   );
 
   const handleConfirmTiendas = useCallback(
@@ -168,8 +153,8 @@ const PromotionsFilterBar: React.FC = () => {
             <Stack direction="row" spacing={1}>
               <Chip
                 label="Temporal"
-                onClick={() => handleSelectDuracion("temporal")}
-                color={duracion === "temporal" ? "primary" : "default"}
+                onClick={() => handleToggleDuracion("temporal")}
+                color={duracion.includes("temporal") ? "primary" : "default"}
                 sx={{
                   cursor: "pointer",
                   fontWeight: 500,
@@ -179,8 +164,8 @@ const PromotionsFilterBar: React.FC = () => {
               />
               <Chip
                 label="Fija"
-                onClick={() => handleSelectDuracion("fija")}
-                color={duracion === "fija" ? "primary" : "default"}
+                onClick={() => handleToggleDuracion("fija")}
+                color={duracion.includes("fija") ? "primary" : "default"}
                 sx={{
                   cursor: "pointer",
                   fontWeight: 500,
@@ -196,8 +181,14 @@ const PromotionsFilterBar: React.FC = () => {
           <Box>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>
               Tipo de promoción
-              {duracion &&
-                ` (${duracion === "temporal" ? "Temporales" : "Fijas"})`}
+              {duracion.length > 0 &&
+                ` (${
+                  duracion.length === 1
+                    ? duracion[0] === "temporal"
+                      ? "Temporales"
+                      : "Fijas"
+                    : "Temporales y Fijas"
+                })`}
             </Typography>
 
             {availableTipos.length === 0 ? (
@@ -206,16 +197,20 @@ const PromotionsFilterBar: React.FC = () => {
                 color="text.secondary"
                 fontStyle="italic"
               >
-                {duracion
+                {duracion.length > 0
                   ? `No hay tipos de promociones ${
-                      duracion === "temporal" ? "temporales" : "fijas"
+                      duracion.length === 1
+                        ? duracion[0] === "temporal"
+                          ? "temporales"
+                          : "fijas"
+                        : "temporales ni fijas"
                     } disponibles`
                   : "Cargando tipos de promoción..."}
               </Typography>
             ) : (
               <>
                 {/* 🔸 Acciones arriba del Select */}
-                <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
                   <Button
                     size="small"
                     variant="outlined"

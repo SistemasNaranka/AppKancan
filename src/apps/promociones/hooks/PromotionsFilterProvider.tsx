@@ -5,15 +5,29 @@ import "dayjs/locale/es";
 
 dayjs.locale("es");
 
-export const PromotionsFilterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const PromotionsFilterProvider: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
   const [tipos, setTipos] = useState<string[]>([]);
-  const [descuentoRange, setDescuentoRange] = useState<{ min: number; max: number }>({ min: 0, max: 100 });
-  const [duracion, setDuracion] = useState<"temporal" | "fija" | null>("temporal");
+  const [descuentoRange, setDescuentoRange] = useState<{
+    min: number;
+    max: number;
+  }>({ min: 0, max: 100 });
+  const [duracion, setDuracion] = useState<("temporal" | "fija")[]>([
+    "temporal",
+  ]);
+
+  // Función para setDuracion con validación de al menos una selección
+  const setDuracionValidated = (d: ("temporal" | "fija")[]) => {
+    if (d.length === 0) return; // No permitir array vacío
+    setDuracion(d);
+  };
+
   const [tiendas, setTiendas] = useState<(string | number)[]>([]);
-  
+
   // 🆕 Estado compartido para sincronización de fecha
   const [focusedDate, setFocusedDate] = useState<Dayjs>(dayjs());
-  
+
   // 🆕 Vista activa
   const [selectedView, setSelectedView] = useState<ViewType>("anual");
 
@@ -28,7 +42,7 @@ export const PromotionsFilterProvider: React.FC<{ children: React.ReactNode }> =
       tipos,
       setTipos,
       duracion,
-      setDuracion,
+      setDuracion: setDuracionValidated,
       descuentoRange,
       setDescuentoRange,
       tiendas,
@@ -41,8 +55,21 @@ export const PromotionsFilterProvider: React.FC<{ children: React.ReactNode }> =
       setSoloVigentes,
       focusedYear,
     }),
-    [tipos, duracion, descuentoRange, tiendas, focusedDate, selectedView, soloVigentes, focusedYear]
+    [
+      tipos,
+      duracion,
+      descuentoRange,
+      tiendas,
+      focusedDate,
+      selectedView,
+      soloVigentes,
+      focusedYear,
+    ]
   );
 
-  return <PromotionsFilterContext.Provider value={value}>{children}</PromotionsFilterContext.Provider>;
+  return (
+    <PromotionsFilterContext.Provider value={value}>
+      {children}
+    </PromotionsFilterContext.Provider>
+  );
 };

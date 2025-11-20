@@ -4,6 +4,8 @@ import Layout from "@/shared/components/layout/Layout";
 import Login from "@/auth/pages/Login";
 import NotFound from "./pages/NotFound";
 import ErrorPage from "./pages/ErrorPage";
+import ErrorBoundary from "@/shared/components/ErrorBoundary";
+import LoadingSpinner from "@/shared/components/LoadingSpinner";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { loadAndValidateRoutes } from "./routeValidator";
@@ -15,7 +17,9 @@ export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
   const { apps, area, loading: appsLoading } = useApps();
 
-  const [modulosComplejosFiltrados, setModulosComplejosFiltrados] = useState<RouteObject[]>([]);
+  const [modulosComplejosFiltrados, setModulosComplejosFiltrados] = useState<
+    RouteObject[]
+  >([]);
   const [errorEnRutas, setErrorEnRutas] = useState<unknown>(null);
 
   const isLoading = isAuthenticated && (apps === null || appsLoading);
@@ -36,68 +40,72 @@ export default function AppRoutes() {
     return {
       path: "/home",
       element: (
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center min-h-screen">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Cargando inicio de {area}...</p>
-              </div>
-            </div>
-          }
-        >
-          <HomeComponent />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense
+            fallback={
+              <LoadingSpinner
+                message={`Cargando inicio de ${area}...`}
+                size="large"
+                fullScreen
+              />
+            }
+          >
+            <HomeComponent />
+          </Suspense>
+        </ErrorBoundary>
       ),
     };
   }, [area]);
 
   // 🔄 Importación dinámica (lazy)
-    useEffect(() => {
-      if (!isAuthenticated || !apps || isLoading) return;
+  useEffect(() => {
+    if (!isAuthenticated || !apps || isLoading) return;
 
-      const cargarRutas = async () => {
-        try {
-          const rutasDisponibles = import.meta.glob<{ default: RouteObject[] }>(
-            "@/apps/**/routes.tsx"
-          );
+    const cargarRutas = async () => {
+      try {
+        const rutasDisponibles = import.meta.glob<{ default: RouteObject[] }>(
+          "@/apps/**/routes.tsx"
+        );
 
-          // Solo carga las apps permitidas
-          const modulosPermitidos = Object.entries(rutasDisponibles).filter(([path]) =>
+        // Solo carga las apps permitidas
+        const modulosPermitidos = Object.entries(rutasDisponibles).filter(
+          ([path]) =>
             apps.some((app) =>
-              path.toLowerCase().includes(`/apps${app.ruta.toLowerCase()}/routes.tsx`)
+              path
+                .toLowerCase()
+                .includes(`/apps${app.ruta.toLowerCase()}/routes.tsx`)
+            )
+        );
+
+        // Importar dinámicamente solo esas rutas
+        const modulosCargados = await Promise.all(
+          modulosPermitidos.map(([, importer]) => importer())
+        );
+
+        // Validar las rutas cargadas
+        const { routes: rutasValidadas, error } = loadAndValidateRoutes(
+          Object.fromEntries(
+            modulosPermitidos.map(([path], i) => [path, modulosCargados[i]])
+          )
+        );
+
+        if (error) {
+          setErrorEnRutas(
+            new Error(
+              error.map((e) => e.message).join("\n\n" + "-".repeat(80) + "\n\n")
             )
           );
-          
-          // Importar dinámicamente solo esas rutas
-          const modulosCargados = await Promise.all(
-            modulosPermitidos.map(([, importer]) => importer())
-          );
-
-          // Validar las rutas cargadas
-          const { routes: rutasValidadas, error } = loadAndValidateRoutes(
-            Object.fromEntries(
-              modulosPermitidos.map(([path], i) => [path, modulosCargados[i]])
-            )
-          );
-
-          if (error) {
-            setErrorEnRutas(
-              new Error(
-                error.map((e) => e.message).join("\n\n" + "-".repeat(80) + "\n\n")
-              )
-            );
-          }
-
-          setModulosComplejosFiltrados(rutasValidadas);
-        } catch (error) {
-          console.error("Error cargando rutas:", error);
-          setErrorEnRutas(error);
         }
-      };
 
-      cargarRutas();
-    }, [isAuthenticated, apps, isLoading]);
+        setModulosComplejosFiltrados(rutasValidadas);
+      } catch (error) {
+        console.error("Error cargando rutas:", error);
+        setErrorEnRutas(error);
+      }
+    };
+
+    cargarRutas();
+  }, [isAuthenticated, apps, isLoading]);
 
   let routes: RouteObject[] = [];
 
@@ -111,17 +119,15 @@ export default function AppRoutes() {
       {
         path: "*",
         element: (
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Cargando aplicación...</p>
-            </div>
-          </div>
+          <LoadingSpinner
+            message="Cargando aplicación..."
+            size="large"
+            fullScreen
+          />
         ),
       },
     ];
   } else {
-
     if (errorEnRutas && import.meta.env.DEV) {
       routes = [{ path: "*", element: <ErrorPage error={errorEnRutas} /> }];
     } else {
@@ -132,7 +138,11 @@ export default function AppRoutes() {
         },
         {
           path: "/",
-          element: <Layout />,
+          element: (
+            <ErrorBoundary>
+              <Layout />
+            </ErrorBoundary>
+          ),
           children: [
             ...(homeRoute ? [homeRoute] : []),
             ...modulosComplejosFiltrados,

@@ -18,7 +18,8 @@ import {
   Group,
   Summarize,
   LocalOffer,
-  ShoppingCart 
+  ShoppingCart,
+  DocumentScanner,
 } from "@mui/icons-material";
 
 /**
@@ -28,33 +29,35 @@ import {
  */
 const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Inventario
-  Inventory2,      
-  LocalShipping,   
+  Inventory2,
+  LocalShipping,
 
   // 🔸 Categoría: Principal
-  HomeWork,        
-  RequestQuote,    
+  HomeWork,
+  RequestQuote,
 
   // 🔸 Categoría: Contabilidad
-  AccountBalance, 
-  Description,     
+  AccountBalance,
+  Description,
   Summarize,
   // 🔸 Categoría: Recursos Humanos
-  PeopleAlt,      
-  Badge,          
-  Business,      
+  PeopleAlt,
+  Badge,
+  Business,
   Group,
   // 🔸 Categoría: Aplicación
-  Apps,           
-  Home,            
+  Apps,
+  Home,
+
+  // 🔸 Categoría: Aplicación
+  DocumentScanner,
 
   // 🔸 Categoría: Ventas
-  ShoppingCart, 
+  ShoppingCart,
   LocalOffer,
-  
+
   // 🔸 Fallback por si algo no coincide
   Folder,
-  
 };
 
 /**

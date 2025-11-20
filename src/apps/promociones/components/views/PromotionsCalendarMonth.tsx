@@ -9,7 +9,6 @@ import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
-
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
@@ -20,7 +19,11 @@ interface DayCellProps {
   promos: Promotion[];
   onClick?: () => void;
   // ahora usamos eventos pointer y le pasamos cellRef desde dentro
-  onPointerMove?: (e: React.PointerEvent, promos: Promotion[], cell: HTMLDivElement) => void;
+  onPointerMove?: (
+    e: React.PointerEvent,
+    promos: Promotion[],
+    cell: HTMLDivElement
+  ) => void;
   onPointerLeave?: () => void;
 }
 
@@ -40,7 +43,8 @@ const DayCell: React.FC<DayCellProps> = React.memo(
         ref={cellRef}
         onClick={onClick}
         onPointerMove={(e) => {
-          if (onPointerMove && cellRef.current) onPointerMove(e, promos, cellRef.current);
+          if (onPointerMove && cellRef.current)
+            onPointerMove(e, promos, cellRef.current);
         }}
         onPointerLeave={onPointerLeave}
         sx={{
@@ -91,15 +95,15 @@ const DayCell: React.FC<DayCellProps> = React.memo(
         >
           {visiblePromos.map((promo) => (
             <Box
-  key={promo.id}
-  sx={{
-    height: 12,
-    width: "100%",
-    backgroundColor: promo.color || "#90caf9", // 👈 usa el color de la base de datos
-    borderRadius: 1,
-    opacity: promo.fecha_final ? 1 : 0.95,
-  }}
-/>
+              key={promo.id}
+              sx={{
+                height: 12,
+                width: promo.fecha_final ? "100%" : "20%", // Para fijas, solo una marca pequeña
+                backgroundColor: promo.color || "#90caf9", // 👈 usa el color de la base de datos
+                borderRadius: 1,
+                opacity: promo.fecha_final ? 1 : 0.95,
+              }}
+            />
           ))}
 
           {extraPromos > 0 && (
@@ -123,7 +127,8 @@ const DayCell: React.FC<DayCellProps> = React.memo(
 
 const PromotionsCalendarMonth: React.FC = () => {
   const promotions = useFilteredPromotions();
-  const { focusedDate, setFocusedDate, setSelectedView } = usePromotionsFilter();
+  const { focusedDate, setFocusedDate, setSelectedView } =
+    usePromotionsFilter();
 
   // ==========================
   // 🎯 Tooltip virtual dinámico (anclado a la celda, pero sigue el mouse)
@@ -135,7 +140,11 @@ const PromotionsCalendarMonth: React.FC = () => {
   const [hoveredPromos, setHoveredPromos] = useState<Promotion[]>([]);
 
   // handler que recibirá la referencia a la celda (cellEl)
-  const handlePointerMove = (event: React.PointerEvent, promos: Promotion[], cellEl: HTMLDivElement) => {
+  const handlePointerMove = (
+    event: React.PointerEvent,
+    promos: Promotion[],
+    cellEl: HTMLDivElement
+  ) => {
     if (!promos || promos.length === 0) {
       setOpenTooltip(false);
       return;
@@ -166,23 +175,27 @@ const PromotionsCalendarMonth: React.FC = () => {
       <Box>
         {hoveredPromos.map((promo) => (
           <Box
-  key={promo.id}
-  sx={{
-    borderLeft: `4px solid ${promo.color || "#90caf9"}`,
-    pl: 1,
-    mb: 0.5,
-    backgroundColor: `${promo.color}20`, // 👈 fondo translúcido con alpha
-    borderRadius: 1,
-  }}
->
-  <Typography variant="body2" fontWeight="bold" sx={{ color: promo.color || "#90caf9" }}>
-    {promo.tipo} — {promo.descuento}%
-  </Typography>
+            key={promo.id}
+            sx={{
+              borderLeft: `4px solid ${promo.color || "#90caf9"}`,
+              pl: 1,
+              mb: 0.5,
+              backgroundColor: `${promo.color}20`, // 👈 fondo translúcido con alpha
+              borderRadius: 1,
+            }}
+          >
+            <Typography
+              variant="body2"
+              fontWeight="bold"
+              sx={{ color: promo.color || "#90caf9" }}
+            >
+              {promo.tipo} — {promo.descuento}%
+            </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
               {dayjs(promo.fecha_inicio).locale("es").format("D MMM")} →{" "}
               {promo.fecha_final
                 ? dayjs(promo.fecha_final).locale("es").format("D MMM")
-                : "-"}
+                : "-Fija"}
             </Typography>
           </Box>
         ))}
@@ -239,11 +252,17 @@ const PromotionsCalendarMonth: React.FC = () => {
   return (
     <Box>
       {/* Navegación */}
-      <Box display="flex"  justifyContent="center" alignItems="center" mb={2}>
+      <Box display="flex" justifyContent="center" alignItems="center" mb={2}>
         <IconButton onClick={handlePrevMonth}>
           <ArrowBackIos fontSize="small" />
         </IconButton>
-        <Typography variant="h5" fontWeight="bold" textTransform="capitalize" textAlign="center" width={210}>
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          textTransform="capitalize"
+          textAlign="center"
+          width={210}
+        >
           {focusedDate.format("MMMM YYYY")}
         </Typography>
         <IconButton onClick={handleNextMonth}>
@@ -253,46 +272,63 @@ const PromotionsCalendarMonth: React.FC = () => {
 
       {/* Tooltip virtual (sigue mouse pero anclado al rect de la celda) */}
       {/* Tooltip virtual (sigue mouse pero anclado al rect de la celda) */}
-<Tooltip
-  open={openTooltip}
-  title={tooltipContent}
-  placement="top"
-  arrow
-  slotProps={{
-    tooltip: {
-      sx: {
-        backgroundColor: "#ffffff",
-        color: "#000000",
-        border: "1px solid #ccc",
-        "& .MuiTooltip-arrow": {
-          color: "#ffffff",
-        },
-      },
-    },
-    popper: {
-      popperRef,
-      anchorEl: {
-        getBoundingClientRect: () => {
-          const cellRect = areaRef.current?.getBoundingClientRect();
-          return new DOMRect(
-            positionRef.current.x,
-            cellRect ? cellRect.y : positionRef.current.y,
-            0,
-            0
-          );
-        },
-      },
-    },
-  }}
->
-  {/* Contenedor invisible para cumplir children */}
-  <Box sx={{ width: 0, height: 0, position: "fixed", top: 0, left: 0 }} />
-</Tooltip>
+      <Tooltip
+        open={openTooltip}
+        title={tooltipContent}
+        placement="top"
+        arrow
+        slotProps={{
+          tooltip: {
+            sx: {
+              backgroundColor: "#ffffff",
+              color: "#000000",
+              border: "1px solid #ccc",
+              "& .MuiTooltip-arrow": {
+                color: "#ffffff",
+              },
+            },
+          },
+          popper: {
+            popperRef,
+            anchorEl: {
+              getBoundingClientRect: () => {
+                const cellRect = areaRef.current?.getBoundingClientRect();
+                return new DOMRect(
+                  positionRef.current.x,
+                  cellRect ? cellRect.y : positionRef.current.y,
+                  0,
+                  0
+                );
+              },
+            },
+          },
+        }}
+      >
+        {/* Contenedor invisible para cumplir children */}
+        <Box sx={{ width: 0, height: 0, position: "fixed", top: 0, left: 0 }} />
+      </Tooltip>
 
       {/* Cabecera días */}
-      <Box display="grid" gridTemplateColumns="repeat(7, 1fr)" gap={0} mt={2} sx={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+      <Box
+        display="grid"
+        gridTemplateColumns="repeat(7, 1fr)"
+        gap={0}
+        mt={2}
+        sx={{ border: "1px solid rgba(255,255,255,0.1)" }}
+      >
         {daysOfWeek.map((day) => (
-          <Box key={day} display="flex" justifyContent="center" alignItems="center" sx={{ fontWeight: "bold", textAlign: "center", pb: 1.5, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+          <Box
+            key={day}
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            sx={{
+              fontWeight: "bold",
+              textAlign: "center",
+              pb: 1.5,
+              borderBottom: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
             {day}
           </Box>
         ))}

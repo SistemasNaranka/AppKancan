@@ -1,16 +1,26 @@
 import React, { useMemo, useCallback } from "react";
-import { Box, Typography, IconButton, Paper, useTheme, Chip, Divider } from "@mui/material";
-import { ArrowBackIos, ArrowForwardIos, CalendarToday } from "@mui/icons-material";
-import { promotionColors } from "../../data/mockPromotionsColors";
+import {
+  Box,
+  Typography,
+  IconButton,
+  Paper,
+  useTheme,
+  Chip,
+  Divider,
+} from "@mui/material";
+import {
+  ArrowBackIos,
+  ArrowForwardIos,
+  CalendarToday,
+} from "@mui/icons-material";
 import { usePromotionsFilter } from "../../hooks/usePromotionsFilter";
 import { useFilteredPromotions } from "../../hooks/useFilteredPromotions";
 import { Promotion } from "../../types/promotion";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-import "dayjs/locale/es"; // 👈 añade esto
+import "dayjs/locale/es";
 dayjs.locale("es");
-
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -28,9 +38,12 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ promo, index }) => {
 
   // Calcular posición y ancho de la barra
   const { start, width } = useMemo(() => {
-    // Si es promoción fija (todo el día)
+    // Si es promoción fija (solo marcar el inicio, no todo el día)
     if (!promo.hora_fin) {
-      return { start: 0, width: 100 };
+      const horaInicio = parseInt(promo.hora_inicio.split(":")[0]);
+      const minutosInicio = parseInt(promo.hora_inicio.split(":")[1] || "0");
+      const startPercent = ((horaInicio + minutosInicio / 60) / 24) * 100;
+      return { start: startPercent, width: 5 }; // Marca pequeña en el inicio
     }
 
     const horaInicio = parseInt(promo.hora_inicio.split(":")[0]);
@@ -68,7 +81,9 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ promo, index }) => {
           boxShadow: theme.shadows[4],
         },
       }}
-      title={`${promo.tipo}: ${promo.hora_inicio}${promo.hora_fin ? ` - ${promo.hora_fin}` : " (Todo el día)"}`}
+      title={`${promo.tipo}: ${promo.hora_inicio}${
+        promo.hora_fin ? ` - ${promo.hora_fin}` : " (Todo el día)"
+      }`}
     >
       <Typography
         variant="caption"
@@ -134,12 +149,11 @@ const PromotionsCalendarDay: React.FC = () => {
     <Box>
       {/* Header con navegación */}
       <Box display="flex" justifyContent="center" alignItems="center" mb={3}>
-        
         <IconButton onClick={handlePrevDay} size="small">
           <ArrowBackIos fontSize="small" />
         </IconButton>
 
-        <Box textAlign="center" width="350px" >
+        <Box textAlign="center" width="350px">
           <Typography variant="h5" fontWeight="bold" textTransform="capitalize">
             {focusedDate.locale("es").format("dddd, D [de] MMMM")}
           </Typography>
@@ -179,9 +193,10 @@ const PromotionsCalendarDay: React.FC = () => {
               borderRadius: 2,
               p: 3,
               mb: 3,
-              bgcolor: theme.palette.mode === "dark" 
-                ? "rgba(255,255,255,0.02)" 
-                : "rgba(0,0,0,0.01)",
+              bgcolor:
+                theme.palette.mode === "dark"
+                  ? "rgba(255,255,255,0.02)"
+                  : "rgba(0,0,0,0.01)",
             }}
           >
             <Typography variant="h6" gutterBottom fontWeight="bold">
@@ -253,9 +268,9 @@ const PromotionsCalendarDay: React.FC = () => {
               </Box>
 
               {/* Barras de promociones */}
-              <Box 
-                sx={{ 
-                  position: "relative", 
+              <Box
+                sx={{
+                  position: "relative",
                   minHeight: Math.max(100, dayPromotions.length * 50),
                 }}
               >
@@ -276,26 +291,34 @@ const PromotionsCalendarDay: React.FC = () => {
                 key={promo.id}
                 elevation={0}
                 sx={{
-                  border: `2px solid ${promotionColors[promo.tipo]}`,
+                  border: `2px solid ${promo.color || "#90caf9"}`,
                   borderRadius: 2,
                   p: 2,
-                  bgcolor: theme.palette.mode === "dark" 
-                    ? "rgba(255,255,255,0.03)" 
-                    : "rgba(0,0,0,0.02)",
+                  bgcolor:
+                    theme.palette.mode === "dark"
+                      ? "rgba(255,255,255,0.03)"
+                      : "rgba(0,0,0,0.02)",
                 }}
               >
                 {/* Header de la promoción */}
-                <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="start"
+                  mb={1}
+                >
                   <Box>
                     <Typography
                       variant="h6"
                       fontWeight="bold"
-                      sx={{ color: promotionColors[promo.tipo] }}
+                      sx={{ color: promo.color || "#90caf9" }}
                     >
                       {promo.tipo}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {promo.duracion === "temporal" ? "Promoción Temporal" : "Promoción Fija"}
+                      {promo.duracion === "temporal"
+                        ? "Promoción Temporal"
+                        : "Promoción Fija"}
                     </Typography>
                   </Box>
                   <Chip
@@ -324,13 +347,20 @@ const PromotionsCalendarDay: React.FC = () => {
                 {/* Fechas */}
                 <Box display="flex" gap={1} mb={1.5}>
                   <Typography variant="caption" color="text.secondary">
-                    <strong>Vigencia:</strong> {dayjs(promo.fecha_inicio).locale("es").format("DD/MM/YYYY")}
+                    <strong>Vigencia:</strong>{" "}
+                    {dayjs(promo.fecha_inicio)
+                      .locale("es")
+                      .format("DD/MM/YYYY")}
                   </Typography>
                   {promo.fecha_final && (
                     <>
-                      <Typography variant="caption" color="text.secondary">→</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {dayjs(promo.fecha_final).locale("es").format("DD/MM/YYYY")}
+                        →
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {dayjs(promo.fecha_final)
+                          .locale("es")
+                          .format("DD/MM/YYYY")}
                       </Typography>
                     </>
                   )}
@@ -343,7 +373,12 @@ const PromotionsCalendarDay: React.FC = () => {
 
                 {/* Tiendas */}
                 <Box>
-                  <Typography variant="caption" fontWeight="bold" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    fontWeight="bold"
+                    color="text.secondary"
+                    sx={{ mb: 0.5, display: "block" }}
+                  >
                     Tiendas aplicables:
                   </Typography>
                   <Box display="flex" flexWrap="wrap" gap={0.5}>
@@ -354,8 +389,8 @@ const PromotionsCalendarDay: React.FC = () => {
                         label={tienda}
                         sx={{
                           fontSize: "0.7rem",
-                          border: `1px solid ${promotionColors[promo.tipo]}`,
-                          color: promotionColors[promo.tipo],
+                          border: `1px solid ${promo.color || "#90caf9"}`,
+                          color: promo.color || "#90caf9",
                           bgcolor: "transparent",
                           height: 20,
                         }}

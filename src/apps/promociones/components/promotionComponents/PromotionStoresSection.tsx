@@ -45,7 +45,6 @@ export const PromotionStoresSection: React.FC<PromotionStoresSectionProps> = ({
 
   // 🔧 Maneja la cancelación
   const handleCancelSelection = useCallback(() => {
-    console.log("❌ Selección cancelada");
     closeModal();
   }, [closeModal]);
 

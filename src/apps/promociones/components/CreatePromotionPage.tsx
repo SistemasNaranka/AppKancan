@@ -64,7 +64,9 @@ const CreatePromotionPage: React.FC = () => {
     mutationFn: crearPromocionCompleta,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["promociones"] });
-      navigate("/promociones");
+      navigate("/promociones", {
+        state: { successMessage: "¡Promoción creada exitosamente!" },
+      });
     },
     onError: (error: any) => {
       setError(error?.message || "Error al crear la promoción");
@@ -86,6 +88,7 @@ const CreatePromotionPage: React.FC = () => {
         ...formattedData,
         descuento: formState.descuento,
         tipo_id: formState.tipoId!,
+        observaciones: formState.observaciones.trim() || null,
       };
 
       await createPromoMutation.mutateAsync({
@@ -141,6 +144,7 @@ const CreatePromotionPage: React.FC = () => {
                 horaInicio={formState.horaInicio}
                 horaFinal={formState.horaFinal}
                 descuento={formState.descuento}
+                observaciones={formState.observaciones}
                 onTipoChange={(value) => updateField("tipoId", value)}
                 onNombreChange={(value) => updateField("nombre", value)}
                 onDuracionChange={handleDuracionChange}
@@ -151,6 +155,9 @@ const CreatePromotionPage: React.FC = () => {
                 onHoraInicioChange={(value) => updateField("horaInicio", value)}
                 onHoraFinalChange={(value) => updateField("horaFinal", value)}
                 onDescuentoChange={(value) => updateField("descuento", value)}
+                onObservacionesChange={(value) =>
+                  updateField("observaciones", value)
+                }
               />
 
               <PromotionStoresSection

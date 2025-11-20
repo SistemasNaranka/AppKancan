@@ -25,6 +25,7 @@ interface PromotionFormFieldsProps {
   horaInicio: Dayjs | null;
   horaFinal: Dayjs | null;
   descuento: number;
+  observaciones: string;
   onTipoChange: (value: number) => void;
   onNombreChange: (value: string) => void;
   onDuracionChange: (isTemporal: boolean) => void;
@@ -33,6 +34,7 @@ interface PromotionFormFieldsProps {
   onHoraInicioChange: (value: Dayjs | null) => void;
   onHoraFinalChange: (value: Dayjs | null) => void;
   onDescuentoChange: (value: number) => void;
+  onObservacionesChange: (value: string) => void;
 }
 
 export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
@@ -45,6 +47,7 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
   horaInicio,
   horaFinal,
   descuento,
+  observaciones,
   onTipoChange,
   onNombreChange,
   onDuracionChange,
@@ -53,6 +56,7 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
   onHoraInicioChange,
   onHoraFinalChange,
   onDescuentoChange,
+  onObservacionesChange,
 }) => {
   const availablePromotionTypes = useMemo(
     () => tiposPromocion.filter((tipo) => tipo.duracion === duracion),
@@ -203,6 +207,18 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
         inputProps={{ min: 1, max: 100 }}
         required
         helperText="Porcentaje de descuento (1-100)"
+      />
+
+      {/* Observaciones */}
+      <TextField
+        fullWidth
+        label="Observaciones"
+        value={observaciones}
+        onChange={(e) => onObservacionesChange(e.target.value)}
+        multiline
+        rows={3}
+        placeholder="Observaciones adicionales sobre la promoción (opcional)"
+        helperText="Información adicional que se mostrará en los detalles"
       />
     </Box>
   );

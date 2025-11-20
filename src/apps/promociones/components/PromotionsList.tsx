@@ -11,9 +11,12 @@ import {
   useTheme,
   Chip,
 } from "@mui/material";
-import Grid from "@mui/material/Grid";
+
 import { useFilteredPromotions } from "../hooks/useFilteredPromotions";
 import { CalendarToday, LocalOffer, Store } from "@mui/icons-material";
+import dayjs from "dayjs";
+import "dayjs/locale/es";
+dayjs.locale("es");
 
 interface PromotionsListProps {
   onSelect?: (promo: any) => void;
@@ -25,7 +28,10 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
   const theme = useTheme();
 
   // ✅ Fechas simplificadas sin errores de zona horaria
-  const formatSimplifiedDate = (fechaInicio: string, fechaFinal: string) => {
+  const formatSimplifiedDate = (
+    fechaInicio: string,
+    fechaFinal: string | null
+  ) => {
     const formatDate = (dateStr: string) => {
       const [year, month, day] = dateStr.split("-").map(Number);
       const date = new Date(year, month - 1, day);
@@ -34,7 +40,11 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
         month: "long",
       });
     };
-    return `${formatDate(fechaInicio)} - ${formatDate(fechaFinal)}`;
+    if (fechaFinal) {
+      return `${formatDate(fechaInicio)} - ${formatDate(fechaFinal)}`;
+    } else {
+      return formatDate(fechaInicio);
+    }
   };
 
   return (
@@ -136,6 +146,19 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                 />
               </Box>
 
+              {/* Nombre de la promoción */}
+              <Typography
+                variant="subtitle1"
+                fontWeight="600"
+                sx={{
+                  color: theme.palette.text.primary,
+                  fontSize: "0.9rem",
+                  mt: 0.5,
+                }}
+              >
+                {promo.descripcion}
+              </Typography>
+
               {/* Fechas */}
               <Box display="flex" alignItems="center" gap={1}>
                 <CalendarToday
@@ -225,104 +248,248 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                 </DialogTitle>
 
                 <DialogContent dividers sx={{ p: 3 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="space-between"
-                      >
-                        <Typography
-                          variant="h4"
-                          fontWeight="bold"
-                          color="primary"
-                        >
-                          {selectedPromo.descuento}% OFF
-                        </Typography>
-                        <Chip
-                          label={selectedPromo.tipo}
-                          sx={{
-                            backgroundColor: color,
-                            color: "white",
-                            fontWeight: "600",
-                          }}
-                        />
-                      </Box>
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <CalendarToday color="action" />
-                        <Typography variant="body1" fontWeight="500">
-                          {formatSimplifiedDate(
-                            selectedPromo.fecha_inicio,
-                            selectedPromo.fecha_final
-                          )}
-                        </Typography>
-                      </Box>
-                    </Grid>
-
-                    <Grid item xs={12}>
+                  <Box display="flex" flexDirection="column" gap={3}>
+                    {/* Header principal con descuento y tipo */}
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      flexWrap="wrap"
+                      gap={2}
+                    >
                       <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        lineHeight={1.6}
+                        variant="h3"
+                        fontWeight="bold"
+                        color="primary"
+                        sx={{ fontSize: { xs: "2rem", sm: "2.5rem" } }}
+                      >
+                        {selectedPromo.descuento}% OFF
+                      </Typography>
+                      <Chip
+                        label={selectedPromo.tipo}
+                        size="medium"
+                        sx={{
+                          backgroundColor: color,
+                          color: "white",
+                          fontWeight: "600",
+                          fontSize: "0.875rem",
+                          px: 2,
+                        }}
+                      />
+                    </Box>
+
+                    {/* Nombre de la promoción */}
+                    <Box>
+                      <Typography
+                        variant="h5"
+                        fontWeight="600"
+                        color="text.primary"
+                        sx={{ mb: 1 }}
                       >
                         {selectedPromo.descripcion}
                       </Typography>
-                    </Grid>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          fontStyle: "italic",
+                          borderLeft: `3px solid ${color}`,
+                          pl: 2,
+                          py: 0.5,
+                          backgroundColor: `${color}08`,
+                        }}
+                      >
+                        {selectedPromo.duracion === "temporal"
+                          ? "Promoción Temporal"
+                          : "Promoción Fija"}
+                      </Typography>
+                    </Box>
 
-                    <Grid item xs={12}>
+                    {/* Información de fechas */}
+                    <Box
+                      sx={{
+                        p: 2,
+                        backgroundColor: "grey.50",
+                        borderRadius: 2,
+                        border: `1px solid ${theme.palette.divider}`,
+                      }}
+                    >
                       <Box display="flex" alignItems="center" gap={1} mb={1}>
+                        <CalendarToday color="action" />
+                        <Typography variant="subtitle1" fontWeight="600">
+                          Vigencia
+                        </Typography>
+                      </Box>
+                      <Typography variant="body1" color="text.primary">
+                        {formatSimplifiedDate(
+                          selectedPromo.fecha_inicio,
+                          selectedPromo.fecha_final
+                        )}
+                      </Typography>
+                    </Box>
+
+                    {/* Observaciones */}
+                    {selectedPromo.observaciones && (
+                      <Box
+                        sx={{
+                          p: 2,
+                          backgroundColor: "info.50",
+                          borderRadius: 2,
+                          border: `1px solid ${theme.palette.info.light}`,
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          fontWeight="600"
+                          color="info.main"
+                          sx={{ mb: 1 }}
+                        >
+                          Observaciones
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.primary"
+                          lineHeight={1.6}
+                        >
+                          {selectedPromo.observaciones}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Tiendas participantes */}
+                    <Box>
+                      <Box display="flex" alignItems="center" gap={1} mb={2}>
                         <Store color="action" />
                         <Typography variant="subtitle1" fontWeight="600">
-                          {selectedPromo.tiendas.length} Tienda
-                          {selectedPromo.tiendas.length !== 1 ? "s" : ""}{" "}
-                          participantes
+                          Tiendas participantes ({selectedPromo.tiendas.length})
                         </Typography>
                       </Box>
 
+                      {/* Contenedor con mejor indicación de scroll */}
                       <Box
-                        display="flex"
-                        flexDirection="column"
-                        gap={1}
-                        maxHeight={200}
-                        overflow="auto"
                         sx={{
-                          "&::-webkit-scrollbar": { width: 6 },
-                          "&::-webkit-scrollbar-track": {
-                            background: "grey.100",
-                            borderRadius: 1,
-                          },
-                          "&::-webkit-scrollbar-thumb": {
-                            background: "grey.400",
-                            borderRadius: 1,
-                          },
+                          position: "relative",
+                          maxHeight: 300,
+                          overflow: "hidden",
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 2,
+                          backgroundColor: "grey.50",
                         }}
                       >
-                        {selectedPromo.tiendas.map((t: string) => (
-                          <Paper
-                            key={t}
-                            variant="outlined"
+                        {/* Indicador de scroll superior (sombra) */}
+                        {selectedPromo.tiendas.length > 9 && (
+                          <Box
                             sx={{
-                              px: 2,
-                              py: 1,
-                              borderRadius: 1,
-                              borderColor: theme.palette.divider,
-                              backgroundColor: "grey.50",
-                              "&:hover": {
-                                backgroundColor: "grey.100",
-                              },
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: 20,
+                              background:
+                                "linear-gradient(to bottom, rgba(0,0,0,0.06), transparent)",
+                              pointerEvents: "none",
+                              zIndex: 1,
                             }}
-                          >
-                            <Typography variant="body2" fontWeight="500">
-                              {t}
-                            </Typography>
-                          </Paper>
-                        ))}
+                          />
+                        )}
+
+                        {/* Grid de tiendas con scroll mejorado */}
+                        <Box
+                          display="grid"
+                          gridTemplateColumns={{
+                            xs: "1fr",
+                            sm: "repeat(2, 1fr)",
+                            md: "repeat(3, 1fr)",
+                          }}
+                          gap={1.5}
+                          sx={{
+                            maxHeight: 300,
+                            overflowY: "auto",
+                            p: 2,
+                            // Scrollbar personalizado más visible
+                            "&::-webkit-scrollbar": {
+                              width: 14,
+                              backgroundColor: "transparent",
+                            },
+                            "&::-webkit-scrollbar-track": {
+                              backgroundColor: "rgba(0, 0, 0, 0.05)",
+                              borderRadius: 7,
+                              margin: "8px 0",
+                            },
+                            "&::-webkit-scrollbar-thumb": {
+                              backgroundColor:
+                                color || theme.palette.primary.main,
+                              borderRadius: 7,
+                              border: "3px solid transparent",
+                              backgroundClip: "padding-box",
+                              opacity: 0.8,
+                              "&:hover": {
+                                backgroundColor: theme.palette.primary.dark,
+                                opacity: 1,
+                              },
+                            },
+                            // Para Firefox
+                            scrollbarWidth: "thin",
+                            scrollbarColor: `${
+                              color || theme.palette.primary.main
+                            } rgba(0, 0, 0, 0.05)`,
+                          }}
+                        >
+                          {selectedPromo.tiendas.map(
+                            (tienda: string, index: number) => (
+                              <Paper
+                                key={`${tienda}-${index}`}
+                                elevation={0}
+                                sx={{
+                                  p: 1.5,
+                                  borderRadius: 1.5,
+                                  border: `1px solid ${theme.palette.divider}`,
+                                  backgroundColor: "background.paper",
+                                  transition: "background-color 0.2s ease",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  minHeight: 50,
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="500"
+                                  textAlign="center"
+                                  sx={{
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                  }}
+                                >
+                                  {tienda}
+                                </Typography>
+                              </Paper>
+                            )
+                          )}
+                        </Box>
+
+                        {/* Indicador de scroll inferior */}
+                        {selectedPromo.tiendas.length > 9 && (
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height: 20,
+                              background:
+                                "linear-gradient(to top, rgba(0,0,0,0.06), transparent)",
+                              pointerEvents: "none",
+                              zIndex: 1,
+                            }}
+                          />
+                        )}
                       </Box>
-                    </Grid>
-                  </Grid>
+                    </Box>
+                  </Box>
                 </DialogContent>
 
                 <DialogActions

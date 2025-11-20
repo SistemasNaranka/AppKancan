@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { PromotionDuration } from "../types/promotion";
@@ -12,6 +12,7 @@ export interface IPromotionFormState {
   horaInicio: Dayjs | null;
   horaFinal: Dayjs | null;
   descuento: number;
+  observaciones: string;
   tiendasSeleccionadas: (string | number)[];
 }
 
@@ -25,6 +26,7 @@ export const usePromotionForm = () => {
     horaInicio: null,
     horaFinal: null,
     descuento: 10,
+    observaciones: "",
     tiendasSeleccionadas: [],
   });
 
@@ -45,7 +47,14 @@ export const usePromotionForm = () => {
     setFormState((prev) => ({
       ...prev,
       duracion: newDuracion,
-      ...(isTemporal ? {} : { fechaFinal: null, horaFinal: null }),
+      tipoId: null, // Reset tipoId when changing duration
+      ...(isTemporal
+        ? {}
+        : {
+            fechaFinal: null,
+            horaFinal: null,
+            horaInicio: dayjs("00:01", "HH:mm"),
+          }),
     }));
   }, []);
 

@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { Promotion } from "../types/promotion";
 import { usePromotionsFilter } from "./usePromotionsFilter";
 import { usePromotions } from "./usePromotions";
+import { useQuery } from "@tanstack/react-query";
+import { obtenerTiendas } from "../api/directus/read";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
@@ -14,6 +16,11 @@ dayjs.extend(isSameOrBefore);
  */
 export const useFilteredPromotions = (): Promotion[] => {
   const { data: promotions = [], isLoading, isError } = usePromotions();
+  const { data: stores = [] } = useQuery({
+    queryKey: ["prom_tiendas"],
+    queryFn: obtenerTiendas,
+    staleTime: 1000 * 60 * 10,
+  });
   const {
     tipos,
     descuentoRange,
@@ -34,7 +41,8 @@ export const useFilteredPromotions = (): Promotion[] => {
 
     return promotions.filter((promo) => {
       // 🔹 Filtro por duración
-      if (duracion && promo.duracion !== duracion) return false;
+      if (duracion.length > 0 && !duracion.includes(promo.duracion))
+        return false;
 
       // 🔹 Filtro por tipos
       if (tipos.length > 0 && !tipos.includes(promo.tipo)) return false;
@@ -49,9 +57,12 @@ export const useFilteredPromotions = (): Promotion[] => {
       // 🔹 Filtro por tiendas seleccionadas
       if (tiendas.length > 0) {
         // Verificar si alguna tienda de la promoción está en las seleccionadas
-        const hasMatchingStore = promo.tiendas.some((tienda) =>
-          tiendas.includes(tienda)
-        );
+        // Convertir tiendas de la promoción a IDs para comparación
+        const hasMatchingStore = promo.tiendas.some((tiendaNombre) => {
+          // Buscar el ID de la tienda por nombre
+          const store = stores.find((s) => s.nombre === tiendaNombre);
+          return store && tiendas.includes(store.id);
+        });
         if (!hasMatchingStore) return false;
       }
 
@@ -106,6 +117,7 @@ export const useFilteredPromotions = (): Promotion[] => {
     });
   }, [
     promotions,
+    stores,
     tipos,
     descuentoRange,
     duracion,

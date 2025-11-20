@@ -17,6 +17,33 @@ export async function getUserArea() {
 }
 
 /**
+ * Obtiene las bodegas asignadas al usuario actual desde ulti_bodega_usuario
+ * ✅ Usa regla "current user" de Directus para filtrar automáticamente
+ */
+export async function getUserBodegas() {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("util_bodega_usuario", {
+          fields: ["bodega"],
+        })
+      )
+    );
+
+    // 🔹 Aplanar los datos - bodega es el número directo
+    const bodegas = items.map((item: any) => ({
+      codigo: item.bodega.toString(),
+      nombre: `Bodega ${item.bodega}`,
+    }));
+
+    return bodegas;
+  } catch (error) {
+    console.error("❌ Error al cargar bodegas del usuario:", error);
+    return [];
+  }
+}
+
+/**
  * Retorna registros de la tabla Apps
  * ✅ Ahora con refresh automático si el token está expirado
  */ export async function getApps() {

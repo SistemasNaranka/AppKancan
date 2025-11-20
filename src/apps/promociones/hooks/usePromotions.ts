@@ -5,7 +5,7 @@ import { obtenerPromociones } from "../api/directus/read";
 /**
  * Hook para obtener todas las promociones desde Directus.
  * Los componentes pueden filtrar por año, mes, día o tipo.
- * 
+ *
  * @returns Query object con las promociones
  */
 export const usePromotions = () => {

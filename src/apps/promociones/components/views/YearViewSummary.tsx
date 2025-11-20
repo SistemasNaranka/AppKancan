@@ -62,7 +62,7 @@ const YearViewSummary: React.FC = () => {
       const promoStart = dayjs(promo.fecha_inicio);
       const promoEnd = promo.fecha_final
         ? dayjs(promo.fecha_final)
-        : promoStart.endOf("year"); // Si es fija, asumimos que dura todo el año
+        : promoStart; // Si es fija, solo el día de inicio
 
       // Verificar si la promo intersecta con este mes
       if (

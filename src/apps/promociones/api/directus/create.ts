@@ -13,6 +13,7 @@ export interface CreatePromocionData {
   hora_fin?: string | null;
   descuento: number;
   tipo_id: number;
+  observaciones?: string | null;
 }
 
 export interface PromoTienda {
@@ -55,6 +56,7 @@ export async function crearPromocion(data: CreatePromocionData) {
       hora_fin: formatearHora(data.hora_fin),
       descuento: Number(data.descuento),
       tipo_id: Number(data.tipo_id),
+      observaciones: data.observaciones || null,
     };
 
     const result = await withAutoRefresh(() =>

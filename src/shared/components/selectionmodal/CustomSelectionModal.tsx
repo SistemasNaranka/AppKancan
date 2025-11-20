@@ -29,6 +29,13 @@ export interface SelectionItem {
   [key: string]: any;
 }
 
+export interface SelectionCardProps {
+  item: SelectionItem;
+  selected: boolean;
+  onToggle: (id: string | number) => void;
+  mode: "select" | "view";
+}
+
 export interface CustomSelectionModalProps {
   open: boolean;
   onClose: () => void;
@@ -146,8 +153,8 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
 
   const isAllSelected = items.length > 0 && selected.size === items.length;
 
-  const SelectionCard = React.memo(
-    ({ item, selected, onToggle, mode }: any) => (
+  const SelectionCard = React.memo<SelectionCardProps>(
+    ({ item, selected, onToggle, mode }) => (
       <Card
         key={item.id}
         sx={{
@@ -405,6 +412,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
                   flex: 1,
                   overflowY: "auto",
                   pr: 1,
+                  pt: 1, // Espacio adicional arriba para evitar colisión en hover
                   "&::-webkit-scrollbar": { width: 8 },
                   "&::-webkit-scrollbar-thumb": {
                     backgroundColor: "#a5b4fc",

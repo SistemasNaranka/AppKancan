@@ -125,13 +125,15 @@ const TrasladosPanel: React.FC = () => {
         throw new Error("No se encontraron traslados para aprobar");
       }
 
-      console.log(
-        "Informacion enviada",
-        trasladosSeleccionados,
-        user.empresa,
-        user.codigo_ultra,
-        clave
-      );
+      if (import.meta.env.DEV) {
+        console.log(
+          "Informacion enviada",
+          trasladosSeleccionados,
+          user.empresa,
+          user.codigo_ultra,
+          clave
+        );
+      }
 
       const resultado = await aprobarTraslados(
         trasladosSeleccionados,

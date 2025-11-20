@@ -12,6 +12,7 @@ export interface Promotion {
   id: number;
   tipo: string;
   descripcion: string;
+  observaciones?: string; // Campo opcional para observaciones
   tiendas: string[];
   fecha_inicio: string;
   fecha_final: string | null;

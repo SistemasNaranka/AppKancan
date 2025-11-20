@@ -2,7 +2,6 @@ import React, { useMemo, useCallback, useRef, useState } from "react";
 import { Box, Typography, IconButton, Tooltip, useTheme } from "@mui/material";
 import { ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
 import { Instance } from "@popperjs/core";
-import { promotionColors } from "../../data/mockPromotionsColors";
 import { Promotion } from "../../types/promotion";
 import { usePromotionsFilter } from "../../hooks/usePromotionsFilter";
 import { useFilteredPromotions } from "../../hooks/useFilteredPromotions";
@@ -20,7 +19,11 @@ interface DayCellProps {
   promos: Promotion[];
   isToday: boolean;
   onClick?: () => void;
-  onPointerMove?: (e: React.PointerEvent, promos: Promotion[], cell: HTMLDivElement) => void;
+  onPointerMove?: (
+    e: React.PointerEvent,
+    promos: Promotion[],
+    cell: HTMLDivElement
+  ) => void;
   onPointerLeave?: () => void;
 }
 
@@ -37,7 +40,8 @@ const DayCell: React.FC<DayCellProps> = React.memo(
         ref={cellRef}
         onClick={onClick}
         onPointerMove={(e) => {
-          if (onPointerMove && cellRef.current) onPointerMove(e, promos, cellRef.current);
+          if (onPointerMove && cellRef.current)
+            onPointerMove(e, promos, cellRef.current);
         }}
         onPointerLeave={onPointerLeave}
         sx={{
@@ -59,7 +63,12 @@ const DayCell: React.FC<DayCellProps> = React.memo(
             : {},
         }}
       >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={1}
+        >
           <Typography
             variant="body2"
             fontWeight="bold"
@@ -87,7 +96,7 @@ const DayCell: React.FC<DayCellProps> = React.memo(
               key={promo.id}
               sx={{
                 height: 16,
-                width: "100%",
+                width: promo.fecha_final ? "100%" : "30%", // Para fijas, solo una marca pequeña
                 backgroundColor: promo.color || theme.palette.primary.main,
                 borderRadius: 0.5,
                 display: "flex",
@@ -133,7 +142,8 @@ const DayCell: React.FC<DayCellProps> = React.memo(
 
 const PromotionsCalendarWeek: React.FC = () => {
   const promotions = useFilteredPromotions();
-  const { focusedDate, setFocusedDate, setSelectedView } = usePromotionsFilter();
+  const { focusedDate, setFocusedDate, setSelectedView } =
+    usePromotionsFilter();
 
   // Tooltip virtual refs/state
   const popperRef = useRef<Instance | null>(null);
@@ -143,7 +153,10 @@ const PromotionsCalendarWeek: React.FC = () => {
   const [hoveredPromos, setHoveredPromos] = useState<Promotion[]>([]);
 
   // week start (Monday)
-  const weekStart = useMemo(() => focusedDate.startOf("week").add(1, "day"), [focusedDate]);
+  const weekStart = useMemo(
+    () => focusedDate.startOf("week").add(1, "day"),
+    [focusedDate]
+  );
 
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => weekStart.add(i, "day")),
@@ -182,7 +195,11 @@ const PromotionsCalendarWeek: React.FC = () => {
   }, [focusedDate, setFocusedDate]);
 
   // Pointer handler: receives cell DOM element so areaRef is guaranteed to be the cell
-  const handlePointerMove = (event: React.PointerEvent, promos: Promotion[], cellEl: HTMLDivElement) => {
+  const handlePointerMove = (
+    event: React.PointerEvent,
+    promos: Promotion[],
+    cellEl: HTMLDivElement
+  ) => {
     if (!promos || promos.length === 0) {
       setOpenTooltip(false);
       setHoveredPromos([]);
@@ -207,37 +224,36 @@ const PromotionsCalendarWeek: React.FC = () => {
 
   // build tooltip content
   const tooltipContent =
-        hoveredPromos.length > 0 ? (
-          <Box>
-  {hoveredPromos.map((promo) => (
-    <Box
-      key={promo.id}
-      sx={{
-        borderLeft: `4px solid ${promo.color || theme.palette.primary.main}`,
-        pl: 1,
-        mb: 0.5,
-      }}
-    >
-      <Typography
-        variant="body2"
-        fontWeight="bold"
-        sx={{ color: promo.color || theme.palette.primary.main }}
-      >
-        {promo.tipo} — {promo.descuento}%
-      </Typography>
-      <Typography variant="caption" sx={{ color: "text.secondary" }}>
-        {dayjs(promo.fecha_inicio).locale("es").format("D MMM")} →{" "}
-        {promo.fecha_final
-          ? dayjs(promo.fecha_final).locale("es").format("D MMM")
-          : "-"}
-      </Typography>
-    </Box>
-  ))}
-</Box>
-        ) : (
-          ""
-        );
-
+    hoveredPromos.length > 0 ? (
+      <Box>
+        {hoveredPromos.map((promo) => (
+          <Box
+            key={promo.id}
+            sx={{
+              borderLeft: `4px solid ${promo.color || "#90caf9"}`,
+              pl: 1,
+              mb: 0.5,
+            }}
+          >
+            <Typography
+              variant="body2"
+              fontWeight="bold"
+              sx={{ color: promo.color || "#90caf9" }}
+            >
+              {promo.tipo} — {promo.descuento}%
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {dayjs(promo.fecha_inicio).locale("es").format("D MMM")} →{" "}
+              {promo.fecha_final
+                ? dayjs(promo.fecha_final).locale("es").format("D MMM")
+                : "-Fija"}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    ) : (
+      ""
+    );
 
   const today = dayjs();
 
@@ -247,8 +263,6 @@ const PromotionsCalendarWeek: React.FC = () => {
       <Box display="flex" justifyContent="center" alignItems="center" mb={2}>
         <IconButton onClick={handlePrevWeek} size="small">
           <ArrowBackIos fontSize="small" />
-
-
         </IconButton>
 
         <Box textAlign="center" width="200px">
@@ -256,53 +270,52 @@ const PromotionsCalendarWeek: React.FC = () => {
             {weekStart.format("MMMM YYYY")}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Semana {weekStart.week()} · {weekStart.format("DD MMM")} - {weekStart.add(6, "day").format("DD MMM")}
+            Semana {weekStart.week()} · {weekStart.format("DD MMM")} -{" "}
+            {weekStart.add(6, "day").format("DD MMM")}
           </Typography>
         </Box>
 
         <IconButton onClick={handleNextWeek} size="small">
-
-
           <ArrowForwardIos fontSize="small" />
         </IconButton>
       </Box>
 
       {/* Tooltip virtual */}
-<Tooltip
-  open={openTooltip}
-  title={tooltipContent}
-  placement="top"
-  arrow
-  slotProps={{
-    tooltip: {
-      sx: {
-        backgroundColor: "#ffffff",
-        color: "#000000",
-        border: "1px solid #ccc",
-        "& .MuiTooltip-arrow": {
-          color: "#ffffff",
-        },
-      },
-    },
-    popper: {
-      popperRef,
-      anchorEl: {
-        getBoundingClientRect: () => {
-          const cellRect = areaRef.current?.getBoundingClientRect();
-          return new DOMRect(
-            positionRef.current.x,
-            cellRect ? cellRect.y : positionRef.current.y,
-            0,
-            0
-          );
-        },
-      },
-    },
-  }}
->
-  {/* Contenedor invisible para cumplir children */}
-  <Box sx={{ width: 0, height: 0, position: "fixed", top: 0, left: 0 }} />
-</Tooltip>
+      <Tooltip
+        open={openTooltip}
+        title={tooltipContent}
+        placement="top"
+        arrow
+        slotProps={{
+          tooltip: {
+            sx: {
+              backgroundColor: "#ffffff",
+              color: "#000000",
+              border: "1px solid #ccc",
+              "& .MuiTooltip-arrow": {
+                color: "#ffffff",
+              },
+            },
+          },
+          popper: {
+            popperRef,
+            anchorEl: {
+              getBoundingClientRect: () => {
+                const cellRect = areaRef.current?.getBoundingClientRect();
+                return new DOMRect(
+                  positionRef.current.x,
+                  cellRect ? cellRect.y : positionRef.current.y,
+                  0,
+                  0
+                );
+              },
+            },
+          },
+        }}
+      >
+        {/* Contenedor invisible para cumplir children */}
+        <Box sx={{ width: 0, height: 0, position: "fixed", top: 0, left: 0 }} />
+      </Tooltip>
 
       {/* Grid week */}
       <Box

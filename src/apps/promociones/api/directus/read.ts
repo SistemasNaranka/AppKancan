@@ -13,6 +13,7 @@ export interface DirectusPromo {
   hora_fin: string | null;
   descuento: number;
   tipo_id: number | DirectusPromoTipo;
+  observaciones: string | null;
 }
 
 export interface DirectusPromoTipo {
@@ -113,6 +114,7 @@ export async function obtenerPromociones(): Promise<Promotion[]> {
             "hora_inicio",
             "hora_fin",
             "descuento",
+            "observaciones",
             "tipo_id.id",
             "tipo_id.nombre",
             "tipo_id.duracion",
@@ -138,6 +140,7 @@ export async function obtenerPromociones(): Promise<Promotion[]> {
             _eq: "Activo",
           },
         },
+        limit: -1, // Obtener todos los registros, no solo los primeros 100
       })
     );
 
@@ -164,6 +167,7 @@ export async function obtenerPromociones(): Promise<Promotion[]> {
         id: promo.id,
         tipo: tipo?.nombre as PromotionType,
         descripcion: promo.nombre,
+        observaciones: promo.observaciones,
         tiendas: tiendas,
         fecha_inicio: promo.fecha_inicio,
         fecha_final: promo.fecha_final,
@@ -171,7 +175,7 @@ export async function obtenerPromociones(): Promise<Promotion[]> {
         hora_fin: formatearHoraDisplay(promo.hora_fin),
         descuento: promo.descuento,
         duracion: tipo?.duracion || "temporal",
-        color: tipo?.color || "#888", // 👈 nuevo campo
+        color: tipo?.color || "#888",
       };
     });
 
@@ -201,6 +205,7 @@ export async function obtenerPromocionPorId(
             "hora_inicio",
             "hora_fin",
             "descuento",
+            "observaciones",
             "tipo_id.id",
             "tipo_id.nombre",
             "tipo_id.duracion",
@@ -235,6 +240,7 @@ export async function obtenerPromocionPorId(
               _eq: "Activo",
             },
           },
+          limit: -1, // Obtener todos los registros
         })
       )
     );
@@ -242,12 +248,14 @@ export async function obtenerPromocionPorId(
     const tiendas = promoTiendas.map(
       (pt: any) => pt.tiendas_id?.nombre || "Sin nombre"
     );
+
     const tipo = promoData.tipo_id;
 
     return {
       id: promoData.id,
       tipo: tipo?.nombre as PromotionType,
       descripcion: promoData.nombre,
+      observaciones: promoData.observaciones,
       tiendas: tiendas,
       fecha_inicio: promoData.fecha_inicio,
       fecha_final: promoData.fecha_final,
