@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
+import { CircularProgress } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { Paper, Typography, Box, Divider } from "@mui/material";
@@ -196,12 +196,11 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
             </>
           ) : !aprobado ? (
             <>
-              <AutorenewIcon
+              <CircularProgress
+                size={54}
                 sx={{
-                  fontSize: 54,
                   color: "primary.main",
                   mb: 2,
-                  animation: "spin 1.2s linear infinite",
                 }}
               />
               <Typography

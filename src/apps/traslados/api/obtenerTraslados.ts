@@ -2,7 +2,7 @@ import type { Traslado } from "../hooks/types";
 
 const WEBHOOK_USERNAME = import.meta.env.VITE_WEBHOOK_USERNAME;
 const WEBHOOK_PASSWORD = import.meta.env.VITE_WEBHOOK_PASSWORD;
-const WEBHOOK_URL_POST = import.meta.env.VITE_WEBHOOK_URL_POST;
+const WEBHOOK_URL_POST = import.meta.env.VITE_WEBHOOK_URL_POST_TRASLADOS;
 const WEBHOOK_URL_TRASLADOS = import.meta.env.VITE_WEBHOOK_URL_TRASLADOS;
 
 /**

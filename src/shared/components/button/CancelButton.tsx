@@ -50,3 +50,53 @@ export const CustomButton = ({
     </Button>
   );
 };
+
+import React from "react";
+
+interface CancelButtonProps {
+  text: string;
+  onClick?: () => void;
+  sx?: SxProps<Theme>;
+  disabled?: boolean;
+  variant?: "outlined" | "contained" | "text";
+  startIcon?: React.ReactNode;
+}
+
+const CancelButton: React.FC<CancelButtonProps> = ({
+  text,
+  onClick,
+  sx,
+  disabled = false,
+  variant = "outlined",
+  startIcon,
+}) => {
+  return (
+    <Button
+      onClick={onClick}
+      variant={variant}
+      color="error"
+      disabled={disabled}
+      startIcon={startIcon}
+      sx={{
+        minWidth: 120,
+        fontWeight: "bold",
+        py: 1,
+        px: 3,
+        fontSize: "1rem",
+        borderRadius: 3,
+        borderWidth: variant === "outlined" ? 2 : undefined,
+        transition: "all 0.3s ease",
+        "&:hover": {
+          borderWidth: variant === "outlined" ? 2 : undefined,
+          bgcolor: variant === "outlined" ? "error.50" : undefined,
+          transform: variant === "contained" ? "translateY(-2px)" : undefined,
+        },
+        ...sx,
+      }}
+    >
+      {text}
+    </Button>
+  );
+};
+
+export default CancelButton;

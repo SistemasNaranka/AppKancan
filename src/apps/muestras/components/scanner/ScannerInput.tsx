@@ -13,38 +13,26 @@ interface Props {
 }
 
 export const ScannerInput = forwardRef<HTMLInputElement, Props>(
-  (
-    { value, onChange, onKeyDown, onAgregarReferencia, isScanning, inputRef },
-    ref
-  ) => {
-    // Función para filtrar solo números y limitar a 13 caracteres
+  ({ value, onChange, onKeyDown, onAgregarReferencia, inputRef }, ref) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
-      // Solo permite números, elimina cualquier caracter no numérico y limita a 13
       const numericValue = newValue.replace(/[^0-9]/g, "").slice(0, 13);
 
-      // Crear un nuevo evento sintético con el valor filtrado
       const syntheticEvent = {
         ...e,
-        target: {
-          ...e.target,
-          value: numericValue,
-        },
+        target: { ...e.target, value: numericValue },
       } as React.ChangeEvent<HTMLInputElement>;
 
       onChange(syntheticEvent);
     };
 
-    // Manejar pegado de texto
     const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
       e.preventDefault();
       const pastedText = e.clipboardData.getData("text");
       const numericText = pastedText.replace(/[^0-9]/g, "").slice(0, 13);
       if (numericText) {
         const syntheticEvent = {
-          target: {
-            value: numericText,
-          },
+          target: { value: numericText },
         } as React.ChangeEvent<HTMLInputElement>;
         onChange(syntheticEvent);
       }
@@ -78,8 +66,7 @@ export const ScannerInput = forwardRef<HTMLInputElement, Props>(
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    color: isScanning ? "primary.main" : "text.secondary",
-                    transition: "color 0.3s ease",
+                    color: "inherit",
                   }}
                 >
                   <QrCodeScanner />
@@ -104,25 +91,48 @@ export const ScannerInput = forwardRef<HTMLInputElement, Props>(
           maxWidth: 500,
           width: 400,
           "& .MuiOutlinedInput-root": {
-            bgcolor: "#ffffff",
-            borderRadius: 2,
-            transition: "border-color 0.3s ease",
+            bgcolor: "#f8f9fa",
+            transition: "background-color 0.2s ease, border-color 0.2s ease",
+            color: "text.secondary",
+
             "& fieldset": {
-              borderColor: "#e0e0e0",
-              borderWidth: 2,
-              transition: "border-color 0.3s ease",
+              borderColor: "#C2C2C2",
+              borderStyle: "solid",
+              borderWidth: 1,
+              transition: "border-color 0.2s ease",
             },
-            "&:hover fieldset": {
-              borderColor: "#bdbdbd",
+
+            "& .MuiSvgIcon-root": {
+              color: "#bdbdbd",
+              transition: "color 0.2s ease",
             },
-            "&.Mui-focused fieldset": {
-              borderColor: "primary.main",
-              borderWidth: 2,
+
+            "&:hover": {
+              bgcolor: "#f0f0f0",
+
+              "& fieldset": {
+                borderColor: "#000000",
+              },
+            },
+
+            "&.Mui-focused": {
+              bgcolor: "#ffffff",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              color: "text.primary",
+
+              "& fieldset": {
+                borderColor: "primary.main",
+                borderStyle: "solid",
+                borderWidth: 2,
+              },
+
+              "& .MuiSvgIcon-root": {
+                color: "primary.main",
+              },
             },
           },
           "& .MuiInputLabel-root": {
             color: "text.secondary",
-            fontWeight: 500,
             "&.Mui-focused": {
               color: "primary.main",
               fontWeight: 600,

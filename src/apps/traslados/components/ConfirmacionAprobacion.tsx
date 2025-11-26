@@ -4,7 +4,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
   Typography,
   Box,
@@ -14,7 +13,8 @@ import {
 import ErrorIcon from "@mui/icons-material/Error";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { CustomButton } from "@/shared/components/button/CancelButton";
+import CancelButton from "@/shared/components/button/CancelButton";
+import ConfirmButton from "@/shared/components/button/ConfirmButton";
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -219,22 +219,18 @@ const ConfirmacionAprobacion: React.FC<Props> = ({
           bgcolor: theme.palette.background.paper,
         })}
       >
-        <CustomButton text="Cancelar" color="error" onClick={handleClose} />
+        <CancelButton text="Cancelar" onClick={handleClose} />
 
-        <Button
-          onClick={handleConfirm}
-          variant="contained"
+        <ConfirmButton
+          text={`Aprobar traslado${cantidadTraslados !== 1 ? "s" : ""}`}
           color="success"
+          onClick={handleConfirm}
           disabled={!identificacion.trim()}
           sx={{
-            fontWeight: "bold",
             px: 3,
-            borderRadius: 2,
             textTransform: "none",
           }}
-        >
-          Aprobar traslado{cantidadTraslados !== 1 ? "s" : ""}
-        </Button>
+        />
       </DialogActions>
     </Dialog>
   );

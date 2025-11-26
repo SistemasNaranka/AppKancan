@@ -36,6 +36,14 @@ export const useScannerLogic = () => {
     gcTime: Infinity,
   });
 
+  // Query para observaciones
+  const { data: observaciones = "" } = useQuery({
+    queryKey: ["scanner-observaciones"],
+    queryFn: () => "",
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
   // Establecer bodega por defecto cuando se cargan las bodegas
   useEffect(() => {
     if (bodegas.length > 0 && !bodega) {
@@ -61,6 +69,11 @@ export const useScannerLogic = () => {
   // === CAMBIAR BODEGA ===
   const handleBodegaChange = (value: string) => {
     queryClient.setQueryData(["scanner-bodega"], value);
+  };
+
+  // === SET OBSERVACIONES ===
+  const setObservaciones = (value: string) => {
+    queryClient.setQueryData(["scanner-observaciones"], value);
   };
 
   // === PROCESAR CÓDIGO ===
@@ -147,6 +160,7 @@ export const useScannerLogic = () => {
   const limpiarTodo = () => {
     queryClient.setQueryData(["scanner-codigos"], new Map());
     setCodigoInput("");
+    queryClient.setQueryData(["scanner-observaciones"], "");
 
     // Limpiar timers al limpiar todo
     if (alertTimerRef.current) {
@@ -186,10 +200,12 @@ export const useScannerLogic = () => {
     isScanning,
     ultimoAgregado,
     alertCounter,
+    observaciones,
     handleBodegaChange,
     agregarCodigo,
     eliminarCodigo,
     reducirCantidad,
     limpiarTodo,
+    setObservaciones,
   };
 };

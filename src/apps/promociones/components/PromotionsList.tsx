@@ -13,9 +13,11 @@ import {
 } from "@mui/material";
 
 import { useFilteredPromotions } from "../hooks/useFilteredPromotions";
+import { usePromotionsFilter } from "../hooks/usePromotionsFilter";
 import { CalendarToday, LocalOffer, Store } from "@mui/icons-material";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { ViewType } from "../hooks/PromotionsFilterContext";
 dayjs.locale("es");
 
 interface PromotionsListProps {
@@ -24,8 +26,33 @@ interface PromotionsListProps {
 
 const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
   const filteredPromotions = useFilteredPromotions();
+  const { selectedView, focusedDate } = usePromotionsFilter();
   const [selectedPromo, setSelectedPromo] = useState<any | null>(null);
   const theme = useTheme();
+
+  // Función para generar mensaje dinámico cuando no hay promociones
+  const getNoPromotionsMessage = (view: ViewType, date: dayjs.Dayjs) => {
+    switch (view) {
+      case "anual":
+        return `No hay promociones disponibles para el año ${date.year()}`;
+      case "mensual":
+        return `No hay promociones disponibles para ${date.format(
+          "MMMM YYYY"
+        )}`;
+      case "semanal":
+        const weekStart = date.startOf("week");
+        const weekEnd = date.endOf("week");
+        return `No hay promociones disponibles para la semana del ${weekStart.format(
+          "DD/MM"
+        )} al ${weekEnd.format("DD/MM/YYYY")}`;
+      case "dia":
+        return `No hay promociones disponibles para el ${date.format(
+          "DD/MM/YYYY"
+        )}`;
+      default:
+        return "No hay promociones que coincidan con los filtros";
+    }
+  };
 
   // ✅ Fechas simplificadas sin errores de zona horaria
   const formatSimplifiedDate = (
@@ -81,7 +108,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
               color="text.secondary"
               fontStyle="italic"
             >
-              No hay promociones que coincidan con los filtros
+              {getNoPromotionsMessage(selectedView, focusedDate)}
             </Typography>
           </Paper>
         )}

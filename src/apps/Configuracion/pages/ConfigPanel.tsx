@@ -1,7 +1,8 @@
-import { Box, Modal, Paper, Divider, Button } from "@mui/material";
+import { Box, Modal, Paper, Divider } from "@mui/material";
 import { HeaderUserInfo } from "@/apps/Configuracion/components/HeaderUserInfo";
 import { ThemeOption } from "@/apps/Configuracion/components/ThemeOption";
 import { useAppTheme } from "@/shared/hooks/ThemeContext";
+import ConfirmButton from "@/shared/components/button/ConfirmButton";
 
 interface Props {
   open: boolean;
@@ -67,17 +68,17 @@ export const ConfigPanel = ({ open, onClose, user, area }: Props) => {
               gap: 1.5,
             }}
           >
-            <Button
+            <ConfirmButton
+              text="Cerrar"
               onClick={onClose}
-              variant="outlined"
-              size="small"
               sx={{
                 textTransform: "none",
-                borderRadius: 2,
+                minWidth: "auto",
+                py: 0.5,
+                px: 2,
+                fontSize: "0.875rem",
               }}
-            >
-              Cerrar
-            </Button>
+            />
           </Box>
         </Paper>
       </Box>
