@@ -1,18 +1,23 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useCommission } from "../contexts/CommissionContext";
 import { CSVUpload } from "../components/CSVUpload";
-import { MonthFilter } from "../components/MonthFilter";
 import { ConfigurationPanel } from "../components/ConfigurationPanel";
-import { FilterControls } from "../components/FilterControls";
+import { CompactFilters } from "../components/CompactFilters";
 import { DataTable } from "../components/DataTable";
 import { SummaryCards } from "../components/SummaryCards";
 import { Charts } from "../components/Charts";
 import { ExportButtons } from "../components/ExportButtons";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   getAvailableMonths,
   getCurrentMonth,
-  calculateMesResumen,
   calculateMesResumenMemoized,
 } from "../lib/calculations";
 import {
@@ -22,7 +27,7 @@ import {
   demoVentas,
 } from "../lib/demoData";
 import { validateStaffAssignment } from "../lib/validation";
-import { Settings, Zap, AlertTriangle } from "lucide-react";
+import { Settings, AlertTriangle } from "lucide-react";
 
 export default function Home() {
   const {
@@ -31,11 +36,14 @@ export default function Home() {
     setStaff,
     setMonthConfigs,
     setVentas,
-    setVentasMensuales,
   } = useCommission();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
-  const [showConfig, setShowConfig] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [showDemo, setShowDemo] = useState(true);
+  
+  // Filter states
+  const [filterTienda, setFilterTienda] = useState("all");
+  const [filterRol, setFilterRol] = useState("all");
 
   // Obtener meses disponibles
   const availableMonths = useMemo(() => {
@@ -82,16 +90,21 @@ export default function Home() {
     porcentajeGerente,
   ]);
 
-  // Memoizar también los datos de resumen ejecutivo
-  const summaryData = useMemo(() => {
-    if (!mesResumen) return null;
-
-    return {
-      totalComisiones: mesResumen.total_comisiones,
-      comisionesPorRol: mesResumen.comisiones_por_rol,
-      tiendas: mesResumen.tiendas,
-    };
+  // Obtener tiendas únicas para filtros
+  const uniqueTiendas = useMemo(() => {
+    if (!mesResumen) return [];
+    const tiendas = mesResumen.tiendas.map(t => t.tienda);
+    return [...new Set(tiendas)].sort();
   }, [mesResumen]);
+
+  // Función para limpiar filtros
+  const handleClearFilters = () => {
+    setFilterTienda('all');
+    setFilterRol('all');
+    if (availableMonths.length > 0) {
+      setSelectedMonth(availableMonths[0]);
+    }
+  };
 
   // Validar asignación de personal
   const staffValidationErrors = useMemo(() => {
@@ -118,27 +131,41 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Comisiones {selectedMonth}
               </h1>
-              <p className="text-gray-600 text-sm mt-1">&nbsp;</p>
             </div>
             <div className="flex gap-3">
               <Button
-                onClick={() => setShowConfig(!showConfig)}
+                onClick={() => setShowConfigModal(true)}
                 variant="outline"
                 className="gap-2"
               >
                 <Settings className="w-4 h-4" />
-                {showConfig ? "Ocultar Configuración" : "Configuración"}
+                Configuración
               </Button>
               {mesResumen && (
                 <ExportButtons mesResumen={mesResumen} mes={selectedMonth} />
               )}
             </div>
           </div>
+          
+          {/* Compact Filters */}
+          {state.budgets.length > 0 && (
+            <CompactFilters
+              selectedMonth={selectedMonth}
+              availableMonths={availableMonths}
+              onMonthChange={setSelectedMonth}
+              filterTienda={filterTienda}
+              onFilterTiendaChange={setFilterTienda}
+              filterRol={filterRol}
+              onFilterRolChange={setFilterRol}
+              uniqueTiendas={uniqueTiendas}
+              onClearFilters={handleClearFilters}
+            />
+          )}
         </div>
       </header>
 
@@ -173,10 +200,10 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Sección de Configuración */}
-          {showConfig && (
+          {/* Sección de Configuración - MOVED TO MODAL */}
+          {/* {showConfig && (
             <section>
-              {/* Controles de Filtro */}
+              Controles de Filtro
               <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
                 <h2 className="text-xl font-semibold mb-4">1. Filtros y Mes</h2>
                 <FilterControls
@@ -192,7 +219,7 @@ export default function Home() {
                 />
               </div>
 
-              {/* Cargar Presupuestos dentro de Configuración */}
+              Cargar Presupuestos dentro de Configuración
               <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
                 <h2 className="text-xl font-semibold mb-4">
                   2. Cargar Presupuestos
@@ -200,7 +227,7 @@ export default function Home() {
                 <CSVUpload />
               </div>
 
-              {/* Panel de Configuración (solo si hay presupuestos cargados) */}
+              Panel de Configuración (solo si hay presupuestos cargados)
               {state.budgets.length > 0 && (
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
                   <h2 className="text-xl font-semibold mb-4">
@@ -210,7 +237,7 @@ export default function Home() {
                 </div>
               )}
             </section>
-          )}
+          )} */}
 
           {/* Alertas de Validación */}
           {staffValidationErrors.length > 0 && (
@@ -262,6 +289,7 @@ export default function Home() {
                       { tienda, fecha, ventas_tienda, ventas_por_asesor },
                     ]);
                   }}
+                  readOnly={true}
                 />
               </section>
 
@@ -274,6 +302,39 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* Configuration Modal */}
+      <Dialog open={showConfigModal} onOpenChange={setShowConfigModal}>
+        <DialogContent className="w-[95vw] max-w-none max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configuración de Comisiones</DialogTitle>
+            <DialogDescription>
+              Configure los presupuestos y parámetros de comisiones para el mes seleccionado.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Cargar Presupuestos */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h2 className="text-xl font-semibold mb-4">
+                1. Cargar Presupuestos
+              </h2>
+              <CSVUpload />
+            </div>
+
+            {/* Panel de Configuración (solo si hay presupuestos cargados) */}
+            {state.budgets.length > 0 && (
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h2 className="text-xl font-semibold mb-4">
+                  2. Configuración Avanzada
+                </h2>
+                <ConfigurationPanel mes={selectedMonth} />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

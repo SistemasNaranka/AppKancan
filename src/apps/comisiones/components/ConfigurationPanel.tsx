@@ -1,9 +1,14 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCommission } from "../contexts/CommissionContext";
 import { validateManagerPercentage } from "../lib/validation";
 import { StaffMember } from "../types";
-import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Add, Delete, Error } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 
 interface ConfigurationPanelProps {
@@ -29,7 +34,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
     nombre: "",
     tienda: "",
     fecha: "",
-    rol: "asesor" as const,
+    rol: "asesor" as "gerente" | "asesor" | "cajero",
   });
 
   const handleUpdatePercentage = () => {
@@ -61,7 +66,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
     };
 
     addStaffMember(member);
-    setNewStaff({ nombre: "", tienda: "", fecha: "", rol: "asesor" });
+    setNewStaff({ nombre: "", tienda: "", fecha: "", rol: "asesor" as "gerente" | "asesor" | "cajero" });
     setShowAddStaff(false);
     setErrors([]);
   };
@@ -90,102 +95,125 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
   });
 
   return (
-    <div className="space-y-6 bg-white p-6 rounded-lg border border-gray-200">
-      {/* Configuración de Porcentaje de Gerente */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">
-          Configuración de Porcentaje - {mes}
-        </h3>
+    <Card className="space-y-6">
+      <CardHeader>
+        <CardTitle className="text-lg">Configuración de Comisiones</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Configuración de Porcentaje de Gerente */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-base font-semibold">
+              Configuración de Porcentaje - {mes}
+            </Label>
 
-        <div className="flex items-end gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Porcentaje fijo del gerente (0-10%)
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="10"
-              step="0.1"
-              value={porcentajeGerente}
-              onChange={(e) =>
-                setPorcentajeGerente(parseFloat(e.target.value) || 0)
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <Button onClick={handleUpdatePercentage} variant="default">
-            Guardar Configuración
-          </Button>
-        </div>
-
-        {errors.length > 0 && (
-          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <div>
-              {errors.map((error, i) => (
-                <p key={i}>{error}</p>
-              ))}
+            <div className="flex items-end gap-4">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="gerente-percentage">
+                  Porcentaje fijo del gerente (0-10%)
+                </Label>
+                <Input
+                  id="gerente-percentage"
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={porcentajeGerente}
+                  onChange={(e) =>
+                    setPorcentajeGerente(parseFloat(e.target.value) || 0)
+                  }
+                  placeholder="Ingrese el porcentaje del gerente"
+                />
+              </div>
+              <Button onClick={handleUpdatePercentage} variant="default">
+                Guardar Configuración
+              </Button>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Gestión de Personal */}
-      <div className="space-y-4 border-t pt-6">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-lg">Personal del mes</h3>
-          <Button
-            onClick={() => setShowAddStaff(!showAddStaff)}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar Personal
-          </Button>
+          {errors.length > 0 && (
+            <Alert variant="destructive">
+              <Error className="h-4 w-4" />
+              <AlertDescription>
+                {errors.map((error, i) => (
+                  <p key={i}>{error}</p>
+                ))}
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
+
+        {/* Gestión de Personal */}
+        <div className="space-y-4 border-t pt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-lg">Personal del mes</h3>
+            <Button
+              onClick={() => setShowAddStaff(!showAddStaff)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Add className="w-4 h-4" />
+              Agregar Personal
+            </Button>
+          </div>
 
         {showAddStaff && (
           <div className="bg-gray-50 p-4 rounded-lg space-y-4 border border-gray-200">
             <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Nombre"
-                value={newStaff.nombre}
-                onChange={(e) =>
-                  setNewStaff({ ...newStaff, nombre: e.target.value })
-                }
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                placeholder="Tienda"
-                value={newStaff.tienda}
-                onChange={(e) =>
-                  setNewStaff({ ...newStaff, tienda: e.target.value })
-                }
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="date"
-                value={newStaff.fecha}
-                onChange={(e) =>
-                  setNewStaff({ ...newStaff, fecha: e.target.value })
-                }
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <select
-                value={newStaff.rol}
-                onChange={(e) =>
-                  setNewStaff({ ...newStaff, rol: e.target.value as any })
-                }
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="gerente">Gerente</option>
-                <option value="asesor">Asesor</option>
-                <option value="cajero">Cajero</option>
-              </select>
+              <div className="space-y-2">
+                <Label htmlFor="staff-name">Nombre</Label>
+                <Input
+                  id="staff-name"
+                  type="text"
+                  placeholder="Nombre"
+                  value={newStaff.nombre}
+                  onChange={(e) =>
+                    setNewStaff({ ...newStaff, nombre: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staff-store">Tienda</Label>
+                <Input
+                  id="staff-store"
+                  type="text"
+                  placeholder="Tienda"
+                  value={newStaff.tienda}
+                  onChange={(e) =>
+                    setNewStaff({ ...newStaff, tienda: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staff-date">Fecha</Label>
+                <Input
+                  id="staff-date"
+                  type="date"
+                  value={newStaff.fecha}
+                  onChange={(e) =>
+                    setNewStaff({ ...newStaff, fecha: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staff-role">Rol</Label>
+                <Select
+                  value={newStaff.rol}
+                  onValueChange={(value) =>
+                    setNewStaff({ ...newStaff, rol: value as "gerente" | "asesor" | "cajero" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gerente">Gerente</SelectItem>
+                    <SelectItem value="asesor">Asesor</SelectItem>
+                    <SelectItem value="cajero">Cajero</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button onClick={handleAddStaff} variant="default" size="sm">
@@ -225,13 +253,14 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                   size="sm"
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Delete className="w-4 h-4" />
                 </Button>
               </div>
             ))}
           </div>
         )}
-      </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

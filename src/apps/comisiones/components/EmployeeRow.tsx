@@ -1,6 +1,9 @@
 import React, { useCallback } from 'react';
 import { EmployeeCommission } from '../types';
 import { formatCurrency } from '../lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { TableRow, TableCell } from '@/components/ui/table';
 
 interface EmployeeRowProps {
   /** Datos del empleado */
@@ -11,6 +14,8 @@ interface EmployeeRowProps {
   ventasAsesorInput: number;
   /** Callback para cambiar ventas de asesor */
   onVentasAsesorChange: (asesorId: string, value: number) => void;
+  /** Si es true, el componente será de solo lectura */
+  readOnly?: boolean;
 }
 
 /**
@@ -22,9 +27,26 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
    index,
    ventasAsesorInput,
    onVentasAsesorChange,
+   readOnly = false,
  }) => {
   /**
-   * Obtiene el color y estilo del badge del rol
+   * Obtiene el variant del Badge basado en el rol
+   */
+  const getRoleBadgeVariant = useCallback((rol: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (rol) {
+      case 'gerente':
+        return 'default';
+      case 'asesor':
+        return 'secondary';
+      case 'cajero':
+        return 'outline';
+      default:
+        return 'outline';
+    }
+  }, []);
+
+  /**
+   * Obtiene el color del badge para el rol
    */
   const getRoleBadgeStyle = useCallback((rol: string): string => {
     switch (rol) {
@@ -84,78 +106,87 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
   }, [onVentasAsesorChange, empleado.id]);
 
   return (
-    <tr className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50 hover:bg-blue-50 transition-colors'}>
+    <TableRow className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50 hover:bg-blue-50 transition-colors'}>
       {/* Nombre del Empleado */}
-      <td className="px-4 py-3">
+      <TableCell className="py-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">{getRoleEmoji(empleado.rol)}</span>
           <span className="font-medium text-gray-900">{empleado.nombre}</span>
         </div>
-      </td>
+      </TableCell>
 
       {/* Rol */}
-      <td className="px-4 py-3">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeStyle(empleado.rol)}`}>
+      <TableCell className="py-3">
+        <Badge 
+          className={getRoleBadgeStyle(empleado.rol)}
+          variant="outline"
+        >
           {empleado.rol.charAt(0).toUpperCase() + empleado.rol.slice(1)}
-        </span>
-      </td>
+        </Badge>
+      </TableCell>
 
       {/* Presupuesto */}
-      <td className="px-4 py-3 text-right">
+      <TableCell className="py-3 text-right">
         <span className="font-semibold text-gray-900">
           ${formatCurrency(empleado.presupuesto)}
         </span>
-      </td>
+      </TableCell>
 
       {/* Ventas */}
-      <td className="px-4 py-3 text-right">
+      <TableCell className="py-3 text-right">
         {empleado.rol === 'asesor' ? (
-          <div className="flex items-center justify-end">
-            <span className="text-gray-400 mr-1">$</span>
-            <input
-              type="number"
-              value={ventasAsesorInput || ''}
-              onChange={handleVentasChange}
-              className="w-24 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-right"
-              placeholder="0"
-              min="0"
-              step="0.01"
-            />
-          </div>
+          readOnly ? (
+            <span className="font-semibold text-green-600">
+              ${formatCurrency(ventasAsesorInput || empleado.ventas)}
+            </span>
+          ) : (
+            <div className="flex items-center justify-end">
+              <span className="text-gray-400 mr-1">$</span>
+              <Input
+                type="number"
+                value={ventasAsesorInput || ''}
+                onChange={handleVentasChange}
+                className="w-24 text-right"
+                placeholder="0"
+                min="0"
+                step="0.01"
+              />
+            </div>
+          )
         ) : (
           <span className="font-semibold text-green-600">
             ${formatCurrency(empleado.ventas)}
           </span>
         )}
-      </td>
+      </TableCell>
 
       {/* Cumplimiento */}
-      <td className="px-4 py-3 text-right">
+      <TableCell className="py-3 text-right">
         <div className="flex items-center justify-end gap-1">
           <span>{getCumplimientoEmoji(empleado.cumplimiento_pct)}</span>
           <span className={`font-bold ${getCumplimientoColor(empleado.cumplimiento_pct)}`}>
             {empleado.cumplimiento_pct.toFixed(1)}%
           </span>
         </div>
-      </td>
+      </TableCell>
 
       {/* Porcentaje de Comisión */}
-      <td className="px-4 py-3 text-right">
+      <TableCell className="py-3 text-right">
         <span className="font-semibold text-blue-600">
           {empleado.comision_pct.toFixed(2)}%
         </span>
-      </td>
+      </TableCell>
 
       {/* Monto de Comisión */}
-      <td className="px-4 py-3 text-right">
+      <TableCell className="py-3 text-right">
         <div className="flex items-center justify-end gap-1">
           <span className="text-green-500">💰</span>
           <span className="font-bold text-green-600">
             ${formatCurrency(empleado.comision_monto)}
           </span>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 };
 

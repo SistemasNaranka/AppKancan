@@ -9,6 +9,8 @@ interface DataTableProps {
   selectedMonth: string;
   /** Callback para actualizar ventas */
   onVentasUpdate: (tienda: string, fecha: string, ventas_tienda: number, ventas_por_asesor: Record<string, number>) => void;
+  /** Si es true, el componente será de solo lectura */
+  readOnly?: boolean;
 }
 
 /**
@@ -27,7 +29,8 @@ interface DataTableProps {
 const DataTableComponent: React.FC<DataTableProps> = ({
    tiendas,
    selectedMonth,
-   onVentasUpdate
+   onVentasUpdate,
+   readOnly = false,
  }) => {
   // Estados para expansión de tiendas
   const [expandedTiendas, setExpandedTiendas] = useState<Set<string>>(new Set());
@@ -163,6 +166,7 @@ const DataTableComponent: React.FC<DataTableProps> = ({
               onVentasTiendaChange={(value) => handleVentasTiendaChange(tienda.tienda, tienda.fecha, value)}
               ventasAsesorInput={getVentasAsesorInputs(tienda.tienda, tienda.fecha)}
               onVentasAsesorChange={(asesorId, value) => handleVentasAsesorChange(tienda.tienda, tienda.fecha, asesorId, value)}
+              readOnly={readOnly}
             />
           ))}
         </div>

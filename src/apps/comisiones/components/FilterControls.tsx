@@ -1,7 +1,10 @@
 import React from 'react';
 import { Role } from '../types';
-import { Filter } from 'lucide-react';
+import { Filter as FilterIcon } from '@mui/icons-material';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCurrentMonth } from '../lib/calculations';
 
 interface FilterControlsProps {
@@ -62,88 +65,89 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold">Filtros</h3>
-        <Button
-          onClick={() => setShowFilters(!showFilters)}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
-          <Filter className="w-4 h-4" />
-          {showFilters ? 'Ocultar' : 'Mostrar'} Filtros
-        </Button>
-      </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">Filtros</CardTitle>
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <FilterIcon className="w-4 h-4" />
+            {showFilters ? 'Ocultar' : 'Mostrar'} Filtros
+          </Button>
+        </div>
+      </CardHeader>
 
       {showFilters && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Filtro de Mes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mes
-            </label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => onMonthChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {availableMonths.map(month => (
-                <option key={month} value={month}>{month}</option>
-              ))}
-            </select>
-          </div>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Filtro de Mes */}
+            <div className="space-y-2">
+              <Label>Mes</Label>
+              <Select value={selectedMonth} onValueChange={onMonthChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar mes" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableMonths.map(month => (
+                    <SelectItem key={month} value={month}>{month}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Filtro de Tienda */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tienda
-            </label>
-            <select
-              value={filterTienda}
-              onChange={(e) => onFilterTiendaChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Todas las tiendas</option>
-              {uniqueTiendas.map(tienda => (
-                <option key={tienda} value={tienda}>{tienda}</option>
-              ))}
-            </select>
-          </div>
+            {/* Filtro de Tienda */}
+            <div className="space-y-2">
+              <Label>Tienda</Label>
+              <Select value={filterTienda} onValueChange={onFilterTiendaChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas las tiendas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas las tiendas</SelectItem>
+                  {uniqueTiendas.map(tienda => (
+                    <SelectItem key={tienda} value={tienda}>{tienda}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Filtro de Rol */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rol
-            </label>
-            <select
-              value={filterRol}
-              onChange={(e) => onFilterRolChange(e.target.value as Role | '')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Todos los roles</option>
-              <option value="gerente">Gerente</option>
-              <option value="asesor">Asesor</option>
-              <option value="cajero">Cajero</option>
-            </select>
-          </div>
+            {/* Filtro de Rol */}
+            <div className="space-y-2">
+              <Label>Rol</Label>
+              <Select value={filterRol} onValueChange={(value) => onFilterRolChange(value as Role | '')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos los roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos los roles</SelectItem>
+                  <SelectItem value="gerente">Gerente</SelectItem>
+                  <SelectItem value="asesor">Asesor</SelectItem>
+                  <SelectItem value="cajero">Cajero</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Botón Limpiar Filtros */}
-          <div className="flex items-end">
-            <Button
-              onClick={(e) => {
-                e.preventDefault();
-                clearFilters();
-              }}
-              variant="outline"
-              className="w-full"
-              type="button"
-            >
-              Limpiar Filtros
-            </Button>
+            {/* Botón Limpiar Filtros */}
+            <div className="flex items-end">
+              <Button
+                onClick={(e) => {
+                  e.preventDefault();
+                  clearFilters();
+                }}
+                variant="outline"
+                className="w-full"
+                type="button"
+              >
+                Limpiar Filtros
+              </Button>
+            </div>
           </div>
-        </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 };

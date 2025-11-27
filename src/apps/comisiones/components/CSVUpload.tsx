@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCommission } from '../contexts/CommissionContext';
 import { validateBudgetRecord } from '../lib/validation';
 import { BudgetRecord } from '../types';
-import { AlertCircle, CheckCircle2, Upload } from 'lucide-react';
+import { Error, CheckCircle, Upload as UploadIcon } from '@mui/icons-material';
 
 export const CSVUpload: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,49 +70,47 @@ export const CSVUpload: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv"
-          onChange={handleFileChange}
-          disabled={loading}
-          className="hidden"
-        />
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={loading}
-          variant="outline"
-          className="gap-2"
-        >
-          <Upload className="w-4 h-4" />
-          {loading ? 'Cargando...' : 'Cargar CSV de Presupuestos'}
-        </Button>
-      </div>
-
-      {message && (
-        <div
-          className={`flex items-start gap-3 p-4 rounded-lg border ${
-            message.type === 'success'
-              ? 'bg-green-50 border-green-200 text-green-800'
-              : 'bg-red-50 border-red-200 text-red-800'
-          }`}
-        >
-          {message.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          ) : (
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          )}
-          <div className="text-sm whitespace-pre-wrap">{message.text}</div>
+    <Card>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            disabled={loading}
+            className="hidden"
+          />
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            variant="outline"
+            className="gap-2"
+          >
+            <UploadIcon className="w-4 h-4" />
+            {loading ? 'Cargando...' : 'Cargar CSV de Presupuestos'}
+          </Button>
         </div>
-      )}
 
-      <div className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p className="font-semibold mb-2">Formato esperado del CSV:</p>
-        <p className="font-mono text-xs">tienda,fecha,presupuesto_total</p>
-        <p className="font-mono text-xs">Tienda A,2025-11-01,50000</p>
-      </div>
-    </div>
+        {message && (
+          <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
+            {message.type === 'success' ? (
+              <CheckCircle className="h-4 w-4" />
+            ) : (
+              <Error className="h-4 w-4" />
+            )}
+            <AlertDescription className="whitespace-pre-wrap">
+              {message.text}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="font-semibold mb-2">Formato esperado del CSV:</p>
+          <p className="font-mono text-xs">tienda,fecha,presupuesto_total</p>
+          <p className="font-mono text-xs">Tienda A,2025-11-01,50000</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

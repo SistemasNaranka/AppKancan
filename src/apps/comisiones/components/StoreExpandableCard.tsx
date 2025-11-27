@@ -1,9 +1,12 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { TiendaResumen } from '../types';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ExpandMore, ExpandLess } from '@mui/icons-material';
 import { EmployeeRow } from './EmployeeRow';
 import { VentasEditor } from './VentasEditor';
 import { formatCurrency } from '../lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface StoreExpandableCardProps {
   /** Datos de la tienda a renderizar */
@@ -22,6 +25,8 @@ interface StoreExpandableCardProps {
   ventasAsesorInput: Record<string, number>;
   /** Callback para cambiar ventas de asesor temporal */
   onVentasAsesorChange: (asesorId: string, value: number) => void;
+  /** Si es true, el componente será de solo lectura */
+  readOnly?: boolean;
 }
 
 /**
@@ -37,6 +42,7 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
    onVentasTiendaChange,
    ventasAsesorInput,
    onVentasAsesorChange,
+   readOnly = false,
  }) => {
   /**
    * Formatea el color del cumplimiento según el porcentaje
@@ -86,17 +92,18 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
   }, [onVentasUpdate, tienda.tienda, tienda.fecha, ventasTiendaInput, ventasAsesorInput]);
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <Card className="overflow-hidden">
       {/* Header de Tienda */}
-      <button
+      <Button
         onClick={onToggleExpand}
-        className="w-full bg-blue-50 hover:bg-blue-100 px-4 py-3 flex items-center justify-between border-b border-gray-200 transition-colors"
+        variant="ghost"
+        className="w-full bg-blue-50 hover:bg-blue-100 px-4 py-3 flex items-center justify-between border-b border-gray-200 transition-colors justify-start"
       >
         <div className="flex items-center gap-3">
           {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-600" />
+            <ExpandLess className="w-5 h-5 text-gray-600" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-gray-600" />
+            <ExpandMore className="w-5 h-5 text-gray-600" />
           )}
           <div className="text-left">
             <p className="font-semibold text-gray-900">{tienda.tienda}</p>
@@ -109,7 +116,7 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
             </p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-right ml-auto">
           <p className="font-semibold text-green-600">
             💰 Comisiones: ${formatCurrency(tienda.total_comisiones)}
           </p>
@@ -117,34 +124,35 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
             {empleadosConVentas.length} empleado{empleadosConVentas.length !== 1 ? 's' : ''}
           </p>
         </div>
-      </button>
+      </Button>
 
       {/* Contenido Expandido */}
       {isExpanded && (
-        <div className="bg-white">
+        <CardContent className="p-0">
           {/* Editor de Ventas */}
           <VentasEditor
             tienda={tienda}
             ventasTiendaInput={ventasTiendaInput}
             onVentasTiendaChange={onVentasTiendaChange}
             onSaveVentas={handleSaveVentas}
+            readOnly={readOnly}
           />
 
           {/* Tabla de Empleados */}
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold">👤 Empleado</th>
-                  <th className="px-4 py-3 text-left font-semibold">🏷️ Rol</th>
-                  <th className="px-4 py-3 text-right font-semibold">💼 Presupuesto</th>
-                  <th className="px-4 py-3 text-right font-semibold">💰 Ventas</th>
-                  <th className="px-4 py-3 text-right font-semibold">📈 Cumplimiento</th>
-                  <th className="px-4 py-3 text-right font-semibold">🎯 Comisión %</th>
-                  <th className="px-4 py-3 text-right font-semibold">💵 Comisión $</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-4 py-3">👤 Empleado</TableHead>
+                  <TableHead className="px-4 py-3">🏷️ Rol</TableHead>
+                  <TableHead className="px-4 py-3 text-right">💼 Presupuesto</TableHead>
+                  <TableHead className="px-4 py-3 text-right">💰 Ventas</TableHead>
+                  <TableHead className="px-4 py-3 text-right">📈 Cumplimiento</TableHead>
+                  <TableHead className="px-4 py-3 text-right">🎯 Comisión %</TableHead>
+                  <TableHead className="px-4 py-3 text-right">💵 Comisión $</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {empleadosConVentas.map((empleado, idx) => (
                   <EmployeeRow
                     key={empleado.id}
@@ -152,10 +160,11 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
                     index={idx}
                     ventasAsesorInput={ventasAsesorInput[empleado.id] ?? empleado.ventas}
                     onVentasAsesorChange={onVentasAsesorChange}
+                    readOnly={readOnly}
                   />
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Footer con resumen */}
@@ -169,9 +178,9 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
               </span>
             </div>
           </div>
-        </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 };
 

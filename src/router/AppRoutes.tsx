@@ -10,6 +10,7 @@ import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { loadAndValidateRoutes } from "./routeValidator";
 import { useState, useEffect } from "react";
+import ComisionesHome from "@/apps/Comisiones/pages/Home";
 
 type LazyLoader = () => Promise<{ default: React.ComponentType<unknown> }>;
 
@@ -146,6 +147,25 @@ export default function AppRoutes() {
           children: [
             ...(homeRoute ? [homeRoute] : []),
             ...modulosComplejosFiltrados,
+            // 🔧 TEMPORAL: Ruta de Comisiones para desarrollo
+            {
+              path: "/comisiones",
+              element: (
+                <ErrorBoundary>
+                  <Suspense
+                    fallback={
+                      <LoadingSpinner
+                        message="Cargando Comisiones..."
+                        size="large"
+                        fullScreen
+                      />
+                    }
+                  >
+                    <ComisionesHome />
+                  </Suspense>
+                </ErrorBoundary>
+              ),
+            },
             {
               index: true,
               element: homeRoute ? (

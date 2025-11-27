@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MesResumen } from '../types';
-import { Download, FileText } from 'lucide-react';
+import { Download as DownloadIcon, Description } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '../lib/utils';
@@ -133,13 +133,13 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ mesResumen, mes })
       <SelectContent>
         <SelectItem value="csv">
           <div className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
+            <DownloadIcon className="w-4 h-4" />
             Archivo CSV
           </div>
         </SelectItem>
         <SelectItem value="pdf">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
+            <Description className="w-4 h-4" />
             Archivo PDF
           </div>
         </SelectItem>

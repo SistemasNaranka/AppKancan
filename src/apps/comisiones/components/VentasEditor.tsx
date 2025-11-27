@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect } from 'react';
 import { TiendaResumen } from '../types';
 import { formatCurrency } from '../lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface VentasEditorProps {
   /** Datos de la tienda */
@@ -11,6 +15,8 @@ interface VentasEditorProps {
   onVentasTiendaChange: (value: number) => void;
   /** Callback para guardar ventas */
   onSaveVentas: () => void;
+  /** Si es true, el componente será de solo lectura */
+  readOnly?: boolean;
 }
 
 /**
@@ -22,6 +28,7 @@ const VentasEditorComponent: React.FC<VentasEditorProps> = ({
    ventasTiendaInput,
    onVentasTiendaChange,
    onSaveVentas,
+   readOnly = false,
  }) => {
   /**
    * Obtiene el color del cumplimiento para mostrar en el editor
@@ -80,72 +87,91 @@ const VentasEditorComponent: React.FC<VentasEditorProps> = ({
     <div className="px-4 py-4 bg-gray-50 border-b border-gray-200">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
         {/* Input de Ventas Totales */}
-        <div className="lg:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className={`${readOnly ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-2`}>
+          <Label className="text-sm font-medium">
             💰 Ventas Totales de la Tienda
-          </label>
+          </Label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-400 text-lg">$</span>
-            </div>
-            <input
-              type="number"
-              value={ventasTiendaInput || ''}
-              onChange={handleInputChange}
-              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-semibold"
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-            />
+            {readOnly ? (
+              <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-md text-lg font-semibold text-gray-900">
+                ${formatCurrency(ventasTiendaInput || tienda.ventas_tienda)}
+              </div>
+            ) : (
+              <>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 text-lg">$</span>
+                </div>
+                <Input
+                  type="number"
+                  value={ventasTiendaInput || ''}
+                  onChange={handleInputChange}
+                  className="pl-8 text-lg font-semibold"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </>
+            )}
           </div>
-          {hasChanges && (
-            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+          {!readOnly && hasChanges && (
+            <p className="text-xs text-amber-600 flex items-center gap-1">
               ⚠️ Hay cambios sin guardar
             </p>
           )}
         </div>
 
-        {/* Botones de Acción */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleReset}
-            disabled={!hasChanges}
-            className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            🔄 Resetear
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!hasChanges}
-            className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
-          >
-            💾 {hasChanges ? 'Guardar' : 'Guardado'}
-          </button>
-        </div>
+        {/* Botones de Acción - Solo si no es readOnly */}
+        {!readOnly && (
+          <div className="flex gap-2">
+            <Button
+              onClick={handleReset}
+              disabled={!hasChanges}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+            >
+              🔄 Resetear
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges}
+              size="sm"
+              className="flex-1"
+            >
+              💾 {hasChanges ? 'Guardar' : 'Guardado'}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Información Adicional */}
       <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div className="bg-white p-3 rounded border">
-          <div className="text-gray-500">Presupuesto</div>
-          <div className="font-semibold text-gray-900">
-            ${formatCurrency(tienda.presupuesto_tienda)}
-          </div>
-        </div>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-gray-500">Presupuesto</div>
+            <div className="font-semibold text-gray-900">
+              ${formatCurrency(tienda.presupuesto_tienda)}
+            </div>
+          </CardContent>
+        </Card>
         
-        <div className="bg-white p-3 rounded border">
-          <div className="text-gray-500">Ventas Actuales</div>
-          <div className="font-semibold text-green-600">
-            ${formatCurrency(tienda.ventas_tienda)}
-          </div>
-        </div>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-gray-500">Ventas Actuales</div>
+            <div className="font-semibold text-green-600">
+              ${formatCurrency(tienda.ventas_tienda)}
+            </div>
+          </CardContent>
+        </Card>
         
-        <div className="bg-white p-3 rounded border">
-          <div className="text-gray-500">Cumplimiento</div>
-          <div className={`font-bold ${getCumplimientoColor(tienda.cumplimiento_tienda_pct)}`}>
-            📊 {tienda.cumplimiento_tienda_pct.toFixed(1)}%
-          </div>
-        </div>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-gray-500">Cumplimiento</div>
+            <div className={`font-bold ${getCumplimientoColor(tienda.cumplimiento_tienda_pct)}`}>
+              📊 {tienda.cumplimiento_tienda_pct.toFixed(1)}%
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

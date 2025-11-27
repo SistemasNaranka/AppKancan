@@ -1,6 +1,10 @@
 import React from 'react';
 import { MesResumen } from '../types';
-import { DollarSign, TrendingUp, Users } from 'lucide-react';
+import { AttachMoney, TrendingUp, People } from '@mui/icons-material';
+import {
+  Card as MuiCard,
+  CardContent as MuiCardContent,
+} from '@mui/material';
 
 interface SummaryCardsProps {
   mesResumen: MesResumen | null;
@@ -14,12 +18,14 @@ const formatCommission = (value: number): string => {
 export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
   if (!mesResumen) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-200 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-          </div>
+          <MuiCard key={i} className="animate-pulse" sx={{ background: '#F3F4F6' }}>
+            <MuiCardContent className="p-6">
+              <div className="h-4 bg-gray-300 rounded w-3/4 mb-3"></div>
+              <div className="h-10 bg-gray-300 rounded w-2/3"></div>
+            </MuiCardContent>
+          </MuiCard>
         ))}
       </div>
     );
@@ -31,46 +37,102 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
   const comisionCajero = mesResumen.comisiones_por_rol.cajero;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600 font-medium">Total Comisiones</p>
-            <p className="text-2xl font-bold text-blue-900 mt-1 text-center">${formatCommission(totalComisiones)}</p>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <MuiCard 
+        sx={{ 
+          background: 'linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)',
+          color: 'white',
+          border: '2px solid #1E40AF',
+          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
+          transition: 'transform 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 40px rgba(59, 130, 246, 0.4)',
+          }
+        }}
+      >
+        <MuiCardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium opacity-90">Total Comisiones</p>
+              <p className="text-3xl font-bold mt-2">${formatCommission(totalComisiones)}</p>
+            </div>
+            <AttachMoney sx={{ fontSize: 48, opacity: 0.7 }} />
           </div>
-          <DollarSign className="w-8 h-8 text-blue-600 opacity-20" />
-        </div>
-      </div>
+        </MuiCardContent>
+      </MuiCard>
 
-      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600 font-medium">Gerentes</p>
-            <p className="text-2xl font-bold text-purple-900 mt-1 text-center">${formatCommission(comisionGerente)}</p>
+      <MuiCard 
+        sx={{ 
+          background: 'linear-gradient(135deg, #8B5CF6 0%, #5B21B6 100%)',
+          color: 'white',
+          border: '2px solid #5B21B6',
+          boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)',
+          transition: 'transform 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 40px rgba(139, 92, 246, 0.4)',
+          }
+        }}
+      >
+        <MuiCardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium opacity-90">Gerentes</p>
+              <p className="text-3xl font-bold mt-2">${formatCommission(comisionGerente)}</p>
+            </div>
+            <People sx={{ fontSize: 48, opacity: 0.7 }} />
           </div>
-          <Users className="w-8 h-8 text-purple-600 opacity-20" />
-        </div>
-      </div>
+        </MuiCardContent>
+      </MuiCard>
 
-      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600 font-medium">Asesores</p>
-            <p className="text-2xl font-bold text-green-900 mt-1 text-center">${formatCommission(comisionAsesor)}</p>
+      <MuiCard 
+        sx={{ 
+          background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)',
+          color: 'white',
+          border: '2px solid #047857',
+          boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
+          transition: 'transform 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 40px rgba(16, 185, 129, 0.4)',
+          }
+        }}
+      >
+        <MuiCardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium opacity-90">Asesores</p>
+              <p className="text-3xl font-bold mt-2">${formatCommission(comisionAsesor)}</p>
+            </div>
+            <TrendingUp sx={{ fontSize: 48, opacity: 0.7 }} />
           </div>
-          <TrendingUp className="w-8 h-8 text-green-600 opacity-20" />
-        </div>
-      </div>
+        </MuiCardContent>
+      </MuiCard>
 
-      <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600 font-medium">Cajeros</p>
-            <p className="text-2xl font-bold text-orange-900 mt-1 text-center">${formatCommission(comisionCajero)}</p>
+      <MuiCard 
+        sx={{ 
+          background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+          color: 'white',
+          border: '2px solid #D97706',
+          boxShadow: '0 8px 32px rgba(245, 158, 11, 0.3)',
+          transition: 'transform 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 40px rgba(245, 158, 11, 0.4)',
+          }
+        }}
+      >
+        <MuiCardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium opacity-90">Cajeros</p>
+              <p className="text-3xl font-bold mt-2">${formatCommission(comisionCajero)}</p>
+            </div>
+            <AttachMoney sx={{ fontSize: 48, opacity: 0.7 }} />
           </div>
-          <DollarSign className="w-8 h-8 text-orange-600 opacity-20" />
-        </div>
-      </div>
+        </MuiCardContent>
+      </MuiCard>
     </div>
   );
 };
