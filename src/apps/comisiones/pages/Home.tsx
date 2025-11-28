@@ -7,14 +7,15 @@ import { DataTable } from "../components/DataTable";
 import { SummaryCards } from "../components/SummaryCards";
 import { Charts } from "../components/Charts";
 import { ExportButtons } from "../components/ExportButtons";
-import { Button } from "@/components/ui/button";
+import { CodesModal } from "../components/CodesModal";
 import {
+  Button,
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  DialogContentText,
+  DialogActions,
+} from "@mui/material";
 import {
   getAvailableMonths,
   getCurrentMonth,
@@ -30,13 +31,14 @@ import {
   mockVentasTienda,
 } from "../lib/mockData";
 import { validateStaffAssignment } from "../lib/validation";
-import { Settings, AlertTriangle } from "lucide-react";
+import { Settings, AlertTriangle, Users } from "lucide-react";
 
 export default function Home() {
   const { state, setBudgets, setStaff, setMonthConfigs, setVentas } =
     useCommission();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showCodesModal, setShowCodesModal] = useState(false);
   const [showDemo, setShowDemo] = useState(true);
 
   // Filter states
@@ -295,10 +297,10 @@ export default function Home() {
             <div className="flex gap-3">
               <Button
                 onClick={() => setShowConfigModal(true)}
-                variant="outline"
-                className="gap-2"
+                variant="outlined"
+                startIcon={<Settings />}
+                sx={{ mr: 1 }}
               >
-                <Settings className="w-4 h-4" />
                 Configuración
               </Button>
               {(mesResumenFiltrado || mesResumen) && (
@@ -306,6 +308,17 @@ export default function Home() {
                   mesResumen={mesResumenFiltrado || mesResumen}
                   mes={selectedMonth}
                 />
+              )}
+
+              <Button
+                onClick={() => setShowCodesModal(true)}
+                variant="outlined"
+                startIcon={<Users />}
+              >
+                Códigos
+              </Button>
+              {mesResumen && (
+                <ExportButtons mesResumen={mesResumen} mes={selectedMonth} />
               )}
             </div>
           </div>
@@ -342,15 +355,15 @@ export default function Home() {
             <div className="flex gap-3">
               <Button
                 onClick={handleLoadDemo}
-                variant="default"
-                className="flex-1"
+                variant="contained"
+                sx={{ flex: 1 }}
               >
                 Cargar Demo
               </Button>
               <Button
                 onClick={() => setShowDemo(false)}
-                variant="outline"
-                className="flex-1"
+                variant="outlined"
+                sx={{ flex: 1 }}
               >
                 Cancelar
               </Button>
@@ -465,20 +478,37 @@ export default function Home() {
       </main>
 
       {/* Configuration Modal */}
-      <Dialog open={showConfigModal} onOpenChange={setShowConfigModal}>
-        <DialogContent className="w-[95vw] max-w-none max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Configuración de Comisiones</DialogTitle>
-            <DialogDescription>
-              Configure los presupuestos y parámetros de comisiones para el mes
-              seleccionado.
-            </DialogDescription>
-          </DialogHeader>
+      <Dialog
+        open={showConfigModal}
+        onClose={() => setShowConfigModal(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Configuración de Comisiones</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 3 }}>
+            Configure los presupuestos y parámetros de comisiones para el mes
+            seleccionado.
+          </DialogContentText>
 
-          <div className="space-y-6">
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "24px" }}
+          >
             {/* Cargar Presupuestos */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <h2 className="text-xl font-semibold mb-4">
+            <div
+              style={{
+                padding: "24px",
+                border: "1px solid #e0e0e0",
+                borderRadius: "8px",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "1.25rem",
+                  fontWeight: "600",
+                  marginBottom: "16px",
+                }}
+              >
                 1. Cargar Presupuestos
               </h2>
               <CSVUpload />
@@ -486,8 +516,20 @@ export default function Home() {
 
             {/* Panel de Configuración (solo si hay presupuestos cargados) */}
             {state.budgets.length > 0 && (
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h2 className="text-xl font-semibold mb-4">
+              <div
+                style={{
+                  padding: "24px",
+                  border: "1px solid #e0e0e0",
+                  borderRadius: "8px",
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: "1.25rem",
+                    fontWeight: "600",
+                    marginBottom: "16px",
+                  }}
+                >
                   2. Configuración Avanzada
                 </h2>
                 <ConfigurationPanel mes={selectedMonth} />
@@ -495,7 +537,16 @@ export default function Home() {
             )}
           </div>
         </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowConfigModal(false)}>Cerrar</Button>
+        </DialogActions>
       </Dialog>
+
+      {/* Codes Modal */}
+      <CodesModal
+        isOpen={showCodesModal}
+        onClose={() => setShowCodesModal(false)}
+      />
     </div>
   );
 }
