@@ -76,3 +76,64 @@ export interface AppState {
   ventas: VentasData[];
   ventasMensuales: VentasMensualesData[];
 }
+
+// Interfaces para Directus
+export interface DirectusAsesor {
+  id: number;
+  nombre?: string;
+  codigo_asesor: number;
+  documento: number;
+  tienda_id: number | DirectusTienda;
+  cargo_id: number | DirectusCargo;
+}
+
+export interface DirectusCargo {
+  id: number;
+  nombre: string;
+}
+
+export interface DirectusTienda {
+  id: number;
+  nombre: string;
+  codigo_ultra: number;
+  empresa: string;
+}
+
+export interface DirectusPresupuestoDiarioTienda {
+  id: number;
+  tienda_id: number | DirectusTienda;
+  presupuesto: number;
+  fecha: string;
+}
+
+export interface DirectusPorcentajeMensual {
+  id: number;
+  fecha: string;
+  porcentaje_gerente: number;
+  porcentaje_asesor: number;
+  porcentaje_cajero: number;
+  porcentaje_logistico: number;
+  tienda_id: number | DirectusTienda;
+}
+
+export interface DirectusPresupuestoDiarioEmpleado {
+  id: number;
+  asesor_id: number | DirectusAsesor;
+  fecha: string;
+  presupuesto: number;
+  tienda_id: number | DirectusTienda;
+}
+
+export interface DirectusVentasDiariasEmpleado {
+  id: number;
+  ventas: number;
+  asesor_id: number | DirectusAsesor;
+  fecha: string;
+}
+
+export interface DirectusVentasDiariasTienda {
+  id: number;
+  tienda_id: number | DirectusTienda;
+  ventas_totales: number;
+  fecha: string;
+}

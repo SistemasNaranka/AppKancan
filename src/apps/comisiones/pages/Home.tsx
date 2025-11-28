@@ -21,26 +21,24 @@ import {
   calculateMesResumenMemoized,
 } from "../lib/calculations";
 import {
-  demoBudgets,
-  demoStaff,
-  demoMonthConfigs,
-  demoVentas,
-} from "../lib/demoData";
+  mockTiendas,
+  mockAsesores,
+  mockPresupuestosDiarios,
+  mockPorcentajesMensuales,
+  mockPresupuestosEmpleados,
+  mockVentasEmpleados,
+  mockVentasTienda,
+} from "../lib/mockData";
 import { validateStaffAssignment } from "../lib/validation";
 import { Settings, AlertTriangle } from "lucide-react";
 
 export default function Home() {
-  const {
-    state,
-    setBudgets,
-    setStaff,
-    setMonthConfigs,
-    setVentas,
-  } = useCommission();
+  const { state, setBudgets, setStaff, setMonthConfigs, setVentas } =
+    useCommission();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showDemo, setShowDemo] = useState(true);
-  
+
   // Filter states
   const [filterTienda, setFilterTienda] = useState("all");
   const [filterRol, setFilterRol] = useState("all");
@@ -90,34 +88,183 @@ export default function Home() {
     porcentajeGerente,
   ]);
 
-  // Obtener tiendas únicas para filtros
+  // Aplicar filtros al resumen mensual
+  const mesResumenFiltrado = useMemo(() => {
+    if (!mesResumen) return null;
+
+    let tiendasFiltradas = mesResumen.tiendas;
+
+    // Filtrar por tienda
+    if (filterTienda && filterTienda !== "all") {
+      tiendasFiltradas = tiendasFiltradas.filter(
+        (t) => t.tienda === filterTienda
+      );
+    }
+
+    // Filtrar empleados por rol dentro de cada tienda
+    if (filterRol && filterRol !== "all") {
+      tiendasFiltradas = tiendasFiltradas
+        .map((tienda) => ({
+          ...tienda,
+          empleados: tienda.empleados.filter((emp) => emp.rol === filterRol),
+        }))
+        .filter((tienda) => tienda.empleados.length > 0); // Solo tiendas con empleados filtrados
+    }
+
+    // Recalcular totales
+    const total_comisiones = tiendasFiltradas.reduce(
+      (sum, t) => sum + t.total_comisiones,
+      0
+    );
+
+    // Recalcular comisiones por rol
+    const comisiones_por_rol: Record<string, number> = {
+      gerente: 0,
+      asesor: 0,
+      cajero: 0,
+    };
+
+    tiendasFiltradas.forEach((tienda) => {
+      tienda.empleados.forEach((empleado) => {
+        comisiones_por_rol[empleado.rol] += empleado.comision_monto;
+      });
+    });
+
+    Object.keys(comisiones_por_rol).forEach((role) => {
+      comisiones_por_rol[role as keyof typeof comisiones_por_rol] =
+        Math.round(
+          comisiones_por_rol[role as keyof typeof comisiones_por_rol] * 100
+        ) / 100;
+    });
+
+    return {
+      ...mesResumen,
+      tiendas: tiendasFiltradas,
+      total_comisiones: Math.round(total_comisiones * 100) / 100,
+      comisiones_por_rol,
+    };
+  }, [mesResumen, filterTienda, filterRol]);
+
+  // Obtener tiendas únicas para filtros (basado en datos sin filtrar)
   const uniqueTiendas = useMemo(() => {
     if (!mesResumen) return [];
-    const tiendas = mesResumen.tiendas.map(t => t.tienda);
+    const tiendas = mesResumen.tiendas.map((t) => t.tienda);
     return [...new Set(tiendas)].sort();
   }, [mesResumen]);
 
   // Función para limpiar filtros
   const handleClearFilters = () => {
-    setFilterTienda('all');
-    setFilterRol('all');
-    if (availableMonths.length > 0) {
-      setSelectedMonth(availableMonths[0]);
-    }
+    setFilterTienda("all");
+    setFilterRol("all");
   };
+
+  // Resetear filtros cuando cambia el mes
+  useEffect(() => {
+    setFilterTienda("all");
+    setFilterRol("all");
+  }, [selectedMonth]);
 
   // Validar asignación de personal
   const staffValidationErrors = useMemo(() => {
     return validateStaffAssignment(state.staff);
   }, [state.staff]);
 
+  // Función para convertir datos mock al formato del contexto
+  const convertMockDataToContext = () => {
+    // Convertir presupuestos diarios a BudgetRecord
+    const budgets = mockPresupuestosDiarios.map((p) => ({
+      tienda:
+        mockTiendas.find((t) => t.id === p.tienda_id)?.nombre ||
+        "Tienda Desconocida",
+      fecha: p.fecha,
+      presupuesto_total: p.presupuesto,
+    }));
+
+    // Convertir asesores a StaffMember - usar fechas de presupuestos empleados
+    const staff: any[] = [];
+    mockPresupuestosEmpleados.forEach((pe) => {
+      const asesor = mockAsesores.find((a) => a.id === pe.asesor_id);
+      if (asesor) {
+        staff.push({
+          id: asesor.id.toString(),
+          nombre: asesor.nombre || `Empleado ${asesor.codigo_asesor}`,
+          tienda:
+            mockTiendas.find((t) => t.id === asesor.tienda_id)?.nombre ||
+            "Tienda Desconocida",
+          fecha: pe.fecha,
+          rol: (asesor.cargo_id === 1
+            ? "gerente"
+            : asesor.cargo_id === 2
+            ? "asesor"
+            : "cajero") as any,
+        });
+      }
+    });
+
+    // Convertir porcentajes a MonthConfig
+    const monthConfigs = mockPorcentajesMensuales.map((p) => {
+      // Convertir fecha YYYY-MM a formato "MMM YYYY"
+      const [year, month] = p.fecha.split("-");
+      const monthNames = [
+        "Ene",
+        "Feb",
+        "Mar",
+        "Abr",
+        "May",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dic",
+      ];
+      const monthName = monthNames[parseInt(month) - 1];
+      return {
+        mes: `${monthName} ${year}`,
+        porcentaje_gerente: p.porcentaje_gerente,
+      };
+    });
+
+    // Crear ventas data agrupadas por tienda y fecha
+    const ventasMap = new Map<string, any>();
+
+    mockVentasEmpleados.forEach((ve) => {
+      const asesor = mockAsesores.find((a) => a.id === ve.asesor_id);
+      if (!asesor) return;
+
+      const tienda = mockTiendas.find((t) => t.id === asesor.tienda_id);
+      if (!tienda) return;
+
+      const key = `${tienda.nombre}-${ve.fecha}`;
+
+      if (!ventasMap.has(key)) {
+        ventasMap.set(key, {
+          tienda: tienda.nombre,
+          fecha: ve.fecha,
+          ventas_tienda: 0,
+          ventas_por_asesor: {},
+        });
+      }
+
+      const ventaData = ventasMap.get(key);
+      ventaData.ventas_por_asesor[ve.asesor_id.toString()] = ve.ventas;
+      ventaData.ventas_tienda += ve.ventas;
+    });
+
+    const ventas = Array.from(ventasMap.values());
+
+    return { budgets, staff, monthConfigs, ventas };
+  };
+
   // Manejar carga de datos de demo
   const handleLoadDemo = () => {
-    setBudgets(demoBudgets);
-    setStaff(demoStaff);
-    setMonthConfigs(demoMonthConfigs);
-    setVentas(demoVentas);
-    setSelectedMonth(getCurrentMonth());
+    const { budgets, staff, monthConfigs, ventas } = convertMockDataToContext();
+    setBudgets(budgets);
+    setStaff(staff);
+    setMonthConfigs(monthConfigs);
+    setVentas(ventas);
+    setSelectedMonth("Nov 2025");
     setShowDemo(false);
   };
 
@@ -136,6 +283,14 @@ export default function Home() {
               <h1 className="text-3xl font-bold text-gray-900">
                 Comisiones {selectedMonth}
               </h1>
+              {(filterTienda !== "all" || filterRol !== "all") && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Filtrado por:{" "}
+                  {filterTienda !== "all" ? `Tienda "${filterTienda}"` : ""}
+                  {filterTienda !== "all" && filterRol !== "all" ? " • " : ""}
+                  {filterRol !== "all" ? `Rol "${filterRol}"` : ""}
+                </p>
+              )}
             </div>
             <div className="flex gap-3">
               <Button
@@ -146,12 +301,15 @@ export default function Home() {
                 <Settings className="w-4 h-4" />
                 Configuración
               </Button>
-              {mesResumen && (
-                <ExportButtons mesResumen={mesResumen} mes={selectedMonth} />
+              {(mesResumenFiltrado || mesResumen) && (
+                <ExportButtons
+                  mesResumen={mesResumenFiltrado || mesResumen}
+                  mes={selectedMonth}
+                />
               )}
             </div>
           </div>
-          
+
           {/* Compact Filters */}
           {state.budgets.length > 0 && (
             <CompactFilters
@@ -175,8 +333,11 @@ export default function Home() {
           <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
             <h2 className="text-lg font-semibold mb-4">Cargar Datos de Demo</h2>
             <p className="text-gray-600 mb-6">
-              Esto cargará datos de ejemplo con 3 tiendas, empleados y ventas
-              para el mes actual.
+              Esto cargará datos de ejemplo con la nueva lógica de comisiones:
+              <br />• 3 tiendas con presupuestos diarios
+              <br />• Empleados con códigos de identificación
+              <br />• Cálculos automáticos: Ventas ÷ Presupuesto = Cumplimiento
+              <br />• Comisiones basadas en porcentaje de cumplimiento
             </p>
             <div className="flex gap-3">
               <Button
@@ -259,11 +420,11 @@ export default function Home() {
           )}
 
           {/* Sección de Datos */}
-          {state.budgets.length > 0 && mesResumen && (
+          {state.budgets.length > 0 && (mesResumenFiltrado || mesResumen) && (
             <>
               {/* Resumen Ejecutivo */}
               <section className="space-y-4">
-                <SummaryCards mesResumen={mesResumen} />
+                <SummaryCards mesResumen={mesResumenFiltrado || mesResumen} />
               </section>
 
               {/* Tabla de Datos */}
@@ -274,7 +435,7 @@ export default function Home() {
                   </h2>
                 </div>
                 <DataTable
-                  tiendas={mesResumen.tiendas}
+                  tiendas={(mesResumenFiltrado || mesResumen)?.tiendas || []}
                   selectedMonth={selectedMonth}
                   onVentasUpdate={(
                     tienda,
@@ -296,7 +457,7 @@ export default function Home() {
               {/* Gráficos */}
               <section className="space-y-4 pt-8">
                 <h2 className="text-xl font-semibold">Análisis Visual</h2>
-                <Charts mesResumen={mesResumen} />
+                <Charts mesResumen={mesResumenFiltrado || mesResumen} />
               </section>
             </>
           )}
@@ -309,10 +470,11 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle>Configuración de Comisiones</DialogTitle>
             <DialogDescription>
-              Configure los presupuestos y parámetros de comisiones para el mes seleccionado.
+              Configure los presupuestos y parámetros de comisiones para el mes
+              seleccionado.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Cargar Presupuestos */}
             <div className="bg-white rounded-lg p-6 border border-gray-200">
@@ -337,4 +499,3 @@ export default function Home() {
     </div>
   );
 }
-

@@ -20,7 +20,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@resoluciones/*": ["./src/apps/promociones/src/*"]
-    }
+    },
+    "forceConsistentCasingInFileNames": false
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
