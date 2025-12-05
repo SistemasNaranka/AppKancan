@@ -12,7 +12,11 @@ interface SummaryCardsProps {
 
 const formatCommission = (value: number): string => {
   const rounded = Math.round(value / 100) * 100;
-  return rounded.toLocaleString('es-CO');
+  // Format with comma thousands separators
+  return rounded.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  });
 };
 
 export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
@@ -55,7 +59,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium opacity-90">Total Comisiones</p>
-              <p className="text-3xl font-bold mt-2">${formatCommission(totalComisiones)}</p>
+              <p className="text-3xl font-bold mt-2">$ {formatCommission(totalComisiones)}</p>
             </div>
             <AttachMoney sx={{ fontSize: 48, opacity: 0.7 }} />
           </div>
@@ -79,7 +83,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium opacity-90">Gerentes</p>
-              <p className="text-3xl font-bold mt-2">${formatCommission(comisionGerente)}</p>
+              <p className="text-3xl font-bold mt-2">$ {formatCommission(comisionGerente)}</p>
             </div>
             <People sx={{ fontSize: 48, opacity: 0.7 }} />
           </div>
@@ -103,7 +107,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium opacity-90">Asesores</p>
-              <p className="text-3xl font-bold mt-2">${formatCommission(comisionAsesor)}</p>
+              <p className="text-3xl font-bold mt-2">$ {formatCommission(comisionAsesor)}</p>
             </div>
             <TrendingUp sx={{ fontSize: 48, opacity: 0.7 }} />
           </div>
@@ -127,7 +131,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium opacity-90">Cajeros</p>
-              <p className="text-3xl font-bold mt-2">${formatCommission(comisionCajero)}</p>
+              <p className="text-3xl font-bold mt-2">$ {formatCommission(comisionCajero)}</p>
             </div>
             <AttachMoney sx={{ fontSize: 48, opacity: 0.7 }} />
           </div>
