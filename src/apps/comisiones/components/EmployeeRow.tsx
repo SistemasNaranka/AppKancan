@@ -1,9 +1,13 @@
-import React, { useCallback } from 'react';
-import { EmployeeCommission } from '../types';
-import { formatCurrency } from '../lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { TableRow, TableCell } from '@/components/ui/table';
+import React, { useCallback } from "react";
+import { EmployeeCommission } from "../types";
+import { formatCurrency } from "../lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { TableRow, TableCell } from "@/components/ui/table";
+import PersonIcon from "@mui/icons-material/Person";
+import WorkIcon from "@mui/icons-material/Work";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 
 interface EmployeeRowProps {
   /** Datos del empleado */
@@ -23,102 +27,118 @@ interface EmployeeRowProps {
  * Maneja la visualización de datos del empleado y la edición de ventas para asesores.
  */
 const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
-   empleado,
-   index,
-   ventasAsesorInput,
-   onVentasAsesorChange,
-   readOnly = false,
- }) => {
+  empleado,
+  index,
+  ventasAsesorInput,
+  onVentasAsesorChange,
+  readOnly = false,
+}) => {
   /**
    * Obtiene el variant del Badge basado en el rol
    */
-  const getRoleBadgeVariant = useCallback((rol: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (rol) {
-      case 'gerente':
-        return 'default';
-      case 'asesor':
-        return 'secondary';
-      case 'cajero':
-        return 'outline';
-      default:
-        return 'outline';
-    }
-  }, []);
+  const getRoleBadgeVariant = useCallback(
+    (rol: string): "default" | "secondary" | "destructive" | "outline" => {
+      switch (rol) {
+        case "gerente":
+          return "default";
+        case "asesor":
+          return "secondary";
+        case "cajero":
+          return "outline";
+        default:
+          return "outline";
+      }
+    },
+    []
+  );
 
   /**
    * Obtiene el color del badge para el rol
    */
   const getRoleBadgeStyle = useCallback((rol: string): string => {
     switch (rol) {
-      case 'gerente':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'asesor':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'cajero':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case "gerente":
+        return "bg-gray-100 text-black border-gray-200";
+      case "asesor":
+        return "bg-gray-100 text-black border-gray-200";
+      case "cajero":
+        return "bg-gray-100 text-black border-gray-200";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-black border-gray-200";
     }
   }, []);
 
   /**
-   * Obtiene el emoji del rol
+   * Obtiene el icono del rol (muted)
    */
-  const getRoleEmoji = useCallback((rol: string): string => {
+  const getRoleIcon = useCallback((rol: string): JSX.Element => {
     switch (rol) {
-      case 'gerente':
-        return '👔';
-      case 'asesor':
-        return '💼';
-      case 'cajero':
-        return '💳';
+      case "gerente":
+        return <PersonIcon className="text-gray-400" />;
+      case "asesor":
+        return <WorkIcon className="text-gray-400" />;
+      case "cajero":
+        return <CreditCardIcon className="text-gray-400" />;
       default:
-        return '👤';
+        return <PersonIcon className="text-gray-400" />;
     }
   }, []);
 
   /**
-   * Obtiene el color del cumplimiento
+   * Obtiene el color del cumplimiento (fuerte para métricas de rendimiento)
    */
   const getCumplimientoColor = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return 'text-green-600';
-    if (cumplimiento >= 100) return 'text-blue-600';
-    if (cumplimiento >= 95) return 'text-yellow-600';
-    return 'text-red-600';
+    if (cumplimiento >= 100) return "text-green-700 font-bold";
+    return "text-red-700 font-bold";
   }, []);
 
   /**
-   * Obtiene el emoji del cumplimiento
+   * Obtiene el color de fondo de la fila basado en el cumplimiento
    */
-  const getCumplimientoEmoji = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return '🎯';
-    if (cumplimiento >= 100) return '✅';
-    if (cumplimiento >= 95) return '⚠️';
-    return '❌';
+  const getRowBackgroundColor = useCallback((cumplimiento: number): string => {
+    if (cumplimiento >= 110) return "bg-emerald-50"; // Sobresaliente
+    if (cumplimiento >= 100) return "bg-green-50"; // Excelente
+    if (cumplimiento >= 95) return "bg-blue-50"; // Próximo Meta
+    return "bg-orange-50"; // En Desarrollo
+  }, []);
+
+  /**
+   * Obtiene el color fuerte para métricas de rendimiento
+   */
+  const getPerformanceColor = useCallback((value: number): string => {
+    if (value >= 100) return "text-green-700 font-bold";
+    return "text-red-700 font-bold";
   }, []);
 
   /**
    * Maneja el cambio de ventas para asesores
    */
-  const handleVentasChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value) || 0;
-    onVentasAsesorChange(empleado.id, value);
-  }, [onVentasAsesorChange, empleado.id]);
+  const handleVentasChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = parseFloat(e.target.value) || 0;
+      onVentasAsesorChange(empleado.id, value);
+    },
+    [onVentasAsesorChange, empleado.id]
+  );
 
   return (
-    <TableRow className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50 hover:bg-blue-50 transition-colors'}>
+    <TableRow
+      className={`${getRowBackgroundColor(
+        empleado.cumplimiento_pct
+      )} hover:bg-opacity-80 transition-colors`}
+    >
       {/* Nombre del Empleado */}
       <TableCell className="py-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{getRoleEmoji(empleado.rol)}</span>
-          <span className="font-medium text-gray-900">{empleado.nombre}</span>
+          {getRoleIcon(empleado.rol)}
+          <span className="font-medium text-black">{empleado.nombre}</span>
         </div>
       </TableCell>
 
       {/* Rol */}
       <TableCell className="py-3">
-        <Badge 
-          className={getRoleBadgeStyle(empleado.rol)}
+        <Badge
+          className={`${getRoleBadgeStyle(empleado.rol)} text-black`}
           variant="outline"
         >
           {empleado.rol.charAt(0).toUpperCase() + empleado.rol.slice(1)}
@@ -127,16 +147,16 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
 
       {/* Presupuesto */}
       <TableCell className="py-3 text-right">
-        <span className="font-semibold text-gray-900">
+        <span className="font-semibold text-black">
           ${formatCurrency(empleado.presupuesto)}
         </span>
       </TableCell>
 
       {/* Ventas */}
       <TableCell className="py-3 text-right">
-        {empleado.rol === 'asesor' ? (
+        {empleado.rol === "asesor" ? (
           readOnly ? (
-            <span className="font-semibold text-green-600">
+            <span className="font-semibold text-black">
               ${formatCurrency(ventasAsesorInput || empleado.ventas)}
             </span>
           ) : (
@@ -144,7 +164,7 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
               <span className="text-gray-400 mr-1">$</span>
               <Input
                 type="number"
-                value={ventasAsesorInput || ''}
+                value={ventasAsesorInput || ""}
                 onChange={handleVentasChange}
                 className="w-24 text-right"
                 placeholder="0"
@@ -154,7 +174,7 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
             </div>
           )
         ) : (
-          <span className="font-semibold text-green-600">
+          <span className="font-semibold text-black">
             ${formatCurrency(empleado.ventas)}
           </span>
         )}
@@ -162,26 +182,27 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
 
       {/* Cumplimiento */}
       <TableCell className="py-3 text-right">
-        <div className="flex items-center justify-end gap-1">
-          <span>{getCumplimientoEmoji(empleado.cumplimiento_pct)}</span>
-          <span className={`font-bold ${getCumplimientoColor(empleado.cumplimiento_pct)}`}>
-            {empleado.cumplimiento_pct.toFixed(1)}%
-          </span>
-        </div>
+        <span
+          className={`font-bold ${getCumplimientoColor(
+            empleado.cumplimiento_pct
+          )}`}
+        >
+          {empleado.cumplimiento_pct.toFixed(2)}%
+        </span>
       </TableCell>
 
       {/* Porcentaje de Comisión */}
       <TableCell className="py-3 text-right">
-        <span className="font-semibold text-blue-600">
-          {empleado.comision_pct.toFixed(2)}%
+        <span className={getPerformanceColor(empleado.comision_pct * 100)}>
+          {(empleado.comision_pct * 100).toFixed(2)}%
         </span>
       </TableCell>
 
       {/* Monto de Comisión */}
       <TableCell className="py-3 text-right">
         <div className="flex items-center justify-end gap-1">
-          <span className="text-green-500">💰</span>
-          <span className="font-bold text-green-600">
+          <AttachMoneyIcon className="text-green-500" />
+          <span className={getPerformanceColor(empleado.comision_monto)}>
             ${formatCurrency(empleado.comision_monto)}
           </span>
         </div>

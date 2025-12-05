@@ -20,6 +20,7 @@ import {
   LocalOffer,
   ShoppingCart,
   DocumentScanner,
+  MonetizationOn,
 } from "@mui/icons-material";
 
 /**
@@ -55,6 +56,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Ventas
   ShoppingCart,
   LocalOffer,
+  MonetizationOn,
 
   // 🔸 Fallback por si algo no coincide
   Folder,

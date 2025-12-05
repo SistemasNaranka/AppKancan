@@ -43,6 +43,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         apellido: me.last_name,
         codigo_ultra: me.codigo_ultra,
         empresa: me.empresa,
+        rol: me.role.name,
+        tienda_id: me.tienda_id,
       });
     } catch (error) {
       throw error; // Propagar para que el componente Login lo maneje
@@ -138,6 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           apellido: me.last_name,
           codigo_ultra: me.codigo_ultra,
           empresa: me.empresa,
+          rol: me.role?.name,
+          tienda_id: me.tienda_id,
         });
       } catch (error) {
         console.error("❌ Error al inicializar autenticación:", error);

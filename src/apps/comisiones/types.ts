@@ -2,10 +2,12 @@
  * Tipos TypeScript para la Calculadora de Comisiones por Cumplimiento
  */
 
-export type Role = "gerente" | "asesor" | "cajero";
+export type Role = "gerente" | "asesor" | "cajero" | "logistico";
 
 export interface BudgetRecord {
   tienda: string;
+  tienda_id: number;
+  empresa: string;
   fecha: string; // YYYY-MM-DD
   presupuesto_total: number;
   presupuesto_gerente?: number;
@@ -43,6 +45,7 @@ export interface EmployeeCommission {
   id: string;
   nombre: string;
   rol: Role;
+  cargo_id?: number; // ID del cargo para ordenamiento
   tienda: string;
   fecha: string;
   presupuesto: number;
@@ -54,6 +57,8 @@ export interface EmployeeCommission {
 
 export interface TiendaResumen {
   tienda: string;
+  tienda_id: number;
+  empresa: string;
   fecha: string;
   presupuesto_tienda: number;
   ventas_tienda: number;
@@ -81,7 +86,6 @@ export interface AppState {
 export interface DirectusAsesor {
   id: number;
   nombre?: string;
-  codigo_asesor: number;
   documento: number;
   tienda_id: number | DirectusTienda;
   cargo_id: number | DirectusCargo;
@@ -101,34 +105,50 @@ export interface DirectusTienda {
 
 export interface DirectusPresupuestoDiarioTienda {
   id: number;
-  tienda_id: number | DirectusTienda;
+  tienda_id: number;
   presupuesto: number;
   fecha: string;
 }
 
 export interface DirectusPorcentajeMensual {
   id: number;
-  fecha: string;
-  porcentaje_gerente: number;
-  porcentaje_asesor: number;
-  porcentaje_cajero: number;
-  porcentaje_logistico: number;
-  tienda_id: number | DirectusTienda;
+  fecha: string; // YYYY-MM
+  gerente_tipo: "fijo" | "distributivo";
+  gerente_porcentaje: number;
+  asesor_tipo: "fijo" | "distributivo";
+  asesor_porcentaje: number;
+  cajero_tipo: "fijo" | "distributivo";
+  cajero_porcentaje: number;
+  logistico_tipo: "fijo" | "distributivo";
+  logistico_porcentaje: number;
+}
+
+export interface DirectusPorcentajeMensualNuevo {
+  id: number;
+  mes: string; // '01', '02', ..., '12'
+  anio: string; // '2025', '2026', etc.
+  configuracion_roles: Array<{
+    rol: string;
+    tipo_calculo: "Fijo" | "Distributivo";
+    porcentaje: number;
+  }>;
 }
 
 export interface DirectusPresupuestoDiarioEmpleado {
   id: number;
-  asesor_id: number | DirectusAsesor;
+  asesor: number;
+  tienda_id: number;
+  cargo: number; // Es ID del cargo, no string
   fecha: string;
   presupuesto: number;
-  tienda_id: number | DirectusTienda;
 }
 
 export interface DirectusVentasDiariasEmpleado {
   id: number;
-  ventas: number;
-  asesor_id: number | DirectusAsesor;
   fecha: string;
+  asesor_id: number;
+  tienda_id: number;
+  venta: number;
 }
 
 export interface DirectusVentasDiariasTienda {

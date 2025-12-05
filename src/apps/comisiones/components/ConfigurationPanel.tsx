@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   TextField,
@@ -13,11 +13,12 @@ import {
   Typography,
   IconButton,
 } from "@mui/material";
-import { Add, Delete, Error } from "@mui/icons-material";
+import { Add, Delete, Error, Store } from "@mui/icons-material";
 import { useCommission } from "../contexts/CommissionContext";
 import { validateManagerPercentage } from "../lib/validation";
-import { StaffMember } from "../types";
+import { StaffMember, BudgetRecord } from "../types";
 import { v4 as uuidv4 } from "uuid";
+import { obtenerTiendas } from "../api/directus/read";
 
 interface ConfigurationPanelProps {
   mes: string;
@@ -32,6 +33,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
     addStaffMember,
     removeStaffMember,
     getMonthConfig,
+    setBudgets,
   } = useCommission();
   const [porcentajeGerente, setPorcentajeGerente] = useState(
     getMonthConfig(mes)?.porcentaje_gerente || 10
@@ -44,6 +46,27 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
     fecha: "",
     rol: "asesor" as "gerente" | "asesor" | "cajero",
   });
+  const [showAddBudget, setShowAddBudget] = useState(false);
+  const [newBudget, setNewBudget] = useState({
+    tienda: "",
+    fecha: new Date().toISOString().split("T")[0],
+    presupuesto_total: 0,
+  });
+  const [tiendas, setTiendas] = useState<any[]>([]);
+
+  // Cargar tiendas al montar el componente
+  useEffect(() => {
+    const loadTiendas = async () => {
+      try {
+        const tiendasData = await obtenerTiendas();
+        setTiendas(tiendasData);
+      } catch (error) {
+        console.error("Error cargando tiendas:", error);
+        setTiendas([]);
+      }
+    };
+    loadTiendas();
+  }, []);
 
   const handleUpdatePercentage = () => {
     const validationErrors = validateManagerPercentage(porcentajeGerente);
@@ -81,6 +104,34 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
       rol: "asesor" as "gerente" | "asesor" | "cajero",
     });
     setShowAddStaff(false);
+    setErrors([]);
+  };
+
+  const handleAddBudget = () => {
+    if (
+      !newBudget.tienda.trim() ||
+      !newBudget.fecha.trim() ||
+      newBudget.presupuesto_total <= 0
+    ) {
+      setErrors(["Por favor completa todos los campos con valores válidos"]);
+      return;
+    }
+
+    const budget: BudgetRecord = {
+      tienda: newBudget.tienda,
+      fecha: newBudget.fecha,
+      presupuesto_total: newBudget.presupuesto_total,
+    };
+
+    // Agregar al estado existente
+    setBudgets([...state.budgets, budget]);
+
+    setNewBudget({
+      tienda: "",
+      fecha: new Date().toISOString().split("T")[0],
+      presupuesto_total: 0,
+    });
+    setShowAddBudget(false);
     setErrors([]);
   };
 
@@ -150,6 +201,134 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
             ))}
           </Alert>
         )}
+
+        {/* Gestión de Presupuestos de Tienda */}
+        <Box sx={{ borderTop: "1px solid #e0e0e0", pt: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h6">Presupuestos Diarios de Tienda</Typography>
+            <Button
+              onClick={() => setShowAddBudget(!showAddBudget)}
+              variant="outlined"
+              size="small"
+              startIcon={<Store />}
+            >
+              Agregar Presupuesto
+            </Button>
+          </Box>
+
+          {showAddBudget && (
+            <Box
+              sx={{
+                bgcolor: "grey.50",
+                p: 3,
+                borderRadius: 1,
+                border: "1px solid #e0e0e0",
+                mb: 2,
+              }}
+            >
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  <FormControl sx={{ flex: "1 1 45%", minWidth: "200px" }}>
+                    <InputLabel>Tienda</InputLabel>
+                    <Select
+                      value={newBudget.tienda}
+                      label="Tienda"
+                      onChange={(e) =>
+                        setNewBudget({ ...newBudget, tienda: e.target.value })
+                      }
+                    >
+                      {tiendas.map((tienda) => (
+                        <MenuItem key={tienda.id} value={tienda.nombre}>
+                          {tienda.nombre}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <TextField
+                    sx={{ flex: "1 1 45%", minWidth: "200px" }}
+                    type="date"
+                    label="Fecha"
+                    InputLabelProps={{ shrink: true }}
+                    value={newBudget.fecha}
+                    onChange={(e) =>
+                      setNewBudget({ ...newBudget, fecha: e.target.value })
+                    }
+                  />
+                </Box>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Presupuesto Total Diario"
+                  inputProps={{ min: 0, step: 1000 }}
+                  value={newBudget.presupuesto_total}
+                  onChange={(e) =>
+                    setNewBudget({
+                      ...newBudget,
+                      presupuesto_total: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="Ingrese el presupuesto total para el día"
+                />
+              </Box>
+              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+                <Button
+                  onClick={handleAddBudget}
+                  variant="contained"
+                  size="small"
+                >
+                  Agregar Presupuesto
+                </Button>
+                <Button
+                  onClick={() => setShowAddBudget(false)}
+                  variant="outlined"
+                  size="small"
+                >
+                  Cancelar
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          {state.budgets.length === 0 ? (
+            <Typography color="text.secondary" variant="body2">
+              No hay presupuestos configurados
+            </Typography>
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              {state.budgets.map((budget, index) => (
+                <Box
+                  key={`budget-${budget.tienda}-${budget.fecha}-${index}`}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    bgcolor: "grey.50",
+                    p: 2,
+                    borderRadius: 1,
+                    border: "1px solid #e0e0e0",
+                  }}
+                >
+                  <Box>
+                    <Typography variant="body1" fontWeight="medium">
+                      {budget.tienda}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {budget.fecha} • $
+                      {budget.presupuesto_total.toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
 
         {/* Gestión de Personal */}
         <Box sx={{ borderTop: "1px solid #e0e0e0", pt: 3 }}>

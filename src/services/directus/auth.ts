@@ -75,9 +75,10 @@ export async function getCurrentUser() {
           "empresa",
           "first_name",
           "last_name",
-          "rol_usuario.area",
+          "role.name",
+          "tienda_id",
           "id",
-        ], // incluye tu campo personalizado aquí
+        ], // incluye rol y tienda_id
       })
     )
   );

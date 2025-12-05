@@ -1,22 +1,36 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { TiendaResumen } from '../types';
-import { ExpandMore, ExpandLess } from '@mui/icons-material';
-import { EmployeeRow } from './EmployeeRow';
-import { VentasEditor } from './VentasEditor';
-import { formatCurrency } from '../lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import React, { useState, useCallback, useMemo } from "react";
+import { TiendaResumen, DirectusCargo } from "../types";
+import { ExpandMore, ExpandLess } from "@mui/icons-material";
+import { EmployeeRow } from "./EmployeeRow";
+import { VentasEditor } from "./VentasEditor";
+import { formatCurrency } from "../lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface StoreExpandableCardProps {
   /** Datos de la tienda a renderizar */
   tienda: TiendaResumen;
+  /** Lista de cargos para ordenamiento */
+  cargos?: DirectusCargo[];
   /** Estado de expansión de la tienda */
   isExpanded: boolean;
   /** Callback para cambiar el estado de expansión */
   onToggleExpand: () => void;
   /** Callback para actualizar ventas */
-  onVentasUpdate: (tienda: string, fecha: string, ventas_tienda: number, ventas_por_asesor: Record<string, number>) => void;
+  onVentasUpdate: (
+    tienda: string,
+    fecha: string,
+    ventas_tienda: number,
+    ventas_por_asesor: Record<string, number>
+  ) => void;
   /** Estado temporal de ventas de la tienda */
   ventasTiendaInput: number;
   /** Callback para cambiar ventas de tienda temporal */
@@ -34,44 +48,50 @@ interface StoreExpandableCardProps {
  * Maneja la visualización, expansión y edición de datos de una tienda específica.
  */
 const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
-   tienda,
-   isExpanded,
-   onToggleExpand,
-   onVentasUpdate,
-   ventasTiendaInput,
-   onVentasTiendaChange,
-   ventasAsesorInput,
-   onVentasAsesorChange,
-   readOnly = false,
- }) => {
+  tienda,
+  cargos = [],
+  isExpanded,
+  onToggleExpand,
+  onVentasUpdate,
+  ventasTiendaInput,
+  onVentasTiendaChange,
+  ventasAsesorInput,
+  onVentasAsesorChange,
+  readOnly = false,
+}) => {
   /**
    * Formatea el color del cumplimiento según el porcentaje
    */
   const getCumplimientoColor = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return 'text-green-600';
-    if (cumplimiento >= 100) return 'text-blue-600';
-    if (cumplimiento >= 95) return 'text-yellow-600';
-    return 'text-red-600';
+    if (cumplimiento >= 110) return "text-green-600";
+    if (cumplimiento >= 100) return "text-blue-600";
+    if (cumplimiento >= 95) return "text-yellow-600";
+    return "text-red-600";
   }, []);
 
   /**
    * Formatea el badge de cumplimiento para mostrar visualmente el estado
    */
   const getCumplimientoBadge = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return '🎯 Excelente';
-    if (cumplimiento >= 100) return '✅ Cumplido';
-    if (cumplimiento >= 95) return '⚠️ Cerca';
-    return '❌ Bajo';
+    if (cumplimiento >= 110) return "🎯 Excelente";
+    if (cumplimiento >= 100) return "✅ Cumplido";
+    if (cumplimiento >= 95) return "⚠️ Cerca";
+    return "❌ Bajo";
   }, []);
 
   /**
-   * Memoized empleados para evitar recálculos innecesarios
+   * Memoized empleados ordenados alfabéticamente por nombre
    */
   const empleadosConVentas = useMemo(() => {
-    return tienda.empleados.map(empleado => ({
-      ...empleado,
-      ventasTemporales: ventasAsesorInput[empleado.id] ?? empleado.ventas
-    }));
+    return tienda.empleados
+      .map((empleado) => ({
+        ...empleado,
+        ventasTemporales: ventasAsesorInput[empleado.id] ?? empleado.ventas,
+      }))
+      .sort((a, b) => {
+        // Ordenar alfabéticamente por nombre del empleado
+        return a.nombre.localeCompare(b.nombre);
+      });
   }, [tienda.empleados, ventasAsesorInput]);
 
   /**
@@ -85,11 +105,17 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
       Object.fromEntries(
         Object.entries(ventasAsesorInput).map(([asesorId, valor]) => [
           asesorId,
-          valor
+          valor,
         ])
       )
     );
-  }, [onVentasUpdate, tienda.tienda, tienda.fecha, ventasTiendaInput, ventasAsesorInput]);
+  }, [
+    onVentasUpdate,
+    tienda.tienda,
+    tienda.fecha,
+    ventasTiendaInput,
+    ventasAsesorInput,
+  ]);
 
   return (
     <Card className="overflow-hidden">
@@ -110,8 +136,13 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
             <p className="text-sm text-gray-600">
               Presupuesto: ${formatCurrency(tienda.presupuesto_tienda)} |
               Ventas: ${formatCurrency(tienda.ventas_tienda)} |
-              <span className={`font-semibold ${getCumplimientoColor(tienda.cumplimiento_tienda_pct)}`}>
-                Cumplimiento: {getCumplimientoBadge(tienda.cumplimiento_tienda_pct)}
+              <span
+                className={`font-semibold ${getCumplimientoColor(
+                  tienda.cumplimiento_tienda_pct
+                )}`}
+              >
+                Cumplimiento: {tienda.cumplimiento_tienda_pct.toFixed(2)}%{" "}
+                {getCumplimientoBadge(tienda.cumplimiento_tienda_pct)}
               </span>
             </p>
           </div>
@@ -121,7 +152,8 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
             💰 Comisiones: ${formatCurrency(tienda.total_comisiones)}
           </p>
           <p className="text-xs text-gray-500">
-            {empleadosConVentas.length} empleado{empleadosConVentas.length !== 1 ? 's' : ''}
+            {empleadosConVentas.length} empleado
+            {empleadosConVentas.length !== 1 ? "s" : ""}
           </p>
         </div>
       </Button>
@@ -145,11 +177,21 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
                 <TableRow>
                   <TableHead className="px-4 py-3">👤 Empleado</TableHead>
                   <TableHead className="px-4 py-3">🏷️ Rol</TableHead>
-                  <TableHead className="px-4 py-3 text-right">💼 Presupuesto</TableHead>
-                  <TableHead className="px-4 py-3 text-right">💰 Ventas</TableHead>
-                  <TableHead className="px-4 py-3 text-right">📈 Cumplimiento</TableHead>
-                  <TableHead className="px-4 py-3 text-right">🎯 Comisión %</TableHead>
-                  <TableHead className="px-4 py-3 text-right">💵 Comisión $</TableHead>
+                  <TableHead className="px-4 py-3 text-right">
+                    💼 Presupuesto
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-right">
+                    💰 Ventas
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-right">
+                    📈 Cumplimiento
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-right">
+                    🎯 % Comisión
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-right">
+                    💵 $ Comisión
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,7 +200,9 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
                     key={empleado.id}
                     empleado={empleado}
                     index={idx}
-                    ventasAsesorInput={ventasAsesorInput[empleado.id] ?? empleado.ventas}
+                    ventasAsesorInput={
+                      ventasAsesorInput[empleado.id] ?? empleado.ventas
+                    }
                     onVentasAsesorChange={onVentasAsesorChange}
                     readOnly={readOnly}
                   />
@@ -174,7 +218,10 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
                 📊 Total empleados: <strong>{empleadosConVentas.length}</strong>
               </span>
               <span>
-                💰 Total comisiones: <strong className="text-green-600">${formatCurrency(tienda.total_comisiones)}</strong>
+                💰 Total comisiones:{" "}
+                <strong className="text-green-600">
+                  ${formatCurrency(tienda.total_comisiones)}
+                </strong>
               </span>
             </div>
           </div>

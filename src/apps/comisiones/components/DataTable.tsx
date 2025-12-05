@@ -1,14 +1,21 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { TiendaResumen, Role } from '../types';
-import { StoreExpandableCard } from './StoreExpandableCard';
+import React, { useState, useMemo, useCallback } from "react";
+import { TiendaResumen, Role, DirectusCargo } from "../types";
+import { StoreExpandableCard } from "./StoreExpandableCard";
 
 interface DataTableProps {
   /** Lista de tiendas con sus datos */
   tiendas: TiendaResumen[];
+  /** Lista de cargos para ordenamiento */
+  cargos?: DirectusCargo[];
   /** Mes actualmente seleccionado */
   selectedMonth: string;
   /** Callback para actualizar ventas */
-  onVentasUpdate: (tienda: string, fecha: string, ventas_tienda: number, ventas_por_asesor: Record<string, number>) => void;
+  onVentasUpdate: (
+    tienda: string,
+    fecha: string,
+    ventas_tienda: number,
+    ventas_por_asesor: Record<string, number>
+  ) => void;
   /** Si es true, el componente será de solo lectura */
   readOnly?: boolean;
 }
@@ -27,31 +34,37 @@ interface DataTableProps {
  * />
  */
 const DataTableComponent: React.FC<DataTableProps> = ({
-   tiendas,
-   selectedMonth,
-   onVentasUpdate,
-   readOnly = false,
- }) => {
+  tiendas,
+  cargos = [],
+  selectedMonth,
+  onVentasUpdate,
+  readOnly = false,
+}) => {
   // Estados para expansión de tiendas
-  const [expandedTiendas, setExpandedTiendas] = useState<Set<string>>(new Set());
+  const [expandedTiendas, setExpandedTiendas] = useState<Set<string>>(
+    new Set()
+  );
 
   // Estados para inputs temporales de ventas
-  const [ventasTiendaInputs, setVentasTiendaInputs] = useState<Record<string, number>>({});
-  const [ventasAsesorInputs, setVentasAsesorInputs] = useState<Record<string, Record<string, number>>>({});
+  const [ventasTiendaInputs, setVentasTiendaInputs] = useState<
+    Record<string, number>
+  >({});
+  const [ventasAsesorInputs, setVentasAsesorInputs] = useState<
+    Record<string, Record<string, number>>
+  >({});
 
   /**
    * Filtra las tiendas - ahora sin filtros de tienda/rol ya que están en controles principales
    */
   const filteredTiendas = useMemo(() => {
-    return tiendas
-      .filter(tienda => tienda.empleados.length > 0);
+    return tiendas.filter((tienda) => tienda.empleados.length > 0);
   }, [tiendas]);
 
   /**
    * Toggle la expansión de una tienda específica
    */
   const toggleTienda = useCallback((tienda: string) => {
-    setExpandedTiendas(prev => {
+    setExpandedTiendas((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(tienda)) {
         newSet.delete(tienda);
@@ -65,52 +78,64 @@ const DataTableComponent: React.FC<DataTableProps> = ({
   /**
    * Maneja el cambio de ventas de tienda en el input temporal
    */
-  const handleVentasTiendaChange = useCallback((tienda: string, fecha: string, value: number) => {
-    const key = `${tienda}|${fecha}`;
-    setVentasTiendaInputs(prev => ({ ...prev, [key]: value }));
-  }, []);
+  const handleVentasTiendaChange = useCallback(
+    (tienda: string, fecha: string, value: number) => {
+      const key = `${tienda}|${fecha}`;
+      setVentasTiendaInputs((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
 
   /**
    * Maneja el cambio de ventas de asesor en el input temporal
    */
-  const handleVentasAsesorChange = useCallback((tienda: string, fecha: string, asesorId: string, value: number) => {
-    const key = `${tienda}|${fecha}`;
-    setVentasAsesorInputs(prev => ({
-      ...prev,
-      [key]: {
-        ...(prev[key] || {}),
-        [asesorId]: value
-      }
-    }));
-  }, []);
+  const handleVentasAsesorChange = useCallback(
+    (tienda: string, fecha: string, asesorId: string, value: number) => {
+      const key = `${tienda}|${fecha}`;
+      setVentasAsesorInputs((prev) => ({
+        ...prev,
+        [key]: {
+          ...(prev[key] || {}),
+          [asesorId]: value,
+        },
+      }));
+    },
+    []
+  );
 
   /**
    * Obtiene el valor temporal de ventas de tienda
    */
-  const getVentasTiendaInput = useCallback((tienda: string, fecha: string, currentValue: number) => {
-    const key = `${tienda}|${fecha}`;
-    return ventasTiendaInputs[key] ?? currentValue;
-  }, [ventasTiendaInputs]);
+  const getVentasTiendaInput = useCallback(
+    (tienda: string, fecha: string, currentValue: number) => {
+      const key = `${tienda}|${fecha}`;
+      return ventasTiendaInputs[key] ?? currentValue;
+    },
+    [ventasTiendaInputs]
+  );
 
   /**
    * Obtiene los valores temporales de ventas por asesor
    */
-  const getVentasAsesorInputs = useCallback((tienda: string, fecha: string) => {
-    const key = `${tienda}|${fecha}`;
-    return ventasAsesorInputs[key] || {};
-  }, [ventasAsesorInputs]);
+  const getVentasAsesorInputs = useCallback(
+    (tienda: string, fecha: string) => {
+      const key = `${tienda}|${fecha}`;
+      return ventasAsesorInputs[key] || {};
+    },
+    [ventasAsesorInputs]
+  );
 
   /**
    * Limpia los inputs temporales después de guardar
    */
   const clearVentasInputs = useCallback((tienda: string, fecha: string) => {
     const key = `${tienda}|${fecha}`;
-    setVentasTiendaInputs(prev => {
+    setVentasTiendaInputs((prev) => {
       const newState = { ...prev };
       delete newState[key];
       return newState;
     });
-    setVentasAsesorInputs(prev => {
+    setVentasAsesorInputs((prev) => {
       const newState = { ...prev };
       delete newState[key];
       return newState;
@@ -126,18 +151,25 @@ const DataTableComponent: React.FC<DataTableProps> = ({
 
       {/* Mensajes de Estado */}
       {filteredTiendas.length === 0 && tiendas.length > 0 && (
-        <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-          <div className="text-gray-500 mb-2">🔍</div>
-          <p className="text-gray-600 text-lg font-medium">No hay datos que coincidan con los filtros aplicados</p>
-          <p className="text-gray-500 text-sm mt-1">Intenta ajustar los filtros o limpiar todos</p>
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-gray-600 text-lg font-medium">
+            No hay tiendas que coincidan con los filtros aplicados
+          </p>
+          <p className="text-gray-500 text-sm mt-1">
+            Ajusta los filtros de tienda, rol o fecha para ver resultados
+          </p>
         </div>
       )}
 
       {tiendas.length === 0 && (
-        <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-          <div className="text-blue-500 mb-4 text-4xl">📊</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">¡Bienvenido a la Calculadora de Comisiones!</h3>
-          <p className="text-gray-600">No hay datos disponibles. Carga un CSV de presupuestos para comenzar.</p>
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No hay datos de comisiones disponibles
+          </h3>
+          <p className="text-gray-600">
+            No se encontraron tiendas con información para el período
+            seleccionado.
+          </p>
         </div>
       )}
 
@@ -152,20 +184,42 @@ const DataTableComponent: React.FC<DataTableProps> = ({
           /> */}
 
           {/* Versión actual (sin virtualización) */}
-          {filteredTiendas.map(tienda => (
+          {filteredTiendas.map((tienda) => (
             <StoreExpandableCard
               key={`${tienda.tienda}|${tienda.fecha}`}
               tienda={tienda}
+              cargos={cargos}
               isExpanded={expandedTiendas.has(tienda.tienda)}
               onToggleExpand={() => toggleTienda(tienda.tienda)}
-              onVentasUpdate={(tiendaName, fecha, ventasTienda, ventasAsesor) => {
+              onVentasUpdate={(
+                tiendaName,
+                fecha,
+                ventasTienda,
+                ventasAsesor
+              ) => {
                 onVentasUpdate(tiendaName, fecha, ventasTienda, ventasAsesor);
                 clearVentasInputs(tiendaName, fecha);
               }}
-              ventasTiendaInput={getVentasTiendaInput(tienda.tienda, tienda.fecha, tienda.ventas_tienda)}
-              onVentasTiendaChange={(value) => handleVentasTiendaChange(tienda.tienda, tienda.fecha, value)}
-              ventasAsesorInput={getVentasAsesorInputs(tienda.tienda, tienda.fecha)}
-              onVentasAsesorChange={(asesorId, value) => handleVentasAsesorChange(tienda.tienda, tienda.fecha, asesorId, value)}
+              ventasTiendaInput={getVentasTiendaInput(
+                tienda.tienda,
+                tienda.fecha,
+                tienda.ventas_tienda
+              )}
+              onVentasTiendaChange={(value) =>
+                handleVentasTiendaChange(tienda.tienda, tienda.fecha, value)
+              }
+              ventasAsesorInput={getVentasAsesorInputs(
+                tienda.tienda,
+                tienda.fecha
+              )}
+              onVentasAsesorChange={(asesorId, value) =>
+                handleVentasAsesorChange(
+                  tienda.tienda,
+                  tienda.fecha,
+                  asesorId,
+                  value
+                )
+              }
               readOnly={readOnly}
             />
           ))}

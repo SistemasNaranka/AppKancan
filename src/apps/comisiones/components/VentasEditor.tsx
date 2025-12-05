@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect } from 'react';
-import { TiendaResumen } from '../types';
-import { formatCurrency } from '../lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useCallback, useEffect } from "react";
+import { TiendaResumen } from "../types";
+import { formatCurrency } from "../lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface VentasEditorProps {
   /** Datos de la tienda */
@@ -24,20 +24,20 @@ interface VentasEditorProps {
  * Proporciona una interfaz clara para modificar las ventas totales.
  */
 const VentasEditorComponent: React.FC<VentasEditorProps> = ({
-   tienda,
-   ventasTiendaInput,
-   onVentasTiendaChange,
-   onSaveVentas,
-   readOnly = false,
- }) => {
+  tienda,
+  ventasTiendaInput,
+  onVentasTiendaChange,
+  onSaveVentas,
+  readOnly = false,
+}) => {
   /**
    * Obtiene el color del cumplimiento para mostrar en el editor
    */
   const getCumplimientoColor = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return 'text-green-600';
-    if (cumplimiento >= 100) return 'text-blue-600';
-    if (cumplimiento >= 95) return 'text-yellow-600';
-    return 'text-red-600';
+    if (cumplimiento >= 110) return "text-green-600";
+    if (cumplimiento >= 100) return "text-blue-600";
+    if (cumplimiento >= 95) return "text-yellow-600";
+    return "text-red-600";
   }, []);
 
   /**
@@ -46,26 +46,29 @@ const VentasEditorComponent: React.FC<VentasEditorProps> = ({
   const hasChanges = ventasTiendaInput !== tienda.ventas_tienda;
 
   /**
-    * Maneja el cambio en el input de ventas
-    */
-   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-     const value = parseFloat(e.target.value) || 0;
-     onVentasTiendaChange(value);
-   }, [onVentasTiendaChange]);
+   * Maneja el cambio en el input de ventas
+   */
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = parseFloat(e.target.value) || 0;
+      onVentasTiendaChange(value);
+    },
+    [onVentasTiendaChange]
+  );
 
-   // Implementar debouncing para la actualización de ventas
-   useEffect(() => {
-     const handler = setTimeout(() => {
-       if (ventasTiendaInput !== tienda.ventas_tienda) {
-         // Aquí se podría llamar a una función para actualizar las ventas
-         // con un cierto delay para evitar actualizaciones frecuentes
-       }
-     }, 500); // 500ms delay
+  // Implementar debouncing para la actualización de ventas
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (ventasTiendaInput !== tienda.ventas_tienda) {
+        // Aquí se podría llamar a una función para actualizar las ventas
+        // con un cierto delay para evitar actualizaciones frecuentes
+      }
+    }, 500); // 500ms delay
 
-     return () => {
-       clearTimeout(handler);
-     };
-   }, [ventasTiendaInput, tienda.ventas_tienda]);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [ventasTiendaInput, tienda.ventas_tienda]);
 
   /**
    * Maneja el botón de guardar
@@ -87,7 +90,11 @@ const VentasEditorComponent: React.FC<VentasEditorProps> = ({
     <div className="px-4 py-4 bg-gray-50 border-b border-gray-200">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
         {/* Input de Ventas Totales */}
-        <div className={`${readOnly ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-2`}>
+        <div
+          className={`${
+            readOnly ? "lg:col-span-3" : "lg:col-span-2"
+          } space-y-2`}
+        >
           <Label className="text-sm font-medium">
             💰 Ventas Totales de la Tienda
           </Label>
@@ -103,7 +110,7 @@ const VentasEditorComponent: React.FC<VentasEditorProps> = ({
                 </div>
                 <Input
                   type="number"
-                  value={ventasTiendaInput || ''}
+                  value={ventasTiendaInput || ""}
                   onChange={handleInputChange}
                   className="pl-8 text-lg font-semibold"
                   placeholder="0.00"
@@ -138,7 +145,7 @@ const VentasEditorComponent: React.FC<VentasEditorProps> = ({
               size="sm"
               className="flex-1"
             >
-              💾 {hasChanges ? 'Guardar' : 'Guardado'}
+              💾 {hasChanges ? "Guardar" : "Guardado"}
             </Button>
           </div>
         )}
@@ -154,7 +161,7 @@ const VentasEditorComponent: React.FC<VentasEditorProps> = ({
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-3">
             <div className="text-gray-500">Ventas Actuales</div>
@@ -163,12 +170,16 @@ const VentasEditorComponent: React.FC<VentasEditorProps> = ({
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-3">
             <div className="text-gray-500">Cumplimiento</div>
-            <div className={`font-bold ${getCumplimientoColor(tienda.cumplimiento_tienda_pct)}`}>
-              📊 {tienda.cumplimiento_tienda_pct.toFixed(1)}%
+            <div
+              className={`font-bold ${getCumplimientoColor(
+                tienda.cumplimiento_tienda_pct
+              )}`}
+            >
+              📊 {tienda.cumplimiento_tienda_pct.toFixed(2)}%
             </div>
           </CardContent>
         </Card>

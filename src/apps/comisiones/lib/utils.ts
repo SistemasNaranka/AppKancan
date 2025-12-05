@@ -7,9 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Formats commission and sales values for display
- * Rounds to nearest 100, removes decimals, and adds Colombian thousands separator
+ * US format: commas for thousands, dots for decimals
  */
 export function formatCurrency(value: number): string {
-  const rounded = Math.round(value / 100) * 100;
-  return rounded.toLocaleString('es-CO');
+  return Math.round(value).toLocaleString("en-US");
 }

@@ -79,12 +79,15 @@ export const useScannerLogic = () => {
   // === PROCESAR CÓDIGO ===
   const procesarCodigo = (input: string): string => {
     // Limpiar y quitar ceros a la izquierda
-    const limpio = input.trim().replace(/^0+/, "") || "0";
+    const limpio = input.trim().replace(/^0+/, "");
+    if (!limpio) return "";
+    // Tomar solo los primeros 6 dígitos
+    const primeros6 = limpio.slice(0, 6);
     // Validar que solo sean números
-    if (!/^\d+$/.test(limpio)) {
+    if (!/^\d+$/.test(primeros6)) {
       return "";
     }
-    return limpio;
+    return primeros6;
   };
 
   // === AGREGAR CÓDIGO ===
