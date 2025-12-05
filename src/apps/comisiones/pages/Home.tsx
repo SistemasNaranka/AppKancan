@@ -44,10 +44,13 @@ export default function Home() {
   const { state, setBudgets, setStaff, setMonthConfigs, setVentas } =
     useCommission();
   const { user } = useAuth();
+
   const [selectedMonth, setSelectedMonth] = useState("Nov 2025");
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [showNoDataModal, setShowNoDataModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
   const [refreshData, setRefreshData] = useState(0); // Para forzar recarga de datos
 
   // Filter states
@@ -470,17 +473,18 @@ export default function Home() {
       // VALIDACIONES CRÍTICAS
       // ========================================================================
       if (tiendas.length === 0) {
-        alert(
-          "❌ ERROR: No hay tiendas en la BD. Verifica la tabla 'util_tiendas'"
+        console.warn("⚠️ [HOME] Usuario no tiene tiendas asociadas");
+        setModalTitle("Sin Tiendas Asociadas");
+        setModalMessage(
+          "No tienes tiendas asociadas en el sistema. Contacta al administrador para asignarte permisos de acceso a las tiendas correspondientes."
         );
+        setShowNoDataModal(true);
         return;
       }
 
       if (presupuestosDiarios.length === 0) {
         console.warn(`⚠️ [HOME] No hay presupuestos para ${selectedMonth}`);
-        alert(
-          `⚠️ No se encontraron presupuestos para ${selectedMonth}.\n\nVerifica la tabla 'presupuestos_diario_tienda' entre ${fechaInicio} y ${fechaFin}`
-        );
+        setShowNoDataModal(true);
         // Continuar con datos vacíos para mostrar la UI
         setBudgets([]);
         setStaff([]);
@@ -823,16 +827,8 @@ export default function Home() {
       console.error("❌ [HOME] Error:", error);
       console.error("❌ [HOME] Stack:", error.stack);
 
-      alert(
-        `❌ ERROR AL CARGAR DATOS:\n\n${
-          error.message || "Error desconocido"
-        }\n\n` +
-          `Revisa:\n` +
-          `1. La consola del navegador (F12) para más detalles\n` +
-          `2. La conexión a Directus\n` +
-          `3. Los permisos de las tablas en Directus\n` +
-          `4. Que existan datos para el mes seleccionado`
-      );
+      // Mostrar modal de no data en caso de error
+      setShowNoDataModal(true);
 
       // Limpiar estado
       setBudgets([]);
@@ -1100,12 +1096,7 @@ export default function Home() {
               <h1 className="text-3xl font-bold text-gray-900">
                 Comisiones {selectedMonth}
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Estado:{" "}
-                {state.budgets.length > 0
-                  ? "Datos cargados"
-                  : "Cargando datos..."}
-              </p>
+
               {(filterTienda.length > 0 ||
                 filterRol !== "all" ||
                 filterFechaInicio ||
@@ -1368,6 +1359,8 @@ export default function Home() {
         onClose={() => setShowNoDataModal(false)}
         tiendaNombre="todas las tiendas"
         mesSeleccionado={selectedMonth}
+        title={modalTitle}
+        message={modalMessage}
       />
     </div>
   );

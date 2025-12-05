@@ -7,6 +7,8 @@ interface NoDataModalProps {
   onClose: () => void;
   tiendaNombre?: string;
   mesSeleccionado?: string;
+  title?: string;
+  message?: string;
 }
 
 /**
@@ -17,6 +19,8 @@ export const NoDataModal: React.FC<NoDataModalProps> = ({
   onClose,
   tiendaNombre = "tu tienda",
   mesSeleccionado = "este mes",
+  title,
+  message,
 }) => {
   return (
     <Dialog
@@ -74,7 +78,7 @@ export const NoDataModal: React.FC<NoDataModalProps> = ({
               mb: 1,
             }}
           >
-            No hay datos disponibles
+            {title || "No hay datos disponibles"}
           </Typography>
 
           <Typography
@@ -84,14 +88,24 @@ export const NoDataModal: React.FC<NoDataModalProps> = ({
               lineHeight: 1.5,
             }}
           >
-            No se encontraron comisiones para{" "}
-            <Box component="span" sx={{ fontWeight: 500, color: "#374151" }}>
-              {tiendaNombre}
-            </Box>{" "}
-            en{" "}
-            <Box component="span" sx={{ fontWeight: 500, color: "#374151" }}>
-              {mesSeleccionado}
-            </Box>
+            {message || (
+              <>
+                No se encontraron comisiones para{" "}
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 500, color: "#374151" }}
+                >
+                  {tiendaNombre}
+                </Box>{" "}
+                en{" "}
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 500, color: "#374151" }}
+                >
+                  {mesSeleccionado}
+                </Box>
+              </>
+            )}
           </Typography>
         </Box>
 

@@ -20,11 +20,22 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
  */
 export async function obtenerTiendas(): Promise<DirectusTienda[]> {
   try {
-    console.log("🔄 [API] Llamando a obtenerTiendas...");
+    const tiendaIds = await obtenerTiendasIdsUsuarioActual();
+    if (tiendaIds.length === 0) {
+      console.log(
+        "⚠️ [API] Usuario no tiene tiendas asociadas, devolviendo array vacío"
+      );
+      return [];
+    }
+
+    const filter: any = { id: { _in: tiendaIds } };
+
+    console.log("🔄 [API] Llamando a obtenerTiendas con filtro:", filter);
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("util_tiendas", {
           fields: ["id", "nombre", "codigo_ultra", "empresa"],
+          filter,
           sort: ["nombre"],
           limit: -1,
         })
@@ -105,8 +116,25 @@ export async function obtenerPresupuestosDiarios(
   fechaFin?: string
 ): Promise<DirectusPresupuestoDiarioTienda[]> {
   try {
+    const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     const filter: any = {};
-    if (tiendaId) filter.tienda_id = { _eq: tiendaId };
+
+    if (tiendaId) {
+      if (tiendaIds.includes(tiendaId)) {
+        filter.tienda_id = { _eq: tiendaId };
+      } else {
+        console.warn(
+          "⚠️ [API] Usuario no tiene permiso para tienda:",
+          tiendaId
+        );
+        return [];
+      }
+    } else {
+      if (tiendaIds.length > 0) {
+        filter.tienda_id = { _in: tiendaIds };
+      }
+    }
+
     if (fechaInicio && fechaFin) {
       filter.fecha = { _between: [fechaInicio, fechaFin] };
     }
@@ -247,8 +275,25 @@ export async function obtenerPresupuestosEmpleados(
   fecha?: string
 ): Promise<DirectusPresupuestoDiarioEmpleado[]> {
   try {
+    const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     const filter: any = {};
-    if (tiendaId) filter.tienda_id = { _eq: tiendaId };
+
+    if (tiendaId) {
+      if (tiendaIds.includes(tiendaId)) {
+        filter.tienda_id = { _eq: tiendaId };
+      } else {
+        console.warn(
+          "⚠️ [API] Usuario no tiene permiso para tienda:",
+          tiendaId
+        );
+        return [];
+      }
+    } else {
+      if (tiendaIds.length > 0) {
+        filter.tienda_id = { _in: tiendaIds };
+      }
+    }
+
     if (fecha) filter.fecha = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas hasta fecha
 
     console.log(
@@ -298,8 +343,25 @@ export async function obtenerVentasEmpleados(
   fecha?: string
 ): Promise<DirectusVentasDiariasEmpleado[]> {
   try {
+    const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     const filter: any = {};
-    if (tiendaId) filter.tienda_id = { _eq: tiendaId };
+
+    if (tiendaId) {
+      if (tiendaIds.includes(tiendaId)) {
+        filter.tienda_id = { _eq: tiendaId };
+      } else {
+        console.warn(
+          "⚠️ [API] Usuario no tiene permiso para tienda:",
+          tiendaId
+        );
+        return [];
+      }
+    } else {
+      if (tiendaIds.length > 0) {
+        filter.tienda_id = { _in: tiendaIds };
+      }
+    }
+
     if (fecha) filter.fecha = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas
 
     console.log(
@@ -369,6 +431,46 @@ export async function obtenerTiendasUsuario(
     return data as { tienda_id: number; estado: string }[];
   } catch (error: any) {
     console.error("❌ [API] Error en obtenerTiendasUsuario:", error);
+
+    // Si es error 404 (colección no existe), devolver array vacío
+    if (error.response?.status === 404) {
+      console.warn(
+        "⚠️ [API] Colección 'tiendas_usuarios' no existe, devolviendo array vacío"
+      );
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Obtener IDs de tiendas asignadas al usuario actual
+ */
+export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
+  try {
+    console.log("🔄 [API] Llamando a obtenerTiendasIdsUsuarioActual...");
+
+    const data = await withAutoRefresh(() =>
+      directus.request(
+        readItems("usuarios_tiendas", {
+          fields: ["tienda_id"],
+          filter: {
+            estado: { _eq: "Activo" },
+          },
+          limit: -1,
+        })
+      )
+    );
+
+    const tiendaIds = data.map((item: any) => item.tienda_id);
+    console.log(
+      `✅ [API] obtenerTiendasIdsUsuarioActual: ${tiendaIds.length} tiendaIds obtenidas:`,
+      tiendaIds
+    );
+    return tiendaIds;
+  } catch (error: any) {
+    console.error("❌ [API] Error en obtenerTiendasIdsUsuarioActual:", error);
 
     // Si es error 404 (colección no existe), devolver array vacío
     if (error.response?.status === 404) {
