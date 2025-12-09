@@ -36,7 +36,7 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
         readItems("util_tiendas", {
           fields: ["id", "nombre", "codigo_ultra", "empresa"],
           filter,
-          sort: ["nombre"],
+          sort: ["id"],
           limit: -1,
         })
       )

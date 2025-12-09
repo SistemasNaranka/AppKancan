@@ -12,8 +12,6 @@ import {
   Role,
 } from "../types";
 
-const DECIMAL_PLACES = 2;
-
 export const round = (value: number): number => {
   return Math.round(value * 100) / 100;
 };
@@ -209,30 +207,6 @@ export const getMonthYear = (dateStr: string): string => {
 };
 
 /**
- * Obtiene el mes actual en formato "MMM YYYY"
- */
-export const getCurrentMonth = (): string => {
-  const today = new Date();
-  const months = [
-    "Ene",
-    "Feb",
-    "Mar",
-    "Abr",
-    "May",
-    "Jun",
-    "Jul",
-    "Ago",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dic",
-  ];
-  const month = months[today.getMonth()];
-  const year = today.getFullYear();
-  return `${month} ${year}`;
-};
-
-/**
  * Convierte un mes en formato "MMM YYYY" a timestamp para comparar
  */
 const monthToTimestamp = (monthStr: string): number => {
@@ -277,19 +251,6 @@ export const filterBudgetsByMonth = (
   mes: string
 ): BudgetRecord[] => {
   return budgets.filter((b) => getMonthYear(b.fecha) === mes);
-};
-
-/**
- * Filtra personal por mes y tienda
- */
-export const filterStaffByMonthAndTienda = (
-  staff: StaffMember[],
-  mes: string,
-  tienda: string
-): StaffMember[] => {
-  return staff.filter(
-    (s) => getMonthYear(s.fecha) === mes && s.tienda === tienda
-  );
 };
 
 /**
@@ -355,13 +316,13 @@ export const calculateEmployeeCommission = (
   };
 };
 /**
- * Calcula las comisiones para cajeros y logísticos
+ * Calcula las comisiones para cajeros
  * Lógica especial: comisión basada en el rendimiento general de la tienda,
  * dividida entre TODOS los empleados que trabajaron en la tienda.
  * Muestra ventas individuales registradas en venta_diaria_empleado (o 0 si no tienen)
  * y presupuesto individual asignado (o 0 si no tienen) en la vista, pero calcula comisión colectiva.
  */
-export const calculateCajeroLogisticoCommission = (
+export const calculateCajeroCommission = (
   empleado: StaffMember,
   ventasTiendaTotal: number,
   presupuestoTiendaTotal: number,
@@ -369,14 +330,12 @@ export const calculateCajeroLogisticoCommission = (
   ventasIndividualesEmpleado: number = 0,
   presupuestoIndividualEmpleado: number = 0
 ): EmployeeCommission => {
-  console.log(
-    `🔄 [CALC] Calculando comisión para ${empleado.rol}: ${empleado.nombre}`
-  );
+  console.log(`🔄 [CALC] Calculando comisión para cajero: ${empleado.nombre}`);
   console.log(
     `📊 [CALC] Datos: ventasTienda=${ventasTiendaTotal}, presupuestoTienda=${presupuestoTiendaTotal}, totalEmpleadosTienda=${cantidadEmpleadosRol}`
   );
   console.log(
-    `👤 [CALC] Ventas individuales empleado: ${ventasIndividualesEmpleado} (registradas para cajeros/logísticos), presupuesto individual: ${presupuestoIndividualEmpleado} (asignado para cajeros/logísticos)`
+    `👤 [CALC] Ventas individuales cajero: ${ventasIndividualesEmpleado} (registradas para cajeros), presupuesto individual: ${presupuestoIndividualEmpleado} (asignado para cajeros)`
   );
 
   // Calcular cumplimiento de la tienda
@@ -408,7 +367,7 @@ export const calculateCajeroLogisticoCommission = (
   );
   console.log(`💵 [CALC] Comisión calculada: ${comision_monto}`);
   console.log(
-    `📋 [CALC] Vista mostrará: ventas=${ventasIndividualesEmpleado} (registradas para cajeros/logísticos), presupuesto=${presupuestoIndividualEmpleado} (asignado para cajeros/logísticos), cumplimiento=${cumplimientoTienda}%`
+    `📋 [CALC] Vista mostrará: ventas=${ventasIndividualesEmpleado} (registradas para cajeros), presupuesto=${presupuestoIndividualEmpleado} (asignado para cajeros), cumplimiento=${cumplimientoTienda}%`
   );
 
   return {
@@ -426,92 +385,74 @@ export const calculateCajeroLogisticoCommission = (
 };
 
 /**
- * Consolida empleados multitarea: suma presupuestos globales y asigna a tienda principal
- * Solo aplica a empleados con presupuestos en múltiples tiendas que tienen presupuesto diario
+ * Calcula las comisiones para logísticos
+ * Lógica especial: comisión basada en el rendimiento general de la tienda,
+ * dividida entre TODOS los empleados que trabajaron en la tienda.
+ * Muestra ventas individuales registradas en venta_diaria_empleado (o 0 si no tienen)
+ * y presupuesto individual asignado (o 0 si no tienen) en la vista, pero calcula comisión colectiva.
  */
-const consolidateMultiStoreEmployees = (
-  presupuestosEmpleados: any[],
-  tiendasConPresupuesto: Set<string>,
-  empleadosMultitienda: Map<string, Set<string>>
-): Map<
-  string,
-  {
-    tiendaAsignada: string;
-    presupuestoTotal: number;
-    tiendasTrabajadas: string[];
-  }
-> => {
-  const employeeConsolidation = new Map<
-    string,
-    {
-      presupuestosPorTienda: Map<string, number>;
-      total: number;
-      tiendas: Set<string>;
-    }
-  >();
+export const calculateLogisticoCommission = (
+  empleado: StaffMember,
+  ventasTiendaTotal: number,
+  presupuestoTiendaTotal: number,
+  cantidadEmpleadosRol: number,
+  ventasIndividualesEmpleado: number = 0,
+  presupuestoIndividualEmpleado: number = 0
+): EmployeeCommission => {
+  console.log(
+    `🔄 [CALC] Calculando comisión para logístico: ${empleado.nombre}`
+  );
+  console.log(
+    `📊 [CALC] Datos: ventasTienda=${ventasTiendaTotal}, presupuestoTienda=${presupuestoTiendaTotal}, totalEmpleadosTienda=${cantidadEmpleadosRol}`
+  );
+  console.log(
+    `👤 [CALC] Ventas individuales logístico: ${ventasIndividualesEmpleado} (registradas para logísticos), presupuesto individual: ${presupuestoIndividualEmpleado} (asignado para logísticos)`
+  );
 
-  // Agrupar presupuestos por empleado
-  presupuestosEmpleados.forEach((pe) => {
-    const empleadoId = pe.asesor.toString();
-    if (!employeeConsolidation.has(empleadoId)) {
-      employeeConsolidation.set(empleadoId, {
-        presupuestosPorTienda: new Map(),
-        total: 0,
-        tiendas: new Set(),
-      });
-    }
-    const data = employeeConsolidation.get(empleadoId)!;
-    const presupuestoNum = parseFloat(pe.presupuesto) || 0;
-    data.presupuestosPorTienda.set(
-      pe.tienda,
-      (data.presupuestosPorTienda.get(pe.tienda) || 0) + presupuestoNum
-    );
-    data.total += presupuestoNum;
-    data.tiendas.add(pe.tienda);
-  });
+  // Calcular cumplimiento de la tienda
+  const cumplimientoTienda = calculateCompliance(
+    ventasTiendaTotal,
+    presupuestoTiendaTotal
+  );
+  console.log(`📈 [CALC] Cumplimiento tienda: ${cumplimientoTienda}%`);
 
-  // Asignar a tienda con mayor presupuesto, solo si tiene múltiples tiendas
-  const consolidationResult = new Map<
-    string,
-    {
-      tiendaAsignada: string;
-      presupuestoTotal: number;
-      tiendasTrabajadas: string[];
-    }
-  >();
-  employeeConsolidation.forEach((data, empleadoId) => {
-    const tiendasTrabajadas = empleadosMultitienda.get(empleadoId);
-    if (!tiendasTrabajadas || tiendasTrabajadas.size <= 1) return; // Solo consolidar si trabajó en múltiples tiendas
+  // Obtener porcentaje de comisión basado en cumplimiento de la tienda
+  const comision_pct = getCommissionPercentage(cumplimientoTienda);
+  console.log(`💰 [CALC] Porcentaje comisión: ${comision_pct * 100}%`);
 
-    let maxPresupuesto = 0;
-    let tiendaAsignada = "";
-    data.presupuestosPorTienda.forEach((presupuesto, tienda) => {
-      if (tiendasConPresupuesto.has(tienda) && presupuesto > maxPresupuesto) {
-        maxPresupuesto = presupuesto;
-        tiendaAsignada = tienda;
-      }
-    });
-    // Si no hay tienda con presupuesto diario, asignar a la primera tienda con presupuesto
-    if (!tiendaAsignada) {
-      for (const tienda of tiendasTrabajadas) {
-        if (tiendasConPresupuesto.has(tienda)) {
-          tiendaAsignada = tienda;
-          break;
-        }
-      }
-      // Si ninguna tiene presupuesto diario, asignar a la primera tienda trabajada
-      if (!tiendaAsignada) {
-        tiendaAsignada = Array.from(tiendasTrabajadas)[0];
-      }
-    }
-    consolidationResult.set(empleadoId, {
-      tiendaAsignada,
-      presupuestoTotal: data.total,
-      tiendasTrabajadas: Array.from(tiendasTrabajadas),
-    });
-  });
+  // Calcular venta base sin IVA de la tienda
+  const ventaTiendaSinIVA = calculateBaseSale(ventasTiendaTotal);
+  console.log(`🛒 [CALC] Venta tienda sin IVA: ${ventaTiendaSinIVA}`);
 
-  return consolidationResult;
+  // Dividir la venta sin IVA entre TODOS los empleados de la tienda
+  const ventaBasePorEmpleado =
+    cantidadEmpleadosRol > 0 ? ventaTiendaSinIVA / cantidadEmpleadosRol : 0;
+  console.log(
+    `👥 [CALC] Venta base por empleado (todos los empleados de tienda): ${ventaBasePorEmpleado}`
+  );
+
+  // Calcular comisión: (venta_sin_iva / cantidad_empleados) * porcentaje_comision
+  const comision_monto = calculateCommissionAmount(
+    ventaBasePorEmpleado,
+    comision_pct
+  );
+  console.log(`💵 [CALC] Comisión calculada: ${comision_monto}`);
+  console.log(
+    `📋 [CALC] Vista mostrará: ventas=${ventasIndividualesEmpleado} (registradas para logísticos), presupuesto=${presupuestoIndividualEmpleado} (asignado para logísticos), cumplimiento=${cumplimientoTienda}%`
+  );
+
+  return {
+    id: empleado.id,
+    nombre: empleado.nombre,
+    rol: empleado.rol,
+    tienda: empleado.tienda,
+    fecha: empleado.fecha,
+    presupuesto: presupuestoIndividualEmpleado, // Muestran presupuesto individual (o 0)
+    ventas: ventasIndividualesEmpleado, // Muestran ventas individuales (o 0)
+    cumplimiento_pct: cumplimientoTienda, // Muestran cumplimiento de la tienda para cálculo
+    comision_pct,
+    comision_monto,
+  };
 };
 
 export const calculateMesResumenAgrupado = (
@@ -529,9 +470,6 @@ export const calculateMesResumenAgrupado = (
 
   // Filtrar presupuestos del mes
   const mesBudgets = filterBudgetsByMonth(budgets, mes);
-
-  // Tiendas con presupuesto diario
-  const tiendasConPresupuesto = new Set(mesBudgets.map((b) => b.tienda));
 
   // Identificar empleados multitarea basados en staff
   const empleadosMultitienda = new Map<string, Set<string>>();
@@ -769,12 +707,25 @@ export const calculateMesResumenAgrupado = (
 
       let empleadoComision: EmployeeCommission;
 
-      if (empleado.rol === "cajero" || empleado.rol === "logistico") {
-        // Cajeros y logísticos: comisión basada en rendimiento de la tienda
+      if (empleado.rol === "cajero") {
+        // Cajeros: comisión basada en rendimiento de la tienda
         // Contar TODOS los empleados que trabajaron en la tienda durante el mes
         const totalEmpleadosTienda = empleadosUnicos.size;
 
-        empleadoComision = calculateCajeroLogisticoCommission(
+        empleadoComision = calculateCajeroCommission(
+          empleado,
+          tiendaData.ventasTotal,
+          tiendaData.presupuestoTotal,
+          totalEmpleadosTienda,
+          empleadoData.ventasMensual, // Ventas individuales registradas (o 0 si no tienen)
+          empleadoData.presupuestoMensual // Presupuesto individual del empleado
+        );
+      } else if (empleado.rol === "logistico") {
+        // Logísticos: comisión basada en rendimiento de la tienda
+        // Contar TODOS los empleados que trabajaron en la tienda durante el mes
+        const totalEmpleadosTienda = empleadosUnicos.size;
+
+        empleadoComision = calculateLogisticoCommission(
           empleado,
           tiendaData.ventasTotal,
           tiendaData.presupuestoTotal,
@@ -872,6 +823,9 @@ export const calculateMesResumenAgrupado = (
     comisiones_por_rol[role as Role] = round(comisiones_por_rol[role as Role]);
   });
 
+  // Ordenar tiendas por ID
+  tiendaResumenes.sort((a, b) => a.tienda_id - b.tienda_id);
+
   return {
     mes,
     tiendas: tiendaResumenes,
@@ -919,13 +873,13 @@ export const calculateTiendaResumen = (
 
   // Calcular comisiones por empleado
   const empleados: EmployeeCommission[] = tiendaStaff.map((empleado) => {
-    if (empleado.rol === "cajero" || empleado.rol === "logistico") {
-      // Cajeros y logísticos: comisión basada en rendimiento de la tienda
+    if (empleado.rol === "cajero") {
+      // Cajeros: comisión basada en rendimiento de la tienda
       // Contar TODOS los empleados que trabajaron en la tienda ese día
       const totalEmpleadosDia = tiendaStaff.length;
 
       // Obtener ventas individuales del empleado (o 0 si no tiene)
-      // Cajeros y logísticos muestran sus ventas individuales registradas (o 0 si no tienen)
+      // Cajeros muestran sus ventas individuales registradas (o 0 si no tienen)
       const ventasIndividuales = getEmployeeVentas(
         ventasData,
         tienda,
@@ -940,7 +894,36 @@ export const calculateTiendaResumen = (
       );
       const presupuestoIndividual = presupuestoDiario?.presupuesto || 0;
 
-      return calculateCajeroLogisticoCommission(
+      return calculateCajeroCommission(
+        empleado,
+        tiendaVentas,
+        budget.presupuesto_total,
+        totalEmpleadosDia,
+        ventasIndividuales,
+        presupuestoIndividual
+      );
+    } else if (empleado.rol === "logistico") {
+      // Logísticos: comisión basada en rendimiento de la tienda
+      // Contar TODOS los empleados que trabajaron en la tienda ese día
+      const totalEmpleadosDia = tiendaStaff.length;
+
+      // Obtener ventas individuales del empleado (o 0 si no tiene)
+      // Logísticos muestran sus ventas individuales registradas (o 0 si no tienen)
+      const ventasIndividuales = getEmployeeVentas(
+        ventasData,
+        tienda,
+        fecha,
+        empleado.id
+      );
+
+      // Obtener presupuesto individual del empleado (o 0 si no tiene)
+      const presupuestoDiario = presupuestosEmpleados?.find(
+        (pe) =>
+          pe.asesor.toString() === empleado.id.toString() && pe.fecha === fecha
+      );
+      const presupuestoIndividual = presupuestoDiario?.presupuesto || 0;
+
+      return calculateLogisticoCommission(
         empleado,
         tiendaVentas,
         budget.presupuesto_total,
@@ -1006,252 +989,6 @@ export const calculateTiendaResumen = (
     fecha,
     presupuesto_tienda: round(budget.presupuesto_total),
     ventas_tienda: round(tiendaVentas),
-    cumplimiento_tienda_pct: cumplimiento_tienda,
-    empleados,
-    total_comisiones,
-  };
-};
-
-/**
- * Calcula el resumen mensual de comisiones
- */
-export const calculateMesResumen = (
-  mes: string,
-  budgets: BudgetRecord[],
-  staff: StaffMember[],
-  ventasData: VentasData[],
-  porcentaje_gerente: number,
-  presupuestosEmpleados?: any[]
-): MesResumen => {
-  // Handle case where ventasData might not be an array during state updates
-  if (!Array.isArray(ventasData)) {
-    console.warn(
-      "ventasData is not an array in calculateMesResumen, using empty array"
-    );
-    ventasData = [];
-  }
-
-  const mesBudgets = filterBudgetsByMonth(budgets, mes);
-  const tiendas = new Set<string>();
-  mesBudgets.forEach((b) => tiendas.add(b.tienda));
-
-  const tiendaResumenes: TiendaResumen[] = [];
-  tiendas.forEach((tienda) => {
-    // Cada tienda solo tiene una fecha por mes
-    const tiendaBudget = mesBudgets.find((b) => b.tienda === tienda);
-    if (tiendaBudget) {
-      const resumen = calculateTiendaResumen(
-        tienda,
-        tiendaBudget.fecha,
-        budgets,
-        staff,
-        ventasData,
-        porcentaje_gerente,
-        presupuestosEmpleados
-      );
-      tiendaResumenes.push(resumen);
-    }
-  });
-
-  const total_comisiones = round(
-    tiendaResumenes.reduce((sum, t) => sum + t.total_comisiones, 0)
-  );
-
-  // Calcular comisiones por rol
-  const comisiones_por_rol: Record<Role, number> = {
-    gerente: 0,
-    asesor: 0,
-    cajero: 0,
-    logistico: 0,
-  };
-
-  tiendaResumenes.forEach((tienda) => {
-    tienda.empleados.forEach((empleado) => {
-      comisiones_por_rol[empleado.rol] += empleado.comision_monto;
-    });
-  });
-
-  Object.keys(comisiones_por_rol).forEach((role) => {
-    comisiones_por_rol[role as Role] = round(comisiones_por_rol[role as Role]);
-  });
-
-  return {
-    mes,
-    tiendas: tiendaResumenes,
-    total_comisiones,
-    comisiones_por_rol,
-  };
-};
-
-/**
- * Memoized version of calculateMesResumen to prevent unnecessary recalculations
- */
-export const calculateMesResumenMemoized = (
-  mes: string,
-  budgets: BudgetRecord[],
-  staff: StaffMember[],
-  ventasData: VentasData[],
-  porcentaje_gerente: number,
-  presupuestosEmpleados?: any[],
-  deps?: [string, BudgetRecord[], StaffMember[], VentasData[], number, any[]]
-): MesResumen => {
-  // Create a simple cache key based on dependencies
-  const cacheKey = JSON.stringify({
-    mes,
-    budgets: budgets.map(
-      (b) => `${b.tienda}-${b.fecha}-${b.presupuesto_total}`
-    ),
-    staff: staff.map(
-      (s) => `${s.id}-${s.nombre}-${s.tienda}-${s.fecha}-${s.rol}`
-    ),
-    ventas: Array.isArray(ventasData)
-      ? ventasData.map((v) => `${v.tienda}-${v.fecha}-${v.ventas_tienda}`)
-      : [],
-    porcentaje_gerente,
-  });
-
-  // Use a simple cache for memoization
-  if (!calculateMesResumenMemoized.cache) {
-    calculateMesResumenMemoized.cache = new Map();
-  }
-
-  // Handle case where ventasData might not be an array during state updates
-  if (!Array.isArray(ventasData)) {
-    console.warn("ventasData is not an array, skipping memoization");
-    return calculateMesResumen(
-      mes,
-      budgets,
-      staff,
-      ventasData,
-      porcentaje_gerente,
-      presupuestosEmpleados
-    );
-  }
-
-  if (calculateMesResumenMemoized.cache.has(cacheKey)) {
-    return calculateMesResumenMemoized.cache.get(cacheKey);
-  }
-
-  const result = calculateMesResumen(
-    mes,
-    budgets,
-    staff,
-    ventasData,
-    porcentaje_gerente,
-    presupuestosEmpleados
-  );
-  calculateMesResumenMemoized.cache.set(cacheKey, result);
-  return result;
-};
-
-// Initialize cache for the memoized function
-calculateMesResumenMemoized.cache = new Map();
-
-/**
- * Calcula el resumen mensual agrupado para una tienda
- */
-export const calculateTiendaResumenMensual = (
-  tienda: string,
-  fechas: string[],
-  presupuesto_mensual: number,
-  ventas_mensuales: number,
-  tiendaStaff: StaffMember[],
-  ventasData: VentasData[],
-  porcentaje_gerente: number
-): TiendaResumen => {
-  // Calcular presupuesto mensual para gerente
-  const presupuesto_gerente_mensual = calculateManagerBudget(
-    presupuesto_mensual,
-    porcentaje_gerente
-  );
-
-  // Obtener empleados únicos (sin duplicados por fecha)
-  const empleadosUnicos = new Map<string, StaffMember>();
-  tiendaStaff.forEach((staff) => {
-    if (!empleadosUnicos.has(staff.id)) {
-      empleadosUnicos.set(staff.id, staff);
-    }
-  });
-
-  // Calcular ventas mensuales por empleado
-  const empleados: EmployeeCommission[] = Array.from(
-    empleadosUnicos.values()
-  ).map((empleado) => {
-    if (empleado.rol === "cajero" || empleado.rol === "logistico") {
-      // Cajeros y logísticos: comisión basada en rendimiento de la tienda
-      // Contar TODOS los empleados únicos que trabajaron en la tienda durante el mes
-      const totalEmpleadosUnicos = empleadosUnicos.size;
-
-      // Cajeros y logísticos muestran sus ventas individuales registradas (o 0 si no tienen)
-      // Buscar ventas individuales registradas en venta_diaria_empleado
-      let ventasIndividualesMensuales = 0;
-      fechas.forEach((fecha) => {
-        const ventasDia = getEmployeeVentas(
-          ventasData,
-          tienda,
-          fecha,
-          empleado.id
-        );
-        ventasIndividualesMensuales += ventasDia;
-      });
-      ventasIndividualesMensuales = round(ventasIndividualesMensuales);
-
-      return calculateCajeroLogisticoCommission(
-        empleado,
-        ventas_mensuales,
-        presupuesto_mensual,
-        totalEmpleadosUnicos,
-        ventasIndividualesMensuales,
-        0 // Presupuesto individual = 0 para mensual
-      );
-    } else {
-      // Gerentes y asesores: lógica tradicional
-      let presupuesto = 0;
-      let ventas = 0;
-
-      if (empleado.rol === "gerente") {
-        presupuesto = presupuesto_gerente_mensual;
-        ventas = ventas_mensuales;
-      } else if (empleado.rol === "asesor") {
-        // Calcular presupuesto mensual para asesores
-        const cantidad_asesores = Array.from(empleadosUnicos.values()).filter(
-          (e) => e.rol === "asesor"
-        ).length;
-        presupuesto = calculateAdvisorBudget(
-          presupuesto_mensual,
-          porcentaje_gerente,
-          cantidad_asesores
-        );
-
-        // Sumar ventas mensuales del asesor
-        ventas = round(
-          fechas.reduce(
-            (sum, fecha) =>
-              sum + getEmployeeVentas(ventasData, tienda, fecha, empleado.id),
-            0
-          )
-        );
-      }
-
-      return calculateEmployeeCommission(empleado, presupuesto, ventas);
-    }
-  });
-
-  const cumplimiento_tienda = calculateCompliance(
-    ventas_mensuales,
-    presupuesto_mensual
-  );
-  const total_comisiones = round(
-    empleados.reduce((sum, e) => sum + e.comision_monto, 0)
-  );
-
-  return {
-    tienda,
-    tienda_id: 0, // TODO: Add tienda_id parameter if needed
-    empresa: "", // TODO: Add empresa parameter if needed
-    fecha: fechas[0], // Usar la primera fecha como referencia
-    presupuesto_tienda: presupuesto_mensual,
-    ventas_tienda: ventas_mensuales,
     cumplimiento_tienda_pct: cumplimiento_tienda,
     empleados,
     total_comisiones,

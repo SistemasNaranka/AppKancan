@@ -3,7 +3,7 @@ import { useCommission } from "../contexts/CommissionContext";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { CSVUpload } from "../components/CSVUpload";
 import { ConfigurationPanel } from "../components/ConfigurationPanel";
-import { CompactFilters } from "../components/CompactFilters";
+import { MobileAccordionFilters } from "../components/MobileAccordionFilters";
 import { DataTable } from "../components/DataTable";
 import { SummaryCards } from "../components/SummaryCards";
 import { Charts } from "../components/Charts";
@@ -1101,8 +1101,8 @@ export default function Home() {
                 filterRol !== "all" ||
                 filterFechaInicio ||
                 filterFechaFin) && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Filtrado por:{" "}
+                <span className="text-blue-600">
+                  • Filtrado por:{" "}
                   {filterTienda.length > 0
                     ? `Tiendas: ${filterTienda.join(", ")}`
                     : ""}
@@ -1119,38 +1119,46 @@ export default function Home() {
                         filterFechaFin || "..."
                       }`
                     : ""}
-                </p>
+                </span>
               )}
-            </div>
-            <div className="flex gap-3">
-              {/* Mostrar botones de administración para todos los usuarios */}
-              <Button
-                onClick={() => setShowConfigModal(true)}
-                variant="outlined"
-                startIcon={<Settings />}
-                sx={{ mr: 1 }}
-              >
-                Configuración
-              </Button>
-              {(mesResumenFiltrado || mesResumen) && (
-                <ExportButtons
-                  mesResumen={mesResumenFiltrado || mesResumen}
-                  mes={selectedMonth}
-                />
-              )}
-
-              <Button
-                onClick={() => setShowCodesModal(true)}
-                variant="outlined"
-                startIcon={<Users />}
-              >
-                Asignar Empleados
-              </Button>
             </div>
           </div>
 
-          {/* Compact Filters - mostrar siempre */}
-          <CompactFilters
+          {/* Botones de acción */}
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            <Button
+              onClick={() => setShowConfigModal(true)}
+              variant="outlined"
+              startIcon={<Settings />}
+              size="small"
+              sx={{
+                minWidth: "auto",
+                px: { xs: 1.5, sm: 2 },
+              }}
+            >
+              <span className="hidden xs:inline">Configuración</span>
+              <span className="xs:hidden">Conf</span>
+            </Button>
+            {(mesResumenFiltrado || mesResumen) && (
+              <ExportButtons
+                mesResumen={mesResumenFiltrado || mesResumen}
+                mes={selectedMonth}
+              />
+            )}
+            <Button
+              onClick={() => setShowCodesModal(true)}
+              variant="outlined"
+              startIcon={<Users />}
+              size="small"
+              sx={{ minWidth: "auto", px: { xs: 1.5, sm: 2 } }}
+            >
+              <span className="hidden xs:inline">Asignar</span>
+              <span className="xs:hidden">Asig</span>
+            </Button>
+          </div>
+
+          {/* Mobile Accordion Filters */}
+          <MobileAccordionFilters
             selectedMonth={selectedMonth}
             availableMonths={availableMonths}
             onMonthChange={setSelectedMonth}
@@ -1162,14 +1170,13 @@ export default function Home() {
             onFilterFechaInicioChange={setFilterFechaInicio}
             filterFechaFin={filterFechaFin}
             onFilterFechaFinChange={setFilterFechaFin}
-            uniqueTiendas={uniqueTiendas}
             onClearFilters={handleClearFilters}
           />
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Debug Info - COMENTADO PARA PRODUCCIÓN */}
           {/*
           <section className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
@@ -1220,57 +1227,51 @@ export default function Home() {
             </section>
           )}
 
-          {/* Sección de Datos */}
-          {(state.budgets.length > 0 || state.staff.length > 0 || true) && (
-            <>
-              {/* Resumen Ejecutivo - mostrar si hay mesResumen */}
-              {(mesResumenFiltrado || mesResumen) && (
-                <section className="space-y-4">
-                  <SummaryCards mesResumen={mesResumenFiltrado || mesResumen} />
-                </section>
-              )}
+          {/* Sección de Datos - siempre visible */}
+          <section className="space-y-8">
+            {/* Resumen Ejecutivo - mostrar siempre para mobile y desktop */}
+            <section className="space-y-4">
+              <SummaryCards mesResumen={mesResumenFiltrado || mesResumen} />
+            </section>
 
-              {/* Tabla de Datos - mostrar siempre para debug */}
-              <section className="space-y-4 pt-8">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">
-                    Detalle de Comisiones
-                  </h2>
-                  <div className="text-sm text-gray-500">
-                    Empleados: {state.staff.length} | Tiendas:{" "}
-                    {uniqueTiendas.length}
-                  </div>
+            {/* Tabla de Datos - mostrar siempre para mobile y desktop */}
+            <section className="space-y-4 pt-8">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Detalle de Comisiones</h2>
+                <div className="text-sm text-gray-500">
+                  Empleados: {state.staff.length} | Tiendas:{" "}
+                  {uniqueTiendas.length}
                 </div>
-                <DataTable
-                  tiendas={(mesResumenFiltrado || mesResumen)?.tiendas || []}
-                  cargos={cargos}
-                  selectedMonth={selectedMonth}
-                  onVentasUpdate={(
-                    tienda: string,
-                    fecha,
-                    ventas_tienda,
-                    ventas_por_asesor
-                  ) => {
-                    setVentas([
-                      ...state.ventas.filter(
-                        (v) => !(v.tienda === tienda && v.fecha === fecha)
-                      ),
-                      { tienda, fecha, ventas_tienda, ventas_por_asesor },
-                    ]);
-                  }}
-                  readOnly={true}
-                />
-              </section>
+              </div>
+              <DataTable
+                tiendas={(mesResumenFiltrado || mesResumen)?.tiendas || []}
+                cargos={cargos}
+                selectedMonth={selectedMonth}
+                onVentasUpdate={(
+                  tienda: string,
+                  fecha,
+                  ventas_tienda,
+                  ventas_por_asesor
+                ) => {
+                  setVentas([
+                    ...state.ventas.filter(
+                      (v) => !(v.tienda === tienda && v.fecha === fecha)
+                    ),
+                    { tienda, fecha, ventas_tienda, ventas_por_asesor },
+                  ]);
+                }}
+                readOnly={true}
+              />
+            </section>
 
-              {/* Gráficos - mostrar si hay mesResumen */}
-              {(mesResumenFiltrado || mesResumen) && (
-                <section className="space-y-4 pt-8">
-                  <h2 className="text-xl font-semibold">Análisis Visual</h2>
-                  <Charts mesResumen={mesResumenFiltrado || mesResumen} />
-                </section>
-              )}
-            </>
-          )}
+            {/* Gráficos - mostrar si hay mesResumen */}
+            {(mesResumenFiltrado || mesResumen) && (
+              <section className="space-y-4 pt-8">
+                <h2 className="text-xl font-semibold">Análisis Visual</h2>
+                <Charts mesResumen={mesResumenFiltrado || mesResumen} />
+              </section>
+            )}
+          </section>
         </div>
       </main>
 
