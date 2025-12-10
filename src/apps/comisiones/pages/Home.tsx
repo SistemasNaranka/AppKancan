@@ -23,11 +23,9 @@ import {
 } from "@mui/material";
 import {
   getAvailableMonths,
-  getCurrentMonth,
   calculateMesResumenAgrupado,
-  calculateMesResumenMemoized,
 } from "../lib/calculations";
-import { VentasData } from "../types";
+import { VentasData, Role } from "../types";
 import {
   obtenerTiendas,
   obtenerAsesores,
@@ -51,33 +49,23 @@ export default function Home() {
   const [showNoDataModal, setShowNoDataModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
-  const [refreshData, setRefreshData] = useState(0); // Para forzar recarga de datos
 
   // Filter states
   const [filterTienda, setFilterTienda] = useState<string[]>([]);
-  const [filterRol, setFilterRol] = useState("all");
+  const [filterRol, setFilterRol] = useState<Role | "all">("all");
   const [filterFechaInicio, setFilterFechaInicio] = useState("");
   const [filterFechaFin, setFilterFechaFin] = useState("");
+  const [expandedTiendas, setExpandedTiendas] = useState<Set<string>>(
+    new Set()
+  );
 
-  // Estado para presupuestos diarios
-  const [hasDailyBudgets, setHasDailyBudgets] = useState(false);
-  const [checkingBudgets, setCheckingBudgets] = useState(false);
-
-  // Estado para presupuestos empleados
+  // Estados para datos adicionales
   const [presupuestosEmpleados, setPresupuestosEmpleados] = useState<any[]>([]);
-
-  // Estado para cargos (para mapear IDs a nombres)
   const [cargos, setCargos] = useState<any[]>([]);
-
-  // Estado para controlar carga de datos y evitar recargas innecesarias
-  const loadedMonthsRef = useRef<Set<string>>(new Set());
-
-  // Control para evitar que useMemo se ejecute múltiples veces
-  const mesResumenRef = useRef<any>(null);
-  const lastMesResumenDepsRef = useRef<string>("");
-
-  // Estado para controlar si ya se intentó cargar datos
   const [dataLoadAttempted, setDataLoadAttempted] = useState(false);
+
+  // Control para evitar recargas innecesarias
+  const loadedMonthsRef = useRef<Set<string>>(new Set());
 
   // Mostrar modal cuando no hay datos después de cargar
   useEffect(() => {
@@ -93,74 +81,19 @@ export default function Home() {
   // Obtener meses disponibles
   const availableMonths = useMemo(() => {
     const months = getAvailableMonths(state.budgets);
-    return months.length > 0 ? months : ["Nov 2025"]; // Default to November if no data
-  }, [state.budgets]); // ✅ Remover refreshData para evitar loops
-
-  // Asegurar que el mes seleccionado sea válido - SOLO si hay datos cargados
-  // COMENTADO: Esto puede causar loops infinitos con los useEffect
-  /*
-  useEffect(() => {
-    if (
-      state.budgets.length > 0 && // ✅ Solo cambiar si ya hay datos cargados
-      availableMonths.length > 0 &&
-      !availableMonths.includes(selectedMonth)
-    ) {
-      console.log(
-        "🔄 [HOME] Cambiando mes seleccionado a:",
-        availableMonths[0]
-      );
-      setSelectedMonth(availableMonths[0]);
-    }
-  }, [availableMonths, state.budgets.length]); // ✅ Agregar state.budgets.length como dependencia
-  */
+    return months.length > 0 ? months : ["Nov 2025"];
+  }, [state.budgets]);
 
   // Obtener configuración del mes
   const monthConfig = state.monthConfigs.find((c) => c.mes === selectedMonth);
   const porcentajeGerente = monthConfig?.porcentaje_gerente || 10;
 
   // Calcular resumen del mes
-  // Calcular resumen del mes usando agrupación mensual
   const mesResumen = useMemo(() => {
-    // Crear una clave única para las dependencias actuales
-    const currentDepsKey = JSON.stringify({
-      selectedMonth,
-      budgetsLength: state.budgets.length,
-      staffLength: state.staff.length,
-      ventasLength: state.ventas.length,
-      presupuestosEmpleadosLength: presupuestosEmpleados.length,
-      porcentajeGerente,
-    });
-
-    // Si las dependencias no cambiaron, devolver el resultado anterior
-    if (
-      lastMesResumenDepsRef.current === currentDepsKey &&
-      mesResumenRef.current !== null
-    ) {
-      console.log(
-        "⚡ [HOME] useMemo mesResumen: dependencias no cambiaron, usando cache"
-      );
-      return mesResumenRef.current;
-    }
-
-    console.log("🔄 [HOME] useMemo mesResumen ejecutándose");
-    console.log("🔄 [HOME] Datos disponibles:", {
-      selectedMonth,
-      budgets: state.budgets.length,
-      staff: state.staff.length,
-      ventas: state.ventas.length,
-      presupuestosEmpleados: presupuestosEmpleados.length,
-      porcentajeGerente,
-    });
-
     if (state.budgets.length === 0) {
-      console.warn("⚠️ [HOME] No hay budgets, no se puede calcular mesResumen");
-      const result = null;
-      mesResumenRef.current = result;
-      lastMesResumenDepsRef.current = currentDepsKey;
-      return result;
+      return null;
     }
 
-    // ✅ USAR LA NUEVA FUNCIÓN DE AGRUPACIÓN MENSUAL
     const result = calculateMesResumenAgrupado(
       selectedMonth,
       state.budgets,
@@ -170,17 +103,6 @@ export default function Home() {
       presupuestosEmpleados
     );
 
-    console.log("✅ [HOME] mesResumen calculado:", {
-      mes: result.mes,
-      tiendas: result.tiendas.length,
-      total_comisiones: result.total_comisiones,
-      comisiones_por_rol: result.comisiones_por_rol,
-    });
-
-    // Guardar en cache
-    mesResumenRef.current = result;
-    lastMesResumenDepsRef.current = currentDepsKey;
-
     return result;
   }, [
     selectedMonth,
@@ -189,7 +111,6 @@ export default function Home() {
     state.ventas,
     porcentajeGerente,
     presupuestosEmpleados,
-    // NO incluir refreshData aquí
   ]);
 
   // Aplicar filtros al resumen mensual
@@ -206,7 +127,7 @@ export default function Home() {
     }
 
     // Filtrar empleados por rol dentro de cada tienda
-    if (filterRol && filterRol !== "all") {
+    if (filterRol !== "all") {
       tiendasFiltradas = tiendasFiltradas
         .map((tienda: any) => ({
           ...tienda,
@@ -214,7 +135,7 @@ export default function Home() {
             (emp: any) => emp.rol === filterRol
           ),
         }))
-        .filter((tienda: any) => tienda.empleados.length > 0); // Solo tiendas con empleados filtrados
+        .filter((tienda: any) => tienda.empleados.length > 0);
     }
 
     // Filtrar por rango de fechas
@@ -223,17 +144,14 @@ export default function Home() {
         .map((tienda: any) => ({
           ...tienda,
           empleados: tienda.empleados.filter((emp: any) => {
-            // Si no hay fecha inicio, usar desde el inicio del mes
             const fechaInicioFiltro = filterFechaInicio || "2025-01-01";
-            // Si no hay fecha fin, usar hasta el fin del mes
             const fechaFinFiltro = filterFechaFin || "2025-12-31";
-
             return (
               emp.fecha >= fechaInicioFiltro && emp.fecha <= fechaFinFiltro
             );
           }),
         }))
-        .filter((tienda: any) => tienda.empleados.length > 0); // Solo tiendas con empleados en el rango
+        .filter((tienda: any) => tienda.empleados.length > 0);
     }
 
     // Recalcular totales
@@ -247,7 +165,7 @@ export default function Home() {
       gerente: 0,
       asesor: 0,
       cajero: 0,
-      logistico: 0, // Agregar logistico
+      logistico: 0,
     };
 
     tiendasFiltradas.forEach((tienda: any) => {
@@ -271,7 +189,7 @@ export default function Home() {
     };
   }, [mesResumen, filterTienda, filterRol, filterFechaInicio, filterFechaFin]);
 
-  // Obtener tiendas únicas para filtros (basado en datos sin filtrar)
+  // Obtener tiendas únicas para filtros
   const uniqueTiendas = useMemo((): string[] => {
     if (!mesResumen) return [];
     const tiendas = mesResumen.tiendas.map((t: any): string => t.tienda);
@@ -292,6 +210,42 @@ export default function Home() {
     setFilterTienda(tiendaArray);
   };
 
+  // Handler wrapper para cambios en filtro de rol
+  const handleFilterRolChangeWrapper = (rol: string) => {
+    setFilterRol(rol as Role | "all");
+  };
+
+  // Handler para cambios en filtro de rol desde las cards
+  const handleFilterRolChange = (rol: Role | "all" | "") => {
+    setFilterRol(rol as Role | "all");
+
+    if (rol !== "all") {
+      setExpandedTiendas(
+        new Set(
+          (mesResumenFiltrado || mesResumen)?.tiendas.map(
+            (t: any) => t.tienda
+          ) || []
+        )
+      );
+    } else {
+      if (expandedTiendas.size > 0) {
+        setExpandedTiendas(new Set());
+      }
+    }
+  };
+
+  // Handler para toggle de todas las tiendas
+  const handleToggleAllStores = () => {
+    const allTiendas =
+      (mesResumenFiltrado || mesResumen)?.tiendas.map((t: any) => t.tienda) ||
+      [];
+    if (expandedTiendas.size === 0) {
+      setExpandedTiendas(new Set(allTiendas));
+    } else {
+      setExpandedTiendas(new Set());
+    }
+  };
+
   // Resetear filtros cuando cambia el mes
   useEffect(() => {
     setFilterTienda([]);
@@ -299,41 +253,6 @@ export default function Home() {
     setFilterFechaInicio("");
     setFilterFechaFin("");
   }, [selectedMonth]);
-
-  // Verificar presupuestos diarios al cargar la página
-  const checkDailyBudgets = async () => {
-    try {
-      setCheckingBudgets(true);
-      const fechaActual = new Date().toISOString().split("T")[0];
-      // Usar API para obtener presupuestos de empleados para la fecha actual
-      const presupuestos = await obtenerPresupuestosEmpleados(
-        undefined,
-        fechaActual
-      );
-      setHasDailyBudgets(presupuestos.length > 0);
-
-      // Si no hay presupuestos, mostrar el modal automáticamente
-      if (presupuestos.length === 0) {
-        setShowCodesModal(true);
-      }
-    } catch (error) {
-      // En caso de error, asumir que no hay presupuestos para mostrar el modal
-      setHasDailyBudgets(false);
-      setShowCodesModal(true);
-    } finally {
-      setCheckingBudgets(false);
-    }
-  };
-
-  // Mostrar modal de códigos automáticamente al iniciar - COMENTADO: Los datos ya están en BD
-  /*
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowCodesModal(true);
-    }, 500); // Pequeño delay para que cargue la página primero
-    return () => clearTimeout(timer);
-  }, []);
-  */
 
   // Validar asignación de personal
   const staffValidationErrors = useMemo(() => {
@@ -359,23 +278,9 @@ export default function Home() {
     return months[monthName] || "01";
   };
 
-  // ============================================================================
-  // REEMPLAZA TU FUNCIÓN handleLoadDemo CON ESTA VERSIÓN COMPLETA
-  // ============================================================================
-
-  const handleLoadDemo = async () => {
+  // Función para cargar datos
+  const loadDataForMonth = async () => {
     try {
-      console.log("🔄 [HOME] ============================================");
-      console.log(`🔄 [HOME] Cargando datos para: ${selectedMonth}`);
-      console.log("✅ [HOME] Usuario actual:", {
-        tienda_id: user?.tienda_id,
-        nombre: user?.nombre,
-      });
-      console.log(" [HOME] ============================================");
-
-      // ========================================================================
-      // PASO 1: Calcular rango de fechas del mes completo
-      // ========================================================================
       const [mesNombre, anio] = selectedMonth.split(" ");
       const mesMap: { [key: string]: string } = {
         Ene: "01",
@@ -402,21 +307,15 @@ export default function Home() {
       const fechaInicio = `${anio}-${mesNumero}-01`;
       const fechaFin = `${anio}-${mesNumero}-${ultimoDia}`;
 
-      console.log(`📅 [HOME] Rango de fechas: ${fechaInicio} a ${fechaFin}`);
-
-      // ========================================================================
-      // PASO 2: Cargar TODOS los datos del mes en paralelo
-      // ========================================================================
-      console.log("🔄 [HOME] Cargando datos desde BD...");
-
+      // Cargar todos los datos en paralelo
       const [
         tiendas,
         asesores,
         cargos,
-        presupuestosDiarios, // Presupuestos de tiendas del mes
-        porcentajesBD, // Configuración del mes
-        presupuestosEmpleados, // Presupuestos asignados a empleados del mes
-        ventasEmpleados, // Ventas de empleados del mes
+        presupuestosDiarios,
+        porcentajesBD,
+        presupuestosEmpleadosData,
+        ventasEmpleados,
       ] = await Promise.all([
         obtenerTiendas(),
         obtenerAsesores(),
@@ -427,53 +326,8 @@ export default function Home() {
         obtenerVentasEmpleados(undefined, fechaFin),
       ]);
 
-      console.log("✅ [HOME] Datos obtenidos de BD:", {
-        tiendas: tiendas.length,
-        asesores: asesores.length,
-        cargos: cargos.length,
-        presupuestosDiarios: presupuestosDiarios.length,
-        porcentajesBD: porcentajesBD.length,
-        presupuestosEmpleados: presupuestosEmpleados.length,
-        ventasEmpleados: ventasEmpleados.length,
-      });
-
-      // Debug: mostrar tiendas disponibles
-      console.log(
-        "🏪 [HOME] Tiendas disponibles:",
-        tiendas.map((t: any) => `${t.nombre} (ID: ${t.id})`)
-      );
-
-      // Debug: mostrar presupuestos por tienda
-      const presupuestosPorTienda = presupuestosDiarios.reduce(
-        (acc: any, p: any) => {
-          const tienda = tiendas.find((t: any) => t.id === p.tienda_id);
-          const nombreTienda = tienda?.nombre || `ID ${p.tienda_id}`;
-          if (!acc[nombreTienda]) acc[nombreTienda] = 0;
-          acc[nombreTienda]++;
-          return acc;
-        },
-        {}
-      );
-      console.log(
-        "📊 [HOME] Presupuestos diarios por tienda:",
-        presupuestosPorTienda
-      );
-
-      // Debug: mostrar ventas por tienda
-      const ventasPorTienda = ventasEmpleados.reduce((acc: any, v: any) => {
-        const tienda = tiendas.find((t: any) => t.id === v.tienda_id);
-        const nombreTienda = tienda?.nombre || `ID ${v.tienda_id}`;
-        if (!acc[nombreTienda]) acc[nombreTienda] = 0;
-        acc[nombreTienda]++;
-        return acc;
-      }, {});
-      console.log("💰 [HOME] Ventas por tienda:", ventasPorTienda);
-
-      // ========================================================================
-      // VALIDACIONES CRÍTICAS
-      // ========================================================================
+      // Validaciones críticas
       if (tiendas.length === 0) {
-        console.warn("⚠️ [HOME] Usuario no tiene tiendas asociadas");
         setModalTitle("Sin Tiendas Asociadas");
         setModalMessage(
           "No tienes tiendas asociadas en el sistema. Contacta al administrador para asignarte permisos de acceso a las tiendas correspondientes."
@@ -483,9 +337,7 @@ export default function Home() {
       }
 
       if (presupuestosDiarios.length === 0) {
-        console.warn(`⚠️ [HOME] No hay presupuestos para ${selectedMonth}`);
         setShowNoDataModal(true);
-        // Continuar con datos vacíos para mostrar la UI
         setBudgets([]);
         setStaff([]);
         setMonthConfigs([]);
@@ -495,24 +347,10 @@ export default function Home() {
         return;
       }
 
-      // ========================================================================
-      // PASO 3: Cargar TODOS los presupuestos sin restricciones
-      // ========================================================================
-      let presupuestosFiltrados = presupuestosDiarios;
-      console.log(
-        "✅ [HOME] Cargando TODOS los presupuestos sin restricciones"
-      );
-
-      // ========================================================================
-      // PASO 4: Convertir presupuestos diarios a BudgetRecord
-      // ========================================================================
-      console.log("🔄 [HOME] Convirtiendo presupuestos diarios...");
-      let budgets = presupuestosFiltrados.map((p: any) => {
+      // Convertir presupuestos diarios a BudgetRecord
+      const budgets = presupuestosDiarios.map((p: any) => {
         const tienda = tiendas.find((t: any) => t.id === p.tienda_id);
         const presupuesto = parseFloat(p.presupuesto) || 0;
-        console.log(
-          `📊 [HOME] Presupuesto diario: ${tienda?.nombre} - ${p.fecha} = ${presupuesto} (original: ${p.presupuesto})`
-        );
         return {
           tienda: tienda?.nombre || `Tienda ID ${p.tienda_id}`,
           tienda_id: p.tienda_id,
@@ -524,72 +362,44 @@ export default function Home() {
 
       // Agregar tiendas sin presupuestos diarios con presupuesto 0
       const tiendasConPresupuestos = new Set(
-        presupuestosFiltrados.map((p: any) => p.tienda_id)
+        presupuestosDiarios.map((p: any) => p.tienda_id)
       );
 
       tiendas.forEach((tienda: any) => {
         if (!tiendasConPresupuestos.has(tienda.id)) {
-          // Agregar entrada con presupuesto 0 para el último día del mes
           budgets.push({
             tienda: tienda.nombre,
             tienda_id: tienda.id,
             empresa: tienda.empresa || "Empresa Desconocida",
             fecha: fechaFin,
-            presupuesto_total: 0, // Sin presupuesto asignado
+            presupuesto_total: 0,
           });
         }
       });
 
-      console.log(
-        `✅ [HOME] ${budgets.length} presupuestos diarios procesados`
-      );
-      if (budgets.length > 0) {
-        console.log("📋 [HOME] Ejemplo:", budgets[0]);
-      }
-
-      // ========================================================================
-      // PASO 4: Crear STAFF basado en TODOS los empleados de la tienda
-      // Y asignar presupuestos cuando existan
-      // ========================================================================
-      console.log("🔄 [HOME] Creando staff...");
+      // Crear staff basado en presupuestos asignados
       const staff: any[] = [];
-
-      // Filtrar presupuestos de empleados que estén en el rango del mes
-      let presupuestosDelMes = presupuestosEmpleados.filter((pe: any) => {
+      let presupuestosDelMes = presupuestosEmpleadosData.filter((pe: any) => {
         return pe.fecha >= fechaInicio && pe.fecha <= fechaFin;
       });
-
-      console.log(
-        `📊 [HOME] Presupuestos de empleados en el mes: ${presupuestosDelMes.length}`
-      );
-
-      // Obtener empleados únicos que tienen presupuestos asignados
-      const empleadosConPresupuestos = new Set(
-        presupuestosDelMes.map((pe: any) => pe.asesor.toString())
-      );
 
       // Crear staff basado en presupuestos asignados
       presupuestosDelMes.forEach((pe: any) => {
         const asesor = asesores.find((a: any) => a.id === pe.asesor);
-        if (!asesor) {
-          console.warn(`⚠️ [HOME] Asesor no encontrado: ID ${pe.asesor}`);
-          return;
-        }
+        if (!asesor) return;
 
         const tienda = tiendas.find((t: any) => t.id === pe.tienda_id);
 
-        // Obtener nombre del cargo asignado ese día
-        let cargoNombre = "asesor"; // Default
+        // Obtener nombre del cargo
+        let cargoNombre = "asesor";
         if (typeof pe.cargo === "string") {
-          // Ya viene como string desde BD
           cargoNombre = pe.cargo.toLowerCase();
         } else if (typeof pe.cargo === "number") {
-          // Es un ID, buscar en cargos
           const cargo = cargos.find((c: any) => c.id === pe.cargo);
           cargoNombre = cargo ? cargo.nombre.toLowerCase() : "asesor";
         }
 
-        // Mapear a roles estándar del sistema
+        // Mapear a roles estándar
         const rol =
           cargoNombre === "gerente"
             ? "gerente"
@@ -605,28 +415,22 @@ export default function Home() {
           tienda: tienda?.nombre || `Tienda ID ${pe.tienda_id}`,
           fecha: pe.fecha,
           rol: rol,
-          cargo_id: pe.cargo, // Incluir ID del cargo para ordenamiento
+          cargo_id: pe.cargo,
         });
       });
 
       // Agregar empleados adicionales de todas las tiendas
-      console.log(
-        "✅ [HOME] Agregando empleados adicionales de todas las tiendas"
+      const empleadosConPresupuestos = new Set(
+        presupuestosDelMes.map((pe: any) => pe.asesor.toString())
       );
 
-      // Agregar empleados que NO tienen presupuestos asignados
       asesores.forEach((asesor: any) => {
         if (!empleadosConPresupuestos.has(asesor.id.toString())) {
           const tiendaAsesor = tiendas.find(
             (t: any) => t.id === asesor.tienda_id
           );
           if (tiendaAsesor) {
-            console.log(
-              `⚠️ [HOME] Empleado sin presupuesto asignado: ${asesor.nombre} (${asesor.id}) - Tienda: ${tiendaAsesor.nombre}`
-            );
-
-            // Intentar determinar el rol basado en el cargo del asesor
-            let rol = "asesor"; // Default
+            let rol = "asesor";
             if (asesor.cargo_id) {
               const cargo = cargos.find((c: any) => c.id === asesor.cargo_id);
               if (cargo) {
@@ -642,12 +446,11 @@ export default function Home() {
               }
             }
 
-            // Agregar empleado sin presupuesto (usará fecha por defecto)
             staff.push({
               id: asesor.id.toString(),
               nombre: asesor.nombre || `Empleado ${asesor.id}`,
               tienda: tiendaAsesor.nombre,
-              fecha: fechaFin, // Usar último día del mes como referencia
+              fecha: fechaFin,
               rol: rol,
               cargo_id:
                 typeof asesor.cargo_id === "object"
@@ -658,69 +461,7 @@ export default function Home() {
         }
       });
 
-      // Agregar empleados de tiendas que NO tienen presupuestos diarios
-      const tiendasConPresupuestosDiarios = new Set(
-        presupuestosDiarios.map((p: any) => p.tienda_id)
-      );
-
-      tiendas.forEach((tienda: any) => {
-        if (!tiendasConPresupuestosDiarios.has(tienda.id)) {
-          console.log(
-            `⚠️ [HOME] Tienda sin presupuestos diarios: ${tienda.nombre} - Agregando empleados`
-          );
-
-          // Agregar empleados de esta tienda
-          asesores.forEach((asesor: any) => {
-            if (asesor.tienda_id === tienda.id) {
-              // Verificar si ya está en staff
-              const yaEnStaff = staff.some(
-                (s: any) => s.id === asesor.id.toString()
-              );
-              if (!yaEnStaff) {
-                let rol = "asesor"; // Default
-                if (asesor.cargo_id) {
-                  const cargo = cargos.find(
-                    (c: any) => c.id === asesor.cargo_id
-                  );
-                  if (cargo) {
-                    const cargoNombre = cargo.nombre.toLowerCase();
-                    rol =
-                      cargoNombre === "gerente"
-                        ? "gerente"
-                        : cargoNombre === "asesor"
-                        ? "asesor"
-                        : cargoNombre === "cajero"
-                        ? "cajero"
-                        : "logistico";
-                  }
-                }
-
-                staff.push({
-                  id: asesor.id.toString(),
-                  nombre: asesor.nombre || `Empleado ${asesor.id}`,
-                  tienda: tienda.nombre,
-                  fecha: fechaFin,
-                  rol: rol,
-                });
-
-                console.log(
-                  `✅ [HOME] Agregado empleado de tienda sin presupuestos: ${asesor.nombre} - ${tienda.nombre}`
-                );
-              }
-            }
-          });
-        }
-      });
-
-      console.log(`✅ [HOME] ${staff.length} registros de staff creados`);
-      if (staff.length > 0) {
-        console.log("📋 [HOME] Ejemplo de staff:", staff[0]);
-      }
-
-      // ========================================================================
-      // PASO 5: Convertir configuraciones de porcentajes
-      // ========================================================================
-      console.log("🔄 [HOME] Convirtiendo configuraciones mensuales...");
+      // Convertir configuraciones de porcentajes
       const monthConfigs = porcentajesBD.map((p: any) => {
         const [year, month] = p.fecha.split("-");
         const monthNames = [
@@ -744,35 +485,16 @@ export default function Home() {
         };
       });
 
-      console.log(
-        `✅ [HOME] ${monthConfigs.length} configuraciones procesadas`
-      );
-
-      // ========================================================================
-      // PASO 6: Procesar VENTAS por empleado
-      // IMPORTANTE: Filtrar solo ventas del mes seleccionado
-      // ========================================================================
-      console.log("🔄 [HOME] Procesando ventas de empleados...");
-
-      // Filtrar ventas que estén en el rango del mes
+      // Procesar ventas por empleado
       let ventasDelMes = ventasEmpleados.filter((ve: any) => {
         return ve.fecha >= fechaInicio && ve.fecha <= fechaFin;
       });
-
-      console.log(
-        `📊 [HOME] Ventas de empleados en el mes: ${ventasDelMes.length}`
-      );
 
       const ventasMap = new Map<string, any>();
 
       ventasDelMes.forEach((ve: any) => {
         const tienda = tiendas.find((t: any) => t.id === ve.tienda_id);
-        if (!tienda) {
-          console.warn(
-            `⚠️ [HOME] Tienda no encontrada para venta: tienda_id ${ve.tienda_id}`
-          );
-          return;
-        }
+        if (!tienda) return;
 
         const key = `${tienda.nombre}-${ve.fecha}`;
 
@@ -791,46 +513,16 @@ export default function Home() {
       });
 
       const ventas = Array.from(ventasMap.values());
-      console.log(
-        `✅ [HOME] ${ventas.length} registros de ventas diarias procesados`
-      );
-      if (ventas.length > 0) {
-        console.log("📋 [HOME] Ejemplo de ventas:", ventas[0]);
-      }
 
-      // ========================================================================
-      // PASO 7: GUARDAR TODO EN EL CONTEXTO
-      // ========================================================================
-      console.log("💾 [HOME] Guardando datos en contexto...");
-
+      // Guardar todo en el contexto
       setBudgets(budgets);
       setStaff(staff);
       setMonthConfigs(monthConfigs);
       setVentas(ventas);
-      setPresupuestosEmpleados(presupuestosEmpleados); // Mantener todos los presupuestos, no solo del mes filtrado
+      setPresupuestosEmpleados(presupuestosEmpleadosData);
       setCargos(cargos);
-
-      console.log("✅ [HOME] ============================================");
-      console.log("✅ [HOME] DATOS CARGADOS EXITOSAMENTE");
-      console.log("✅ [HOME] ============================================");
-      console.log("📊 [HOME] Resumen final:", {
-        budgets: budgets.length,
-        staff: staff.length,
-        ventas: ventas.length,
-        monthConfigs: monthConfigs.length,
-        presupuestosEmpleados: presupuestosEmpleados.length,
-      });
     } catch (error: any) {
-      console.error("❌ [HOME] ============================================");
-      console.error("❌ [HOME] ERROR CRÍTICO AL CARGAR DATOS");
-      console.error("❌ [HOME] ============================================");
-      console.error("❌ [HOME] Error:", error);
-      console.error("❌ [HOME] Stack:", error.stack);
-
-      // Mostrar modal de no data en caso de error
       setShowNoDataModal(true);
-
-      // Limpiar estado
       setBudgets([]);
       setStaff([]);
       setMonthConfigs([]);
@@ -839,252 +531,38 @@ export default function Home() {
     }
   };
 
-  // ============================================================================
-  // CARGA DE DATOS - SOLO UNA VEZ POR MES (EVITA RECARGAS INNECESARIAS)
-  // ============================================================================
-
+  // Cargar datos solo una vez por mes
   useEffect(() => {
-    // ✅ Evitar recargas innecesarias: solo cargar si no se ha cargado ya para este mes
     if (loadedMonthsRef.current.has(selectedMonth)) {
-      console.log(
-        "⚡ [HOME] Datos ya cargados para",
-        selectedMonth,
-        "- omitiendo recarga"
-      );
       return;
     }
 
-    // ✅ Evitar recargas durante la inicialización
     if (!user) {
-      console.log("⚡ [HOME] Usuario no cargado aún - esperando");
       return;
     }
 
-    const loadDataForMonth = async () => {
+    const loadData = async () => {
       try {
-        console.log(
-          "🔄 [HOME] Iniciando carga de datos para",
-          selectedMonth,
-          "- PRIMERA VEZ"
-        );
-        await handleLoadDemo();
-
-        // ✅ Marcar este mes como cargado
+        await loadDataForMonth();
         loadedMonthsRef.current.add(selectedMonth);
-        // ✅ Marcar que se intentó cargar datos
         setDataLoadAttempted(true);
-
-        console.log(
-          "✅ [HOME] Datos cargados exitosamente para",
-          selectedMonth,
-          "- COMPLETADO"
-        );
       } catch (error) {
-        console.error(
-          "❌ [HOME] Error cargando datos para",
-          selectedMonth,
-          ":",
-          error
-        );
-        // ✅ Marcar que se intentó cargar datos incluso si falló
         setDataLoadAttempted(true);
-        // Mostrar modal de error si hay problemas de conexión
         setShowNoDataModal(true);
       }
     };
 
-    loadDataForMonth();
+    loadData();
   }, [selectedMonth, user]);
 
-  // Función para recargar datos del contexto con datos reales de BD
+  // Función para recargar datos
   const reloadContextData = async () => {
-    try {
-      console.log(
-        "🔄 reloadContextData: Recargando datos reales de BD para",
-        selectedMonth
-      );
-
-      // Calcular rango de fechas para el mes seleccionado
-      const [mesNombre, anio] = selectedMonth.split(" ");
-      const mesMap: { [key: string]: string } = {
-        Ene: "01",
-        Feb: "02",
-        Mar: "03",
-        Abr: "04",
-        May: "05",
-        Jun: "06",
-        Jul: "07",
-        Ago: "08",
-        Sep: "09",
-        Oct: "10",
-        Nov: "11",
-        Dic: "12",
-      };
-      const mesNumero = mesMap[mesNombre];
-      const fechaInicio = `${anio}-${mesNumero}-01`;
-      const fechaFin = `${anio}-${mesNumero}-31`;
-
-      // Cargar todos los datos necesarios de BD en paralelo
-      const [
-        tiendas,
-        asesores,
-        cargos,
-        presupuestosDiarios,
-        porcentajesBD,
-        presupuestosEmpleados,
-        ventasEmpleados,
-      ] = await Promise.all([
-        obtenerTiendas(),
-        obtenerAsesores(),
-        obtenerCargos(),
-        obtenerPresupuestosDiarios(undefined, fechaInicio, fechaFin),
-        obtenerPorcentajesMensuales(undefined, selectedMonth),
-        obtenerPresupuestosEmpleados(undefined, fechaFin),
-        obtenerVentasEmpleados(undefined, fechaFin),
-      ]);
-
-      console.log("✅ reloadContextData: Datos obtenidos de BD:", {
-        tiendas: tiendas.length,
-        asesores: asesores.length,
-        cargos: cargos.length,
-        presupuestosDiarios: presupuestosDiarios.length,
-        porcentajesBD: porcentajesBD.length,
-        presupuestosEmpleados: presupuestosEmpleados.length,
-        ventasEmpleados: ventasEmpleados.length,
-        rangoFechas: `${fechaInicio} a ${fechaFin}`,
-      });
-
-      // Convertir presupuestos diarios a BudgetRecord
-      const budgets = presupuestosDiarios.map((p: any) => ({
-        tienda:
-          tiendas.find((t: any) => t.id == p.tienda_id)?.nombre ||
-          "Tienda Desconocida",
-        tienda_id: p.tienda_id,
-        empresa:
-          tiendas.find((t: any) => t.id == p.tienda_id)?.empresa ||
-          "Empresa Desconocida",
-        fecha: p.fecha,
-        presupuesto_total: parseFloat(p.presupuesto) || 0,
-      }));
-
-      // Crear staff basado en presupuestos diarios asignados
-      const staff: any[] = [];
-      presupuestosEmpleados.forEach((pe: any) => {
-        const asesor = asesores.find((a: any) => a.id === pe.asesor);
-        if (asesor) {
-          const tienda = tiendas.find((t: any) => t.id === asesor.tienda_id);
-          const cargo = cargos.find((c: any) => c.id == pe.cargo);
-          const cargoNombre = cargo ? cargo.nombre.toLowerCase() : "asesor";
-          const rol =
-            cargoNombre.toLowerCase() === "gerente"
-              ? "gerente"
-              : cargoNombre.toLowerCase() === "asesor"
-              ? "asesor"
-              : cargoNombre.toLowerCase() === "cajero"
-              ? "cajero"
-              : "logistico";
-
-          staff.push({
-            id: asesor.id.toString(),
-            nombre: asesor.nombre || `Empleado ${asesor.id}`,
-            tienda: tienda?.nombre || "Tienda Desconocida",
-            fecha: pe.fecha,
-            rol: rol,
-          });
-        }
-      });
-
-      // Convertir porcentajes de BD al formato MonthConfig
-      const monthConfigs = porcentajesBD.map((p: any) => {
-        const [year, month] = p.fecha.split("-");
-        const monthNames = [
-          "Ene",
-          "Feb",
-          "Mar",
-          "Abr",
-          "May",
-          "Jun",
-          "Jul",
-          "Ago",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dic",
-        ];
-        const monthName = monthNames[parseInt(month) - 1];
-        return {
-          mes: `${monthName} ${year}`,
-          porcentaje_gerente: p.gerente_porcentaje,
-        };
-      });
-
-      // Crear ventas data de BD
-      const ventasMap = new Map<string, any>();
-      ventasEmpleados.forEach((ve: any) => {
-        const tienda = tiendas.find((t: any) => t.id === ve.tienda_id);
-        if (!tienda) return;
-
-        const key = `${tienda.nombre}-${ve.fecha}`;
-        if (!ventasMap.has(key)) {
-          ventasMap.set(key, {
-            tienda: tienda.nombre,
-            fecha: ve.fecha,
-            ventas_tienda: 0,
-            ventas_por_asesor: {},
-          });
-        }
-
-        const ventaData = ventasMap.get(key);
-        ventaData.ventas_por_asesor[ve.asesor_id.toString()] = ve.venta;
-        ventaData.ventas_tienda += ve.venta;
-      });
-
-      const ventas = Array.from(ventasMap.values());
-
-      console.log("✅ reloadContextData: Datos convertidos:", {
-        budgets: budgets.length,
-        staff: staff.length,
-        monthConfigs: monthConfigs.length,
-        ventas: ventas.length,
-      });
-
-      // Actualizar el contexto con datos reales
-      setBudgets(budgets);
-      setStaff(staff);
-      setMonthConfigs(monthConfigs);
-      setVentas(ventas);
-      setPresupuestosEmpleados(presupuestosEmpleados);
-      setCargos(cargos);
-    } catch (error) {
-      console.error("❌ Error recargando datos reales de BD:", error);
-      // Fallback a datos vacíos
-      setBudgets([]);
-      setStaff([]);
-      setMonthConfigs([]);
-      setVentas([]);
-    }
+    await loadDataForMonth();
   };
 
-  // Función para manejar cuando se complete la asignación
-  const handleAssignmentComplete = (ventasData?: any[]) => {
-    console.log(
-      "🔄 handleAssignmentComplete: Recibiendo ventasData:",
-      ventasData
-    );
-    // Recargar datos para mostrar las asignaciones guardadas
+  const handleAssignmentComplete = () => {
     reloadContextData();
-    setRefreshData((prev) => prev + 1); // Forzar recarga de cálculos
   };
-
-  // Recargar datos automáticamente cuando cambie refreshData
-  // COMENTADO: Esto puede causar loops con otros useEffect
-  /*
-  useEffect(() => {
-    if (refreshData > 0) {
-      reloadContextData();
-    }
-  }, [refreshData]);
-  */
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -1097,7 +575,7 @@ export default function Home() {
                 Comisiones {selectedMonth}
               </h1>
 
-              {(filterTienda.length > 0 ||
+              {/* {(filterTienda.length > 0 ||
                 filterRol !== "all" ||
                 filterFechaInicio ||
                 filterFechaFin) && (
@@ -1120,13 +598,13 @@ export default function Home() {
                       }`
                     : ""}
                 </span>
-              )}
+              )} */}
             </div>
           </div>
 
           {/* Botones de acción */}
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            <Button
+            {/* <Button
               onClick={() => setShowConfigModal(true)}
               variant="outlined"
               startIcon={<Settings />}
@@ -1138,14 +616,14 @@ export default function Home() {
             >
               <span className="hidden xs:inline">Configuración</span>
               <span className="xs:hidden">Conf</span>
-            </Button>
+            </Button> */}
             {(mesResumenFiltrado || mesResumen) && (
               <ExportButtons
                 mesResumen={mesResumenFiltrado || mesResumen}
                 mes={selectedMonth}
               />
             )}
-            <Button
+            {/*  <Button
               onClick={() => setShowCodesModal(true)}
               variant="outlined"
               startIcon={<Users />}
@@ -1154,18 +632,18 @@ export default function Home() {
             >
               <span className="hidden xs:inline">Asignar</span>
               <span className="xs:hidden">Asig</span>
-            </Button>
+            </Button> */}
           </div>
 
           {/* Mobile Accordion Filters */}
           <MobileAccordionFilters
             selectedMonth={selectedMonth}
             availableMonths={availableMonths}
+            onFilterRolChange={handleFilterRolChangeWrapper}
             onMonthChange={setSelectedMonth}
             filterTienda={filterTienda}
             onFilterTiendaChange={handleFilterTiendaChange}
             filterRol={filterRol}
-            onFilterRolChange={setFilterRol}
             filterFechaInicio={filterFechaInicio}
             onFilterFechaInicioChange={setFilterFechaInicio}
             filterFechaFin={filterFechaFin}
@@ -1177,37 +655,6 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="space-y-6 sm:space-y-8">
-          {/* Debug Info - COMENTADO PARA PRODUCCIÓN */}
-          {/*
-          <section className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-yellow-800 mb-2">
-              🔍 Debug - Estado de carga de datos:
-            </h3>
-            <div className="text-sm text-yellow-700 space-y-1">
-              <p>📊 Budgets: {state.budgets.length} registros</p>
-              <p>👥 Staff: {state.staff.length} empleados</p>
-              <p>
-                ⚙️ Month Configs: {state.monthConfigs.length} configuraciones
-              </p>
-              <p>💰 Ventas: {state.ventas.length} registros</p>
-              <p>
-                📋 Presupuestos Empleados: {presupuestosEmpleados.length}{" "}
-                registros
-              </p>
-              <p>
-                🧮 Mes Resumen:{" "}
-                {mesResumen ? "✅ Calculado" : "❌ No calculado"}
-              </p>
-              <p>📅 Mes seleccionado: {selectedMonth}</p>
-              <p>
-                📅 Filtro fechas: {filterFechaInicio || "inicio mes"} -{" "}
-                {filterFechaFin || "fin mes"}
-              </p>
-              <p>🏪 Tiendas disponibles: {uniqueTiendas.length}</p>
-            </div>
-          </section>
-          */}
-
           {/* Alertas de Validación */}
           {staffValidationErrors.length > 0 && (
             <section className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -1227,14 +674,20 @@ export default function Home() {
             </section>
           )}
 
-          {/* Sección de Datos - siempre visible */}
+          {/* Sección de Datos */}
           <section className="space-y-8">
-            {/* Resumen Ejecutivo - mostrar siempre para mobile y desktop */}
+            {/* Resumen Ejecutivo */}
             <section className="space-y-4">
-              <SummaryCards mesResumen={mesResumenFiltrado || mesResumen} />
+              <SummaryCards
+                mesResumen={mesResumenFiltrado || mesResumen}
+                onFilterRolChange={handleFilterRolChange}
+                onToggleAllStores={handleToggleAllStores}
+                currentFilterRol={filterRol}
+                expandedTiendas={expandedTiendas}
+              />
             </section>
 
-            {/* Tabla de Datos - mostrar siempre para mobile y desktop */}
+            {/* Tabla de Datos */}
             <section className="space-y-4 pt-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Detalle de Comisiones</h2>
@@ -1261,10 +714,12 @@ export default function Home() {
                   ]);
                 }}
                 readOnly={true}
+                expandedTiendas={expandedTiendas}
+                filterRol={filterRol}
               />
             </section>
 
-            {/* Gráficos - mostrar si hay mesResumen */}
+            {/* Gráficos */}
             {(mesResumenFiltrado || mesResumen) && (
               <section className="space-y-4 pt-8">
                 <h2 className="text-xl font-semibold">Análisis Visual</h2>
@@ -1292,29 +747,7 @@ export default function Home() {
           <div
             style={{ display: "flex", flexDirection: "column", gap: "24px" }}
           >
-            {/* Cargar Presupuestos - COMENTADO: Los datos ya vienen de BD */}
-            {/*
-            <div
-              style={{
-                padding: "24px",
-                border: "1px solid #e0e0e0",
-                borderRadius: "8px",
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: "1.25rem",
-                  fontWeight: "600",
-                  marginBottom: "16px",
-                }}
-              >
-                1. Cargar Presupuestos
-              </h2>
-              <CSVUpload />
-            </div>
-            */}
-
-            {/* Panel de Configuración (solo si hay presupuestos cargados) */}
+            {/* Panel de Configuración */}
             {state.budgets.length > 0 && (
               <div
                 style={{
@@ -1330,7 +763,7 @@ export default function Home() {
                     marginBottom: "16px",
                   }}
                 >
-                  2. Configuración Avanzada
+                  Configuración Avanzada
                 </h2>
                 <ConfigurationPanel mes={selectedMonth} />
               </div>
@@ -1348,9 +781,8 @@ export default function Home() {
         onClose={() => setShowCodesModal(false)}
         selectedMonth={selectedMonth}
         onAssignmentComplete={(ventasData) => {
-          handleAssignmentComplete(ventasData); // Pasar datos de ventas
-          setHasDailyBudgets(true);
-          setShowCodesModal(false); // Cerrar modal después de guardar
+          handleAssignmentComplete();
+          setShowCodesModal(false);
         }}
       />
 

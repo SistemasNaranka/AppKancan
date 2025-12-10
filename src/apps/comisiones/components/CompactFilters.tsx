@@ -19,7 +19,7 @@ interface CompactFiltersProps {
   availableMonths: string[];
   onMonthChange: (month: string) => void;
   filterTienda: string[];
-  onFilterTiendaChange: (tienda: string | string[]) => void;
+  onFilterTiendaChange: (value: string | string[]) => void;
   filterRol: string;
   onFilterRolChange: (rol: string) => void;
   filterFechaInicio: string;

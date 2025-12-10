@@ -18,6 +18,12 @@ interface DataTableProps {
   ) => void;
   /** Si es true, el componente será de solo lectura */
   readOnly?: boolean;
+  /** Estado de expansión de tiendas */
+  expandedTiendas?: Set<string>;
+  /** Callback para cambiar estado de expansión */
+  onToggleAllStores?: () => void;
+  /** Filtro de rol actualmente aplicado */
+  filterRol?: Role | "all";
 }
 
 /**
@@ -39,11 +45,21 @@ const DataTableComponent: React.FC<DataTableProps> = ({
   selectedMonth,
   onVentasUpdate,
   readOnly = false,
+  expandedTiendas: externalExpandedTiendas,
+  onToggleAllStores,
+  filterRol,
 }) => {
   // Estados para expansión de tiendas
   const [expandedTiendas, setExpandedTiendas] = useState<Set<string>>(
-    new Set()
+    externalExpandedTiendas || new Set()
   );
+
+  // Actualizar estado interno cuando cambia el estado externo
+  React.useEffect(() => {
+    if (externalExpandedTiendas) {
+      setExpandedTiendas(externalExpandedTiendas);
+    }
+  }, [externalExpandedTiendas]);
 
   // Estados para inputs temporales de ventas
   const [ventasTiendaInputs, setVentasTiendaInputs] = useState<
@@ -59,6 +75,16 @@ const DataTableComponent: React.FC<DataTableProps> = ({
   const filteredTiendas = useMemo(() => {
     return tiendas.filter((tienda) => tienda.empleados.length > 0);
   }, [tiendas]);
+
+  // Expandir/colapsar todas las tiendas según el filtro de rol
+  React.useEffect(() => {
+    if (filterRol && filterRol !== "all") {
+      // Si hay filtro de rol específico, expandir todas las tiendas
+      setExpandedTiendas(new Set(filteredTiendas.map((t) => t.tienda)));
+    }
+    // Si no hay filtro de rol, mantener el estado actual
+    // (no expandir ni colapsar automáticamente)
+  }, [filterRol, filteredTiendas]);
 
   /**
    * Toggle la expansión de una tienda específica
@@ -145,9 +171,7 @@ const DataTableComponent: React.FC<DataTableProps> = ({
   return (
     <div className="space-y-6">
       {/* Controles de Filtro - Movidos a la sección de controles en Home.tsx */}
-      {/*
-      <FilterControls />
-      */}
+      {/* <FilterControls /> */}
 
       {/* Mensajes de Estado */}
       {filteredTiendas.length === 0 && tiendas.length > 0 && (
@@ -221,6 +245,7 @@ const DataTableComponent: React.FC<DataTableProps> = ({
                 )
               }
               readOnly={readOnly}
+              filterRol={filterRol}
             />
           ))}
         </div>

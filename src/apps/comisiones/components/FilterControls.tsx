@@ -14,7 +14,27 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import AutocompleteSelect from "./AutocompleteSelect";
 import { useFiltersData } from "../hooks/useFiltersData";
-import { getCurrentMonth } from "../lib/calculations";
+// Función simple para obtener el mes actual en formato "MMM YYYY"
+const getCurrentMonth = () => {
+  const now = new Date();
+  const months = [
+    "Ene",
+    "Feb",
+    "Mar",
+    "Abr",
+    "May",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dic",
+  ];
+  const monthName = months[now.getMonth()];
+  const year = now.getFullYear();
+  return `${monthName} ${year}`;
+};
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -27,14 +47,14 @@ interface FilterControlsProps {
   availableMonths: string[];
   /** Callback para cambiar el mes */
   onMonthChange: (month: string) => void;
-  /** Filtro de tienda actualmente aplicado (ID de tienda) */
-  filterTienda: string;
+  /** Filtro de tienda actualmente aplicado (ID de tienda o array de IDs) */
+  filterTienda: string | string[];
   /** Callback para cambiar filtro de tienda */
-  onFilterTiendaChange: (tienda: string) => void;
+  onFilterTiendaChange: (value: string | string[]) => void;
   /** Filtro de rol actualmente aplicado */
-  filterRol: Role | "";
+  filterRol: Role | "all";
   /** Callback para cambiar filtro de rol */
-  onFilterRolChange: (rol: Role | "") => void;
+  onFilterRolChange: (rol: Role | "all") => void;
   /** Filtro de fecha seleccionado */
   filterFecha: string;
   /** Callback para cambiar filtro de fecha */
@@ -81,7 +101,7 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
     }
     // Resetear filtros
     onFilterTiendaChange("");
-    onFilterRolChange("");
+    onFilterRolChange("all");
     onFilterFechaChange("");
   };
 
@@ -90,9 +110,12 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
     return null;
   }
 
-  // Encontrar la tienda seleccionada para mostrar su nombre
+  // Encontrar la tienda seleccionada para mostrar su nombre (manejar string | string[])
+  const filterTiendaValue = Array.isArray(filterTienda)
+    ? filterTienda[0] || ""
+    : filterTienda;
   const selectedTienda = tiendasOptions.find(
-    (option) => option.value === filterTienda
+    (option) => option.value === filterTiendaValue
   );
 
   return (
@@ -162,11 +185,11 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
                 <Select
                   value={filterRol}
                   onChange={(e) =>
-                    onFilterRolChange(e.target.value as Role | "")
+                    onFilterRolChange(e.target.value as Role | "all")
                   }
                   label="Rol"
                 >
-                  <MenuItem value="">Todos los roles</MenuItem>
+                  <MenuItem value="all">Todos los roles</MenuItem>
                   <MenuItem value="gerente">Gerente</MenuItem>
                   <MenuItem value="asesor">Asesor</MenuItem>
                   <MenuItem value="cajero">Cajero</MenuItem>

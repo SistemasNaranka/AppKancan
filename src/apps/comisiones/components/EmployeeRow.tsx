@@ -88,25 +88,36 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
    * Obtiene el color del cumplimiento (fuerte para métricas de rendimiento)
    */
   const getCumplimientoColor = useCallback((cumplimiento: number): string => {
+    if (cumplimiento >= 110) return "text-emerald-700 font-bold";
     if (cumplimiento >= 100) return "text-green-700 font-bold";
+    if (cumplimiento >= 95) return "text-orange-700 font-bold";
     return "text-red-700 font-bold";
   }, []);
+
+  const getColorByCumplimiento = (cumplimiento: number): string => {
+    if (cumplimiento >= 1.1) return "text-emerald-700 font-medium"; // verde fuerte
+    if (cumplimiento >= 1.0) return "text-blue-700 font-medium"; // verde
+    if (cumplimiento >= 0.95) return "text-yellow-700 font-medium"; // naranja
+    return "text-black-700 font-medium"; // rojo
+  };
 
   /**
    * Obtiene el color de fondo de la fila basado en el cumplimiento
    */
   const getRowBackgroundColor = useCallback((cumplimiento: number): string => {
     if (cumplimiento >= 110) return "bg-emerald-50"; // Sobresaliente
-    if (cumplimiento >= 100) return "bg-green-50"; // Excelente
-    if (cumplimiento >= 95) return "bg-blue-50"; // Próximo Meta
-    return "bg-orange-50"; // En Desarrollo
+    if (cumplimiento >= 100) return "bg-blue-50"; // Excelente
+    if (cumplimiento >= 95) return "bg-yellow-50"; // Próximo Meta
+    return "bg-white-50"; // En Desarrollo
   }, []);
 
   /**
    * Obtiene el color fuerte para métricas de rendimiento
    */
   const getPerformanceColor = useCallback((value: number): string => {
-    if (value >= 100) return "text-green-700 font-bold";
+    if (value >= 1) return "text-emerald-700 font-bold";
+    if (value >= 0.7) return "text-blue-700 font-bold";
+    if (value >= 0.35) return "text-orange-700 font-bold";
     return "text-red-700 font-bold";
   }, []);
 
@@ -147,7 +158,7 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
 
       {/* Presupuesto */}
       <TableCell className="py-3 text-right">
-        <span className="font-semibold text-black">
+        <span className="font-medium text-black">
           ${formatCurrency(empleado.presupuesto)}
         </span>
       </TableCell>
@@ -156,7 +167,7 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
       <TableCell className="py-3 text-right">
         {empleado.rol === "asesor" ? (
           readOnly ? (
-            <span className="font-semibold text-black">
+            <span className="font-medium text-black">
               ${formatCurrency(ventasAsesorInput || empleado.ventas)}
             </span>
           ) : (
@@ -174,7 +185,7 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
             </div>
           )
         ) : (
-          <span className="font-semibold text-black">
+          <span className="font-medium text-black">
             ${formatCurrency(empleado.ventas)}
           </span>
         )}
@@ -183,9 +194,7 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
       {/* Cumplimiento */}
       <TableCell className="py-3 text-right">
         <span
-          className={`font-bold ${getCumplimientoColor(
-            empleado.cumplimiento_pct
-          )}`}
+          className={getColorByCumplimiento(empleado.cumplimiento_pct / 100)}
         >
           {empleado.cumplimiento_pct.toFixed(2)}%
         </span>
@@ -193,18 +202,22 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
 
       {/* Porcentaje de Comisión */}
       <TableCell className="py-3 text-right">
-        <span className={getPerformanceColor(empleado.comision_pct * 100)}>
+        <span
+          className={getColorByCumplimiento(empleado.cumplimiento_pct / 100)}
+        >
           {(empleado.comision_pct * 100).toFixed(2)}%
         </span>
       </TableCell>
 
       {/* Monto de Comisión */}
       <TableCell className="py-3 text-right">
-        <div className="flex items-center justify-end gap-1">
-          <AttachMoneyIcon className="text-green-500" />
-          <span className={getPerformanceColor(empleado.comision_monto)}>
-            ${formatCurrency(empleado.comision_monto)}
-          </span>
+        <div
+          className={`flex items-center justify-end gap-1 ${getColorByCumplimiento(
+            empleado.cumplimiento_pct / 100
+          )}`}
+        >
+          <AttachMoneyIcon />
+          <span>${formatCurrency(empleado.comision_monto)}</span>
         </div>
       </TableCell>
     </TableRow>

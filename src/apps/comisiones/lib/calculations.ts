@@ -315,6 +315,7 @@ export const calculateEmployeeCommission = (
     comision_monto,
   };
 };
+
 /**
  * Calcula las comisiones para cajeros
  * Lógica especial: comisión basada en el rendimiento general de la tienda,
@@ -330,44 +331,26 @@ export const calculateCajeroCommission = (
   ventasIndividualesEmpleado: number = 0,
   presupuestoIndividualEmpleado: number = 0
 ): EmployeeCommission => {
-  console.log(`🔄 [CALC] Calculando comisión para cajero: ${empleado.nombre}`);
-  console.log(
-    `📊 [CALC] Datos: ventasTienda=${ventasTiendaTotal}, presupuestoTienda=${presupuestoTiendaTotal}, totalEmpleadosTienda=${cantidadEmpleadosRol}`
-  );
-  console.log(
-    `👤 [CALC] Ventas individuales cajero: ${ventasIndividualesEmpleado} (registradas para cajeros), presupuesto individual: ${presupuestoIndividualEmpleado} (asignado para cajeros)`
-  );
-
   // Calcular cumplimiento de la tienda
   const cumplimientoTienda = calculateCompliance(
     ventasTiendaTotal,
     presupuestoTiendaTotal
   );
-  console.log(`📈 [CALC] Cumplimiento tienda: ${cumplimientoTienda}%`);
 
   // Obtener porcentaje de comisión basado en cumplimiento de la tienda
   const comision_pct = getCommissionPercentage(cumplimientoTienda);
-  console.log(`💰 [CALC] Porcentaje comisión: ${comision_pct * 100}%`);
 
   // Calcular venta base sin IVA de la tienda
   const ventaTiendaSinIVA = calculateBaseSale(ventasTiendaTotal);
-  console.log(`🛒 [CALC] Venta tienda sin IVA: ${ventaTiendaSinIVA}`);
 
   // Dividir la venta sin IVA entre TODOS los empleados de la tienda
   const ventaBasePorEmpleado =
     cantidadEmpleadosRol > 0 ? ventaTiendaSinIVA / cantidadEmpleadosRol : 0;
-  console.log(
-    `👥 [CALC] Venta base por empleado (todos los empleados de tienda): ${ventaBasePorEmpleado}`
-  );
 
   // Calcular comisión: (venta_sin_iva / cantidad_empleados) * porcentaje_comision
   const comision_monto = calculateCommissionAmount(
     ventaBasePorEmpleado,
     comision_pct
-  );
-  console.log(`💵 [CALC] Comisión calculada: ${comision_monto}`);
-  console.log(
-    `📋 [CALC] Vista mostrará: ventas=${ventasIndividualesEmpleado} (registradas para cajeros), presupuesto=${presupuestoIndividualEmpleado} (asignado para cajeros), cumplimiento=${cumplimientoTienda}%`
   );
 
   return {
@@ -399,46 +382,26 @@ export const calculateLogisticoCommission = (
   ventasIndividualesEmpleado: number = 0,
   presupuestoIndividualEmpleado: number = 0
 ): EmployeeCommission => {
-  console.log(
-    `🔄 [CALC] Calculando comisión para logístico: ${empleado.nombre}`
-  );
-  console.log(
-    `📊 [CALC] Datos: ventasTienda=${ventasTiendaTotal}, presupuestoTienda=${presupuestoTiendaTotal}, totalEmpleadosTienda=${cantidadEmpleadosRol}`
-  );
-  console.log(
-    `👤 [CALC] Ventas individuales logístico: ${ventasIndividualesEmpleado} (registradas para logísticos), presupuesto individual: ${presupuestoIndividualEmpleado} (asignado para logísticos)`
-  );
-
   // Calcular cumplimiento de la tienda
   const cumplimientoTienda = calculateCompliance(
     ventasTiendaTotal,
     presupuestoTiendaTotal
   );
-  console.log(`📈 [CALC] Cumplimiento tienda: ${cumplimientoTienda}%`);
 
   // Obtener porcentaje de comisión basado en cumplimiento de la tienda
   const comision_pct = getCommissionPercentage(cumplimientoTienda);
-  console.log(`💰 [CALC] Porcentaje comisión: ${comision_pct * 100}%`);
 
   // Calcular venta base sin IVA de la tienda
   const ventaTiendaSinIVA = calculateBaseSale(ventasTiendaTotal);
-  console.log(`🛒 [CALC] Venta tienda sin IVA: ${ventaTiendaSinIVA}`);
 
   // Dividir la venta sin IVA entre TODOS los empleados de la tienda
   const ventaBasePorEmpleado =
     cantidadEmpleadosRol > 0 ? ventaTiendaSinIVA / cantidadEmpleadosRol : 0;
-  console.log(
-    `👥 [CALC] Venta base por empleado (todos los empleados de tienda): ${ventaBasePorEmpleado}`
-  );
 
   // Calcular comisión: (venta_sin_iva / cantidad_empleados) * porcentaje_comision
   const comision_monto = calculateCommissionAmount(
     ventaBasePorEmpleado,
     comision_pct
-  );
-  console.log(`💵 [CALC] Comisión calculada: ${comision_monto}`);
-  console.log(
-    `📋 [CALC] Vista mostrará: ventas=${ventasIndividualesEmpleado} (registradas para logísticos), presupuesto=${presupuestoIndividualEmpleado} (asignado para logísticos), cumplimiento=${cumplimientoTienda}%`
   );
 
   return {
@@ -485,7 +448,6 @@ export const calculateMesResumenAgrupado = (
   // con los valores específicos que generó en esa tienda
 
   if (mesBudgets.length === 0) {
-    console.warn(`⚠️ [CALC] No hay presupuestos para ${mes}`);
     return {
       mes,
       tiendas: [],
@@ -546,15 +508,7 @@ export const calculateMesResumenAgrupado = (
 
       if (presupuestoValido) {
         tiendaData.presupuestoTotal += budget.presupuesto_total;
-      } else {
-        console.error(
-          `❌ [CALC] Presupuesto inválido para ${budget.tienda} - ${budget.fecha}: ${budget.presupuesto_total}`
-        );
       }
-    } else {
-      console.warn(
-        `⚠️ [CALC] Fecha duplicada para ${budget.tienda}: ${budget.fecha}`
-      );
     }
   });
 
@@ -564,9 +518,6 @@ export const calculateMesResumenAgrupado = (
 
     const tiendaData = tiendasMap.get(empleado.tienda);
     if (!tiendaData) {
-      console.warn(
-        `⚠️ [CALC] Tienda no encontrada para empleado: ${empleado.tienda}`
-      );
       return;
     }
 
@@ -582,9 +533,6 @@ export const calculateMesResumenAgrupado = (
 
     const tiendaData = tiendasMap.get(venta.tienda);
     if (!tiendaData) {
-      console.warn(
-        `⚠️ [CALC] Tienda no encontrada para ventas: ${venta.tienda}`
-      );
       return;
     }
 
@@ -643,9 +591,6 @@ export const calculateMesResumenAgrupado = (
               (sum, pe) => sum + (parseFloat(pe.presupuesto) || 0),
               0
             );
-            console.log(
-              `💰 [CALC] ${empleado.nombre} (${empleado.rol}) en ${tiendaData.tienda}: ${presupuestosEmpleadoTienda.length} presupuestos diarios sumados = ${empleadoData.presupuestoMensual}`
-            );
           } else {
             // Calcular presupuesto usando lógica tradicional
             if (empleado.rol === "gerente") {
@@ -667,9 +612,6 @@ export const calculateMesResumenAgrupado = (
             ) {
               empleadoData.presupuestoMensual = 0; // Cajeros y logísticos no tienen presupuesto asignado
             }
-            console.log(
-              `💰 [CALC] ${empleado.nombre} (${empleado.rol}) en ${tiendaData.tienda}: presupuesto calculado = ${empleadoData.presupuestoMensual}`
-            );
           }
         }
 
@@ -691,9 +633,6 @@ export const calculateMesResumenAgrupado = (
               empleadoData.ventasMensual += ventasEmpleado;
             }
           });
-          console.log(
-            `💵 [REAL] ${empleado.nombre} (${empleado.rol}) en ${tiendaData.tienda}: ventas reales = ${empleadoData.ventasMensual}`
-          );
         }
       });
     });

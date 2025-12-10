@@ -1,10 +1,18 @@
-import React from "react";
-import { MesResumen } from "../types";
+import React, { useState } from "react";
+import { MesResumen, Role } from "../types";
 
 import { Card as MuiCard, CardContent as MuiCardContent } from "@mui/material";
 
 interface SummaryCardsProps {
   mesResumen: MesResumen | null;
+  /** Callback para aplicar filtro de rol */
+  onFilterRolChange: (rol: Role | "all" | "") => void;
+  /** Callback para expandir/colapsar todas las tiendas */
+  onToggleAllStores: () => void;
+  /** Rol actualmente filtrado */
+  currentFilterRol: Role | "all" | "";
+  /** Estado actual de tiendas expandidas */
+  expandedTiendas: Set<string>;
 }
 
 const formatCommission = (value: number): string => {
@@ -16,7 +24,13 @@ const formatCommission = (value: number): string => {
   });
 };
 
-export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
+export const SummaryCards: React.FC<SummaryCardsProps> = ({
+  mesResumen,
+  onFilterRolChange,
+  onToggleAllStores,
+  currentFilterRol,
+  expandedTiendas,
+}) => {
   if (!mesResumen) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
@@ -42,14 +56,41 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
   const comisionCajero = mesResumen.comisiones_por_rol.cajero;
   const comisionLogistico = mesResumen.comisiones_por_rol.logistico;
 
+  // Función para manejar click en las cards
+  const handleCardClick = (rol: Role | "all" | "") => {
+    // Si hace clic en "Total Comisiones" (rol === "")
+    if (rol === "") {
+      // Siempre hacer toggle de expansión de tiendas
+      onToggleAllStores();
+
+      // Solo cambiar filtro si no está ya en "all"
+      if (currentFilterRol !== "all" && currentFilterRol !== "") {
+        onFilterRolChange("all");
+      }
+    } else {
+      // Si hace clic en una tarjeta de rol específico
+      if (currentFilterRol === rol) {
+        // Si ya está filtrado por ese rol, volver a mostrar todo
+        onFilterRolChange("all");
+        onToggleAllStores();
+      } else {
+        // Aplicar nuevo filtro
+        onFilterRolChange(rol);
+        onToggleAllStores();
+      }
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
       <MuiCard
+        onClick={() => handleCardClick("")}
         sx={{
           background: "linear-gradient(135deg,  #3680F7 0 0%, #3680F7 100%)",
           color: "white",
           border: "2px solid #3680F7",
-          transition: "transform 0.2s ease-in-out",
+          transition: "transform 0.2s ease-in-out, border 0.2s ease-in-out",
+          cursor: "pointer",
           "&:hover": {
             transform: "translateY(-2px)",
           },
@@ -81,12 +122,13 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
       </MuiCard>
 
       <MuiCard
+        onClick={() => handleCardClick("gerente")}
         sx={{
           background: "linear-gradient(135deg, #7138F5  0%, #7138F5 100%)",
           color: "white",
           border: "2px solid #7138F5",
-
-          transition: "transform 0.2s ease-in-out",
+          transition: "transform 0.2s ease-in-out, border 0.2s ease-in-out",
+          cursor: "pointer",
           "&:hover": {
             transform: "translateY(-2px)",
           },
@@ -116,11 +158,13 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
       </MuiCard>
 
       <MuiCard
+        onClick={() => handleCardClick("asesor")}
         sx={{
           background: "linear-gradient(135deg,  #419061 0%,   #419061 100%)",
           color: "white",
           border: "2px solid  #419061",
-          transition: "transform 0.2s ease-in-out",
+          transition: "transform 0.2s ease-in-out, border 0.2s ease-in-out",
+          cursor: "pointer",
           "&:hover": {
             transform: "translateY(-2px)",
           },
@@ -150,12 +194,13 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
       </MuiCard>
 
       <MuiCard
+        onClick={() => handleCardClick("cajero")}
         sx={{
           background: "linear-gradient(135deg, #F7B036  0%, #F7B036 100%)",
           color: "white",
           border: "2px solid #F7B036",
-
-          transition: "transform 0.2s ease-in-out",
+          transition: "transform 0.2s ease-in-out, border 0.2s ease-in-out",
+          cursor: "pointer",
           "&:hover": {
             transform: "translateY(-2px)",
           },
@@ -185,12 +230,13 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ mesResumen }) => {
       </MuiCard>
 
       <MuiCard
+        onClick={() => handleCardClick("logistico")}
         sx={{
           background: "linear-gradient(135deg, #EF4444  0%, #EF4444 100%)",
           color: "white",
           border: "2px solid #EF4444",
-
-          transition: "transform 0.2s ease-in-out",
+          transition: "transform 0.2s ease-in-out, border 0.2s ease-in-out",
+          cursor: "pointer",
           "&:hover": {
             transform: "translateY(-2px)",
           },

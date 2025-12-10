@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import { 
+import {
   Button,
   Typography,
   Box,
   Card,
   CardContent,
-  Collapse
+  Collapse,
 } from "@mui/material";
-import { 
+import {
   FilterList as FilterIcon,
   ExpandMore as ExpandMoreIcon,
-  Clear as ClearIcon 
+  Clear as ClearIcon,
 } from "@mui/icons-material";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
@@ -24,15 +24,16 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
+import { Role } from "../types";
 
 interface MobileAccordionFiltersProps {
   selectedMonth: string;
   availableMonths: string[];
   onMonthChange: (month: string) => void;
   filterTienda: string[];
-  onFilterTiendaChange: (tienda: string | string[]) => void;
-  filterRol: string;
-  onFilterRolChange: (rol: string) => void;
+  onFilterTiendaChange: (value: string | string[]) => void;
+  filterRol: Role | "all";
+  onFilterRolChange: (rol: Role | "all") => void;
   filterFechaInicio: string;
   onFilterFechaInicioChange: (fecha: string) => void;
   filterFechaFin: string;
@@ -71,7 +72,15 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
   if (!isMobile) {
     return (
       <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <Card sx={{ mb: 3, borderRadius: 2, border: 1, borderColor: "divider", boxShadow: 1 }}>
+        <Card
+          sx={{
+            mb: 3,
+            borderRadius: 2,
+            border: 1,
+            borderColor: "divider",
+            boxShadow: 1,
+          }}
+        >
           <CardContent sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
               Filtros
@@ -103,7 +112,9 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
                 label="Fecha inicio"
                 value={filterFechaInicio ? dayjs(filterFechaInicio) : null}
                 onChange={(date) =>
-                  onFilterFechaInicioChange(date ? date.format("YYYY-MM-DD") : "")
+                  onFilterFechaInicioChange(
+                    date ? date.format("YYYY-MM-DD") : ""
+                  )
                 }
                 slotProps={{
                   textField: {
@@ -182,72 +193,87 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       {/* Contenedor compacto para móvil */}
-      <Box sx={{ 
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000,
-        backgroundColor: 'background.paper',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        mb: 1
-      }}>
+      <Box
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 1000,
+          backgroundColor: "background.paper",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          mb: 1,
+        }}
+      >
         {/* Botón principal compacto */}
         <Button
           onClick={handleToggle}
           fullWidth
           variant="outlined"
           startIcon={<FilterIcon sx={{ fontSize: 16 }} />}
-          endIcon={<ExpandMoreIcon sx={{ 
-            fontSize: 16,
-            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.2s ease'
-          }} />}
+          endIcon={
+            <ExpandMoreIcon
+              sx={{
+                fontSize: 16,
+                transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+              }}
+            />
+          }
           sx={{
             borderRadius: 0,
             py: 1,
             px: 2,
-            fontSize: '0.875rem',
+            fontSize: "0.875rem",
             fontWeight: 500,
-            textTransform: 'none',
-            justifyContent: 'space-between',
+            textTransform: "none",
+            justifyContent: "space-between",
             minHeight: 48,
-            color: 'text.primary',
-            borderColor: 'divider',
-            backgroundColor: 'background.paper',
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderColor: 'primary.main'
-            }
+            color: "text.primary",
+            borderColor: "divider",
+            backgroundColor: "background.paper",
+            "&:hover": {
+              backgroundColor: "action.hover",
+              borderColor: "primary.main",
+            },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span>{isExpanded ? 'Ocultar filtros' : 'Mostrar filtros'}</span>
-            {(filterTienda.length > 0 || filterRol !== "all" || filterFechaInicio || filterFechaFin) && (
-              <Box sx={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: 'primary.main'
-              }} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <span>{isExpanded ? "Ocultar filtros" : "Mostrar filtros"}</span>
+            {(filterTienda.length > 0 ||
+              filterRol !== "all" ||
+              filterFechaInicio ||
+              filterFechaFin) && (
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "primary.main",
+                }}
+              />
             )}
           </Box>
         </Button>
 
         {/* Panel de filtros desplegable - más compacto */}
         <Collapse in={isExpanded} timeout={200}>
-          <Box sx={{ 
-            backgroundColor: 'background.default',
-            borderTop: '1px solid',
-            borderColor: 'divider'
-          }}>
+          <Box
+            sx={{
+              backgroundColor: "background.default",
+              borderTop: "1px solid",
+              borderColor: "divider",
+            }}
+          >
             <Box sx={{ p: 2 }}>
               <Stack spacing={2}>
                 {/* Filtros en 2 columnas para optimizar espacio */}
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr', 
-                  gap: 2 
-                }}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 2,
+                  }}
+                >
                   {/* Filtro de Mes */}
                   <FormControl size="small">
                     <InputLabel>Mes</InputLabel>
@@ -282,16 +308,20 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
                 </Box>
 
                 {/* Fechas en 2 columnas */}
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr', 
-                  gap: 2 
-                }}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 2,
+                  }}
+                >
                   <DatePicker
                     label="Inicio"
                     value={filterFechaInicio ? dayjs(filterFechaInicio) : null}
                     onChange={(date) =>
-                      onFilterFechaInicioChange(date ? date.format("YYYY-MM-DD") : "")
+                      onFilterFechaInicioChange(
+                        date ? date.format("YYYY-MM-DD") : ""
+                      )
                     }
                     slotProps={{
                       textField: {
@@ -305,7 +335,9 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
                     label="Fin"
                     value={filterFechaFin ? dayjs(filterFechaFin) : null}
                     onChange={(date) =>
-                      onFilterFechaFinChange(date ? date.format("YYYY-MM-DD") : "")
+                      onFilterFechaFinChange(
+                        date ? date.format("YYYY-MM-DD") : ""
+                      )
                     }
                     slotProps={{
                       textField: {
@@ -326,7 +358,7 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
                   label="Tienda"
                   loading={loadingFilters}
                   size="small"
-                  sx={{ width: '100%' }}
+                  sx={{ width: "100%" }}
                 />
 
                 {/* Botón Limpiar */}
@@ -338,7 +370,7 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
                   sx={{
                     py: 1,
                     borderRadius: 1,
-                    textTransform: 'none',
+                    textTransform: "none",
                     fontWeight: 500,
                   }}
                 >

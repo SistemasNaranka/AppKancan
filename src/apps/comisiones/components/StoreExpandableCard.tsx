@@ -1,53 +1,58 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { TiendaResumen, DirectusCargo } from "../types";
+import { TiendaResumen, DirectusCargo, Role } from "../types";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { EmployeeRow } from "./EmployeeRow";
-import { VentasEditor } from "./VentasEditor";
 import { formatCurrency } from "../lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 import {
+  Card,
+  CardContent,
+  CardActionArea,
+  Box,
+  Typography,
   Table,
-  TableBody,
-  TableCell,
   TableHead,
-  TableHeader,
   TableRow,
-} from "@/components/ui/table";
+  TableCell,
+  TableBody,
+  Collapse,
+  Divider,
+} from "@mui/material";
+import { blue, green, orange, grey } from "@mui/material/colors";
+import {
+  Person,
+  Badge,
+  Work,
+  ShoppingBag,
+  TrendingUp,
+  Percent,
+  AttachMoney,
+  EmojiEvents,
+  ThumbUp,
+  Insights,
+  RemoveCircleOutline,
+} from "@mui/icons-material";
 
 interface StoreExpandableCardProps {
-  /** Datos de la tienda a renderizar */
   tienda: TiendaResumen;
-  /** Lista de cargos para ordenamiento */
   cargos?: DirectusCargo[];
-  /** Estado de expansión de la tienda */
   isExpanded: boolean;
-  /** Callback para cambiar el estado de expansión */
   onToggleExpand: () => void;
-  /** Callback para actualizar ventas */
   onVentasUpdate: (
     tienda: string,
     fecha: string,
     ventas_tienda: number,
     ventas_por_asesor: Record<string, number>
   ) => void;
-  /** Estado temporal de ventas de la tienda */
   ventasTiendaInput: number;
-  /** Callback para cambiar ventas de tienda temporal */
   onVentasTiendaChange: (value: number) => void;
-  /** Estado temporal de ventas por asesor */
   ventasAsesorInput: Record<string, number>;
-  /** Callback para cambiar ventas de asesor temporal */
   onVentasAsesorChange: (asesorId: string, value: number) => void;
-  /** Si es true, el componente será de solo lectura */
   readOnly?: boolean;
+  filterRol?: Role | "all";
 }
 
-/**
- * Componente que representa una tienda expandible con sus empleados.
- * Maneja la visualización, expansión y edición de datos de una tienda específica.
- */
-const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
+export const StoreExpandableCard: React.FC<StoreExpandableCardProps> = ({
   tienda,
   cargos = [],
   isExpanded,
@@ -58,30 +63,76 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
   ventasAsesorInput,
   onVentasAsesorChange,
   readOnly = false,
+  filterRol = "all",
 }) => {
-  /**
-   * Formatea el color del cumplimiento según el porcentaje
-   */
-  const getCumplimientoColor = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return "text-green-600";
-    if (cumplimiento >= 100) return "text-blue-600";
-    if (cumplimiento >= 95) return "text-yellow-600";
-    return "text-red-600";
+  /** COLOR suave del cumplimiento */
+  const getCumplimientoColor = useCallback((x: number) => {
+    if (x >= 110) return green[700];
+    if (x >= 100) return blue[700];
+    if (x >= 95) return orange[700];
+    return grey[700];
   }, []);
 
-  /**
-   * Formatea el badge de cumplimiento para mostrar visualmente el estado
-   */
-  const getCumplimientoBadge = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return "🎯 Excelente";
-    if (cumplimiento >= 100) return "✅ Cumplido";
-    if (cumplimiento >= 95) return "⚠️ Cerca";
-    return "❌ Bajo";
+  /** BADGE suave, no saturado */
+  /** BADGE suave, no saturado */
+  const getCumplimientoBadge = useCallback((c: number) => {
+    if (c >= 110)
+      return (
+        <span
+          style={{
+            color: green[700],
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <EmojiEvents sx={{ fontSize: 18 }} /> Excelente desempeño
+        </span>
+      );
+
+    if (c >= 100)
+      return (
+        <span
+          style={{
+            color: blue[700],
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <ThumbUp sx={{ fontSize: 18 }} /> Muy buen trabajo
+        </span>
+      );
+
+    if (c >= 95)
+      return (
+        <span
+          style={{
+            color: orange[700],
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <Insights sx={{ fontSize: 18 }} /> Buen progreso
+        </span>
+      );
+
+    return (
+      <span
+        style={{
+          color: grey[700],
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        <RemoveCircleOutline sx={{ fontSize: 18 }} /> Sin comisión
+      </span>
+    );
   }, []);
 
-  /**
-   * Memoized empleados ordenados alfabéticamente por nombre
-   */
+  /** Ordenar empleados */
   const empleadosConVentas = useMemo(() => {
     return tienda.empleados
       .map((empleado) => ({
@@ -89,111 +140,162 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
         ventasTemporales: ventasAsesorInput[empleado.id] ?? empleado.ventas,
       }))
       .sort((a, b) => {
-        // Ordenar alfabéticamente por nombre del empleado
-        return a.nombre.localeCompare(b.nombre);
+        const comisionDiff = b.comision_pct - a.comision_pct;
+        if (comisionDiff === 0) {
+          return b.cumplimiento_pct - a.cumplimiento_pct;
+        }
+        return comisionDiff;
       });
   }, [tienda.empleados, ventasAsesorInput]);
 
-  /**
-   * Maneja el guardado de ventas
-   */
-  const handleSaveVentas = useCallback(() => {
-    onVentasUpdate(
-      tienda.tienda,
-      tienda.fecha,
-      ventasTiendaInput,
-      Object.fromEntries(
-        Object.entries(ventasAsesorInput).map(([asesorId, valor]) => [
-          asesorId,
-          valor,
-        ])
-      )
-    );
-  }, [
-    onVentasUpdate,
-    tienda.tienda,
-    tienda.fecha,
-    ventasTiendaInput,
-    ventasAsesorInput,
-  ]);
+  /** Total filtrado */
+  const totalComisionesFiltrado = useMemo(() => {
+    if (filterRol === "all") return tienda.total_comisiones;
+    return empleadosConVentas
+      .filter((e) => e.rol === filterRol)
+      .reduce((total, e) => total + e.comision_monto, 0);
+  }, [empleadosConVentas, filterRol, tienda.total_comisiones]);
 
   return (
-    <Card className="overflow-hidden">
-      {/* Header de Tienda */}
-      <Button
+    <Card sx={{ width: "100%", overflow: "hidden", mb: 2 }}>
+      {/* HEADER */}
+      <CardActionArea
         onClick={onToggleExpand}
-        variant="ghost"
-        className="w-full bg-blue-50 hover:bg-blue-100 px-4 py-3 flex items-center justify-between border-b border-gray-200 transition-colors justify-start"
+        sx={{
+          px: 3,
+          py: 2.5,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          bgcolor: "#fff", // azul suave
+          "&:hover": { bgcolor: "primary.light" },
+        }}
       >
-        <div className="flex items-center gap-3">
+        {/* IZQUIERDA */}
+        <Box sx={{ display: "flex", gap: 2, flex: 1, minWidth: 0 }}>
           {isExpanded ? (
-            <ExpandLess className="w-5 h-5 text-gray-600" />
+            <ExpandLess sx={{ color: "grey.600", mt: 0.4 }} />
           ) : (
-            <ExpandMore className="w-5 h-5 text-gray-600" />
+            <ExpandMore sx={{ color: "grey.600", mt: 0.4 }} />
           )}
-          <div className="text-left">
-            <p className="font-semibold text-gray-900">{tienda.tienda}</p>
-            <p className="text-sm text-gray-600">
-              Presupuesto: ${formatCurrency(tienda.presupuesto_tienda)} |
-              Ventas: ${formatCurrency(tienda.ventas_tienda)} |
+
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+              noWrap
+              sx={{ color: "grey.900" }}
+            >
+              {tienda.tienda}
+            </Typography>
+
+            {/* METRICAS EN UNA LÍNEA FLEXIBLE */}
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 1.4,
+                mt: 0.4,
+                fontSize: "0.85rem",
+                color: "grey.700",
+              }}
+            >
+              <span>
+                Presupuesto: ${formatCurrency(tienda.presupuesto_tienda)}
+              </span>
+              <span>|</span>
+              <span>Ventas: ${formatCurrency(tienda.ventas_tienda)}</span>
+              <span>|</span>
+
               <span
-                className={`font-semibold ${getCumplimientoColor(
-                  tienda.cumplimiento_tienda_pct
-                )}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "0.85rem",
+                  color: "grey.700",
+                }}
               >
-                Cumplimiento: {tienda.cumplimiento_tienda_pct.toFixed(2)}%{" "}
+                Cumplimiento:
+              </span>
+              {/* Porcentaje con color dinámico */}
+              <span
+                style={{
+                  color: getCumplimientoColor(tienda.cumplimiento_tienda_pct),
+                  fontWeight: 600,
+                }}
+              >
+                {tienda.cumplimiento_tienda_pct.toFixed(2)}%
+              </span>
+              {/* Badge MATERIAL UI (ya formateado) */}
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 {getCumplimientoBadge(tienda.cumplimiento_tienda_pct)}
               </span>
-            </p>
-          </div>
-        </div>
-        <div className="text-right ml-auto">
-          <p className="font-semibold text-green-600">
-            💰 Comisiones: ${formatCurrency(tienda.total_comisiones)}
-          </p>
-          <p className="text-xs text-gray-500">
+            </Box>
+          </Box>
+        </Box>
+
+        {/* DERECHA */}
+        <Box sx={{ textAlign: "right" }}>
+          <Typography
+            sx={{
+              fontWeight: 600,
+              color: "green",
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <AttachMoney sx={{ fontSize: 20 }} />
+            {formatCurrency(totalComisionesFiltrado)}
+          </Typography>
+
+          <Typography sx={{ fontSize: "0.75rem", color: "grey.500" }}>
             {empleadosConVentas.length} empleado
-            {empleadosConVentas.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-      </Button>
+            {empleadosConVentas.length !== 1 && "s"}
+          </Typography>
+        </Box>
+      </CardActionArea>
 
-      {/* Contenido Expandido */}
-      {isExpanded && (
-        <CardContent className="p-0">
-          {/* Editor de Ventas */}
-          <VentasEditor
-            tienda={tienda}
-            ventasTiendaInput={ventasTiendaInput}
-            onVentasTiendaChange={onVentasTiendaChange}
-            onSaveVentas={handleSaveVentas}
-            readOnly={readOnly}
-          />
-
-          {/* Tabla de Empleados */}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
+      {/* CONTENIDO EXPANDIBLE */}
+      <Collapse in={isExpanded} timeout="auto">
+        <Divider />
+        <CardContent sx={{ p: 0 }}>
+          {/* TABLA DE EMPLEADOS */}
+          <Box sx={{ overflowX: "auto" }}>
+            <Table sx={{ minWidth: 900 }}>
+              <TableHead>
                 <TableRow>
-                  <TableHead className="px-4 py-3">👤 Empleado</TableHead>
-                  <TableHead className="px-4 py-3">🏷️ Rol</TableHead>
-                  <TableHead className="px-4 py-3 text-right">
-                    💼 Presupuesto
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-right">
-                    💰 Ventas
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-right">
-                    📈 Cumplimiento
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-right">
-                    🎯 % Comisión
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-right">
-                    💵 $ Comisión
-                  </TableHead>
+                  <TableCell>
+                    <Person sx={{ mr: 1 }} />
+                    Empleado
+                  </TableCell>
+                  <TableCell>
+                    <Badge sx={{ mr: 1 }} />
+                    Rol
+                  </TableCell>
+                  <TableCell align="right">
+                    <Work sx={{ mr: 1, color: "orange" }} />
+                    Presupuesto
+                  </TableCell>
+                  <TableCell align="right">
+                    <ShoppingBag sx={{ mr: 1, color: "green" }} />
+                    Ventas
+                  </TableCell>
+                  <TableCell align="right">
+                    <TrendingUp sx={{ mr: 1, color: "blue" }} />
+                    Cumplimiento
+                  </TableCell>
+                  <TableCell align="right">
+                    <Percent sx={{ mr: 1, color: "blue" }} />% Comisión
+                  </TableCell>
+                  <TableCell align="right">
+                    <AttachMoney sx={{ mr: 1, color: "teal" }} />$ Comisión
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
+              </TableHead>
+
               <TableBody>
                 {empleadosConVentas.map((empleado, idx) => (
                   <EmployeeRow
@@ -209,26 +311,9 @@ const StoreExpandableCardComponent: React.FC<StoreExpandableCardProps> = ({
                 ))}
               </TableBody>
             </Table>
-          </div>
-
-          {/* Footer con resumen */}
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-            <div className="flex justify-between items-center text-sm text-gray-600">
-              <span>
-                📊 Total empleados: <strong>{empleadosConVentas.length}</strong>
-              </span>
-              <span>
-                💰 Total comisiones:{" "}
-                <strong className="text-green-600">
-                  ${formatCurrency(tienda.total_comisiones)}
-                </strong>
-              </span>
-            </div>
-          </div>
+          </Box>
         </CardContent>
-      )}
+      </Collapse>
     </Card>
   );
 };
-
-export const StoreExpandableCard = React.memo(StoreExpandableCardComponent);
