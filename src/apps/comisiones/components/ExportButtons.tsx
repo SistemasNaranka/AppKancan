@@ -1,9 +1,19 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import React, { useState } from 'react';
 import { MesResumen } from '../types';
-import { Download as DownloadIcon, Description } from '@mui/icons-material';
+import { 
+  Download as DownloadIcon, 
+  Description,
+  FileDownload as FileDownloadIcon 
+} from '@mui/icons-material';
+import { 
+  Button, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  InputLabel,
+  Box,
+  Typography
+} from '@mui/material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '../lib/utils';
@@ -14,6 +24,8 @@ interface ExportButtonsProps {
 }
 
 export const ExportButtons: React.FC<ExportButtonsProps> = ({ mesResumen, mes }) => {
+  const [exportType, setExportType] = useState<string>('');
+
   const handleExportCSV = () => {
     if (!mesResumen) return;
 
@@ -118,32 +130,40 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ mesResumen, mes })
   };
 
   const handleExport = (value: string) => {
+    setExportType(value);
     if (value === 'csv') {
       handleExportCSV();
     } else if (value === 'pdf') {
       handleExportPDF();
     }
+    // Reset the select after export
+    setTimeout(() => setExportType(''), 100);
   };
 
   return (
-    <Select onValueChange={handleExport} disabled={!mesResumen}>
-      <SelectTrigger className="w-40">
-        <SelectValue placeholder="Exportar" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="csv">
-          <div className="flex items-center gap-2">
-            <DownloadIcon className="w-4 h-4" />
-            Archivo CSV
-          </div>
-        </SelectItem>
-        <SelectItem value="pdf">
-          <div className="flex items-center gap-2">
-            <Description className="w-4 h-4" />
-            Archivo PDF
-          </div>
-        </SelectItem>
-      </SelectContent>
-    </Select>
+    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+      <FormControl size="small" sx={{ minWidth: 140 }}>
+        <InputLabel>Exportar</InputLabel>
+        <Select
+          value={exportType}
+          onChange={(e) => handleExport(e.target.value as string)}
+          disabled={!mesResumen}
+          label="Exportar"
+        >
+          <MenuItem value="csv">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <DownloadIcon fontSize="small" />
+              <Typography>Archivo CSV</Typography>
+            </Box>
+          </MenuItem>
+          <MenuItem value="pdf">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Description fontSize="small" />
+              <Typography>Archivo PDF</Typography>
+            </Box>
+          </MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
   );
 };

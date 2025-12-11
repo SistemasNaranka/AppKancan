@@ -1,9 +1,16 @@
 import React, { useCallback } from "react";
 import { EmployeeCommission } from "../types";
 import { formatCurrency } from "../lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { TableRow, TableCell } from "@/components/ui/table";
+import {
+  Box,
+  Typography,
+  Chip,
+  TextField,
+  TableRow,
+  TableCell,
+  IconButton,
+  useTheme,
+} from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import WorkIcon from "@mui/icons-material/Work";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
@@ -33,92 +40,58 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
   onVentasAsesorChange,
   readOnly = false,
 }) => {
-  /**
-   * Obtiene el variant del Badge basado en el rol
-   */
-  const getRoleBadgeVariant = useCallback(
-    (rol: string): "default" | "secondary" | "destructive" | "outline" => {
-      switch (rol) {
-        case "gerente":
-          return "default";
-        case "asesor":
-          return "secondary";
-        case "cajero":
-          return "outline";
-        default:
-          return "outline";
-      }
-    },
-    []
-  );
+  const theme = useTheme();
 
   /**
    * Obtiene el color del badge para el rol
    */
-  const getRoleBadgeStyle = useCallback((rol: string): string => {
+  const getRoleBadgeColor = useCallback((rol: string): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
     switch (rol) {
       case "gerente":
-        return "bg-gray-100 text-black border-gray-200";
+        return "primary";
       case "asesor":
-        return "bg-gray-100 text-black border-gray-200";
+        return "secondary";
       case "cajero":
-        return "bg-gray-100 text-black border-gray-200";
+        return "info";
       default:
-        return "bg-gray-100 text-black border-gray-200";
+        return "default";
     }
   }, []);
 
   /**
-   * Obtiene el icono del rol (muted)
+   * Obtiene el icono del rol
    */
-  const getRoleIcon = useCallback((rol: string): JSX.Element => {
+  const getRoleIcon = useCallback((rol: string) => {
     switch (rol) {
       case "gerente":
-        return <PersonIcon className="text-gray-400" />;
+        return <PersonIcon sx={{ color: "text.secondary" }} />;
       case "asesor":
-        return <WorkIcon className="text-gray-400" />;
+        return <WorkIcon sx={{ color: "text.secondary" }} />;
       case "cajero":
-        return <CreditCardIcon className="text-gray-400" />;
+        return <CreditCardIcon sx={{ color: "text.secondary" }} />;
       default:
-        return <PersonIcon className="text-gray-400" />;
+        return <PersonIcon sx={{ color: "text.secondary" }} />;
     }
   }, []);
 
   /**
-   * Obtiene el color del cumplimiento (fuerte para métricas de rendimiento)
+   * Obtiene el color del cumplimiento basado en el porcentaje
    */
-  const getCumplimientoColor = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return "text-emerald-700 font-bold";
-    if (cumplimiento >= 100) return "text-green-700 font-bold";
-    if (cumplimiento >= 95) return "text-orange-700 font-bold";
-    return "text-red-700 font-bold";
+  const getCumplimientoColor = useCallback((cumplimiento: number): "success.main" | "primary.main" | "warning.main" | "error.main" => {
+    if (cumplimiento >= 110) return "success.main"; // Verde fuerte
+    if (cumplimiento >= 100) return "primary.main"; // Azul/Verde
+    if (cumplimiento >= 95) return "warning.main"; // Naranja
+    return "error.main"; // Rojo
   }, []);
-
-  const getColorByCumplimiento = (cumplimiento: number): string => {
-    if (cumplimiento >= 1.1) return "text-emerald-700 font-medium"; // verde fuerte
-    if (cumplimiento >= 1.0) return "text-blue-700 font-medium"; // verde
-    if (cumplimiento >= 0.95) return "text-yellow-700 font-medium"; // naranja
-    return "text-black-700 font-medium"; // rojo
-  };
 
   /**
    * Obtiene el color de fondo de la fila basado en el cumplimiento
    */
   const getRowBackgroundColor = useCallback((cumplimiento: number): string => {
-    if (cumplimiento >= 110) return "bg-emerald-50"; // Sobresaliente
-    if (cumplimiento >= 100) return "bg-blue-50"; // Excelente
-    if (cumplimiento >= 95) return "bg-yellow-50"; // Próximo Meta
-    return "bg-white-50"; // En Desarrollo
-  }, []);
-
-  /**
-   * Obtiene el color fuerte para métricas de rendimiento
-   */
-  const getPerformanceColor = useCallback((value: number): string => {
-    if (value >= 1) return "text-emerald-700 font-bold";
-    if (value >= 0.7) return "text-blue-700 font-bold";
-    if (value >= 0.35) return "text-orange-700 font-bold";
-    return "text-red-700 font-bold";
+    if (cumplimiento >= 110) return "success.light"; // Sobresaliente
+    if (cumplimiento >= 100) return "primary.light"; // Excelente
+    if (cumplimiento >= 95) return "warning.light"; // Próximo Meta
+    return "background.default"; // En Desarrollo
   }, []);
 
   /**
@@ -134,91 +107,114 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
 
   return (
     <TableRow
-      className={`${getRowBackgroundColor(
-        empleado.cumplimiento_pct
-      )} hover:bg-opacity-80 transition-colors`}
+      sx={{
+        backgroundColor: getRowBackgroundColor(empleado.cumplimiento_pct),
+        "&:hover": {
+          backgroundColor: `${getRowBackgroundColor(empleado.cumplimiento_pct)} !important`,
+          opacity: 0.9,
+        },
+        transition: "background-color 0.2s ease-in-out",
+      }}
     >
       {/* Nombre del Empleado */}
-      <TableCell className="py-3">
-        <div className="flex items-center gap-2">
+      <TableCell sx={{ py: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {getRoleIcon(empleado.rol)}
-          <span className="font-medium text-black">{empleado.nombre}</span>
-        </div>
+          <Typography variant="body2" fontWeight="500">
+            {empleado.nombre}
+          </Typography>
+        </Box>
       </TableCell>
 
       {/* Rol */}
-      <TableCell className="py-3">
-        <Badge
-          className={`${getRoleBadgeStyle(empleado.rol)} text-black`}
-          variant="outline"
-        >
-          {empleado.rol.charAt(0).toUpperCase() + empleado.rol.slice(1)}
-        </Badge>
+      <TableCell sx={{ py: 2 }}>
+        <Chip
+          label={empleado.rol.charAt(0).toUpperCase() + empleado.rol.slice(1)}
+          size="small"
+          variant="outlined"
+          color={getRoleBadgeColor(empleado.rol)}
+          sx={{ textTransform: "capitalize" }}
+        />
       </TableCell>
 
       {/* Presupuesto */}
-      <TableCell className="py-3 text-right">
-        <span className="font-medium text-black">
+      <TableCell sx={{ py: 2, textAlign: 'right' }}>
+        <Typography variant="body2" fontWeight="500">
           ${formatCurrency(empleado.presupuesto)}
-        </span>
+        </Typography>
       </TableCell>
 
       {/* Ventas */}
-      <TableCell className="py-3 text-right">
+      <TableCell sx={{ py: 2, textAlign: 'right' }}>
         {empleado.rol === "asesor" ? (
           readOnly ? (
-            <span className="font-medium text-black">
+            <Typography variant="body2" fontWeight="500">
               ${formatCurrency(ventasAsesorInput || empleado.ventas)}
-            </span>
+            </Typography>
           ) : (
-            <div className="flex items-center justify-end">
-              <span className="text-gray-400 mr-1">$</span>
-              <Input
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+              <Typography variant="body2" color="text.secondary">$</Typography>
+              <TextField
                 type="number"
                 value={ventasAsesorInput || ""}
                 onChange={handleVentasChange}
-                className="w-24 text-right"
+                size="small"
+                variant="outlined"
                 placeholder="0"
-                min="0"
-                step="0.01"
+                inputProps={{
+                  min: 0,
+                  step: 0.01,
+                  style: { textAlign: 'right', width: 100 }
+                }}
+                sx={{
+                  '& .MuiInputBase-root': {
+                    height: 32,
+                  },
+                }}
               />
-            </div>
+            </Box>
           )
         ) : (
-          <span className="font-medium text-black">
+          <Typography variant="body2" fontWeight="500">
             ${formatCurrency(empleado.ventas)}
-          </span>
+          </Typography>
         )}
       </TableCell>
 
       {/* Cumplimiento */}
-      <TableCell className="py-3 text-right">
-        <span
-          className={getColorByCumplimiento(empleado.cumplimiento_pct / 100)}
+      <TableCell sx={{ py: 2, textAlign: 'right' }}>
+        <Typography
+          variant="body2"
+          fontWeight="bold"
+          sx={{ color: getCumplimientoColor(empleado.cumplimiento_pct) }}
         >
           {empleado.cumplimiento_pct.toFixed(2)}%
-        </span>
+        </Typography>
       </TableCell>
 
       {/* Porcentaje de Comisión */}
-      <TableCell className="py-3 text-right">
-        <span
-          className={getColorByCumplimiento(empleado.cumplimiento_pct / 100)}
+      <TableCell sx={{ py: 2, textAlign: 'right' }}>
+        <Typography
+          variant="body2"
+          fontWeight="bold"
+          sx={{ color: getCumplimientoColor(empleado.cumplimiento_pct) }}
         >
           {(empleado.comision_pct * 100).toFixed(2)}%
-        </span>
+        </Typography>
       </TableCell>
 
       {/* Monto de Comisión */}
-      <TableCell className="py-3 text-right">
-        <div
-          className={`flex items-center justify-end gap-1 ${getColorByCumplimiento(
-            empleado.cumplimiento_pct / 100
-          )}`}
-        >
-          <AttachMoneyIcon />
-          <span>${formatCurrency(empleado.comision_monto)}</span>
-        </div>
+      <TableCell sx={{ py: 2, textAlign: 'right' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+          <AttachMoneyIcon sx={{ color: getCumplimientoColor(empleado.cumplimiento_pct) }} />
+          <Typography 
+            variant="body2" 
+            fontWeight="bold"
+            sx={{ color: getCumplimientoColor(empleado.cumplimiento_pct) }}
+          >
+            ${formatCurrency(empleado.comision_monto)}
+          </Typography>
+        </Box>
       </TableCell>
     </TableRow>
   );

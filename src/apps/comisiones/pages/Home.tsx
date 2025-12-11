@@ -1,26 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useCommission } from "../contexts/CommissionContext";
 import { useAuth } from "@/auth/hooks/useAuth";
-import { CSVUpload } from "../components/CSVUpload";
-import { ConfigurationPanel } from "../components/ConfigurationPanel";
-import { MobileAccordionFilters } from "../components/MobileAccordionFilters";
-import { DataTable } from "../components/DataTable";
-import { SummaryCards } from "../components/SummaryCards";
-import { Charts } from "../components/Charts";
-import { ExportButtons } from "../components/ExportButtons";
-import { CodesModal } from "../components/CodesModal";
-import { NoDataModal } from "../components/NoDataModal";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogContentText,
-  DialogActions,
-  Box,
-  Typography,
-  Fade,
-} from "@mui/material";
 import {
   getAvailableMonths,
   calculateMesResumenAgrupado,
@@ -36,7 +16,7 @@ import {
   obtenerVentasEmpleados,
 } from "../api/directus/read";
 import { validateStaffAssignment } from "../lib/validation";
-import { Settings, AlertTriangle, Users } from "lucide-react";
+import { HomeView } from "./HomeView";
 
 export default function Home() {
   const { state, setBudgets, setStaff, setMonthConfigs, setVentas } =
@@ -259,25 +239,6 @@ export default function Home() {
     return validateStaffAssignment(state.staff);
   }, [state.staff]);
 
-  // Función auxiliar para convertir nombre de mes a número
-  const getMonthNumber = (monthName: string): string => {
-    const months: { [key: string]: string } = {
-      Ene: "01",
-      Feb: "02",
-      Mar: "03",
-      Abr: "04",
-      May: "05",
-      Jun: "06",
-      Jul: "07",
-      Ago: "08",
-      Sep: "09",
-      Oct: "10",
-      Nov: "11",
-      Dic: "12",
-    };
-    return months[monthName] || "01";
-  };
-
   // Función para cargar datos
   const loadDataForMonth = async () => {
     try {
@@ -404,10 +365,10 @@ export default function Home() {
           cargoNombre === "gerente"
             ? "gerente"
             : cargoNombre === "asesor"
-            ? "asesor"
-            : cargoNombre === "cajero"
-            ? "cajero"
-            : "logistico";
+              ? "asesor"
+              : cargoNombre === "cajero"
+                ? "cajero"
+                : "logistico";
 
         staff.push({
           id: asesor.id.toString(),
@@ -439,10 +400,10 @@ export default function Home() {
                   cargoNombre === "gerente"
                     ? "gerente"
                     : cargoNombre === "asesor"
-                    ? "asesor"
-                    : cargoNombre === "cajero"
-                    ? "cajero"
-                    : "logistico";
+                      ? "asesor"
+                      : cargoNombre === "cajero"
+                        ? "cajero"
+                        : "logistico";
               }
             }
 
@@ -564,237 +525,68 @@ export default function Home() {
     reloadContextData();
   };
 
+  // Handler para actualizar ventas
+  const handleVentasUpdate = (
+    tienda: string,
+    fecha: string,
+    ventas_tienda: number,
+    ventas_por_asesor: Record<string, number>
+  ) => {
+    setVentas([
+      ...state.ventas.filter(
+        (v) => !(v.tienda === tienda && v.fecha === fecha)
+      ),
+      { tienda, fecha, ventas_tienda, ventas_por_asesor },
+    ]);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Comisiones {selectedMonth}
-              </h1>
-
-              {/* {(filterTienda.length > 0 ||
-                filterRol !== "all" ||
-                filterFechaInicio ||
-                filterFechaFin) && (
-                <span className="text-blue-600">
-                  • Filtrado por:{" "}
-                  {filterTienda.length > 0
-                    ? `Tiendas: ${filterTienda.join(", ")}`
-                    : ""}
-                  {filterTienda.length > 0 &&
-                  (filterRol !== "all" || filterFechaInicio || filterFechaFin)
-                    ? " • "
-                    : ""}
-                  {filterRol !== "all" ? `Rol "${filterRol}"` : ""}
-                  {filterRol !== "all" && (filterFechaInicio || filterFechaFin)
-                    ? " • "
-                    : ""}
-                  {filterFechaInicio || filterFechaFin
-                    ? `Fechas: ${filterFechaInicio || "..."} - ${
-                        filterFechaFin || "..."
-                      }`
-                    : ""}
-                </span>
-              )} */}
-            </div>
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {/* <Button
-              onClick={() => setShowConfigModal(true)}
-              variant="outlined"
-              startIcon={<Settings />}
-              size="small"
-              sx={{
-                minWidth: "auto",
-                px: { xs: 1.5, sm: 2 },
-              }}
-            >
-              <span className="hidden xs:inline">Configuración</span>
-              <span className="xs:hidden">Conf</span>
-            </Button> */}
-            {(mesResumenFiltrado || mesResumen) && (
-              <ExportButtons
-                mesResumen={mesResumenFiltrado || mesResumen}
-                mes={selectedMonth}
-              />
-            )}
-            {/*  <Button
-              onClick={() => setShowCodesModal(true)}
-              variant="outlined"
-              startIcon={<Users />}
-              size="small"
-              sx={{ minWidth: "auto", px: { xs: 1.5, sm: 2 } }}
-            >
-              <span className="hidden xs:inline">Asignar</span>
-              <span className="xs:hidden">Asig</span>
-            </Button> */}
-          </div>
-
-          {/* Mobile Accordion Filters */}
-          <MobileAccordionFilters
-            selectedMonth={selectedMonth}
-            availableMonths={availableMonths}
-            onFilterRolChange={handleFilterRolChangeWrapper}
-            onMonthChange={setSelectedMonth}
-            filterTienda={filterTienda}
-            onFilterTiendaChange={handleFilterTiendaChange}
-            filterRol={filterRol}
-            filterFechaInicio={filterFechaInicio}
-            onFilterFechaInicioChange={setFilterFechaInicio}
-            filterFechaFin={filterFechaFin}
-            onFilterFechaFinChange={setFilterFechaFin}
-            onClearFilters={handleClearFilters}
-          />
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <div className="space-y-6 sm:space-y-8">
-          {/* Alertas de Validación */}
-          {staffValidationErrors.length > 0 && (
-            <section className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-yellow-800 mb-2">
-                    Advertencias de Configuración
-                  </h3>
-                  <ul className="text-sm text-yellow-700 space-y-1">
-                    {staffValidationErrors.map((error, index) => (
-                      <li key={index}>• {error.message}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Sección de Datos */}
-          <section className="space-y-8">
-            {/* Resumen Ejecutivo */}
-            <section className="space-y-4">
-              <SummaryCards
-                mesResumen={mesResumenFiltrado || mesResumen}
-                onFilterRolChange={handleFilterRolChange}
-                onToggleAllStores={handleToggleAllStores}
-                currentFilterRol={filterRol}
-                expandedTiendas={expandedTiendas}
-              />
-            </section>
-
-            {/* Tabla de Datos */}
-            <section className="space-y-4 pt-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Detalle de Comisiones</h2>
-                <div className="text-sm text-gray-500">
-                  Empleados: {state.staff.length} | Tiendas:{" "}
-                  {uniqueTiendas.length}
-                </div>
-              </div>
-              <DataTable
-                tiendas={(mesResumenFiltrado || mesResumen)?.tiendas || []}
-                cargos={cargos}
-                selectedMonth={selectedMonth}
-                onVentasUpdate={(
-                  tienda: string,
-                  fecha,
-                  ventas_tienda,
-                  ventas_por_asesor
-                ) => {
-                  setVentas([
-                    ...state.ventas.filter(
-                      (v) => !(v.tienda === tienda && v.fecha === fecha)
-                    ),
-                    { tienda, fecha, ventas_tienda, ventas_por_asesor },
-                  ]);
-                }}
-                readOnly={true}
-                expandedTiendas={expandedTiendas}
-                filterRol={filterRol}
-              />
-            </section>
-
-            {/* Gráficos */}
-            {(mesResumenFiltrado || mesResumen) && (
-              <section className="space-y-4 pt-8">
-                <h2 className="text-xl font-semibold">Análisis Visual</h2>
-                <Charts mesResumen={mesResumenFiltrado || mesResumen} />
-              </section>
-            )}
-          </section>
-        </div>
-      </main>
-
-      {/* Configuration Modal */}
-      <Dialog
-        open={showConfigModal}
-        onClose={() => setShowConfigModal(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>Configuración de Comisiones</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 3 }}>
-            Configure los presupuestos y parámetros de comisiones para el mes
-            seleccionado.
-          </DialogContentText>
-
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "24px" }}
-          >
-            {/* Panel de Configuración */}
-            {state.budgets.length > 0 && (
-              <div
-                style={{
-                  padding: "24px",
-                  border: "1px solid #e0e0e0",
-                  borderRadius: "8px",
-                }}
-              >
-                <h2
-                  style={{
-                    fontSize: "1.25rem",
-                    fontWeight: "600",
-                    marginBottom: "16px",
-                  }}
-                >
-                  Configuración Avanzada
-                </h2>
-                <ConfigurationPanel mes={selectedMonth} />
-              </div>
-            )}
-          </div>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowConfigModal(false)}>Cerrar</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Codes Modal */}
-      <CodesModal
-        isOpen={showCodesModal}
-        onClose={() => setShowCodesModal(false)}
-        selectedMonth={selectedMonth}
-        onAssignmentComplete={(ventasData) => {
-          handleAssignmentComplete();
-          setShowCodesModal(false);
-        }}
-      />
-
-      {/* No Data Modal */}
-      <NoDataModal
-        open={showNoDataModal}
-        onClose={() => setShowNoDataModal(false)}
-        tiendaNombre="todas las tiendas"
-        mesSeleccionado={selectedMonth}
-        title={modalTitle}
-        message={modalMessage}
-      />
-    </div>
+    <HomeView
+      // Estados y datos
+      selectedMonth={selectedMonth}
+      showConfigModal={showConfigModal}
+      showCodesModal={showCodesModal}
+      showNoDataModal={showNoDataModal}
+      modalTitle={modalTitle}
+      modalMessage={modalMessage}
+      filterTienda={filterTienda}
+      filterRol={filterRol}
+      filterFechaInicio={filterFechaInicio}
+      filterFechaFin={filterFechaFin}
+      expandedTiendas={expandedTiendas}
+      presupuestosEmpleados={presupuestosEmpleados}
+      cargos={cargos}
+      
+      // Datos computados
+      availableMonths={availableMonths}
+      mesResumen={mesResumen}
+      mesResumenFiltrado={mesResumenFiltrado}
+      uniqueTiendas={uniqueTiendas}
+      staffValidationErrors={staffValidationErrors}
+      state={state}
+      
+      // Handlers
+      setSelectedMonth={setSelectedMonth}
+      setShowConfigModal={setShowConfigModal}
+      setShowCodesModal={setShowCodesModal}
+      setShowNoDataModal={setShowNoDataModal}
+      setModalTitle={setModalTitle}
+      setModalMessage={setModalMessage}
+      setFilterTienda={setFilterTienda}
+      setFilterRol={setFilterRol}
+      setFilterFechaInicio={setFilterFechaInicio}
+      setFilterFechaFin={setFilterFechaFin}
+      setExpandedTiendas={setExpandedTiendas}
+      setVentas={setVentas}
+      
+      // Funciones
+      handleClearFilters={handleClearFilters}
+      handleFilterTiendaChange={handleFilterTiendaChange}
+      handleFilterRolChangeWrapper={handleFilterRolChangeWrapper}
+      handleFilterRolChange={handleFilterRolChange}
+      handleToggleAllStores={handleToggleAllStores}
+      handleAssignmentComplete={handleAssignmentComplete}
+      onVentasUpdate={handleVentasUpdate}
+    />
   );
 }

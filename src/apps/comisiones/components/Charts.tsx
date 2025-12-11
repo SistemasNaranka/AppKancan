@@ -5,7 +5,7 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
- ArcElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -13,6 +13,16 @@ import {
 } from 'chart.js';
 import { MesResumen } from '../types';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { 
+  Box, 
+  Typography, 
+  Card, 
+  CardContent,
+  Skeleton,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
+import { TrendingUp, PieChart } from '@mui/icons-material';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend, ChartDataLabels);
 
@@ -21,12 +31,31 @@ interface ChartsProps {
 }
 
 export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+
   if (!mesResumen) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 h-80 animate-pulse"></div>
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 h-80 animate-pulse"></div>
-      </div>
+      <Box 
+        sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+          gap: 3 
+        }}
+      >
+        <Card sx={{ height: 320 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Skeleton variant="text" width="60%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={240} />
+          </CardContent>
+        </Card>
+        <Card sx={{ height: 320 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Skeleton variant="text" width="60%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={240} />
+          </CardContent>
+        </Card>
+      </Box>
     );
   }
 
@@ -52,8 +81,8 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
       {
         label: 'Comisiones ($)',
         data: vendedoresData,
-        backgroundColor: '#3b82f6',
-        borderColor: '#fff',
+        backgroundColor: theme.palette.primary.main,
+        borderColor: theme.palette.background.paper,
         borderWidth: 2,
       },
     ],
@@ -69,8 +98,12 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
           mesResumen.comisiones_por_rol.asesor,
           mesResumen.comisiones_por_rol.cajero,
         ],
-        backgroundColor: ['#a855f7', '#3b82f6', '#f59e0b'],
-        borderColor: '#fff',
+        backgroundColor: [
+          theme.palette.secondary.main,
+          theme.palette.primary.main,
+          theme.palette.warning.main,
+        ],
+        borderColor: theme.palette.background.paper,
         borderWidth: 2,
       },
     ],
@@ -82,17 +115,27 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
     plugins: {
       legend: {
         position: 'bottom' as const,
+        labels: {
+          color: theme.palette.text.primary,
+          usePointStyle: true,
+          padding: 20,
+        },
       },
       tooltip: {
+        backgroundColor: theme.palette.background.paper,
+        titleColor: theme.palette.text.primary,
+        bodyColor: theme.palette.text.primary,
+        borderColor: theme.palette.divider,
+        borderWidth: 1,
         callbacks: {
           label: function(context: TooltipItem<'bar'>) {
             const value = context.parsed.x || 0;
             if (value >= 1000000) {
-              return `Ventas: $${(value / 1000000).toFixed(1)}M`;
+              return `Comisión: $${(value / 1000000).toFixed(1)}M`;
             } else if (value >= 1000) {
-              return `Ventas: $${(value / 1000).toFixed(1)}K`;
+              return `Comisión: $${(value / 1000).toFixed(1)}K`;
             } else {
-              return `Ventas: $${value.toLocaleString()}`;
+              return `Comisión: $${value.toLocaleString()}`;
             }
           }
         }
@@ -102,6 +145,7 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
       x: {
         beginAtZero: true,
         ticks: {
+          color: theme.palette.text.secondary,
           callback: function(value: string | number) {
             const numValue = typeof value === 'string' ? parseFloat(value) : value;
             if (numValue >= 100000) {
@@ -113,9 +157,17 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
             }
           },
         },
+        grid: {
+          color: theme.palette.divider,
+        },
       },
       y: {
-        // No se necesita configuración adicional para el eje Y
+        ticks: {
+          color: theme.palette.text.secondary,
+        },
+        grid: {
+          color: theme.palette.divider,
+        },
       },
     },
   };
@@ -126,8 +178,18 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
     plugins: {
       legend: {
         position: 'bottom' as const,
+        labels: {
+          color: theme.palette.text.primary,
+          usePointStyle: true,
+          padding: 20,
+        },
       },
       tooltip: {
+        backgroundColor: theme.palette.background.paper,
+        titleColor: theme.palette.text.primary,
+        bodyColor: theme.palette.text.primary,
+        borderColor: theme.palette.divider,
+        borderWidth: 1,
         callbacks: {
           label: function(context: TooltipItem<'doughnut'>) {
             const value = context.parsed || 0;
@@ -145,68 +207,99 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <Box 
+      sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+        gap: 3 
+      }}
+    >
       {/* Gráfico de Top 10 Vendedores */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <h3 className="font-semibold text-lg mb-4">Top 10 Vendedores por Comisiones</h3>
-        <div className="h-80">
-          <Bar
-           data={vendedoresChartData}
-           options={{
-             ...barChartOptions,
-             indexAxis: 'y', // Orientación horizontal (barras horizontales)
-             plugins: {
-               ...barChartOptions.plugins,
-               tooltip: {
-                 callbacks: {
-                   label: function(context) {
-                     const value = context.parsed.x || 0;
-                     if (value >= 1000000) {
-                       return `Comisión: $${Math.round(value / 1000000)}M`;
-                     } else if (value >= 1000) {
-                       return `Comisión: $${Math.round(value / 1000)}K`;
-                     } else {
-                       return `Comisión: $${Math.round(value).toLocaleString()}`;
-                     }
-                   }
-                 }
-               }
-             },
-             scales: {
-               x: { // El eje X ahora es el eje de valores
-                 beginAtZero: true,
-                 ticks: {
-                   callback: function(value: string | number) {
-                     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-                     if (numValue >= 1000000) {
-                       return '$' + Math.round(numValue / 1000000) + 'M';
-                     } else if (numValue >= 1000) {
-                       return '$' + Math.round(numValue / 1000) + 'K';
-                     } else {
-                       return '$' + Math.round(numValue).toLocaleString();
-                     }
-                   },
-                 },
-               },
-               y: { // El eje Y ahora es el eje de categorías
-                 // No se necesita configuración adicional para el eje Y
-               },
-             },
-           }}
-         />
-        </div>
-      </div>
+      <Card sx={{ height: 320 }}>
+        <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <TrendingUp color="primary" />
+            <Typography variant="h6" component="h3" fontWeight="bold">
+              Top 10 Vendedores por Comisiones
+            </Typography>
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 240 }}>
+            <Bar
+              data={vendedoresChartData}
+              options={{
+                ...barChartOptions,
+                indexAxis: 'y' as const, // Orientación horizontal (barras horizontales)
+                plugins: {
+                  ...barChartOptions.plugins,
+                  tooltip: {
+                    ...barChartOptions.plugins?.tooltip,
+                    callbacks: {
+                      ...barChartOptions.plugins?.tooltip?.callbacks,
+                      label: function(context) {
+                        const value = context.parsed.x || 0;
+                        if (value >= 1000000) {
+                          return `Comisión: $${Math.round(value / 1000000)}M`;
+                        } else if (value >= 1000) {
+                          return `Comisión: $${Math.round(value / 1000)}K`;
+                        } else {
+                          return `Comisión: $${Math.round(value).toLocaleString()}`;
+                        }
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  x: { // El eje X ahora es el eje de valores
+                    beginAtZero: true,
+                    ticks: {
+                      color: theme.palette.text.secondary,
+                      callback: function(value: string | number) {
+                        const numValue = typeof value === 'string' ? parseFloat(value) : value;
+                        if (numValue >= 1000000) {
+                          return '$' + Math.round(numValue / 1000000) + 'M';
+                        } else if (numValue >= 1000) {
+                          return '$' + Math.round(numValue / 1000) + 'K';
+                        } else {
+                          return '$' + Math.round(numValue).toLocaleString();
+                        }
+                      },
+                    },
+                    grid: {
+                      color: theme.palette.divider,
+                    },
+                  },
+                  y: { // El eje Y ahora es el eje de categorías
+                    ticks: {
+                      color: theme.palette.text.secondary,
+                    },
+                    grid: {
+                      color: theme.palette.divider,
+                    },
+                  },
+                },
+              }}
+            />
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Gráfico de Distribución de Comisiones */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <h3 className="font-semibold text-lg mb-4">Distribución de Comisiones por Rol</h3>
-        <div className="h-80">
-          <Doughnut
-            data={commissionDistributionData}
-            options={doughnutChartOptions}
-          />
-        </div>
-      </div>
-    </div>
+      <Card sx={{ height: 320 }}>
+        <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <PieChart color="primary" />
+            <Typography variant="h6" component="h3" fontWeight="bold">
+              Distribución de Comisiones por Rol
+            </Typography>
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 240 }}>
+            <Doughnut
+              data={commissionDistributionData}
+              options={doughnutChartOptions}
+            />
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
