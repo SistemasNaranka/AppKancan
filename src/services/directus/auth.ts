@@ -64,6 +64,7 @@ export async function refreshDirectus(
 /**
  * Obtiene los datos del usuario autenticado.
  * ✅ Ahora con refresh automático si el token está expirado
+ * ✅ Consulta mejorada para obtener las políticas correctamente
  */
 export async function getCurrentUser() {
   return await withAutoRefresh(() =>
@@ -78,7 +79,27 @@ export async function getCurrentUser() {
           "role.name",
           "tienda_id",
           "id",
-        ], // incluye rol y tienda_id
+          // 1. Políticas asignadas directamente al usuario
+          {
+            policies: [
+              {
+                policy: ["name"],
+              },
+            ],
+          },
+          // 2. Rol y sus políticas
+          {
+            role: [
+              {
+                policies: [
+                  {
+                    policy: ["name"],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       })
     )
   );

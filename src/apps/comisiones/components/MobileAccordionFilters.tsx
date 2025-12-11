@@ -74,25 +74,41 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Card
           sx={{
-            mb: 3,
-            borderRadius: 2,
+            mb: 2,
+            borderRadius: 1.5,
             border: 1,
             borderColor: "divider",
-            boxShadow: 1,
+            boxShadow: 0,
           }}
         >
-          <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+          <CardContent
+            sx={{
+              p: 1.5, // 🔥 Menos padding
+              "&:last-child": { p: 1.5 },
+            }}
+          >
+            <Typography
+              variant="subtitle1"
+              sx={{
+                mb: 1,
+                fontWeight: 600,
+                fontSize: "0.95rem", // 🔥 Título más pequeño
+              }}
+            >
               Filtros
             </Typography>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              alignItems={{ xs: "stretch", sm: "center" }}
-              sx={{ flexWrap: "wrap", gap: 2 }}
+
+            {/* GRID COMPACTO */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "140px 1fr 110px", // 🔥 Más compacto
+                gap: 1.5,
+                alignItems: "center",
+              }}
             >
-              {/* Filtro de Mes */}
-              <FormControl size="small" sx={{ minWidth: 140, flex: 1 }}>
+              {/* Mes */}
+              <FormControl size="small" sx={{ width: "100%" }}>
                 <InputLabel>Mes</InputLabel>
                 <Select
                   value={selectedMonth}
@@ -107,41 +123,9 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
                 </Select>
               </FormControl>
 
-              {/* Filtro de Fecha Inicio */}
-              <DatePicker
-                label="Fecha inicio"
-                value={filterFechaInicio ? dayjs(filterFechaInicio) : null}
-                onChange={(date) =>
-                  onFilterFechaInicioChange(
-                    date ? date.format("YYYY-MM-DD") : ""
-                  )
-                }
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    sx: { minWidth: 140, flex: 1 },
-                  },
-                }}
-              />
-
-              {/* Filtro de Fecha Fin */}
-              <DatePicker
-                label="Fecha fin"
-                value={filterFechaFin ? dayjs(filterFechaFin) : null}
-                onChange={(date) =>
-                  onFilterFechaFinChange(date ? date.format("YYYY-MM-DD") : "")
-                }
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    sx: { minWidth: 140, flex: 1 },
-                  },
-                }}
-              />
-
-              {/* Filtro de Tienda con Autocompletado */}
+              {/* Tienda */}
               <AutocompleteSelect
-                multiple={true}
+                multiple
                 value={filterTienda}
                 onValueChange={onFilterTiendaChange}
                 options={tiendasOptions}
@@ -149,40 +133,25 @@ export const MobileAccordionFilters: React.FC<MobileAccordionFiltersProps> = ({
                 label="Tienda"
                 loading={loadingFilters}
                 size="small"
-                sx={{ minWidth: 200, flex: 2 }}
+                sx={{ width: "100%" }}
               />
 
-              {/* Filtro de Rol */}
-              <FormControl size="small" sx={{ minWidth: 140, flex: 1 }}>
-                <InputLabel>Rol</InputLabel>
-                <Select
-                  value={filterRol || "all"}
-                  onChange={(e) => onFilterRolChange(e.target.value)}
-                  label="Rol"
-                >
-                  <MenuItem value="all">Todos</MenuItem>
-                  <MenuItem value="gerente">Gerente</MenuItem>
-                  <MenuItem value="asesor">Asesor</MenuItem>
-                  <MenuItem value="cajero">Cajero</MenuItem>
-                  <MenuItem value="logistico">Logístico</MenuItem>
-                </Select>
-              </FormControl>
-
-              {/* Botón Limpiar Filtros */}
+              {/* Limpiar */}
               <Button
                 onClick={onClearFilters}
                 variant="outlined"
                 startIcon={<ClearIcon />}
                 size="small"
                 sx={{
-                  height: "40px",
-                  minWidth: "140px",
-                  flexShrink: 0,
+                  minWidth: "100%",
+                  py: 0.6, // 🔥 Más compacto
+                  textTransform: "none",
+                  fontSize: "0.85rem",
                 }}
               >
                 Limpiar
               </Button>
-            </Stack>
+            </Box>
           </CardContent>
         </Card>
       </LocalizationProvider>

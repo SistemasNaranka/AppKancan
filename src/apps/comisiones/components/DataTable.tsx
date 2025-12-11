@@ -22,8 +22,8 @@ interface DataTableProps {
   expandedTiendas?: Set<string>;
   /** Callback para cambiar estado de expansión */
   onToggleAllStores?: () => void;
-  /** Filtro de rol actualmente aplicado */
-  filterRol?: Role | "all";
+  /** Filtros de rol actualmente aplicados */
+  filterRol?: Role[];
 }
 
 /**
@@ -78,11 +78,19 @@ const DataTableComponent: React.FC<DataTableProps> = ({
 
   // Expandir/colapsar todas las tiendas según el filtro de rol
   React.useEffect(() => {
-    if (filterRol && filterRol !== "all") {
-      // Si hay filtro de rol específico, expandir todas las tiendas
+    if (filterRol && filterRol.length > 0 && externalExpandedTiendas) {
+      // Si hay filtros de rol específicos y se pasó el estado externo,
+      // actualizar el estado interno para reflejar la expansión
+      setExpandedTiendas(externalExpandedTiendas);
+    }
+  }, [filterRol, externalExpandedTiendas]);
+  // Expandir/colapsar todas las tiendas según el filtro de rol
+  React.useEffect(() => {
+    if (filterRol && filterRol.length > 0) {
+      // Si hay filtros de rol específicos, expandir todas las tiendas
       setExpandedTiendas(new Set(filteredTiendas.map((t) => t.tienda)));
     }
-    // Si no hay filtro de rol, mantener el estado actual
+    // Si no hay filtros de rol, mantener el estado actual
     // (no expandir ni colapsar automáticamente)
   }, [filterRol, filteredTiendas]);
 

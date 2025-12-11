@@ -16,6 +16,7 @@ export type User = {
   codigo_ultra: string;
   rol?: string;
   tienda_id?: number;
+  policies?: string[];
 } | null;
 /**
  *  Tipado de los valores que otorgara el Provider a sus hijos

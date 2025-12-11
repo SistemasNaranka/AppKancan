@@ -87,7 +87,7 @@ export const CompactFilters: React.FC<CompactFiltersProps> = ({
         </FormControl>
 
         {/* Filtro de Fecha Inicio */}
-        <DatePicker
+        {/* <DatePicker
           label="Fecha inicio"
           value={filterFechaInicio ? dayjs(filterFechaInicio) : null}
           onChange={(date) =>
@@ -101,7 +101,7 @@ export const CompactFilters: React.FC<CompactFiltersProps> = ({
           }}
         />
 
-        {/* Filtro de Fecha Fin */}
+      
         <DatePicker
           label="Fecha fin"
           value={filterFechaFin ? dayjs(filterFechaFin) : null}
@@ -114,7 +114,7 @@ export const CompactFilters: React.FC<CompactFiltersProps> = ({
               sx: { minWidth: 140, flex: 1 },
             },
           }}
-        />
+        /> */}
 
         {/* Filtro de Tienda con Autocompletado */}
         <AutocompleteSelect

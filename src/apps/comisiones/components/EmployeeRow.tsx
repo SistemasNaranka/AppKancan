@@ -100,16 +100,31 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
     if (cumplimiento >= 0.95) return "text-yellow-700 font-medium"; // naranja
     return "text-black-700 font-medium"; // rojo
   };
+  const getRowBackgroundColor = useCallback((comisionPct: number): string => {
+    // comisionPct viene como decimal (0.01 = 1%)
+    if (comisionPct >= 0.01) return "bg-emerald-50"; // ≥ 1.00%
+    if (comisionPct >= 0.007) return "bg-blue-50"; // ≥ 0.70%
+    if (comisionPct >= 0.0035) return "bg-yellow-50"; // ≥ 0.35%
+    return "bg-white"; // < 0.35%
+  }, []);
 
   /**
    * Obtiene el color de fondo de la fila basado en el cumplimiento
    */
-  const getRowBackgroundColor = useCallback((cumplimiento: number): string => {
+  /* const getRowBackgroundColor = useCallback((cumplimiento: number): string => {
     if (cumplimiento >= 110) return "bg-emerald-50"; // Sobresaliente
     if (cumplimiento >= 100) return "bg-blue-50"; // Excelente
     if (cumplimiento >= 95) return "bg-yellow-50"; // Próximo Meta
     return "bg-white-50"; // En Desarrollo
-  }, []);
+  }, []); */
+
+  const getColorByComisionPct = (pct: number): string => {
+    // pct viene como decimal — ej: 0.01 = 1%
+    if (pct >= 0.01) return "text-emerald-700 font-medium"; // ≥ 1.00%
+    if (pct >= 0.007) return "text-blue-700 font-medium"; // ≥ 0.70%
+    if (pct >= 0.0035) return "text-yellow-700 font-medium"; // ≥ 0.35%
+    return "text-gray-700 font-medium"; // < 0.35%
+  };
 
   /**
    * Obtiene el color fuerte para métricas de rendimiento
@@ -135,7 +150,7 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
   return (
     <TableRow
       className={`${getRowBackgroundColor(
-        empleado.cumplimiento_pct
+        empleado.comision_pct
       )} hover:bg-opacity-80 transition-colors`}
     >
       {/* Nombre del Empleado */}
@@ -202,9 +217,7 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
 
       {/* Porcentaje de Comisión */}
       <TableCell className="py-3 text-right">
-        <span
-          className={getColorByCumplimiento(empleado.cumplimiento_pct / 100)}
-        >
+        <span className={getColorByComisionPct(empleado.comision_pct)}>
           {(empleado.comision_pct * 100).toFixed(2)}%
         </span>
       </TableCell>
@@ -212,8 +225,8 @@ const EmployeeRowComponent: React.FC<EmployeeRowProps> = ({
       {/* Monto de Comisión */}
       <TableCell className="py-3 text-right">
         <div
-          className={`flex items-center justify-end gap-1 ${getColorByCumplimiento(
-            empleado.cumplimiento_pct / 100
+          className={`flex items-center justify-end gap-1 ${getColorByComisionPct(
+            empleado.comision_pct
           )}`}
         >
           <AttachMoneyIcon />

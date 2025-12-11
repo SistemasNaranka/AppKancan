@@ -49,7 +49,7 @@ interface StoreExpandableCardProps {
   ventasAsesorInput: Record<string, number>;
   onVentasAsesorChange: (asesorId: string, value: number) => void;
   readOnly?: boolean;
-  filterRol?: Role | "all";
+  filterRol?: Role[];
 }
 
 export const StoreExpandableCard: React.FC<StoreExpandableCardProps> = ({
@@ -73,7 +73,6 @@ export const StoreExpandableCard: React.FC<StoreExpandableCardProps> = ({
     return grey[700];
   }, []);
 
-  /** BADGE suave, no saturado */
   /** BADGE suave, no saturado */
   const getCumplimientoBadge = useCallback((c: number) => {
     if (c >= 110)
@@ -132,9 +131,15 @@ export const StoreExpandableCard: React.FC<StoreExpandableCardProps> = ({
     );
   }, []);
 
-  /** Ordenar empleados */
-  const empleadosConVentas = useMemo(() => {
+  /** Filtrar y ordenar empleados */
+  const empleadosFiltrados = useMemo(() => {
     return tienda.empleados
+      .filter((empleado) => {
+        // Si no hay filtros de rol, mostrar todos
+        if (!filterRol || filterRol.length === 0) return true;
+        // Si hay filtros de rol, mostrar solo empleados de esos roles
+        return filterRol.includes(empleado.rol);
+      })
       .map((empleado) => ({
         ...empleado,
         ventasTemporales: ventasAsesorInput[empleado.id] ?? empleado.ventas,
@@ -146,15 +151,13 @@ export const StoreExpandableCard: React.FC<StoreExpandableCardProps> = ({
         }
         return comisionDiff;
       });
-  }, [tienda.empleados, ventasAsesorInput]);
+  }, [tienda.empleados, ventasAsesorInput, filterRol]);
 
   /** Total filtrado */
   const totalComisionesFiltrado = useMemo(() => {
     if (filterRol === "all") return tienda.total_comisiones;
-    return empleadosConVentas
-      .filter((e) => e.rol === filterRol)
-      .reduce((total, e) => total + e.comision_monto, 0);
-  }, [empleadosConVentas, filterRol, tienda.total_comisiones]);
+    return empleadosFiltrados.reduce((total, e) => total + e.comision_monto, 0);
+  }, [empleadosFiltrados, filterRol, tienda.total_comisiones]);
 
   return (
     <Card sx={{ width: "100%", overflow: "hidden", mb: 2 }}>
@@ -252,8 +255,8 @@ export const StoreExpandableCard: React.FC<StoreExpandableCardProps> = ({
           </Typography>
 
           <Typography sx={{ fontSize: "0.75rem", color: "grey.500" }}>
-            {empleadosConVentas.length} empleado
-            {empleadosConVentas.length !== 1 && "s"}
+            {empleadosFiltrados.length} empleado
+            {empleadosFiltrados.length !== 1 && "s"}
           </Typography>
         </Box>
       </CardActionArea>
@@ -288,16 +291,18 @@ export const StoreExpandableCard: React.FC<StoreExpandableCardProps> = ({
                     Cumplimiento
                   </TableCell>
                   <TableCell align="right">
-                    <Percent sx={{ mr: 1, color: "blue" }} />% Comisión
+                    <Percent sx={{ mr: 1, color: "blue" }} />
+                    Comisión
                   </TableCell>
                   <TableCell align="right">
-                    <AttachMoney sx={{ mr: 1, color: "teal" }} />$ Comisión
+                    <AttachMoney sx={{ mr: 1, color: "teal" }} />
+                    Comisión
                   </TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {empleadosConVentas.map((empleado, idx) => (
+                {empleadosFiltrados.map((empleado, idx) => (
                   <EmployeeRow
                     key={empleado.id}
                     empleado={empleado}
