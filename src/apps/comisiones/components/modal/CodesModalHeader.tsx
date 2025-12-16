@@ -1,5 +1,5 @@
 import React from "react";
-import { DialogTitle, Box } from "@mui/material";
+import { DialogTitle } from "@mui/material";
 import { Work } from "@mui/icons-material";
 import { DirectusTienda } from "../../types";
 

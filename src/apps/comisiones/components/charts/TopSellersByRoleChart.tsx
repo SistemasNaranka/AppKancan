@@ -89,7 +89,7 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
   const [selectedRole, setSelectedRole] = useState(0);
 
   if (!mesResumen) {
@@ -149,15 +149,25 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
   const currentRole = roles[selectedRole];
   const topSellers = getTop5ByRole(currentRole);
 
-  // Calcular el total para el chip
+  // Calcular el total para el chip (valor original)
   const roleTotal =
     mesResumen.comisiones_por_rol[
       currentRole as keyof typeof mesResumen.comisiones_por_rol
     ] || 0;
 
+  // Crear etiquetas con truncado para móviles
+  const createTruncatedLabels = (labels: string[]) => {
+    return labels.map((label) => {
+      if (isMobile && label.length > 25) {
+        return label.substring(0, 25) + "...";
+      }
+      return label;
+    });
+  };
+
   const chartData = {
-    labels: topSellers.map(
-      (seller) => `${seller.tiendaNombre} - ${seller.nombre}`
+    labels: createTruncatedLabels(
+      topSellers.map((seller) => `${seller.tiendaNombre} - ${seller.nombre}`)
     ),
     datasets: [
       {
@@ -178,6 +188,7 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
   const chartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
+    indexAxis: "y" as const, // Hacer las barras horizontales
     plugins: {
       legend: {
         display: false,
@@ -190,13 +201,13 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
         borderWidth: 1,
         callbacks: {
           label: function (context: any) {
-            const value = context.parsed.y || 0;
+            const value = context.parsed.x || 0; // Cambiado de y a x para barras horizontales
             if (value >= 1000000) {
-              return `Comisión: $${(value / 1000000).toFixed(1)}M`;
+              return `Comisión: $${Math.round(value / 1000000)}M`; // Sin decimales
             } else if (value >= 1000) {
-              return `Comisión: $${(value / 1000).toFixed(1)}K`;
+              return `Comisión: $${Math.round(value / 1000)}K`; // Sin decimales
             } else {
-              return `Comisión: $${value.toLocaleString()}`;
+              return `Comisión: $${Math.round(value).toLocaleString()}`; // Sin decimales
             }
           },
         },
@@ -207,36 +218,36 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
         beginAtZero: true,
         ticks: {
           color: theme.palette.text.secondary,
-          maxRotation: isMobile ? 0 : 45,
+          maxRotation: 0, // Sin rotación para barras horizontales
           font: {
-            size: isMobile ? 9 : 11,
+            size: isMobile ? 8 : 10,
           },
-        },
-        grid: {
-          display: false,
-        },
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          color: theme.palette.text.secondary,
           callback: function (value: string | number) {
             const numValue =
               typeof value === "string" ? parseFloat(value) : value;
             if (numValue >= 1000000) {
-              return "$" + (numValue / 1000000).toFixed(1) + "M";
+              return "$" + Math.round(numValue / 1000000) + "M"; // Sin decimales
             } else if (numValue >= 1000) {
-              return "$" + Math.round(numValue / 1000) + "K";
+              return "$" + Math.round(numValue / 1000) + "K"; // Sin decimales
             } else {
-              return "$" + Math.round(numValue).toLocaleString();
+              return "$" + Math.round(numValue).toLocaleString(); // Sin decimales
             }
-          },
-          font: {
-            size: isMobile ? 9 : 11,
           },
         },
         grid: {
           color: theme.palette.divider,
+          drawBorder: false,
+        },
+      },
+      y: {
+        ticks: {
+          color: theme.palette.text.secondary,
+          font: {
+            size: isMobile ? 8 : 10,
+          },
+        },
+        grid: {
+          display: false, // Ocultar gridlines para barras horizontales
         },
       },
     },
@@ -254,7 +265,15 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
       <CardContent
         sx={{ height: "100%", display: "flex", flexDirection: "column" }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            mb: 2,
+            flexWrap: "wrap",
+          }}
+        >
           <TrendingUp
             sx={{
               color: roleConfig[currentRole as keyof typeof roleConfig].color,
@@ -272,7 +291,9 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
             Top 5 por Rol
           </Typography>
           <Chip
-            label={`Total: $${roleTotal.toLocaleString()}`}
+            label={`Total: $${parseInt(
+              roleTotal.toString().split(".")[0]
+            ).toLocaleString()}`}
             size="small"
             sx={{
               backgroundColor:

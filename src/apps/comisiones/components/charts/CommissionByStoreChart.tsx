@@ -8,7 +8,6 @@ import {
   ToggleButtonGroup,
   useTheme,
   useMediaQuery,
-  Grid,
   Chip,
   Avatar,
 } from "@mui/material";
@@ -71,7 +70,7 @@ export const CommissionByStoreChart: React.FC<CommissionByStoreChartProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
   const [viewMode, setViewMode] = useState<"grouped" | "stacked">("grouped");
 
   if (!mesResumen) {
@@ -180,13 +179,15 @@ export const CommissionByStoreChart: React.FC<CommissionByStoreChartProps> = ({
           label: function (context: any) {
             const value = context.parsed.y || 0;
             if (value >= 1000000) {
-              return `${context.dataset.label}: $${(value / 1000000).toFixed(
-                1
-              )}M`;
+              return `${context.dataset.label}: $${Math.round(
+                value / 1000000
+              )}M`; // Sin decimales
             } else if (value >= 1000) {
-              return `${context.dataset.label}: $${(value / 1000).toFixed(1)}K`;
+              return `${context.dataset.label}: $${Math.round(value / 1000)}K`; // Sin decimales
             } else {
-              return `${context.dataset.label}: $${value.toLocaleString()}`;
+              return `${context.dataset.label}: $${Math.round(
+                value
+              ).toLocaleString()}`; // Sin decimales
             }
           },
         },
@@ -215,11 +216,11 @@ export const CommissionByStoreChart: React.FC<CommissionByStoreChartProps> = ({
             const numValue =
               typeof value === "string" ? parseFloat(value) : value;
             if (numValue >= 1000000) {
-              return "$" + (numValue / 1000000).toFixed(1) + "M";
+              return "$" + Math.round(numValue / 1000000) + "M"; // Sin decimales
             } else if (numValue >= 1000) {
-              return "$" + Math.round(numValue / 1000) + "K";
+              return "$" + Math.round(numValue / 1000) + "K"; // Sin decimales
             } else {
-              return "$" + Math.round(numValue).toLocaleString();
+              return "$" + Math.round(numValue).toLocaleString(); // Sin decimales
             }
           },
         },
@@ -425,7 +426,8 @@ export const CommissionByStoreChart: React.FC<CommissionByStoreChartProps> = ({
                   fontWeight="bold"
                   gutterBottom
                 >
-                  ${store.total.toLocaleString()}
+                  ${Math.round(store.total).toLocaleString()}{" "}
+                  {/* Sin decimales */}
                 </Typography>
 
                 <Chip

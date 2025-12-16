@@ -2,7 +2,6 @@ import React from "react";
 import { Box, Typography, useTheme, useMediaQuery } from "@mui/material";
 import { TopSellersByRoleChart } from "./charts/TopSellersByRoleChart";
 import { CommissionDistributionChart } from "./charts/CommissionDistributionChart";
-import { CommissionByStoreChart } from "./charts/CommissionByStoreChart";
 import { MesResumen } from "../types";
 
 interface ChartsProps {
@@ -73,16 +72,6 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
         >
           <CommissionDistributionChart mesResumen={mesResumen} />
         </Box>
-      </Box>
-
-      {/* Gráfico 3: Comisiones por Tienda (ocupa todo el ancho) */}
-      <Box
-        sx={{
-          width: "100%",
-          minHeight: isMobile ? 450 : 500,
-        }}
-      >
-        <CommissionByStoreChart mesResumen={mesResumen} />
       </Box>
     </Box>
   );

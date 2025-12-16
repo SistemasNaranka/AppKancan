@@ -244,11 +244,16 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                         setNewBudget({ ...newBudget, tienda: e.target.value })
                       }
                     >
-                      {tiendas.map((tienda) => (
+                      {tiendas.slice(0, 5).map((tienda) => (
                         <MenuItem key={tienda.id} value={tienda.nombre}>
                           {tienda.nombre}
                         </MenuItem>
                       ))}
+                      {tiendas.length > 5 && (
+                        <MenuItem disabled value="">
+                          ... y {tiendas.length - 5} más
+                        </MenuItem>
+                      )}
                     </Select>
                   </FormControl>
                   <TextField
@@ -302,7 +307,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
             </Typography>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              {state.budgets.map((budget, index) => (
+              {state.budgets.slice(0, 5).map((budget, index) => (
                 <Box
                   key={`budget-${budget.tienda}-${budget.fecha}-${index}`}
                   sx={{
@@ -326,6 +331,23 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                   </Box>
                 </Box>
               ))}
+              {state.budgets.length > 5 && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "grey.100",
+                    p: 2,
+                    borderRadius: 1,
+                    border: "1px solid #e0e0e0",
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    ... y {state.budgets.length - 5} presupuestos más
+                  </Typography>
+                </Box>
+              )}
             </Box>
           )}
         </Box>
@@ -440,7 +462,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
             </Typography>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              {staffForMonth.map((staff, index) => (
+              {staffForMonth.slice(0, 5).map((staff, index) => (
                 <Box
                   key={`staff-${staff.id}-${index}-${Date.now()}`}
                   sx={{
@@ -470,6 +492,23 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                   </IconButton>
                 </Box>
               ))}
+              {staffForMonth.length > 5 && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "grey.100",
+                    p: 2,
+                    borderRadius: 1,
+                    border: "1px solid #e0e0e0",
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    ... y {staffForMonth.length - 5} empleados más
+                  </Typography>
+                </Box>
+              )}
             </Box>
           )}
         </Box>

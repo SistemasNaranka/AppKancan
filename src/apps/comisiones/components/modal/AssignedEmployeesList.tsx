@@ -23,8 +23,6 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
   empleadosAsignados,
   saving,
   onRemoveEmpleado,
-  getCargoNombre,
-  getTiendaNombre,
 }) => {
   return (
     <Box>

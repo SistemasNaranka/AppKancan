@@ -6,8 +6,6 @@ import {
   Typography,
   useTheme,
   useMediaQuery,
-  Grid,
-  Chip,
   LinearProgress,
 } from "@mui/material";
 import { Doughnut } from "react-chartjs-2";
@@ -53,7 +51,6 @@ export const CommissionDistributionChart: React.FC<
 > = ({ mesResumen }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
   if (!mesResumen) {
     return (
@@ -145,7 +142,7 @@ export const CommissionDistributionChart: React.FC<
             } else if (value >= 1000) {
               return `$${Math.round(value / 1000)}K (${percentage}%)`;
             } else {
-              return `$${value.toLocaleString()} (${percentage}%)`;
+              return `$${Math.round(value).toLocaleString()} (${percentage}%)`;
             }
           },
         },
@@ -195,7 +192,7 @@ export const CommissionDistributionChart: React.FC<
               Distribución de Comisiones
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Total: ${totalComisiones.toLocaleString()}
+              Total: ${Math.round(totalComisiones).toLocaleString()}
             </Typography>
           </Box>
         </Box>
@@ -222,38 +219,59 @@ export const CommissionDistributionChart: React.FC<
                 width: "100%",
                 height: isMobile ? 200 : 280,
                 position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <Doughnut data={chartData} options={chartOptions} />
-
-              {/* Centro del donut con total */}
               <Box
                 sx={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  textAlign: "center",
-                  pointerEvents: "none",
+                  width: "100%",
+                  height: "100%",
+                  position: "relative",
                 }}
               >
-                <Typography
-                  variant={isMobile ? "h6" : "h5"}
-                  fontWeight="bold"
-                  color="primary"
+                <Doughnut data={chartData} options={chartOptions} />
+
+                {/* Centro del donut con total - Mejorado para centrado perfecto */}
+                <Box
                   sx={{
-                    fontSize: isMobile ? "1rem" : "1.25rem",
-                    lineHeight: 1.2,
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    textAlign: "center",
+                    pointerEvents: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "100%",
+                    height: "100%",
                   }}
                 >
-                  ${totalComisiones.toLocaleString()}
-                </Typography>
-                <Typography
-                  variant={isMobile ? "caption" : "caption"}
-                  color="text.secondary"
-                >
-                  Total
-                </Typography>
+                  <Typography
+                    variant={isMobile ? "h6" : "h5"}
+                    fontWeight="bold"
+                    color="primary"
+                    sx={{
+                      fontSize: isMobile ? "1rem" : "1.25rem",
+                      lineHeight: 1,
+                      mb: 0.5,
+                    }}
+                  >
+                    ${Math.round(totalComisiones).toLocaleString()}
+                  </Typography>
+                  <Typography
+                    variant={isMobile ? "caption" : "caption"}
+                    color="text.secondary"
+                    sx={{
+                      lineHeight: 1,
+                    }}
+                  >
+                    Total
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Box>
@@ -311,7 +329,7 @@ export const CommissionDistributionChart: React.FC<
                         variant={isMobile ? "caption" : "body2"}
                         color="text.secondary"
                       >
-                        ${amount.toLocaleString()}
+                        ${Math.round(amount).toLocaleString()}
                       </Typography>
                       <Typography
                         variant={isMobile ? "caption" : "body2"}

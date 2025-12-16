@@ -392,7 +392,7 @@ export const DataTableAccordionTable: React.FC<
               >
                 {renderSortHeader(
                   "dias_laborados",
-                  "Días",
+                  "Días Laborados",
                   <CalendarTodayIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
                 )}
               </TableCell>

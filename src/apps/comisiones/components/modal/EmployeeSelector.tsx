@@ -32,7 +32,6 @@ interface EmployeeSelectorProps {
 export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
   codigoInput,
   cargoSeleccionado,
-  cargosDisponibles,
   cargosFiltrados,
   loading,
   saving,

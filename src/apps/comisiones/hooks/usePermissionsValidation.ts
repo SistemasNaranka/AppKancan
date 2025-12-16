@@ -53,7 +53,7 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
       if (tiendas.length > 1) {
         setShowMultipleStoresWarning(true);
         setError(
-          `Tienes ${tiendas.length} tiendas asignadas. Por favor, contacta al administrador para asignar una sola tienda.`
+          `Tienes ${tiendas.length} tiendas asignadas. Por favor, contacta a Soporte/Sistemas para asignar una sola tienda.`
         );
         return;
       }

@@ -120,9 +120,6 @@ export async function obtenerAsesores(): Promise<DirectusAsesor[]> {
 const getCurrentDate = (): string => {
   const now = new Date();
 
-  // ⏪ Restar 1 día (ayer)
-  now.setUTCDate(now.getUTCDate() - 1);
-
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
   const day = String(now.getUTCDate()).padStart(2, "0");

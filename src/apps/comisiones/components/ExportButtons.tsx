@@ -17,6 +17,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatCurrency } from "../lib/utils";
+import { useUserPolicies } from "../hooks/useUserPolicies";
 
 interface ExportButtonsProps {
   mesResumen: MesResumen | null;
@@ -28,6 +29,12 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
   mes,
 }) => {
   const [exportType, setExportType] = useState<string>("");
+  const { hasPolicy } = useUserPolicies();
+
+  // Solo mostrar si el usuario tiene la política readComisionesAdmin
+  if (!hasPolicy("readComisionesAdmin")) {
+    return null;
+  }
 
   const handleExportCSV = () => {
     if (!mesResumen) return;
