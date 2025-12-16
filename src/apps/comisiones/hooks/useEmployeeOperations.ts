@@ -38,6 +38,7 @@ interface UseEmployeeOperationsReturn {
     cargosDisponibles: DirectusCargo[]
   ) => Promise<void>;
   handleRemoveEmpleado: (asesorId: number) => Promise<void>;
+  handleClearEmpleados: () => void;
   handleSaveAsignaciones: (
     fechaActual: string,
     cargosDisponibles: DirectusCargo[]
@@ -203,6 +204,18 @@ export const useEmployeeOperations = (
     setSuccess(null);
   };
 
+  const handleClearEmpleados = () => {
+    setEmpleadosAsignados([]);
+    setCodigoInput("");
+    setCargoSeleccionado("");
+    setError(null);
+    setSuccess(null);
+    // Focus en el input después de limpiar
+    setTimeout(() => {
+      codigoInputRef.current?.focus();
+    }, 100);
+  };
+
   const handleAddEmpleado = async (
     asesoresDisponibles: DirectusAsesor[],
     cargosDisponibles: DirectusCargo[]
@@ -312,7 +325,7 @@ export const useEmployeeOperations = (
       }
 
       // Mensaje de éxito
-      setSuccess("Empleado agregado correctamente");
+      setSuccess(` ${asesor.nombre} ha sido agregado a la lista`);
       setMessageType("success");
     } catch (err) {
       console.error("Error agregando empleado:", err);
@@ -510,6 +523,7 @@ export const useEmployeeOperations = (
     setCargoSeleccionado,
     handleAddEmpleado,
     handleRemoveEmpleado,
+    handleClearEmpleados,
     handleSaveAsignaciones,
     handleKeyPress,
     codigoInputRef,

@@ -1,13 +1,13 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Button,
   Dialog,
   DialogContent,
-  DialogContentText,
   DialogActions,
   Box,
   Alert,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   CodesModalHeader,
@@ -34,6 +34,8 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   selectedMonth,
 }) => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Hooks personalizados para la lógica de negocio
   const {
@@ -66,6 +68,7 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     setCargoSeleccionado,
     handleAddEmpleado,
     handleRemoveEmpleado,
+    handleClearEmpleados,
     handleSaveAsignaciones,
     handleKeyPress,
     codigoInputRef,
@@ -119,28 +122,36 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       <InlineMessage
         message={currentMessage}
         type={currentMessageType}
-        duration={5000}
         onHide={clearMessages}
       />
 
       <Dialog
         open={isOpen}
         onClose={handleModalClose}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
         disableEscapeKeyDown={empleadosAsignados.length > 0}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: theme.shadows[24],
+            maxHeight: isMobile ? '90vh' : '80vh',
+          }
+        }}
       >
         <CodesModalHeader
           tiendaUsuario={tiendaUsuario}
           fechaActual={fechaActual}
+          isMobile={isMobile}
         />
 
-        <DialogContent sx={{ position: "relative" }}>
-          <DialogContentText sx={{ mb: 3 }}>
-            Seleccione los empleados que trabajarán hoy. El sistema calculará
-            automáticamente sus presupuestos basados en los porcentajes
-            mensuales y el presupuesto diario de la tienda.
-          </DialogContentText>
+        <DialogContent 
+          sx={{ 
+            position: "relative",
+            p: { xs: 2, sm: 3 },
+            backgroundColor: theme.palette.grey[50],
+          }}
+        >
 
           {/* Aviso para múltiples tiendas */}
           {showMultipleStoresWarning && (
@@ -149,14 +160,30 @@ export const CodesModal: React.FC<CodesModalProps> = ({
 
           {/* Mensaje de validación de permisos */}
           {!validationCompleted && !showMultipleStoresWarning && (
-            <Alert severity="info" sx={{ mb: 3 }}>
+            <Alert 
+              severity="info" 
+              sx={{ 
+                mb: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.info[200]}`,
+                backgroundColor: theme.palette.info[50],
+              }}
+            >
               Validando permisos y tiendas asignadas...
             </Alert>
           )}
 
           {/* Mensaje de error de validación */}
           {validationError && !showMultipleStoresWarning && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.error[200]}`,
+                backgroundColor: theme.palette.error[50],
+              }}
+            >
               {validationError}
             </Alert>
           )}
@@ -188,6 +215,7 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   onAddEmpleado={handleAddEmpleado}
                   onKeyPress={handleKeyPress}
                   onBuscarEmpleado={buscarEmpleadoPorCodigo}
+                  isMobile={isMobile}
                 />
 
                 {/* Lista de empleados asignados */}
@@ -197,40 +225,127 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   onRemoveEmpleado={handleRemoveEmpleado}
                   getCargoNombre={getCargoNombre}
                   getTiendaNombre={getTiendaNombre}
+                  isMobile={isMobile}
                 />
               </Box>
             )}
         </DialogContent>
 
-        <DialogActions>
+        <DialogActions
+          sx={{
+            px: { xs: 2, sm: 3 },
+            py: { xs: 2, sm: 2.5 },
+            backgroundColor: theme.palette.grey[100],
+            borderTop: `1px solid ${theme.palette.grey[200]}`,
+          }}
+        >
           {showMultipleStoresWarning ? (
-            <Button
-              onClick={handleModalClose}
-              variant="contained"
-              color="warning"
+            <Box
+              sx={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+              }}
             >
-              Cerrar y Ir al Inicio
-            </Button>
-          ) : (
-            <>
-              <Button
-                onClick={onClose}
-                variant="outlined"
-                sx={{ mr: 1 }}
-                disabled={saving}
+              <Box
+                component="button"
+                onClick={handleModalClose}
+                sx={{
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 2,
+                  backgroundColor: theme.palette.warning.main,
+                  color: theme.palette.warning.contrastText,
+                  border: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    backgroundColor: theme.palette.warning.dark,
+                    transform: 'translateY(-1px)',
+                    boxShadow: theme.shadows[4],
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  },
+                }}
               >
-                {empleadosAsignados.length === 0 ? "Cerrar" : "Cancelar"}
-              </Button>
-              <Button
+                Cerrar y Ir al Inicio
+              </Box>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                width: '100%',
+                display: 'flex',
+                gap: 2,
+                justifyContent: 'flex-end',
+                flexWrap: 'wrap',
+              }}
+            >
+              <Box
+                component="button"
+                onClick={handleClearEmpleados}
+                sx={{
+                  px: 3,
+                  py: 1.25,
+                  borderRadius: 2,
+                  backgroundColor: 'transparent',
+                  color: theme.palette.text.secondary,
+                  border: `1px solid ${theme.palette.grey[300]}`,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: empleadosAsignados.length > 0 ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s',
+                  minWidth: 100,
+                  '&:hover': empleadosAsignados.length > 0 ? {
+                    backgroundColor: theme.palette.grey[100],
+                    borderColor: theme.palette.grey[400],
+                  } : {},
+                  '&:disabled': {
+                    opacity: 0.6,
+                    cursor: 'not-allowed',
+                  },
+                }}
+                disabled={empleadosAsignados.length === 0 || saving}
+              >
+                Limpiar
+              </Box>
+              <Box
+                component="button"
                 onClick={handleSaveWithDate}
-                variant="contained"
+                sx={{
+                  px: 4,
+                  py: 1.25,
+                  borderRadius: 2,
+                  backgroundColor: canSave ? theme.palette.primary.main : theme.palette.warning.main,
+                  color: theme.palette.primary.contrastText,
+                  border: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: canSave ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s',
+                  minWidth: 180,
+                  '&:hover': canSave ? {
+                    backgroundColor: theme.palette.primary.dark,
+                    transform: 'translateY(-1px)',
+                    boxShadow: theme.shadows[4],
+                  } : {},
+                  '&:active': canSave ? {
+                    transform: 'translateY(0)',
+                  } : {},
+                  '&:disabled': {
+                    opacity: 0.6,
+                    cursor: 'not-allowed',
+                  },
+                }}
                 disabled={
                   empleadosAsignados.length === 0 ||
                   saving ||
                   !hasPermission ||
                   !canSave
                 }
-                color={!canSave ? "warning" : "primary"}
                 title={
                   !canSave
                     ? "Debe asignar al menos un gerente o coadministrador"
@@ -240,8 +355,8 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                 {saving
                   ? "Guardando..."
                   : `Guardar Asignación (${empleadosAsignados.length} empleados)`}
-              </Button>
-            </>
+              </Box>
+            </Box>
           )}
         </DialogActions>
       </Dialog>

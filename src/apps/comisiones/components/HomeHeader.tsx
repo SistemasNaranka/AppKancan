@@ -111,17 +111,34 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                     mes={selectedMonth}
                   />
                 )}
-                {/* Botón Asignar - Solo para readComisionesAdmin */}
+                {/* Botón ASIG - Solo para readComisionesAdmin */}
                 {canAssignEmployees() && (
                   <Button
                     onClick={onShowCodesModal}
-                    variant="outlined"
+                    variant="contained"
                     startIcon={<Person />}
                     size="small"
-                    sx={{ minWidth: "auto", px: { xs: 1.5, sm: 2 } }}
+                    sx={{
+                      minWidth: "auto",
+                      px: { xs: 1.5, sm: 2 },
+                      backgroundColor: "#1976d2",
+                      color: "white",
+                      borderRadius: 2,
+                      textTransform: "none",
+                      fontWeight: 600,
+                      boxShadow: "0 2px 4px rgba(25, 118, 210, 0.2)",
+                      "&:hover": {
+                        backgroundColor: "#1565c0",
+                        boxShadow: "0 4px 8px rgba(25, 118, 210, 0.3)",
+                        transform: "translateY(-1px)",
+                      },
+                      "&:active": {
+                        transform: "translateY(0)",
+                      },
+                    }}
                   >
-                    <span className="hidden xs:inline">Asignar</span>
-                    <span className="xs:hidden">Asig</span>
+                    <span className="hidden xs:inline">ASIG</span>
+                    <span className="xs:hidden">ASIG</span>
                   </Button>
                 )}
               </div>

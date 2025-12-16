@@ -2,6 +2,7 @@
 export { CodesModalHeader } from "./CodesModalHeader";
 export { MultipleStoresWarning } from "./MultipleStoresWarning";
 export { EmployeeSelector } from "./EmployeeSelector";
+export { EmployeeInfoCard } from "./EmployeeInfoCard";
 export { AssignedEmployeesList } from "./AssignedEmployeesList";
 export { InlineMessage } from "./InlineMessage";
 export { EmployeeSearchPreview } from "./EmployeeSearchPreview";

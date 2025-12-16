@@ -24,6 +24,7 @@ interface UseEmployeeManagementReturn {
   setCargoSeleccionado: (value: string) => void;
   handleAddEmpleado: () => Promise<void>;
   handleRemoveEmpleado: (asesorId: number) => Promise<void>;
+  handleClearEmpleados: () => void;
   handleSaveAsignaciones: (fechaActual: string) => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
   onAssignmentComplete?: (ventasData: any[]) => void;
@@ -75,6 +76,7 @@ export const useEmployeeManagement = (
     setCargoSeleccionado: setCargoSeleccionadoInOperations,
     handleAddEmpleado,
     handleRemoveEmpleado,
+    handleClearEmpleados,
     handleSaveAsignaciones,
     handleKeyPress,
     codigoInputRef,
@@ -138,6 +140,7 @@ export const useEmployeeManagement = (
     setCargoSeleccionado,
     handleAddEmpleado: handleAddEmpleadoModified,
     handleRemoveEmpleado,
+    handleClearEmpleados,
     handleSaveAsignaciones: handleSaveAsignacionesModified,
     handleKeyPress: handleKeyPressModified,
     codigoInputRef,
