@@ -64,14 +64,15 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
         sx={{
           textTransform: "none",
           fontWeight: 600,
-          minWidth: 100,
-          px: 3,
+          minWidth: { xs: 80, sm: 100 },
+          px: { xs: 2, sm: 3 },
           py: 1.5,
           height: 40,
           borderRadius: 1,
           border: 1,
           borderColor: "divider",
           backgroundColor: "background.paper",
+          flex: { xs: "1 1 auto", sm: "0 0 auto" },
           "&:hover": {
             backgroundColor: "action.hover",
             borderColor: "primary.main",
@@ -112,7 +113,7 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
         items={storeItems}
         initialSelected={selectedStores}
         labelKey="label"
-        maxColumns={2}
+        maxColumns={4}
       />
     </>
   );

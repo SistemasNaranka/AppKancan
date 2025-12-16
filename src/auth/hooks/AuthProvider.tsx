@@ -33,7 +33,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       userData?.role?.policies?.map((p: any) => p.policy.name) || [];
 
     // Combinar ambas listas
-    return [...directPolicies, ...rolePolicies];
+    const combined = [...directPolicies, ...rolePolicies];
+
+    return combined;
   };
 
   /**
@@ -60,11 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         tienda_id: me.tienda_id,
         policies: extractedPolicies,
       });
-
-      console.log(
-        "🔑 Login exitoso - Políticas del usuario:",
-        extractedPolicies
-      );
     } catch (error) {
       console.error("❌ Error en login:", error);
       throw error;
@@ -146,11 +143,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           tienda_id: me.tienda_id,
           policies: extractedPolicies,
         });
-
-        console.log(
-          "🔄 Init exitoso - Políticas del usuario:",
-          extractedPolicies
-        );
       } catch (error) {
         console.error("❌ Error al inicializar autenticación:", error);
         borrarTokenStorage();

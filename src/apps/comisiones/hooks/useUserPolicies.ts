@@ -12,19 +12,26 @@ export const useUserPolicies = () => {
   };
 
   const canSeeAssign = (): boolean => {
+    return hasPolicy("readComisionesAdmin");
+  };
+
+  const canAssignEmployees = (): boolean => {
     return (
-      hasPolicy("ReadComisionesTienda") || hasPolicy("readComisionesAdmin")
+      hasPolicy("readComisionesAdmin") || hasPolicy("readComisionesTienda")
     );
   };
 
   const canSeeStoreFilter = (): boolean => {
-    return hasPolicy("readComisionesAdmin");
+    return (
+      hasPolicy("readComisionesAdmin") || hasPolicy("readComisionesComercial")
+    );
   };
 
   return {
     hasPolicy,
     canSeeConfig,
     canSeeAssign,
+    canAssignEmployees,
     canSeeStoreFilter,
   };
 };

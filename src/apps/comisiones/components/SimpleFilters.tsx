@@ -25,7 +25,7 @@ export const SimpleFilters: React.FC<SimpleFiltersProps> = ({
     <Box
       sx={{
         display: "flex",
-        gap: 2,
+        gap: { xs: 1, sm: 2 },
         flexWrap: "wrap",
         alignItems: "center",
         width: "100%",
@@ -33,7 +33,12 @@ export const SimpleFilters: React.FC<SimpleFiltersProps> = ({
       }}
     >
       {/* Filtro de Mes */}
-      <FormControl sx={{ minWidth: 140 }}>
+      <FormControl
+        sx={{
+          minWidth: { xs: 120, sm: 140 },
+          flex: { xs: "1 1 auto", sm: "0 0 auto" },
+        }}
+      >
         <InputLabel id="month-filter-label">Mes</InputLabel>
         <Select
           labelId="month-filter-label"

@@ -187,12 +187,18 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
         role={mode === "select" ? "checkbox" : undefined}
         aria-checked={mode === "select" ? selected : undefined}
       >
-        <CardContent sx={{ py: 1.5, px: 2 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+        <CardContent sx={{ py: 1, px: 1.5 }}>
+          <Typography
+            variant="subtitle2"
+            sx={{ fontWeight: 600, fontSize: "0.875rem" }}
+          >
             {item[labelKey] ?? "(Sin nombre)"}
           </Typography>
           {item.description && (
-            <Typography variant="caption" sx={{ color: "#718096" }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "#718096", fontSize: "0.75rem" }}
+            >
               {item.description}
             </Typography>
           )}
@@ -237,7 +243,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
             borderRadius: 2,
             boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
             width: "100%",
-            maxWidth: "900px",
+            maxWidth: { xs: "95vw", sm: "800px", md: "1000px", lg: "1200px" },
             height: adaptiveHeight,
             display: "flex",
             flexDirection: "column",
@@ -426,9 +432,11 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
                     gridTemplateColumns: {
                       xs: "1fr",
                       sm: "repeat(2, 1fr)",
-                      md: `repeat(${maxColumns}, 1fr)`,
+                      md: "repeat(4, 1fr)",
+                      lg: "repeat(5, 1fr)",
+                      xl: `repeat(${maxColumns + 1}, 1fr)`,
                     },
-                    gap: 1.5,
+                    gap: 2,
                   }}
                 >
                   {filteredItems

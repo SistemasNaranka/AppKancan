@@ -9,11 +9,33 @@ import {
   DirectusPorcentajeMensualNuevo,
   DirectusPresupuestoDiarioEmpleado,
   DirectusVentasDiariasEmpleado,
-  DirectusVentasDiariasTienda,
 } from "../../types";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
-// ==================== FUNCIONES DE LECTURA CON DEBUG ====================
+// ==================== FUNCIONES AUXILIARES ====================
+
+/**
+ * Función auxiliar para convertir nombre de mes a número
+ */
+const getMonthNumber = (monthName: string): string => {
+  const months: { [key: string]: string } = {
+    Ene: "01",
+    Feb: "02",
+    Mar: "03",
+    Abr: "04",
+    May: "05",
+    Jun: "06",
+    Jul: "07",
+    Ago: "08",
+    Sep: "09",
+    Oct: "10",
+    Nov: "11",
+    Dic: "12",
+  };
+  return months[monthName] || "01";
+};
+
+// ==================== FUNCIONES DE LECTURA ====================
 
 /**
  * Obtener todas las tiendas
@@ -22,15 +44,11 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     if (tiendaIds.length === 0) {
-      console.log(
-        "⚠️ [API] Usuario no tiene tiendas asociadas, devolviendo array vacío"
-      );
       return [];
     }
 
     const filter: any = { id: { _in: tiendaIds } };
 
-    console.log("🔄 [API] Llamando a obtenerTiendas con filtro:", filter);
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("util_tiendas", {
@@ -41,10 +59,8 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
         })
       )
     );
-    console.log(`✅ [API] obtenerTiendas: ${data.length} tiendas obtenidas`);
     return data as DirectusTienda[];
   } catch (error) {
-    console.error("❌ [API] Error en obtenerTiendas:", error);
     throw error;
   }
 }
@@ -54,7 +70,6 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
  */
 export async function obtenerCargos(): Promise<DirectusCargo[]> {
   try {
-    console.log("🔄 [API] Llamando a obtenerCargos...");
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("util_cargo", {
@@ -64,10 +79,8 @@ export async function obtenerCargos(): Promise<DirectusCargo[]> {
         })
       )
     );
-    console.log(`✅ [API] obtenerCargos: ${data.length} cargos obtenidos`);
     return data as DirectusCargo[];
   } catch (error) {
-    console.error("❌ [API] Error en obtenerCargos:", error);
     throw error;
   }
 }
@@ -77,7 +90,6 @@ export async function obtenerCargos(): Promise<DirectusCargo[]> {
  */
 export async function obtenerAsesores(): Promise<DirectusAsesor[]> {
   try {
-    console.log("🔄 [API] Llamando a obtenerAsesores...");
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("asesores", {
@@ -96,16 +108,54 @@ export async function obtenerAsesores(): Promise<DirectusAsesor[]> {
         })
       )
     );
-    console.log(`✅ [API] obtenerAsesores: ${data.length} asesores obtenidos`);
-    if (data.length > 0) {
-      console.log("📋 [API] Ejemplo primer asesor:", data[0]);
-    }
     return data as DirectusAsesor[];
   } catch (error) {
-    console.error("❌ [API] Error en obtenerAsesores:", error);
     throw error;
   }
 }
+
+/**
+ * Obtener la fecha actual en formato YYYY-MM-DD
+ */
+const getCurrentDate = (): string => {
+  const now = new Date();
+
+  // ⏪ Restar 1 día (ayer)
+  now.setUTCDate(now.getUTCDate() - 1);
+
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Verifica si un mes es el mes actual
+ */
+const isCurrentMonth = (mes: string): boolean => {
+  const [mesNombre, anioStr] = mes.split(" ");
+  const mesesMap: { [key: string]: number } = {
+    Ene: 0,
+    Feb: 1,
+    Mar: 2,
+    Abr: 3,
+    May: 4,
+    Jun: 5,
+    Jul: 6,
+    Ago: 7,
+    Sep: 8,
+    Oct: 9,
+    Nov: 10,
+    Dic: 11,
+  };
+
+  const mesNumero = mesesMap[mesNombre];
+  const anio = parseInt(anioStr);
+
+  const ahora = new Date();
+  return ahora.getUTCFullYear() === anio && ahora.getUTCMonth() === mesNumero;
+};
 
 /**
  * Obtener presupuestos diarios por tienda
@@ -113,7 +163,8 @@ export async function obtenerAsesores(): Promise<DirectusAsesor[]> {
 export async function obtenerPresupuestosDiarios(
   tiendaId?: number,
   fechaInicio?: string,
-  fechaFin?: string
+  fechaFin?: string,
+  mesSeleccionado?: string
 ): Promise<DirectusPresupuestoDiarioTienda[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
@@ -123,10 +174,6 @@ export async function obtenerPresupuestosDiarios(
       if (tiendaIds.includes(tiendaId)) {
         filter.tienda_id = { _eq: tiendaId };
       } else {
-        console.warn(
-          "⚠️ [API] Usuario no tiene permiso para tienda:",
-          tiendaId
-        );
         return [];
       }
     } else {
@@ -135,14 +182,16 @@ export async function obtenerPresupuestosDiarios(
       }
     }
 
-    if (fechaInicio && fechaFin) {
+    // 🚀 NUEVO: Si es el mes actual, filtrar hasta la fecha actual
+    if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
+      const fechaActual = getCurrentDate();
+      const [mesNombre, anio] = mesSeleccionado.split(" ");
+      const mesInicio = `${anio}-${getMonthNumber(mesNombre)}-01`;
+
+      filter.fecha = { _between: [mesInicio, fechaActual] };
+    } else if (fechaInicio && fechaFin) {
       filter.fecha = { _between: [fechaInicio, fechaFin] };
     }
-
-    console.log(
-      "🔄 [API] Llamando a obtenerPresupuestosDiarios con filtro:",
-      filter
-    );
 
     const data = await withAutoRefresh(() =>
       directus.request(
@@ -155,26 +204,85 @@ export async function obtenerPresupuestosDiarios(
       )
     );
 
-    console.log(
-      `✅ [API] obtenerPresupuestosDiarios: ${data.length} presupuestos obtenidos`
-    );
-    if (data.length > 0) {
-      console.log("📋 [API] Ejemplo primer presupuesto:", data[0]);
-      console.log("📅 [API] Rango de fechas:", {
-        primera: data[data.length - 1]?.fecha,
-        ultima: data[0]?.fecha,
-      });
-    } else {
-      console.warn(
-        "⚠️ [API] No se encontraron presupuestos con el filtro:",
-        filter
-      );
-    }
-
     return data as DirectusPresupuestoDiarioTienda[];
   } catch (error) {
-    console.error("❌ [API] Error en obtenerPresupuestosDiarios:", error);
     throw error;
+  }
+}
+
+/**
+ * Obtener TODOS los presupuestos diarios disponibles para obtener todos los meses
+ * Esta función NO filtra por fechas para poder obtener todos los meses disponibles
+ */
+export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
+  try {
+    const tiendaIds = await obtenerTiendasIdsUsuarioActual();
+    const filter: any = {};
+
+    if (tiendaIds.length > 0) {
+      filter.tienda_id = { _in: tiendaIds };
+    }
+
+    const data = await withAutoRefresh(() =>
+      directus.request(
+        readItems("presupuestos_diario_tienda", {
+          fields: ["fecha"],
+          filter,
+          sort: ["-fecha"],
+          limit: -1,
+        })
+      )
+    );
+
+    // Extraer todos los meses únicos de las fechas
+    const mesesSet = new Set<string>();
+    data.forEach((item: any) => {
+      const fecha = new Date(item.fecha + "T00:00:00Z");
+      const meses = [
+        "Ene",
+        "Feb",
+        "Mar",
+        "Abr",
+        "May",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dic",
+      ];
+      const mesNombre = meses[fecha.getUTCMonth()];
+      const anio = fecha.getUTCFullYear();
+      mesesSet.add(`${mesNombre} ${anio}`);
+    });
+
+    const todosLosMeses = Array.from(mesesSet).sort((a, b) => {
+      const [mesA, anioA] = a.split(" ");
+      const [mesB, anioB] = b.split(" ");
+      const mesMap: { [key: string]: number } = {
+        Ene: 0,
+        Feb: 1,
+        Mar: 2,
+        Abr: 3,
+        May: 4,
+        Jun: 5,
+        Jul: 6,
+        Ago: 7,
+        Sep: 8,
+        Oct: 9,
+        Nov: 10,
+        Dic: 11,
+      };
+      const timeA = parseInt(anioA) * 12 + mesMap[mesA];
+      const timeB = parseInt(anioB) * 12 + mesMap[mesB];
+      return timeA - timeB;
+    });
+
+    return todosLosMeses;
+  } catch (error) {
+    // En caso de error, devolver array vacío para que no rompa la aplicación
+    return [];
   }
 }
 
@@ -209,12 +317,6 @@ export async function obtenerPorcentajesMensuales(
         filter.anio = { _eq: anio };
       }
     }
-
-    console.log(
-      "🔄 [API] Llamando a obtenerPorcentajesMensuales con filtro:",
-      filter
-    );
-
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("porcentaje_mensual_presupuesto", {
@@ -225,13 +327,6 @@ export async function obtenerPorcentajesMensuales(
         })
       )
     );
-
-    console.log(
-      `✅ [API] obtenerPorcentajesMensuales: ${data.length} configuraciones obtenidas`
-    );
-    if (data.length > 0) {
-      console.log("📋 [API] Configuración encontrada:", data[0]);
-    }
 
     // Convertir el formato nuevo al formato esperado
     const porcentajesConvertidos: DirectusPorcentajeMensual[] = (
@@ -262,7 +357,6 @@ export async function obtenerPorcentajesMensuales(
 
     return porcentajesConvertidos;
   } catch (error) {
-    console.error("❌ [API] Error en obtenerPorcentajesMensuales:", error);
     throw error;
   }
 }
@@ -272,7 +366,8 @@ export async function obtenerPorcentajesMensuales(
  */
 export async function obtenerPresupuestosEmpleados(
   tiendaId?: number,
-  fecha?: string
+  fecha?: string,
+  mesSeleccionado?: string
 ): Promise<DirectusPresupuestoDiarioEmpleado[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
@@ -282,10 +377,6 @@ export async function obtenerPresupuestosEmpleados(
       if (tiendaIds.includes(tiendaId)) {
         filter.tienda_id = { _eq: tiendaId };
       } else {
-        console.warn(
-          "⚠️ [API] Usuario no tiene permiso para tienda:",
-          tiendaId
-        );
         return [];
       }
     } else {
@@ -294,12 +385,13 @@ export async function obtenerPresupuestosEmpleados(
       }
     }
 
-    if (fecha) filter.fecha = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas hasta fecha
-
-    console.log(
-      "🔄 [API] Llamando a obtenerPresupuestosEmpleados con filtro:",
-      filter
-    );
+    // 🚀 NUEVO: Si es el mes actual, filtrar hasta la fecha actual
+    if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
+      const fechaActual = getCurrentDate();
+      filter.fecha = { _lte: fechaActual };
+    } else if (fecha) {
+      filter.fecha = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas hasta fecha
+    }
 
     const data = await withAutoRefresh(() =>
       directus.request(
@@ -319,18 +411,8 @@ export async function obtenerPresupuestosEmpleados(
       )
     );
 
-    console.log(
-      `✅ [API] obtenerPresupuestosEmpleados que viene de la base ded datos: ${data.length} registros obtenidos`
-    );
-    if (data.length > 0) {
-      console.log("📋 [API] Ejemplo primer registro:", data);
-    } else {
-      console.warn("⚠️ [API] No se encontraron presupuestos de empleados");
-    }
-
     return data as DirectusPresupuestoDiarioEmpleado[];
   } catch (error) {
-    console.error("❌ [API] Error en obtenerPresupuestosEmpleados:", error);
     throw error;
   }
 }
@@ -340,7 +422,8 @@ export async function obtenerPresupuestosEmpleados(
  */
 export async function obtenerVentasEmpleados(
   tiendaId?: number,
-  fecha?: string
+  fecha?: string,
+  mesSeleccionado?: string
 ): Promise<DirectusVentasDiariasEmpleado[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
@@ -350,10 +433,6 @@ export async function obtenerVentasEmpleados(
       if (tiendaIds.includes(tiendaId)) {
         filter.tienda_id = { _eq: tiendaId };
       } else {
-        console.warn(
-          "⚠️ [API] Usuario no tiene permiso para tienda:",
-          tiendaId
-        );
         return [];
       }
     } else {
@@ -362,12 +441,13 @@ export async function obtenerVentasEmpleados(
       }
     }
 
-    if (fecha) filter.fecha = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas
-
-    console.log(
-      "🔄 [API] Llamando a obtenerVentasEmpleados con filtro:",
-      filter
-    );
+    // 🚀 NUEVO: Si es el mes actual, filtrar hasta la fecha actual
+    if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
+      const fechaActual = getCurrentDate();
+      filter.fecha = { _lte: fechaActual };
+    } else if (fecha) {
+      filter.fecha = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas
+    }
 
     const data = await withAutoRefresh(() =>
       directus.request(
@@ -380,18 +460,8 @@ export async function obtenerVentasEmpleados(
       )
     );
 
-    console.log(
-      `✅ [API] obtenerVentasEmpleados: ${data.length} ventas obtenidas`
-    );
-    if (data.length > 0) {
-      console.log("📋 [API] Ejemplo primera venta:", data[0]);
-    } else {
-      console.warn("⚠️ [API] No se encontraron ventas de empleados");
-    }
-
     return data as DirectusVentasDiariasEmpleado[];
   } catch (error) {
-    console.error("❌ [API] Error en obtenerVentasEmpleados:", error);
     throw error;
   }
 }
@@ -403,11 +473,6 @@ export async function obtenerTiendasUsuario(
   usuarioId: number
 ): Promise<{ tienda_id: number; estado: string }[]> {
   try {
-    console.log(
-      "🔄 [API] Llamando a obtenerTiendasUsuario para usuario:",
-      usuarioId
-    );
-
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("tiendas_usuarios", {
@@ -421,22 +486,10 @@ export async function obtenerTiendasUsuario(
       )
     );
 
-    console.log(
-      `✅ [API] obtenerTiendasUsuario: ${data.length} tiendas asignadas`
-    );
-    if (data.length > 0) {
-      console.log("📋 [API] Tiendas asignadas:", data);
-    }
-
     return data as { tienda_id: number; estado: string }[];
   } catch (error: any) {
-    console.error("❌ [API] Error en obtenerTiendasUsuario:", error);
-
     // Si es error 404 (colección no existe), devolver array vacío
     if (error.response?.status === 404) {
-      console.warn(
-        "⚠️ [API] Colección 'tiendas_usuarios' no existe, devolviendo array vacío"
-      );
       return [];
     }
 
@@ -449,8 +502,6 @@ export async function obtenerTiendasUsuario(
  */
 export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
   try {
-    console.log("🔄 [API] Llamando a obtenerTiendasIdsUsuarioActual...");
-
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("usuarios_tiendas", {
@@ -464,31 +515,13 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
     );
 
     const tiendaIds = data.map((item: any) => item.tienda_id);
-    console.log(
-      `✅ [API] obtenerTiendasIdsUsuarioActual: ${tiendaIds.length} tiendaIds obtenidas:`,
-      tiendaIds
-    );
     return tiendaIds;
   } catch (error: any) {
-    console.error("❌ [API] Error en obtenerTiendasIdsUsuarioActual:", error);
-
     // Si es error 404 (colección no existe), devolver array vacío
     if (error.response?.status === 404) {
-      console.warn(
-        "⚠️ [API] Colección 'tiendas_usuarios' no existe, devolviendo array vacío"
-      );
       return [];
     }
 
     throw error;
   }
-}
-
-/**
- * Obtener ventas diarias de tienda (ya no se usa)
- */
-export async function obtenerVentasTienda(): Promise<
-  DirectusVentasDiariasTienda[]
-> {
-  return [];
 }

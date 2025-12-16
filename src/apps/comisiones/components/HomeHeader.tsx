@@ -50,16 +50,26 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onRoleFilterClear,
   renderMobileSummaryCards,
 }) => {
-  const { canSeeConfig, canSeeAssign, canSeeStoreFilter } = useUserPolicies();
+  const { canSeeConfig, canAssignEmployees, canSeeStoreFilter } =
+    useUserPolicies();
+
+  // Determinar qué botones están visibles
+  const hasVisibleButtons = (() => {
+    const hasConfig = canSeeConfig();
+    const hasAssign = canAssignEmployees();
+    const hasExport = Boolean(mesResumenFiltrado || mesResumen);
+
+    return hasConfig || hasAssign || hasExport;
+  })();
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3">
-          {/* Fila completa: Título + Filtros al frente, Botones a la derecha */}
-          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mb-3">
-            {/* Título + Filtros al frente (izquierda) */}
-            <div className="flex flex-col xl:flex-row xl:items-end gap-3 flex-1 min-w-0">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-full px-3 sm:px-6 lg:px-8 py-3">
+          {/* Layout responsivo: Móvil siempre en columna, Desktop en fila */}
+          <div className="flex flex-col gap-3 mb-3 lg:flex-row lg:items-end lg:gap-3">
+            {/* Título + Filtros - Siempre ocupa todo el ancho en móvil, espacio disponible en desktop */}
+            <div className="flex flex-col xl:flex-row xl:items-end gap-3 w-full lg:flex-1 lg:min-w-0">
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 flex-shrink-0 flex items-end">
                 Comisiones
               </h1>
@@ -76,44 +86,46 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
               </div>
             </div>
 
-            {/* Botones a la derecha */}
-            <div className="flex flex-wrap gap-2 sm:gap-3 flex-shrink-0">
-              {/* Botón Configuración - Solo para readComisionesAdmin */}
-              {canSeeConfig() && (
-                <Button
-                  onClick={onShowConfigModal}
-                  variant="outlined"
-                  startIcon={<Settings />}
-                  size="small"
-                  sx={{
-                    minWidth: "auto",
-                    px: { xs: 1.5, sm: 2 },
-                  }}
-                >
-                  <span className="hidden xs:inline">Configuración</span>
-                  <span className="xs:hidden">Conf</span>
-                </Button>
-              )}
-              {(mesResumenFiltrado || mesResumen) && (
-                <ExportButtons
-                  mesResumen={mesResumenFiltrado || mesResumen}
-                  mes={selectedMonth}
-                />
-              )}
-              {/* Botón Asignar - Para ReadComisionesTienda y readComisionesAdmin */}
-              {canSeeAssign() && (
-                <Button
-                  onClick={onShowCodesModal}
-                  variant="outlined"
-                  startIcon={<Person />}
-                  size="small"
-                  sx={{ minWidth: "auto", px: { xs: 1.5, sm: 2 } }}
-                >
-                  <span className="hidden xs:inline">Asignar</span>
-                  <span className="xs:hidden">Asig</span>
-                </Button>
-              )}
-            </div>
+            {/* Botones - Solo visibles en desktop o cuando hay botones disponibles */}
+            {hasVisibleButtons && (
+              <div className="flex flex-wrap gap-2 sm:gap-3 flex-shrink-0 lg:flex-row lg:items-end">
+                {/* Botón Configuración - Solo para readComisionesAdmin */}
+                {canSeeConfig() && (
+                  <Button
+                    onClick={onShowConfigModal}
+                    variant="outlined"
+                    startIcon={<Settings />}
+                    size="small"
+                    sx={{
+                      minWidth: "auto",
+                      px: { xs: 1.5, sm: 2 },
+                    }}
+                  >
+                    <span className="hidden xs:inline">Configuración</span>
+                    <span className="xs:hidden">Conf</span>
+                  </Button>
+                )}
+                {(mesResumenFiltrado || mesResumen) && (
+                  <ExportButtons
+                    mesResumen={mesResumenFiltrado || mesResumen}
+                    mes={selectedMonth}
+                  />
+                )}
+                {/* Botón Asignar - Solo para readComisionesAdmin */}
+                {canAssignEmployees() && (
+                  <Button
+                    onClick={onShowCodesModal}
+                    variant="outlined"
+                    startIcon={<Person />}
+                    size="small"
+                    sx={{ minWidth: "auto", px: { xs: 1.5, sm: 2 } }}
+                  >
+                    <span className="hidden xs:inline">Asignar</span>
+                    <span className="xs:hidden">Asig</span>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Summary Cards - Solo en desktop (md y superiores) */}
@@ -131,9 +143,9 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
         </div>
       </header>
 
-      {/* Summary Cards - Solo en móvil (< md) */}
+      {/* Summary Cards - Solo en móvil (< md) - SIN STICKY para scroll normal */}
       <div className="md:hidden bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-full px-3 sm:px-6 lg:px-8 py-4">
           {renderMobileSummaryCards ? (
             renderMobileSummaryCards()
           ) : (

@@ -53,6 +53,7 @@ export interface EmployeeCommission {
   cumplimiento_pct: number;
   comision_pct: number;
   comision_monto: number;
+  dias_laborados: number; // Días únicos laborados por empleado
 }
 
 export interface TiendaResumen {
@@ -125,8 +126,8 @@ export interface DirectusPorcentajeMensual {
 
 export interface DirectusPorcentajeMensualNuevo {
   id: number;
-  mes: string; // '01', '02', ..., '12'
-  anio: string; // '2025', '2026', etc.
+  mes: string;
+  anio: string;
   configuracion_roles: Array<{
     rol: string;
     tipo_calculo: "Fijo" | "Distributivo";
@@ -138,7 +139,7 @@ export interface DirectusPresupuestoDiarioEmpleado {
   id: number;
   asesor: number;
   tienda_id: number;
-  cargo: number; // Es ID del cargo, no string
+  cargo: number;
   fecha: string;
   presupuesto: number;
 }

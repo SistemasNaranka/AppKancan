@@ -11,6 +11,7 @@ import {
   MesResumen,
   Role,
 } from "../types";
+import { calcularDiasLaboradosPorEmpleado } from "./utils";
 
 export const round = (value: number): number => {
   return Math.round(value * 100) / 100;
@@ -313,6 +314,7 @@ export const calculateEmployeeCommission = (
     cumplimiento_pct: cumplimiento,
     comision_pct,
     comision_monto,
+    dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
 };
 
@@ -364,6 +366,7 @@ export const calculateCajeroCommission = (
     cumplimiento_pct: cumplimientoTienda, // Muestran cumplimiento de la tienda para cálculo
     comision_pct,
     comision_monto,
+    dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
 };
 
@@ -415,7 +418,46 @@ export const calculateLogisticoCommission = (
     cumplimiento_pct: cumplimientoTienda, // Muestran cumplimiento de la tienda para cálculo
     comision_pct,
     comision_monto,
+    dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
+};
+
+/**
+ * Obtiene la fecha actual en formato YYYY-MM-DD
+ */
+const getCurrentDate = (): string => {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Verifica si un mes es el mes actual
+ */
+const isCurrentMonth = (mes: string): boolean => {
+  const [mesNombre, anioStr] = mes.split(" ");
+  const mesesMap: { [key: string]: number } = {
+    Ene: 0,
+    Feb: 1,
+    Mar: 2,
+    Abr: 3,
+    May: 4,
+    Jun: 5,
+    Jul: 6,
+    Ago: 7,
+    Sep: 8,
+    Oct: 9,
+    Nov: 10,
+    Dic: 11,
+  };
+
+  const mesNumero = mesesMap[mesNombre];
+  const anio = parseInt(anioStr);
+
+  const ahora = new Date();
+  return ahora.getUTCFullYear() === anio && ahora.getUTCMonth() === mesNumero;
 };
 
 export const calculateMesResumenAgrupado = (
@@ -431,8 +473,26 @@ export const calculateMesResumenAgrupado = (
     ventasData = [];
   }
 
+  // 🚀 NUEVO: Determinar fecha límite según si es mes actual o no
+  const fechaLimite = isCurrentMonth(mes) ? getCurrentDate() : null;
+
+  console.log(
+    `📅 [CÁLCULO] Mes: ${mes}, Es actual: ${isCurrentMonth(
+      mes
+    )}, Fecha límite: ${fechaLimite || "Todo el mes"}`
+  );
+
   // Filtrar presupuestos del mes
   const mesBudgets = filterBudgetsByMonth(budgets, mes);
+
+  // 🚀 NUEVO: Si es mes actual, filtrar solo hasta la fecha actual
+  const mesBudgetsFiltrados = fechaLimite
+    ? mesBudgets.filter((b) => b.fecha <= fechaLimite)
+    : mesBudgets;
+
+  console.log(
+    `📊 [CÁLCULO] Presupuestos originales: ${mesBudgets.length}, Filtrados: ${mesBudgetsFiltrados.length}`
+  );
 
   // Identificar empleados multitarea basados en staff
   const empleadosMultitienda = new Map<string, Set<string>>();
@@ -447,7 +507,7 @@ export const calculateMesResumenAgrupado = (
   // NO consolidar empleados - cada empleado aparece en cada tienda donde trabajó
   // con los valores específicos que generó en esa tienda
 
-  if (mesBudgets.length === 0) {
+  if (mesBudgetsFiltrados.length === 0) {
     return {
       mes,
       tiendas: [],
@@ -456,11 +516,36 @@ export const calculateMesResumenAgrupado = (
     };
   }
 
+  // 🚀 NUEVO: Filtrar staff también por fecha límite si es mes actual
+  const staffFiltrado = fechaLimite
+    ? staff.filter(
+        (s) => getMonthYear(s.fecha) === mes && s.fecha <= fechaLimite
+      )
+    : staff.filter((s) => getMonthYear(s.fecha) === mes);
+
+  // 🚀 NUEVO: Filtrar ventas también por fecha límite si es mes actual
+  const ventasFiltradas = fechaLimite
+    ? ventasData.filter(
+        (v) => getMonthYear(v.fecha) === mes && v.fecha <= fechaLimite
+      )
+    : ventasData.filter((v) => getMonthYear(v.fecha) === mes);
+
+  console.log(
+    `👥 [CÁLCULO] Staff original: ${
+      staff.filter((s) => getMonthYear(s.fecha) === mes).length
+    }, Filtrado: ${staffFiltrado.length}`
+  );
+  console.log(
+    `💰 [CÁLCULO] Ventas original: ${
+      ventasData.filter((v) => getMonthYear(v.fecha) === mes).length
+    }, Filtradas: ${ventasFiltradas.length}`
+  );
+
   // Obtener todas las tiendas únicas de budgets, staff y ventas
   const todasTiendas = new Set<string>();
-  mesBudgets.forEach((b) => todasTiendas.add(b.tienda));
-  staff.forEach((s) => todasTiendas.add(s.tienda));
-  ventasData.forEach((v) => todasTiendas.add(v.tienda));
+  mesBudgetsFiltrados.forEach((b) => todasTiendas.add(b.tienda));
+  staffFiltrado.forEach((s) => todasTiendas.add(s.tienda));
+  ventasFiltradas.forEach((v) => todasTiendas.add(v.tienda));
 
   // Agrupar por TIENDA
   const tiendasMap = new Map<
@@ -681,17 +766,20 @@ export const calculateMesResumenAgrupado = (
         );
 
         // Para GERENTE: usar cumplimiento de la tienda para calcular comisión
+        // pero mostrar sus ventas individuales
         let cumplimientoParaComision = cumplimientoIndividual;
         let ventaBaseParaComision = calculateBaseSale(ventasMensual);
 
         if (empleado.rol === "gerente") {
-          // Gerente usa cumplimiento de la tienda y ventas de la tienda
+          // Gerente usa cumplimiento de la tienda para calcular comisión
+          // pero muestra sus ventas individuales (no las de la tienda)
           const cumplimientoTienda = calculateCompliance(
             tiendaData.ventasTotal,
             tiendaData.presupuestoTotal
           );
           cumplimientoParaComision = cumplimientoTienda;
-          ventaBaseParaComision = calculateBaseSale(tiendaData.ventasTotal);
+          // Nota: ventaBaseParaComision se mantiene como ventasMensual para gerentes
+          // Los cálculos de comisión usan el cumplimiento de la tienda
         }
 
         const comision_pct = getCommissionPercentage(cumplimientoParaComision);
@@ -707,10 +795,17 @@ export const calculateMesResumenAgrupado = (
           tienda: empleado.tienda,
           fecha: diasTrabajados[0], // Primera fecha trabajada
           presupuesto: presupuestoMensual, // Mantener precisión para cálculos
-          ventas: ventasMensual, // Mantener precisión para cálculos
-          cumplimiento_pct: cumplimientoIndividual,
+          ventas: ventasMensual, // Todos los empleados muestran sus ventas individuales (incluyendo gerentes)
+          cumplimiento_pct:
+            empleado.rol === "gerente"
+              ? calculateCompliance(
+                  tiendaData.ventasTotal,
+                  tiendaData.presupuestoTotal
+                )
+              : cumplimientoIndividual,
           comision_pct,
           comision_monto,
+          dias_laborados: diasTrabajados.length, // Días únicos trabajados
         };
       }
 
@@ -902,12 +997,8 @@ export const calculateTiendaResumen = (
         }
       }
 
-      // Obtener ventas del empleado
-      if (empleado.rol === "gerente") {
-        ventas = tiendaVentas;
-      } else {
-        ventas = getEmployeeVentas(ventasData, tienda, fecha, empleado.id);
-      }
+      // Obtener ventas del empleado - todos los empleados (incluyendo gerentes) usan ventas individuales
+      ventas = getEmployeeVentas(ventasData, tienda, fecha, empleado.id);
 
       return calculateEmployeeCommission(empleado, presupuesto, ventas);
     }
