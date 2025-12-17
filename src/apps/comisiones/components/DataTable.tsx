@@ -127,7 +127,7 @@ const DataTableContent = ({
     const remainingCount = visibleTiendas.length - incrementallyLoadedCount;
 
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {tiendasToRender.map((tienda, index) => {
           const tiendaKey = tiendaKeys[index];
           const isExpanded = expandedTiendas.has(tiendaKey);
@@ -172,7 +172,7 @@ const DataTableContent = ({
 
   // Renderizado normal para casos normales
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {renderTiendas()}
     </Box>
   );

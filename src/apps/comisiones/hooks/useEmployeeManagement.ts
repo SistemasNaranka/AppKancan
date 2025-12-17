@@ -96,23 +96,23 @@ export const useEmployeeManagement = (
     clearMessages,
   } = useEmployeeOperations(tiendaUsuario, onAssignmentComplete);
 
-  // Sincronizar cargo seleccionado entre hooks
+  // ✅ NUEVO: Sincronizar cargo seleccionado entre hooks
   const setCargoSeleccionado = (value: string) => {
     setCargoSeleccionadoInData(value);
     setCargoSeleccionadoInOperations(value);
   };
 
-  // Modificar handleAddEmpleado para incluir datos necesarios
+  // ✅ NUEVO: Modificar handleAddEmpleado para incluir datos necesarios
   const handleAddEmpleadoModified = async () => {
     await handleAddEmpleado(asesoresDisponibles, cargosDisponibles);
   };
 
-  // Modificar handleSaveAsignaciones para incluir datos necesarios
+  // ✅ NUEVO: Modificar handleSaveAsignaciones para incluir datos necesarios
   const handleSaveAsignacionesModified = async (fechaActual: string) => {
     await handleSaveAsignaciones(fechaActual, cargosDisponibles);
   };
 
-  // Modificar cargarDatosExistentes para incluir datos necesarios
+  // ✅ NUEVO: Modificar cargarDatosExistentes para incluir datos necesarios
   const cargarDatosExistentesModified = async (
     fecha: string,
     mesSeleccionado?: string
@@ -120,7 +120,7 @@ export const useEmployeeManagement = (
     await cargarDatosExistentes(fecha, mesSeleccionado, asesoresDisponibles);
   };
 
-  // Modificar handleKeyPress para incluir la lógica
+  // ✅ NUEVO: Modificar handleKeyPress para incluir la lógica
   const handleKeyPressModified = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleAddEmpleadoModified();
@@ -134,10 +134,16 @@ export const useEmployeeManagement = (
     }
   }, [tiendaUsuario]);
 
-  // Obtener mensaje actual
+  // ✅ NUEVO: Obtener mensaje actual (combinando ambos hooks)
   const getCargoNombreWithCargos = (cargoId: any): string => {
     return getCargoNombre(cargoId, cargosDisponibles);
   };
+
+  // ✅ NUEVO: Combinar errores de ambos hooks
+  const combinedError = error || dataError;
+
+  // ✅ NUEVO: Sincronizar estados de guardado
+  const isLoading = loading || saving;
 
   return {
     codigoInput,
@@ -146,9 +152,9 @@ export const useEmployeeManagement = (
     asesoresDisponibles,
     cargosDisponibles,
     cargosFiltrados,
-    loading: loading || saving,
+    loading: isLoading,
     saving,
-    error: error || dataError,
+    error: combinedError,
     success,
     messageType,
     canSave,

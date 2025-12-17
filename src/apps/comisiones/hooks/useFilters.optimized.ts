@@ -283,16 +283,6 @@ export const useFiltersOptimized = (
       }
       calculationCacheRef.current.set(cacheKey, result);
 
-      // Log de performance en desarrollo
-      if (process.env.NODE_ENV === "development") {
-        const endTime = performance.now();
-        console.log(
-          `🚀 Performance: Filter ${(endTime - startTime).toFixed(
-            2
-          )}ms | Cache: ${calculationCacheRef.current.size}/20`
-        );
-      }
-
       return result;
     },
     [filterTienda, debouncedFilterRol, buildIndexes]

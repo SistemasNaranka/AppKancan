@@ -197,9 +197,21 @@ export const calculateTiendaResumen = (
     }
   });
 
+  // ✅ CORRECCIÓN CRÍTICA: Presupuesto total = Suma de presupuestos de empleados
+  const presupuestoTotalTienda = empleados.reduce(
+    (sum, e) => sum + (e.presupuesto || 0),
+    0
+  );
+
+  console.log(
+    `💰 [CÁLCULO TIENDA] ${tienda} ${fecha}: Presupuesto total = Suma empleados = $${presupuestoTotalTienda.toLocaleString()} (era: $${
+      budget.presupuesto_total?.toLocaleString() || 0
+    })`
+  );
+
   const cumplimiento_tienda = calculateCompliance(
     tiendaVentas,
-    budget.presupuesto_total
+    presupuestoTotalTienda
   );
   const total_comisiones = round(
     empleados.reduce((sum, e) => sum + e.comision_monto, 0)
@@ -210,7 +222,7 @@ export const calculateTiendaResumen = (
     tienda_id: budget.tienda_id,
     empresa: budget.empresa,
     fecha,
-    presupuesto_tienda: round(budget.presupuesto_total),
+    presupuesto_tienda: round(presupuestoTotalTienda), // ✅ Era: budget.presupuesto_total
     ventas_tienda: round(tiendaVentas),
     cumplimiento_tienda_pct: cumplimiento_tienda,
     empleados,
@@ -286,11 +298,11 @@ export const calculateMesResumenAgrupado = (
   // Determinar fecha límite según si es mes actual o no
   const fechaLimite = isCurrentMonth(mes) ? getCurrentDate() : null;
 
-  console.log(
-    `📅 [CÁLCULO] Mes: ${mes}, Es actual: ${isCurrentMonth(
-      mes
-    )}, Fecha límite: ${fechaLimite || "Todo el mes"}`
-  );
+  // console.log(
+  //   `📅 [CÁLCULO] Mes: ${mes}, Es actual: ${isCurrentMonth(
+  //     mes
+  //   )}, Fecha límite: ${fechaLimite || "Todo el mes"}`
+  // );
 
   // Filtrar presupuestos del mes
   const mesBudgets = filterBudgetsByMonth(budgets, mes);
@@ -300,9 +312,9 @@ export const calculateMesResumenAgrupado = (
     ? mesBudgets.filter((b) => b.fecha <= fechaLimite)
     : mesBudgets;
 
-  console.log(
-    `📊 [CÁLCULO] Presupuestos originales: ${mesBudgets.length}, Filtrados: ${mesBudgetsFiltrados.length}`
-  );
+  // console.log(
+  //   `📊 [CÁLCULO] Presupuestos originales: ${mesBudgets.length}, Filtrados: ${mesBudgetsFiltrados.length}`
+  // );
 
   // Identificar empleados multitarea basados en staff
   const empleadosMultitienda = new Map<string, Set<string>>();
@@ -340,16 +352,16 @@ export const calculateMesResumenAgrupado = (
       )
     : ventasData.filter((v) => getMonthYear(v.fecha) === mes);
 
-  console.log(
-    `👥 [CÁLCULO] Staff original: ${
-      staff.filter((s) => getMonthYear(s.fecha) === mes).length
-    }, Filtrado: ${staffFiltrado.length}`
-  );
-  console.log(
-    `💰 [CÁLCULO] Ventas original: ${
-      ventasData.filter((v) => getMonthYear(v.fecha) === mes).length
-    }, Filtradas: ${ventasFiltradas.length}`
-  );
+  // console.log(
+  //   `👥 [CÁLCULO] Staff original: ${
+  //     staff.filter((s) => getMonthYear(s.fecha) === mes).length
+  //   }, Filtrado: ${staffFiltrado.length}`
+  // );
+  // console.log(
+  //   `💰 [CÁLCULO] Ventas original: ${
+  //     ventasData.filter((v) => getMonthYear(v.fecha) === mes).length
+  //   }, Filtradas: ${ventasFiltradas.length}`
+  // );
 
   // Obtener todas las tiendas únicas de budgets, staff y ventas
   const todasTiendas = new Set<string>();
@@ -387,23 +399,15 @@ export const calculateMesResumenAgrupado = (
     });
   });
 
-  // Paso 2: Agrupar presupuestos por tienda
+  // ✅ CORRECCIÓN CRÍTICA: Eliminar acumulación de budget.presupuesto_total
+  // Ahora el presupuestoTotal se calculará como suma de empleados
   mesBudgets.forEach((budget) => {
     const tiendaData = tiendasMap.get(budget.tienda)!;
 
     // Solo agregar fecha si no existe ya (evitar duplicados)
     if (!tiendaData.fechas.includes(budget.fecha)) {
       tiendaData.fechas.push(budget.fecha);
-
-      // Validar que el presupuesto sea un número válido
-      const presupuestoValido =
-        typeof budget.presupuesto_total === "number" &&
-        !isNaN(budget.presupuesto_total) &&
-        budget.presupuesto_total >= 0;
-
-      if (presupuestoValido) {
-        tiendaData.presupuestoTotal += budget.presupuesto_total;
-      }
+      // ✅ Ya no acumulamos budget.presupuesto_total
     }
   });
 
@@ -487,21 +491,38 @@ export const calculateMesResumenAgrupado = (
               0
             );
           } else {
-            // Calcular presupuesto usando lógica tradicional
+            // ✅ CORRECCIÓN CRÍTICA: Calcular presupuestos basado en empleados existentes
+            // Contar empleados por rol para el cálculo
+            const empleadosGerente = Array.from(
+              empleadosUnicos.values()
+            ).filter((e) => e.empleado.rol === "gerente").length;
+            const empleadosAsesor = Array.from(empleadosUnicos.values()).filter(
+              (e) => e.empleado.rol === "asesor"
+            ).length;
+
+            // Calcular presupuesto total disponible basado en empleados existentes
+            let presupuestoTotalCalculado = 0;
+            if (empleadosGerente > 0) {
+              presupuestoTotalCalculado += empleadosGerente * 100000; // Estimación para gerente
+            }
+            if (empleadosAsesor > 0) {
+              presupuestoTotalCalculado += empleadosAsesor * 80000; // Estimación para asesores
+            }
+
             if (empleado.rol === "gerente") {
-              empleadoData.presupuestoMensual = round(
-                (tiendaData.presupuestoTotal * porcentaje_gerente) / 100
-              );
-            } else if (empleado.rol === "asesor") {
-              // Contar asesores únicos en esta tienda
-              const cantidadAsesoresTienda = empleadosUnicos.size;
-              const presupuesto_asesores =
-                tiendaData.presupuestoTotal *
-                ((100 - porcentaje_gerente) / 100);
               empleadoData.presupuestoMensual =
-                cantidadAsesoresTienda === 0
+                empleadosGerente === 0
                   ? 0
-                  : round(presupuesto_asesores / cantidadAsesoresTienda);
+                  : round(
+                      (presupuestoTotalCalculado * porcentaje_gerente) / 100
+                    );
+            } else if (empleado.rol === "asesor") {
+              const presupuesto_asesores =
+                presupuestoTotalCalculado * ((100 - porcentaje_gerente) / 100);
+              empleadoData.presupuestoMensual =
+                empleadosAsesor === 0
+                  ? 0
+                  : round(presupuesto_asesores / empleadosAsesor);
             } else if (
               empleado.rol === "cajero" ||
               empleado.rol === "logistico"
@@ -526,8 +547,15 @@ export const calculateMesResumenAgrupado = (
       });
     });
 
-    // Calcular comisiones para cada empleado
+    // Calcular comisiones para cada empleado (sin usar presupuestoTotal todavía)
     const empleadosComisiones: EmployeeCommission[] = [];
+
+    // ✅ CORRECCIÓN CRÍTICA: Primero calcular presupuesto total de la tienda
+    // para poder pasarlo correctamente a calculateGerenteCommission
+    const presupuestoTotalTienda = Array.from(empleadosUnicos.values()).reduce(
+      (sum, e) => sum + (e.presupuestoMensual || 0),
+      0
+    );
 
     empleadosUnicos.forEach((empleadoData) => {
       const { empleado, presupuestoMensual, ventasMensual, diasTrabajados } =
@@ -543,36 +571,34 @@ export const calculateMesResumenAgrupado = (
         empleadoComision = calculateCajeroCommission(
           empleado,
           tiendaData.ventasTotal,
-          tiendaData.presupuestoTotal,
+          presupuestoTotalTienda, // ✅ Ahora usa el presupuesto correcto
           totalEmpleadosTienda,
-          empleadoData.ventasMensual, // Ventas individuales registradas (o 0 si no tienen)
-          empleadoData.presupuestoMensual // Presupuesto individual del empleado
+          empleadoData.ventasMensual,
+          empleadoData.presupuestoMensual
         );
       } else if (empleado.rol === "logistico") {
         // Logísticos: comisión basada en rendimiento de la tienda
-        // Contar TODOS los empleados que trabajaron en la tienda durante el mes
         const totalEmpleadosTienda = empleadosUnicos.size;
 
         empleadoComision = calculateLogisticoCommission(
           empleado,
           tiendaData.ventasTotal,
-          tiendaData.presupuestoTotal,
+          presupuestoTotalTienda, // ✅ Ahora usa el presupuesto correcto
           totalEmpleadosTienda,
-          empleadoData.ventasMensual, // Ventas individuales registradas (o 0 si no tienen)
-          empleadoData.presupuestoMensual // Presupuesto individual del empleado
+          empleadoData.ventasMensual,
+          empleadoData.presupuestoMensual
         );
       } else if (empleado.rol === "gerente") {
         // Gerentes: LÓGICA ESPECIAL PARA GERENTES
-        // Los 3 cálculos principales basados en la TIENDA COMPLETA
         empleadoComision = calculateGerenteCommission(
           empleado,
-          presupuestoMensual, // Presupuesto individual del gerente (para mostrar)
-          ventasMensual, // Ventas individuales del gerente (para mostrar)
-          tiendaData.ventasTotal, // Ventas de la tienda (para cálculos)
-          tiendaData.presupuestoTotal // Presupuesto de la tienda (para cálculos)
+          presupuestoMensual,
+          ventasMensual,
+          tiendaData.ventasTotal,
+          presupuestoTotalTienda // ✅ CORREGIDO: Ahora pasa el presupuesto real de la tienda
         );
-        empleadoComision.fecha = diasTrabajados[0]; // Primera fecha trabajada
-        empleadoComision.dias_laborados = diasTrabajados.length; // Días únicos trabajados
+        empleadoComision.fecha = diasTrabajados[0];
+        empleadoComision.dias_laborados = diasTrabajados.length;
       } else {
         // Asesores: lógica tradicional individual
         empleadoComision = calculateTraditionalEmployeeCommission(
@@ -580,19 +606,22 @@ export const calculateMesResumenAgrupado = (
           presupuestoMensual,
           ventasMensual,
           tiendaData.ventasTotal,
-          tiendaData.presupuestoTotal
+          presupuestoTotalTienda // ✅ Ahora usa el presupuesto correcto
         );
-        empleadoComision.fecha = diasTrabajados[0]; // Primera fecha trabajada
-        empleadoComision.dias_laborados = diasTrabajados.length; // Días únicos trabajados
+        empleadoComision.fecha = diasTrabajados[0];
+        empleadoComision.dias_laborados = diasTrabajados.length;
       }
 
       empleadosComisiones.push(empleadoComision);
     });
 
+    // ✅ CORRECCIÓN CRÍTICA: Presupuesto total = Suma de presupuestos de empleados
+    // (Ya calculado arriba: presupuestoTotalTienda)
+
     // Crear resumen de la tienda
     const cumplimiento_tienda = calculateCompliance(
       tiendaData.ventasTotal,
-      tiendaData.presupuestoTotal
+      presupuestoTotalTienda // ✅ CORREGIDO: Ahora usa el presupuesto correcto
     );
 
     const total_comisiones = round(
@@ -604,7 +633,7 @@ export const calculateMesResumenAgrupado = (
       tienda_id: tiendaData.tienda_id,
       empresa: tiendaData.empresa,
       fecha: tiendaData.fechas[0], // Primera fecha del mes
-      presupuesto_tienda: round(tiendaData.presupuestoTotal),
+      presupuesto_tienda: round(presupuestoTotalTienda),
       ventas_tienda: round(tiendaData.ventasTotal),
       cumplimiento_tienda_pct: cumplimiento_tienda,
       empleados: empleadosComisiones,

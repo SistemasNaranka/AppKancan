@@ -179,11 +179,8 @@ export default function Home() {
 
     // Verificar cache primero
     if (calculationCacheRef.current.has(cacheKey)) {
-      console.log("🚀 [CACHE HIT] Usando datos en caché para", selectedMonth);
       return calculationCacheRef.current.get(cacheKey);
     }
-
-    console.log("🔄 [CACHE MISS] Recalculando datos para", selectedMonth);
 
     // Calcular solo si no está en cache
     const result = calculateMesResumenAgrupado(
@@ -203,9 +200,6 @@ export default function Home() {
       }
     }
     calculationCacheRef.current.set(cacheKey, result);
-    console.log(
-      `💾 [CACHE SAVE] ${selectedMonth} - Cache size: ${calculationCacheRef.current.size}/15`
-    );
 
     return result;
   }, [
@@ -273,7 +267,7 @@ export default function Home() {
         setShowSaveLoading(false);
         setSaveSuccess(false);
       }, 1000); // 1 segundo para el mensaje de éxito
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error durante guardado:", error);
       setSaveError(true);
 
@@ -370,7 +364,7 @@ export default function Home() {
     if (isError && error) {
       setShowNoDataModal(true);
       setModalTitle("Error al cargar datos");
-      setModalMessage(error.message || "Ocurrió un error inesperado");
+      setModalMessage((error as any)?.message || "Ocurrió un error inesperado");
     } else if (dataLoadAttempted && !hasData && !isLoading && !commissionData) {
       // Delay para evitar flashes del modal cuando se carga desde caché
       timeoutId = setTimeout(() => {
@@ -432,6 +426,7 @@ export default function Home() {
           }),
       onRoleFilterToggle: handleRoleFilterToggleWithExpansion,
       onRoleFilterClear: handleRoleFilterClear,
+      hasBudgetData: hasBudgetData !== false, // Pasar información de presupuesto al header
     };
 
     // Solo agregar renderMobileSummaryCards si hay presupuesto
@@ -469,6 +464,7 @@ export default function Home() {
     handleRoleFilterToggleWithExpansion,
     handleRoleFilterClear,
     shouldShowMainContent,
+    hasBudgetData,
   ]);
 
   // 🚀 NUEVO: Componente de pantalla de carga para guardado
@@ -555,17 +551,6 @@ export default function Home() {
     >
       <div className="min-h-screen px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4">
         <div className="max-w-full sm:max-w-[calc(100vw-4rem)] lg:max-w-[calc(100vw-8rem)] xl:max-w-[calc(100vw-12rem)] mx-auto">
-          {/* 🚀 NUEVO: Mostrar error de presupuesto si existe */}
-          {budgetError && (
-            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="text-yellow-800">
-                  <strong>Atención:</strong> {budgetError}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Header */}
           <HomeHeader {...homeHeaderProps} />
 
@@ -589,8 +574,8 @@ export default function Home() {
                         <AssignmentIcon
                           sx={{
                             fontSize: 64,
-                            color: "warning.main",
-                            opacity: 0.7,
+                            color: "error.main",
+                            opacity: 0.6,
                           }}
                         />
                         <Box sx={{ textAlign: "center", maxWidth: 500 }}>
@@ -599,15 +584,19 @@ export default function Home() {
                             component="h2"
                             sx={{
                               fontWeight: 600,
-                              mb: 2,
-                              color: "text.primary",
+                              mb: 3,
+                              color: "#c62828", // Rojo no tan brillante
                             }}
                           >
                             Presupuesto Diario No Asignado
                           </Typography>
                           <Typography
                             variant="body1"
-                            sx={{ color: "text.secondary", mb: 1 }}
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontSize: "1.1rem",
+                            }}
                           >
                             No tiene presupuesto del día{" "}
                             <strong>{getCurrentFormattedDate()}</strong>{" "}
@@ -615,7 +604,11 @@ export default function Home() {
                           </Typography>
                           <Typography
                             variant="body2"
-                            sx={{ color: "text.secondary", mb: 4 }}
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: "1rem",
+                              mb: 4,
+                            }}
                           >
                             Para continuar debe asignar el presupuesto diario de
                             empleados.

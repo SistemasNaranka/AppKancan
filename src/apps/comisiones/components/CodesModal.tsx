@@ -109,7 +109,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   // Cargar datos cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
-      console.log("Modal abierto, inicializando...");
       resetState();
       validatePermissionsAndStores();
       // Resetear estados de guardado y cierre automático
@@ -132,9 +131,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
 
       // Si ya hay empleados asignados pero no se han cargado datos, forzar recarga
       if (empleadosAsignados.length === 0) {
-        console.log(
-          "No hay empleados cargados, verificando si debería haber datos..."
-        );
         // Delay para asegurar que la validación esté completa
         const timer = setTimeout(() => {
           setDataLoadTriggered(true); // Marcar como ejecutado
@@ -165,15 +161,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     ) {
       const fechaActual = new Date().toISOString().split("T")[0];
 
-      console.log("Validación completa, verificando carga de datos:", {
-        validationCompleted,
-        hasPermission,
-        tiendasCount,
-        tiendaUsuario: tiendaUsuario?.id,
-        selectedMonth,
-        dataLoadTriggered,
-      });
-
       // Solo cargar si es el día actual y es el mes seleccionado
       if (selectedMonth) {
         const [mesNombre, anio] = selectedMonth.split(" ");
@@ -183,19 +170,15 @@ export const CodesModal: React.FC<CodesModalProps> = ({
           year: "numeric",
         });
 
-        console.log("Verificando mes:", { mesActual, selectedMonth });
-
         if (mesActual.toLowerCase() === selectedMonth.toLowerCase()) {
           // Es el mes actual, cargar datos existentes (comparación case-insensitive)
-          console.log("Cargando datos existentes...");
+
           setDataLoadTriggered(true); // Marcar como ejecutado
           cargarDatosExistentes(fechaActual, selectedMonth);
         } else {
-          console.log("No es el mes actual, no se cargan datos existentes");
           setDataLoadTriggered(true); // Marcar como ejecutado aunque no cargue
         }
       } else {
-        console.log("No hay selectedMonth, no se cargan datos existentes");
         setDataLoadTriggered(true); // Marcar como ejecutado aunque no cargue
       }
     }
@@ -234,9 +217,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   // Se mantiene por si acaso hay otros lugares que activen el guardado
   useEffect(() => {
     if (success && success.includes("correctamente") && !shouldAutoClose) {
-      console.log(
-        "✅ Guardado exitoso (vía mensaje) - marcando para cierre automático"
-      );
       setShouldAutoClose(true);
     }
   }, [success, shouldAutoClose]);
@@ -244,12 +224,8 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   // Ejecutar el cierre automático
   useEffect(() => {
     if (shouldAutoClose) {
-      console.log("🚀 Ejecutando cierre automático del modal");
-
       // Mostrar mensaje de éxito por 1.5 segundos y luego cerrar
       const timer = setTimeout(() => {
-        console.log("❌ Cerrando modal...");
-
         // Limpiar mensajes
         clearMessages();
 
@@ -259,7 +235,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
         // Refrescar datos en segundo plano (después de cerrar)
         setTimeout(() => {
           if (onAssignmentComplete) {
-            console.log("🔄 Actualizando datos...");
             onAssignmentComplete([]);
           }
           // Resetear estados para futuros guardados
@@ -278,9 +253,7 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     try {
       await handleSaveAsignaciones(fechaActual);
       // Si llegamos aquí, el guardado fue exitoso
-      console.log(
-        "✅ Guardado exitoso - ejecutando pantalla de carga inmediatamente"
-      );
+
       // Ejecutar pantalla de carga directamente (sin timing issues)
       if (onShowSaveLoading) {
         onShowSaveLoading(); // Sin error = guardado exitoso
@@ -322,6 +295,61 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     ? "success"
     : "info";
 
+  // 🚀 NUEVO: Determinar texto y color del botón dinámicamente
+  const getButtonConfig = () => {
+    if (saving) {
+      return {
+        text: "Guardando...",
+        bgColor: theme.palette.grey[500],
+        cursor: "not-allowed",
+        hover: {},
+        active: {},
+      };
+    }
+
+    if (hasExistingData) {
+      return {
+        text: `Actualizar Asignación (${empleadosAsignados.length} empleados)`,
+        bgColor: canSave ? theme.palette.primary.main : theme.palette.grey[500],
+        cursor: canSave ? "pointer" : "not-allowed",
+        hover: canSave
+          ? {
+              backgroundColor: theme.palette.primary.dark,
+              transform: "translateY(-1px)",
+              boxShadow: theme.shadows[4],
+            }
+          : {},
+        active: canSave
+          ? {
+              transform: "translateY(0)",
+            }
+          : {},
+      };
+    }
+
+    return {
+      text: `Guardar Asignación (${empleadosAsignados.length} empleados)`,
+      bgColor: canSave
+        ? theme.palette.primary.main
+        : theme.palette.warning.main,
+      cursor: canSave ? "pointer" : "not-allowed",
+      hover: canSave
+        ? {
+            backgroundColor: theme.palette.primary.dark,
+            transform: "translateY(-1px)",
+            boxShadow: theme.shadows[4],
+          }
+        : {},
+      active: canSave
+        ? {
+            transform: "translateY(0)",
+          }
+        : {},
+    };
+  };
+
+  const buttonConfig = getButtonConfig();
+
   return (
     <>
       {/* Mensaje fijo en la parte superior */}
@@ -354,7 +382,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
         <CodesModalHeader
           tiendaUsuario={tiendaUsuario}
           fechaActual={fechaActual}
-          isMobile={isMobile}
         />
 
         {/* Botón X para cerrar (solo cuando hay datos guardados) */}
@@ -465,7 +492,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   onAddEmpleado={handleAddEmpleado}
                   onKeyDown={handleKeyPress}
                   onBuscarEmpleado={buscarEmpleadoPorCodigo}
-                  isMobile={isMobile}
                 />
 
                 {/* Lista de empleados asignados */}
@@ -475,7 +501,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   onRemoveEmpleado={handleRemoveEmpleado}
                   getCargoNombre={getCargoNombre}
                   getTiendaNombre={getTiendaNombre}
-                  isMobile={isMobile}
                 />
               </Box>
             )}
@@ -573,38 +598,16 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   px: 4,
                   py: 1.25,
                   borderRadius: 2,
-                  backgroundColor: hasExistingData
-                    ? theme.palette.grey[500]
-                    : canSave
-                    ? theme.palette.primary.main
-                    : theme.palette.warning.main,
+                  backgroundColor: buttonConfig.bgColor,
                   color: theme.palette.primary.contrastText,
                   border: "none",
                   fontSize: "0.875rem",
                   fontWeight: 500,
-                  cursor: hasExistingData
-                    ? "not-allowed"
-                    : canSave
-                    ? "pointer"
-                    : "not-allowed",
+                  cursor: buttonConfig.cursor,
                   transition: "all 0.2s",
                   minWidth: 180,
-                  "&:hover": hasExistingData
-                    ? {}
-                    : canSave
-                    ? {
-                        backgroundColor: theme.palette.primary.dark,
-                        transform: "translateY(-1px)",
-                        boxShadow: theme.shadows[4],
-                      }
-                    : {},
-                  "&:active": hasExistingData
-                    ? {}
-                    : canSave
-                    ? {
-                        transform: "translateY(0)",
-                      }
-                    : {},
+                  "&:hover": buttonConfig.hover,
+                  "&:active": buttonConfig.active,
                   "&:disabled": {
                     opacity: 0.6,
                     cursor: "not-allowed",
@@ -614,22 +617,15 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   empleadosAsignados.length === 0 ||
                   saving ||
                   !hasPermission ||
-                  !canSave ||
-                  hasExistingData
+                  !canSave
                 }
                 title={
-                  hasExistingData
-                    ? "Ya existe una asignación para hoy. Use el botón X para cerrar."
-                    : !canSave
-                    ? "Debe asignar al menos un gerente o coadministrador"
+                  !canSave
+                    ? "Debe asignar al menos un gerente o coadministrador y 1 asesor"
                     : ""
                 }
               >
-                {saving
-                  ? "Guardando..."
-                  : hasExistingData
-                  ? `Asignación Existente (${empleadosAsignados.length} empleados)`
-                  : `Guardar Asignación (${empleadosAsignados.length} empleados)`}
+                {buttonConfig.text}
               </Box>
             </Box>
           )}

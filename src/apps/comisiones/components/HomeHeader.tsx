@@ -29,6 +29,8 @@ interface HomeHeaderProps {
   onRoleFilterClear: () => void;
   /** Callback para renderizar SummaryCards en móvil */
   renderMobileSummaryCards?: () => React.ReactNode;
+  /** Indica si hay presupuesto diario asignado */
+  hasBudgetData?: boolean;
 }
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -49,6 +51,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onRoleFilterToggle,
   onRoleFilterClear,
   renderMobileSummaryCards,
+  hasBudgetData,
 }) => {
   const { canSeeConfig, canAssignEmployees, canSeeStoreFilter } =
     useUserPolicies();
@@ -56,7 +59,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   // Determinar qué botones están visibles
   const hasVisibleButtons = (() => {
     const hasConfig = canSeeConfig();
-    const hasAssign = canAssignEmployees();
+    const hasAssign = canAssignEmployees() && hasBudgetData; // Solo mostrar botón ASIG si hay presupuesto
     const hasExport = Boolean(mesResumenFiltrado || mesResumen);
 
     return hasConfig || hasAssign || hasExport;
@@ -111,8 +114,8 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                     mes={selectedMonth}
                   />
                 )}
-                {/* Botón ASIG - Solo para readComisionesAdmin */}
-                {canAssignEmployees() && (
+                {/* Botón ASIG - Solo para readComisionesAdmin y cuando hay presupuesto */}
+                {canAssignEmployees() && hasBudgetData && (
                   <Button
                     onClick={onShowCodesModal}
                     variant="contained"

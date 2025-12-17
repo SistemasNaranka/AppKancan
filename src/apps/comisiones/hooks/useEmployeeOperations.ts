@@ -92,31 +92,45 @@ export const useEmployeeOperations = (
   // Ref para mantener focus en el input
   const codigoInputRef = useRef<HTMLInputElement>(null);
 
-  // Validar si puede guardar (debe tener al menos un gerente o coadministrador)
+  // 🚀 NUEVO: Estado para configuración del botón
+  const [buttonConfig, setButtonConfig] = useState({
+    text: "Guardar",
+    action: "save",
+    disabled: false,
+  });
+
+  // ✅ NUEVA VALIDACIÓN: Debe tener al menos un gerente/coadministrador Y un asesor
   useEffect(() => {
     const hasManagerOrCoadmin = empleadosAsignados.some((empleado) =>
       ROLES_EXCLUSIVOS.includes(
         empleado.cargoAsignado.toLowerCase() as RolExclusivo
       )
     );
+    const hasAsesor = empleadosAsignados.some(
+      (empleado) => empleado.cargoAsignado.toLowerCase() === "asesor"
+    );
 
-    // Si ya hay datos existentes del día, no se puede guardar (solo actualizar)
+    // ✅ NUEVA LÓGICA: Determinar texto del botón
+    let newButtonConfig = {
+      text: hasExistingData ? "Actualizar" : "Guardar",
+      action: hasExistingData ? "update" : "save",
+      disabled:
+        !(hasManagerOrCoadmin && hasAsesor) || empleadosAsignados.length === 0,
+    };
+
     const newCanSave =
-      hasManagerOrCoadmin && empleadosAsignados.length > 0 && !hasExistingData;
+      hasManagerOrCoadmin && hasAsesor && empleadosAsignados.length > 0;
 
     // Solo actualizar si el valor realmente cambió
     if (canSave !== newCanSave) {
-      console.log(
-        "🔄 Actualizando canSave:",
-        newCanSave,
-        "empleados:",
-        empleadosAsignados.length,
-        "hasExistingData:",
-        hasExistingData
-      );
       setCanSave(newCanSave);
     }
-  }, [empleadosAsignados, hasExistingData]);
+
+    // Actualizar configuración del botón
+    if (JSON.stringify(buttonConfig) !== JSON.stringify(newButtonConfig)) {
+      setButtonConfig(newButtonConfig);
+    }
+  }, [empleadosAsignados, hasExistingData, canSave, buttonConfig]);
 
   // 🚀 NUEVO: Cargar datos existentes para edición (solo del día actual)
   const cargarDatosExistentes = async (
@@ -130,14 +144,6 @@ export const useEmployeeOperations = (
     }
 
     try {
-      console.log(
-        "Cargando datos existentes para tienda:",
-        tiendaUsuario.id,
-        "fecha:",
-        fecha,
-        "mes:",
-        mesSeleccionado
-      );
       setLoading(true);
       setError(null);
 
@@ -148,14 +154,10 @@ export const useEmployeeOperations = (
         mesSeleccionado // Pasar el mes seleccionado para filtrar correctamente
       );
 
-      console.log("Datos existentes encontrados:", datosExistentes.length);
-
       // Filtrar solo los datos del día específico (no de días anteriores)
       const empleadosHoy = datosExistentes.filter((dato) => {
         return dato.fecha === fecha;
       });
-
-      console.log("Empleados del día de hoy:", empleadosHoy.length);
 
       if (empleadosHoy.length > 0) {
         // Convertir datos existentes al formato de empleadosAsignados
@@ -166,10 +168,10 @@ export const useEmployeeOperations = (
               (asesor) => asesor.id === dato.asesor
             );
 
-            // Crear un asesor con información real o fallback
+            // ✅ MEJORADO: Crear asesor con información completa preservada
             const asesor = empleadoReal || {
               id: dato.asesor,
-              nombre: `Empleado ${dato.asesor}`,
+              nombre: `Empleado ${dato.asesor}`, // Mantener formato consistente
               documento: 0,
               tienda_id: dato.tienda_id,
               cargo_id: dato.cargo,
@@ -186,19 +188,16 @@ export const useEmployeeOperations = (
               return cargoMap[cargoId] || "Asesor";
             };
 
+            // ✅ PRESERVAR INFORMACIÓN COMPLETA incluyendo presupuesto
             return {
               asesor,
-              presupuesto: dato.presupuesto,
+              presupuesto: dato.presupuesto || 0, // ✅ ASEGURAR QUE NO SEA 0
               tiendaId: dato.tienda_id,
               cargoAsignado: getNombreCargoSimple(dato.cargo),
             };
           }
         );
 
-        console.log(
-          "Empleados existentes cargados:",
-          empleadosExistentes.length
-        );
         setEmpleadosAsignados(empleadosExistentes);
         setHasExistingData(true);
         setIsUpdateMode(true);
@@ -206,7 +205,6 @@ export const useEmployeeOperations = (
         // setSuccess(`Se cargaron ${empleadosExistentes.length} empleados del día de hoy`);
         // setMessageType("info");
       } else {
-        console.log("No se encontraron empleados para el día de hoy");
         // Solo limpiar si no hay datos existentes
         setEmpleadosAsignados([]);
         setHasExistingData(false);
@@ -262,16 +260,21 @@ export const useEmployeeOperations = (
       const porcentajeConfig = porcentajes[0];
 
       const empleadosPorRol = {
-        gerente: empleadosConRoles.filter((e) => e.cargoAsignado === "gerente")
-          .length,
-        asesor: empleadosConRoles.filter((e) => e.cargoAsignado === "asesor")
-          .length,
-        cajero: empleadosConRoles.filter((e) => e.cargoAsignado === "cajero")
-          .length,
+        gerente: empleadosConRoles.filter(
+          (e) => e.cargoAsignado.toLowerCase() === "gerente"
+        ).length,
+        asesor: empleadosConRoles.filter(
+          (e) => e.cargoAsignado.toLowerCase() === "asesor"
+        ).length,
+        cajero: empleadosConRoles.filter(
+          (e) => e.cargoAsignado.toLowerCase() === "cajero"
+        ).length,
         logistico: empleadosConRoles.filter(
-          (e) => e.cargoAsignado === "logistico"
+          (e) => e.cargoAsignado.toLowerCase() === "logistico"
         ).length,
       };
+
+      empleadosConRoles.forEach((e, i) => {});
 
       const presupuestosPorRol = calculateBudgetsWithFixedDistributive(
         presupuestoTienda,
@@ -279,10 +282,12 @@ export const useEmployeeOperations = (
         empleadosPorRol
       );
 
+      // ✅ DEBUG: Mostrar presupuestos por rol calculados
+
       const presupuestos: { [asesorId: number]: number } = {};
 
       empleadosConRoles.forEach((empleadoConRol) => {
-        const rolLower = empleadoConRol.cargoAsignado;
+        const rolLower = empleadoConRol.cargoAsignado.toLowerCase();
 
         if (
           rolLower === "gerente" ||
@@ -292,19 +297,37 @@ export const useEmployeeOperations = (
         ) {
           const cantidadEmpleadosRol =
             empleadosPorRol[rolLower as keyof typeof empleadosPorRol];
-          if (cantidadEmpleadosRol > 0) {
-            presupuestos[empleadoConRol.asesor.id] = Math.round(
-              presupuestosPorRol[rolLower as keyof typeof presupuestosPorRol] /
-                cantidadEmpleadosRol
-            );
-          }
+          const presupuestoRolTotal =
+            presupuestosPorRol[rolLower as keyof typeof presupuestosPorRol];
+          const presupuestoIndividual =
+            cantidadEmpleadosRol > 0
+              ? Math.round(presupuestoRolTotal / cantidadEmpleadosRol)
+              : 0;
+
+          presupuestos[empleadoConRol.asesor.id] = presupuestoIndividual;
+        } else {
+          console.warn(
+            `🔍 DEBUG - Rol desconocido: ${rolLower} para ${empleadoConRol.asesor.nombre}`
+          );
         }
       });
+
+      // ✅ DEBUG: Mostrar todos los presupuestos calculados
 
       return presupuestos;
     } catch (err) {
       return null;
     }
+  };
+
+  // ✅ CORRECCIÓN 3: Función para calcular presupuesto total de la tienda
+  const calcularPresupuestoTotalTienda = (
+    empleados: EmpleadoAsignado[]
+  ): number => {
+    return empleados.reduce(
+      (total, empleado) => total + (empleado.presupuesto || 0),
+      0
+    );
   };
 
   const validateExclusiveRole = (
@@ -399,6 +422,8 @@ export const useEmployeeOperations = (
         { asesor, cargoAsignado: cargoSeleccionado },
       ];
 
+      empleadosConNuevo.forEach((e, i) => {});
+
       const fechaActual = new Date().toISOString().split("T")[0];
       const presupuestosCalculados = await calcularPresupuestosTodosEmpleados(
         empleadosConNuevo,
@@ -472,16 +497,49 @@ export const useEmployeeOperations = (
   };
 
   const handleRemoveEmpleado = async (asesorId: number) => {
+    // ✅ CORRECCIÓN 2: Validación mejorada de gerente
+    const empleadoAEliminar = empleadosAsignados.find(
+      (e) => e.asesor.id === asesorId
+    );
+    const isGerente =
+      empleadoAEliminar &&
+      ROLES_EXCLUSIVOS.includes(
+        empleadoAEliminar.cargoAsignado.toLowerCase() as RolExclusivo
+      );
+
+    // Solo aplicar validación si se está eliminando un gerente, NO un asesor
+    if (isGerente) {
+      // Verificar si quedan otros gerentes
+      const gerentesRestantes = empleadosAsignados.filter(
+        (e) =>
+          e.asesor.id !== asesorId &&
+          ROLES_EXCLUSIVOS.includes(
+            e.cargoAsignado.toLowerCase() as RolExclusivo
+          )
+      );
+
+      if (gerentesRestantes.length === 0) {
+        setError(
+          "No se puede eliminar el último gerente. Asigne otro gerente primero."
+        );
+        setMessageType("error");
+        return;
+      }
+    }
+    // ✅ NO aplicar validación para asesores - pueden eliminarse libremente
+
     try {
-      const empleadosRestantes = empleadosAsignados
-        .filter((e) => e.asesor.id !== asesorId)
-        .map((e) => e.asesor);
+      // ✅ CORRECCIÓN 1: Mantener roles originales de cada empleado
+      const empleadosRestantes = empleadosAsignados.filter(
+        (e) => e.asesor.id !== asesorId
+      );
 
       if (empleadosRestantes.length > 0) {
+        // ✅ MANTENER ROLES ORIGINALES - NO CAMBIAR TODO A "ASESOR"
         const empleadosRestantesConRoles = empleadosRestantes.map(
           (empleado) => ({
-            asesor: empleado,
-            cargoAsignado: "asesor",
+            asesor: empleado.asesor,
+            cargoAsignado: empleado.cargoAsignado, // ← MANTENER ROL ORIGINAL
           })
         );
 
@@ -494,10 +552,11 @@ export const useEmployeeOperations = (
         if (presupuestosCalculados) {
           const empleadosActualizados: EmpleadoAsignado[] =
             empleadosRestantes.map((empleado) => ({
-              asesor: empleado,
-              presupuesto: presupuestosCalculados[empleado.id] || 0,
-              tiendaId: tiendaUsuario?.id || (empleado.tienda_id as number),
-              cargoAsignado: "asesor",
+              asesor: empleado.asesor,
+              presupuesto: presupuestosCalculados[empleado.asesor.id] || 0,
+              tiendaId:
+                tiendaUsuario?.id || (empleado.asesor.tienda_id as number),
+              cargoAsignado: empleado.cargoAsignado, // ← MANTENER ROL ORIGINAL
             }));
           setEmpleadosAsignados(empleadosActualizados);
         } else {
@@ -519,11 +578,16 @@ export const useEmployeeOperations = (
   };
 
   const hasRequiredRoles = (): boolean => {
-    return empleadosAsignados.some((empleado) =>
+    const hasManagerOrCoadmin = empleadosAsignados.some((empleado) =>
       ROLES_EXCLUSIVOS.includes(
         empleado.cargoAsignado.toLowerCase() as RolExclusivo
       )
     );
+    const hasAsesor = empleadosAsignados.some(
+      (empleado) => empleado.cargoAsignado.toLowerCase() === "asesor"
+    );
+
+    return hasManagerOrCoadmin && hasAsesor;
   };
 
   const handleSaveAsignaciones = async (
@@ -537,15 +601,58 @@ export const useEmployeeOperations = (
     }
 
     if (!hasRequiredRoles()) {
-      setError("Debe asignar al menos un gerente o coadministrador");
+      setError("Debe asignar al menos un gerente/coadministrador Y un asesor");
       setMessageType("error");
       return;
     }
 
     try {
-      console.log("🚀 Iniciando guardado de asignaciones...");
       setSaving(true);
       setError(null);
+
+      // ✅ MEJORADO: Recálculo preservando información completa de empleados
+      const empleadosConRoles = empleadosAsignados.map((e) => ({
+        asesor: e.asesor,
+        cargoAsignado: e.cargoAsignado,
+      }));
+
+      // ✅ DEBUG: Mostrar empleados que se van a recacular en save
+
+      empleadosConRoles.forEach((e, i) => {
+        console.log(
+          `  ${i + 1}. ${e.asesor.nombre} - ${e.cargoAsignado} (ID: ${
+            e.asesor.id
+          })`
+        );
+      });
+
+      const presupuestosRecalculados = await calcularPresupuestosTodosEmpleados(
+        empleadosConRoles,
+        fechaActual
+      );
+
+      if (presupuestosRecalculados === null) {
+        setError("No se pudo recalcular el presupuesto");
+        setMessageType("error");
+        return;
+      }
+
+      // ✅ PRESERVAR Y ACTUALIZAR EMPLEADOS CON INFORMACIÓN COMPLETA
+      const empleadosActualizados: EmpleadoAsignado[] = empleadosAsignados.map(
+        (empleado) => {
+          const nuevoPresupuesto = presupuestosRecalculados[empleado.asesor.id];
+          console.log(
+            `💰 ${empleado.asesor.nombre}: ${empleado.presupuesto} → ${nuevoPresupuesto}`
+          );
+
+          return {
+            ...empleado, // ✅ PRESERVAR TODA LA INFORMACIÓN EXISTENTE
+            presupuesto: nuevoPresupuesto || 0, // Solo actualizar el presupuesto
+          };
+        }
+      );
+
+      console.log("✅ Recálculo completado, procediendo con el guardado...");
 
       const mapearCargoACargoId = (cargoAsignado: string): number => {
         const cargo = cargosDisponibles.find(
@@ -560,37 +667,40 @@ export const useEmployeeOperations = (
         try {
           await eliminarPresupuestosEmpleados(tiendaUsuario.id, fechaActual);
         } catch (eliminarError) {
-          console.log(
-            "⚠️ No se pudieron eliminar datos existentes, continuando con el guardado:",
-            eliminarError
-          );
           // Continuar con el guardado aunque no se puedan eliminar los datos existentes
         }
       }
 
-      // Preparar datos para guardar
-      const presupuestosParaGuardar = empleadosAsignados.map((empleado) => ({
+      // ✅ USAR EMPLEADOS ACTUALIZADOS CON INFORMACIÓN PRESERVADA
+      const presupuestosParaGuardar = empleadosActualizados.map((empleado) => ({
         asesor: empleado.asesor.id,
         fecha: fechaActual,
-        presupuesto: empleado.presupuesto,
+        presupuesto: empleado.presupuesto, // ← PRESUPUESTO ACTUALIZADO
         tienda_id: empleado.tiendaId,
         cargo: mapearCargoACargoId(empleado.cargoAsignado),
       }));
 
-      console.log(
-        "💾 Guardando presupuestos en la BD...",
-        presupuestosParaGuardar
-      );
-
-      // ✅ ESTA ES LA LÍNEA QUE FALTABA - GUARDAR EN LA BASE DE DATOS
-      console.log("💾 Intentando guardar presupuestos en la BD...");
       await guardarPresupuestosEmpleados(presupuestosParaGuardar);
 
-      console.log("✅ Presupuestos guardados exitosamente");
+      // ✅ CORRECCIÓN 3: Calcular y mostrar presupuesto total de la tienda
+      const presupuestoTotal = calcularPresupuestoTotalTienda(
+        empleadosActualizados
+      );
 
-      // Mostrar mensaje de éxito
-      setSuccess("Empleados asignados correctamente");
+      // Mostrar mensaje de éxito con presupuesto total
+      const mensajeExito = hasExistingData
+        ? `Asignación actualizada correctamente (${
+            empleadosActualizados.length
+          } empleados, Total: $${presupuestoTotal.toLocaleString()})`
+        : `Empleados asignados correctamente (${
+            empleadosActualizados.length
+          } empleados, Total: $${presupuestoTotal.toLocaleString()})`;
+
+      setSuccess(mensajeExito);
       setMessageType("success");
+
+      // ✅ ACTUALIZAR ESTADO GLOBAL CON EMPLEADOS ACTUALIZADOS
+      setEmpleadosAsignados(empleadosActualizados);
 
       // Resetear estados de datos existentes después de guardar exitosamente
       setHasExistingData(false);
@@ -665,7 +775,6 @@ export const useEmployeeOperations = (
         empleadosAsignados[0].tiendaId !== tiendaUsuario.id;
 
       if (shouldReset) {
-        console.log("Reseteando estado para nueva tienda:", tiendaUsuario.id);
         setEmpleadosAsignados([]);
         setCodigoInput("");
         setError(null);

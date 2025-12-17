@@ -265,11 +265,62 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
-  // Función para invalidar y recargar datos
+  // ✅ MEJORAR función refetch para invalidación más agresiva
   const refetch = useCallback(() => {
+    console.log("🔄 Forzando recarga completa de datos de comisiones...");
+
+    // ✅ INVALIDACIÓN MÁS AGRESIVA - INVALIDAR TODO
     queryClient.invalidateQueries({
-      queryKey: ["commission-data", selectedMonth],
+      queryKey: ["commission-data"],
+      exact: false,
     });
+
+    // Invalidar consultas relacionadas específicas
+    queryClient.invalidateQueries({
+      queryKey: ["budgets"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["staff"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["ventas"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["presupuestos-empleados"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["tiendas"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["asesores"],
+      exact: false,
+    });
+
+    // ✅ LIMPIAR CACHÉ COMPLETO PARA ASEGURAR RECARGA
+    queryClient.removeQueries({
+      queryKey: ["commission-data"],
+      exact: false,
+    });
+
+    // Forzar refetch inmediato del mes actual
+    return queryClient
+      .refetchQueries({
+        queryKey: ["commission-data", selectedMonth],
+        type: "active",
+      })
+      .then(() => {
+        console.log("✅ Recarga completa finalizada");
+      });
   }, [queryClient, selectedMonth]);
 
   // Función para precargar datos de un mes
