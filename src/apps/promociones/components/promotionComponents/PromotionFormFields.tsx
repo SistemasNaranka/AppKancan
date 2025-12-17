@@ -204,7 +204,12 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
         type="number"
         value={descuento}
         onChange={(e) => onDescuentoChange(Number(e.target.value))}
-        inputProps={{ min: 1, max: 100 }}
+        slotProps={{
+          htmlInput: {
+            min: 1,
+            max: 100,
+          },
+        }}
         required
         helperText="Porcentaje de descuento (1-100)"
       />

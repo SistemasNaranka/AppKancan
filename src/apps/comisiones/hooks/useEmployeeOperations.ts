@@ -9,12 +9,12 @@ import {
 } from "../types/modal";
 import {
   guardarPresupuestosEmpleados,
-  guardarVentasEmpleados,
+  eliminarPresupuestosEmpleados,
 } from "../api/directus/create";
 import {
-  obtenerVentasEmpleados,
-  obtenerPorcentajesMensuales,
   obtenerPresupuestosDiarios,
+  obtenerPresupuestosEmpleados,
+  obtenerPorcentajesMensuales,
 } from "../api/directus/read";
 import { calculateBudgetsWithFixedDistributive } from "../lib/calculations";
 
@@ -29,6 +29,8 @@ interface UseEmployeeOperationsReturn {
   success: string | null;
   messageType: "success" | "error" | "warning" | "info";
   canSave: boolean;
+  hasExistingData: boolean;
+  isUpdateMode: boolean;
 
   // Handlers
   setCodigoInput: (value: string) => void;
@@ -38,9 +40,15 @@ interface UseEmployeeOperationsReturn {
     cargosDisponibles: DirectusCargo[]
   ) => Promise<void>;
   handleRemoveEmpleado: (asesorId: number) => Promise<void>;
+  handleClearEmpleados: () => void;
   handleSaveAsignaciones: (
     fechaActual: string,
     cargosDisponibles: DirectusCargo[]
+  ) => Promise<void>;
+  cargarDatosExistentes: (
+    fecha: string,
+    mesSeleccionado?: string,
+    asesoresDisponibles?: DirectusAsesor[]
   ) => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
   onAssignmentComplete?: (ventasData: any[]) => void;
@@ -78,6 +86,8 @@ export const useEmployeeOperations = (
     "success" | "error" | "warning" | "info"
   >("info");
   const [canSave, setCanSave] = useState(false);
+  const [hasExistingData, setHasExistingData] = useState(false);
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
 
   // Ref para mantener focus en el input
   const codigoInputRef = useRef<HTMLInputElement>(null);
@@ -89,8 +99,132 @@ export const useEmployeeOperations = (
         empleado.cargoAsignado.toLowerCase() as RolExclusivo
       )
     );
-    setCanSave(hasManagerOrCoadmin && empleadosAsignados.length > 0);
-  }, [empleadosAsignados]);
+
+    // Si ya hay datos existentes del día, no se puede guardar (solo actualizar)
+    const newCanSave =
+      hasManagerOrCoadmin && empleadosAsignados.length > 0 && !hasExistingData;
+
+    // Solo actualizar si el valor realmente cambió
+    if (canSave !== newCanSave) {
+      console.log(
+        "🔄 Actualizando canSave:",
+        newCanSave,
+        "empleados:",
+        empleadosAsignados.length,
+        "hasExistingData:",
+        hasExistingData
+      );
+      setCanSave(newCanSave);
+    }
+  }, [empleadosAsignados, hasExistingData]);
+
+  // 🚀 NUEVO: Cargar datos existentes para edición (solo del día actual)
+  const cargarDatosExistentes = async (
+    fecha: string,
+    mesSeleccionado?: string,
+    asesoresDisponibles?: DirectusAsesor[]
+  ) => {
+    if (!tiendaUsuario) {
+      console.log("No hay tienda de usuario para cargar datos existentes");
+      return;
+    }
+
+    try {
+      console.log(
+        "Cargando datos existentes para tienda:",
+        tiendaUsuario.id,
+        "fecha:",
+        fecha,
+        "mes:",
+        mesSeleccionado
+      );
+      setLoading(true);
+      setError(null);
+
+      // Obtener presupuestos existentes para la tienda y fecha específica
+      const datosExistentes = await obtenerPresupuestosEmpleados(
+        tiendaUsuario.id,
+        fecha,
+        mesSeleccionado // Pasar el mes seleccionado para filtrar correctamente
+      );
+
+      console.log("Datos existentes encontrados:", datosExistentes.length);
+
+      // Filtrar solo los datos del día específico (no de días anteriores)
+      const empleadosHoy = datosExistentes.filter((dato) => {
+        return dato.fecha === fecha;
+      });
+
+      console.log("Empleados del día de hoy:", empleadosHoy.length);
+
+      if (empleadosHoy.length > 0) {
+        // Convertir datos existentes al formato de empleadosAsignados
+        const empleadosExistentes: EmpleadoAsignado[] = empleadosHoy.map(
+          (dato) => {
+            // Buscar el empleado real en la lista de asesores disponibles
+            const empleadoReal = asesoresDisponibles?.find(
+              (asesor) => asesor.id === dato.asesor
+            );
+
+            // Crear un asesor con información real o fallback
+            const asesor = empleadoReal || {
+              id: dato.asesor,
+              nombre: `Empleado ${dato.asesor}`,
+              documento: 0,
+              tienda_id: dato.tienda_id,
+              cargo_id: dato.cargo,
+            };
+
+            // Obtener nombre del cargo (usaremos una función simple)
+            const getNombreCargoSimple = (cargoId: number): string => {
+              const cargoMap: { [key: number]: string } = {
+                1: "Gerente",
+                2: "Asesor",
+                3: "Cajero",
+                4: "Logístico",
+              };
+              return cargoMap[cargoId] || "Asesor";
+            };
+
+            return {
+              asesor,
+              presupuesto: dato.presupuesto,
+              tiendaId: dato.tienda_id,
+              cargoAsignado: getNombreCargoSimple(dato.cargo),
+            };
+          }
+        );
+
+        console.log(
+          "Empleados existentes cargados:",
+          empleadosExistentes.length
+        );
+        setEmpleadosAsignados(empleadosExistentes);
+        setHasExistingData(true);
+        setIsUpdateMode(true);
+        // QUIETO: No mostrar mensaje al cargar datos existentes automáticamente
+        // setSuccess(`Se cargaron ${empleadosExistentes.length} empleados del día de hoy`);
+        // setMessageType("info");
+      } else {
+        console.log("No se encontraron empleados para el día de hoy");
+        // Solo limpiar si no hay datos existentes
+        setEmpleadosAsignados([]);
+        setHasExistingData(false);
+        setIsUpdateMode(false);
+        // QUIETO: No mostrar mensaje al cargar datos existentes automáticamente
+        // setSuccess("No hay empleados asignados para el día de hoy");
+        // setMessageType("info");
+      }
+    } catch (error) {
+      console.error("Error al cargar datos existentes:", error);
+      setError("Error al cargar datos existentes");
+      setMessageType("error");
+      setHasExistingData(false);
+      setIsUpdateMode(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const calcularPresupuestosTodosEmpleados = async (
     empleadosConRoles: Array<{ asesor: DirectusAsesor; cargoAsignado: string }>,
@@ -203,6 +337,20 @@ export const useEmployeeOperations = (
     setSuccess(null);
   };
 
+  const handleClearEmpleados = () => {
+    setEmpleadosAsignados([]);
+    setCodigoInput("");
+    setCargoSeleccionado("");
+    setError(null);
+    setSuccess(null);
+    setHasExistingData(false);
+    setIsUpdateMode(false);
+    // Focus en el input después de limpiar
+    setTimeout(() => {
+      codigoInputRef.current?.focus();
+    }, 100);
+  };
+
   const handleAddEmpleado = async (
     asesoresDisponibles: DirectusAsesor[],
     cargosDisponibles: DirectusCargo[]
@@ -267,15 +415,15 @@ export const useEmployeeOperations = (
 
       const empleadosActualizados: EmpleadoAsignado[] = empleadosConNuevo.map(
         (empleadoConRol) => {
-          let tiendaIdFinal: number;
-          if (
-            typeof empleadoConRol.asesor.tienda_id === "object" &&
-            empleadoConRol.asesor.tienda_id !== null
-          ) {
-            tiendaIdFinal = empleadoConRol.asesor.tienda_id.id;
-          } else {
-            tiendaIdFinal = empleadoConRol.asesor.tienda_id as number;
+          // Usar la tienda actual donde se está trabajando, no la tienda base del empleado
+          if (!tiendaUsuario) {
+            console.error(
+              "tiendaUsuario es null, no se puede procesar el empleado"
+            );
+            throw new Error("No se tiene la tienda del usuario");
           }
+
+          const tiendaIdFinal = tiendaUsuario.id;
 
           return {
             asesor: empleadoConRol.asesor,
@@ -312,7 +460,7 @@ export const useEmployeeOperations = (
       }
 
       // Mensaje de éxito
-      setSuccess("Empleado agregado correctamente");
+      setSuccess(` ${asesor.nombre} ha sido agregado a la lista`);
       setMessageType("success");
     } catch (err) {
       console.error("Error agregando empleado:", err);
@@ -348,7 +496,7 @@ export const useEmployeeOperations = (
             empleadosRestantes.map((empleado) => ({
               asesor: empleado,
               presupuesto: presupuestosCalculados[empleado.id] || 0,
-              tiendaId: empleado.tienda_id as number,
+              tiendaId: tiendaUsuario?.id || (empleado.tienda_id as number),
               cargoAsignado: "asesor",
             }));
           setEmpleadosAsignados(empleadosActualizados);
@@ -395,6 +543,7 @@ export const useEmployeeOperations = (
     }
 
     try {
+      console.log("🚀 Iniciando guardado de asignaciones...");
       setSaving(true);
       setError(null);
 
@@ -405,6 +554,21 @@ export const useEmployeeOperations = (
         return cargo?.id || 2;
       };
 
+      // Eliminar datos existentes del mismo día antes de guardar
+      if (tiendaUsuario) {
+        console.log("🗑️ Eliminando datos existentes del día...");
+        try {
+          await eliminarPresupuestosEmpleados(tiendaUsuario.id, fechaActual);
+        } catch (eliminarError) {
+          console.log(
+            "⚠️ No se pudieron eliminar datos existentes, continuando con el guardado:",
+            eliminarError
+          );
+          // Continuar con el guardado aunque no se puedan eliminar los datos existentes
+        }
+      }
+
+      // Preparar datos para guardar
       const presupuestosParaGuardar = empleadosAsignados.map((empleado) => ({
         asesor: empleado.asesor.id,
         fecha: fechaActual,
@@ -413,34 +577,47 @@ export const useEmployeeOperations = (
         cargo: mapearCargoACargoId(empleado.cargoAsignado),
       }));
 
-      const presupuestosGuardados = await guardarPresupuestosEmpleados(
+      console.log(
+        "💾 Guardando presupuestos en la BD...",
         presupuestosParaGuardar
       );
 
-      const ventasRealesEmpleados = await obtenerVentasEmpleados(
-        undefined,
-        fechaActual
-      );
+      // ✅ ESTA ES LA LÍNEA QUE FALTABA - GUARDAR EN LA BASE DE DATOS
+      console.log("💾 Intentando guardar presupuestos en la BD...");
+      await guardarPresupuestosEmpleados(presupuestosParaGuardar);
 
-      const empleadosAsignadosIds = presupuestosGuardados.map(
-        (p) => p.asesor as number
-      );
+      console.log("✅ Presupuestos guardados exitosamente");
 
-      const ventasFiltradas = ventasRealesEmpleados.filter((venta) =>
-        empleadosAsignadosIds.includes(venta.asesor_id as number)
-      );
-
-      if (ventasFiltradas.length > 0) {
-        await guardarVentasEmpleados(ventasFiltradas);
-      }
-
+      // Mostrar mensaje de éxito
       setSuccess("Empleados asignados correctamente");
       setMessageType("success");
-      onAssignmentComplete?.(ventasFiltradas);
+
+      // Resetear estados de datos existentes después de guardar exitosamente
+      setHasExistingData(false);
+      setIsUpdateMode(false);
+
+      // ❌ NO llamar onAssignmentComplete aquí
+      // El modal lo hará después de cerrarse
     } catch (err) {
-      console.error("Error al guardar las asignaciones:", err);
-      setError("Error al guardar las asignaciones");
+      console.error("❌ Error al guardar las asignaciones:", err);
+
+      // Verificar si es error de permisos
+      const errorMessage =
+        (err as any)?.message || (err as any)?.toString() || "";
+      if (
+        errorMessage.includes("permission") ||
+        errorMessage.includes("doesn't have permission")
+      ) {
+        setError(
+          "Error de permisos: No tiene autorización para guardar asignaciones. Contacte al administrador."
+        );
+      } else {
+        setError("Error al guardar las asignaciones: " + errorMessage);
+      }
       setMessageType("error");
+
+      // 🔧 CORRECCIÓN: Relanzar el error para que el componente padre lo detecte
+      throw err;
     } finally {
       setSaving(false);
     }
@@ -478,16 +655,31 @@ export const useEmployeeOperations = (
     return `Tienda ${tiendaId}`;
   };
 
-  // Resetear estado cuando cambia la tienda
+  // Resetear estado cuando cambia la tienda (solo si es una tienda diferente)
   useEffect(() => {
     if (tiendaUsuario) {
-      setEmpleadosAsignados([]);
-      setCodigoInput("");
-      setError(null);
-      setSuccess(null);
-      setCargoSeleccionado("");
+      // Solo resetear si no hay empleados ya cargados o si es una tienda diferente
+      const shouldReset =
+        empleadosAsignados.length === 0 ||
+        !empleadosAsignados[0] ||
+        empleadosAsignados[0].tiendaId !== tiendaUsuario.id;
+
+      if (shouldReset) {
+        console.log("Reseteando estado para nueva tienda:", tiendaUsuario.id);
+        setEmpleadosAsignados([]);
+        setCodigoInput("");
+        setError(null);
+        setSuccess(null);
+        setCargoSeleccionado("");
+        setHasExistingData(false);
+        setIsUpdateMode(false);
+      }
     }
-  }, [tiendaUsuario]);
+  }, [
+    tiendaUsuario,
+    empleadosAsignados.length,
+    empleadosAsignados[0]?.tiendaId,
+  ]);
 
   // Focus inicial cuando se monta el componente
   useEffect(() => {
@@ -506,12 +698,16 @@ export const useEmployeeOperations = (
     success,
     messageType,
     canSave,
+    hasExistingData,
+    isUpdateMode,
     setCodigoInput,
     setCargoSeleccionado,
     handleAddEmpleado,
     handleRemoveEmpleado,
+    handleClearEmpleados,
     handleSaveAsignaciones,
     handleKeyPress,
+    cargarDatosExistentes,
     codigoInputRef,
     getCargoNombre,
     getTiendaNombre,

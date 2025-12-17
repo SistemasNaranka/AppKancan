@@ -7,10 +7,12 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Button,
   Chip,
+  useTheme,
+  alpha,
 } from "@mui/material";
-import { Person, CheckCircle, Warning } from "@mui/icons-material";
+import { Person, Search } from "@mui/icons-material";
+import { EmployeeInfoCard } from "./EmployeeInfoCard";
 import { DirectusCargo, DirectusAsesor } from "../../types/modal";
 
 interface EmployeeSelectorProps {
@@ -25,8 +27,9 @@ interface EmployeeSelectorProps {
   onCodigoInputChange: (value: string) => void;
   onCargoSeleccionadoChange: (value: string) => void;
   onAddEmpleado: () => void;
-  onKeyPress: (e: React.KeyboardEvent) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onBuscarEmpleado: (codigo: string) => void;
+  isMobile?: boolean;
 }
 
 export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
@@ -40,9 +43,12 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
   onCodigoInputChange,
   onCargoSeleccionadoChange,
   onAddEmpleado,
-  onKeyPress,
+  onKeyDown,
   onBuscarEmpleado,
+  isMobile = false,
 }) => {
+  const theme = useTheme();
+
   // Buscar empleado automáticamente cuando cambie el código
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -66,191 +72,271 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
     }
   }, [cargosFiltrados, cargoSeleccionado, onCargoSeleccionadoChange]);
 
-  const hasEmployeeInfo = codigoInput.trim() && empleadoEncontrado;
-  const hasNoEmployee = codigoInput.trim() && !empleadoEncontrado;
-
   return (
-    <Box>
-      <Typography variant="subtitle1" sx={{ mb: 2 }}>
-        Agregar Empleado por Código
-      </Typography>
-
-      {/* Primera línea: Controles principales */}
-      <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-end", mb: 1.5 }}>
-        {/* Campo de código */}
-        <TextField
-          ref={codigoInputRef}
-          label="Código"
-          placeholder="0000"
-          value={codigoInput}
-          onChange={(e) =>
-            onCodigoInputChange(e.target.value.replace(/\D/g, "").slice(0, 4))
-          }
-          onKeyPress={onKeyPress}
-          disabled={loading || saving}
-          autoComplete="off"
-          size="small"
-          inputProps={{
-            maxLength: 4,
-            style: {
-              textAlign: "center",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-            },
-          }}
+    <Box
+      sx={{
+        backgroundColor: theme.palette.background.paper,
+        borderRadius: 3,
+        border: `1px solid ${theme.palette.grey[200]}`,
+        p: { xs: 2, sm: 2.5, md: 3 },
+        boxShadow: theme.shadows[1],
+      }}
+    >
+      {/* Título de la sección */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+        <Box
           sx={{
-            width: 120,
-            "& .MuiOutlinedInput-root": {
-              "& fieldset": {
-                borderColor: "#e0e0e0",
-              },
-              "&:hover fieldset": {
-                borderColor: "#bdbdbd",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "#1976d2",
-                borderWidth: 1.5,
-              },
-            },
-            "& .MuiInputLabel-root.Mui-focused": {
-              color: "#1976d2",
-            },
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
-
-        {/* Select de cargo */}
-        <FormControl size="small" sx={{ width: 160 }}>
-          <InputLabel>Cargo</InputLabel>
-          <Select
-            value={cargoSeleccionado}
-            onChange={(e) => onCargoSeleccionadoChange(e.target.value)}
-            label="Cargo"
-            disabled={loading || saving}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": {
-                  borderColor: "#e0e0e0",
-                },
-                "&:hover fieldset": {
-                  borderColor: "#bdbdbd",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#1976d2",
-                  borderWidth: 1.5,
-                },
-              },
-            }}
-          >
-            {cargosFiltrados.map((cargo) => (
-              <MenuItem key={cargo.id} value={cargo.nombre.toLowerCase()}>
-                {cargo.nombre}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Botón agregar */}
-        <Button
-          onClick={onAddEmpleado}
-          variant="contained"
-          disabled={!codigoInput.trim() || loading || saving}
-          size="small"
-          sx={{
-            minWidth: 120,
-            height: 40,
-            textTransform: "none",
-            fontWeight: 500,
-          }}
-          startIcon={<Person sx={{ fontSize: 18 }} />}
         >
-          Agregar
-        </Button>
-
-        {/* Panel de información del empleado (mismo nivel) */}
-        {(hasEmployeeInfo || hasNoEmployee) && (
-          <Box
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              display: "flex",
-              alignItems: "center",
-              px: 1.5,
-              py: 0.75,
-              backgroundColor: hasEmployeeInfo ? "#f1f8e9" : "#fff3e0",
-              border: `1px solid ${hasEmployeeInfo ? "#c8e6c9" : "#ffcc02"}`,
-              borderRadius: 1,
-              minHeight: 40,
-            }}
-          >
-            {hasEmployeeInfo ? (
-              <>
-                <CheckCircle
-                  fontSize="small"
-                  sx={{ color: "#4caf50", mr: 1 }}
-                />
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    minWidth: 0,
-                    flex: 1,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    fontWeight={500}
-                    color="#2e7d32"
-                    noWrap
-                  >
-                    {empleadoEncontrado.nombre ||
-                      `Empleado ${empleadoEncontrado.id}`}
-                  </Typography>
-                  <Box sx={{ display: "flex", gap: 0.5, mt: 0.25 }}>
-                    <Chip
-                      label={`ID: ${empleadoEncontrado.id}`}
-                      size="small"
-                      color="success"
-                      variant="outlined"
-                      sx={{
-                        height: 16,
-                        fontSize: "0.65rem",
-                        "& .MuiChip-label": { px: 0.5 },
-                      }}
-                    />
-                    <Chip
-                      label={
-                        typeof empleadoEncontrado.tienda_id === "object"
-                          ? empleadoEncontrado.tienda_id.nombre
-                          : empleadoEncontrado.tienda_id
-                      }
-                      size="small"
-                      color="success"
-                      variant="outlined"
-                      sx={{
-                        height: 16,
-                        fontSize: "0.65rem",
-                        "& .MuiChip-label": { px: 0.5 },
-                      }}
-                    />
-                  </Box>
-                </Box>
-              </>
-            ) : (
-              <>
-                <Warning fontSize="small" sx={{ color: "#ff9800", mr: 1 }} />
-                <Typography variant="caption" color="#e65100" noWrap>
-                  Código {codigoInput} no encontrado
-                </Typography>
-              </>
-            )}
-          </Box>
-        )}
+          <Search sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+        </Box>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            color: theme.palette.grey[900],
+            fontSize: "1.125rem",
+          }}
+        >
+          Agregar Empleado
+        </Typography>
       </Box>
 
-      {/* Texto explicativo compacto */}
-      <Typography variant="caption" color="text.secondary">
-        Ingrese el código de 4 dígitos y seleccione el cargo
-      </Typography>
+      {/* Formulario principal */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", lg: "row" },
+          gap: 2,
+          alignItems: { xs: "stretch", lg: "flex-end" },
+          mb: 1,
+        }}
+      >
+        {/* Select de cargo - PRIMERO */}
+        <Box sx={{ minWidth: { xs: "100%", lg: "160px" } }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 500,
+              color: theme.palette.grey[600],
+              mb: 0.75,
+              display: "block",
+            }}
+          >
+            Cargo del Dia
+          </Typography>
+          <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+            <Select
+              value={cargoSeleccionado}
+              onChange={(e) => onCargoSeleccionadoChange(e.target.value)}
+              disabled={loading || saving}
+              sx={{
+                borderRadius: 2,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: theme.palette.grey[300],
+                  },
+                  "&:hover fieldset": {
+                    borderColor: theme.palette.primary.main,
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: theme.palette.primary.main,
+                    borderWidth: 2,
+                  },
+                },
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    borderRadius: 2,
+                    mt: 0.5,
+                    boxShadow: theme.shadows[8],
+                  },
+                },
+              }}
+            >
+              {cargosFiltrados
+                .sort((a, b) => a.id - b.id)
+                .map((cargo) => (
+                  <MenuItem
+                    key={cargo.id}
+                    value={cargo.nombre.toLowerCase()}
+                    sx={{ py: 1.5 }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: theme.palette.primary.main,
+                        }}
+                      />
+                      {cargo.nombre}
+                    </Box>
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+        </Box>
+
+        {/* Campo de código - SEGUNDO */}
+        <Box sx={{ minWidth: { xs: "100%", lg: "120px" } }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 500,
+              color: theme.palette.grey[600],
+              mb: 0.75,
+              display: "block",
+            }}
+          >
+            Código
+          </Typography>
+          <TextField
+            ref={codigoInputRef}
+            placeholder="0000"
+            value={codigoInput}
+            onChange={(e) =>
+              onCodigoInputChange(e.target.value.replace(/\D/g, "").slice(0, 4))
+            }
+            onKeyDown={onKeyDown}
+            disabled={loading || saving}
+            autoComplete="off"
+            fullWidth
+            size={isMobile ? "small" : "medium"}
+            slotProps={{
+              htmlInput: {
+                maxLength: 4,
+                style: {
+                  textAlign: "center",
+                  fontWeight: "bold",
+                  fontSize: "1rem",
+                },
+              },
+            }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                "& fieldset": {
+                  borderColor: theme.palette.grey[300],
+                },
+                "&:hover fieldset": {
+                  borderColor: theme.palette.primary.main,
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: theme.palette.primary.main,
+                  borderWidth: 2,
+                },
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: theme.palette.primary.main,
+                fontWeight: 500,
+              },
+            }}
+          />
+        </Box>
+
+        {/* Tarjeta de información del empleado - TERCERO */}
+        <Box
+          sx={{
+            minWidth: { xs: "100%", lg: "200px" },
+            flex: { xs: "none", lg: 1 },
+          }}
+        >
+          <EmployeeInfoCard
+            codigoInput={codigoInput}
+            empleadoEncontrado={empleadoEncontrado}
+            loading={loading}
+            isMobile={isMobile}
+          />
+        </Box>
+
+        {/* Botón agregar - CUARTO */}
+        <Box sx={{ minWidth: { xs: "100%", lg: "120px" } }}>
+          <Box
+            component="button"
+            onClick={onAddEmpleado}
+            disabled={!codigoInput.trim() || loading || saving}
+            sx={{
+              width: "100%",
+              height: isMobile ? 40 : 48,
+              borderRadius: 2,
+              border: "none",
+              backgroundColor:
+                !codigoInput.trim() || loading || saving
+                  ? theme.palette.grey[300]
+                  : theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              cursor:
+                !codigoInput.trim() || loading || saving
+                  ? "not-allowed"
+                  : "pointer",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1,
+              "&:hover": {
+                backgroundColor:
+                  !codigoInput.trim() || loading || saving
+                    ? theme.palette.grey[300]
+                    : theme.palette.primary.dark,
+                transform:
+                  !codigoInput.trim() || loading || saving
+                    ? "none"
+                    : "translateY(-1px)",
+                boxShadow:
+                  !codigoInput.trim() || loading || saving
+                    ? "none"
+                    : theme.shadows[4],
+              },
+              "&:active": {
+                transform:
+                  !codigoInput.trim() || loading || saving
+                    ? "none"
+                    : "translateY(0)",
+              },
+            }}
+          >
+            <Person sx={{ fontSize: 18 }} />
+            Agregar
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Texto explicativo */}
+      <Box
+        sx={{
+          mt: 1,
+          p: 1,
+          backgroundColor: theme.palette.grey[50],
+          borderRadius: 2,
+          border: `1px solid ${theme.palette.grey[200]}`,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: theme.palette.grey[600],
+            lineHeight: 1.4,
+            fontSize: "0.8125rem",
+          }}
+        >
+          Ingrese el código de 4 dígitos del empleado y seleccione el cargo
+          correspondiente. El sistema validará automáticamente la información
+          antes de agregarlo a la lista.
+        </Typography>
+      </Box>
     </Box>
   );
 };

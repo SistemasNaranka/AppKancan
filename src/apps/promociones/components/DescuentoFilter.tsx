@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Typography, TextField } from "@mui/material";
-import  usePromotionsFilter  from "../hooks/usePromotionsFilter";
+import usePromotionsFilter from "../hooks/usePromotionsFilter";
 
 const DescuentoFilter: React.FC = () => {
   const { descuentoRange, setDescuentoRange } = usePromotionsFilter();
@@ -21,7 +21,12 @@ const DescuentoFilter: React.FC = () => {
         type="number"
         value={inputValue}
         onChange={handleChange}
-        inputProps={{ min: 0, max: 100 }}
+        slotProps={{
+          htmlInput: {
+            min: 0,
+            max: 100,
+          },
+        }}
         size="small"
         sx={{ width: 100 }}
       />

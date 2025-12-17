@@ -107,8 +107,8 @@ const createCellRenderers = ({
           type="number"
           size="small"
           variant="outlined"
-          InputProps={{
-            inputProps: {
+          slotProps={{
+            htmlInput: {
               style: { textAlign: "right", padding: "4px 8px" },
             },
           }}

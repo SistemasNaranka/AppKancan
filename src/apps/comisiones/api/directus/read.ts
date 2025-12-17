@@ -382,12 +382,12 @@ export async function obtenerPresupuestosEmpleados(
       }
     }
 
-    // 🚀 NUEVO: Si es el mes actual, filtrar hasta la fecha actual
+    // 🚀 REVERTIDO: Restaurar funcionalidad original para no dañar toda la app
     if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
       const fechaActual = getCurrentDate();
       filter.fecha = { _lte: fechaActual };
     } else if (fecha) {
-      filter.fecha = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas hasta fecha
+      filter.fecha = { _lte: fecha }; // Restaurar funcionalidad original
     }
 
     const data = await withAutoRefresh(() =>

@@ -17,6 +17,8 @@ interface UseEmployeeManagementReturn {
   success: string | null;
   messageType: "success" | "error" | "warning" | "info";
   canSave: boolean;
+  hasExistingData: boolean;
+  isUpdateMode: boolean;
   empleadoEncontrado: any | null;
 
   // Handlers
@@ -24,7 +26,12 @@ interface UseEmployeeManagementReturn {
   setCargoSeleccionado: (value: string) => void;
   handleAddEmpleado: () => Promise<void>;
   handleRemoveEmpleado: (asesorId: number) => Promise<void>;
+  handleClearEmpleados: () => void;
   handleSaveAsignaciones: (fechaActual: string) => Promise<void>;
+  cargarDatosExistentes: (
+    fecha: string,
+    mesSeleccionado?: string
+  ) => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
   onAssignmentComplete?: (ventasData: any[]) => void;
 
@@ -71,12 +78,16 @@ export const useEmployeeManagement = (
     success,
     messageType,
     canSave,
+    hasExistingData,
+    isUpdateMode,
     setCodigoInput,
     setCargoSeleccionado: setCargoSeleccionadoInOperations,
     handleAddEmpleado,
     handleRemoveEmpleado,
+    handleClearEmpleados,
     handleSaveAsignaciones,
     handleKeyPress,
+    cargarDatosExistentes,
     codigoInputRef,
     getCargoNombre,
     getTiendaNombre,
@@ -99,6 +110,14 @@ export const useEmployeeManagement = (
   // Modificar handleSaveAsignaciones para incluir datos necesarios
   const handleSaveAsignacionesModified = async (fechaActual: string) => {
     await handleSaveAsignaciones(fechaActual, cargosDisponibles);
+  };
+
+  // Modificar cargarDatosExistentes para incluir datos necesarios
+  const cargarDatosExistentesModified = async (
+    fecha: string,
+    mesSeleccionado?: string
+  ) => {
+    await cargarDatosExistentes(fecha, mesSeleccionado, asesoresDisponibles);
   };
 
   // Modificar handleKeyPress para incluir la lógica
@@ -133,12 +152,16 @@ export const useEmployeeManagement = (
     success,
     messageType,
     canSave,
+    hasExistingData,
+    isUpdateMode,
     empleadoEncontrado,
     setCodigoInput,
     setCargoSeleccionado,
     handleAddEmpleado: handleAddEmpleadoModified,
     handleRemoveEmpleado,
+    handleClearEmpleados,
     handleSaveAsignaciones: handleSaveAsignacionesModified,
+    cargarDatosExistentes: cargarDatosExistentesModified,
     handleKeyPress: handleKeyPressModified,
     codigoInputRef,
     getCargoNombre: getCargoNombreWithCargos,

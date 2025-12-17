@@ -20,12 +20,14 @@ interface HomeModalsProps {
   modalTitle: string;
   modalMessage: string;
   selectedMonth: string;
+  hasSavedData?: boolean;
 
   // Modal actions
   onCloseConfigModal: () => void;
   onCloseCodesModal: () => void;
   onCloseNoDataModal: () => void;
   onAssignmentComplete?: (ventasData: any) => void;
+  onShowSaveLoading?: (error?: any) => void;
 }
 
 export const HomeModals: React.FC<HomeModalsProps> = ({
@@ -35,10 +37,12 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   modalTitle,
   modalMessage,
   selectedMonth,
+  hasSavedData,
   onCloseConfigModal,
   onCloseCodesModal,
   onCloseNoDataModal,
   onAssignmentComplete,
+  onShowSaveLoading,
 }) => {
   const { state } = useCommission();
 
@@ -100,6 +104,8 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         isOpen={showCodesModal}
         onClose={onCloseCodesModal}
         selectedMonth={selectedMonth}
+        hasSavedData={hasSavedData}
+        onShowSaveLoading={onShowSaveLoading}
         onAssignmentComplete={handleAssignmentComplete}
       />
 

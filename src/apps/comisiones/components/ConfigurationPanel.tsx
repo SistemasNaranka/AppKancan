@@ -176,7 +176,13 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
               fullWidth
               type="number"
               label="Porcentaje fijo del gerente (0-10%)"
-              inputProps={{ min: 0, max: 10, step: 0.1 }}
+              slotProps={{
+                htmlInput: {
+                  min: 0,
+                  max: 10,
+                  step: 0.1,
+                },
+              }}
               value={porcentajeGerente}
               onChange={(e) =>
                 setPorcentajeGerente(parseFloat(e.target.value) || 0)
@@ -271,7 +277,12 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                   fullWidth
                   type="number"
                   label="Presupuesto Total Diario"
-                  inputProps={{ min: 0, step: 1000 }}
+                  slotProps={{
+                    htmlInput: {
+                      min: 0,
+                      step: 1000,
+                    },
+                  }}
                   value={newBudget.presupuesto_total}
                   onChange={(e) =>
                     setNewBudget({
