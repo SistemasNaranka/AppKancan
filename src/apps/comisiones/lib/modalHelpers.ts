@@ -3,9 +3,11 @@
  */
 
 export const getFechaActual = (mesSeleccionado?: string): string => {
-  // SIEMPRE usar la fecha de HOY del sistema
+  // Usar zona horaria de Colombia (UTC-5) para obtener la fecha correcta
   const now = new Date();
-  return now.toISOString().split("T")[0]; // YYYY-MM-DD
+
+  // Usar toLocaleDateString con formato sueco que da YYYY-MM-DD
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "America/Bogota" });
 };
 
 /**

@@ -2,7 +2,12 @@
  * Tipos TypeScript para la Calculadora de Comisiones por Cumplimiento
  */
 
-export type Role = "gerente" | "asesor" | "cajero" | "logistico";
+export type Role =
+  | "gerente"
+  | "asesor"
+  | "cajero"
+  | "logistico"
+  | "coadministrador";
 
 export interface BudgetRecord {
   tienda: string;
@@ -118,6 +123,8 @@ export interface DirectusPorcentajeMensual {
   gerente_porcentaje: number;
   asesor_tipo: "fijo" | "distributivo";
   asesor_porcentaje: number;
+  coadministrador_tipo: "fijo" | "distributivo";
+  coadministrador_porcentaje: number;
   cajero_tipo: "fijo" | "distributivo";
   cajero_porcentaje: number;
   logistico_tipo: "fijo" | "distributivo";
