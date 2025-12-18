@@ -245,6 +245,14 @@ export const DataTableAccordionTable: React.FC<
     });
   }, [tienda.empleados, tienda.tienda, tienda.fecha, sortState]);
 
+  // ✅ FILTRAR EMPLEADOS: Ocultar filas con 0 presupuesto Y 0 ventas (solo en vista)
+  const filteredRows = useMemo(() => {
+    return processedRows.filter((row) => {
+      // Mostrar empleado si tiene presupuesto > 0 O ventas > 0
+      return row.presupuesto > 0 || row.ventasActuales > 0;
+    });
+  }, [processedRows]);
+
   const commonCellProps = {
     fontWeight: 600,
     fontSize: isMobile ? "0.7rem" : "0.875rem",
@@ -474,7 +482,7 @@ export const DataTableAccordionTable: React.FC<
             </TableRow>
           </TableHead>
           <TableBody>
-            {processedRows.map((row: EmployeeRow) => {
+            {filteredRows.map((row: EmployeeRow) => {
               const backgroundColor = getRowBackgroundColor(
                 row.comision_pct * 100
               );
@@ -601,6 +609,26 @@ export const DataTableAccordionTable: React.FC<
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* ✅ MENSAJE CUANDO NO HAY EMPLEADOS QUE MOSTRAR DESPUÉS DEL FILTRO */}
+      {filteredRows.length === 0 && (
+        <Box
+          sx={{
+            p: 3,
+            textAlign: "center",
+            color: "text.secondary",
+            borderTop: "1px solid #e0e0e0",
+          }}
+        >
+          <Typography variant="body2">
+            No hay empleados con presupuesto o ventas para mostrar.
+          </Typography>
+          <Typography variant="caption" sx={{ mt: 1, display: "block" }}>
+            Los empleados con 0 presupuesto y 0 ventas no se muestran en la
+            vista.
+          </Typography>
+        </Box>
+      )}
     </Paper>
   );
 };

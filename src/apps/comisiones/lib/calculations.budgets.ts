@@ -15,6 +15,8 @@ export const calculateBudgetsWithFixedDistributive = (
     gerente_porcentaje: number;
     asesor_tipo: "fijo" | "distributivo";
     asesor_porcentaje: number;
+    coadministrador_tipo: "fijo" | "distributivo";
+    coadministrador_porcentaje: number;
     cajero_tipo: "fijo" | "distributivo";
     cajero_porcentaje: number;
     logistico_tipo: "fijo" | "distributivo";
@@ -23,6 +25,7 @@ export const calculateBudgetsWithFixedDistributive = (
   empleadosPorRol: {
     gerente: number;
     asesor: number;
+    coadministrador: number;
     cajero: number;
     logistico: number;
   }
@@ -30,6 +33,7 @@ export const calculateBudgetsWithFixedDistributive = (
   const presupuestos: { [rol: string]: number } = {
     gerente: 0,
     asesor: 0,
+    coadministrador: 0,
     cajero: 0,
     logistico: 0,
   };
@@ -43,6 +47,17 @@ export const calculateBudgetsWithFixedDistributive = (
     );
     presupuestos.gerente = presupuestoGerente;
     presupuestoRestante -= presupuestoGerente;
+  }
+
+  if (
+    porcentajes.coadministrador_tipo === "fijo" &&
+    empleadosPorRol.coadministrador > 0
+  ) {
+    const presupuestoCoadministrador = round(
+      (presupuesto_total * porcentajes.coadministrador_porcentaje) / 100
+    );
+    presupuestos.coadministrador = presupuestoCoadministrador;
+    presupuestoRestante -= presupuestoCoadministrador;
   }
 
   if (porcentajes.cajero_tipo === "fijo" && empleadosPorRol.cajero > 0) {
@@ -67,6 +82,12 @@ export const calculateBudgetsWithFixedDistributive = (
     empleadosPorRol.asesor > 0
   ) {
     distributivos.push("asesor");
+  }
+  if (
+    porcentajes.coadministrador_tipo === "distributivo" &&
+    empleadosPorRol.coadministrador > 0
+  ) {
+    distributivos.push("coadministrador");
   }
   if (
     porcentajes.cajero_tipo === "distributivo" &&

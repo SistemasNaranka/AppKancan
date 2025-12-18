@@ -15,8 +15,11 @@ import {
   obtenerPresupuestosDiarios,
   obtenerPresupuestosEmpleados,
   obtenerPorcentajesMensuales,
+  obtenerAsesores,
+  obtenerCargos,
 } from "../api/directus/read";
 import { calculateBudgetsWithFixedDistributive } from "../lib/calculations";
+import { getFechaActual } from "../lib/modalHelpers";
 
 interface UseEmployeeOperationsReturn {
   // Estados
@@ -48,7 +51,8 @@ interface UseEmployeeOperationsReturn {
   cargarDatosExistentes: (
     fecha: string,
     mesSeleccionado?: string,
-    asesoresDisponibles?: DirectusAsesor[]
+    asesoresDisponibles?: DirectusAsesor[],
+    cargosDisponibles?: DirectusCargo[]
   ) => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
   onAssignmentComplete?: (ventasData: any[]) => void;
@@ -136,7 +140,8 @@ export const useEmployeeOperations = (
   const cargarDatosExistentes = async (
     fecha: string,
     mesSeleccionado?: string,
-    asesoresDisponibles?: DirectusAsesor[]
+    asesoresDisponibles?: DirectusAsesor[],
+    cargosDisponibles?: DirectusCargo[]
   ) => {
     if (!tiendaUsuario) {
       console.log("No hay tienda de usuario para cargar datos existentes");
@@ -160,16 +165,37 @@ export const useEmployeeOperations = (
       });
 
       if (empleadosHoy.length > 0) {
+        // Obtener lista completa de asesores si no se proporcionó o está vacía
+        let asesoresCompletos = asesoresDisponibles;
+        if (!asesoresCompletos || asesoresCompletos.length === 0) {
+          try {
+            asesoresCompletos = await obtenerAsesores();
+          } catch (error) {
+            console.warn("No se pudo cargar la lista de asesores:", error);
+          }
+        }
+
+        // Obtener lista de cargos si no se proporcionó
+        let cargosCompletos = cargosDisponibles;
+        if (!cargosCompletos) {
+          try {
+            cargosCompletos = await obtenerCargos();
+          } catch (error) {
+            console.warn("No se pudo cargar la lista de cargos:", error);
+            cargosCompletos = [];
+          }
+        }
+
         // Convertir datos existentes al formato de empleadosAsignados
         const empleadosExistentes: EmpleadoAsignado[] = empleadosHoy.map(
           (dato) => {
             // Buscar el empleado real en la lista de asesores disponibles
-            const empleadoReal = asesoresDisponibles?.find(
+            const empleadoReal = asesoresCompletos?.find(
               (asesor) => asesor.id === dato.asesor
             );
 
             // ✅ MEJORADO: Crear asesor con información completa preservada
-            const asesor = empleadoReal || {
+            const asesor: DirectusAsesor = empleadoReal || {
               id: dato.asesor,
               nombre: `Empleado ${dato.asesor}`, // Mantener formato consistente
               documento: 0,
@@ -177,15 +203,13 @@ export const useEmployeeOperations = (
               cargo_id: dato.cargo,
             };
 
-            // Obtener nombre del cargo (usaremos una función simple)
-            const getNombreCargoSimple = (cargoId: number): string => {
-              const cargoMap: { [key: number]: string } = {
-                1: "Gerente",
-                2: "Asesor",
-                3: "Cajero",
-                4: "Logístico",
-              };
-              return cargoMap[cargoId] || "Asesor";
+            // ✅ CORRECCIÓN: Obtener nombre del cargo desde la base de datos
+            const getNombreCargoReal = (
+              cargoId: number,
+              cargosDisponibles: DirectusCargo[]
+            ): string => {
+              const cargo = cargosDisponibles.find((c) => c.id === cargoId);
+              return cargo?.nombre || "Asesor";
             };
 
             // ✅ PRESERVAR INFORMACIÓN COMPLETA incluyendo presupuesto
@@ -193,7 +217,10 @@ export const useEmployeeOperations = (
               asesor,
               presupuesto: dato.presupuesto || 0, // ✅ ASEGURAR QUE NO SEA 0
               tiendaId: dato.tienda_id,
-              cargoAsignado: getNombreCargoSimple(dato.cargo),
+              cargoAsignado: getNombreCargoReal(
+                dato.cargo,
+                cargosCompletos || []
+              ),
             };
           }
         );
@@ -266,6 +293,9 @@ export const useEmployeeOperations = (
         asesor: empleadosConRoles.filter(
           (e) => e.cargoAsignado.toLowerCase() === "asesor"
         ).length,
+        coadministrador: empleadosConRoles.filter(
+          (e) => e.cargoAsignado.toLowerCase() === "coadministrador"
+        ).length,
         cajero: empleadosConRoles.filter(
           (e) => e.cargoAsignado.toLowerCase() === "cajero"
         ).length,
@@ -292,6 +322,7 @@ export const useEmployeeOperations = (
         if (
           rolLower === "gerente" ||
           rolLower === "asesor" ||
+          rolLower === "coadministrador" ||
           rolLower === "cajero" ||
           rolLower === "logistico"
         ) {
@@ -424,7 +455,7 @@ export const useEmployeeOperations = (
 
       empleadosConNuevo.forEach((e, i) => {});
 
-      const fechaActual = new Date().toISOString().split("T")[0];
+      const fechaActual = getFechaActual();
       const presupuestosCalculados = await calcularPresupuestosTodosEmpleados(
         empleadosConNuevo,
         fechaActual
@@ -543,7 +574,7 @@ export const useEmployeeOperations = (
           })
         );
 
-        const fechaActual = new Date().toISOString().split("T")[0];
+        const fechaActual = getFechaActual();
         const presupuestosCalculados = await calcularPresupuestosTodosEmpleados(
           empleadosRestantesConRoles,
           fechaActual
@@ -616,16 +647,6 @@ export const useEmployeeOperations = (
         cargoAsignado: e.cargoAsignado,
       }));
 
-      // ✅ DEBUG: Mostrar empleados que se van a recacular en save
-
-      empleadosConRoles.forEach((e, i) => {
-        console.log(
-          `  ${i + 1}. ${e.asesor.nombre} - ${e.cargoAsignado} (ID: ${
-            e.asesor.id
-          })`
-        );
-      });
-
       const presupuestosRecalculados = await calcularPresupuestosTodosEmpleados(
         empleadosConRoles,
         fechaActual
@@ -641,9 +662,6 @@ export const useEmployeeOperations = (
       const empleadosActualizados: EmpleadoAsignado[] = empleadosAsignados.map(
         (empleado) => {
           const nuevoPresupuesto = presupuestosRecalculados[empleado.asesor.id];
-          console.log(
-            `💰 ${empleado.asesor.nombre}: ${empleado.presupuesto} → ${nuevoPresupuesto}`
-          );
 
           return {
             ...empleado, // ✅ PRESERVAR TODA LA INFORMACIÓN EXISTENTE
@@ -651,8 +669,6 @@ export const useEmployeeOperations = (
           };
         }
       );
-
-      console.log("✅ Recálculo completado, procediendo con el guardado...");
 
       const mapearCargoACargoId = (cargoAsignado: string): number => {
         const cargo = cargosDisponibles.find(
@@ -663,7 +679,6 @@ export const useEmployeeOperations = (
 
       // Eliminar datos existentes del mismo día antes de guardar
       if (tiendaUsuario) {
-        console.log("🗑️ Eliminando datos existentes del día...");
         try {
           await eliminarPresupuestosEmpleados(tiendaUsuario.id, fechaActual);
         } catch (eliminarError) {

@@ -117,7 +117,12 @@ export const useEmployeeManagement = (
     fecha: string,
     mesSeleccionado?: string
   ) => {
-    await cargarDatosExistentes(fecha, mesSeleccionado, asesoresDisponibles);
+    await cargarDatosExistentes(
+      fecha,
+      mesSeleccionado,
+      asesoresDisponibles,
+      cargosDisponibles
+    );
   };
 
   // ✅ NUEVO: Modificar handleKeyPress para incluir la lógica

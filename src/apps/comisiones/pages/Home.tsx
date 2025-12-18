@@ -237,7 +237,6 @@ export default function Home() {
 
   // 🚀 NUEVO: Manejar guardado desde el modal
   const handleCodesModalSave = async (originalError?: any) => {
-    console.log("🚀 Iniciando guardado desde modal...");
     setShowSaveLoading(true);
     setSaveSuccess(false);
     setSaveError(false);

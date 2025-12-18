@@ -119,6 +119,8 @@ const processCommissionData = async (selectedMonth: string) => {
         ? "asesor"
         : cargoNombre === "cajero"
         ? "cajero"
+        : cargoNombre === "coadministrador"
+        ? "coadministrador"
         : "logistico";
 
     staff.push({
@@ -152,6 +154,8 @@ const processCommissionData = async (selectedMonth: string) => {
                 ? "asesor"
                 : cargoNombre === "cajero"
                 ? "cajero"
+                : cargoNombre === "coadministrador"
+                ? "coadministrador"
                 : "logistico";
           }
         }
@@ -267,8 +271,6 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
 
   // ✅ MEJORAR función refetch para invalidación más agresiva
   const refetch = useCallback(() => {
-    console.log("🔄 Forzando recarga completa de datos de comisiones...");
-
     // ✅ INVALIDACIÓN MÁS AGRESIVA - INVALIDAR TODO
     queryClient.invalidateQueries({
       queryKey: ["commission-data"],
@@ -318,9 +320,7 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
         queryKey: ["commission-data", selectedMonth],
         type: "active",
       })
-      .then(() => {
-        console.log("✅ Recarga completa finalizada");
-      });
+      .then(() => {});
   }, [queryClient, selectedMonth]);
 
   // Función para precargar datos de un mes

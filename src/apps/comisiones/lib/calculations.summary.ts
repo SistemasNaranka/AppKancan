@@ -66,6 +66,11 @@ export const calculateTiendaResumen = (
     (s) => s.rol === "asesor"
   ).length;
 
+  // Contar coadministradores
+  const cantidad_coadministradores = tiendaStaff.filter(
+    (s) => s.rol === "coadministrador"
+  ).length;
+
   // Calcular comisiones por empleado
   const empleados: EmployeeCommission[] = tiendaStaff.map((empleado) => {
     if (empleado.rol === "cajero") {
@@ -184,10 +189,12 @@ export const calculateTiendaResumen = (
         // Calcular presupuesto usando lógica tradicional
         const presupuesto_asesores =
           budget.presupuesto_total * ((100 - porcentaje_gerente) / 100);
+        const cantidad_total_asesores =
+          cantidad_asesores + cantidad_coadministradores;
         presupuesto =
-          cantidad_asesores === 0
+          cantidad_total_asesores === 0
             ? 0
-            : round(presupuesto_asesores / cantidad_asesores);
+            : round(presupuesto_asesores / cantidad_total_asesores);
       }
 
       // Obtener ventas del empleado
@@ -197,8 +204,13 @@ export const calculateTiendaResumen = (
     }
   });
 
-  // ✅ CORRECCIÓN CRÍTICA: Presupuesto total = Suma de presupuestos de empleados
-  const presupuestoTotalTienda = empleados.reduce(
+  // Filtrar empleados que tienen ventas = 0 y presupuesto = 0
+  const empleadosFiltrados = empleados.filter(
+    (emp) => !(emp.ventas === 0 && emp.presupuesto === 0)
+  );
+
+  // ✅ CORRECCIÓN CRÍTICA: Presupuesto total = Suma de presupuestos de empleados filtrados
+  const presupuestoTotalTienda = empleadosFiltrados.reduce(
     (sum, e) => sum + (e.presupuesto || 0),
     0
   );
@@ -214,7 +226,7 @@ export const calculateTiendaResumen = (
     presupuestoTotalTienda
   );
   const total_comisiones = round(
-    empleados.reduce((sum, e) => sum + e.comision_monto, 0)
+    empleadosFiltrados.reduce((sum, e) => sum + e.comision_monto, 0)
   );
 
   return {
@@ -225,7 +237,7 @@ export const calculateTiendaResumen = (
     presupuesto_tienda: round(presupuestoTotalTienda), // ✅ Era: budget.presupuesto_total
     ventas_tienda: round(tiendaVentas),
     cumplimiento_tienda_pct: cumplimiento_tienda,
-    empleados,
+    empleados: empleadosFiltrados,
     total_comisiones,
   };
 };
@@ -334,7 +346,13 @@ export const calculateMesResumenAgrupado = (
       mes,
       tiendas: [],
       total_comisiones: 0,
-      comisiones_por_rol: { gerente: 0, asesor: 0, cajero: 0, logistico: 0 },
+      comisiones_por_rol: {
+        gerente: 0,
+        asesor: 0,
+        cajero: 0,
+        logistico: 0,
+        coadministrador: 0,
+      },
     };
   }
 
@@ -497,7 +515,9 @@ export const calculateMesResumenAgrupado = (
               empleadosUnicos.values()
             ).filter((e) => e.empleado.rol === "gerente").length;
             const empleadosAsesor = Array.from(empleadosUnicos.values()).filter(
-              (e) => e.empleado.rol === "asesor"
+              (e) =>
+                e.empleado.rol === "asesor" ||
+                e.empleado.rol === "coadministrador"
             ).length;
 
             // Calcular presupuesto total disponible basado en empleados existentes
@@ -506,7 +526,7 @@ export const calculateMesResumenAgrupado = (
               presupuestoTotalCalculado += empleadosGerente * 100000; // Estimación para gerente
             }
             if (empleadosAsesor > 0) {
-              presupuestoTotalCalculado += empleadosAsesor * 80000; // Estimación para asesores
+              presupuestoTotalCalculado += empleadosAsesor * 80000; // Estimación para asesores y coadministradores
             }
 
             if (empleado.rol === "gerente") {
@@ -516,7 +536,10 @@ export const calculateMesResumenAgrupado = (
                   : round(
                       (presupuestoTotalCalculado * porcentaje_gerente) / 100
                     );
-            } else if (empleado.rol === "asesor") {
+            } else if (
+              empleado.rol === "asesor" ||
+              empleado.rol === "coadministrador"
+            ) {
               const presupuesto_asesores =
                 presupuestoTotalCalculado * ((100 - porcentaje_gerente) / 100);
               empleadoData.presupuestoMensual =
@@ -600,7 +623,7 @@ export const calculateMesResumenAgrupado = (
         empleadoComision.fecha = diasTrabajados[0];
         empleadoComision.dias_laborados = diasTrabajados.length;
       } else {
-        // Asesores: lógica tradicional individual
+        // Asesores y Coadministradores: lógica tradicional individual
         empleadoComision = calculateTraditionalEmployeeCommission(
           empleado,
           presupuestoMensual,
@@ -651,6 +674,7 @@ export const calculateMesResumenAgrupado = (
     asesor: 0,
     cajero: 0,
     logistico: 0,
+    coadministrador: 0,
   };
 
   tiendaResumenes.forEach((tienda) => {

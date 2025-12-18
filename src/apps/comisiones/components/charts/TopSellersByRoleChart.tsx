@@ -202,13 +202,7 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
         callbacks: {
           label: function (context: any) {
             const value = context.parsed.x || 0; // Cambiado de y a x para barras horizontales
-            if (value >= 1000000) {
-              return `Comisión: $${Math.round(value / 1000000)}M`; // Sin decimales
-            } else if (value >= 1000) {
-              return `Comisión: $${Math.round(value / 1000)}K`; // Sin decimales
-            } else {
-              return `Comisión: $${Math.round(value).toLocaleString()}`; // Sin decimales
-            }
+            return `Comisión: ${Math.round(value).toLocaleString()}`; // Valor real completo
           },
         },
       },
