@@ -121,6 +121,8 @@ const processCommissionData = async (selectedMonth: string) => {
         ? "cajero"
         : cargoNombre === "coadministrador"
         ? "coadministrador"
+        : cargoNombre === "gerente online"
+        ? "gerente_online"
         : "logistico";
 
     staff.push({
@@ -156,6 +158,8 @@ const processCommissionData = async (selectedMonth: string) => {
                 ? "cajero"
                 : cargoNombre === "coadministrador"
                 ? "coadministrador"
+                : cargoNombre === "gerente online"
+                ? "gerente_online"
                 : "logistico";
           }
         }

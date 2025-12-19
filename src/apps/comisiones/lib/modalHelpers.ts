@@ -37,7 +37,8 @@ export const getCargoNombre = (
   // Si es un número, buscar en cargosDisponibles
   if (typeof cargoId === "number") {
     const cargo = cargosDisponibles.find((c: any) => c.id === cargoId);
-    return cargo?.nombre || "Asesor";
+    const nombre = cargo?.nombre || "Asesor";
+    return nombre;
   }
   return "Asesor";
 };

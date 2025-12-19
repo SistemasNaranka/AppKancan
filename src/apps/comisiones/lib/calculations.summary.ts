@@ -24,6 +24,7 @@ import {
   calculateGerenteCommission,
   calculateCajeroCommission,
   calculateLogisticoCommission,
+  calculateGerenteOnlineCommission,
   calculateCompliance,
   calculateBaseSale,
   getCommissionPercentage,
@@ -131,6 +132,24 @@ export const calculateTiendaResumen = (
         ventasIndividuales,
         presupuestoIndividual
       );
+    } else if (empleado.rol === "gerente_online") {
+      // Gerente Online: comisión especial del 1% sobre venta sin IVA
+      // Obtener ventas individuales del empleado
+      const ventasIndividuales = getEmployeeVentas(
+        ventasData,
+        tienda,
+        fecha,
+        empleado.id
+      );
+
+      // Presupuesto fijo de 1 para gerente_online
+      const presupuestoIndividual = 1;
+
+      return calculateGerenteOnlineCommission(
+        empleado,
+        ventasIndividuales,
+        presupuestoIndividual
+      );
     } else if (empleado.rol === "gerente") {
       // Gerentes: LÓGICA ESPECIAL PARA GERENTES
       // Los 3 cálculos principales basados en la TIENDA COMPLETA:
@@ -215,11 +234,7 @@ export const calculateTiendaResumen = (
     0
   );
 
-  console.log(
-    `💰 [CÁLCULO TIENDA] ${tienda} ${fecha}: Presupuesto total = Suma empleados = $${presupuestoTotalTienda.toLocaleString()} (era: $${
-      budget.presupuesto_total?.toLocaleString() || 0
-    })`
-  );
+  // Console.log eliminado para producción
 
   const cumplimiento_tienda = calculateCompliance(
     tiendaVentas,
@@ -351,6 +366,7 @@ export const calculateMesResumenAgrupado = (
         asesor: 0,
         cajero: 0,
         logistico: 0,
+        gerente_online: 0,
         coadministrador: 0,
       },
     };
@@ -548,9 +564,14 @@ export const calculateMesResumenAgrupado = (
                   : round(presupuesto_asesores / empleadosAsesor);
             } else if (
               empleado.rol === "cajero" ||
-              empleado.rol === "logistico"
+              empleado.rol === "logistico" ||
+              empleado.rol === "gerente_online"
             ) {
-              empleadoData.presupuestoMensual = 0; // Cajeros y logísticos no tienen presupuesto asignado
+              if (empleado.rol === "gerente_online") {
+                empleadoData.presupuestoMensual = 1; // Presupuesto fijo de 1 para gerente_online
+              } else {
+                empleadoData.presupuestoMensual = 0; // Cajeros y logísticos no tienen presupuesto asignado
+              }
             }
           }
         }
@@ -611,6 +632,15 @@ export const calculateMesResumenAgrupado = (
           empleadoData.ventasMensual,
           empleadoData.presupuestoMensual
         );
+      } else if (empleado.rol === "gerente_online") {
+        // Gerente Online: comisión especial del 1% sobre venta sin IVA
+        empleadoComision = calculateGerenteOnlineCommission(
+          empleado,
+          empleadoData.ventasMensual,
+          1 // Presupuesto fijo de 1
+        );
+        empleadoComision.fecha = diasTrabajados[0];
+        empleadoComision.dias_laborados = diasTrabajados.length;
       } else if (empleado.rol === "gerente") {
         // Gerentes: LÓGICA ESPECIAL PARA GERENTES
         empleadoComision = calculateGerenteCommission(
@@ -674,6 +704,7 @@ export const calculateMesResumenAgrupado = (
     asesor: 0,
     cajero: 0,
     logistico: 0,
+    gerente_online: 0,
     coadministrador: 0,
   };
 

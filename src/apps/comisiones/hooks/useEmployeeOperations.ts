@@ -103,12 +103,16 @@ export const useEmployeeOperations = (
     disabled: false,
   });
 
-  // ✅ NUEVA VALIDACIÓN: Debe tener al menos un gerente/coadministrador Y un asesor
+  // ✅ NUEVA VALIDACIÓN: Debe tener al menos un gerente/coadministrador/gerente online Y un asesor
   useEffect(() => {
-    const hasManagerOrCoadmin = empleadosAsignados.some((empleado) =>
-      ROLES_EXCLUSIVOS.includes(
-        empleado.cargoAsignado.toLowerCase() as RolExclusivo
-      )
+    const hasManagerOrCoadminOrGerenteOnline = empleadosAsignados.some(
+      (empleado) => {
+        const rolLower = empleado.cargoAsignado.toLowerCase();
+        return (
+          ROLES_EXCLUSIVOS.includes(rolLower as RolExclusivo) ||
+          rolLower === "gerente online"
+        );
+      }
     );
     const hasAsesor = empleadosAsignados.some(
       (empleado) => empleado.cargoAsignado.toLowerCase() === "asesor"
@@ -119,11 +123,14 @@ export const useEmployeeOperations = (
       text: hasExistingData ? "Actualizar" : "Guardar",
       action: hasExistingData ? "update" : "save",
       disabled:
-        !(hasManagerOrCoadmin && hasAsesor) || empleadosAsignados.length === 0,
+        !(hasManagerOrCoadminOrGerenteOnline && hasAsesor) ||
+        empleadosAsignados.length === 0,
     };
 
     const newCanSave =
-      hasManagerOrCoadmin && hasAsesor && empleadosAsignados.length > 0;
+      hasManagerOrCoadminOrGerenteOnline &&
+      hasAsesor &&
+      empleadosAsignados.length > 0;
 
     // Solo actualizar si el valor realmente cambió
     if (canSave !== newCanSave) {
@@ -144,7 +151,6 @@ export const useEmployeeOperations = (
     cargosDisponibles?: DirectusCargo[]
   ) => {
     if (!tiendaUsuario) {
-      console.log("No hay tienda de usuario para cargar datos existentes");
       return;
     }
 
@@ -165,19 +171,20 @@ export const useEmployeeOperations = (
       });
 
       if (empleadosHoy.length > 0) {
-        // Obtener lista completa de asesores si no se proporcionó o está vacía
+        // ✅ CORRECCIÓN: Obtener lista completa de asesores SIEMPRE antes de procesar datos
         let asesoresCompletos = asesoresDisponibles;
         if (!asesoresCompletos || asesoresCompletos.length === 0) {
           try {
             asesoresCompletos = await obtenerAsesores();
           } catch (error) {
             console.warn("No se pudo cargar la lista de asesores:", error);
+            asesoresCompletos = [];
           }
         }
 
-        // Obtener lista de cargos si no se proporcionó
+        // ✅ CORRECCIÓN: Obtener lista de cargos SIEMPRE antes de procesar datos
         let cargosCompletos = cargosDisponibles;
-        if (!cargosCompletos) {
+        if (!cargosCompletos || cargosCompletos.length === 0) {
           try {
             cargosCompletos = await obtenerCargos();
           } catch (error) {
@@ -209,7 +216,8 @@ export const useEmployeeOperations = (
               cargosDisponibles: DirectusCargo[]
             ): string => {
               const cargo = cargosDisponibles.find((c) => c.id === cargoId);
-              return cargo?.nombre || "Asesor";
+              const nombreCargo = cargo?.nombre || "Asesor";
+              return nombreCargo;
             };
 
             // ✅ PRESERVAR INFORMACIÓN COMPLETA incluyendo presupuesto
@@ -225,17 +233,28 @@ export const useEmployeeOperations = (
           }
         );
 
+        // ✅ MEJORADO: Actualizar estados con lógica más robusta
         setEmpleadosAsignados(empleadosExistentes);
         setHasExistingData(true);
         setIsUpdateMode(true);
+
         // QUIETO: No mostrar mensaje al cargar datos existentes automáticamente
         // setSuccess(`Se cargaron ${empleadosExistentes.length} empleados del día de hoy`);
         // setMessageType("info");
       } else {
-        // Solo limpiar si no hay datos existentes
-        setEmpleadosAsignados([]);
-        setHasExistingData(false);
-        setIsUpdateMode(false);
+        // ✅ MEJORADO: Solo limpiar estados si no hay datos existentes
+        // NO limpiar empleadosAsignados si ya hay datos cargados (evita pérdida de datos temporales)
+        if (empleadosAsignados.length === 0) {
+          setEmpleadosAsignados([]);
+          setHasExistingData(false);
+          setIsUpdateMode(false);
+        } else {
+          // Si hay empleados cargados pero no hay datos para la fecha específica,
+          // mantener los empleados temporales pero marcar que no hay datos guardados
+          setHasExistingData(false);
+          setIsUpdateMode(false);
+        }
+
         // QUIETO: No mostrar mensaje al cargar datos existentes automáticamente
         // setSuccess("No hay empleados asignados para el día de hoy");
         // setMessageType("info");
@@ -302,9 +321,14 @@ export const useEmployeeOperations = (
         logistico: empleadosConRoles.filter(
           (e) => e.cargoAsignado.toLowerCase() === "logistico"
         ).length,
+        gerente_online: empleadosConRoles.filter(
+          (e) => e.cargoAsignado.toLowerCase() === "gerente online"
+        ).length,
       };
 
-      empleadosConRoles.forEach((e, i) => {});
+      empleadosConRoles.forEach((e, i) => {
+        // Log de depuración removido para limpieza
+      });
 
       const presupuestosPorRol = calculateBudgetsWithFixedDistributive(
         presupuestoTienda,
@@ -312,7 +336,7 @@ export const useEmployeeOperations = (
         empleadosPorRol
       );
 
-      // ✅ DEBUG: Mostrar presupuestos por rol calculados
+      // ✅ DEBUG: Mostrar todos los presupuestos calculados
 
       const presupuestos: { [asesorId: number]: number } = {};
 
@@ -324,26 +348,34 @@ export const useEmployeeOperations = (
           rolLower === "asesor" ||
           rolLower === "coadministrador" ||
           rolLower === "cajero" ||
-          rolLower === "logistico"
+          rolLower === "logistico" ||
+          rolLower === "gerente online"
         ) {
-          const cantidadEmpleadosRol =
-            empleadosPorRol[rolLower as keyof typeof empleadosPorRol];
-          const presupuestoRolTotal =
-            presupuestosPorRol[rolLower as keyof typeof presupuestosPorRol];
-          const presupuestoIndividual =
-            cantidadEmpleadosRol > 0
-              ? Math.round(presupuestoRolTotal / cantidadEmpleadosRol)
-              : 0;
+          // ✅ NUEVA LÓGICA: Para cajero, logístico y gerente online, asignar siempre presupuesto de 1
+          if (
+            rolLower === "cajero" ||
+            rolLower === "logistico" ||
+            rolLower === "gerente online"
+          ) {
+            presupuestos[empleadoConRol.asesor.id] = 1;
+          } else {
+            // Lógica original para otros roles
+            const cantidadEmpleadosRol =
+              empleadosPorRol[rolLower as keyof typeof empleadosPorRol];
+            const presupuestoRolTotal =
+              presupuestosPorRol[rolLower as keyof typeof presupuestosPorRol];
+            const presupuestoIndividual =
+              cantidadEmpleadosRol > 0
+                ? Math.round(presupuestoRolTotal / cantidadEmpleadosRol)
+                : 0;
 
-          presupuestos[empleadoConRol.asesor.id] = presupuestoIndividual;
+            presupuestos[empleadoConRol.asesor.id] = presupuestoIndividual;
+          }
+          // Rol válido - presupuesto asignado arriba
         } else {
-          console.warn(
-            `🔍 DEBUG - Rol desconocido: ${rolLower} para ${empleadoConRol.asesor.nombre}`
-          );
+          // Rol desconocido - usar presupuesto por defecto
         }
       });
-
-      // ✅ DEBUG: Mostrar todos los presupuestos calculados
 
       return presupuestos;
     } catch (err) {
@@ -453,8 +485,6 @@ export const useEmployeeOperations = (
         { asesor, cargoAsignado: cargoSeleccionado },
       ];
 
-      empleadosConNuevo.forEach((e, i) => {});
-
       const fechaActual = getFechaActual();
       const presupuestosCalculados = await calcularPresupuestosTodosEmpleados(
         empleadosConNuevo,
@@ -528,30 +558,32 @@ export const useEmployeeOperations = (
   };
 
   const handleRemoveEmpleado = async (asesorId: number) => {
-    // ✅ CORRECCIÓN 2: Validación mejorada de gerente
+    // ✅ CORRECCIÓN 2: Validación mejorada de gerente/coadministrador/gerente online
     const empleadoAEliminar = empleadosAsignados.find(
       (e) => e.asesor.id === asesorId
     );
-    const isGerente =
+    const isManagerRole =
       empleadoAEliminar &&
-      ROLES_EXCLUSIVOS.includes(
+      (ROLES_EXCLUSIVOS.includes(
         empleadoAEliminar.cargoAsignado.toLowerCase() as RolExclusivo
-      );
+      ) ||
+        empleadoAEliminar.cargoAsignado.toLowerCase() === "gerente online");
 
-    // Solo aplicar validación si se está eliminando un gerente, NO un asesor
-    if (isGerente) {
-      // Verificar si quedan otros gerentes
-      const gerentesRestantes = empleadosAsignados.filter(
+    // Solo aplicar validación si se está eliminando un rol de gestión
+    if (isManagerRole) {
+      // Verificar si quedan otros roles de gestión
+      const rolesGestionRestantes = empleadosAsignados.filter(
         (e) =>
           e.asesor.id !== asesorId &&
-          ROLES_EXCLUSIVOS.includes(
+          (ROLES_EXCLUSIVOS.includes(
             e.cargoAsignado.toLowerCase() as RolExclusivo
-          )
+          ) ||
+            e.cargoAsignado.toLowerCase() === "gerente online")
       );
 
-      if (gerentesRestantes.length === 0) {
+      if (rolesGestionRestantes.length === 0) {
         setError(
-          "No se puede eliminar el último gerente. Asigne otro gerente primero."
+          "No se puede eliminar el último rol de gestión (gerente/coadministrador/gerente online). Asigne otro rol de gestión primero."
         );
         setMessageType("error");
         return;
@@ -609,16 +641,20 @@ export const useEmployeeOperations = (
   };
 
   const hasRequiredRoles = (): boolean => {
-    const hasManagerOrCoadmin = empleadosAsignados.some((empleado) =>
-      ROLES_EXCLUSIVOS.includes(
-        empleado.cargoAsignado.toLowerCase() as RolExclusivo
-      )
+    const hasManagerOrCoadminOrGerenteOnline = empleadosAsignados.some(
+      (empleado) => {
+        const rolLower = empleado.cargoAsignado.toLowerCase();
+        return (
+          ROLES_EXCLUSIVOS.includes(rolLower as RolExclusivo) ||
+          rolLower === "gerente online"
+        );
+      }
     );
     const hasAsesor = empleadosAsignados.some(
       (empleado) => empleado.cargoAsignado.toLowerCase() === "asesor"
     );
 
-    return hasManagerOrCoadmin && hasAsesor;
+    return hasManagerOrCoadminOrGerenteOnline && hasAsesor;
   };
 
   const handleSaveAsignaciones = async (
@@ -632,7 +668,9 @@ export const useEmployeeOperations = (
     }
 
     if (!hasRequiredRoles()) {
-      setError("Debe asignar al menos un gerente/coadministrador Y un asesor");
+      setError(
+        "Debe asignar al menos un gerente/coadministrador/gerente online Y un asesor"
+      );
       setMessageType("error");
       return;
     }
@@ -671,9 +709,36 @@ export const useEmployeeOperations = (
       );
 
       const mapearCargoACargoId = (cargoAsignado: string): number => {
-        const cargo = cargosDisponibles.find(
+        // Buscar coincidencia exacta primero
+        let cargo = cargosDisponibles.find(
           (c) => c.nombre.toLowerCase() === cargoAsignado.toLowerCase()
         );
+
+        // Si no encuentra coincidencia exacta, buscar coincidencia parcial
+        if (!cargo) {
+          cargo = cargosDisponibles.find((c) => {
+            const cargoNombre = c.nombre.toLowerCase();
+            const busqueda = cargoAsignado.toLowerCase();
+            return (
+              cargoNombre.includes(busqueda) || busqueda.includes(cargoNombre)
+            );
+          });
+        }
+
+        // Si es "Gerente Online" y no se encuentra, intentar crear mapeo manual
+        if (!cargo && cargoAsignado.toLowerCase() === "gerente online") {
+          // Buscar por palabras clave
+          const cargoGerenteOnline = cargosDisponibles.find(
+            (c) =>
+              c.nombre.toLowerCase().includes("gerente") &&
+              c.nombre.toLowerCase().includes("online")
+          );
+
+          if (cargoGerenteOnline) {
+            return cargoGerenteOnline.id;
+          }
+        }
+
         return cargo?.id || 2;
       };
 
@@ -714,12 +779,17 @@ export const useEmployeeOperations = (
       setSuccess(mensajeExito);
       setMessageType("success");
 
-      // ✅ ACTUALIZAR ESTADO GLOBAL CON EMPLEADOS ACTUALIZADOS
+      // ✅ MEJORADO: Actualizar estado global con empleados actualizados después del guardado exitoso
       setEmpleadosAsignados(empleadosActualizados);
 
-      // Resetear estados de datos existentes después de guardar exitosamente
-      setHasExistingData(false);
-      setIsUpdateMode(false);
+      // ✅ CORREGIDO: NO resetear hasExistingData e isUpdateMode inmediatamente
+      // Estos estados deben mantenerse para que el modal sepa que hay datos guardados
+      // Se resetearán solo cuando se carguen nuevos datos o se limpie manualmente
+      // setHasExistingData(false);
+      // setIsUpdateMode(false);
+
+      // ✅ MEJORADO: Mantener estados de datos existentes después del guardado
+      // Esto permite que cuando se reabra el modal, sepa que hay datos guardados
 
       // ❌ NO llamar onAssignmentComplete aquí
       // El modal lo hará después de cerrarse
@@ -765,7 +835,8 @@ export const useEmployeeOperations = (
       const cargo = cargosDisponibles.find(
         (c: DirectusCargo) => c.id === cargoId
       );
-      return cargo?.nombre || "Asesor";
+      const nombre = cargo?.nombre || "Asesor";
+      return nombre;
     }
     return "Asesor";
   };

@@ -401,6 +401,14 @@ export default function Home() {
     return hasBudgetData !== false;
   }, [hasBudgetData]);
 
+  // 🚀 NUEVO: Determinar si hay una sola tienda (para gráficos)
+  const esUnaSolaTienda = useMemo(() => {
+    const datosParaAnalizar = shouldShowMainContent
+      ? mesResumenFiltrado || mesResumen
+      : mesResumen;
+    return datosParaAnalizar?.tiendas?.length === 1;
+  }, [mesResumen, mesResumenFiltrado, shouldShowMainContent]);
+
   // 🚀 NUEVO: Props condicionales para HomeHeader - solo mostrar SummaryCards si hay presupuesto
   const homeHeaderProps = useMemo(() => {
     const baseProps = {
@@ -724,7 +732,10 @@ export default function Home() {
                         <h2 className="text-lg sm:text-xl font-semibold">
                           Análisis Visual
                         </h2>
-                        <Charts mesResumen={mesResumenFiltrado || mesResumen} />
+                        <Charts
+                          mesResumen={mesResumenFiltrado || mesResumen}
+                          esUnaSolaTienda={esUnaSolaTienda}
+                        />
                       </section>
                     )}
                   </section>

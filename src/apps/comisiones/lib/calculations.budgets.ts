@@ -28,6 +28,7 @@ export const calculateBudgetsWithFixedDistributive = (
     coadministrador: number;
     cajero: number;
     logistico: number;
+    gerente_online: number;
   }
 ): { [rol: string]: number } => {
   const presupuestos: { [rol: string]: number } = {
@@ -36,6 +37,7 @@ export const calculateBudgetsWithFixedDistributive = (
     coadministrador: 0,
     cajero: 0,
     logistico: 0,
+    gerente_online: 0,
   };
 
   let presupuestoRestante = presupuesto_total;
@@ -66,6 +68,12 @@ export const calculateBudgetsWithFixedDistributive = (
     );
     presupuestos.cajero = presupuestoCajero;
     presupuestoRestante -= presupuestoCajero;
+  }
+
+  // Gerente Online: presupuesto fijo de 1 por empleado
+  if (empleadosPorRol.gerente_online > 0) {
+    presupuestos.gerente_online = empleadosPorRol.gerente_online * 1;
+    // No se resta del presupuesto restante porque es un presupuesto independiente
   }
 
   // 2. Calcular distributivos con el presupuesto restante

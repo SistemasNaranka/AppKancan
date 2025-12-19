@@ -7,6 +7,7 @@ export type Role =
   | "asesor"
   | "cajero"
   | "logistico"
+  | "gerente_online"
   | "coadministrador";
 
 export interface BudgetRecord {
