@@ -81,13 +81,22 @@ export const useScannerLogic = () => {
     // Limpiar y quitar ceros a la izquierda
     const limpio = input.trim().replace(/^0+/, "");
     if (!limpio) return "";
-    // Tomar solo los primeros 6 dígitos
-    const primeros6 = limpio.slice(0, 6);
+
+    // Nueva condición: si el número empieza con 44, tomar todo el código
+    let resultado: string;
+    if (limpio.startsWith("44")) {
+      // Si empieza con 44, tomar todo el código
+      resultado = limpio;
+    } else {
+      // Si no empieza con 44, tomar solo los primeros 6 dígitos (lógica original)
+      resultado = limpio.slice(0, 6);
+    }
+
     // Validar que solo sean números
-    if (!/^\d+$/.test(primeros6)) {
+    if (!/^\d+$/.test(resultado)) {
       return "";
     }
-    return primeros6;
+    return resultado;
   };
 
   // === AGREGAR CÓDIGO ===

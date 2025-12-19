@@ -91,6 +91,8 @@ export const CodesModal: React.FC<CodesModalProps> = ({
 
   // 🚀 CONTROL: Evitar ejecuciones múltiples de useEffect (MOVIDO ANTES DE LOS USEEFFECT)
   const [dataLoadTriggered, setDataLoadTriggered] = useState(false);
+  const [forceReload, setForceReload] = useState(false);
+  const [dataReady, setDataReady] = useState(false); // Nuevo estado para controlar cuando los datos base están listos
 
   // NUEVO: Función para recargar datos existentes manualmente
   const recargarDatosExistentes = () => {
@@ -101,10 +103,37 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       tiendaUsuario
     ) {
       const fechaActual = new Date().toISOString().split("T")[0];
-      console.log("Recargando datos existentes manualmente...");
       cargarDatosExistentes(fechaActual, selectedMonth);
     }
   };
+
+  // NUEVO: Función para forzar recarga cuando el modal se abre después de guardar
+  const forzarRecargaDatos = () => {
+    if (
+      isOpen &&
+      validationCompleted &&
+      hasPermission &&
+      tiendasCount === 1 &&
+      tiendaUsuario &&
+      dataReady // Solo cargar cuando los datos base estén listos
+    ) {
+      const fechaActual = new Date().toISOString().split("T")[0];
+      setDataLoadTriggered(false); // Resetear flag para permitir recarga
+      setForceReload(true);
+      cargarDatosExistentes(fechaActual, selectedMonth);
+    }
+  };
+
+  // ✅ NUEVO: Verificar cuando los datos base (asesores y cargos) están listos
+  useEffect(() => {
+    if (
+      isOpen &&
+      asesoresDisponibles.length > 0 &&
+      cargosDisponibles.length > 0
+    ) {
+      setDataReady(true);
+    }
+  }, [isOpen, asesoresDisponibles.length, cargosDisponibles.length]);
 
   // Cargar datos cuando se abre el modal
   useEffect(() => {
@@ -114,6 +143,9 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       // Resetear estados de guardado y cierre automático
       setSaveSuccessMessage("");
       setShouldAutoClose(false);
+      // Forzar recarga inmediata cuando el modal se abre
+      setDataLoadTriggered(false);
+      setForceReload(false);
     }
   }, [isOpen]);
 
@@ -125,20 +157,19 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       hasPermission &&
       tiendasCount === 1 &&
       tiendaUsuario &&
-      !dataLoadTriggered
+      dataReady && // Solo cuando los datos base estén listos
+      (!dataLoadTriggered || forceReload)
     ) {
       const fechaActual = new Date().toISOString().split("T")[0];
 
-      // Si ya hay empleados asignados pero no se han cargado datos, forzar recarga
-      if (empleadosAsignados.length === 0) {
-        // Delay para asegurar que la validación esté completa
-        const timer = setTimeout(() => {
-          setDataLoadTriggered(true); // Marcar como ejecutado
-          recargarDatosExistentes();
-        }, 500);
+      // Siempre cargar datos existentes cuando el modal se abre
+      const timer = setTimeout(() => {
+        setDataLoadTriggered(true); // Marcar como ejecutado
+        setForceReload(false); // Resetear flag de fuerza
+        recargarDatosExistentes();
+      }, 100); // Delay mínimo ya que los datos ya están listos
 
-        return () => clearTimeout(timer);
-      }
+      return () => clearTimeout(timer);
     }
   }, [
     isOpen,
@@ -146,58 +177,65 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     hasPermission,
     tiendasCount,
     tiendaUsuario,
-    empleadosAsignados.length,
+    dataReady,
     dataLoadTriggered,
+    forceReload,
   ]);
 
   // NUEVO: Cargar datos existentes cuando la validación se complete (CON CONTROL ANTI-BUCLE)
   useEffect(() => {
     if (
+      isOpen &&
       validationCompleted &&
       hasPermission &&
       tiendasCount === 1 &&
       tiendaUsuario &&
-      !dataLoadTriggered
+      dataReady && // Solo cuando los datos base estén listos
+      (!dataLoadTriggered || forceReload)
     ) {
       const fechaActual = new Date().toISOString().split("T")[0];
 
-      // Solo cargar si es el día actual y es el mes seleccionado
-      if (selectedMonth) {
-        const [mesNombre, anio] = selectedMonth.split(" ");
-        const fechaActualObj = new Date();
-        const mesActual = fechaActualObj.toLocaleDateString("es-ES", {
-          month: "short",
-          year: "numeric",
-        });
+      // Siempre cargar datos existentes cuando la validación esté completa
+      const timer = setTimeout(() => {
+        setDataLoadTriggered(true); // Marcar como ejecutado
+        setForceReload(false); // Resetear flag de fuerza
+        cargarDatosExistentes(fechaActual, selectedMonth);
+      }, 50); // Delay mínimo ya que los datos ya están listos
 
-        if (mesActual.toLowerCase() === selectedMonth.toLowerCase()) {
-          // Es el mes actual, cargar datos existentes (comparación case-insensitive)
-
-          setDataLoadTriggered(true); // Marcar como ejecutado
-          cargarDatosExistentes(fechaActual, selectedMonth);
-        } else {
-          setDataLoadTriggered(true); // Marcar como ejecutado aunque no cargue
-        }
-      } else {
-        setDataLoadTriggered(true); // Marcar como ejecutado aunque no cargue
-      }
+      return () => clearTimeout(timer);
     }
   }, [
+    isOpen,
     validationCompleted,
     hasPermission,
     tiendasCount,
     tiendaUsuario,
     selectedMonth,
+    dataReady,
     dataLoadTriggered,
-    // NO incluir cargarDatosExistentes para evitar bucles infinitos
+    forceReload,
   ]);
 
-  // RESET del flag cuando se abre el modal
+  // RESET de flags cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
       setDataLoadTriggered(false);
+      setForceReload(false);
+      setDataReady(false); // Resetear estado de datos listos
     }
   }, [isOpen]);
+
+  // NUEVO: Forzar recarga cuando se detecta que se guardaron datos
+  useEffect(() => {
+    if (hasSavedData && isOpen) {
+      // Si hay datos guardados, forzar recarga después de un breve delay
+      const timer = setTimeout(() => {
+        forzarRecargaDatos();
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasSavedData, isOpen]);
 
   // Cargar empleados cuando la validación es exitosa
   useEffect(() => {
@@ -262,10 +300,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       onClose();
     } catch (error) {
       // Si hay error, ejecutar pantalla de carga con error
-      console.log(
-        "❌ Error en guardado - ejecutando pantalla de carga con error:",
-        error
-      );
       if (onShowSaveLoading) {
         onShowSaveLoading(error); // Con error = mostrar error en pantalla
       }

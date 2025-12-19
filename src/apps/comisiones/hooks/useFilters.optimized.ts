@@ -118,7 +118,13 @@ export const useFiltersOptimized = (
 
     const indexes: DataIndexes = {
       tiendaIndices: {},
-      rolIndices: { gerente: [], asesor: [], cajero: [], logistico: [] },
+      rolIndices: {
+        gerente: [],
+        asesor: [],
+        cajero: [],
+        logistico: [],
+        coadministrador: [],
+      },
       empleadoIndex: {},
     };
 
@@ -255,6 +261,7 @@ export const useFiltersOptimized = (
         asesor: 0,
         cajero: 0,
         logistico: 0,
+        coadministrador: 0,
       };
 
       // Calcular comisiones por rol usando Set para velocidad
@@ -407,6 +414,7 @@ export const useFiltersOptimized = (
           asesor: 0,
           cajero: 0,
           logistico: 0,
+          coadministrador: 0,
         },
       };
 

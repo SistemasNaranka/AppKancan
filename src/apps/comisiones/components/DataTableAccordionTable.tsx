@@ -280,7 +280,7 @@ export const DataTableAccordionTable: React.FC<
   const renderSortHeader = (
     field: string,
     label: string,
-    icon: React.ReactNode
+    icon?: React.ReactNode
   ) => (
     <TableSortLabel {...sortLabelProps(field as any)}>
       <Box display="flex" alignItems="center" gap={0.5}>
@@ -458,11 +458,7 @@ export const DataTableAccordionTable: React.FC<
                   minWidth: isMobile ? 70 : isTablet ? 90 : 100,
                 }}
               >
-                {renderSortHeader(
-                  "comision_pct",
-                  "Com. ",
-                  <PercentIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
-                )}
+                {renderSortHeader("comision_pct", "Comisión ")}
               </TableCell>
 
               <TableCell
@@ -473,11 +469,7 @@ export const DataTableAccordionTable: React.FC<
                   minWidth: isMobile ? 100 : isTablet ? 120 : 140,
                 }}
               >
-                {renderSortHeader(
-                  "comision_monto",
-                  "Monto Comisión",
-                  <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
-                )}
+                {renderSortHeader("comision_monto", "Valor Neto")}
               </TableCell>
             </TableRow>
           </TableHead>
@@ -600,6 +592,7 @@ export const DataTableAccordionTable: React.FC<
                         whiteSpace: "nowrap",
                       }}
                     >
+                      <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
                       {formatCurrency(row.comision_monto)}
                     </Typography>
                   </TableCell>

@@ -66,7 +66,7 @@ export const useEmployeeManagement = (
     setCargoSeleccionado: setCargoSeleccionadoInData,
     buscarEmpleadoPorCodigo,
     getCurrentMessage,
-  } = useEmployeeData([]);
+  } = useEmployeeData([], tiendaUsuario);
 
   // Hook para operaciones
   const {
