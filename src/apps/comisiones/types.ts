@@ -59,6 +59,10 @@ export interface EmployeeCommission {
   cumplimiento_pct: number;
   comision_pct: number;
   comision_monto: number;
+  proxima_comision: number | string; // Próxima comisión (número) o 'NN' si ya está en el máximo
+  proximo_presupuesto?: number; // Próximo presupuesto calculado (no se muestra en tabla)
+  proxima_venta?: number; // Próxima venta calculada (se muestra en tabla como 'Prox. venta')
+  proximo_monto_comision?: number; // Próximo monto de comisión calculado (se muestra en tabla)
   dias_laborados: number; // Días únicos laborados por empleado
 }
 

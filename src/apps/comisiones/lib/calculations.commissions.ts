@@ -4,6 +4,12 @@
 
 import { StaffMember, EmployeeCommission } from "../types";
 import { round } from "./calculations.basic";
+import {
+  getNextCommission,
+  getNextBudget,
+  getNextSale,
+  getNextCommissionAmount,
+} from "./calculations.next-commission";
 
 /**
  * Calcula el porcentaje de cumplimiento
@@ -34,7 +40,8 @@ export const calculateBaseSale = (
 export const getCommissionPercentage = (compliance: number): number => {
   if (compliance >= 110.0) return 0.01; // Excelente: 1.00%
   if (compliance >= 100.0) return 0.007; // Buena: 0.70%
-  if (compliance >= 95.0) return 0.0035; // Regular: 0.35%
+  if (compliance >= 95.0) return 0.005; // Regular: 0.50%
+  if (compliance >= 90.0) return 0.0035; // Muy regular: 0.35%
   return 0; // Sin comisión
 };
 
@@ -50,6 +57,52 @@ export const calculateCommissionAmount = (
 };
 
 /**
+ * Calcula los valores de próxima comisión, próximo presupuesto y próxima venta
+ * @param comision_pct - Comisión actual
+ * @param presupuesto - Presupuesto actual
+ * @param ventas - Ventas actuales
+ * @returns Objeto con los valores calculados
+ */
+const calculateNextValues = (
+  comision_pct: number,
+  presupuesto: number,
+  ventas: number
+) => {
+  const proxima_comision = getNextCommission(comision_pct);
+
+  // Siempre calcular próximo presupuesto (incluso si es 0)
+  const proximo_presupuesto = getNextBudget(proxima_comision, presupuesto);
+
+  // Calcular próxima venta solo si hay próximo presupuesto
+  let proxima_venta: number | null = null;
+  if (proximo_presupuesto !== null) {
+    proxima_venta = getNextSale(proximo_presupuesto, ventas);
+
+    // Si la próxima venta es negativa o 0, no mostrar valor
+    if (proxima_venta !== null && proxima_venta <= 0) {
+      proxima_venta = null;
+    }
+  }
+  let proximo_monto_comision: number | null = null;
+  if (
+    proximo_presupuesto !== null &&
+    proxima_comision !== null &&
+    typeof proxima_comision === "number"
+  ) {
+    proximo_monto_comision = round(
+      (proximo_presupuesto * proxima_comision) / 1.19
+    );
+  }
+
+  return {
+    proxima_comision,
+    proximo_presupuesto,
+    proxima_venta,
+    proximo_monto_comision,
+  };
+};
+
+/**
  * Calcula las comisiones para un empleado (asesores y otros roles individuales)
  */
 export const calculateEmployeeCommission = (
@@ -62,6 +115,13 @@ export const calculateEmployeeCommission = (
   const comision_pct = getCommissionPercentage(cumplimiento);
   const comision_monto = calculateCommissionAmount(venta_sin_iva, comision_pct);
 
+  const {
+    proxima_comision,
+    proximo_presupuesto,
+    proxima_venta,
+    proximo_monto_comision,
+  } = calculateNextValues(comision_pct, presupuesto, ventas);
+
   return {
     id: empleado.id,
     nombre: empleado.nombre,
@@ -73,6 +133,10 @@ export const calculateEmployeeCommission = (
     cumplimiento_pct: cumplimiento,
     comision_pct,
     comision_monto,
+    proxima_comision,
+    proximo_presupuesto: proximo_presupuesto || undefined,
+    proxima_venta: proxima_venta || undefined,
+    proximo_monto_comision: proximo_monto_comision || undefined,
     dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
 };
@@ -109,6 +173,18 @@ export const calculateGerenteCommission = (
     comision_pct
   );
 
+  // Calcular próximos valores usando los DATOS DE LA TIENDA COMPLETA para gerentes
+  const {
+    proxima_comision,
+    proximo_presupuesto,
+    proxima_venta,
+    proximo_monto_comision,
+  } = calculateNextValues(
+    comision_pct,
+    presupuestoTiendaTotal, // Usar presupuesto total de la tienda
+    ventasTiendaTotal // Usar ventas totales de la tienda
+  );
+
   return {
     id: empleado.id,
     nombre: empleado.nombre,
@@ -117,9 +193,13 @@ export const calculateGerenteCommission = (
     fecha: empleado.fecha,
     presupuesto: presupuestoGerente, // Muestra presupuesto individual del gerente (para información)
     ventas: ventasIndividualesGerente, // Muestra ventas individuales del gerente (para información)
-    cumplimiento_pct: cumplimientoTienda, // Muestra cumplimiento de la tienda (para cálculo)
-    comision_pct, // Porcentaje basado en cumplimiento de la tienda
+    cumplimiento_pct: cumplimientoTienda || 0, // Muestra cumplimiento de la tienda (para cálculo)
+    comision_pct: comision_pct || 0, // Porcentaje basado en cumplimiento de la tienda
     comision_monto, // Monto basado en ventas de la tienda
+    proxima_comision,
+    proximo_presupuesto: proximo_presupuesto || undefined,
+    proxima_venta: proxima_venta || undefined,
+    proximo_monto_comision: proximo_monto_comision || undefined,
     dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
 };
@@ -169,6 +249,18 @@ const calculateCollectiveRoleCommission = (
     comision_pct
   );
 
+  // Calcular próximos valores usando los datos individuales del empleado
+  const {
+    proxima_comision,
+    proximo_presupuesto,
+    proxima_venta,
+    proximo_monto_comision,
+  } = calculateNextValues(
+    comision_pct,
+    presupuestoIndividualEmpleado,
+    ventasIndividualesEmpleado
+  );
+
   return {
     id: empleado.id,
     nombre: empleado.nombre,
@@ -177,9 +269,13 @@ const calculateCollectiveRoleCommission = (
     fecha: empleado.fecha,
     presupuesto: presupuestoIndividualEmpleado, // Muestran presupuesto individual (o 0)
     ventas: ventasIndividualesEmpleado, // Muestran ventas individuales (o 0)
-    cumplimiento_pct: cumplimientoTienda, // Muestran cumplimiento de la tienda para cálculo
-    comision_pct,
+    cumplimiento_pct: cumplimientoTienda || 0, // Muestran cumplimiento de la tienda para cálculo
+    comision_pct: comision_pct || 0,
     comision_monto,
+    proxima_comision,
+    proximo_presupuesto: proximo_presupuesto || undefined,
+    proxima_venta: proxima_venta || undefined,
+    proximo_monto_comision: proximo_monto_comision || undefined,
     dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
 };
@@ -259,6 +355,18 @@ export const calculateGerenteOnlineCommission = (
     presupuestoIndividualEmpleado
   );
 
+  // Calcular próximos valores
+  const {
+    proxima_comision,
+    proximo_presupuesto,
+    proxima_venta,
+    proximo_monto_comision,
+  } = calculateNextValues(
+    comision_pct,
+    presupuestoIndividualEmpleado,
+    ventasIndividualesEmpleado
+  );
+
   return {
     id: empleado.id,
     nombre: empleado.nombre,
@@ -267,9 +375,13 @@ export const calculateGerenteOnlineCommission = (
     fecha: empleado.fecha,
     presupuesto: presupuestoIndividualEmpleado, // Fijo en 1
     ventas: ventasIndividualesEmpleado, // Ventas individuales del empleado
-    cumplimiento_pct: cumplimiento, // Para mostrar (no afecta comisión)
-    comision_pct, // Fijo en 1%
+    cumplimiento_pct: cumplimiento || 0, // Para mostrar (no afecta comisión)
+    comision_pct: comision_pct || 0, // Fijo en 1%
     comision_monto, // 1% de venta sin IVA
+    proxima_comision,
+    proximo_presupuesto: proximo_presupuesto || undefined,
+    proxima_venta: proxima_venta || undefined,
+    proximo_monto_comision: proximo_monto_comision || undefined,
     dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
 };

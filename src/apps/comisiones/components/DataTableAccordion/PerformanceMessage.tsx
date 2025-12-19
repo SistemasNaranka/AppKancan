@@ -6,7 +6,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Star as StarIcon,
 } from "@mui/icons-material";
-import { green, orange, blue, grey } from "@mui/material/colors";
+import { green, orange, blue, grey, pink } from "@mui/material/colors";
 
 interface PerformanceMessageProps {
   cumplimientoPct: number;
@@ -22,11 +22,17 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
   size = "medium",
 }) => {
   const getPerformanceInfo = () => {
-    if (cumplimientoPct < 95) {
+    if (cumplimientoPct < 90) {
       return {
         message: "Sin comisión",
         icon: <CancelIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
         color: grey[600],
+      };
+    } else if (cumplimientoPct < 95) {
+      return {
+        message: "Buen Inicio",
+        icon: <TrendingUpIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
+        color: pink[300],
       };
     } else if (cumplimientoPct < 100) {
       return {

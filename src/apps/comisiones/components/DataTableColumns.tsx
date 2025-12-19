@@ -1,18 +1,3 @@
-/**
- * 🚀 DataTableColumns OPTIMIZADO - VERSIÓN MODULAR
- *
- * ESTRUCTURA MODULAR INTERNA:
- * ├── DataTableColumns.tsx (Hook principal con utilidades modulares)
- * │   ├── ColumnDefinitions (definiciones de columnas)
- * │   ├── CellRenderers (renderizadores de celdas)
- * │   └── ColumnUtils (utilidades de columnas)
- *
- * ✅ HOOK OPTIMIZADO Y MODULAR
- * ✅ Tipos exportados para reutilización
- * ✅ Código organizado en secciones
- * ✅ Funcionalidad 100% preservada
- */
-
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { Typography, Box, TextField } from "@mui/material";
 import {
@@ -23,10 +8,12 @@ import {
   CheckCircle as CheckCircleIcon,
   Percent as PercentIcon,
   AttachMoney as AttachMoneyIcon,
+  VpnKey as VpnKeyIcon,
 } from "@mui/icons-material";
 import { Role } from "../types";
 import { formatCurrency } from "../lib/utils";
 import { RoleChip } from "./RoleChip";
+import { formatProximaComision } from "../lib/calculations.next-commission";
 
 // =============================================================================
 // TIPOS E INTERFACES
@@ -44,6 +31,9 @@ export interface EmployeeRow {
   cumplimiento_pct: number;
   comision_pct: number;
   comision_monto: number;
+  proxima_comision: number | string;
+  proxima_venta?: number;
+  proximo_monto_comision?: number;
   ventasActuales: number;
 }
 
@@ -69,12 +59,25 @@ const createCellRenderers = ({
   handleVentaChange,
 }: DataTableColumnsProps) => {
   return {
-    // Renderizador para celda de nombre
-    nombreRenderer: (params: GridRenderCellParams<EmployeeRow>) => (
-      <Typography variant="body2" fontWeight="500" sx={{ pl: 1 }}>
-        {params.value}
-      </Typography>
-    ),
+    // Renderizador para celda de código - nombre (combinado)
+    codigoNombreRenderer: (params: GridRenderCellParams<EmployeeRow>) => {
+      const codigo = params.row.empleadoId;
+      const nombre = params.value;
+      return (
+        <Typography
+          component="span"
+          variant="body2"
+          fontWeight="500"
+          sx={{ pl: 1 }}
+        >
+          <Typography component="span" fontWeight="600" color="primary">
+            {codigo}
+          </Typography>
+          {" - "}
+          {nombre}
+        </Typography>
+      );
+    },
 
     // Renderizador para celda de rol
     rolRenderer: (params: GridRenderCellParams<EmployeeRow>) => (
@@ -171,13 +174,100 @@ const createCellRenderers = ({
         </Typography>
       </Box>
     ),
+
+    // Renderizador para celda de próxima comisión
+    proximaComisionRenderer: (params: GridRenderCellParams<EmployeeRow>) => {
+      const proximaComision = params.value;
+      const esMaxima = proximaComision === "NN";
+      const textoFormateado = formatProximaComision(proximaComision);
+
+      return (
+        <Typography
+          variant="body2"
+          fontWeight="bold"
+          sx={{
+            color: esMaxima
+              ? "#666"
+              : getCumplimientoColor(params.row.comision_pct * 100),
+            pr: 1,
+            fontStyle: esMaxima ? "italic" : "normal",
+          }}
+        >
+          {textoFormateado}
+        </Typography>
+      );
+    },
+
+    // Renderizador para celda de próxima venta
+    proximaVentaRenderer: (params: GridRenderCellParams<EmployeeRow>) => {
+      const proximaVenta = params.value;
+
+      // Si no hay próxima venta (undefined), mostrar '-'
+      if (proximaVenta === undefined || proximaVenta === null) {
+        return (
+          <Typography variant="body2" sx={{ pr: 1, color: "#999" }}>
+            -
+          </Typography>
+        );
+      }
+
+      return (
+        <Typography
+          variant="body2"
+          fontWeight="bold"
+          sx={{
+            color: getCumplimientoColor(params.row.comision_pct * 100),
+            pr: 1,
+          }}
+        >
+          {formatCurrency(proximaVenta)}
+        </Typography>
+      );
+    },
+
+    // Renderizador para celda de próximo monto comisión
+    proximoMontoComisionRenderer: (
+      params: GridRenderCellParams<EmployeeRow>
+    ) => {
+      const proximoMontoComision = params.value;
+
+      // Si no hay próximo monto comisión (undefined), mostrar '-'
+      if (proximoMontoComision === undefined || proximoMontoComision === null) {
+        return (
+          <Typography variant="body2" sx={{ pr: 1, color: "#999" }}>
+            -
+          </Typography>
+        );
+      }
+
+      return (
+        <Box
+          display="flex"
+          justifyContent="flex-end"
+          alignItems="center"
+          gap={0.5}
+          sx={{ pr: 1 }}
+        >
+          <AttachMoneyIcon fontSize="inherit" color="action" />
+          <Typography
+            variant="body2"
+            fontWeight="bold"
+            sx={{
+              color: getCumplimientoColor(params.row.comision_pct * 100),
+            }}
+          >
+            {formatCurrency(proximoMontoComision)}
+          </Typography>
+        </Box>
+      );
+    },
   };
 };
 
 // Utilidades para headers de columnas
 const createColumnHeaders = () => {
   return {
-    nombre: (
+    codigoNombre: (
       <Box display="flex" alignItems="center" gap={1}>
         <PersonIcon sx={{ fontSize: 18, color: "#1976d2" }} />
         <Typography variant="subtitle2" fontWeight="600">
@@ -239,6 +329,33 @@ const createColumnHeaders = () => {
         </Typography>
       </Box>
     ),
+
+    proxima_comision: (
+      <Box display="flex" alignItems="center" gap={1} justifyContent="flex-end">
+        <TrendingUpIcon sx={{ fontSize: 18, color: "#ff6f00" }} />
+        <Typography variant="subtitle2" fontWeight="600">
+          Próx. Com.
+        </Typography>
+      </Box>
+    ),
+
+    proxima_venta: (
+      <Box display="flex" alignItems="center" gap={1} justifyContent="flex-end">
+        <TrendingUpIcon sx={{ fontSize: 18, color: "#00796b" }} />
+        <Typography variant="subtitle2" fontWeight="600">
+          Prox. venta
+        </Typography>
+      </Box>
+    ),
+
+    proximo_monto_comision: (
+      <Box display="flex" alignItems="center" gap={1} justifyContent="flex-end">
+        <AttachMoneyIcon sx={{ fontSize: 18, color: "#689f38" }} />
+        <Typography variant="subtitle2" fontWeight="600">
+          Próx. monto
+        </Typography>
+      </Box>
+    ),
   };
 };
 
@@ -269,18 +386,18 @@ export const useDataTableColumns = ({
     {
       field: "nombre",
       headerName: "Empleado",
-      flex: 1,
-      minWidth: 150,
+      flex: 1.4,
+      minWidth: 200,
       align: "left",
       headerAlign: "left",
-      renderHeader: () => columnHeaders.nombre,
-      renderCell: cellRenderers.nombreRenderer,
+      renderHeader: () => columnHeaders.codigoNombre,
+      renderCell: cellRenderers.codigoNombreRenderer,
     },
     {
       field: "rol",
       headerName: "Rol",
-      flex: 0.8,
-      minWidth: 100,
+      flex: 0.7,
+      minWidth: 85,
       align: "left",
       headerAlign: "left",
       renderHeader: () => columnHeaders.rol,
@@ -289,8 +406,8 @@ export const useDataTableColumns = ({
     {
       field: "presupuesto",
       headerName: "Presupuesto",
-      flex: 1,
-      minWidth: 120,
+      flex: 0.9,
+      minWidth: 110,
       align: "right",
       headerAlign: "right",
       renderHeader: () => columnHeaders.presupuesto,
@@ -299,8 +416,8 @@ export const useDataTableColumns = ({
     {
       field: "ventasActuales",
       headerName: "Ventas",
-      flex: 1,
-      minWidth: 120,
+      flex: 0.9,
+      minWidth: 110,
       align: "right",
       headerAlign: "right",
       editable: !readOnly,
@@ -310,8 +427,8 @@ export const useDataTableColumns = ({
     {
       field: "cumplimiento_pct",
       headerName: "Cumplimiento",
-      flex: 1,
-      minWidth: 100,
+      flex: 0.8,
+      minWidth: 95,
       align: "right",
       headerAlign: "right",
       renderHeader: () => columnHeaders.cumplimiento_pct,
@@ -320,8 +437,8 @@ export const useDataTableColumns = ({
     {
       field: "comision_pct",
       headerName: "Com.",
-      flex: 0.8,
-      minWidth: 80,
+      flex: 0.6,
+      minWidth: 70,
       align: "right",
       headerAlign: "right",
       renderHeader: () => columnHeaders.comision_pct,
@@ -330,12 +447,42 @@ export const useDataTableColumns = ({
     {
       field: "comision_monto",
       headerName: "Comisión",
-      flex: 1,
-      minWidth: 120,
+      flex: 0.9,
+      minWidth: 110,
       align: "right",
       headerAlign: "right",
       renderHeader: () => columnHeaders.comision_monto,
       renderCell: cellRenderers.comisionMontoRenderer,
+    },
+    {
+      field: "proxima_venta",
+      headerName: "Prox. venta",
+      flex: 0.9,
+      minWidth: 110,
+      align: "right",
+      headerAlign: "right",
+      renderHeader: () => columnHeaders.proxima_venta,
+      renderCell: cellRenderers.proximaVentaRenderer,
+    },
+    {
+      field: "proxima_comision",
+      headerName: "Próx. Com.",
+      flex: 0.7,
+      minWidth: 85,
+      align: "right",
+      headerAlign: "right",
+      renderHeader: () => columnHeaders.proxima_comision,
+      renderCell: cellRenderers.proximaComisionRenderer,
+    },
+    {
+      field: "proximo_monto_comision",
+      headerName: "Próx. monto",
+      flex: 0.9,
+      minWidth: 120,
+      align: "right",
+      headerAlign: "right",
+      renderHeader: () => columnHeaders.proximo_monto_comision,
+      renderCell: cellRenderers.proximoMontoComisionRenderer,
     },
   ];
 

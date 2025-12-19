@@ -18,7 +18,7 @@ import { TiendaResumen, Role, DirectusCargo } from "../types";
 import { Paper, Typography, Box } from "@mui/material";
 import { DataTableAccordion } from "./DataTableAccordion";
 import { DataTableLoadingState } from "./LoadingState";
-import { green, blue, orange, grey } from "@mui/material/colors";
+import { green, blue, orange, grey, pink } from "@mui/material/colors";
 
 // =============================================================================
 // TIPOS E INTERFACES
@@ -350,8 +350,9 @@ export const DataTable: React.FC<DataTableProps> = memo(
     const getCumplimientoColor = useCallback((pct: number) => {
       if (pct >= 1.0) return green[700];
       if (pct >= 0.7) return blue[700];
-      if (pct >= 0.35) return orange[700];
-      return grey[700];
+      if (pct >= 0.5) return orange[700];
+      if (pct >= 0.35) return pink[300];
+      return grey[800];
     }, []);
 
     // Contenido de la tabla optimizado

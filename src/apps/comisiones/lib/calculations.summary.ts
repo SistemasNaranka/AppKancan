@@ -29,6 +29,12 @@ import {
   calculateBaseSale,
   getCommissionPercentage,
 } from "./calculations.commissions";
+import {
+  getNextCommission,
+  getNextBudget,
+  getNextSale,
+  getNextCommissionAmount,
+} from "./calculations.next-commission";
 
 /**
  * Calcula el resumen de comisiones para una tienda en una fecha específica
@@ -288,6 +294,18 @@ const calculateTraditionalEmployeeCommission = (
   const comision_pct = getCommissionPercentage(cumplimientoParaComision);
   const comision_monto = round(ventaBaseParaComision * comision_pct);
 
+  // Calcular próximos valores
+  const proxima_comision = getNextCommission(comision_pct);
+  const proximo_presupuesto = getNextBudget(proxima_comision, presupuesto);
+  const proxima_venta =
+    proximo_presupuesto !== null
+      ? getNextSale(proximo_presupuesto, ventas)
+      : null;
+  const proximo_monto_comision = getNextCommissionAmount(
+    proximo_presupuesto,
+    proxima_comision
+  );
+
   return {
     id: empleado.id,
     nombre: empleado.nombre,
@@ -302,6 +320,11 @@ const calculateTraditionalEmployeeCommission = (
         : cumplimientoIndividual,
     comision_pct,
     comision_monto,
+    proxima_comision,
+    proximo_presupuesto: proximo_presupuesto || undefined,
+    proxima_venta:
+      proxima_venta !== null && proxima_venta > 0 ? proxima_venta : undefined,
+    proximo_monto_comision: proximo_monto_comision || undefined,
     dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
 };

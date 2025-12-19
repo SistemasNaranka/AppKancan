@@ -1,15 +1,3 @@
-/**
- * 🚀 DataTableAccordionTable - TABLA INTERNA DEL ACCORDION
- *
- * ESTRUCTURA:
- * ├── DataTableAccordionTable.tsx (Tabla con ordenamiento)
- * └── DataTableAccordion.tsx (Header y lógica principal)
- *
- * ✅ TABLA INTERNA CON ORDENAMIENTO
- * ✅ Componente separado para mejor organización
- * ✅ Funcionalidad 100% preservada
- */
-
 import React, { useState, useCallback, useMemo } from "react";
 import {
   Table,
@@ -33,10 +21,12 @@ import {
   CheckCircle as CheckCircleIcon,
   Percent as PercentIcon,
   CalendarToday as CalendarTodayIcon,
+  VpnKey as VpnKeyIcon,
 } from "@mui/icons-material";
 import { TiendaResumen, Role } from "../types";
 import { formatCurrency } from "../lib/utils";
-import { grey, green, blue, orange } from "@mui/material/colors";
+import { formatProximaComision } from "../lib/calculations.next-commission";
+import { grey, green, blue, orange, pink } from "@mui/material/colors";
 
 // =============================================================================
 // TIPOS Y UTILIDADES
@@ -52,7 +42,10 @@ type SortField =
   | "ventasActuales"
   | "cumplimiento_pct"
   | "comision_pct"
-  | "comision_monto";
+  | "comision_monto"
+  | "proxima_comision"
+  | "proxima_venta"
+  | "proximo_monto_comision";
 
 interface SortState {
   field: SortField;
@@ -71,6 +64,9 @@ interface EmployeeRow {
   cumplimiento_pct: number;
   comision_pct: number;
   comision_monto: number;
+  proxima_comision: number | string;
+  proxima_venta?: number;
+  proximo_monto_comision?: number;
   ventasActuales: number;
   dias_laborados: number;
 }
@@ -100,6 +96,14 @@ const getSortValue = (employee: any, field: SortField): any => {
       return employee.comision_pct;
     case "comision_monto":
       return employee.comision_monto;
+    case "proxima_comision":
+      return employee.proxima_comision === "NN"
+        ? Number.MAX_SAFE_INTEGER
+        : employee.proxima_comision;
+    case "proxima_venta":
+      return employee.proxima_venta || 0;
+    case "proximo_monto_comision":
+      return employee.proximo_monto_comision || 0;
     default:
       return "";
   }
@@ -163,15 +167,17 @@ const compareValues = (
 const getRowBackgroundColor = (pct: number): string => {
   if (pct >= 1.0) return green[50]; // Verde muy suave para 100%+
   if (pct >= 0.7) return blue[50]; // Azul muy suave para 70%+
-  if (pct >= 0.35) return orange[50]; // Naranja muy suave para 35%+
-  return "transparent"; // Sin fondo para <35%
+  if (pct >= 0.5) return orange[50]; // Rosa muy suave para 50%+
+  if (pct >= 0.35) return pink[50]; // Naranja muy suave para 35%+
+  return grey[100]; // Sin fondo para <35%
 };
 
 // Función para obtener el color de hover según el porcentaje
 const getRowHoverColor = (pct: number): string => {
   if (pct >= 1.0) return green[100]; // Verde más intenso en hover
   if (pct >= 0.7) return blue[100]; // Azul más intenso en hover
-  if (pct >= 0.35) return orange[100]; // Naranja más intenso en hover
+  if (pct >= 0.5) return orange[100]; // Rosa muy suave para 50%+
+  if (pct >= 0.35) return pink[100]; // Naranja más intenso en hover
   return "#f8fafc"; // Gris claro por defecto en hover
 };
 
@@ -195,6 +201,9 @@ const processRowsWithSorting = (
       cumplimiento_pct: emp.cumplimiento_pct,
       comision_pct: emp.comision_pct,
       comision_monto: emp.comision_monto,
+      proxima_comision: emp.proxima_comision,
+      proxima_venta: emp.proxima_venta,
+      proximo_monto_comision: emp.proximo_monto_comision,
       ventasActuales: emp.ventas,
       dias_laborados: emp.dias_laborados,
     }));
@@ -330,7 +339,7 @@ export const DataTableAccordionTable: React.FC<
           stickyHeader
           size={isMobile ? "small" : "small"}
           sx={{
-            minWidth: isMobile ? 480 : isTablet ? 600 : "auto", // ✅ ANCHO RAZONABLE PARA MÓVIL
+            minWidth: isMobile ? 420 : isTablet ? 580 : "auto", // ✅ ANCHO COMPACTO PARA MÓVIL
             width: "100%",
             "& .MuiTableHead-root": {
               "& .MuiTableRow-root": {
@@ -340,8 +349,8 @@ export const DataTableAccordionTable: React.FC<
                   backgroundColor: grey[50],
                   color: grey[800],
                   whiteSpace: "nowrap", // ✅ SIEMPRE SIN SALTO DE LÍNEA
-                  padding: isMobile ? "8px 6px" : "8px 12px",
-                  fontSize: isMobile ? "0.8rem" : "0.875rem", // ✅ FUENTE MÁS GRANDE
+                  padding: isMobile ? "6px 4px" : "8px 12px",
+                  fontSize: isMobile ? "0.75rem" : "0.875rem", // ✅ FUENTE COMPACTA
                 },
               },
             },
@@ -353,8 +362,8 @@ export const DataTableAccordionTable: React.FC<
                 "& .MuiTableCell-root": {
                   borderBottom: "1px solid" + grey[300],
                   whiteSpace: "nowrap",
-                  padding: isMobile ? "8px 6px" : "8px 16px",
-                  fontSize: isMobile ? "0.8rem" : "0.875rem",
+                  padding: isMobile ? "6px 4px" : "8px 16px",
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
                 },
               },
             },
@@ -365,22 +374,25 @@ export const DataTableAccordionTable: React.FC<
               <TableCell
                 sx={{
                   ...commonCellProps,
-                  width: isMobile ? 100 : isTablet ? 150 : 200,
-                  minWidth: isMobile ? 100 : isTablet ? 150 : 200,
+                  width: isMobile ? 140 : isTablet ? 200 : 220,
+                  minWidth: isMobile ? 140 : isTablet ? 200 : 220,
                 }}
               >
                 {renderSortHeader(
                   "nombre",
-                  "Nombre",
-                  <PersonIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                  "Empleado",
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    <VpnKeyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                    <PersonIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                  </Box>
                 )}
               </TableCell>
 
               <TableCell
                 sx={{
                   ...commonCellProps,
-                  width: isMobile ? 80 : isTablet ? 100 : 120,
-                  minWidth: isMobile ? 80 : isTablet ? 100 : 120,
+                  width: isMobile ? 70 : isTablet ? 90 : 100,
+                  minWidth: isMobile ? 70 : isTablet ? 90 : 100,
                 }}
               >
                 {renderSortHeader(
@@ -394,14 +406,14 @@ export const DataTableAccordionTable: React.FC<
                 align="center"
                 sx={{
                   ...commonCellProps,
-                  width: isMobile ? 60 : isTablet ? 80 : 100,
-                  minWidth: isMobile ? 60 : isTablet ? 80 : 100,
+                  width: isMobile ? 50 : isTablet ? 70 : 85,
+                  minWidth: isMobile ? 50 : isTablet ? 70 : 85,
                 }}
               >
                 {renderSortHeader(
                   "dias_laborados",
-                  "Días Laborados",
-                  <CalendarTodayIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                  "Días Labor",
+                  <CalendarTodayIcon sx={{ fontSize: isMobile ? 12 : 14 }} />
                 )}
               </TableCell>
 
@@ -409,8 +421,8 @@ export const DataTableAccordionTable: React.FC<
                 align="right"
                 sx={{
                   ...commonCellProps,
-                  width: isMobile ? 90 : isTablet ? 110 : 120,
-                  minWidth: isMobile ? 90 : isTablet ? 110 : 120,
+                  width: isMobile ? 85 : isTablet ? 105 : 115,
+                  minWidth: isMobile ? 85 : isTablet ? 105 : 115,
                 }}
               >
                 {renderSortHeader(
@@ -424,8 +436,8 @@ export const DataTableAccordionTable: React.FC<
                 align="right"
                 sx={{
                   ...commonCellProps,
-                  width: isMobile ? 90 : isTablet ? 110 : 120,
-                  minWidth: isMobile ? 90 : isTablet ? 110 : 120,
+                  width: isMobile ? 85 : isTablet ? 105 : 115,
+                  minWidth: isMobile ? 85 : isTablet ? 105 : 115,
                 }}
               >
                 {renderSortHeader(
@@ -446,7 +458,7 @@ export const DataTableAccordionTable: React.FC<
                 {renderSortHeader(
                   "cumplimiento_pct",
                   "Cumplimiento ",
-                  <CheckCircleIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                  <CheckCircleIcon sx={{ fontSize: isMobile ? 12 : 14 }} />
                 )}
               </TableCell>
 
@@ -454,22 +466,59 @@ export const DataTableAccordionTable: React.FC<
                 align="right"
                 sx={{
                   ...commonCellProps,
-                  width: isMobile ? 70 : isTablet ? 90 : 100,
-                  minWidth: isMobile ? 70 : isTablet ? 90 : 100,
+                  width: isMobile ? 60 : isTablet ? 75 : 85,
+                  minWidth: isMobile ? 60 : isTablet ? 75 : 85,
                 }}
               >
-                {renderSortHeader("comision_pct", "Comisión ")}
+                {renderSortHeader(
+                  "comision_pct",
+                  "Comisión",
+                  <PercentIcon sx={{ fontSize: isMobile ? 12 : 14 }} />
+                )}
               </TableCell>
 
               <TableCell
                 align="right"
                 sx={{
                   ...commonCellProps,
-                  width: isMobile ? 100 : isTablet ? 120 : 140,
-                  minWidth: isMobile ? 100 : isTablet ? 120 : 140,
+                  width: isMobile ? 85 : isTablet ? 105 : 115,
+                  minWidth: isMobile ? 85 : isTablet ? 105 : 115,
                 }}
               >
-                {renderSortHeader("comision_monto", "Valor Neto")}
+                {renderSortHeader("comision_monto", "Comisión")}
+              </TableCell>
+
+              <TableCell
+                align="right"
+                sx={{
+                  ...commonCellProps,
+                  width: isMobile ? 85 : isTablet ? 105 : 115,
+                  minWidth: isMobile ? 85 : isTablet ? 105 : 115,
+                }}
+              >
+                {renderSortHeader("proxima_venta", "Proxima Venta")}
+              </TableCell>
+
+              <TableCell
+                align="right"
+                sx={{
+                  ...commonCellProps,
+                  width: isMobile ? 65 : isTablet ? 80 : 90,
+                  minWidth: isMobile ? 65 : isTablet ? 80 : 90,
+                }}
+              >
+                {renderSortHeader("proxima_comision", "Prox. %Comision")}
+              </TableCell>
+
+              <TableCell
+                align="right"
+                sx={{
+                  ...commonCellProps,
+                  width: isMobile ? 85 : isTablet ? 105 : 120,
+                  minWidth: isMobile ? 85 : isTablet ? 105 : 120,
+                }}
+              >
+                {renderSortHeader("proximo_monto_comision", "Prox. Comisión")}
               </TableCell>
             </TableRow>
           </TableHead>
@@ -493,6 +542,7 @@ export const DataTableAccordionTable: React.FC<
                 >
                   <TableCell>
                     <Typography
+                      component="span"
                       variant="body2"
                       sx={{
                         fontWeight: 500,
@@ -500,6 +550,17 @@ export const DataTableAccordionTable: React.FC<
                         whiteSpace: "nowrap",
                       }}
                     >
+                      <Typography
+                        component="span"
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: isMobile ? "0.8rem" : "0.875rem",
+                        }}
+                      >
+                        {row.empleadoId}
+                      </Typography>
+                      {" - "}
                       {row.nombre}
                     </Typography>
                   </TableCell>
@@ -594,6 +655,89 @@ export const DataTableAccordionTable: React.FC<
                     >
                       <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
                       {formatCurrency(row.comision_monto)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      backgroundColor: "#ffffff",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "#374151",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "0.8rem" : "0.875rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {row.proxima_venta !== undefined &&
+                      row.proxima_venta !== null
+                        ? formatCurrency(row.proxima_venta)
+                        : "-"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      backgroundColor: "#ffffff",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "#374151",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "0.8rem" : "0.875rem",
+                        whiteSpace: "nowrap",
+                        fontStyle:
+                          row.proxima_comision === "NN" ? "italic" : "normal",
+                      }}
+                    >
+                      {(() => {
+                        const textoFormateado = formatProximaComision(
+                          row.proxima_comision
+                        );
+                        const esMaxima = row.proxima_comision === "NN";
+                        return (
+                          <Typography
+                            component="span"
+                            variant="body2"
+                            sx={{
+                              color: esMaxima ? "#666" : "#374151",
+                              fontWeight: 600,
+                              fontSize: isMobile ? "0.8rem" : "0.875rem",
+                              whiteSpace: "nowrap",
+                              fontStyle: esMaxima ? "italic" : "normal",
+                            }}
+                          >
+                            {textoFormateado}
+                          </Typography>
+                        );
+                      })()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      backgroundColor: "#ffffff",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "#374151",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "0.8rem" : "0.875rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                      {row.proximo_monto_comision !== undefined &&
+                      row.proximo_monto_comision !== null
+                        ? formatCurrency(row.proximo_monto_comision)
+                        : "-"}
                     </Typography>
                   </TableCell>
                 </TableRow>

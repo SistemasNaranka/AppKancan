@@ -33,6 +33,15 @@ export {
   calculateGerenteOnlineCommission,
 } from "./calculations.commissions";
 
+// Re-exportar funciones de próxima comisión
+export {
+  getNextCommission,
+  getNextBudget,
+  getNextSale,
+  getNextCommissionAmount,
+  formatProximaComision,
+} from "./calculations.next-commission";
+
 // Re-exportar funciones de obtención y filtrado de datos
 export {
   getEmployeeVentas,
