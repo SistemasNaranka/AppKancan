@@ -91,6 +91,7 @@ export interface AppState {
   monthConfigs: MonthConfig[];
   ventas: VentasData[];
   ventasMensuales: VentasMensualesData[];
+  presupuestosEmpleados: any[];
 }
 
 // Interfaces para Directus

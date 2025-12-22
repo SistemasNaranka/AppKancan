@@ -779,8 +779,12 @@ export const useEmployeeOperations = (
       setSuccess(mensajeExito);
       setMessageType("success");
 
-      // ✅ MEJORADO: Actualizar estado global con empleados actualizados después del guardado exitoso
+      // ✅ MEJORADO: Actualizar estado local con empleados actualizados después del guardado exitoso
       setEmpleadosAsignados(empleadosActualizados);
+
+      // 🚀 CORRECCIÓN: NO actualizar estado global inmediatamente con datos parciales
+      // Esto causaba valores incorrectos porque faltaban datos completos para los cálculos
+      // En su lugar, el modal padre se encargará de recargar los datos completos
 
       // ✅ CORREGIDO: NO resetear hasExistingData e isUpdateMode inmediatamente
       // Estos estados deben mantenerse para que el modal sepa que hay datos guardados

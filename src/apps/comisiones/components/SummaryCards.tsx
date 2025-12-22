@@ -29,10 +29,10 @@ interface SummaryCardsProps {
 // Función de formateo memoizada
 const formatCommission = (value: number): string => {
   const rounded = Math.round(value);
-  return rounded.toLocaleString("en-US", {
+  return `$ ${rounded.toLocaleString("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  });
+  })}`;
 };
 
 // Hook optimizado para datos de summary cards
@@ -111,7 +111,7 @@ const CommissionCard = React.memo<{
       onClick={onClick}
       sx={{
         ...cardStyle,
-        height: { xs: "60px", md: "65px" },
+        height: { xs: "60px", md: "85px", lg: "65px" },
         transition: "transform 0.2s ease-in-out, border 0.2s ease-in-out",
         cursor: "pointer",
         "&:hover": {
@@ -119,22 +119,34 @@ const CommissionCard = React.memo<{
         },
       }}
     >
-      <MuiCardContent className="p-1 md:p-2 h-full flex flex-col justify-between">
+      <MuiCardContent className="p-1 md:p-1 lg:p-2 h-full flex flex-col justify-between">
         {/* 📱 Layout para celulares y pantallas pequeñas */}
         <div className="grid grid-cols-[1fr_auto] items-center md:hidden">
           <p className="text-xl font-semibold">{title}</p>
           <p className="text-2xl font-bold text-right tabular-nums min-w-[100px]">
-            $ {formatCommission(value)}
+            {formatCommission(value)}
           </p>
         </div>
 
+        {/* 📱 Layout para tablets (ajuste específico para números largos) */}
+        <div className="hidden md:block lg:hidden px-0.5 py-0.5">
+          <div className="text-right h-full flex flex-col justify-center">
+            <p className="text-[0.6rem] font-medium opacity-90 truncate mb-0.5 leading-tight">
+              {title}
+            </p>
+            <p className="text-[0.6rem] font-bold tabular-nums">
+              {formatCommission(value)}
+            </p>
+          </div>
+        </div>
+
         {/* 🖥 Desktop - Más compacto */}
-        <div className="hidden md:flex w-full justify-end h-full">
+        <div className="hidden lg:flex w-full justify-end h-full">
           <div className="text-right flex flex-col justify-center h-full leading-tight">
             <div className="text-start">
               <p className="text-base font-medium opacity-90">{title}</p>
             </div>
-            <p className="text-2xl font-bold">$ {formatCommission(value)}</p>
+            <p className="text-2xl font-bold">{formatCommission(value)}</p>
           </div>
         </div>
       </MuiCardContent>
@@ -272,22 +284,30 @@ export const SummaryCards: React.FC<SummaryCardsProps> = React.memo(
       </div>
     );
   },
-  // Comparador personalizado para evitar re-renders innecesarios
+  // Comparador personalizado mejorado para detectar cambios después de guardado
   (prevProps, nextProps) => {
-    return (
-      prevProps.mesResumen?.total_comisiones ===
-        nextProps.mesResumen?.total_comisiones &&
-      prevProps.filterRol.length === nextProps.filterRol.length &&
-      prevProps.expandedTiendas.size === nextProps.expandedTiendas.size &&
-      prevProps.mesResumen?.comisiones_por_rol?.gerente ===
-        nextProps.mesResumen?.comisiones_por_rol?.gerente &&
-      prevProps.mesResumen?.comisiones_por_rol?.asesor ===
-        nextProps.mesResumen?.comisiones_por_rol?.asesor &&
-      prevProps.mesResumen?.comisiones_por_rol?.cajero ===
-        nextProps.mesResumen?.comisiones_por_rol?.cajero &&
-      prevProps.mesResumen?.comisiones_por_rol?.logistico ===
-        nextProps.mesResumen?.comisiones_por_rol?.logistico
-    );
+    // 🚀 NUEVO: Verificación más agresiva para cambios después de guardado
+    const hasMesResumenChanged =
+      prevProps.mesResumen !== nextProps.mesResumen &&
+      (prevProps.mesResumen?.total_comisiones !==
+        nextProps.mesResumen?.total_comisiones ||
+        prevProps.mesResumen?.comisiones_por_rol?.gerente !==
+          nextProps.mesResumen?.comisiones_por_rol?.gerente ||
+        prevProps.mesResumen?.comisiones_por_rol?.asesor !==
+          nextProps.mesResumen?.comisiones_por_rol?.asesor ||
+        prevProps.mesResumen?.comisiones_por_rol?.cajero !==
+          nextProps.mesResumen?.comisiones_por_rol?.cajero ||
+        prevProps.mesResumen?.comisiones_por_rol?.logistico !==
+          nextProps.mesResumen?.comisiones_por_rol?.logistico ||
+        prevProps.mesResumen?.tiendas?.length !==
+          nextProps.mesResumen?.tiendas?.length);
+
+    const hasFiltersChanged =
+      prevProps.filterRol.length !== nextProps.filterRol.length ||
+      prevProps.expandedTiendas.size !== nextProps.expandedTiendas.size;
+
+    // Si hay cambios en mesResumen O en filtros, forzar re-render
+    return !hasMesResumenChanged && !hasFiltersChanged;
   }
 );
 

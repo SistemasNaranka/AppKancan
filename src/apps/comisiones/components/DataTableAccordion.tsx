@@ -356,6 +356,7 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
 
     return (
       <Box
+        key={`${tienda.tienda}-${tienda.fecha}-${expanded}`}
         sx={{
           border: "1px solid #d1d5db",
           borderRadius: 1,
@@ -380,8 +381,8 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
         <Box
           sx={{
             overflow: "hidden",
-            maxHeight: expanded ? "1000px" : 0,
-            transition: "max-height 0.2s ease",
+            display: expanded ? "block" : "none",
+            transition: "none",
             width: "100%",
             maxWidth: "100%",
             boxSizing: "border-box",
@@ -398,19 +399,19 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
     );
   },
   (prevProps: any, nextProps: any) => {
-    return (
-      prevProps.tienda.tienda === nextProps.tienda.tienda &&
-      prevProps.tienda.fecha === nextProps.tienda.fecha &&
-      prevProps.tienda.total_comisiones === nextProps.tienda.total_comisiones &&
-      prevProps.tienda.empleados.length === nextProps.tienda.empleados.length &&
-      prevProps.expanded === nextProps.expanded &&
-      prevProps.tienda.empleados.every(
-        (emp: any, index: number) =>
-          emp.id === nextProps.tienda.empleados[index]?.id &&
-          emp.comision_monto ===
-            nextProps.tienda.empleados[index]?.comision_monto
-      )
-    );
+    // Comparación más estricta para evitar renders innecesarios
+    const tiendaChanged =
+      prevProps.tienda.tienda !== nextProps.tienda.tienda ||
+      prevProps.tienda.fecha !== nextProps.tienda.fecha;
+
+    const dataChanged =
+      prevProps.tienda.total_comisiones !== nextProps.tienda.total_comisiones ||
+      prevProps.tienda.empleados.length !== nextProps.tienda.empleados.length;
+
+    const expandedChanged = prevProps.expanded !== nextProps.expanded;
+
+    // Solo permitir re-render si hay cambios importantes
+    return !tiendaChanged && !dataChanged && !expandedChanged;
   }
 );
 

@@ -5,7 +5,6 @@ import {
   Typography,
   Skeleton,
   CircularProgress,
-  Fade,
 } from "@mui/material";
 import { DataTableSkeleton } from "./DataTableSkeleton";
 
@@ -74,43 +73,41 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   if (isRefetching && children) {
     return (
       <Box sx={{ position: "relative" }}>
-        {/* Overlay de refetching */}
-        <Fade in={true}>
+        {/* Overlay de refetching sin animaciones */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+            borderRadius: 1,
+          }}
+        >
           <Box
             sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(255, 255, 255, 0.8)",
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
-              zIndex: 10,
-              borderRadius: 1,
+              gap: 2,
+              backgroundColor: "white",
+              p: 3,
+              borderRadius: 2,
+              boxShadow: 3,
+              border: "1px solid #e0e0e0",
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 2,
-                backgroundColor: "white",
-                p: 3,
-                borderRadius: 2,
-                boxShadow: 3,
-                border: "1px solid #e0e0e0",
-              }}
-            >
-              <CircularProgress size={32} thickness={4} />
-              <Typography variant="body2" color="text.secondary">
-                Actualizando datos...
-              </Typography>
-            </Box>
+            <CircularProgress size={32} thickness={4} />
+            <Typography variant="body2" color="text.secondary">
+              Actualizando datos...
+            </Typography>
           </Box>
-        </Fade>
+        </Box>
         {children}
       </Box>
     );
@@ -199,29 +196,27 @@ export const DataTableLoadingState: React.FC<{
   if (isRefetching && children) {
     return (
       <Box sx={{ position: "relative" }}>
-        <Fade in={true}>
-          <Box
-            sx={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              px: 2,
-              py: 1,
-              borderRadius: 2,
-              boxShadow: 2,
-              zIndex: 5,
-            }}
-          >
-            <CircularProgress size={16} thickness={4} />
-            <Typography variant="caption" color="text.secondary">
-              Actualizando...
-            </Typography>
-          </Box>
-        </Fade>
+        <Box
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            px: 2,
+            py: 1,
+            borderRadius: 2,
+            boxShadow: 2,
+            zIndex: 5,
+          }}
+        >
+          <CircularProgress size={16} thickness={4} />
+          <Typography variant="caption" color="text.secondary">
+            Actualizando...
+          </Typography>
+        </Box>
         {children}
       </Box>
     );

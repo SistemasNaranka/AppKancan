@@ -30,6 +30,7 @@ interface CommissionContextType {
     ventas_tienda_mensual: number,
     ventas_por_asesor_mensual: Record<string, number>
   ) => void;
+  updatePresupuestosEmpleados: (presupuestos: any[]) => void;
   getMonthConfig: (mes: string) => MonthConfig | undefined;
   resetData: () => void;
 }
@@ -47,6 +48,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
     monthConfigs: [],
     ventas: [],
     ventasMensuales: [],
+    presupuestosEmpleados: [],
   });
 
   const setBudgets = useCallback((budgets: BudgetRecord[]) => {
@@ -106,6 +108,10 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
     },
     []
   );
+
+  const updatePresupuestosEmpleados = useCallback((presupuestos: any[]) => {
+    setState((prev) => ({ ...prev, presupuestosEmpleados: presupuestos }));
+  }, []);
 
   const updateMonthConfig = useCallback(
     (mes: string, porcentaje_gerente: number) => {
@@ -183,6 +189,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
       monthConfigs: [],
       ventas: [],
       ventasMensuales: [],
+      presupuestosEmpleados: [],
     });
   }, []);
 
@@ -198,6 +205,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
     removeStaffMember,
     updateVentas,
     updateVentasMensuales,
+    updatePresupuestosEmpleados,
     getMonthConfig,
     resetData,
   };

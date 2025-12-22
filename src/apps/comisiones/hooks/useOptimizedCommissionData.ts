@@ -273,52 +273,21 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
-  // ✅ MEJORAR función refetch para invalidación más agresiva
+  // ✅ FUNCIÓN OPTIMIZADA para limpieza completa después del guardado
   const refetch = useCallback(() => {
-    // ✅ INVALIDACIÓN MÁS AGRESIVA - INVALIDAR TODO
+    // 🚀 NUEVO: Limpiar TODOS los caches antes de recargar
     queryClient.invalidateQueries({
       queryKey: ["commission-data"],
       exact: false,
     });
 
-    // Invalidar consultas relacionadas específicas
-    queryClient.invalidateQueries({
-      queryKey: ["budgets"],
-      exact: false,
-    });
-
-    queryClient.invalidateQueries({
-      queryKey: ["staff"],
-      exact: false,
-    });
-
-    queryClient.invalidateQueries({
-      queryKey: ["ventas"],
-      exact: false,
-    });
-
-    queryClient.invalidateQueries({
-      queryKey: ["presupuestos-empleados"],
-      exact: false,
-    });
-
-    queryClient.invalidateQueries({
-      queryKey: ["tiendas"],
-      exact: false,
-    });
-
-    queryClient.invalidateQueries({
-      queryKey: ["asesores"],
-      exact: false,
-    });
-
-    // ✅ LIMPIAR CACHÉ COMPLETO PARA ASEGURAR RECARGA
+    // Limpiar completamente el cache
     queryClient.removeQueries({
       queryKey: ["commission-data"],
       exact: false,
     });
 
-    // Forzar refetch inmediato del mes actual
+    // Forzar refetch inmediato
     return queryClient
       .refetchQueries({
         queryKey: ["commission-data", selectedMonth],

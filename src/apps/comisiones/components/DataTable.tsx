@@ -204,6 +204,10 @@ const useIncrementalLoading = (
   const [isIncrementallyLoading, setIsIncrementallyLoading] = useState(false);
 
   useEffect(() => {
+    // Limpiar cualquier timer existente
+    let firstTimer: NodeJS.Timeout;
+    let interval: NodeJS.Timeout;
+
     if (hasManyExpandedStores && visibleTiendas.length > 5) {
       setIsIncrementallyLoading(true);
       setIncrementallyLoadedCount(5);
@@ -213,14 +217,15 @@ const useIncrementalLoading = (
           const nextCount = prev + 2;
           if (nextCount >= visibleTiendas.length) {
             setIsIncrementallyLoading(false);
+            if (interval) clearInterval(interval);
             return visibleTiendas.length;
           }
           return nextCount;
         });
       };
 
-      const firstTimer = setTimeout(loadNextBatch, 80);
-      const interval = setInterval(() => {
+      firstTimer = setTimeout(loadNextBatch, 80);
+      interval = setInterval(() => {
         setIncrementallyLoadedCount((prev) => {
           const nextCount = prev + 2;
           if (nextCount >= visibleTiendas.length) {
@@ -231,15 +236,16 @@ const useIncrementalLoading = (
           return nextCount;
         });
       }, 120);
-
-      return () => {
-        clearTimeout(firstTimer);
-        clearInterval(interval);
-      };
     } else {
       setIncrementallyLoadedCount(visibleTiendas.length);
       setIsIncrementallyLoading(false);
     }
+
+    // Cleanup function más robusta
+    return () => {
+      if (firstTimer) clearTimeout(firstTimer);
+      if (interval) clearInterval(interval);
+    };
   }, [visibleTiendas.length, hasManyExpandedStores]);
 
   return { incrementallyLoadedCount, isIncrementallyLoading };
@@ -416,22 +422,34 @@ export const DataTable: React.FC<DataTableProps> = memo(
       </DataTableLoadingState>
     );
   },
-  // Comparador personalizado para evitar re-renders innecesarios
+  // Comparador personalizado más estricto para evitar re-renders innecesarios
   (prevProps, nextProps) => {
-    return (
+    // Comparaciones básicas
+    const basicPropsEqual =
       prevProps.tiendas.length === nextProps.tiendas.length &&
       prevProps.expandedTiendas.size === nextProps.expandedTiendas.size &&
       prevProps.filterRol?.length === nextProps.filterRol?.length &&
       prevProps.isLoading === nextProps.isLoading &&
       prevProps.isRefetching === nextProps.isRefetching &&
       prevProps.isFiltering === nextProps.isFiltering &&
-      prevProps.tiendas.every(
-        (tienda, i) =>
-          nextProps.tiendas[i] &&
-          tienda.tienda === nextProps.tiendas[i].tienda &&
-          tienda.total_comisiones === nextProps.tiendas[i].total_comisiones
-      )
-    );
+      prevProps.readOnly === nextProps.readOnly;
+
+    if (!basicPropsEqual) return false;
+
+    // Comparación más detallada de las tiendas
+    return prevProps.tiendas.every((tienda, i) => {
+      const nextTienda = nextProps.tiendas[i];
+      if (!nextTienda) return false;
+
+      return (
+        tienda.tienda === nextTienda.tienda &&
+        tienda.fecha === nextTienda.fecha &&
+        tienda.total_comisiones === nextTienda.total_comisiones &&
+        tienda.empleados.length === nextTienda.empleados.length &&
+        tienda.presupuesto_tienda === nextTienda.presupuesto_tienda &&
+        tienda.ventas_tienda === nextTienda.ventas_tienda
+      );
+    });
   }
 );
 

@@ -23,8 +23,14 @@ import { useFiltersOptimized } from "../hooks/useFilters.optimized";
 import { Role } from "../types";
 
 export default function Home() {
-  const { state, setVentas, setBudgets, setStaff, setMonthConfigs } =
-    useCommission();
+  const {
+    state,
+    setVentas,
+    setBudgets,
+    setStaff,
+    setMonthConfigs,
+    updatePresupuestosEmpleados,
+  } = useCommission();
 
   // 🚀 NUEVO: Hook para obtener todos los meses disponibles
   const { availableMonths, currentMonth, isLoadingMonths, changeMonth } =
@@ -91,8 +97,21 @@ export default function Home() {
       setBudgets(budgets);
       setStaff(staff);
       setMonthConfigs(monthConfigsData);
+      setVentas(ventas);
+      // 🚀 NUEVO: Sincronizar presupuestosEmpleados con el contexto
+      setPresupuestosEmpleados(presupuestosEmpleados);
     }
-  }, [commissionData, setBudgets, setStaff, setMonthConfigs]);
+  }, [commissionData, setBudgets, setStaff, setMonthConfigs, setVentas]);
+
+  // 🚀 NUEVO: Función para sincronizar presupuestosEmpleados (solo para datos iniciales)
+  const setPresupuestosEmpleados = useCallback(
+    (presupuestos: any[]) => {
+      updatePresupuestosEmpleados(presupuestos);
+      // 🚀 REMOVIDO: Limpieza de cache que causaba problemas
+      // calculationCacheRef.current.clear();
+    },
+    [updatePresupuestosEmpleados]
+  );
 
   const {
     filterTienda,
@@ -108,6 +127,8 @@ export default function Home() {
     applyFilters,
     getUniqueTiendas,
     getFilteredComissionsForCards,
+    // 🚀 NUEVO: Función para limpiar cache de filtros
+    clearFilterCache,
   } = useFiltersOptimized(50); // 50ms de debounce más responsivo
 
   // Cache para cálculos costosos (optimizado)
@@ -152,7 +173,10 @@ export default function Home() {
       return null;
     }
 
-    // Crear hash robusto basado en contenido real de los datos
+    // 🚀 USAR PRESUPUESTOS EMPLEADOS DEL ESTADO GLOBAL
+    const presupuestosEmpleadosState = state.presupuestosEmpleados || [];
+
+    // 🚀 NUEVO: Crear hash más específico basado en el contenido real
     const createDataHash = () => {
       const budgetsHash = budgets.reduce(
         (acc, b) => acc + Math.round(b.presupuesto_total * 100),
@@ -166,12 +190,14 @@ export default function Home() {
         (acc, v) => acc + Math.round(v.ventas_tienda * 100),
         0
       );
-      const presupuestosHash = presupuestosEmpleados.reduce(
+      const presupuestosHash = presupuestosEmpleadosState.reduce(
         (acc, p) => acc + Math.round((p.presupuesto || 0) * 100),
         0
       );
+      const presupuestosCount = presupuestosEmpleadosState.length;
+      const timestamp = Date.now(); // Forzar recalculo
 
-      return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}`;
+      return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}_${timestamp}`;
     };
 
     const dataHash = createDataHash();
@@ -189,7 +215,7 @@ export default function Home() {
       staff,
       ventas,
       porcentajeGerente,
-      presupuestosEmpleados
+      presupuestosEmpleadosState // 🚀 USAR ESTADO GLOBAL
     );
 
     // Guardar en cache (limitar tamaño a 15)
@@ -208,7 +234,7 @@ export default function Home() {
     staff,
     ventas,
     porcentajeGerente,
-    presupuestosEmpleados,
+    state.presupuestosEmpleados, // 🚀 AGREGAR DEPENDENCIA DEL ESTADO GLOBAL
   ]);
 
   const mesResumenFiltrado = useMemo(() => {
@@ -223,11 +249,31 @@ export default function Home() {
   }, [mesResumen, getUniqueTiendas]);
 
   const handleAssignmentComplete = async () => {
-    // Primero actualizar los datos de comisiones
-    await refetch();
+    console.log(
+      "🚀 INICIANDO handleAssignmentComplete - Limpiando TODOS los caches..."
+    );
 
-    // Luego revalidar el presupuesto para verificar si se guardó correctamente
+    // 🚀 SOLUCIÓN COMPLETA: Limpiar TODOS los caches inmediatamente
+
+    // 1. Limpiar cache local de cálculos
+    calculationCacheRef.current.clear();
+    console.log("✅ Cache local de cálculos limpiado");
+
+    // 2. Limpiar cache del hook de filtros
+    clearFilterCache();
+    console.log("✅ Cache del hook de filtros limpiado");
+
+    // 3. Recargar datos inmediatamente
+    console.log("🔄 Iniciando refetch de datos...");
+    await refetch();
+    console.log("✅ Refetch completado");
+
+    // 4. Revalidar presupuesto para verificar si se guardó correctamente
+    console.log("🔄 Iniciando revalidateBudgetData...");
     await revalidateBudgetData();
+    console.log("✅ RevalidateBudgetData completado");
+
+    console.log("🎉 handleAssignmentComplete completado exitosamente");
   };
 
   // 🚀 NUEVO: Función para mostrar pantalla de carga (usada directamente desde el modal)

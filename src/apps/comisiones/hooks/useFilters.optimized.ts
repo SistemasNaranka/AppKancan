@@ -21,6 +21,8 @@ export interface FilterActions {
     shouldContract?: boolean
   ) => void;
   toggleSingleStore: (tiendaKey: string) => void;
+  // 🚀 NUEVO: Función para limpiar todos los caches
+  clearFilterCache: () => void;
 }
 
 // Tipos para el sistema de indexación optimizado
@@ -124,6 +126,7 @@ export const useFiltersOptimized = (
         cajero: [],
         logistico: [],
         coadministrador: [],
+        gerente_online: [],
       },
       empleadoIndex: {},
     };
@@ -301,6 +304,7 @@ export const useFiltersOptimized = (
   const handleFilterTiendaChange = useCallback((value: string | string[]) => {
     const tiendaArray = Array.isArray(value) ? value : [value].filter(Boolean);
     setFilterTienda(tiendaArray);
+    // 🚀 NUEVO: Limpiar cache cuando cambian los datos base
     calculationCacheRef.current.clear();
   }, []);
 
@@ -445,5 +449,10 @@ export const useFiltersOptimized = (
     applyFilters,
     getUniqueTiendas,
     getFilteredComissionsForCards,
+    // 🚀 NUEVO: Función para limpiar todos los caches
+    clearFilterCache: () => {
+      calculationCacheRef.current.clear();
+      indexCacheRef.current.clear();
+    },
   };
 };
