@@ -174,11 +174,11 @@ const getRowBackgroundColor = (pct: number): string => {
 
 // Función para obtener el color de hover según el porcentaje
 const getRowHoverColor = (pct: number): string => {
-  if (pct >= 1.0) return green[100]; // Verde más intenso en hover
-  if (pct >= 0.7) return blue[100]; // Azul más intenso en hover
-  if (pct >= 0.5) return orange[100]; // Rosa muy suave para 50%+
-  if (pct >= 0.35) return pink[100]; // Naranja más intenso en hover
-  return "#f8fafc"; // Gris claro por defecto en hover
+  if (pct >= 1.0) return green[100]; // 100 → 200
+  if (pct >= 0.7) return blue[100]; // 100 → 200
+  if (pct >= 0.5) return orange[100]; // 100 → 200
+  if (pct >= 0.35) return pink[100]; // 100 → 200
+  return grey[200]; //  → grey[200]
 };
 
 // Función para procesar filas con ordenamiento
@@ -343,6 +343,9 @@ export const DataTableAccordionTable: React.FC<
             width: "100%",
             "& .MuiTableHead-root": {
               "& .MuiTableRow-root": {
+                "&:hover": {
+                  backgroundColor: grey[50],
+                },
                 "& .MuiTableCell-root": {
                   borderBottom: `2px solid ${grey[300]}`,
                   fontWeight: 700,
@@ -356,9 +359,6 @@ export const DataTableAccordionTable: React.FC<
             },
             "& .MuiTableBody-root": {
               "& .MuiTableRow-root": {
-                "&:hover": {
-                  backgroundColor: "#f5f5f5",
-                },
                 "& .MuiTableCell-root": {
                   borderBottom: "1px solid" + grey[300],
                   whiteSpace: "nowrap",
@@ -374,6 +374,9 @@ export const DataTableAccordionTable: React.FC<
               <TableCell
                 sx={{
                   ...commonCellProps,
+                  position: "sticky",
+                  left: 0,
+                  zIndex: 3,
                   width: isMobile ? 140 : isTablet ? 200 : 220,
                   minWidth: isMobile ? 140 : isTablet ? 200 : 220,
                 }}
@@ -532,7 +535,6 @@ export const DataTableAccordionTable: React.FC<
               return (
                 <TableRow
                   key={row.id}
-                  hover
                   sx={{
                     backgroundColor,
                     "&:hover": {
@@ -540,7 +542,14 @@ export const DataTableAccordionTable: React.FC<
                     },
                   }}
                 >
-                  <TableCell>
+                  <TableCell
+                    sx={{
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 2,
+                      backgroundColor: "inherit",
+                    }}
+                  >
                     <Typography
                       component="span"
                       variant="body2"
@@ -595,7 +604,12 @@ export const DataTableAccordionTable: React.FC<
                       {row.dias_laborados}
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell
+                    align="right"
+                    sx={{
+                      color: getCumplimientoColor(row.comision_pct * 100),
+                    }}
+                  >
                     <Typography
                       variant="body2"
                       sx={{
@@ -606,7 +620,12 @@ export const DataTableAccordionTable: React.FC<
                       {formatCurrency(row.presupuesto)}
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell
+                    align="right"
+                    sx={{
+                      color: getCumplimientoColor(row.comision_pct * 100),
+                    }}
+                  >
                     <Typography
                       variant="body2"
                       sx={{
@@ -617,40 +636,52 @@ export const DataTableAccordionTable: React.FC<
                       {formatCurrency(row.ventasActuales)}
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell
+                    align="right"
+                    sx={{
+                      color: getCumplimientoColor(row.comision_pct * 100),
+                    }}
+                  >
                     <Typography
                       variant="body2"
                       sx={{
-                        color: getCumplimientoColor(row.comision_pct * 100),
-                        fontWeight: 600,
                         fontSize: isMobile ? "0.8rem" : "0.875rem",
                         whiteSpace: "nowrap",
+                        fontWeight: 600,
                       }}
                     >
                       {row.cumplimiento_pct.toFixed(2)}%
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell
+                    align="right"
+                    sx={{
+                      color: getCumplimientoColor(row.comision_pct * 100),
+                    }}
+                  >
                     <Typography
                       variant="body2"
                       sx={{
-                        color: getCumplimientoColor(row.comision_pct * 100),
-                        fontWeight: 600,
                         fontSize: isMobile ? "0.8rem" : "0.875rem",
                         whiteSpace: "nowrap",
+                        fontWeight: 600,
                       }}
                     >
                       {(row.comision_pct * 100).toFixed(2)}%
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell
+                    align="right"
+                    sx={{
+                      color: getCumplimientoColor(row.comision_pct * 100),
+                    }}
+                  >
                     <Typography
                       variant="body2"
                       sx={{
-                        color: getCumplimientoColor(row.comision_pct * 100),
-                        fontWeight: 600,
                         fontSize: isMobile ? "0.8rem" : "0.875rem",
                         whiteSpace: "nowrap",
+                        fontWeight: 600,
                       }}
                     >
                       <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
