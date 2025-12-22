@@ -17,12 +17,14 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { loginTheme } from "@/shared/hooks/loginTheme";
 import { ThemeProvider } from "@mui/material/styles";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
   const { login } = useAuth();
   const { darkMode, toggleTheme } = useAppTheme();
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const {
     control,
     handleSubmit,
@@ -37,6 +39,8 @@ function Login() {
     try {
       setLoading(true);
       await login(data.email, data.password);
+      // Redirigir a la página principal después del login exitoso
+      // navigate("/", { replace: true });
     } catch (error: any) {
       let message;
 

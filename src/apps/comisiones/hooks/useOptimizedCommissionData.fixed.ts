@@ -44,21 +44,7 @@ const processCommissionData = async (selectedMonth: string) => {
 
   console.log("📅 [DEBUG] Fechas calculadas:", { fechaInicio, fechaFin, ultimoDia });
 
-  // 🚀 OPTIMIZACIÓN: Cargar datos en paralelo con timeout
-  const dataPromises = Promise.all([
-    obtenerTiendas(),
-    obtenerAsesores(),
-    obtenerCargos(),
-    obtenerPresupuestosDiarios(undefined, fechaInicio, fechaFin, selectedMonth),
-    obtenerPorcentajesMensuales(undefined, selectedMonth),
-    obtenerPresupuestosEmpleados(undefined, fechaFin, selectedMonth),
-    obtenerVentasEmpleados(undefined, fechaFin, selectedMonth),
-  ]);
-
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('Timeout loading data')), 25000)
-  );
-
+  // Cargar todos los datos en paralelo
   const [
     tiendas,
     asesores,
@@ -67,7 +53,15 @@ const processCommissionData = async (selectedMonth: string) => {
     porcentajesBD,
     presupuestosEmpleadosData,
     ventasEmpleados,
-  ] = await Promise.race([dataPromises, timeoutPromise]) as any[];
+  ] = await Promise.all([
+    obtenerTiendas(),
+    obtenerAsesores(),
+    obtenerCargos(),
+    obtenerPresupuestosDiarios(undefined, fechaInicio, fechaFin, selectedMonth),
+    obtenerPorcentajesMensuales(undefined, selectedMonth),
+    obtenerPresupuestosEmpleados(undefined, fechaFin, selectedMonth),
+    obtenerVentasEmpleados(undefined, fechaFin, selectedMonth),
+  ]);
 
   console.log("📊 [DEBUG] Datos cargados desde API:", {
     tiendas: tiendas.length,
@@ -79,14 +73,9 @@ const processCommissionData = async (selectedMonth: string) => {
     ventasEmpleados: ventasEmpleados.length,
   });
 
-  // 🚀 OPTIMIZACIÓN: Crear índices para búsquedas O(1)
-  const tiendasMap = new Map(tiendas.map((t: any) => [t.id, t]));
-  const cargosMap = new Map(cargos.map((c: any) => [c.id, c]));
-  const asesoresMap = new Map(asesores.map((a: any) => [a.id, a]));
-
-  // Convertir presupuestos diarios a BudgetRecord - Optimizado
+  // Convertir presupuestos diarios a BudgetRecord
   const budgets = presupuestosDiarios.map((p: any) => {
-    const tienda = tiendasMap.get(p.tienda_id);
+    const tienda = tiendas.find((t: any) => t.id === p.tienda_id);
     const presupuesto = parseFloat(p.presupuesto) || 0;
     return {
       tienda: tienda?.nombre || `Tienda ID ${p.tienda_id}`,
@@ -97,45 +86,45 @@ const processCommissionData = async (selectedMonth: string) => {
     };
   });
 
-  // Agregar tiendas sin presupuestos diarios con presupuesto 0 - Optimizado
+  // Agregar tiendas sin presupuestos diarios con presupuesto 0
   const tiendasConPresupuestos = new Set(
     presupuestosDiarios.map((p: any) => p.tienda_id)
   );
 
-  for (const [tiendaId, tienda] of tiendasMap) {
-    if (!tiendasConPresupuestos.has(tiendaId)) {
+  tiendas.forEach((tienda: any) => {
+    if (!tiendasConPresupuestos.has(tienda.id)) {
       budgets.push({
-        tienda: (tienda as any)?.nombre || `Tienda ID ${tiendaId}`,
-        tienda_id: tiendaId,
-        empresa: (tienda as any)?.empresa || "Empresa Desconocida",
+        tienda: tienda.nombre,
+        tienda_id: tienda.id,
+        empresa: tienda.empresa || "Empresa Desconocida",
         fecha: fechaFin,
         presupuesto_total: 0,
       });
     }
-  }
+  });
 
-  // 🚀 OPTIMIZACIÓN: Crear staff con una sola pasada y búsquedas O(1)
+  // Crear staff basado en presupuestos asignados
   const staff: any[] = [];
-  const presupuestosDelMes = presupuestosEmpleadosData.filter((pe: any) => {
+  let presupuestosDelMes = presupuestosEmpleadosData.filter((pe: any) => {
     return pe.fecha >= fechaInicio && pe.fecha <= fechaFin;
   });
 
   console.log("👥 [DEBUG] Presupuestos del mes filtrados:", presupuestosDelMes.length);
 
-  // Procesar presupuestos del mes - Optimizado
-  for (const pe of presupuestosDelMes) {
-    const asesor = asesoresMap.get(pe.asesor);
-    if (!asesor) continue;
+  // Crear staff basado en presupuestos asignados
+  presupuestosDelMes.forEach((pe: any) => {
+    const asesor = asesores.find((a: any) => a.id === pe.asesor);
+    if (!asesor) return;
 
-    const tienda = tiendasMap.get(pe.tienda_id);
+    const tienda = tiendas.find((t: any) => t.id === pe.tienda_id);
 
-    // Obtener nombre del cargo - Optimizado
+    // Obtener nombre del cargo
     let cargoNombre = "asesor";
     if (typeof pe.cargo === "string") {
       cargoNombre = pe.cargo.toLowerCase();
     } else if (typeof pe.cargo === "number") {
-      const cargo = cargosMap.get(pe.cargo);
-      cargoNombre = cargo ? (cargo as any).nombre.toLowerCase() : "asesor";
+      const cargo = cargos.find((c: any) => c.id === pe.cargo);
+      cargoNombre = cargo ? cargo.nombre.toLowerCase() : "asesor";
     }
 
     // Mapear a roles estándar
@@ -156,23 +145,22 @@ const processCommissionData = async (selectedMonth: string) => {
       rol: rol,
       cargo_id: pe.cargo,
     });
-  }
+  });
 
-  // 🚀 OPTIMIZACIÓN: Agregar empleados adicionales - Optimizado
+  // Agregar empleados adicionales de todas las tiendas
   const empleadosConPresupuestos = new Set(
     presupuestosDelMes.map((pe: any) => pe.asesor.toString())
   );
 
-  // 🚀 OPTIMIZACIÓN: Agregar empleados adicionales - Optimizado
   asesores.forEach((asesor: any) => {
     if (!empleadosConPresupuestos.has(asesor.id.toString())) {
-      const tiendaAsesor = tiendasMap.get(asesor.tienda_id);
+      const tiendaAsesor = tiendas.find((t: any) => t.id === asesor.tienda_id);
       if (tiendaAsesor) {
         let rol = "asesor";
         if (asesor.cargo_id) {
-          const cargo = cargosMap.get(asesor.cargo_id);
+          const cargo = cargos.find((c: any) => c.id === asesor.cargo_id);
           if (cargo) {
-            const cargoNombre = (cargo as any).nombre.toLowerCase();
+            const cargoNombre = cargo.nombre.toLowerCase();
             rol =
               cargoNombre === "gerente"
                 ? "gerente"
@@ -187,7 +175,7 @@ const processCommissionData = async (selectedMonth: string) => {
         staff.push({
           id: asesor.id.toString(),
           nombre: asesor.nombre || `Empleado ${asesor.id}`,
-          tienda: (tiendaAsesor as any).nombre,
+          tienda: tiendaAsesor.nombre,
           fecha: fechaFin,
           rol: rol,
           cargo_id:
@@ -230,16 +218,15 @@ const processCommissionData = async (selectedMonth: string) => {
 
   const ventasMap = new Map<string, any>();
 
-  // 🚀 OPTIMIZACIÓN: Procesar ventas - Optimizado
   ventasDelMes.forEach((ve: any) => {
-    const tienda = tiendasMap.get(ve.tienda_id);
+    const tienda = tiendas.find((t: any) => t.id === ve.tienda_id);
     if (!tienda) return;
 
-    const key = `${(tienda as any).nombre}-${ve.fecha}`;
+    const key = `${tienda.nombre}-${ve.fecha}`;
 
     if (!ventasMap.has(key)) {
       ventasMap.set(key, {
-        tienda: (tienda as any).nombre,
+        tienda: tienda.nombre,
         fecha: ve.fecha,
         ventas_tienda: 0,
         ventas_por_asesor: {},
@@ -296,32 +283,77 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
     queryKey: ["commission-data", selectedMonth, user?.id],
     queryFn: () => processCommissionData(selectedMonth),
     enabled: !!user && !!selectedMonth,
-    staleTime: 1000 * 60 * 5, // 5 minutos - cache más permisivo para velocidad
-    gcTime: 1000 * 60 * 15, // 15 minutos - mantener caché más tiempo
-    refetchOnWindowFocus: false, // Evitar recargas innecesarias
-    refetchOnMount: false, // NO recargar si hay cache disponible
-    refetchOnReconnect: true, // Recargar al reconectar
-    retry: 1, // Solo 1 reintento para mayor velocidad
-    retryDelay: 300, // Delay más corto entre reintentos
+    staleTime: 0, // 🚀 CAMBIADO: Siempre marcar como stale para forzar fetch
+    gcTime: 1000 * 60 * 5, // 5 minutos - reducir tiempo en caché
+    refetchOnWindowFocus: true, // 🚀 CAMBIADO: Recargar al volver a la ventana
+    refetchOnMount: true, // 🚀 CAMBIADO: Recargar al montar
+    refetchOnReconnect: true, // 🚀 CAMBIADO: Recargar al reconectar
+    retry: 2, // Menos reintentos para evitar delays
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
-  // ✅ Función refetch optimizada para mayor velocidad
+  // ✅ MEJORAR función refetch para invalidación más agresiva
   const refetch = useCallback(() => {
-    console.log("🔄 Recargando datos de comisiones...");
+    console.log("🔄 Forzando recarga completa de datos de comisiones...");
 
-    // Invalidación selectiva solo para datos de comisiones
+    // ✅ INVALIDACIÓN MÁS AGRESIVA - INVALIDAR TODO
     queryClient.invalidateQueries({
-      queryKey: ["commission-data", selectedMonth],
-      exact: true,
+      queryKey: ["commission-data"],
+      exact: false,
     });
 
-    // Refetch inmediato sin limpiar todo el caché
-    return query.refetch().then(() => {
-      console.log("✅ Recarga de datos completada");
+    // Invalidar consultas relacionadas específicas
+    queryClient.invalidateQueries({
+      queryKey: ["budgets"],
+      exact: false,
     });
-  }, [queryClient, selectedMonth, query]);
 
-  // Función para precargar datos de un mes - Optimizada
+    queryClient.invalidateQueries({
+      queryKey: ["staff"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["ventas"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["presupuestos-empleados"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["tiendas"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["asesores"],
+      exact: false,
+    });
+
+    // ✅ LIMPIAR CACHÉ COMPLETO PARA ASEGURAR RECARGA
+    queryClient.removeQueries({
+      queryKey: ["commission-data"],
+      exact: false,
+    });
+
+    // 🚀 NUEVO: Forzar limpieza completa del caché de React Query
+    queryClient.clear();
+
+    // Forzar refetch inmediato del mes actual
+    return queryClient
+      .refetchQueries({
+        queryKey: ["commission-data", selectedMonth],
+        type: "active",
+      })
+      .then(() => {
+        console.log("✅ Recarga completa finalizada");
+      });
+  }, [queryClient, selectedMonth]);
+
+  // Función para precargar datos de un mes
   const prefetchMonth = useCallback(
     (month: string) => {
       if (!user) return;
@@ -329,8 +361,8 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
       queryClient.prefetchQuery({
         queryKey: ["commission-data", month, user.id],
         queryFn: () => processCommissionData(month),
-        staleTime: 1000 * 60 * 2, // 2 minutos de stale time
-        gcTime: 1000 * 60 * 10, // 10 minutos de garbage collection
+        staleTime: 0, // Siempre stale para forzar fetch fresco
+        gcTime: 1000 * 60 * 5,
       });
     },
     [queryClient, user]

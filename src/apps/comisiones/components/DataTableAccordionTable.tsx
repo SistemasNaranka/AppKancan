@@ -248,7 +248,7 @@ export const DataTableAccordionTable: React.FC<
   const commonCellProps = {
     fontWeight: 600,
     fontSize: isMobile ? "0.7rem" : "0.875rem",
-    color: "#6b7280",
+    color: "#4b5563",
     whiteSpace: "nowrap",
   };
 
@@ -258,7 +258,7 @@ export const DataTableAccordionTable: React.FC<
     onClick: () => handleSortChange(field),
     sx: {
       "& .MuiTableSortLabel-icon": {
-        color: "#6b7280 !important",
+        color: "#4b5563 !important",
       },
       "&.Mui-active .MuiTableSortLabel-icon": {
         color: "primary.main !important",
@@ -359,6 +359,13 @@ export const DataTableAccordionTable: React.FC<
                   ...commonCellProps,
                   width: isMobile ? 100 : isTablet ? 150 : 200,
                   minWidth: isMobile ? 100 : isTablet ? 150 : 200,
+                  position: "sticky",
+                  left: 0,
+                  zIndex: 3,
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  backdropFilter: "blur(2px)",
+                  borderRight: `1px solid ${grey[400]}`,
+                  boxShadow: "1px 0 2px rgba(0,0,0,0.05)",
                 }}
               >
                 {renderSortHeader(
@@ -491,13 +498,28 @@ export const DataTableAccordionTable: React.FC<
                     },
                   }}
                 >
-                  <TableCell>
+                  <TableCell
+                    sx={{
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 2,
+                      backgroundColor: "rgba(255, 255, 255, 0.98)",
+                      backdropFilter: "blur(1px)",
+                      borderRight: `1px solid ${grey[400]}`,
+                      boxShadow: "1px 0 2px rgba(0,0,0,0.03)",
+                      "&:hover": {
+                        backgroundColor: "rgba(248, 250, 252, 0.98)",
+                      },
+                    }}
+                  >
                     <Typography
                       variant="body2"
                       sx={{
-                        fontWeight: 500,
+                        fontWeight: 600,
                         fontSize: isMobile ? "0.8rem" : "0.875rem",
                         whiteSpace: "nowrap",
+                        color: "#374151",
+                        textShadow: "0 0 1px rgba(255,255,255,0.8)",
                       }}
                     >
                       {row.nombre}

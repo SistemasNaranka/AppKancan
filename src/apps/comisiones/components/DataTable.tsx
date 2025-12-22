@@ -356,8 +356,8 @@ export const DataTable: React.FC<DataTableProps> = memo(
 
     // Contenido de la tabla optimizado
     const tableContent = useMemo(() => {
-      // Estado vacío
-      if (hasEmptyData) {
+      // Estado vacío - SOLO cuando no esté cargando Y tengamos datos originales para procesar
+      if (hasEmptyData && !isLoading && !isRefetching && tiendas.length > 0) {
         return (
           <DataTableEmptyState
             hasEmptyData={hasEmptyData}
@@ -394,6 +394,8 @@ export const DataTable: React.FC<DataTableProps> = memo(
       incrementallyLoadedCount,
       isIncrementallyLoading,
       tiendaKeys,
+      isLoading,
+      isRefetching,
     ]);
 
     return (

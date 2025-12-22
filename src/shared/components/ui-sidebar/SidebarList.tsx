@@ -11,6 +11,7 @@ import { Home, ExpandLess, ExpandMore } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { getItemStyles } from "./styles";
 import { DynamicIcon } from "@/shared/utils/DynamicIcon";
+import { useNavigationPersistence } from "@/shared/hooks/useNavigationPersistence";
 
 interface Props {
   open: boolean;
@@ -29,6 +30,13 @@ export const SidebarList = ({
   loading,
   location,
 }: Props) => {
+  const { goToHome } = useNavigationPersistence();
+
+  const handleHomeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    goToHome();
+  };
+
   return (
     <List
       sx={{
@@ -43,8 +51,7 @@ export const SidebarList = ({
       {/* INICIO */}
       <Tooltip title={!open ? "Inicio" : ""} placement="right">
         <ListItemButton
-          component={Link}
-          to="/home"
+          onClick={handleHomeClick}
           selected={location.pathname === "/home"}
           sx={{
             ...getItemStyles(location.pathname === "/home", open),

@@ -19,6 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   /**
    * Función auxiliar para extraer políticas de Directus (estructura específica)
@@ -82,6 +83,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
 
+    // Limpiar navegación persistente al hacer logout
+    localStorage.removeItem("lastVisitedRoute");
+
     borrarTokenStorage();
     setUser(null);
     await setTokenDirectus(null);
@@ -92,6 +96,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
    */
   useEffect(() => {
     const init = async () => {
+      // Solo inicializar una vez
+      if (initialized) return;
+      setInitialized(true);
+      
       const tokens = cargarTokenStorage();
 
       if (!tokens) {
@@ -118,9 +126,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             await setTokenDirectus(res.access_token);
           } catch (refreshError) {
             console.error("❌ Error al refrescar tokens:", refreshError);
-            borrarTokenStorage();
-            setUser(null);
-            await setTokenDirectus(null);
+            // Solo limpiar tokens si es un error de autenticación, no de red
+            if (refreshError?.response?.status === 401) {
+              borrarTokenStorage();
+              setUser(null);
+              await setTokenDirectus(null);
+            }
             setLoading(false);
             return;
           }
@@ -145,16 +156,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       } catch (error) {
         console.error("❌ Error al inicializar autenticación:", error);
-        borrarTokenStorage();
-        setUser(null);
-        await setTokenDirectus(null);
+        // Solo limpiar tokens si es un error de autenticación específico
+        if (error?.response?.status === 401 || error?.message?.includes("Invalid token")) {
+          borrarTokenStorage();
+          setUser(null);
+          await setTokenDirectus(null);
+        }
+        // Para otros errores (red, servidor), mantener el estado actual
       } finally {
         setLoading(false);
       }
     };
 
     init();
-  }, []);
+  }, [initialized]);
 
   const isAuthenticated = !!user;
 

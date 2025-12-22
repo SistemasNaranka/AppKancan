@@ -357,6 +357,35 @@ export default function Home() {
     [availableMonthsFinal]
   );
 
+  // Manejar errores y estados vacíos - Optimizado para evitar flashes del modal
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (isError && error) {
+      setShowNoDataModal(true);
+      setModalTitle("Error al cargar datos");
+      setModalMessage((error as any)?.message || "Ocurrió un error inesperado");
+    } else if (dataLoadAttempted && !hasData && !isLoading && !commissionData) {
+      // Delay para evitar flashes del modal cuando se carga desde caché
+      timeoutId = setTimeout(() => {
+        setShowNoDataModal(true);
+        setModalTitle("Sin datos disponibles");
+        setModalMessage(
+          "No se encontraron datos para el período seleccionado."
+        );
+      }, 500); // 500ms de delay para dar tiempo al caché
+    } else {
+      setShowNoDataModal(false);
+    }
+
+    // Cleanup timeout
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isError, error, dataLoadAttempted, hasData, isLoading, commissionData]);
+
   // 🚀 NUEVO: Determinar si debe mostrar el estado de carga
   const shouldShowLoading = useMemo(() => {
     // Si la validación de presupuesto no se ha completado, mostrar carga
@@ -367,34 +396,11 @@ export default function Home() {
     return isLoading || isLoadingMonths;
   }, [budgetValidationCompleted, isLoading, isLoadingMonths]);
 
-  // Manejar errores y estados vacíos - Solo mostrar "sin datos" cuando NO esté cargando
-  useEffect(() => {
-    if (isError && error) {
-      setShowNoDataModal(true);
-      setModalTitle("Error al cargar datos");
-      setModalMessage((error as any)?.message || "Ocurrió un error inesperado");
-    } else if (dataLoadAttempted && !hasData && !isLoading && !commissionData && !shouldShowLoading) {
-      // Solo mostrar "sin datos" cuando termine de cargar Y no esté en estado de carga general
-      setShowNoDataModal(true);
-      setModalTitle("Sin datos disponibles");
-      setModalMessage(
-        "No se encontraron datos para el período seleccionado."
-      );
-    } else {
-      setShowNoDataModal(false);
-    }
-  }, [isError, error, dataLoadAttempted, hasData, isLoading, commissionData, shouldShowLoading]);
-
   // 🚀 NUEVO: Determinar si mostrar contenido principal o aviso de presupuesto
   const shouldShowMainContent = useMemo(() => {
     // Solo mostrar contenido si hay presupuesto diario asignado
     return hasBudgetData !== false;
   }, [hasBudgetData]);
-
-  // 🚀 NUEVO: Mostrar contenido básico si no hay datos
-  const shouldShowBasicContent = useMemo(() => {
-    return dataLoadAttempted && !hasData && !isLoading;
-  }, [dataLoadAttempted, hasData, isLoading]);
 
   // 🚀 NUEVO: Props condicionales para HomeHeader - solo mostrar SummaryCards si hay presupuesto
   const homeHeaderProps = useMemo(() => {

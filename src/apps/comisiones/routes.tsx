@@ -4,7 +4,7 @@ import { CommissionProvider } from "./contexts/CommissionContext";
 
 const routes: RouteObject[] = [
   {
-    path: "/comisiones",
+    path: "comisiones",
     element: (
       <CommissionProvider>
         <Home />

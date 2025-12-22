@@ -157,27 +157,9 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
     );
   }
 
-  // Si hay datos cargados pero vacíos después de intento
-  if (hasDataAttempted && !isLoading && !error && !children) {
-    return (
-      <Paper
-        sx={{
-          p: 4,
-          textAlign: "center",
-          backgroundColor: "#fafafa",
-          border: "1px solid #e0e0e0",
-          borderRadius: 2,
-        }}
-      >
-        <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-          No hay datos disponibles
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          No se encontraron datos para el período seleccionado.
-        </Typography>
-      </Paper>
-    );
-  }
+  // No mostrar mensaje de "no hay datos" durante la carga inicial o cuando hay children
+  // El mensaje "no hay datos" solo debe aparecer en casos muy específicos donde estemos seguros
+  // de que no hay datos y no estamos en proceso de carga
 
   // Contenido normal
   return <>{children}</>;
