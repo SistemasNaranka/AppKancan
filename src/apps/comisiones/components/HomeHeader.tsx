@@ -151,7 +151,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           {/* Summary Cards - Solo en desktop (md y superiores) */}
           <div className="hidden md:block mt-6">
             <SummaryCards
-              mesResumen={mesResumenFiltrado || mesResumen}
+              mesResumen={mesResumen}
               onToggleAllStores={onToggleAllStores}
               expandedTiendas={expandedTiendas}
               filterRol={filterRol}
@@ -170,7 +170,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
             renderMobileSummaryCards()
           ) : (
             <SummaryCards
-              mesResumen={mesResumenFiltrado || mesResumen}
+              mesResumen={mesResumen}
               onToggleAllStores={onToggleAllStores}
               expandedTiendas={expandedTiendas}
               filterRol={filterRol}

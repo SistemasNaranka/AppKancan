@@ -1,10 +1,9 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { Role } from "../types";
 
 export interface FilterState {
   filterTienda: string[];
   filterRol: Role[];
-  debouncedFilterRol: Role[];
   expandedTiendas: Set<string>;
   isFiltering: boolean;
 }
@@ -21,7 +20,7 @@ export interface FilterActions {
     shouldContract?: boolean
   ) => void;
   toggleSingleStore: (tiendaKey: string) => void;
-  // 🚀 NUEVO: Función para limpiar todos los caches
+  // Función para limpiar todos los caches
   clearFilterCache: () => void;
 }
 
@@ -39,15 +38,13 @@ interface DataIndexes {
 }
 
 /**
- * 🚀 HOOK OPTIMIZADO - ELIMINA CONGELAMIENTO MANTENIENDO COMPATIBILIDAD
- * - Elimina efectos en cascada problemáticos
- * - Mejor sistema de cache con LRU
- * - Filtrado O(1) optimizado
- * - Batching de actualizaciones
+ * HOOK OPTIMIZADO SIMPLIFICADO - SIN DEBOUNCING
+ * - Elimina problemas de sincronización
+ * - Cálculos directos y consistentes
+ * - Cache optimizado
+ * - Actualizaciones inmediatas
  */
-export const useFiltersOptimized = (
-  debounceDelay: number = 200
-): FilterState &
+export const useFiltersOptimized = (): FilterState &
   FilterActions & {
     applyFilters: (mesResumen: any) => any;
     getUniqueTiendas: (mesResumen: any) => string[];
@@ -56,54 +53,17 @@ export const useFiltersOptimized = (
       comisiones_por_rol: Record<string, number>;
     };
   } => {
-  // Estados de filtros
+  // Estados de filtros - SIN DEBOUNCING
   const [filterTienda, setFilterTienda] = useState<string[]>([]);
   const [filterRol, setFilterRol] = useState<Role[]>([]);
-  const [debouncedFilterRol, setDebouncedFilterRol] = useState<Role[]>([]);
   const [expandedTiendas, setExpandedTiendas] = useState<Set<string>>(
     new Set()
   );
   const [isFiltering, setIsFiltering] = useState(false);
 
   // Refs para optimización
-  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
   const calculationCacheRef = useRef<Map<string, any>>(new Map());
   const indexCacheRef = useRef<Map<string, DataIndexes>>(new Map());
-  const pendingUpdatesRef = useRef<Set<string>>(new Set());
-
-  // ========================================================================
-  // DEBOUNCING OPTIMIZADO CON BATCHING
-  // ========================================================================
-  useEffect(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
-    // Marcar que hay cambios pendientes para evitar actualizaciones redundantes
-    const hasChanges =
-      filterRol.length !== debouncedFilterRol.length ||
-      !filterRol.every((r) => debouncedFilterRol.includes(r));
-
-    if (hasChanges) {
-      setIsFiltering(true);
-      pendingUpdatesRef.current.add("filterRol");
-    }
-
-    // Debounce con batching para evitar múltiples actualizaciones
-    debounceTimeoutRef.current = setTimeout(() => {
-      if (pendingUpdatesRef.current.has("filterRol")) {
-        setDebouncedFilterRol(filterRol);
-        setIsFiltering(false);
-        pendingUpdatesRef.current.delete("filterRol");
-      }
-    }, debounceDelay);
-
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, [filterRol, debounceDelay, debouncedFilterRol.length]);
 
   // ========================================================================
   // SISTEMA DE INDEXACIÓN O(1) OPTIMIZADO CON LRU CACHE
@@ -168,7 +128,7 @@ export const useFiltersOptimized = (
   }, []);
 
   // ========================================================================
-  // FILTRADO O(1) OPTIMIZADO SIN EFECTOS EN CASCADA
+  // FILTRADO O(1) OPTIMIZADO - SIN DEBOUNCING
   // ========================================================================
   const applyFilters = useCallback(
     (mesResumen: any) => {
@@ -177,15 +137,15 @@ export const useFiltersOptimized = (
       // Early return si no hay filtros activos
       if (
         (!filterTienda || filterTienda.length === 0) &&
-        (!debouncedFilterRol || debouncedFilterRol.length === 0)
+        (!filterRol || filterRol.length === 0)
       ) {
         return mesResumen;
       }
 
       // Crear clave para cache
-      const cacheKey = `filters_${filterTienda.join(
+      const cacheKey = `filters_${filterTienda.join(",")}_${filterRol.join(
         ","
-      )}_${debouncedFilterRol.join(",")}_${mesResumen.tiendas.length}`;
+      )}_${mesResumen.tiendas.length}`;
 
       // Verificar cache
       if (calculationCacheRef.current.has(cacheKey)) {
@@ -195,8 +155,6 @@ export const useFiltersOptimized = (
       // Obtener índices
       const indexes = buildIndexes(mesResumen);
       if (!indexes) return mesResumen;
-
-      const startTime = performance.now();
 
       // Aplicar filtros O(1) usando índices
       let tiendaIndices = Array.from(
@@ -215,9 +173,9 @@ export const useFiltersOptimized = (
       }
 
       // Filtrar por rol usando índices O(1) con Sets
-      if (debouncedFilterRol && debouncedFilterRol.length > 0) {
+      if (filterRol && filterRol.length > 0) {
         const rolIndicesSet = new Set<number>();
-        for (const rol of debouncedFilterRol) {
+        for (const rol of filterRol) {
           const rolIndexList = indexes.rolIndices[rol] || [];
           rolIndexList.forEach((i: number) => rolIndicesSet.add(i));
         }
@@ -231,8 +189,8 @@ export const useFiltersOptimized = (
           let empleados = tienda.empleados;
 
           // Filtrar empleados por rol usando Set para O(1)
-          if (debouncedFilterRol.length > 0) {
-            const roleSet = new Set(debouncedFilterRol);
+          if (filterRol.length > 0) {
+            const roleSet = new Set(filterRol);
             empleados = empleados.filter((empleado: any) =>
               roleSet.has(empleado.rol)
             );
@@ -265,13 +223,14 @@ export const useFiltersOptimized = (
         cajero: 0,
         logistico: 0,
         coadministrador: 0,
+        gerente_online: 0,
       };
 
       // Calcular comisiones por rol usando Set para velocidad
-      const roleSet = new Set(debouncedFilterRol);
+      const roleSet = new Set(filterRol);
       for (const tienda of tiendasFiltradas) {
         for (const empleado of tienda.empleados) {
-          if (roleSet.has(empleado.rol) || debouncedFilterRol.length === 0) {
+          if (roleSet.has(empleado.rol) || filterRol.length === 0) {
             comisiones_por_rol[empleado.rol] += empleado.comision_monto || 0;
           }
         }
@@ -295,16 +254,16 @@ export const useFiltersOptimized = (
 
       return result;
     },
-    [filterTienda, debouncedFilterRol, buildIndexes]
+    [filterTienda, filterRol, buildIndexes]
   );
 
   // ========================================================================
-  // HANDLERS OPTIMIZADOS CON BATCHING
+  // HANDLERS OPTIMIZADOS CON ACTUALIZACIÓN INMEDIATA
   // ========================================================================
   const handleFilterTiendaChange = useCallback((value: string | string[]) => {
     const tiendaArray = Array.isArray(value) ? value : [value].filter(Boolean);
     setFilterTienda(tiendaArray);
-    // 🚀 NUEVO: Limpiar cache cuando cambian los datos base
+    // Limpiar cache cuando cambian los datos base
     calculationCacheRef.current.clear();
   }, []);
 
@@ -328,7 +287,7 @@ export const useFiltersOptimized = (
     calculationCacheRef.current.clear();
   }, []);
 
-  // 🎯 EXPANSIÓN MASIVA CON REQUEST ANIMATION FRAME
+  // Expansión masiva con request animation frame
   const handleToggleAllStores = useCallback(
     (tiendas: string[], forceExpand?: boolean, shouldContract?: boolean) => {
       requestAnimationFrame(() => {
@@ -384,55 +343,75 @@ export const useFiltersOptimized = (
             asesor: 0,
             cajero: 0,
             logistico: 0,
+            coadministrador: 0,
+            gerente_online: 0,
           },
         };
       }
 
-      const cacheKey = `cards_${filterTienda.join(
-        ","
-      )}_${debouncedFilterRol.join(",")}_${mesResumen.tiendas?.length || 0}`;
-
-      if (calculationCacheRef.current.has(cacheKey)) {
-        return calculationCacheRef.current.get(cacheKey);
-      }
-
-      // Usar applyFilters para consistencia
-      const filteredData = applyFilters(mesResumen);
-
-      if (!filteredData) {
-        return {
-          total_comisiones: 0,
-          comisiones_por_rol: {
-            gerente: 0,
-            asesor: 0,
-            cajero: 0,
-            logistico: 0,
-          },
-        };
-      }
-
-      const result = {
-        total_comisiones: filteredData.total_comisiones || 0,
-        comisiones_por_rol: filteredData.comisiones_por_rol || {
-          gerente: 0,
-          asesor: 0,
-          cajero: 0,
-          logistico: 0,
-          coadministrador: 0,
-        },
+      // ✅ CORRECCIÓN: Usar datos directos del mesResumen SIN CACHE
+      // Igual que funcionan los gráficos que SÍ muestran valores correctos
+      let totalComisiones = 0;
+      const comisionesPorRol = {
+        gerente: 0,
+        asesor: 0,
+        cajero: 0,
+        logistico: 0,
+        coadministrador: 0,
+        gerente_online: 0,
       };
 
-      calculationCacheRef.current.set(cacheKey, result);
-      return result;
+      // Usar datos directos sin cache (como los gráficos)
+      const tiendasParaCalcular =
+        filterTienda.length > 0
+          ? mesResumen.tiendas.filter((tienda: any) =>
+              filterTienda.includes(tienda.tienda)
+            )
+          : mesResumen.tiendas;
+
+      tiendasParaCalcular.forEach((tienda: any) => {
+        // Aplicar filtros de rol si están activos
+        const empleadosParaCalcular =
+          filterRol.length > 0
+            ? tienda.empleados.filter((empleado: any) =>
+                filterRol.includes(empleado.rol)
+              )
+            : tienda.empleados;
+
+        empleadosParaCalcular.forEach((empleado: any) => {
+          const comision = empleado.comision_monto || 0;
+          totalComisiones += comision;
+
+          // Sumar por rol
+          if (comisionesPorRol.hasOwnProperty(empleado.rol)) {
+            comisionesPorRol[empleado.rol as keyof typeof comisionesPorRol] +=
+              comision;
+          }
+        });
+      });
+
+      // Redondear resultados
+      totalComisiones = Math.round(totalComisiones * 100) / 100;
+      Object.keys(comisionesPorRol).forEach((rol) => {
+        comisionesPorRol[rol as keyof typeof comisionesPorRol] =
+          Math.round(
+            comisionesPorRol[rol as keyof typeof comisionesPorRol] * 100
+          ) / 100;
+      });
+
+      // ✅ SIN CACHE: Devolver valores calculados directamente
+      return {
+        total_comisiones: totalComisiones,
+        comisiones_por_rol: comisionesPorRol,
+      };
     },
-    [filterTienda, debouncedFilterRol, applyFilters]
+    [filterTienda, filterRol]
   );
 
   return {
     // Estados
     filterTienda,
     filterRol,
-    debouncedFilterRol,
     expandedTiendas,
     isFiltering,
 
@@ -449,7 +428,7 @@ export const useFiltersOptimized = (
     applyFilters,
     getUniqueTiendas,
     getFilteredComissionsForCards,
-    // 🚀 NUEVO: Función para limpiar todos los caches
+    // Función para limpiar todos los caches
     clearFilterCache: () => {
       calculationCacheRef.current.clear();
       indexCacheRef.current.clear();

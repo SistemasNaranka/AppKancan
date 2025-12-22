@@ -116,7 +116,6 @@ export default function Home() {
   const {
     filterTienda,
     filterRol,
-    debouncedFilterRol, // Valor debounced optimizado
     expandedTiendas,
     isFiltering, // Indicador de filtrado activo
     setFilterTienda,
@@ -129,7 +128,7 @@ export default function Home() {
     getFilteredComissionsForCards,
     // 🚀 NUEVO: Función para limpiar cache de filtros
     clearFilterCache,
-  } = useFiltersOptimized(50); // 50ms de debounce más responsivo
+  } = useFiltersOptimized();
 
   // Cache para cálculos costosos (optimizado)
   const calculationCacheRef = useRef<Map<string, any>>(new Map());
@@ -176,7 +175,7 @@ export default function Home() {
     // 🚀 USAR PRESUPUESTOS EMPLEADOS DEL ESTADO GLOBAL
     const presupuestosEmpleadosState = state.presupuestosEmpleados || [];
 
-    // 🚀 NUEVO: Crear hash más específico basado en el contenido real
+    // ✅ CORRECCIÓN: Hash sin timestamp para permitir cache correcto
     const createDataHash = () => {
       const budgetsHash = budgets.reduce(
         (acc, b) => acc + Math.round(b.presupuesto_total * 100),
@@ -195,9 +194,9 @@ export default function Home() {
         0
       );
       const presupuestosCount = presupuestosEmpleadosState.length;
-      const timestamp = Date.now(); // Forzar recalculo
+      // ❌ REMOVIDO: timestamp que causaba recálculos constantes
 
-      return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}_${timestamp}`;
+      return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}`;
     };
 
     const dataHash = createDataHash();
@@ -241,7 +240,7 @@ export default function Home() {
     if (!mesResumen) return null;
     // Usar el filtrado optimizado del hook
     return applyFilters(mesResumen);
-  }, [mesResumen, debouncedFilterRol, filterTienda, applyFilters]);
+  }, [mesResumen, filterRol, filterTienda, applyFilters]);
 
   // Obtener tiendas únicas para filtros
   const availableTiendas = useMemo(() => {
@@ -319,7 +318,7 @@ export default function Home() {
     }
 
     // Si no hay filtros de rol activos, contraer todas las tiendas
-    if (debouncedFilterRol.length === 0) {
+    if (filterRol.length === 0) {
       handleToggleAllStores([], false, true);
       return;
     }
@@ -329,7 +328,7 @@ export default function Home() {
       const tiendasAExpandir: string[] = [];
 
       // 🚀 USAR SET PARA FILTRADO O(1) EN LUGAR DE some()
-      const roleSet = new Set(debouncedFilterRol);
+      const roleSet = new Set(filterRol);
       mesResumen.tiendas.forEach((tienda: any) => {
         const tiendaKey = `${tienda.tienda}-${tienda.fecha}`;
 
@@ -345,7 +344,7 @@ export default function Home() {
 
       handleToggleAllStores(tiendasAExpandir, true, false);
     }
-  }, [debouncedFilterRol, mesResumen, handleToggleAllStores]);
+  }, [filterRol, mesResumen, handleToggleAllStores]);
 
   const handleToggleAllStoresWrapper = useCallback(() => {
     if (!mesResumen) return;
@@ -470,7 +469,7 @@ export default function Home() {
         ...baseProps,
         renderMobileSummaryCards: () => (
           <SummaryCards
-            mesResumen={mesResumenFiltrado || mesResumen}
+            mesResumen={mesResumen}
             onToggleAllStores={handleToggleAllStoresWrapper}
             expandedTiendas={expandedTiendas}
             filterRol={filterRol}
@@ -747,7 +746,7 @@ export default function Home() {
                         expandedTiendas={expandedTiendas}
                         onToggleAllStores={handleToggleAllStoresWrapper}
                         toggleSingleStore={toggleSingleStore}
-                        filterRol={debouncedFilterRol}
+                        filterRol={filterRol}
                         isLoading={isLoading}
                         isRefetching={isRefetching}
                         isFiltering={isFiltering}

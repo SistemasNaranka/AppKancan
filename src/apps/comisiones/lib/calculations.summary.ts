@@ -456,16 +456,17 @@ export const calculateMesResumenAgrupado = (
     });
   });
 
-  // ✅ CORRECCIÓN CRÍTICA: Eliminar acumulación de budget.presupuesto_total
-  // Ahora el presupuestoTotal se calculará como suma de empleados
+  // ✅ CORRECCIÓN: Acumular presupuestoTotal correctamente desde budgets reales
   mesBudgets.forEach((budget) => {
     const tiendaData = tiendasMap.get(budget.tienda)!;
 
     // Solo agregar fecha si no existe ya (evitar duplicados)
     if (!tiendaData.fechas.includes(budget.fecha)) {
       tiendaData.fechas.push(budget.fecha);
-      // ✅ Ya no acumulamos budget.presupuesto_total
     }
+
+    // ✅ CORREGIDO: Acumular presupuesto real de la tienda
+    tiendaData.presupuestoTotal += budget.presupuesto_total || 0;
   });
 
   // Paso 2: Agrupar staff por tienda y fecha
@@ -548,7 +549,10 @@ export const calculateMesResumenAgrupado = (
               0
             );
           } else {
-            // ✅ CORRECCIÓN CRÍTICA: Calcular presupuestos basado en empleados existentes
+            // ✅ CORRECCIÓN CRÍTICA: Calcular presupuestos basado en presupuestos reales de la tienda
+            // Usar el presupuesto total real de la tienda en lugar de estimaciones hardcodeadas
+            const presupuestoTotalReal = tiendaData.presupuestoTotal || 0;
+
             // Contar empleados por rol para el cálculo
             const empleadosGerente = Array.from(
               empleadosUnicos.values()
@@ -559,14 +563,8 @@ export const calculateMesResumenAgrupado = (
                 e.empleado.rol === "coadministrador"
             ).length;
 
-            // Calcular presupuesto total disponible basado en empleados existentes
-            let presupuestoTotalCalculado = 0;
-            if (empleadosGerente > 0) {
-              presupuestoTotalCalculado += empleadosGerente * 100000; // Estimación para gerente
-            }
-            if (empleadosAsesor > 0) {
-              presupuestoTotalCalculado += empleadosAsesor * 80000; // Estimación para asesores y coadministradores
-            }
+            // ✅ CORREGIDO: Usar presupuesto real de la tienda en lugar de estimaciones
+            const presupuestoTotalCalculado = presupuestoTotalReal;
 
             if (empleado.rol === "gerente") {
               empleadoData.presupuestoMensual =

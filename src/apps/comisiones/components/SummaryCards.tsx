@@ -173,142 +173,116 @@ const SummaryCardsSkeleton = React.memo(() => (
 SummaryCardsSkeleton.displayName = "SummaryCardsSkeleton";
 
 /**
- * SummaryCards principal con optimizaciones avanzadas
+ * SummaryCards principal - SIN MEMO PROBLEMÁTICO
+ * Actualización inmediata sin delays
  */
-export const SummaryCards: React.FC<SummaryCardsProps> = React.memo(
-  ({
-    mesResumen,
-    onToggleAllStores,
-    filterRol,
-    getFilteredComissionsForCards,
-    onRoleFilterToggle,
-    onRoleFilterClear,
-  }) => {
-    // Memoizar handlers para evitar re-renders
-    const handleCardClick = useCallback(
-      (role: Role | "total") => {
-        if (role === "total") {
-          onRoleFilterClear();
-          onToggleAllStores();
-        } else {
-          onRoleFilterToggle(role);
-        }
-      },
-      [onRoleFilterClear, onRoleFilterToggle, onToggleAllStores]
-    );
+export const SummaryCards: React.FC<SummaryCardsProps> = ({
+  mesResumen,
+  onToggleAllStores,
+  filterRol,
+  getFilteredComissionsForCards,
+  onRoleFilterToggle,
+  onRoleFilterClear,
+}) => {
+  // Memoizar handlers para evitar re-renders innecesarios
+  const handleCardClick = useCallback(
+    (role: Role | "total") => {
+      if (role === "total") {
+        onRoleFilterClear();
+        onToggleAllStores();
+      } else {
+        onRoleFilterToggle(role);
+      }
+    },
+    [onRoleFilterClear, onRoleFilterToggle, onToggleAllStores]
+  );
 
-    // Memoizar datos calculados
-    const {
-      totalComisiones,
-      comisionGerente,
-      comisionAsesor,
-      comisionCajero,
-      comisionLogistico,
-    } = useSummaryCardsData(mesResumen, getFilteredComissionsForCards);
+  // ✅ SIN CACHE PROBLEMÁTICO: Calcular datos directamente
+  const {
+    totalComisiones,
+    comisionGerente,
+    comisionAsesor,
+    comisionCajero,
+    comisionLogistico,
+  } = useSummaryCardsData(mesResumen, getFilteredComissionsForCards);
 
-    if (!mesResumen) {
-      return <SummaryCardsSkeleton />;
-    }
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-        {/* Total Comisiones */}
-        <CommissionCard
-          title="Total Comisiones"
-          value={totalComisiones}
-          onClick={() => handleCardClick("total")}
-          sx={{
-            background: "linear-gradient(135deg,  #3680F7 0 0%, #3680F7 100%)",
-            color: "white",
-            border: "2px solid #3680F7",
-          }}
-          role="total"
-          filterRol={filterRol}
-        />
-
-        {/* Gerentes */}
-        <CommissionCard
-          title="Gerentes"
-          value={comisionGerente}
-          onClick={() => handleCardClick("gerente")}
-          sx={{
-            background: "linear-gradient(135deg, #7138F5 0%, #7138F5 100%)",
-            color: "white",
-            border: "2px solid #7138F5",
-          }}
-          role="gerente"
-          filterRol={filterRol}
-        />
-
-        {/* Asesores */}
-        <CommissionCard
-          title="Asesores"
-          value={comisionAsesor}
-          onClick={() => handleCardClick("asesor")}
-          sx={{
-            background: "linear-gradient(135deg, #419061 0%, #419061 100%)",
-            color: "white",
-            border: "2px solid #419061",
-          }}
-          role="asesor"
-          filterRol={filterRol}
-        />
-
-        {/* Cajeros */}
-        <CommissionCard
-          title="Cajeros"
-          value={comisionCajero}
-          onClick={() => handleCardClick("cajero")}
-          sx={{
-            background: "linear-gradient(135deg, #F7B036 0%, #F7B036 100%)",
-            color: "white",
-            border: "2px solid #F7B036",
-          }}
-          role="cajero"
-          filterRol={filterRol}
-        />
-
-        {/* Logísticos */}
-        <CommissionCard
-          title="Logísticos"
-          value={comisionLogistico}
-          onClick={() => handleCardClick("logistico")}
-          sx={{
-            background: "linear-gradient(135deg, #EF4444 0%, #EF4444 100%)",
-            color: "white",
-            border: "2px solid #EF4444",
-          }}
-          role="logistico"
-          filterRol={filterRol}
-        />
-      </div>
-    );
-  },
-  // Comparador personalizado mejorado para detectar cambios después de guardado
-  (prevProps, nextProps) => {
-    // 🚀 NUEVO: Verificación más agresiva para cambios después de guardado
-    const hasMesResumenChanged =
-      prevProps.mesResumen !== nextProps.mesResumen &&
-      (prevProps.mesResumen?.total_comisiones !==
-        nextProps.mesResumen?.total_comisiones ||
-        prevProps.mesResumen?.comisiones_por_rol?.gerente !==
-          nextProps.mesResumen?.comisiones_por_rol?.gerente ||
-        prevProps.mesResumen?.comisiones_por_rol?.asesor !==
-          nextProps.mesResumen?.comisiones_por_rol?.asesor ||
-        prevProps.mesResumen?.comisiones_por_rol?.cajero !==
-          nextProps.mesResumen?.comisiones_por_rol?.cajero ||
-        prevProps.mesResumen?.comisiones_por_rol?.logistico !==
-          nextProps.mesResumen?.comisiones_por_rol?.logistico ||
-        prevProps.mesResumen?.tiendas?.length !==
-          nextProps.mesResumen?.tiendas?.length);
-
-    const hasFiltersChanged =
-      prevProps.filterRol.length !== nextProps.filterRol.length ||
-      prevProps.expandedTiendas.size !== nextProps.expandedTiendas.size;
-
-    // Si hay cambios en mesResumen O en filtros, forzar re-render
-    return !hasMesResumenChanged && !hasFiltersChanged;
+  if (!mesResumen) {
+    return <SummaryCardsSkeleton />;
   }
-);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+      {/* Total Comisiones */}
+      <CommissionCard
+        title="Total Comisiones"
+        value={totalComisiones}
+        onClick={() => handleCardClick("total")}
+        sx={{
+          background: "linear-gradient(135deg,  #3680F7 0 0%, #3680F7 100%)",
+          color: "white",
+          border: "2px solid #3680F7",
+        }}
+        role="total"
+        filterRol={filterRol}
+      />
+
+      {/* Gerentes */}
+      <CommissionCard
+        title="Gerentes"
+        value={comisionGerente}
+        onClick={() => handleCardClick("gerente")}
+        sx={{
+          background: "linear-gradient(135deg, #7138F5 0%, #7138F5 100%)",
+          color: "white",
+          border: "2px solid #7138F5",
+        }}
+        role="gerente"
+        filterRol={filterRol}
+      />
+
+      {/* Asesores */}
+      <CommissionCard
+        title="Asesores"
+        value={comisionAsesor}
+        onClick={() => handleCardClick("asesor")}
+        sx={{
+          background: "linear-gradient(135deg, #419061 0%, #419061 100%)",
+          color: "white",
+          border: "2px solid #419061",
+        }}
+        role="asesor"
+        filterRol={filterRol}
+      />
+
+      {/* Cajeros */}
+      <CommissionCard
+        title="Cajeros"
+        value={comisionCajero}
+        onClick={() => handleCardClick("cajero")}
+        sx={{
+          background: "linear-gradient(135deg, #F7B036 0%, #F7B036 100%)",
+          color: "white",
+          border: "2px solid #F7B036",
+        }}
+        role="cajero"
+        filterRol={filterRol}
+      />
+
+      {/* Logísticos */}
+      <CommissionCard
+        title="Logísticos"
+        value={comisionLogistico}
+        onClick={() => handleCardClick("logistico")}
+        sx={{
+          background: "linear-gradient(135deg, #EF4444 0%, #EF4444 100%)",
+          color: "white",
+          border: "2px solid #EF4444",
+        }}
+        role="logistico"
+        filterRol={filterRol}
+      />
+    </div>
+  );
+};
 
 SummaryCards.displayName = "SummaryCards";
