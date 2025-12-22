@@ -237,7 +237,6 @@ export default function Home() {
 
   // 🚀 NUEVO: Manejar guardado desde el modal
   const handleCodesModalSave = async (originalError?: any) => {
-    console.log("🚀 Iniciando guardado desde modal...");
     setShowSaveLoading(true);
     setSaveSuccess(false);
     setSaveError(false);
@@ -391,10 +390,20 @@ export default function Home() {
     return hasBudgetData !== false;
   }, [hasBudgetData]);
 
+<<<<<<< HEAD
   // 🚀 NUEVO: Mostrar contenido básico si no hay datos
   const shouldShowBasicContent = useMemo(() => {
     return dataLoadAttempted && !hasData && !isLoading;
   }, [dataLoadAttempted, hasData, isLoading]);
+=======
+  // 🚀 NUEVO: Determinar si hay una sola tienda (para gráficos)
+  const esUnaSolaTienda = useMemo(() => {
+    const datosParaAnalizar = shouldShowMainContent
+      ? mesResumenFiltrado || mesResumen
+      : mesResumen;
+    return datosParaAnalizar?.tiendas?.length === 1;
+  }, [mesResumen, mesResumenFiltrado, shouldShowMainContent]);
+>>>>>>> c5c018af5e2d07ee9e39bebbc3a8de0fa01dfad8
 
   // 🚀 NUEVO: Props condicionales para HomeHeader - solo mostrar SummaryCards si hay presupuesto
   const homeHeaderProps = useMemo(() => {
@@ -719,7 +728,10 @@ export default function Home() {
                         <h2 className="text-lg sm:text-xl font-semibold">
                           Análisis Visual
                         </h2>
-                        <Charts mesResumen={mesResumenFiltrado || mesResumen} />
+                        <Charts
+                          mesResumen={mesResumenFiltrado || mesResumen}
+                          esUnaSolaTienda={esUnaSolaTienda}
+                        />
                       </section>
                     )}
                   </section>

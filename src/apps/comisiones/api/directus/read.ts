@@ -120,9 +120,9 @@ export async function obtenerAsesores(): Promise<DirectusAsesor[]> {
 const getCurrentDate = (): string => {
   const now = new Date();
 
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(now.getUTCDate()).padStart(2, "0");
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 };
@@ -345,6 +345,8 @@ export async function obtenerPorcentajesMensuales(
         gerente_porcentaje: configMap.gerente_porcentaje || 10,
         asesor_tipo: configMap.asesor_tipo || "distributivo",
         asesor_porcentaje: configMap.asesor_porcentaje || 90,
+        coadministrador_tipo: configMap.coadministrador_tipo || "distributivo",
+        coadministrador_porcentaje: configMap.coadministrador_porcentaje || 0,
         cajero_tipo: configMap.cajero_tipo || "distributivo",
         cajero_porcentaje: configMap.cajero_porcentaje || 0,
         logistico_tipo: configMap.logistico_tipo || "distributivo",

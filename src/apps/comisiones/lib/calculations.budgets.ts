@@ -15,6 +15,8 @@ export const calculateBudgetsWithFixedDistributive = (
     gerente_porcentaje: number;
     asesor_tipo: "fijo" | "distributivo";
     asesor_porcentaje: number;
+    coadministrador_tipo: "fijo" | "distributivo";
+    coadministrador_porcentaje: number;
     cajero_tipo: "fijo" | "distributivo";
     cajero_porcentaje: number;
     logistico_tipo: "fijo" | "distributivo";
@@ -23,15 +25,19 @@ export const calculateBudgetsWithFixedDistributive = (
   empleadosPorRol: {
     gerente: number;
     asesor: number;
+    coadministrador: number;
     cajero: number;
     logistico: number;
+    gerente_online: number;
   }
 ): { [rol: string]: number } => {
   const presupuestos: { [rol: string]: number } = {
     gerente: 0,
     asesor: 0,
+    coadministrador: 0,
     cajero: 0,
     logistico: 0,
+    gerente_online: 0,
   };
 
   let presupuestoRestante = presupuesto_total;
@@ -45,12 +51,29 @@ export const calculateBudgetsWithFixedDistributive = (
     presupuestoRestante -= presupuestoGerente;
   }
 
+  if (
+    porcentajes.coadministrador_tipo === "fijo" &&
+    empleadosPorRol.coadministrador > 0
+  ) {
+    const presupuestoCoadministrador = round(
+      (presupuesto_total * porcentajes.coadministrador_porcentaje) / 100
+    );
+    presupuestos.coadministrador = presupuestoCoadministrador;
+    presupuestoRestante -= presupuestoCoadministrador;
+  }
+
   if (porcentajes.cajero_tipo === "fijo" && empleadosPorRol.cajero > 0) {
     const presupuestoCajero = round(
       (presupuesto_total * porcentajes.cajero_porcentaje) / 100
     );
     presupuestos.cajero = presupuestoCajero;
     presupuestoRestante -= presupuestoCajero;
+  }
+
+  // Gerente Online: presupuesto fijo de 1 por empleado
+  if (empleadosPorRol.gerente_online > 0) {
+    presupuestos.gerente_online = empleadosPorRol.gerente_online * 1;
+    // No se resta del presupuesto restante porque es un presupuesto independiente
   }
 
   // 2. Calcular distributivos con el presupuesto restante
@@ -67,6 +90,12 @@ export const calculateBudgetsWithFixedDistributive = (
     empleadosPorRol.asesor > 0
   ) {
     distributivos.push("asesor");
+  }
+  if (
+    porcentajes.coadministrador_tipo === "distributivo" &&
+    empleadosPorRol.coadministrador > 0
+  ) {
+    distributivos.push("coadministrador");
   }
   if (
     porcentajes.cajero_tipo === "distributivo" &&

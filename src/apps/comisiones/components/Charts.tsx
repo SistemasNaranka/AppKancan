@@ -6,9 +6,13 @@ import { MesResumen } from "../types";
 
 interface ChartsProps {
   mesResumen: MesResumen | null;
+  esUnaSolaTienda?: boolean;
 }
 
-export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
+export const Charts: React.FC<ChartsProps> = ({
+  mesResumen,
+  esUnaSolaTienda = false,
+}) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
@@ -70,7 +74,10 @@ export const Charts: React.FC<ChartsProps> = ({ mesResumen }) => {
             minHeight: isMobile ? 400 : 450,
           }}
         >
-          <CommissionDistributionChart mesResumen={mesResumen} />
+          <CommissionDistributionChart
+            mesResumen={mesResumen}
+            esUnaSolaTienda={esUnaSolaTienda}
+          />
         </Box>
       </Box>
     </Box>

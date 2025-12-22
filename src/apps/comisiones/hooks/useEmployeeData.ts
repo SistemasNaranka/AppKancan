@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   DirectusAsesor,
   DirectusCargo,
@@ -29,7 +29,8 @@ interface UseEmployeeDataReturn {
 }
 
 export const useEmployeeData = (
-  empleadosAsignados: EmpleadoAsignado[]
+  empleadosAsignados: EmpleadoAsignado[],
+  tiendaUsuario?: { id: number } | null
 ): UseEmployeeDataReturn => {
   const [asesoresDisponibles, setAsesoresDisponibles] = useState<
     DirectusAsesor[]
@@ -43,6 +44,21 @@ export const useEmployeeData = (
   const [empleadoEncontrado, setEmpleadoEncontrado] =
     useState<DirectusAsesor | null>(null);
 
+  // ✅ FIX: Memoizar el ID de la tienda para evitar bucles infinitos
+  const tiendaId = useMemo(() => {
+    return tiendaUsuario?.id;
+  }, [tiendaUsuario?.id]);
+
+  // ✅ FIX: Memoizar empleadosAsignados para evitar bucles infinitos
+  const empleadosAsignadosMemo = useMemo(() => {
+    return empleadosAsignados;
+  }, [
+    empleadosAsignados.length,
+    empleadosAsignados
+      .map((e) => `${e.asesor.id}-${e.cargoAsignado}`)
+      .join(","),
+  ]);
+
   const loadAsesoresDisponibles = async () => {
     try {
       setLoading(true);
@@ -52,6 +68,13 @@ export const useEmployeeData = (
         obtenerAsesores(),
         obtenerCargos(),
       ]);
+
+      // Verificar que el cargo "Gerente Online" existe
+      const gerenteOnlineExists = cargos.some(
+        (cargo) =>
+          cargo.nombre.toLowerCase().includes("gerente") &&
+          cargo.nombre.toLowerCase().includes("online")
+      );
 
       setAsesoresDisponibles(asesores);
       setCargosDisponibles(cargos);
@@ -65,25 +88,47 @@ export const useEmployeeData = (
     }
   };
 
-  // Filtrar cargos basados en empleados asignados (ocultar roles exclusivos ya seleccionados)
+  // Filtrar cargos basados en empleados asignados (ocultar roles exclusivos ya seleccionados) y tienda
   useEffect(() => {
-    const rolesAsignados = empleadosAsignados.map((e) =>
+    const rolesAsignados = empleadosAsignadosMemo.map((e) =>
       e.cargoAsignado.toLowerCase()
     );
     const cargosExclusivosUsados = rolesAsignados.filter((role) =>
       ROLES_EXCLUSIVOS.includes(role as any)
     );
 
+    let cargosFiltrados = cargosDisponibles;
+
+    // Filtrar roles exclusivos ya asignados
     if (cargosExclusivosUsados.length > 0) {
-      const cargosFiltrados = cargosDisponibles.filter((cargo) => {
+      cargosFiltrados = cargosFiltrados.filter((cargo) => {
         const cargoLower = cargo.nombre.toLowerCase();
         return !cargosExclusivosUsados.includes(cargoLower);
       });
-      setCargosFiltrados(cargosFiltrados);
-    } else {
-      setCargosFiltrados(cargosDisponibles);
     }
-  }, [empleadosAsignados, cargosDisponibles]);
+
+    // Filtrar gerente_online SOLO si la tienda NO es 5 (tienda online)
+    // ✅ FIX: Convertir a número para comparación correcta
+    const tiendaIdNum = tiendaId ? Number(tiendaId) : null;
+
+    if (tiendaIdNum && tiendaIdNum !== 5) {
+      cargosFiltrados = cargosFiltrados.filter((cargo) => {
+        const cargoLower = cargo.nombre.toLowerCase();
+        const isGerenteOnline =
+          cargoLower.includes("gerente") && cargoLower.includes("online");
+        return !isGerenteOnline;
+      });
+    } else if (tiendaIdNum === 5) {
+      // Para tienda 5, verificar que gerente_online esté incluido
+      const hasGerenteOnline = cargosFiltrados.some(
+        (cargo) =>
+          cargo.nombre.toLowerCase().includes("gerente") &&
+          cargo.nombre.toLowerCase().includes("online")
+      );
+    }
+
+    setCargosFiltrados(cargosFiltrados);
+  }, [empleadosAsignadosMemo, cargosDisponibles, tiendaId]); // ✅ FIX: Usar empleadosAsignadosMemo para evitar bucles
 
   // Establecer valor por defecto cuando se cargan los cargos
   useEffect(() => {

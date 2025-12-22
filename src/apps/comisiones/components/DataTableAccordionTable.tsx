@@ -245,6 +245,14 @@ export const DataTableAccordionTable: React.FC<
     });
   }, [tienda.empleados, tienda.tienda, tienda.fecha, sortState]);
 
+  // ✅ FILTRAR EMPLEADOS: Ocultar filas con 0 presupuesto Y 0 ventas (solo en vista)
+  const filteredRows = useMemo(() => {
+    return processedRows.filter((row) => {
+      // Mostrar empleado si tiene presupuesto > 0 O ventas > 0
+      return row.presupuesto > 0 || row.ventasActuales > 0;
+    });
+  }, [processedRows]);
+
   const commonCellProps = {
     fontWeight: 600,
     fontSize: isMobile ? "0.7rem" : "0.875rem",
@@ -272,7 +280,7 @@ export const DataTableAccordionTable: React.FC<
   const renderSortHeader = (
     field: string,
     label: string,
-    icon: React.ReactNode
+    icon?: React.ReactNode
   ) => (
     <TableSortLabel {...sortLabelProps(field as any)}>
       <Box display="flex" alignItems="center" gap={0.5}>
@@ -457,11 +465,7 @@ export const DataTableAccordionTable: React.FC<
                   minWidth: isMobile ? 70 : isTablet ? 90 : 100,
                 }}
               >
-                {renderSortHeader(
-                  "comision_pct",
-                  "Com. ",
-                  <PercentIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
-                )}
+                {renderSortHeader("comision_pct", "Comisión ")}
               </TableCell>
 
               <TableCell
@@ -472,16 +476,12 @@ export const DataTableAccordionTable: React.FC<
                   minWidth: isMobile ? 100 : isTablet ? 120 : 140,
                 }}
               >
-                {renderSortHeader(
-                  "comision_monto",
-                  "Monto Comisión",
-                  <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
-                )}
+                {renderSortHeader("comision_monto", "Valor Neto")}
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {processedRows.map((row: EmployeeRow) => {
+            {filteredRows.map((row: EmployeeRow) => {
               const backgroundColor = getRowBackgroundColor(
                 row.comision_pct * 100
               );
@@ -614,6 +614,7 @@ export const DataTableAccordionTable: React.FC<
                         whiteSpace: "nowrap",
                       }}
                     >
+                      <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
                       {formatCurrency(row.comision_monto)}
                     </Typography>
                   </TableCell>
@@ -623,6 +624,26 @@ export const DataTableAccordionTable: React.FC<
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* ✅ MENSAJE CUANDO NO HAY EMPLEADOS QUE MOSTRAR DESPUÉS DEL FILTRO */}
+      {filteredRows.length === 0 && (
+        <Box
+          sx={{
+            p: 3,
+            textAlign: "center",
+            color: "text.secondary",
+            borderTop: "1px solid #e0e0e0",
+          }}
+        >
+          <Typography variant="body2">
+            No hay empleados con presupuesto o ventas para mostrar.
+          </Typography>
+          <Typography variant="caption" sx={{ mt: 1, display: "block" }}>
+            Los empleados con 0 presupuesto y 0 ventas no se muestran en la
+            vista.
+          </Typography>
+        </Box>
+      )}
     </Paper>
   );
 };

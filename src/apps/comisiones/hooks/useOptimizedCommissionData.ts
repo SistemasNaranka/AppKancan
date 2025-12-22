@@ -146,6 +146,10 @@ const processCommissionData = async (selectedMonth: string) => {
         ? "asesor"
         : cargoNombre === "cajero"
         ? "cajero"
+        : cargoNombre === "coadministrador"
+        ? "coadministrador"
+        : cargoNombre === "gerente online"
+        ? "gerente_online"
         : "logistico";
 
     staff.push({
@@ -180,6 +184,10 @@ const processCommissionData = async (selectedMonth: string) => {
                 ? "asesor"
                 : cargoNombre === "cajero"
                 ? "cajero"
+                : cargoNombre === "coadministrador"
+                ? "coadministrador"
+                : cargoNombre === "gerente online"
+                ? "gerente_online"
                 : "logistico";
           }
         }
@@ -307,19 +315,46 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
 
   // ✅ Función refetch optimizada para mayor velocidad
   const refetch = useCallback(() => {
-    console.log("🔄 Recargando datos de comisiones...");
-
-    // Invalidación selectiva solo para datos de comisiones
+    // ✅ INVALIDACIÓN MÁS AGRESIVA - INVALIDAR TODO
     queryClient.invalidateQueries({
       queryKey: ["commission-data", selectedMonth],
       exact: true,
     });
 
-    // Refetch inmediato sin limpiar todo el caché
-    return query.refetch().then(() => {
-      console.log("✅ Recarga de datos completada");
+    queryClient.invalidateQueries({
+      queryKey: ["ventas"],
+      exact: false,
     });
-  }, [queryClient, selectedMonth, query]);
+
+    queryClient.invalidateQueries({
+      queryKey: ["presupuestos-empleados"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["tiendas"],
+      exact: false,
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["asesores"],
+      exact: false,
+    });
+
+    // ✅ LIMPIAR CACHÉ COMPLETO PARA ASEGURAR RECARGA
+    queryClient.removeQueries({
+      queryKey: ["commission-data"],
+      exact: false,
+    });
+
+    // Forzar refetch inmediato del mes actual
+    return queryClient
+      .refetchQueries({
+        queryKey: ["commission-data", selectedMonth],
+        type: "active",
+      })
+      .then(() => {});
+  }, [queryClient, selectedMonth]);
 
   // Función para precargar datos de un mes - Optimizada
   const prefetchMonth = useCallback(

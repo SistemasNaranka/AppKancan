@@ -30,6 +30,7 @@ export {
   calculateGerenteCommission,
   calculateCajeroCommission,
   calculateLogisticoCommission,
+  calculateGerenteOnlineCommission,
 } from "./calculations.commissions";
 
 // Re-exportar funciones de obtención y filtrado de datos

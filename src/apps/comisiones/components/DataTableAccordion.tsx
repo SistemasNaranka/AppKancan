@@ -31,11 +31,13 @@ const AccordionHeader = ({
   expanded,
   onToggle,
   getCumplimientoColor,
+  empleadosVisibles = 0,
 }: {
   tienda: TiendaResumen;
   expanded: boolean;
   onToggle: () => void;
   getCumplimientoColor: (pct: number) => string;
+  empleadosVisibles?: number; // Nuevo prop para el conteo real de empleados visibles
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -45,6 +47,10 @@ const AccordionHeader = ({
     (t, e) => t + (e.comision_monto || 0),
     0
   );
+
+  // Determinar el conteo a mostrar
+  const conteoEmpleados =
+    empleadosVisibles > 0 ? empleadosVisibles : tienda.empleados.length;
 
   return (
     <Box
@@ -119,9 +125,7 @@ const AccordionHeader = ({
               }}
             >
               <PeopleIcon sx={{ fontSize: 14 }} />
-              <Typography fontSize="0.75rem">
-                {tienda.empleados.length}
-              </Typography>
+              <Typography fontSize="0.75rem">{conteoEmpleados}</Typography>
             </Box>
 
             {/* Flecha expandir */}
@@ -306,7 +310,7 @@ const AccordionHeader = ({
             color="text.secondary"
             sx={{ fontWeight: 400 }}
           >
-            {tienda.empleados.length} empleados
+            {conteoEmpleados} empleados
           </Typography>
 
           <Typography
@@ -343,6 +347,13 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
     getCumplimientoColor,
     handleVentaChange,
   }) => {
+    // ✅ CALCULAR EMPLEADOS VISIBLES (filtrar 0 presupuesto Y 0 ventas)
+    const empleadosVisibles = React.useMemo(() => {
+      return tienda.empleados.filter(
+        (empleado) => empleado.presupuesto > 0 || empleado.ventas > 0
+      ).length;
+    }, [tienda.empleados]);
+
     return (
       <Box
         sx={{
@@ -363,6 +374,7 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
           expanded={expanded}
           onToggle={onToggle}
           getCumplimientoColor={getCumplimientoColor}
+          empleadosVisibles={empleadosVisibles}
         />
 
         <Box

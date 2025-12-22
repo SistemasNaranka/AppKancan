@@ -11,6 +11,7 @@ import {
   DirectusPresupuestoDiarioTienda,
   DirectusVentasDiariasEmpleado,
   DirectusVentasDiariasTienda,
+  DirectusCargo,
 } from "../../types";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
@@ -72,13 +73,12 @@ export async function guardarPresupuestosEmpleados(
   presupuestos: Omit<DirectusPresupuestoDiarioEmpleado, "id">[]
 ): Promise<DirectusPresupuestoDiarioEmpleado[]> {
   try {
-    console.log("💾 Guardando presupuestos empleados:", presupuestos);
     const created = await withAutoRefresh(() =>
       directus.request(
         createItems("presupuesto_diario_empleados", presupuestos)
       )
     );
-    console.log("✅ Presupuestos empleados guardados:", created);
+
     return created as DirectusPresupuestoDiarioEmpleado[];
   } catch (error) {
     console.error("❌ Error al guardar presupuestos empleados:", error);
@@ -136,7 +136,7 @@ export async function guardarVentasEmpleados(
         const updated = await withAutoRefresh(() =>
           directus.request(
             updateItems("ventas_diarias_empleado", existentes[0].id, {
-              ventas: venta.ventas,
+              venta: venta.venta,
             })
           )
         );
@@ -241,6 +241,23 @@ export async function guardarPresupuestosTienda(
     return results;
   } catch (error) {
     console.error("❌ Error al guardar presupuestos tienda:", error);
+    throw error;
+  }
+}
+
+/**
+ * Crear un nuevo cargo
+ */
+export async function createCargo(
+  cargo: Omit<DirectusCargo, "id">
+): Promise<DirectusCargo> {
+  try {
+    const created = await withAutoRefresh(() =>
+      directus.request(createItems("util_cargo", [cargo]))
+    );
+    return created[0] as DirectusCargo;
+  } catch (error) {
+    console.error("❌ Error al crear cargo:", error);
     throw error;
   }
 }

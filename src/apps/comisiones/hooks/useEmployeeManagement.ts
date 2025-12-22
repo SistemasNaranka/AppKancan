@@ -66,7 +66,7 @@ export const useEmployeeManagement = (
     setCargoSeleccionado: setCargoSeleccionadoInData,
     buscarEmpleadoPorCodigo,
     getCurrentMessage,
-  } = useEmployeeData([]);
+  } = useEmployeeData([], tiendaUsuario);
 
   // Hook para operaciones
   const {
@@ -117,7 +117,12 @@ export const useEmployeeManagement = (
     fecha: string,
     mesSeleccionado?: string
   ) => {
-    await cargarDatosExistentes(fecha, mesSeleccionado, asesoresDisponibles);
+    await cargarDatosExistentes(
+      fecha,
+      mesSeleccionado,
+      asesoresDisponibles,
+      cargosDisponibles
+    );
   };
 
   // ✅ NUEVO: Modificar handleKeyPress para incluir la lógica

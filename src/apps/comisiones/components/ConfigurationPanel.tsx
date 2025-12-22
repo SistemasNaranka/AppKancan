@@ -16,7 +16,7 @@ import {
 import { Add, Delete, Error, Store } from "@mui/icons-material";
 import { useCommission } from "../contexts/CommissionContext";
 import { validateManagerPercentage } from "../lib/validation";
-import { StaffMember, BudgetRecord } from "../types";
+import { StaffMember, BudgetRecord, Role } from "../types";
 import { v4 as uuidv4 } from "uuid";
 import { obtenerTiendas } from "../api/directus/read";
 
@@ -44,7 +44,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
     nombre: "",
     tienda: "",
     fecha: "",
-    rol: "asesor" as "gerente" | "asesor" | "cajero",
+    rol: "asesor" as Role,
   });
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [newBudget, setNewBudget] = useState({
@@ -101,7 +101,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
       nombre: "",
       tienda: "",
       fecha: "",
-      rol: "asesor" as "gerente" | "asesor" | "cajero",
+      rol: "asesor" as Role,
     });
     setShowAddStaff(false);
     setErrors([]);
@@ -434,15 +434,16 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                       onChange={(e) =>
                         setNewStaff({
                           ...newStaff,
-                          rol: e.target.value as
-                            | "gerente"
-                            | "asesor"
-                            | "cajero",
+                          rol: e.target.value as Role,
                         })
                       }
                     >
                       <MenuItem value="gerente">Gerente</MenuItem>
                       <MenuItem value="asesor">Asesor</MenuItem>
+                      <MenuItem value="coadministrador">
+                        Coadministrador
+                      </MenuItem>
+                      <MenuItem value="logistico">Logístico</MenuItem>
                       <MenuItem value="cajero">Cajero</MenuItem>
                     </Select>
                   </FormControl>

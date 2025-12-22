@@ -235,3 +235,41 @@ export const calculateLogisticoCommission = (
     "logistico"
   );
 };
+
+/**
+ * Calcula las comisiones para Gerente Online
+ * LÓGICA ESPECIAL: Comisión del 1% sobre venta sin IVA, independientemente del cumplimiento.
+ * Se basa en las ventas individuales del empleado, quita el IVA y aplica 1% fijo.
+ */
+export const calculateGerenteOnlineCommission = (
+  empleado: StaffMember,
+  ventasIndividualesEmpleado: number,
+  presupuestoIndividualEmpleado: number = 1
+): EmployeeCommission => {
+  // Calcular venta base sin IVA
+  const ventaSinIVA = calculateBaseSale(ventasIndividualesEmpleado);
+
+  // Aplicar comisión fija del 1% (0.01) independientemente del cumplimiento
+  const comision_pct = 0.01;
+  const comision_monto = calculateCommissionAmount(ventaSinIVA, comision_pct);
+
+  // El cumplimiento no afecta la comisión, pero se calcula para mostrar
+  const cumplimiento = calculateCompliance(
+    ventasIndividualesEmpleado,
+    presupuestoIndividualEmpleado
+  );
+
+  return {
+    id: empleado.id,
+    nombre: empleado.nombre,
+    rol: "gerente_online",
+    tienda: empleado.tienda,
+    fecha: empleado.fecha,
+    presupuesto: presupuestoIndividualEmpleado, // Fijo en 1
+    ventas: ventasIndividualesEmpleado, // Ventas individuales del empleado
+    cumplimiento_pct: cumplimiento, // Para mostrar (no afecta comisión)
+    comision_pct, // Fijo en 1%
+    comision_monto, // 1% de venta sin IVA
+    dias_laborados: 1, // Por defecto 1 día para funciones individuales
+  };
+};

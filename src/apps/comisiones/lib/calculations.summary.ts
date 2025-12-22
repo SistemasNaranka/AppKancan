@@ -24,6 +24,7 @@ import {
   calculateGerenteCommission,
   calculateCajeroCommission,
   calculateLogisticoCommission,
+  calculateGerenteOnlineCommission,
   calculateCompliance,
   calculateBaseSale,
   getCommissionPercentage,
@@ -64,6 +65,11 @@ export const calculateTiendaResumen = (
   // Contar asesores
   const cantidad_asesores = tiendaStaff.filter(
     (s) => s.rol === "asesor"
+  ).length;
+
+  // Contar coadministradores
+  const cantidad_coadministradores = tiendaStaff.filter(
+    (s) => s.rol === "coadministrador"
   ).length;
 
   // Calcular comisiones por empleado
@@ -126,6 +132,24 @@ export const calculateTiendaResumen = (
         ventasIndividuales,
         presupuestoIndividual
       );
+    } else if (empleado.rol === "gerente_online") {
+      // Gerente Online: comisión especial del 1% sobre venta sin IVA
+      // Obtener ventas individuales del empleado
+      const ventasIndividuales = getEmployeeVentas(
+        ventasData,
+        tienda,
+        fecha,
+        empleado.id
+      );
+
+      // Presupuesto fijo de 1 para gerente_online
+      const presupuestoIndividual = 1;
+
+      return calculateGerenteOnlineCommission(
+        empleado,
+        ventasIndividuales,
+        presupuestoIndividual
+      );
     } else if (empleado.rol === "gerente") {
       // Gerentes: LÓGICA ESPECIAL PARA GERENTES
       // Los 3 cálculos principales basados en la TIENDA COMPLETA:
@@ -184,10 +208,12 @@ export const calculateTiendaResumen = (
         // Calcular presupuesto usando lógica tradicional
         const presupuesto_asesores =
           budget.presupuesto_total * ((100 - porcentaje_gerente) / 100);
+        const cantidad_total_asesores =
+          cantidad_asesores + cantidad_coadministradores;
         presupuesto =
-          cantidad_asesores === 0
+          cantidad_total_asesores === 0
             ? 0
-            : round(presupuesto_asesores / cantidad_asesores);
+            : round(presupuesto_asesores / cantidad_total_asesores);
       }
 
       // Obtener ventas del empleado
@@ -197,24 +223,25 @@ export const calculateTiendaResumen = (
     }
   });
 
-  // ✅ CORRECCIÓN CRÍTICA: Presupuesto total = Suma de presupuestos de empleados
-  const presupuestoTotalTienda = empleados.reduce(
+  // Filtrar empleados que tienen ventas = 0 y presupuesto = 0
+  const empleadosFiltrados = empleados.filter(
+    (emp) => !(emp.ventas === 0 && emp.presupuesto === 0)
+  );
+
+  // ✅ CORRECCIÓN CRÍTICA: Presupuesto total = Suma de presupuestos de empleados filtrados
+  const presupuestoTotalTienda = empleadosFiltrados.reduce(
     (sum, e) => sum + (e.presupuesto || 0),
     0
   );
 
-  console.log(
-    `💰 [CÁLCULO TIENDA] ${tienda} ${fecha}: Presupuesto total = Suma empleados = $${presupuestoTotalTienda.toLocaleString()} (era: $${
-      budget.presupuesto_total?.toLocaleString() || 0
-    })`
-  );
+  // Console.log eliminado para producción
 
   const cumplimiento_tienda = calculateCompliance(
     tiendaVentas,
     presupuestoTotalTienda
   );
   const total_comisiones = round(
-    empleados.reduce((sum, e) => sum + e.comision_monto, 0)
+    empleadosFiltrados.reduce((sum, e) => sum + e.comision_monto, 0)
   );
 
   return {
@@ -225,7 +252,7 @@ export const calculateTiendaResumen = (
     presupuesto_tienda: round(presupuestoTotalTienda), // ✅ Era: budget.presupuesto_total
     ventas_tienda: round(tiendaVentas),
     cumplimiento_tienda_pct: cumplimiento_tienda,
-    empleados,
+    empleados: empleadosFiltrados,
     total_comisiones,
   };
 };
@@ -334,7 +361,14 @@ export const calculateMesResumenAgrupado = (
       mes,
       tiendas: [],
       total_comisiones: 0,
-      comisiones_por_rol: { gerente: 0, asesor: 0, cajero: 0, logistico: 0 },
+      comisiones_por_rol: {
+        gerente: 0,
+        asesor: 0,
+        cajero: 0,
+        logistico: 0,
+        gerente_online: 0,
+        coadministrador: 0,
+      },
     };
   }
 
@@ -497,7 +531,9 @@ export const calculateMesResumenAgrupado = (
               empleadosUnicos.values()
             ).filter((e) => e.empleado.rol === "gerente").length;
             const empleadosAsesor = Array.from(empleadosUnicos.values()).filter(
-              (e) => e.empleado.rol === "asesor"
+              (e) =>
+                e.empleado.rol === "asesor" ||
+                e.empleado.rol === "coadministrador"
             ).length;
 
             // Calcular presupuesto total disponible basado en empleados existentes
@@ -506,7 +542,7 @@ export const calculateMesResumenAgrupado = (
               presupuestoTotalCalculado += empleadosGerente * 100000; // Estimación para gerente
             }
             if (empleadosAsesor > 0) {
-              presupuestoTotalCalculado += empleadosAsesor * 80000; // Estimación para asesores
+              presupuestoTotalCalculado += empleadosAsesor * 80000; // Estimación para asesores y coadministradores
             }
 
             if (empleado.rol === "gerente") {
@@ -516,7 +552,10 @@ export const calculateMesResumenAgrupado = (
                   : round(
                       (presupuestoTotalCalculado * porcentaje_gerente) / 100
                     );
-            } else if (empleado.rol === "asesor") {
+            } else if (
+              empleado.rol === "asesor" ||
+              empleado.rol === "coadministrador"
+            ) {
               const presupuesto_asesores =
                 presupuestoTotalCalculado * ((100 - porcentaje_gerente) / 100);
               empleadoData.presupuestoMensual =
@@ -525,9 +564,14 @@ export const calculateMesResumenAgrupado = (
                   : round(presupuesto_asesores / empleadosAsesor);
             } else if (
               empleado.rol === "cajero" ||
-              empleado.rol === "logistico"
+              empleado.rol === "logistico" ||
+              empleado.rol === "gerente_online"
             ) {
-              empleadoData.presupuestoMensual = 0; // Cajeros y logísticos no tienen presupuesto asignado
+              if (empleado.rol === "gerente_online") {
+                empleadoData.presupuestoMensual = 1; // Presupuesto fijo de 1 para gerente_online
+              } else {
+                empleadoData.presupuestoMensual = 0; // Cajeros y logísticos no tienen presupuesto asignado
+              }
             }
           }
         }
@@ -588,6 +632,15 @@ export const calculateMesResumenAgrupado = (
           empleadoData.ventasMensual,
           empleadoData.presupuestoMensual
         );
+      } else if (empleado.rol === "gerente_online") {
+        // Gerente Online: comisión especial del 1% sobre venta sin IVA
+        empleadoComision = calculateGerenteOnlineCommission(
+          empleado,
+          empleadoData.ventasMensual,
+          1 // Presupuesto fijo de 1
+        );
+        empleadoComision.fecha = diasTrabajados[0];
+        empleadoComision.dias_laborados = diasTrabajados.length;
       } else if (empleado.rol === "gerente") {
         // Gerentes: LÓGICA ESPECIAL PARA GERENTES
         empleadoComision = calculateGerenteCommission(
@@ -600,7 +653,7 @@ export const calculateMesResumenAgrupado = (
         empleadoComision.fecha = diasTrabajados[0];
         empleadoComision.dias_laborados = diasTrabajados.length;
       } else {
-        // Asesores: lógica tradicional individual
+        // Asesores y Coadministradores: lógica tradicional individual
         empleadoComision = calculateTraditionalEmployeeCommission(
           empleado,
           presupuestoMensual,
@@ -651,6 +704,8 @@ export const calculateMesResumenAgrupado = (
     asesor: 0,
     cajero: 0,
     logistico: 0,
+    gerente_online: 0,
+    coadministrador: 0,
   };
 
   tiendaResumenes.forEach((tienda) => {
