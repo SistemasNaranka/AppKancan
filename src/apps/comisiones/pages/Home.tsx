@@ -249,31 +249,13 @@ export default function Home() {
   }, [mesResumen, getUniqueTiendas]);
 
   const handleAssignmentComplete = async () => {
-    console.log(
-      "🚀 INICIANDO handleAssignmentComplete - Limpiando TODOS los caches..."
-    );
-
-    // 🚀 SOLUCIÓN COMPLETA: Limpiar TODOS los caches inmediatamente
-
-    // 1. Limpiar cache local de cálculos
     calculationCacheRef.current.clear();
-    console.log("✅ Cache local de cálculos limpiado");
 
-    // 2. Limpiar cache del hook de filtros
     clearFilterCache();
-    console.log("✅ Cache del hook de filtros limpiado");
 
-    // 3. Recargar datos inmediatamente
-    console.log("🔄 Iniciando refetch de datos...");
     await refetch();
-    console.log("✅ Refetch completado");
 
-    // 4. Revalidar presupuesto para verificar si se guardó correctamente
-    console.log("🔄 Iniciando revalidateBudgetData...");
     await revalidateBudgetData();
-    console.log("✅ RevalidateBudgetData completado");
-
-    console.log("🎉 handleAssignmentComplete completado exitosamente");
   };
 
   // 🚀 NUEVO: Función para mostrar pantalla de carga (usada directamente desde el modal)
