@@ -37,18 +37,18 @@ export const useBudgetValidation = (): UseBudgetValidationReturn => {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Obtener la fecha actual en formato YYYY-MM-DD
+   * Obtener la fecha actual en formato YYYY-MM-DD usando la hora local de Colombia (UTC-5)
    */
   const getCurrentDate = (): string => {
     const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(now.getUTCDate()).padStart(2, "0");
+    const year = now.getFullYear(); // Usar hora local
+    const month = String(now.getMonth() + 1).padStart(2, "0"); // Usar hora local
+    const day = String(now.getDate()).padStart(2, "0"); // Usar hora local
     return `${year}-${month}-${day}`;
   };
 
   /**
-   * Verificar si un mes es el mes actual
+   * Verificar si un mes es el mes actual usando la hora local
    */
   const isCurrentMonth = (mes: string): boolean => {
     const [mesNombre, anioStr] = mes.split(" ");
@@ -71,11 +71,11 @@ export const useBudgetValidation = (): UseBudgetValidationReturn => {
     const anio = parseInt(anioStr);
 
     const ahora = new Date();
-    return ahora.getUTCFullYear() === anio && ahora.getUTCMonth() === mesNumero;
+    return ahora.getFullYear() === anio && ahora.getMonth() === mesNumero; // Usar hora local
   };
 
   /**
-   * Obtener el mes actual en formato "MMM YYYY"
+   * Obtener el mes actual en formato "MMM YYYY" usando la hora local de Colombia (UTC-5)
    */
   const getCurrentMonth = (): string => {
     const now = new Date();
@@ -93,8 +93,8 @@ export const useBudgetValidation = (): UseBudgetValidationReturn => {
       "Nov",
       "Dic",
     ];
-    const mesNombre = months[now.getUTCMonth()];
-    const anio = now.getUTCFullYear();
+    const mesNombre = months[now.getMonth()]; // Usar hora local
+    const anio = now.getFullYear(); // Usar hora local
     return `${mesNombre} ${anio}`;
   };
 

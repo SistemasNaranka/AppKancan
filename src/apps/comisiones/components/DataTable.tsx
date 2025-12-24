@@ -354,11 +354,11 @@ export const DataTable: React.FC<DataTableProps> = memo(
     );
 
     const getCumplimientoColor = useCallback((pct: number) => {
-      if (pct >= 1.0) return green[700];
-      if (pct >= 0.7) return blue[700];
-      if (pct >= 0.5) return orange[700];
-      if (pct >= 0.35) return pink[300];
-      return grey[800];
+      if (pct < 90) return grey[600];
+      if (pct < 95) return pink[300];
+      if (pct < 100) return orange[600];
+      if (pct < 110) return blue[600];
+      return green[600];
     }, []);
 
     // Contenido de la tabla optimizado

@@ -348,12 +348,6 @@ export const calculateMesResumenAgrupado = (
   // Determinar fecha límite según si es mes actual o no
   const fechaLimite = isCurrentMonth(mes) ? getCurrentDate() : null;
 
-  // console.log(
-  //   `📅 [CÁLCULO] Mes: ${mes}, Es actual: ${isCurrentMonth(
-  //     mes
-  //   )}, Fecha límite: ${fechaLimite || "Todo el mes"}`
-  // );
-
   // Filtrar presupuestos del mes
   const mesBudgets = filterBudgetsByMonth(budgets, mes);
 
@@ -361,10 +355,6 @@ export const calculateMesResumenAgrupado = (
   const mesBudgetsFiltrados = fechaLimite
     ? mesBudgets.filter((b) => b.fecha <= fechaLimite)
     : mesBudgets;
-
-  // console.log(
-  //   `📊 [CÁLCULO] Presupuestos originales: ${mesBudgets.length}, Filtrados: ${mesBudgetsFiltrados.length}`
-  // );
 
   // Identificar empleados multitarea basados en staff
   const empleadosMultitienda = new Map<string, Set<string>>();
@@ -408,17 +398,6 @@ export const calculateMesResumenAgrupado = (
         (v) => getMonthYear(v.fecha) === mes && v.fecha <= fechaLimite
       )
     : ventasData.filter((v) => getMonthYear(v.fecha) === mes);
-
-  // console.log(
-  //   `👥 [CÁLCULO] Staff original: ${
-  //     staff.filter((s) => getMonthYear(s.fecha) === mes).length
-  //   }, Filtrado: ${staffFiltrado.length}`
-  // );
-  // console.log(
-  //   `💰 [CÁLCULO] Ventas original: ${
-  //     ventasData.filter((v) => getMonthYear(v.fecha) === mes).length
-  //   }, Filtradas: ${ventasFiltradas.length}`
-  // );
 
   // Obtener todas las tiendas únicas de budgets, staff y ventas
   const todasTiendas = new Set<string>();
@@ -553,14 +532,18 @@ export const calculateMesResumenAgrupado = (
             // Usar el presupuesto total real de la tienda en lugar de estimaciones hardcodeadas
             const presupuestoTotalReal = tiendaData.presupuestoTotal || 0;
 
-            // Contar empleados por rol para el cálculo
-            const empleadosGerente = Array.from(
-              empleadosUnicos.values()
-            ).filter((e) => e.empleado.rol === "gerente").length;
-            const empleadosAsesor = Array.from(empleadosUnicos.values()).filter(
-              (e) =>
-                e.empleado.rol === "asesor" ||
-                e.empleado.rol === "coadministrador"
+            // Contar empleados por rol usando staff filtrado por tienda y mes
+            // NO usar empleadosUnicos porque se está construyendo mientras se recorre
+            const empleadosTiendaMes = staffFiltrado.filter(
+              (s) =>
+                s.tienda === tiendaData.tienda && getMonthYear(s.fecha) === mes
+            );
+
+            const empleadosGerente = empleadosTiendaMes.filter(
+              (e) => e.rol === "gerente"
+            ).length;
+            const empleadosAsesor = empleadosTiendaMes.filter(
+              (e) => e.rol === "asesor" || e.rol === "coadministrador"
             ).length;
 
             // ✅ CORREGIDO: Usar presupuesto real de la tienda en lugar de estimaciones
@@ -615,7 +598,7 @@ export const calculateMesResumenAgrupado = (
     // Calcular comisiones para cada empleado (sin usar presupuestoTotal todavía)
     const empleadosComisiones: EmployeeCommission[] = [];
 
-    // ✅ CORRECCIÓN CRÍTICA: Primero calcular presupuesto total de la tienda
+    // ✅ CORRECCIÓN CRÍTICA: Presupuesto total = Suma de presupuestos de empleados
     // para poder pasarlo correctamente a calculateGerenteCommission
     const presupuestoTotalTienda = Array.from(empleadosUnicos.values()).reduce(
       (sum, e) => sum + (e.presupuestoMensual || 0),

@@ -2,6 +2,7 @@ import React, { useMemo, useCallback } from "react";
 import { MesResumen, Role } from "../types";
 
 import { Card as MuiCard, CardContent as MuiCardContent } from "@mui/material";
+import { border, borderRadius } from "@mui/system";
 
 interface SummaryCardsProps {
   mesResumen: MesResumen | null;
@@ -57,12 +58,12 @@ const useSummaryCardsData = (
     const filteredData = getFilteredComissionsForCards(mesResumen);
     return {
       totalComisiones: filteredData.total_comisiones,
-      comisionGerente: filteredData.comisiones_por_rol.gerente,
-      comisionAsesor: filteredData.comisiones_por_rol.asesor,
-      comisionCajero: filteredData.comisiones_por_rol.cajero,
-      comisionLogistico: filteredData.comisiones_por_rol.logistico,
+      comisionGerente: filteredData.comisiones_por_rol.gerente || 0,
+      comisionAsesor: filteredData.comisiones_por_rol.asesor || 0,
+      comisionCajero: filteredData.comisiones_por_rol.cajero || 0,
+      comisionLogistico: filteredData.comisiones_por_rol.logistico || 0,
     };
-  }, [mesResumen, getFilteredComissionsForCards]);
+  }, [mesResumen, getFilteredComissionsForCards]); // ✅ Agregar dependencia
 };
 
 // Componente ultra-memoizado para cada card individual
@@ -83,18 +84,10 @@ const CommissionCard = React.memo<{
 
   // Memoizar el estilo de la card
   const cardStyle = useMemo(() => {
-    if (role === "total") {
-      return {
-        background: "linear-gradient(135deg,  #3680F7 0 0%, #3680F7 100%)",
-        color: "white",
-        border: "2px solid #3680F7",
-      };
-    }
-
     if (isCardActive) {
       return {
         ...sx,
-        boxShadow: `0 0 15px ${sx.border?.split(" ")[2]}40`,
+        boxShadow: `0 0 15px ${sx.borderRight?.split(" ")[2]}40`,
       };
     } else if (hasFilterActive) {
       return {
@@ -104,7 +97,7 @@ const CommissionCard = React.memo<{
     }
 
     return sx;
-  }, [sx, isCardActive, hasFilterActive, role]);
+  }, [sx, isCardActive, hasFilterActive]);
 
   return (
     <MuiCard
@@ -196,8 +189,6 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     },
     [onRoleFilterClear, onRoleFilterToggle, onToggleAllStores]
   );
-
-  // ✅ SIN CACHE PROBLEMÁTICO: Calcular datos directamente
   const {
     totalComisiones,
     comisionGerente,
@@ -206,21 +197,35 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     comisionLogistico,
   } = useSummaryCardsData(mesResumen, getFilteredComissionsForCards);
 
-  if (!mesResumen) {
+  // ✅ CORRECCIÓN CRÍTICA: Mostrar datos inmediatamente sin skeleton
+  // Solo mostrar skeleton si NO hay mesResumen o es completamente vacío
+  if (!mesResumen || !mesResumen.tiendas) {
+    return <SummaryCardsSkeleton />;
+  }
+
+  // ✅ NUEVA LÓGICA: Mostrar datos incluso si son 0, pero con datos válidos
+  // Solo mostrar skeleton si la estructura de datos está completamente vacía
+  const hasAnyData = mesResumen.tiendas && mesResumen.tiendas.length > 0;
+  const hasValidStructure = mesResumen.total_comisiones !== undefined;
+
+  if (!hasAnyData || !hasValidStructure) {
     return <SummaryCardsSkeleton />;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-7">
       {/* Total Comisiones */}
       <CommissionCard
         title="Total Comisiones"
         value={totalComisiones}
         onClick={() => handleCardClick("total")}
         sx={{
-          background: "linear-gradient(135deg,  #3680F7 0 0%, #3680F7 100%)",
-          color: "white",
-          border: "2px solid #3680F7",
+          background: "white",
+          color: "black",
+          borderRadius: "8px",
+          borderRight: "6px solid #3680F7",
+          borderBottom: "2px solid #3680F7",
+          boxShadow: "0 1px 5px rgba(0, 0, 0, 0.5)",
         }}
         role="total"
         filterRol={filterRol}
@@ -232,9 +237,12 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
         value={comisionGerente}
         onClick={() => handleCardClick("gerente")}
         sx={{
-          background: "linear-gradient(135deg, #7138F5 0%, #7138F5 100%)",
-          color: "white",
-          border: "2px solid #7138F5",
+          background: "white",
+          color: "black",
+          borderRadius: "8px",
+          borderRight: "6px solid #7138F5",
+          borderBottom: "2px solid #7138F5",
+          boxShadow: "0 1px 5px rgba(0, 0, 0, 0.5)",
         }}
         role="gerente"
         filterRol={filterRol}
@@ -246,9 +254,12 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
         value={comisionAsesor}
         onClick={() => handleCardClick("asesor")}
         sx={{
-          background: "linear-gradient(135deg, #419061 0%, #419061 100%)",
-          color: "white",
-          border: "2px solid #419061",
+          background: "white",
+          color: "black",
+          borderRadius: "8px",
+          borderRight: "6px solid #419061",
+          borderBottom: "2px solid #419061",
+          boxShadow: "0 1px 5px rgba(0, 0, 0, 0.5)",
         }}
         role="asesor"
         filterRol={filterRol}
@@ -260,9 +271,12 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
         value={comisionCajero}
         onClick={() => handleCardClick("cajero")}
         sx={{
-          background: "linear-gradient(135deg, #F7B036 0%, #F7B036 100%)",
-          color: "white",
-          border: "2px solid #F7B036",
+          background: "white",
+          color: "black",
+          borderRadius: "8px",
+          borderRight: "6px solid #F7B036",
+          borderBottom: "2px solid #F7B036",
+          boxShadow: "0 1px 5px rgba(0, 0, 0, 0.5)",
         }}
         role="cajero"
         filterRol={filterRol}
@@ -274,9 +288,12 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
         value={comisionLogistico}
         onClick={() => handleCardClick("logistico")}
         sx={{
-          background: "linear-gradient(135deg, #EF4444 0%, #EF4444 100%)",
-          color: "white",
-          border: "2px solid #EF4444",
+          background: "white",
+          color: "black",
+          borderRadius: "8px",
+          borderRight: "6px solid #EF4444",
+          borderBottom: "2px solid #EF4444",
+          boxShadow: "0 1px 5px rgba(0, 0, 0, 0.5)",
         }}
         role="logistico"
         filterRol={filterRol}

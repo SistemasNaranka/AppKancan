@@ -121,6 +121,8 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
       tienda: newBudget.tienda,
       fecha: newBudget.fecha,
       presupuesto_total: newBudget.presupuesto_total,
+      tienda_id: 0, // Valor por defecto
+      empresa: "", // Valor por defecto
     };
 
     // Agregar al estado existente
@@ -136,7 +138,8 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
   };
 
   const staffForMonth = state.staff.filter((s) => {
-    const staffDate = new Date(s.fecha + "T00:00:00Z");
+    // Usar fecha local en lugar de UTC
+    const staffDate = new Date(s.fecha + "T00:00:00");
     const [mesStr, yearStr] = mes.split(" ");
     const months: Record<string, number> = {
       Ene: 0,
@@ -153,8 +156,8 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
       Dic: 11,
     };
     return (
-      staffDate.getUTCMonth() === months[mesStr] &&
-      staffDate.getUTCFullYear() === parseInt(yearStr)
+      staffDate.getMonth() === months[mesStr] && // Usar hora local
+      staffDate.getFullYear() === parseInt(yearStr) // Usar hora local
     );
   });
 

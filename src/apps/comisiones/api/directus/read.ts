@@ -151,7 +151,7 @@ const isCurrentMonth = (mes: string): boolean => {
   const anio = parseInt(anioStr);
 
   const ahora = new Date();
-  return ahora.getUTCFullYear() === anio && ahora.getUTCMonth() === mesNumero;
+  return ahora.getFullYear() === anio && ahora.getMonth() === mesNumero; // Usar hora local
 };
 
 /**
@@ -234,7 +234,8 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
     // Extraer todos los meses únicos de las fechas
     const mesesSet = new Set<string>();
     data.forEach((item: any) => {
-      const fecha = new Date(item.fecha + "T00:00:00Z");
+      // Usar fecha local en lugar de UTC
+      const fecha = new Date(item.fecha + "T00:00:00");
       const meses = [
         "Ene",
         "Feb",
@@ -249,8 +250,8 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
         "Nov",
         "Dic",
       ];
-      const mesNombre = meses[fecha.getUTCMonth()];
-      const anio = fecha.getUTCFullYear();
+      const mesNombre = meses[fecha.getMonth()]; // Usar hora local
+      const anio = fecha.getFullYear(); // Usar hora local
       mesesSet.add(`${mesNombre} ${anio}`);
     });
 

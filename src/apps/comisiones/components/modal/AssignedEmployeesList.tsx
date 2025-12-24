@@ -7,7 +7,7 @@ import {
   useTheme,
   alpha,
 } from "@mui/material";
-import { Close } from "@mui/icons-material";
+import { Close, Groups } from "@mui/icons-material";
 import { EmpleadoAsignado } from "../../types/modal";
 
 interface AssignedEmployeesListProps {
@@ -94,11 +94,12 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
               justifyContent: "center",
             }}
           >
-            <Typography
-              sx={{ fontSize: 18, color: theme.palette.success.main }}
-            >
-              👥
-            </Typography>
+            <Groups
+              sx={{
+                fontSize: 24,
+                color: theme.palette.success.main,
+              }}
+            />
           </Box>
           <Typography
             variant="h6"

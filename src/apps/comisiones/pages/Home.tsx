@@ -168,14 +168,12 @@ export default function Home() {
   );
 
   const mesResumen = useMemo(() => {
-    if (budgets.length === 0) {
+    if (budgets.length === 0 || staff.length === 0 || ventas.length === 0) {
       return null;
     }
 
-    // 🚀 USAR PRESUPUESTOS EMPLEADOS DEL ESTADO GLOBAL
-    const presupuestosEmpleadosState = state.presupuestosEmpleados || [];
+    const presupuestosEmpleadosState = presupuestosEmpleados || [];
 
-    // ✅ CORRECCIÓN: Hash sin timestamp para permitir cache correcto
     const createDataHash = () => {
       const budgetsHash = budgets.reduce(
         (acc, b) => acc + Math.round(b.presupuesto_total * 100),
@@ -194,7 +192,6 @@ export default function Home() {
         0
       );
       const presupuestosCount = presupuestosEmpleadosState.length;
-      // ❌ REMOVIDO: timestamp que causaba recálculos constantes
 
       return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}`;
     };
@@ -202,22 +199,26 @@ export default function Home() {
     const dataHash = createDataHash();
     const cacheKey = `mesResumen_${selectedMonth}_${dataHash}_${porcentajeGerente}`;
 
-    // Verificar cache primero
+    // Limpiar la caché si los datos han cambiado
     if (calculationCacheRef.current.has(cacheKey)) {
       return calculationCacheRef.current.get(cacheKey);
     }
 
-    // Calcular solo si no está en cache
     const result = calculateMesResumenAgrupado(
       selectedMonth,
       budgets,
       staff,
       ventas,
       porcentajeGerente,
-      presupuestosEmpleadosState // 🚀 USAR ESTADO GLOBAL
+      presupuestosEmpleadosState
     );
 
-    // Guardar en cache (limitar tamaño a 15)
+    // ✅ VALIDAR QUE result TENGA DATOS COMPLETOS
+    if (!result || !result.tiendas || result.tiendas.length === 0) {
+      return null; // No guardar en cache resultados vacíos
+    }
+
+    // Guardar en cache
     if (calculationCacheRef.current.size > 15) {
       const firstKey = calculationCacheRef.current.keys().next().value;
       if (firstKey) {
@@ -233,7 +234,7 @@ export default function Home() {
     staff,
     ventas,
     porcentajeGerente,
-    state.presupuestosEmpleados, // 🚀 AGREGAR DEPENDENCIA DEL ESTADO GLOBAL
+    presupuestosEmpleados,
   ]);
 
   const mesResumenFiltrado = useMemo(() => {
@@ -292,7 +293,7 @@ export default function Home() {
       setTimeout(() => {
         setShowSaveLoading(false);
         setSaveSuccess(false);
-      }, 1000); // 1 segundo para el mensaje de éxito
+      }, 1000); // 1 segundo para el mensaje de éxito6
     } catch (error: any) {
       console.error("❌ Error durante guardado:", error);
       setSaveError(true);

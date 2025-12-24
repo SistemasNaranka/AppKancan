@@ -335,7 +335,7 @@ export const useFiltersOptimized = (): FilterState &
 
   const getFilteredComissionsForCards = useCallback(
     (mesResumen: any) => {
-      if (!mesResumen) {
+      if (!mesResumen || !mesResumen.tiendas) {
         return {
           total_comisiones: 0,
           comisiones_por_rol: {

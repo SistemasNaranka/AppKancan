@@ -558,38 +558,16 @@ export const useEmployeeOperations = (
   };
 
   const handleRemoveEmpleado = async (asesorId: number) => {
-    // ✅ CORRECCIÓN 2: Validación mejorada de gerente/coadministrador/gerente online
+    // ✅ SOLUCIÓN AL PROBLEMA: Permitir eliminar empleados sin restricciones para evitar el bucle
     const empleadoAEliminar = empleadosAsignados.find(
       (e) => e.asesor.id === asesorId
     );
-    const isManagerRole =
-      empleadoAEliminar &&
-      (ROLES_EXCLUSIVOS.includes(
-        empleadoAEliminar.cargoAsignado.toLowerCase() as RolExclusivo
-      ) ||
-        empleadoAEliminar.cargoAsignado.toLowerCase() === "gerente online");
 
-    // Solo aplicar validación si se está eliminando un rol de gestión
-    if (isManagerRole) {
-      // Verificar si quedan otros roles de gestión
-      const rolesGestionRestantes = empleadosAsignados.filter(
-        (e) =>
-          e.asesor.id !== asesorId &&
-          (ROLES_EXCLUSIVOS.includes(
-            e.cargoAsignado.toLowerCase() as RolExclusivo
-          ) ||
-            e.cargoAsignado.toLowerCase() === "gerente online")
-      );
-
-      if (rolesGestionRestantes.length === 0) {
-        setError(
-          "No se puede eliminar el último rol de gestión (gerente/coadministrador/gerente online). Asigne otro rol de gestión primero."
-        );
-        setMessageType("error");
-        return;
-      }
+    if (!empleadoAEliminar) {
+      setError("Empleado no encontrado");
+      setMessageType("error");
+      return;
     }
-    // ✅ NO aplicar validación para asesores - pueden eliminarse libremente
 
     try {
       // ✅ CORRECCIÓN 1: Mantener roles originales de cada empleado
@@ -771,10 +749,10 @@ export const useEmployeeOperations = (
       const mensajeExito = hasExistingData
         ? `Asignación actualizada correctamente (${
             empleadosActualizados.length
-          } empleados, Total: $${presupuestoTotal.toLocaleString()})`
+          } empleados, Total: ${presupuestoTotal.toLocaleString()})`
         : `Empleados asignados correctamente (${
             empleadosActualizados.length
-          } empleados, Total: $${presupuestoTotal.toLocaleString()})`;
+          } empleados, Total: ${presupuestoTotal.toLocaleString()})`;
 
       setSuccess(mensajeExito);
       setMessageType("success");

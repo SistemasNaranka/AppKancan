@@ -36,8 +36,8 @@ export const useAvailableMonths = () => {
             "Nov",
             "Dic",
           ];
-          const mesActual = mesesNombres[ahora.getUTCMonth()];
-          const anioActual = ahora.getUTCFullYear();
+          const mesActual = mesesNombres[ahora.getMonth()]; // Usar hora local
+          const anioActual = ahora.getFullYear(); // Usar hora local
           const mesActualStr = `${mesActual} ${anioActual}`;
 
           // Verificar si el mes actual está en la lista
@@ -67,8 +67,8 @@ export const useAvailableMonths = () => {
             "Dic",
           ];
           const ahora = new Date();
-          const mesActual = mesesNombres[ahora.getUTCMonth()];
-          const anioActual = ahora.getUTCFullYear();
+          const mesActual = mesesNombres[ahora.getMonth()]; // Usar hora local
+          const anioActual = ahora.getFullYear(); // Usar hora local
           const mesActualStr = `${mesActual} ${anioActual}`;
 
           setAvailableMonths([mesActualStr]);
@@ -93,8 +93,8 @@ export const useAvailableMonths = () => {
           "Dic",
         ];
         const ahora = new Date();
-        const mesActual = mesesNombres[ahora.getUTCMonth()];
-        const anioActual = ahora.getUTCFullYear();
+        const mesActual = mesesNombres[ahora.getMonth()]; // Usar hora local
+        const anioActual = ahora.getFullYear(); // Usar hora local
         const mesActualStr = `${mesActual} ${anioActual}`;
 
         setAvailableMonths([mesActualStr]);

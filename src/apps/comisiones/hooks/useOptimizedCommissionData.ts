@@ -269,8 +269,10 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
     refetchOnWindowFocus: false, // NO recargar al volver a la ventana - usar caché
     refetchOnMount: false, // NO recargar al montar - usar caché
     refetchOnReconnect: false, // NO recargar al reconectar
-    retry: 2, // Menos reintentos para evitar delays
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    retry: 1, // Menos reintentos para evitar delays
+    retryDelay: 1000, // Delay fijo más corto
+    // ✅ CORRECCIÓN: Configuración para carga más rápida
+    networkMode: "online", // Solo cargar cuando esté online
   });
 
   // ✅ FUNCIÓN OPTIMIZADA para limpieza completa después del guardado

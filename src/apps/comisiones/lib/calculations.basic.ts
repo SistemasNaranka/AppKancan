@@ -13,7 +13,8 @@ export const round = (value: number): number => {
  * Obtiene el mes y año de una fecha (formato "MMM YYYY")
  */
 export const getMonthYear = (dateStr: string): string => {
-  const date = new Date(dateStr + "T00:00:00Z");
+  // Usar fecha local en lugar de UTC
+  const date = new Date(dateStr + "T00:00:00");
   const months = [
     "Ene",
     "Feb",
@@ -28,8 +29,8 @@ export const getMonthYear = (dateStr: string): string => {
     "Nov",
     "Dic",
   ];
-  const month = months[date.getUTCMonth()];
-  const year = date.getUTCFullYear();
+  const month = months[date.getMonth()]; // Usar hora local
+  const year = date.getFullYear(); // Usar hora local
   return `${month} ${year}`;
 };
 
@@ -58,18 +59,18 @@ export const monthToTimestamp = (monthStr: string): number => {
 };
 
 /**
- * Obtiene la fecha actual en formato YYYY-MM-DD
+ * Obtiene la fecha actual en formato YYYY-MM-DD usando la hora local de Colombia
  */
 export const getCurrentDate = (): string => {
   const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(now.getUTCDate()).padStart(2, "0");
+  const year = now.getFullYear(); // Usar hora local
+  const month = String(now.getMonth() + 1).padStart(2, "0"); // Usar hora local
+  const day = String(now.getDate()).padStart(2, "0"); // Usar hora local
   return `${year}-${month}-${day}`;
 };
 
 /**
- * Verifica si un mes es el mes actual
+ * Verifica si un mes es el mes actual usando la hora local
  */
 export const isCurrentMonth = (mes: string): boolean => {
   const [mesNombre, anioStr] = mes.split(" ");
@@ -92,5 +93,5 @@ export const isCurrentMonth = (mes: string): boolean => {
   const anio = parseInt(anioStr);
 
   const ahora = new Date();
-  return ahora.getUTCFullYear() === anio && ahora.getUTCMonth() === mesNumero;
+  return ahora.getFullYear() === anio && ahora.getMonth() === mesNumero; // Usar hora local
 };
