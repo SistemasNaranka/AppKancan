@@ -128,6 +128,7 @@ const processCommissionData = async (selectedMonth: string) => {
     staff.push({
       id: asesor.id.toString(),
       nombre: asesor.nombre || `Empleado ${asesor.id}`,
+      documento: asesor.documento,
       tienda: tienda?.nombre || `Tienda ID ${pe.tienda_id}`,
       fecha: pe.fecha,
       rol: rol,
@@ -167,6 +168,7 @@ const processCommissionData = async (selectedMonth: string) => {
         staff.push({
           id: asesor.id.toString(),
           nombre: asesor.nombre || `Empleado ${asesor.id}`,
+          documento: asesor.documento,
           tienda: tiendaAsesor.nombre,
           fecha: fechaFin,
           rol: rol,
