@@ -24,7 +24,7 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
       availableStores.map((storeName) => ({
         id: storeName,
         label: storeName,
-        description: "", // Las tiendas no tienen empresa en este contexto
+        description: "",
       })),
     [availableStores]
   );

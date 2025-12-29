@@ -18,7 +18,7 @@ export default defineConfig({
       },
     },
     sourcemap: true,
-    minify: "esbuild", // ✅ CAMBIO CLAVE
+    minify: "esbuild",
   },
   resolve: {
     alias: {

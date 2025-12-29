@@ -10,6 +10,7 @@ interface SummaryCardsProps {
   onToggleAllStores: () => void;
   /** Estado actual de tiendas expandidas */
   expandedTiendas: Set<string>;
+
   /** Filtros de rol actuales */
   filterRol: Role[];
   /** Función para obtener comisiones filtradas */
