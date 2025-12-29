@@ -7,9 +7,11 @@ import {
   Star as StarIcon,
 } from "@mui/icons-material";
 import { green, orange, blue, grey, pink } from "@mui/material/colors";
+import { TiendaResumen } from "../../types";
+import { formatCurrency } from "../../lib/utils";
 
 interface PerformanceMessageProps {
-  cumplimientoPct: number;
+  tienda: TiendaResumen;
   size?: "small" | "medium";
 }
 
@@ -18,16 +20,30 @@ interface PerformanceMessageProps {
  * Muestra texto con icono (sin chip)
  */
 const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
-  cumplimientoPct,
+  tienda,
   size = "medium",
 }) => {
   const getPerformanceInfo = () => {
+    const cumplimientoPct = tienda.cumplimiento_tienda_pct;
+
     if (cumplimientoPct < 90) {
-      return {
-        message: "Sin comisión",
-        icon: <CancelIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
-        color: grey[600],
-      };
+      // Encontrar al gerente de la tienda
+      const gerente = tienda.empleados.find((e) => e.rol === "gerente");
+      if (gerente && gerente.proxima_venta) {
+        return {
+          message: `Vende ${formatCurrency(
+            gerente.proxima_venta
+          )} para comisionar`,
+          icon: <CancelIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
+          color: grey[800],
+        };
+      } else {
+        return {
+          message: "Sin comisión",
+          icon: <CancelIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
+          color: grey[600],
+        };
+      }
     } else if (cumplimientoPct < 95) {
       return {
         message: "Buen Inicio",

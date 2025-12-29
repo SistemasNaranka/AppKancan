@@ -212,10 +212,7 @@ const AccordionHeader = ({
                 >
                   {tienda.cumplimiento_tienda_pct.toFixed(2)}%
                 </Typography>
-                <PerformanceMessage
-                  cumplimientoPct={tienda.cumplimiento_tienda_pct}
-                  size="small"
-                />
+                <PerformanceMessage tienda={tienda} size="small" />
               </Box>
             </Box>
 
@@ -289,10 +286,7 @@ const AccordionHeader = ({
                 {tienda.cumplimiento_tienda_pct.toFixed(2)}%
               </Typography>
             </Box>
-            <PerformanceMessage
-              cumplimientoPct={tienda.cumplimiento_tienda_pct}
-              size="medium"
-            />
+            <PerformanceMessage tienda={tienda} size="medium" />
           </Box>
         )}
       </Box>
