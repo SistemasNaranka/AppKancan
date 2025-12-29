@@ -6,6 +6,7 @@ import { SimpleFilters } from "./SimpleFilters";
 import { SummaryCards } from "./SummaryCards";
 import { Role } from "../types";
 import { useUserPolicies } from "../hooks/useUserPolicies";
+import { red } from "@mui/material/colors";
 
 interface HomeHeaderProps {
   selectedMonth: string;
@@ -100,6 +101,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                     startIcon={<Settings />}
                     size="small"
                     sx={{
+                      lineHeight: 2.2,
                       minWidth: "auto",
                       px: { xs: 1.5, sm: 2 },
                     }}
@@ -122,11 +124,11 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                     startIcon={<Person />}
                     size="small"
                     sx={{
+                      lineHeight: 2.2,
                       minWidth: "auto",
                       px: { xs: 1.5, sm: 2 },
                       backgroundColor: "#1976d2",
                       color: "white",
-                      borderRadius: 2,
                       textTransform: "none",
                       fontWeight: 600,
                       boxShadow: "0 2px 4px rgba(25, 118, 210, 0.2)",

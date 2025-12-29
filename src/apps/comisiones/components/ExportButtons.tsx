@@ -18,6 +18,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatCurrency } from "../lib/utils";
 import { useUserPolicies } from "../hooks/useUserPolicies";
+import CSVData from "./CSVData";
+import { StoreFilterModal } from "./StoreFilterModal";
 
 interface ExportButtonsProps {
   mesResumen: MesResumen | null;
@@ -36,68 +38,50 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     return null;
   }
 
-  const handleExportCSV = () => {
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+
+  const [selectedCSVType, setSelectedCSVType] = useState<"General" | "Detallada" | null>(null);
+  const [selectedStores, setSelectedStores] = useState<string[]>([]);
+  const availableStores = mesResumen?.tiendas.map((t) => t.tienda) || [];
+  const [storeFilterOpen, setStoreFilterOpen] = useState(false);
+
+
+  const handleExportGeneral = (stores: string[]) => {
     if (!mesResumen) return;
 
-    // Calcular totales dinámicos basados en datos filtrados
-    const totalComisiones = mesResumen.tiendas.reduce(
-      (total: number, tienda: any) => {
-        return (
-          total +
-          tienda.empleados.reduce((tiendaTotal: number, empleado: any) => {
-            return tiendaTotal + (empleado.comision_monto || 0);
-          }, 0)
-        );
-      },
-      0
-    );
+    const filteredTiendas = mesResumen.tiendas.filter(t => stores.includes(t.tienda)).sort((a, b) => a.tienda.localeCompare(b.tienda));
 
-    const comisionesPorRol = mesResumen.tiendas.reduce(
-      (acc: any, tienda: any) => {
-        tienda.empleados.forEach((empleado: any) => {
-          acc[empleado.rol] =
-            (acc[empleado.rol] || 0) + (empleado.comision_monto || 0);
-        });
-        return acc;
-      },
-      {
-        gerente: 0,
-        asesor: 0,
-        cajero: 0,
-        logistico: 0,
-      }
-    );
+    let csvContent = "Tienda;Presupuesto;Ventas;Cumplimiento;Comisiones\n";
 
-    let csvContent = "Calculadora de Comisiones por Cumplimiento\n";
-    csvContent += `Mes: ${mes}\n\n`;
+    filteredTiendas.forEach((tienda) => {
+      const totalComisiones = tienda.empleados.reduce((tiendaTotal: number, empleado: any) => {
+        return tiendaTotal + (empleado.comision_monto || 0);
+      }, 0);
 
-    csvContent += "RESUMEN MENSUAL\n";
-    csvContent += `Total Comisiones,${totalComisiones.toFixed(2)}\n`;
-    csvContent += `Comisiones Gerentes,${comisionesPorRol.gerente.toFixed(
-      2
-    )}\n`;
-    csvContent += `Comisiones Asesores,${comisionesPorRol.asesor.toFixed(2)}\n`;
-    csvContent += `Comisiones Cajeros,${comisionesPorRol.cajero.toFixed(
-      2
-    )}\n\n`;
+      csvContent += `${tienda.tienda};${formatCurrency(tienda.presupuesto_tienda)};${formatCurrency(tienda.ventas_tienda)};${tienda.cumplimiento_tienda_pct.toFixed(2)};${formatCurrency(totalComisiones)}\n`;
+    });
 
-    csvContent += "DETALLE POR TIENDA Y EMPLEADO\n";
-    csvContent +=
-      "Tienda,Fecha,Presupuesto Tienda,Ventas Tienda,Cumplimiento Tienda %,Empleado,Rol,Presupuesto,Ventas,Cumplimiento %,Comisión %,Comisión $\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `comisiones_general_${mes.replace(" ", "_")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-    mesResumen.tiendas.forEach((tienda) => {
-      tienda.empleados.forEach((empleado, idx) => {
-        csvContent += `${tienda.tienda},${tienda.fecha},${formatCurrency(
-          tienda.presupuesto_tienda
-        )},${formatCurrency(
-          tienda.ventas_tienda
-        )},${tienda.cumplimiento_tienda_pct.toFixed(2)},${empleado.nombre},${
-          empleado.rol
-        },${formatCurrency(empleado.presupuesto)},${formatCurrency(
-          empleado.ventas
-        )},${empleado.cumplimiento_pct.toFixed(2)},${(
-          empleado.comision_pct * 100
-        ).toFixed(2)},${formatCurrency(empleado.comision_monto)}\n`;
+  const handleExportDetallada = (stores: string[]) => {
+    if (!mesResumen) return;
+
+    const filteredTiendas = mesResumen.tiendas.filter(t => stores.includes(t.tienda));
+
+    let csvContent = "Tienda;Documento;Empleado;Dias laborados;Cargo;Presupuesto;Ventas;Cumplimiento %;Comision %;Comision $\n";
+
+    filteredTiendas.forEach((tienda) => {
+      tienda.empleados.forEach((empleado) => {
+        csvContent += `${tienda.tienda};${empleado.documento};${empleado.nombre};${empleado.dias_laborados};${empleado.rol};${formatCurrency(empleado.presupuesto)};${formatCurrency(empleado.ventas)};${empleado.cumplimiento_pct};${empleado.comision_pct};${formatCurrency(empleado.comision_monto)}\n`;
       });
     });
 
@@ -105,7 +89,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `comisiones_${mes.replace(" ", "_")}.csv`);
+    link.setAttribute("download", `comisiones_detallada_${mes.replace(" ", "_")}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -204,6 +188,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
         tienda.cumplimiento_tienda_pct.toFixed(2),
         empleado.nombre,
         empleado.rol,
+        empleado.documento,
         formatCurrency(empleado.presupuesto),
         formatCurrency(empleado.ventas),
         empleado.cumplimiento_pct.toFixed(2),
@@ -216,17 +201,15 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
       head: [
         [
           "Tienda",
-          "Fecha",
-          "Presupuesto Tienda",
-          "Ventas Tienda",
-          "Cumpl. %",
+          "Documento",
           "Empleado",
-          "Rol",
+          "Dias laborados",
+          "Cargo",
           "Presupuesto",
           "Ventas",
-          "Cumpl. %",
-          "Comisión %",
-          "Comisión $",
+          "Cumplimiento",
+          "Comision %",
+          "Comision $",
         ],
       ],
       body: tableData,
@@ -248,54 +231,57 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     doc.save(`comisiones_${mes.replace(" ", "_")}.pdf`);
   };
 
-  const handleExport = (value: string) => {
-    setExportType(value);
-    if (value === "csv") {
-      handleExportCSV();
-    } else if (value === "pdf") {
-      handleExportPDF();
+  const handleExport = (type: string, csvType?: "General" | "Detallada") => {
+    if (type === 'csv') {
+      if (csvType) {
+        setSelectedCSVType(csvType);
+        setStoreFilterOpen(true);
+        setCsvModalOpen(false);
+      } else {
+        setCsvModalOpen(true);
+      }
     }
-    // Reset the select after export
-    setTimeout(() => setExportType(""), 100);
   };
 
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        gap: { xs: 0.5, sm: 1 },
-        alignItems: "center",
-        flexWrap: "wrap",
-      }}
-    >
-      <FormControl
-        size="small"
-        sx={{
-          minWidth: { xs: 100, sm: 140 },
-          flex: { xs: "1 1 auto", sm: "0 0 auto" },
-        }}
-      >
-        <InputLabel>Exportar</InputLabel>
-        <Select
-          value={exportType}
-          onChange={(e) => handleExport(e.target.value as string)}
-          disabled={!mesResumen}
-          label="Exportar"
-        >
-          <MenuItem value="csv">
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <DownloadIcon fontSize="small" />
-              <Typography>CSV</Typography>
-            </Box>
-          </MenuItem>
-          <MenuItem value="pdf">
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Description fontSize="small" />
-              <Typography>PDF</Typography>
-            </Box>
-          </MenuItem>
-        </Select>
-      </FormControl>
-    </Box>
-  );
+const handleStoresSelected = (stores: string[]) => {
+  setSelectedStores(stores);
+  setStoreFilterOpen(false);
+  if (selectedCSVType === "General") {
+    handleExportGeneral(stores);
+  } else if (selectedCSVType === "Detallada") {
+    handleExportDetallada(stores);
+  }
+  // Deseleccionar las tiendas después de la descarga
+  setSelectedStores([]);
 };
+
+return (
+  <>
+    <Box sx={{ display: "flex", gap: 1 }}>
+      <Button
+        variant="outlined"
+        startIcon={<DownloadIcon />}
+        onClick={() => handleExport('csv')}
+        disabled={!mesResumen}
+      >
+        Exportar CSV
+      </Button>
+    </Box>
+
+    <CSVData
+      open={csvModalOpen}
+      onClose={() => setCsvModalOpen(false)}
+      onSelectType={(type) => handleExport('csv', type)}
+    />
+
+    <StoreFilterModal
+      showButton={false}
+      open={storeFilterOpen}
+      onClose={() => setStoreFilterOpen(false)}
+      availableStores={availableStores}
+      selectedStores={selectedStores}
+      onStoresSelected={handleStoresSelected}
+    />
+  </>
+);
+}

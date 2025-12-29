@@ -61,8 +61,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
   labelKey = "label",
 }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const adaptiveHeight = isMobile ? 600 : 800; // <-- valor corregido según tu petición
+  const adaptiveHeight = 600; // Reduced height to fit smaller screens
   const modalRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [selected, setSelected] = useState<Set<string | number>>(
@@ -362,7 +361,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
                     px: 2,
                     py: 1,
                     borderRadius: 1,
-                    backgroundColor: "#f8fafc",
+                    backgroundColor: "#fcf8f8ff",
                     border: "1px solid #e2e8f0",
                   }}
                 >
@@ -431,7 +430,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
                     display: "grid",
                     gridTemplateColumns: {
                       xs: "1fr",
-                      sm: "repeat(2, 1fr)",
+                      sm: "repeat(1, 1fr)",
                       md: "repeat(4, 1fr)",
                       lg: "repeat(5, 1fr)",
                       xl: `repeat(${maxColumns + 1}, 1fr)`,
@@ -464,7 +463,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
           {/* Footer */}
           <Box
             sx={{
-              borderTop: "1px solid #e0e7ff",
+              borderTop: "1px solid #ffe0e0ff",
               p: 2,
               display: "flex",
               justifyContent: "flex-end",
