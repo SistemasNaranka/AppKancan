@@ -89,17 +89,17 @@ function validateRouteObject(
   }
 
   if (route.path) {
-    
-
-    if (!isChild && !route.path.startsWith("/")) {
+    // ✅ Permitir rutas absolutas para módulos siblings
+    // En AppRoutes.tsx, las rutas de módulos se agregan como siblings del Layout
+    // por lo que necesitan ser absolutas para funcionar correctamente
+    // Solo validamos que no estén vacías
+    if (route.path.trim() === "") {
       throw new RouteValidationError(
         filePath,
-        `PATH_FORMATO_INCORRECTO [${index}]`,
-        `Las rutas raíz deben comenzar con "/". Recibido: "${route.path}".`
+        `PATH_VACÍO [${index}]`,
+        `La ruta no puede estar vacía.`
       );
     }
-
-    
   }
 
   if (!route.element && !route.children && !route.Component) {
@@ -109,7 +109,8 @@ function validateRouteObject(
       `La ruta debe tener 'element', 'Component' o 'children'.`
     );
   }
-// Children debe ser un array de tipo RouteObject[]
+
+  // Children debe ser un array de tipo RouteObject[]
   if (route.children) {
     if (!Array.isArray(route.children)) {
       throw new RouteValidationError(
