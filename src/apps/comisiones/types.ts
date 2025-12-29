@@ -23,6 +23,7 @@ export interface BudgetRecord {
 export interface StaffMember {
   id: string;
   nombre: string;
+  documento: number;
   tienda: string;
   fecha: string; // YYYY-MM-DD
   rol: Role;
@@ -50,6 +51,7 @@ export interface VentasMensualesData {
 export interface EmployeeCommission {
   id: string;
   nombre: string;
+  documento: number;
   rol: Role;
   cargo_id?: number; // ID del cargo para ordenamiento
   tienda: string;

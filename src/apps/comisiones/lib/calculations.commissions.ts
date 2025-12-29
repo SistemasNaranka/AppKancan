@@ -125,6 +125,7 @@ export const calculateEmployeeCommission = (
   return {
     id: empleado.id,
     nombre: empleado.nombre,
+    documento: empleado.documento,
     rol: empleado.rol,
     tienda: empleado.tienda,
     fecha: empleado.fecha,
@@ -188,6 +189,7 @@ export const calculateGerenteCommission = (
   return {
     id: empleado.id,
     nombre: empleado.nombre,
+    documento: empleado.documento,
     rol: empleado.rol,
     tienda: empleado.tienda,
     fecha: empleado.fecha,
@@ -264,6 +266,7 @@ const calculateCollectiveRoleCommission = (
   return {
     id: empleado.id,
     nombre: empleado.nombre,
+    documento: empleado.documento,
     rol: rol,
     tienda: empleado.tienda,
     fecha: empleado.fecha,
@@ -370,6 +373,7 @@ export const calculateGerenteOnlineCommission = (
   return {
     id: empleado.id,
     nombre: empleado.nombre,
+    documento: empleado.documento,
     rol: "gerente_online",
     tienda: empleado.tienda,
     fecha: empleado.fecha,

@@ -309,6 +309,7 @@ const calculateTraditionalEmployeeCommission = (
   return {
     id: empleado.id,
     nombre: empleado.nombre,
+    documento: empleado.documento,
     rol: empleado.rol,
     tienda: empleado.tienda,
     fecha: empleado.fecha,

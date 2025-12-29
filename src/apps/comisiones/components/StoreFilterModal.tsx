@@ -8,6 +8,9 @@ interface StoreFilterModalProps {
   selectedStores: string[];
   onStoresSelected: (selected: string[]) => void;
   isLoading?: boolean;
+  showButton?: boolean;
+  open?: boolean;
+  onClose?: () => void;
 }
 
 export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
@@ -15,8 +18,14 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
   selectedStores,
   onStoresSelected,
   isLoading = false,
+  showButton = true,
+  open: controlledOpen,
+  onClose: controlledOnClose,
 }) => {
-  const { open, openModal, closeModal } = useSelectionModal();
+  const { open: hookOpen, openModal, closeModal } = useSelectionModal();
+  const isControlled = controlledOpen !== undefined;
+  const modalOpen = isControlled ? controlledOpen : hookOpen;
+  const handleClose = controlledOnClose || closeModal;
 
   // Convertir las tiendas disponibles al formato esperado por el modal
   const storeItems = useMemo(
@@ -32,12 +41,12 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
   // Maneja la confirmación de selección
   const handleConfirmSelection = (selected: (string | number)[]) => {
     onStoresSelected(selected as string[]);
-    closeModal();
+    handleClose();
   };
 
   // Maneja la cancelación
   const handleCancelSelection = () => {
-    closeModal();
+    handleClose();
   };
 
   // Crear una key única basada en las tiendas seleccionadas para forzar re-render
@@ -57,57 +66,59 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
 
   return (
     <>
-      <Button
-        variant="outlined"
-        onClick={openModal}
-        disabled={isLoading}
-        sx={{
-          textTransform: "none",
-          fontWeight: 600,
-          minWidth: { xs: 80, sm: 100 },
-          px: { xs: 2, sm: 3 },
-          py: 1.5,
-          height: 40,
-          borderRadius: 1,
-          border: 1,
-          borderColor: "divider",
-          backgroundColor: "background.paper",
-          flex: { xs: "1 1 auto", sm: "0 0 auto" },
-          "&:hover": {
-            backgroundColor: "action.hover",
-            borderColor: "primary.main",
-          },
-          "&.MuiButton-outlined": {
-            border: "1px solid",
+      {showButton && (
+        <Button
+          variant="outlined"
+          onClick={openModal}
+          disabled={isLoading}
+          sx={{
+            textTransform: "none",
+            fontWeight: 600,
+            minWidth: { xs: 80, sm: 100 },
+            px: { xs: 2, sm: 3 },
+            py: 1.5,
+            height: 40,
+            borderRadius: 1,
+            border: 1,
             borderColor: "divider",
-          },
-        }}
-        startIcon={
-          selectedStores.length > 0 && (
-            <Chip
-              label={selectedStores.length}
-              size="medium"
-              color="primary"
-              sx={{
-                height: 20,
-                minWidth: 20,
-                "& .MuiChip-label": {
-                  fontSize: "1rem", // ← SOLO cambia esto para reducir la letra
-                  px: 0.5,
-                },
-              }}
-            />
-          )
-        }
-      >
-        Tiendas
-      </Button>
+            backgroundColor: "background.paper",
+            flex: { xs: "1 1 auto", sm: "0 0 auto" },
+            "&:hover": {
+              backgroundColor: "action.hover",
+              borderColor: "primary.main",
+            },
+            "&.MuiButton-outlined": {
+              border: "1px solid",
+              borderColor: "divider",
+            },
+          }}
+          startIcon={
+            selectedStores.length > 0 && (
+              <Chip
+                label={selectedStores.length}
+                size="medium"
+                color="primary"
+                sx={{
+                  height: 20,
+                  minWidth: 20,
+                  "& .MuiChip-label": {
+                    fontSize: "1rem", // ← SOLO cambia esto para reducir la letra
+                    px: 0.5,
+                  },
+                }}
+              />
+            )
+          }
+        >
+          Tiendas
+        </Button>
+      )}
 
       {/* Modal de selección de tiendas */}
       <CustomSelectionModal
         key={modalKey}
         title={getModalTitle()}
-        open={open}
+        open={modalOpen}
         onClose={handleCancelSelection}
         onConfirm={handleConfirmSelection}
         items={storeItems}
