@@ -11,11 +11,13 @@ import { useCommission } from "../contexts/CommissionContext";
 import { ConfigurationPanel } from "./ConfigurationPanel";
 import { CodesModal } from "./CodesModal";
 import { NoDataModal } from "./NoDataModal";
+import { EditStoreModalSimplified } from "./EditStoreModalSimplified";
 
 interface HomeModalsProps {
   // Modal states
   showConfigModal: boolean;
   showCodesModal: boolean;
+  showEditStoreModal: boolean;
   showNoDataModal: boolean;
   modalTitle: string;
   modalMessage: string;
@@ -25,14 +27,17 @@ interface HomeModalsProps {
   // Modal actions
   onCloseConfigModal: () => void;
   onCloseCodesModal: () => void;
+  onCloseEditStoreModal: () => void;
   onCloseNoDataModal: () => void;
   onAssignmentComplete?: (ventasData: any) => void;
   onShowSaveLoading?: (error?: any) => void;
+  onEditStoreComplete?: () => void;
 }
 
 export const HomeModals: React.FC<HomeModalsProps> = ({
   showConfigModal,
   showCodesModal,
+  showEditStoreModal,
   showNoDataModal,
   modalTitle,
   modalMessage,
@@ -40,9 +45,11 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   hasSavedData,
   onCloseConfigModal,
   onCloseCodesModal,
+  onCloseEditStoreModal,
   onCloseNoDataModal,
   onAssignmentComplete,
   onShowSaveLoading,
+  onEditStoreComplete,
 }) => {
   const { state } = useCommission();
 
@@ -102,7 +109,11 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
       {/* Codes Modal */}
       <CodesModal
         isOpen={showCodesModal}
-        onClose={onCloseCodesModal}
+        onClose={(e) => {
+          e?.preventDefault();
+          e?.stopPropagation();
+          onCloseCodesModal();
+        }}
         selectedMonth={selectedMonth}
         hasSavedData={hasSavedData}
         onShowSaveLoading={onShowSaveLoading}
@@ -117,6 +128,22 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         mesSeleccionado={selectedMonth}
         title={modalTitle}
         message={modalMessage}
+      />
+
+
+      {/* Edit Store Modal - SIMPLIFICADO */}
+      <EditStoreModalSimplified
+        isOpen={showEditStoreModal}
+        onClose={() => {
+          // Limpiar estado antes de cerrar para evitar cargas innecesarias
+          onCloseEditStoreModal();
+        }}
+        onSaveComplete={() => {
+          if (onEditStoreComplete) {
+            onEditStoreComplete();
+          }
+        }}
+        selectedMonth={selectedMonth}
       />
     </>
   );

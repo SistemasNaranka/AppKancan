@@ -391,15 +391,21 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
         data.staff.length > 0 ||
         data.ventas.length > 0);
 
+    // 🚀 MEJORADO: Solo considerar dataLoadAttempted cuando realmente esté listo
+    const dataLoadAttempted = query.isLoading === false && query.isFetched === true && query.isFetching === false;
+
     return {
       hasData: !!hasData,
       isEmpty: hasData === false,
       isLoading: query.isLoading,
       isError: query.isError,
       error: query.error,
-      dataLoadAttempted: query.isLoading === false, // true cuando termina de cargar (éxito o error)
+      dataLoadAttempted, // 🚀 MEJORADO: Solo true cuando realmente está listo
+      // 🚀 NUEVOS: Estados adicionales para mejor sincronización
+      isDataReady: query.isSuccess && data && !query.isLoading, // Datos completamente listos
+      isTransitioning: query.isLoading || query.isFetching || query.isRefetching, // Cualquier transición
     };
-  }, [query.isLoading, query.isError, query.error, data]);
+  }, [query.isLoading, query.isError, query.error, query.isFetched, query.isFetching, query.isRefetching, query.isSuccess, data]);
 
   return {
     // Data

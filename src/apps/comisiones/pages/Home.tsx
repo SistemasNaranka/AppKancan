@@ -75,6 +75,9 @@ export default function Home() {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
+  // 🚀 NUEVO: Variable para controlar el estado del modal de edición
+  const [showEditStoreModal, setShowEditStoreModal] = useState(false);
+
   // Extraer datos del hook optimizado
   const {
     budgets = [],
@@ -139,13 +142,23 @@ export default function Home() {
 
   // Obtener configuración del mes
   const monthConfig = useMemo(
-    () => monthConfigsData.find((c) => c.mes === selectedMonth),
+    () => monthConfigsData.find((c: any) => c.mes === selectedMonth),
     [monthConfigsData, selectedMonth]
   );
   const porcentajeGerente = useMemo(
     () => monthConfig?.porcentaje_gerente || 10,
     [monthConfig]
   );
+
+  // 🚀 NUEVO: Determinar si debe mostrar el estado de carga (MOVIDO AQUÍ PARA EVITAR HOISTING)
+  const shouldShowLoading = useMemo(() => {
+    // Si la validación de presupuesto no se ha completado, mostrar carga
+    if (!budgetValidationCompleted) {
+      return true;
+    }
+    // Usar el loading normal en otros casos
+    return isLoading || isLoadingMonths;
+  }, [budgetValidationCompleted, isLoading, isLoadingMonths]);
 
   const mesResumen = useMemo(() => {
     if (budgets.length === 0) {
@@ -155,19 +168,19 @@ export default function Home() {
     // Crear hash robusto basado en contenido real de los datos
     const createDataHash = () => {
       const budgetsHash = budgets.reduce(
-        (acc, b) => acc + Math.round(b.presupuesto_total * 100),
+        (acc: number, b: any) => acc + Math.round(b.presupuesto_total * 100),
         0
       );
       const staffHash = staff.reduce(
-        (acc, s) => acc + parseInt(s.id.replace(/\D/g, "")) + s.tienda.length,
+        (acc: number, s: any) => acc + parseInt(s.id.replace(/\D/g, "")) + s.tienda.length,
         0
       );
       const ventasHash = ventas.reduce(
-        (acc, v) => acc + Math.round(v.ventas_tienda * 100),
+        (acc: number, v: any) => acc + Math.round(v.ventas_tienda * 100),
         0
       );
       const presupuestosHash = presupuestosEmpleados.reduce(
-        (acc, p) => acc + Math.round((p.presupuesto || 0) * 100),
+        (acc: number, p: any) => acc + Math.round((p.presupuesto || 0) * 100),
         0
       );
 
@@ -237,6 +250,7 @@ export default function Home() {
 
   // 🚀 NUEVO: Manejar guardado desde el modal
   const handleCodesModalSave = async (originalError?: any) => {
+    console.log("🚀 Iniciando guardado desde modal...");
     setShowSaveLoading(true);
     setSaveSuccess(false);
     setSaveError(false);
@@ -356,54 +370,59 @@ export default function Home() {
     [availableMonthsFinal]
   );
 
-  // 🚀 NUEVO: Determinar si debe mostrar el estado de carga
-  const shouldShowLoading = useMemo(() => {
-    // Si la validación de presupuesto no se ha completado, mostrar carga
-    if (!budgetValidationCompleted) {
-      return true;
-    }
-    // Usar el loading normal en otros casos
-    return isLoading || isLoadingMonths;
-  }, [budgetValidationCompleted, isLoading, isLoadingMonths]);
-
-  // Manejar errores y estados vacíos - Solo mostrar "sin datos" cuando NO esté cargando
+  // 🚀 MEJORADO: Manejar errores y estados vacíos - Prevención completa del modal durante carga
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (isError && error) {
       setShowNoDataModal(true);
       setModalTitle("Error al cargar datos");
       setModalMessage((error as any)?.message || "Ocurrió un error inesperado");
-    } else if (dataLoadAttempted && !hasData && !isLoading && !commissionData && !shouldShowLoading) {
-      // Solo mostrar "sin datos" cuando termine de cargar Y no esté en estado de carga general
-      setShowNoDataModal(true);
-      setModalTitle("Sin datos disponibles");
-      setModalMessage(
-        "No se encontraron datos para el período seleccionado."
-      );
+    } else if (
+      dataLoadAttempted && 
+      !hasData && 
+      !isLoading && 
+      !isRefetching && 
+      !commissionData &&
+      !shouldShowLoading // ✅ NUEVA PROTECCIÓN: No mostrar si hay cualquier estado de carga
+    ) {
+      // Solo mostrar "Sin datos disponibles" DESPUÉS de que termine TODA la carga completamente
+      timeoutId = setTimeout(() => {
+        // Verificación final antes de mostrar el modal
+        if (!isLoading && !isRefetching && !shouldShowLoading) {
+          setShowNoDataModal(true);
+          setModalTitle("Sin datos disponibles");
+          setModalMessage(
+            "No se encontraron datos para el período seleccionado."
+          );
+        }
+      }, 1500); // Aumentado a 1.5 segundos para mayor seguridad
     } else {
-      setShowNoDataModal(false);
+      // 🚀 PROTECCIÓN AMPLIADA: Si estamos cargando, recargando, o en cualquier estado de transición, NO mostrar modal
+      if (isLoading || isRefetching || shouldShowLoading || !dataLoadAttempted) {
+        setShowNoDataModal(false);
+      }
     }
-  }, [isError, error, dataLoadAttempted, hasData, isLoading, commissionData, shouldShowLoading]);
+
+    // Cleanup timeout
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isError, error, dataLoadAttempted, hasData, isLoading, isRefetching, commissionData, shouldShowLoading]);
+
+  // 🚀 NUEVO: Función para limpiar caché y recargar datos
+  const handleClearCacheAndReload = useCallback(() => {
+    // Limpiar todos los caches de React Query
+    window.location.reload();
+  }, []);
 
   // 🚀 NUEVO: Determinar si mostrar contenido principal o aviso de presupuesto
   const shouldShowMainContent = useMemo(() => {
     // Solo mostrar contenido si hay presupuesto diario asignado
     return hasBudgetData !== false;
   }, [hasBudgetData]);
-
-<<<<<<< HEAD
-  // 🚀 NUEVO: Mostrar contenido básico si no hay datos
-  const shouldShowBasicContent = useMemo(() => {
-    return dataLoadAttempted && !hasData && !isLoading;
-  }, [dataLoadAttempted, hasData, isLoading]);
-=======
-  // 🚀 NUEVO: Determinar si hay una sola tienda (para gráficos)
-  const esUnaSolaTienda = useMemo(() => {
-    const datosParaAnalizar = shouldShowMainContent
-      ? mesResumenFiltrado || mesResumen
-      : mesResumen;
-    return datosParaAnalizar?.tiendas?.length === 1;
-  }, [mesResumen, mesResumenFiltrado, shouldShowMainContent]);
->>>>>>> c5c018af5e2d07ee9e39bebbc3a8de0fa01dfad8
 
   // 🚀 NUEVO: Props condicionales para HomeHeader - solo mostrar SummaryCards si hay presupuesto
   const homeHeaderProps = useMemo(() => {
@@ -418,6 +437,7 @@ export default function Home() {
       onTiendaChange: setFilterTienda,
       onShowConfigModal: () => setShowConfigModal(true),
       onShowCodesModal: () => setShowCodesModal(true),
+      onShowEditStoreModal: () => setShowEditStoreModal(true),
       onToggleAllStores: handleToggleAllStoresWrapper,
       expandedTiendas,
       filterRol,
@@ -728,10 +748,7 @@ export default function Home() {
                         <h2 className="text-lg sm:text-xl font-semibold">
                           Análisis Visual
                         </h2>
-                        <Charts
-                          mesResumen={mesResumenFiltrado || mesResumen}
-                          esUnaSolaTienda={esUnaSolaTienda}
-                        />
+                        <Charts mesResumen={mesResumenFiltrado || mesResumen} />
                       </section>
                     )}
                   </section>
@@ -745,6 +762,7 @@ export default function Home() {
         <HomeModals
           showConfigModal={showConfigModal}
           showCodesModal={showCodesModal}
+          showEditStoreModal={showEditStoreModal}
           showNoDataModal={showNoDataModal}
           modalTitle={modalTitle}
           modalMessage={modalMessage}
@@ -756,8 +774,14 @@ export default function Home() {
             setShowCodesModal(false);
             // Solo cerrar, no ejecutar pantalla de carga automáticamente
           }}
+          onCloseEditStoreModal={() => setShowEditStoreModal(false)}
           onCloseNoDataModal={() => setShowNoDataModal(false)}
           onAssignmentComplete={handleAssignmentComplete}
+          onEditStoreComplete={() => {
+            // Refrescar datos cuando se complete la edición de tienda
+            refetch();
+            revalidateBudgetData();
+          }}
         />
 
         {/* 🚀 NUEVO: Pantalla de carga para guardado */}
@@ -765,4 +789,4 @@ export default function Home() {
       </div>
     </LoadingState>
   );
-}
+};

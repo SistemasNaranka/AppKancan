@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +37,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   hasSavedData,
   onShowSaveLoading,
 }) => {
-  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -51,7 +49,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     showMultipleStoresWarning,
     error: validationError,
     validatePermissionsAndStores,
-    handleCloseAndRedirect,
     resetState,
   } = usePermissionsValidation();
 
@@ -309,13 +306,20 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   };
 
   // Función para manejar el cierre del modal
-  const handleModalClose = () => {
+  const handleModalClose = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    // Prevenir navegación no deseada
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // ✅ MEJORA: Solo cerrar el modal, sin redirigir
+    // El usuario permanece en la vista de Comisiones
+    onClose();
+
+    // ✅ OPCIONAL: Si realmente hay múltiples tiendas, solo mostrar advertencia en consola
     if (showMultipleStoresWarning) {
-      // En caso de múltiples tiendas, cerrar y navegar al home
-      handleCloseAndRedirect(onClose, navigate);
-    } else {
-      // Cerrar normalmente
-      onClose();
+      console.warn("Usuario tiene múltiples tiendas asignadas");
     }
   };
 
@@ -324,10 +328,10 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   const currentMessageType = saveSuccessMessage
     ? "success"
     : error
-    ? "error"
-    : success
-    ? "success"
-    : "info";
+      ? "error"
+      : success
+        ? "success"
+        : "info";
 
   // 🚀 NUEVO: Determinar texto y color del botón dinámicamente
   const getButtonConfig = () => {
@@ -348,15 +352,15 @@ export const CodesModal: React.FC<CodesModalProps> = ({
         cursor: canSave ? "pointer" : "not-allowed",
         hover: canSave
           ? {
-              backgroundColor: theme.palette.primary.dark,
-              transform: "translateY(-1px)",
-              boxShadow: theme.shadows[4],
-            }
+            backgroundColor: theme.palette.primary.dark,
+            transform: "translateY(-1px)",
+            boxShadow: theme.shadows[4],
+          }
           : {},
         active: canSave
           ? {
-              transform: "translateY(0)",
-            }
+            transform: "translateY(0)",
+          }
           : {},
       };
     }
@@ -369,15 +373,15 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       cursor: canSave ? "pointer" : "not-allowed",
       hover: canSave
         ? {
-            backgroundColor: theme.palette.primary.dark,
-            transform: "translateY(-1px)",
-            boxShadow: theme.shadows[4],
-          }
+          backgroundColor: theme.palette.primary.dark,
+          transform: "translateY(-1px)",
+          boxShadow: theme.shadows[4],
+        }
         : {},
       active: canSave
         ? {
-            transform: "translateY(0)",
-          }
+          transform: "translateY(0)",
+        }
         : {},
     };
   };
@@ -400,7 +404,12 @@ export const CodesModal: React.FC<CodesModalProps> = ({
 
       <Dialog
         open={isOpen}
-        onClose={handleModalClose}
+        onClose={(e) => {
+          // Prevenir navegación no deseada
+          e?.preventDefault();
+          e?.stopPropagation();
+          handleModalClose(e);
+        }}
         maxWidth="lg"
         fullWidth
         disableEscapeKeyDown={empleadosAsignados.length > 0 && !hasSavedData}
@@ -429,7 +438,12 @@ export const CodesModal: React.FC<CodesModalProps> = ({
             }}
           >
             <IconButton
-              onClick={handleModalClose}
+              onClick={(e) => {
+                // Prevenir navegación no deseada
+                e?.preventDefault();
+                e?.stopPropagation();
+                handleModalClose(e);
+              }}
               size="small"
               sx={{
                 color: theme.palette.grey[600],
@@ -462,6 +476,9 @@ export const CodesModal: React.FC<CodesModalProps> = ({
             position: "relative",
             p: { xs: 2, sm: 3 },
             backgroundColor: theme.palette.grey[50],
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           {/* Aviso para múltiples tiendas */}
@@ -612,9 +629,9 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   "&:hover":
                     empleadosAsignados.length > 0
                       ? {
-                          backgroundColor: theme.palette.grey[100],
-                          borderColor: theme.palette.grey[400],
-                        }
+                        backgroundColor: theme.palette.grey[100],
+                        borderColor: theme.palette.grey[400],
+                      }
                       : {},
                   "&:disabled": {
                     opacity: 0.6,

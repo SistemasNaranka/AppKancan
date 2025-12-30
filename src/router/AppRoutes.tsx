@@ -71,9 +71,10 @@ export default function AppRoutes() {
 
         // Filtrar apps permitidas
         const modulosPermitidos = Object.entries(rutasDisponibles).filter(([path]) =>
-          apps.some((app) =>
-            path.toLowerCase().includes(`/apps${app.ruta.toLowerCase()}/routes.tsx`)
-          )
+          apps.some((app) => {
+            const rutaLimipia = app.ruta.toLowerCase().replace(/^\/|\/$/g, ""); // "comisiones"
+            return path.toLowerCase().includes(rutaLimipia) && path.toLowerCase().endsWith("routes.tsx");
+          })
         );
 
         const modulosCargados = await Promise.all(

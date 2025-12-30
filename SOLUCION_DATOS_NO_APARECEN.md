@@ -1,16 +1,51 @@
 # 🔧 Solución: Datos de Base de Datos No Aparecen
 
-## 🚨 Problema Identificado
+## 🚨 Problemas Identificados
+
+### **Problema Principal**: Datos de Base de Datos No Aparecen
 Los datos subidos a la base de datos no aparecen en la aplicación debido a problemas de caché y configuración de React Query.
+
+### **Problema Específico del Modal**: Editar Tienda - Distribución Automática
+Los datos de las tiendas no cargan en el modal "Editar Tienda - Distribución Automática" debido a:
+
+#### **Problema 1: Modal se quedaba cargando indefinidamente**
+- Configuración de caché muy conservadora en `useUnifiedCommissionData.ts`
+- Múltiples `useEffect` ejecutándose simultáneamente causando loops
+- Refreshes manuales innecesarios que bloqueaban la UI
+
+#### **Problema 2: Modal mostraba "Cargando datos" sin cargar**
+- `mesResumen` era null cuando no había presupuestos guardados
+- Lógica esperaba datos procesados que no existían
+- No había fallback para cargar datos básicos de tiendas
+
+**Causa raíz**: El modal dependía de `useUnifiedCommissionData` con configuración problemática y lógica de carga incompleta.
 
 ## ✅ Solución Implementada
 
-### 1. **Hook useOptimizedCommissionData.ts Actualizado**
+### 1. **Hooks Actualizados para Datos Frescos**
+
+#### **useOptimizedCommissionData.ts**
 - **Forzar datos frescos**: Cambié `staleTime` de 5 minutos a `0` (siempre stale)
 - **Reducir tiempo de caché**: De 30 minutos a 5 minutos
 - **Habilitar refetch automático**: En mount, focus de ventana y reconexión
 - **Limpieza agresiva de caché**: Agregué `queryClient.clear()` en la función refetch
 - **Debugging mejorado**: Agregué logs detallados para rastrear el flujo de datos
+
+#### **useUnifiedCommissionData.ts** (Modal Editar Tienda)
+- **Aplicada la misma solución**: Configuración de caché optimizada para el modal
+- **staleTime: 0**: Siempre forzar fetch de datos frescos
+- **gcTime: 5 minutos**: Reducir tiempo en caché
+- **refetch automático**: Habilitado en mount, focus y reconexión
+- **Función refetch mejorada**: Invalidación más agresiva con `queryClient.clear()`
+- **Debugging completo**: Logs detallados para troubleshooting del modal
+
+#### **3. Lógica de Modal Mejorada** (`EditStoreModalFinal.tsx`)
+- **Eliminación de loops**: Consolidación de múltiples `useEffect` en uno solo
+- **Control de estado**: Uso de `isLoadingCommissionData` para evitar llamadas simultáneas
+- **Fallback para datos faltantes**: Carga datos básicos cuando no hay resumen procesado
+- **Refresh optimizado**: Eliminación de refreshes manuales innecesarios
+- **Manejo de errores TypeScript**: Corrección de búsquedas por propiedades inexistentes
+- **Mensajes informativos**: Feedback claro al usuario sobre el estado de carga
 
 ### 2. **Funcionalidades de Debugging**
 La aplicación ahora incluye una sección de debugging que muestra:
@@ -74,7 +109,10 @@ La aplicación ahora genera logs detallados:
 
 ---
 
-**Fecha de implementación**: 2025-12-18
+**Fecha de implementación**: 2025-12-29
 **Archivos modificados**: 
-- `src/apps/comisiones/hooks/useOptimizedCommissionData.ts`
+- `src/apps/comisiones/hooks/useOptimizedCommissionData.fixed.ts`
+- `src/apps/comisiones/hooks/useUnifiedCommissionData.ts` (Modal Editar Tienda)
+- `src/apps/comisiones/components/EditStoreModalFinal.tsx` (Lógica de modal optimizada)
 - `src/apps/comisiones/pages/Home.tsx` (con debugging)
+- `SOLUCION_DATOS_NO_APARECEN.md` (actualizado)

@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@mui/material";
-import { Settings, Person } from "@mui/icons-material";
+import { Settings, Person, Store } from "@mui/icons-material";
 import { ExportButtons } from "./ExportButtons";
 import { SimpleFilters } from "./SimpleFilters";
 import { SummaryCards } from "./SummaryCards";
@@ -18,6 +18,7 @@ interface HomeHeaderProps {
   onTiendaChange: (tiendas: string[]) => void;
   onShowConfigModal: () => void;
   onShowCodesModal: () => void;
+  onShowEditStoreModal: () => void;
   onToggleAllStores: () => void;
   expandedTiendas: Set<string>;
   filterRol: Role[];
@@ -44,6 +45,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onTiendaChange,
   onShowConfigModal,
   onShowCodesModal,
+  onShowEditStoreModal,
   onToggleAllStores,
   expandedTiendas,
   filterRol,
@@ -95,7 +97,11 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {/* Botón Configuración - Solo para readComisionesAdmin */}
                 {canSeeConfig() && (
                   <Button
-                    onClick={onShowConfigModal}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onShowConfigModal();
+                    }}
                     variant="outlined"
                     startIcon={<Settings />}
                     size="small"
@@ -117,7 +123,11 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {/* Botón ASIG - Solo para readComisionesAdmin y cuando hay presupuesto */}
                 {canAssignEmployees() && hasBudgetData && (
                   <Button
-                    onClick={onShowCodesModal}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onShowCodesModal();
+                    }}
                     variant="contained"
                     startIcon={<Person />}
                     size="small"
@@ -142,6 +152,41 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                   >
                     <span className="hidden xs:inline">ASIG PPTO</span>
                     <span className="xs:hidden">ASIG PPTO</span>
+                  </Button>
+                )}
+                
+                {/* Botón Editar Tienda - Para administradores */}
+                {canAssignEmployees() && (
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onShowEditStoreModal();
+                    }}
+                    variant="outlined"
+                    startIcon={<Store />}
+                    size="small"
+                    sx={{
+                      minWidth: "auto",
+                      px: { xs: 1.5, sm: 2 },
+                      borderColor: "#4caf50",
+                      color: "#4caf50",
+                      borderRadius: 2,
+                      textTransform: "none",
+                      fontWeight: 600,
+                      "&:hover": {
+                        backgroundColor: "#4caf50",
+                        color: "white",
+                        borderColor: "#4caf50",
+                        transform: "translateY(-1px)",
+                      },
+                      "&:active": {
+                        transform: "translateY(0)",
+                      },
+                    }}
+                  >
+                    <span className="hidden xs:inline">Editar Tienda</span>
+                    <span className="xs:hidden">Editar</span>
                   </Button>
                 )}
               </div>

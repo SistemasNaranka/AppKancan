@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect, useRef } from "react";
 import { useAuth } from "@/auth/hooks/useAuth";
 import {
   obtenerTiendas,
@@ -112,6 +112,7 @@ const validateBudgetData = async (user: any): Promise<{
  * Función para procesar todos los datos de comisiones de forma unificada
  */
 const processAllCommissionData = async (selectedMonth: string, user: any) => {
+  console.log("🔄 [DEBUG] Procesando datos para mes:", selectedMonth);
   const [mesNombre, anio] = selectedMonth.split(" ");
   const mesNumero = getMonthNumber(mesNombre);
 
@@ -119,6 +120,8 @@ const processAllCommissionData = async (selectedMonth: string, user: any) => {
   const ultimoDia = new Date(parseInt(anio), parseInt(mesNumero), 0).getDate();
   const fechaInicio = `${anio}-${mesNumero}-01`;
   const fechaFin = `${anio}-${mesNumero}-${ultimoDia}`;
+
+  console.log("📅 [DEBUG] Fechas calculadas:", { fechaInicio, fechaFin, ultimoDia });
 
   // Cargar todos los datos en paralelo
   const [
@@ -140,6 +143,17 @@ const processAllCommissionData = async (selectedMonth: string, user: any) => {
     obtenerVentasEmpleados(undefined, fechaFin, selectedMonth),
     obtenerTodosPresupuestosMeses(),
   ]);
+
+  console.log("📊 [DEBUG] Datos cargados desde API:", {
+    tiendas: tiendas.length,
+    asesores: asesores.length,
+    cargos: cargos.length,
+    presupuestosDiarios: presupuestosDiarios.length,
+    porcentajesBD: porcentajesBD.length,
+    presupuestosEmpleadosData: presupuestosEmpleadosData.length,
+    ventasEmpleados: ventasEmpleados.length,
+    availableMonths: availableMonths.length,
+  });
 
   // Convertir presupuestos diarios a BudgetRecord
   const budgets = presupuestosDiarios.map((p: any) => {
@@ -315,7 +329,7 @@ const processAllCommissionData = async (selectedMonth: string, user: any) => {
     currentMonth = mesEncontrado || availableMonths[availableMonths.length - 1];
   }
 
-  return {
+  const result = {
     // Datos de comisiones
     budgets,
     staff,
@@ -340,6 +354,19 @@ const processAllCommissionData = async (selectedMonth: string, user: any) => {
       totalAsesores: asesores.length,
     },
   };
+
+  console.log("✅ [DEBUG] Datos procesados:", {
+    budgets: budgets.length,
+    staff: staff.length,
+    monthConfigs: monthConfigs.length,
+    ventas: ventas.length,
+    presupuestosEmpleados: presupuestosEmpleadosData.length,
+    cargos: cargos.length,
+    availableMonths: availableMonths.length,
+    currentMonth,
+  });
+
+  return result;
 };
 
 /**
@@ -349,16 +376,24 @@ const processAllCommissionData = async (selectedMonth: string, user: any) => {
 export const useUnifiedCommissionData = (selectedMonth: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isMountedRef = useRef(true);
+  
+  // Limpiar el ref cuando el componente se desmonta
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const query = useQuery({
     queryKey: ["unified-commission-data", selectedMonth, user?.id],
     queryFn: () => processAllCommissionData(selectedMonth, user),
     enabled: !!user && !!selectedMonth,
-    staleTime: 1000 * 60 * 5, // 5 minutos - datos frescos
-    gcTime: 1000 * 60 * 30, // 30 minutos - tiempo en caché
-    refetchOnWindowFocus: false, // NO recargar al volver a la ventana
-    refetchOnMount: false, // NO recargar al montar
-    refetchOnReconnect: false, // NO recargar al reconectar
+    staleTime: 1000 * 60 * 5, // 5 minutos - aumentar staleTime para reducir fetches innecesarios
+    gcTime: 1000 * 60 * 10, // 10 minutos - aumentar tiempo en caché
+    refetchOnWindowFocus: false, // 🚀 CAMBIADO: No recargar al volver a la ventana
+    refetchOnMount: false, // 🚀 CAMBIADO: No recargar al montar
+    refetchOnReconnect: true, // 🚀 CAMBIADO: Recargar al reconectar
     retry: 2, // Menos reintentos para evitar delays
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
@@ -367,27 +402,67 @@ export const useUnifiedCommissionData = (selectedMonth: string) => {
   const refetch = useCallback(() => {
     console.log("🔄 Forzando recarga completa de datos de comisiones...");
 
-    // Invalidación completa
-    queryClient.invalidateQueries({
-      queryKey: ["unified-commission-data"],
-      exact: false,
-    });
-
-    // Limpiar caché completo
-    queryClient.removeQueries({
-      queryKey: ["unified-commission-data"],
-      exact: false,
-    });
-
-    // Forzar refetch inmediato
-    return queryClient
-      .refetchQueries({
-        queryKey: ["unified-commission-data", selectedMonth],
-        type: "active",
-      })
-      .then(() => {
-        console.log("✅ Recarga completa finalizada");
+    // Verificar que el componente está montado antes de invalidar queries
+    if (!queryClient.isMutating && isMountedRef.current) {
+      // ✅ INVALIDACIÓN MÁS AGRESIVA - INVALIDAR TODO
+      queryClient.invalidateQueries({
+        queryKey: ["unified-commission-data"],
+        exact: false,
       });
+
+      // Invalidar consultas relacionadas específicas
+      queryClient.invalidateQueries({
+        queryKey: ["budgets"],
+        exact: false,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["staff"],
+        exact: false,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["ventas"],
+        exact: false,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["presupuestos-empleados"],
+        exact: false,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["tiendas"],
+        exact: false,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["asesores"],
+        exact: false,
+      });
+
+      // ✅ LIMPIAR CACHÉ COMPLETO PARA ASEGURAR RECARGA
+      queryClient.removeQueries({
+        queryKey: ["unified-commission-data"],
+        exact: false,
+      });
+
+      // 🚀 NUEVO: Forzar limpieza completa del caché de React Query
+      queryClient.clear();
+
+      // Forzar refetch inmediato del mes actual
+      return queryClient
+        .refetchQueries({
+          queryKey: ["unified-commission-data", selectedMonth],
+          type: "active",
+        })
+        .then(() => {
+          console.log("✅ Recarga completa finalizada");
+        });
+    }
+    
+    // Si ya hay una mutación en curso o el componente se ha desmontado, simplemente resolver
+    return Promise.resolve();
   }, [queryClient, selectedMonth]);
 
   // Función para precargar datos de un mes
@@ -398,8 +473,8 @@ export const useUnifiedCommissionData = (selectedMonth: string) => {
       queryClient.prefetchQuery({
         queryKey: ["unified-commission-data", month, user.id],
         queryFn: () => processAllCommissionData(month, user),
-        staleTime: 1000 * 60 * 5,
-        gcTime: 1000 * 60 * 30,
+        staleTime: 0, // Siempre stale para forzar fetch fresco
+        gcTime: 1000 * 60 * 5,
       });
     },
     [queryClient, user]
