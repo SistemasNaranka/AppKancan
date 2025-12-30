@@ -1,6 +1,14 @@
 import React from "react";
-import { Box, Button, Typography, Stack, Portal } from "@mui/material";
-
+import {
+  Box,
+  Button,
+  Typography,
+  Stack,
+  Portal,
+  Card,
+  CardContent,
+} from "@mui/material";
+import { Summarize, ListAlt } from "@mui/icons-material";
 
 interface CSVDataProps {
   open: boolean;
@@ -39,46 +47,93 @@ const CSVData: React.FC<CSVDataProps> = ({ open, onClose, onSelectType }) => {
             boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
           }}
         >
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              marginBottom: "24px", 
+          <Typography
+            variant="h6"
+            sx={{
+              marginBottom: "24px",
               textAlign: "center",
-              fontWeight: 600 
+              fontWeight: 600,
             }}
           >
             Selecciona el tipo de exportación
           </Typography>
 
-          <Stack spacing={2}>
-            <Button
-              variant="contained"
-              color="primary"
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 2,
+              mb: 3,
+            }}
+          >
+            <Card
+              sx={{
+                flex: 1,
+                cursor: "pointer",
+                transition: "all 0.3s ease-in-out",
+                border: "2px solid",
+                borderColor: "#1976d2",
+                bgcolor: "grey.50",
+                minHeight: 180,
+                "&:hover": {
+                  transform: "translateY(-4px)",
+                  boxShadow: "0 12px 30px rgba(0,0,0,0.2)",
+                  borderColor: "#1565c0",
+                  bgcolor: "primary.100",
+                },
+              }}
               onClick={() => onSelectType("General")}
-              fullWidth
-              size="large"
             >
-              General
-            </Button>
+              <CardContent sx={{ textAlign: "center", py: 3 }}>
+                <Summarize
+                  sx={{ fontSize: 48, color: "primary.main", mb: 1 }}
+                />
+                <Typography variant="h6" gutterBottom>
+                  General
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Resumen por tienda con presupuesto, ventas, cumplimiento y
+                  comisiones totales.
+                </Typography>
+              </CardContent>
+            </Card>
 
-            <Button
-              variant="contained"
-              color="primary"
+            <Card
+              sx={{
+                flex: 1,
+                cursor: "pointer",
+                transition: "all 0.3s ease-in-out",
+                border: "2px solid",
+                borderColor: "#1976d2",
+                bgcolor: "grey.50",
+                minHeight: 180,
+                "&:hover": {
+                  transform: "translateY(-4px)",
+                  boxShadow: "0 12px 30px rgba(0,0,0,0.2)",
+                  borderColor: "#1565c0",
+                  bgcolor: "primary.100",
+                },
+              }}
               onClick={() => onSelectType("Detallada")}
-              fullWidth
-              size="large"
             >
-              Detallada
-            </Button>
+              <CardContent sx={{ textAlign: "center", py: 3 }}>
+                <ListAlt sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
+                <Typography variant="h6" gutterBottom>
+                  Detallada
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Detalle por empleado incluyendo documento, nombre, rol,
+                  presupuesto, ventas, cumplimiento y comisión.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
 
-            <Button
-              variant="outlined"
-              onClick={onClose}
-              fullWidth
-            >
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Button variant="outlined" onClick={onClose} size="large">
               Cancelar
             </Button>
-          </Stack>
+          </Box>
         </Box>
       </Box>
     </Portal>

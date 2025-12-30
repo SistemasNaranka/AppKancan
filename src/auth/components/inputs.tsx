@@ -15,6 +15,7 @@ interface InputWithIconProps {
   Icon: React.ElementType;
   variant?: "outlined" | "standard" | "filled";
   placeholder?: string;
+  autoComplete?: string;
 }
 
 const InputWithIcon: React.FC<InputWithIconProps> = ({
@@ -26,6 +27,7 @@ const InputWithIcon: React.FC<InputWithIconProps> = ({
   Icon,
   variant = "outlined",
   placeholder = "",
+  autoComplete,
   error = false,
   helperText = "",
 }) => {
@@ -50,6 +52,7 @@ const InputWithIcon: React.FC<InputWithIconProps> = ({
       slotProps={{
         input: {
           inputRef,
+          inputProps: { ...(autoComplete && { autoComplete }) },
           startAdornment: (
             <InputAdornment position="start">
               <IconButton

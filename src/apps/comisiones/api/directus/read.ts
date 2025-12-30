@@ -418,6 +418,54 @@ export async function obtenerPresupuestosEmpleados(
 }
 
 /**
+ * Obtener empleados asignados en una fecha EXACTA para una tienda específica
+ * Esta función es específica para el modal de edición
+ */
+export async function obtenerEmpleadosPorFechaExacta(
+  tiendaIds: number[],
+  fechaExacta: string
+): Promise<DirectusPresupuestoDiarioEmpleado[]> {
+  try {
+    const tiendaIdsPermitidos = await obtenerTiendasIdsUsuarioActual();
+
+    // Filtrar solo las tiendas que el usuario tiene permiso de ver
+    const tiendasFiltradas = tiendaIds.filter(id => tiendaIdsPermitidos.includes(id));
+
+    if (tiendasFiltradas.length === 0) {
+      return [];
+    }
+
+    const filter: any = {
+      tienda_id: { _in: tiendasFiltradas },
+      fecha: { _eq: fechaExacta }, // ← EXACTA, no _lte
+    };
+
+    const data = await withAutoRefresh(() =>
+      directus.request(
+        readItems("presupuesto_diario_empleados", {
+          fields: [
+            "id",
+            "asesor",
+            "tienda_id",
+            "cargo",
+            "fecha",
+            "presupuesto",
+          ],
+          filter,
+          sort: ["asesor"],
+          limit: -1,
+        })
+      )
+    );
+
+    return data as DirectusPresupuestoDiarioEmpleado[];
+  } catch (error) {
+    console.error("Error al obtener empleados por fecha exacta:", error);
+    return [];
+  }
+}
+
+/**
  * Obtener ventas diarias de empleados
  */
 export async function obtenerVentasEmpleados(

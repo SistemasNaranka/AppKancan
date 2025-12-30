@@ -120,6 +120,7 @@ function Login() {
                     Icon={MailOutlineIcon}
                     variant="standard"
                     placeholder="correo@ejemplo.com"
+                    autoComplete="username"
                     error={!!errors.email}
                     helperText={errors.email?.message}
                   />
@@ -140,6 +141,7 @@ function Login() {
                     Icon={LockOutlinedIcon}
                     variant="standard"
                     placeholder="*****"
+                    autoComplete="current-password"
                     error={!!errors.password}
                     helperText={errors.password?.message}
                   />

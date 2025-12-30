@@ -81,6 +81,9 @@ export default function Home() {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
+  // 🚀 NUEVO: Variable para controlar el estado del modal de edición
+  const [showEditStoreModal, setShowEditStoreModal] = useState(false);
+
   // Extraer datos del hook optimizado
   const {
     budgets = [],
@@ -159,13 +162,23 @@ export default function Home() {
 
   // Obtener configuración del mes
   const monthConfig = useMemo(
-    () => monthConfigsData.find((c) => c.mes === selectedMonth),
+    () => monthConfigsData.find((c: any) => c.mes === selectedMonth),
     [monthConfigsData, selectedMonth]
   );
   const porcentajeGerente = useMemo(
     () => monthConfig?.porcentaje_gerente || 10,
     [monthConfig]
   );
+
+  // 🚀 NUEVO: Determinar si debe mostrar el estado de carga (MOVIDO AQUÍ PARA EVITAR HOISTING)
+  const shouldShowLoading = useMemo(() => {
+    // Si la validación de presupuesto no se ha completado, mostrar carga
+    if (!budgetValidationCompleted) {
+      return true;
+    }
+    // Usar el loading normal en otros casos
+    return isLoading || isLoadingMonths;
+  }, [budgetValidationCompleted, isLoading, isLoadingMonths]);
 
   const mesResumen = useMemo(() => {
     if (budgets.length === 0 || staff.length === 0 || ventas.length === 0) {
@@ -176,15 +189,16 @@ export default function Home() {
 
     const createDataHash = () => {
       const budgetsHash = budgets.reduce(
-        (acc, b) => acc + Math.round(b.presupuesto_total * 100),
+        (acc: number, b: any) => acc + Math.round(b.presupuesto_total * 100),
         0
       );
       const staffHash = staff.reduce(
-        (acc, s) => acc + parseInt(s.id.replace(/\D/g, "")) + s.tienda.length,
+        (acc: number, s: any) =>
+          acc + parseInt(s.id.replace(/\D/g, "")) + s.tienda.length,
         0
       );
       const ventasHash = ventas.reduce(
-        (acc, v) => acc + Math.round(v.ventas_tienda * 100),
+        (acc: number, v: any) => acc + Math.round(v.ventas_tienda * 100),
         0
       );
       const presupuestosHash = presupuestosEmpleadosState.reduce(
@@ -265,6 +279,7 @@ export default function Home() {
 
   // 🚀 NUEVO: Manejar guardado desde el modal
   const handleCodesModalSave = async (originalError?: any) => {
+    console.log("🚀 Iniciando guardado desde modal...");
     setShowSaveLoading(true);
     setSaveSuccess(false);
     setSaveError(false);
@@ -413,16 +428,6 @@ export default function Home() {
     };
   }, [isError, error, dataLoadAttempted, hasData, isLoading, commissionData]);
 
-  // 🚀 NUEVO: Determinar si debe mostrar el estado de carga
-  const shouldShowLoading = useMemo(() => {
-    // Si la validación de presupuesto no se ha completado, mostrar carga
-    if (!budgetValidationCompleted) {
-      return true;
-    }
-    // Usar el loading normal en otros casos
-    return isLoading || isLoadingMonths;
-  }, [budgetValidationCompleted, isLoading, isLoadingMonths]);
-
   // 🚀 NUEVO: Determinar si mostrar contenido principal o aviso de presupuesto
   const shouldShowMainContent = useMemo(() => {
     // Solo mostrar contenido si hay presupuesto diario asignado
@@ -450,6 +455,7 @@ export default function Home() {
       onTiendaChange: setFilterTienda,
       onShowConfigModal: () => setShowConfigModal(true),
       onShowCodesModal: () => setShowCodesModal(true),
+      onShowEditStoreModal: () => setShowEditStoreModal(true),
       onToggleAllStores: handleToggleAllStoresWrapper,
       expandedTiendas,
       filterRol,
@@ -760,10 +766,7 @@ export default function Home() {
                         <h2 className="text-lg sm:text-xl font-semibold">
                           Análisis Visual
                         </h2>
-                        <Charts
-                          mesResumen={mesResumenFiltrado || mesResumen}
-                          esUnaSolaTienda={esUnaSolaTienda}
-                        />
+                        <Charts mesResumen={mesResumenFiltrado || mesResumen} />
                       </section>
                     )}
                   </section>
@@ -777,6 +780,7 @@ export default function Home() {
         <HomeModals
           showConfigModal={showConfigModal}
           showCodesModal={showCodesModal}
+          showEditStoreModal={showEditStoreModal}
           showNoDataModal={showNoDataModal}
           modalTitle={modalTitle}
           modalMessage={modalMessage}
@@ -788,8 +792,14 @@ export default function Home() {
             setShowCodesModal(false);
             // Solo cerrar, no ejecutar pantalla de carga automáticamente
           }}
+          onCloseEditStoreModal={() => setShowEditStoreModal(false)}
           onCloseNoDataModal={() => setShowNoDataModal(false)}
           onAssignmentComplete={handleAssignmentComplete}
+          onEditStoreComplete={() => {
+            // Refrescar datos cuando se complete la edición de tienda
+            refetch();
+            revalidateBudgetData();
+          }}
         />
 
         {/* 🚀 NUEVO: Pantalla de carga para guardado */}

@@ -20,7 +20,9 @@ export default function AppRoutes() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { apps, area, loading: appsLoading } = useApps();
 
-  const [modulosComplejosFiltrados, setModulosComplejosFiltrados] = useState<RouteObject[]>([]);
+  const [modulosComplejosFiltrados, setModulosComplejosFiltrados] = useState<
+    RouteObject[]
+  >([]);
   const [errorEnRutas, setErrorEnRutas] = useState<unknown>(null);
 
   const isLoading = isAuthenticated && (apps === null || appsLoading);
@@ -48,7 +50,12 @@ export default function AppRoutes() {
       element: (
         <ErrorBoundary>
           <Suspense
-            fallback={<LoadingSpinner message={`Cargando inicio de ${area}...`} size="medium" />}
+            fallback={
+              <LoadingSpinner
+                message={`Cargando inicio de ${area}...`}
+                size="medium"
+              />
+            }
           >
             <HomeComponent />
           </Suspense>
@@ -70,10 +77,17 @@ export default function AppRoutes() {
         );
 
         // Filtrar apps permitidas
-        const modulosPermitidos = Object.entries(rutasDisponibles).filter(([path]) =>
-          apps.some((app) =>
-            path.toLowerCase().includes(`/apps${app.ruta.toLowerCase()}/routes.tsx`)
-          )
+        const modulosPermitidos = Object.entries(rutasDisponibles).filter(
+          ([path]) =>
+            apps.some((app) => {
+              const rutaLimipia = app.ruta
+                .toLowerCase()
+                .replace(/^\/|\/$/g, ""); // "comisiones"
+              return (
+                path.toLowerCase().includes(rutaLimipia) &&
+                path.toLowerCase().endsWith("routes.tsx")
+              );
+            })
         );
 
         const modulosCargados = await Promise.all(
@@ -88,14 +102,19 @@ export default function AppRoutes() {
         // Validación
         const { routes: rutasValidadas, error } = loadAndValidateRoutes(
           Object.fromEntries(
-            modulosPermitidos.map(([path], i) => [path, { default: modulosCargados[i] }])
+            modulosPermitidos.map(([path], i) => [
+              path,
+              { default: modulosCargados[i] },
+            ])
           )
         );
 
         if (error) {
           setErrorEnRutas(
             new Error(
-              error.map((e: RouteValidationError) => e.message).join("\n\n" + "-".repeat(80) + "\n\n")
+              error
+                .map((e: RouteValidationError) => e.message)
+                .join("\n\n" + "-".repeat(80) + "\n\n")
             )
           );
         }
@@ -120,8 +139,14 @@ export default function AppRoutes() {
     routesToUse = [
       {
         path: "*",
-        element: <LoadingSpinner message="Verificando autenticación..." size="large" fullScreen />
-      }
+        element: (
+          <LoadingSpinner
+            message="Verificando autenticación..."
+            size="large"
+            fullScreen
+          />
+        ),
+      },
     ];
   } else if (!isAuthenticated) {
     // Usuario no autenticado - solo rutas de login
@@ -130,18 +155,22 @@ export default function AppRoutes() {
       { path: "*", element: <Login /> },
     ];
   } else if (isLoading) {
-    // Cargando datos de la app
+    // Cargando datos de la app - suprimir warnings de rutas no encontradas
     routesToUse = [
       {
         path: "*",
-        element: <LoadingSpinner message="Cargando aplicación..." size="large" fullScreen />
-      }
+        element: (
+          <LoadingSpinner
+            message="Cargando aplicación..."
+            size="large"
+            fullScreen
+          />
+        ),
+      },
     ];
   } else if (errorEnRutas && import.meta.env.DEV) {
     // Error en desarrollo - mostrar página de error
-    routesToUse = [
-      { path: "*", element: <ErrorPage error={errorEnRutas} /> }
-    ];
+    routesToUse = [{ path: "*", element: <ErrorPage error={errorEnRutas} /> }];
   } else {
     // Rutas principales de la aplicación autenticada
     routesToUse = [
@@ -158,7 +187,11 @@ export default function AppRoutes() {
           ...modulosComplejosFiltrados.map((mod) => ({
             ...mod,
             element: (
-              <Suspense fallback={<LoadingSpinner message="Cargando módulo..." size="small" />}>
+              <Suspense
+                fallback={
+                  <LoadingSpinner message="Cargando módulo..." size="small" />
+                }
+              >
                 {mod.element}
               </Suspense>
             ),
@@ -169,9 +202,31 @@ export default function AppRoutes() {
 
     // Solo agregar NotFound en casos muy específicos de error del sistema
     if (errorEnRutas && !isLoading && import.meta.env.DEV) {
-      routesToUse.push({ path: "*", element: <ErrorPage error={errorEnRutas} /> });
+      routesToUse.push({
+        path: "*",
+        element: <ErrorPage error={errorEnRutas} />,
+      });
     }
   }
 
-  return useRoutes(routesToUse);
+  // Suprimir warnings de React Router durante estados de carga
+  const originalWarn = console.warn;
+  if (authLoading || isLoading) {
+    console.warn = (...args) => {
+      if (!args[0]?.includes?.("No routes matched location")) {
+        originalWarn(...args);
+      }
+    };
+  }
+
+  const result = useRoutes(routesToUse);
+
+  // Restaurar console.warn después de renderizar
+  if (authLoading || isLoading) {
+    setTimeout(() => {
+      console.warn = originalWarn;
+    }, 0);
+  }
+
+  return result;
 }

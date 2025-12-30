@@ -1,12 +1,11 @@
 import React from "react";
 import { Button } from "@mui/material";
-import { Settings, Person } from "@mui/icons-material";
+import { Settings, Person, Store } from "@mui/icons-material";
 import { ExportButtons } from "./ExportButtons";
 import { SimpleFilters } from "./SimpleFilters";
 import { SummaryCards } from "./SummaryCards";
 import { Role } from "../types";
 import { useUserPolicies } from "../hooks/useUserPolicies";
-import { red } from "@mui/material/colors";
 
 interface HomeHeaderProps {
   selectedMonth: string;
@@ -19,6 +18,7 @@ interface HomeHeaderProps {
   onTiendaChange: (tiendas: string[]) => void;
   onShowConfigModal: () => void;
   onShowCodesModal: () => void;
+  onShowEditStoreModal: () => void;
   onToggleAllStores: () => void;
   expandedTiendas: Set<string>;
   filterRol: Role[];
@@ -45,6 +45,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onTiendaChange,
   onShowConfigModal,
   onShowCodesModal,
+  onShowEditStoreModal,
   onToggleAllStores,
   expandedTiendas,
   filterRol,
@@ -52,18 +53,17 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onRoleFilterToggle,
   onRoleFilterClear,
   renderMobileSummaryCards,
-  hasBudgetData,
 }) => {
-  const { canSeeConfig, canAssignEmployees, canSeeStoreFilter } =
+  const { canSeeConfig, canAssignEmployees, canSeeStoreFilter, hasPolicy } =
     useUserPolicies();
 
   // Determinar qué botones están visibles
   const hasVisibleButtons = (() => {
     const hasConfig = canSeeConfig();
-    const hasAssign = canAssignEmployees() && hasBudgetData; // Solo mostrar botón ASIG si hay presupuesto
+    const hasEditBudget = canAssignEmployees(); // Botón EDITAR PRESUPUESTO siempre visible para quienes pueden asignar
     const hasExport = Boolean(mesResumenFiltrado || mesResumen);
 
-    return hasConfig || hasAssign || hasExport;
+    return hasConfig || hasEditBudget || hasExport;
   })();
 
   return (
@@ -96,7 +96,11 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {/* Botón Configuración - Solo para readComisionesAdmin */}
                 {canSeeConfig() && (
                   <Button
-                    onClick={onShowConfigModal}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onShowConfigModal();
+                    }}
                     variant="outlined"
                     startIcon={<Settings />}
                     size="small"
@@ -116,12 +120,23 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                     mes={selectedMonth}
                   />
                 )}
-                {/* Botón ASIG - Solo para readComisionesAdmin y cuando hay presupuesto */}
-                {canAssignEmployees() && hasBudgetData && (
+                {/* Botón EDITAR PRESUPUESTO - Dependiendo del rol */}
+                {canAssignEmployees() && (
                   <Button
-                    onClick={onShowCodesModal}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // Si es tienda, abre CodesModal; si es admin, abre EditStoreModal
+                      if (hasPolicy("readComisionesTienda")) {
+                        onShowCodesModal();
+                      } else if (hasPolicy("readComisionesAdmin")) {
+                        onShowEditStoreModal();
+                      }
+                    }}
                     variant="contained"
-                    startIcon={<Person />}
+                    startIcon={
+                      hasPolicy("readComisionesTienda") ? <Person /> : <Store />
+                    }
                     size="small"
                     sx={{
                       lineHeight: 2.2,
@@ -142,8 +157,8 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                       },
                     }}
                   >
-                    <span className="hidden xs:inline">ASIG PPTO</span>
-                    <span className="xs:hidden">ASIG PPTO</span>
+                    <span className="hidden xs:inline">EDITAR PRESUPUESTO</span>
+                    <span className="xs:hidden">EDITAR PRESUPUESTO</span>
                   </Button>
                 )}
               </div>

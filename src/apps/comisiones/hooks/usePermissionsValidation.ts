@@ -70,11 +70,17 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
   };
 
   const handleCloseAndRedirect = (onClose: () => void, navigate: any) => {
-    setShowMultipleStoresWarning(false);
-    setValidationCompleted(false);
-    setError(null);
-    onClose();
-    navigate("/home");
+    // Solo redirigir si realmente hay múltiples tiendas
+    if (showMultipleStoresWarning) {
+      setShowMultipleStoresWarning(false);
+      setValidationCompleted(false);
+      setError(null);
+      onClose();
+      navigate("/home");
+    } else {
+      // Si no hay múltiples tiendas, simplemente cerrar sin redirigir
+      onClose();
+    }
   };
 
   const resetState = () => {

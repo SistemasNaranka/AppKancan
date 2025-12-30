@@ -7,9 +7,13 @@ import {
   ROLES_EXCLUSIVOS,
   RolExclusivo,
 } from "../types/modal";
+import { DirectusPresupuestoDiarioEmpleado } from "../types";
+import { ROLES_REQUERIDOS } from "../types/modal";
 import {
   guardarPresupuestosEmpleados,
   eliminarPresupuestosEmpleados,
+  actualizarPresupuestoEmpleado,
+  eliminarPresupuestoEmpleado,
 } from "../api/directus/create";
 import {
   obtenerPresupuestosDiarios,
@@ -720,25 +724,77 @@ export const useEmployeeOperations = (
         return cargo?.id || 2;
       };
 
-      // Eliminar datos existentes del mismo día antes de guardar
-      if (tiendaUsuario) {
-        try {
-          await eliminarPresupuestosEmpleados(tiendaUsuario.id, fechaActual);
-        } catch (eliminarError) {
-          // Continuar con el guardado aunque no se puedan eliminar los datos existentes
+      // ✅ NUEVA LÓGICA: Operaciones individuales en lugar de borrar todo y crear de nuevo
+      // Obtener empleados existentes para comparar
+      const empleadosExistentes = await obtenerPresupuestosEmpleados(
+        tiendaUsuario!.id,
+        fechaActual
+      );
+      const existentesFiltrados = empleadosExistentes.filter(
+        (e) => e.fecha === fechaActual
+      );
+
+      // Crear mapa de existentes por asesor ID
+      const mapaExistentes = new Map<
+        number,
+        { id: number; presupuesto: number; cargo: number }
+      >();
+      existentesFiltrados.forEach((e) => {
+        mapaExistentes.set(e.asesor, {
+          id: e.id,
+          presupuesto: e.presupuesto,
+          cargo: e.cargo,
+        });
+      });
+
+      // Arrays para operaciones
+      const paraInsertar: Omit<DirectusPresupuestoDiarioEmpleado, "id">[] = [];
+      const paraActualizar: { id: number; presupuesto: number }[] = [];
+      const paraEliminar: number[] = [];
+
+      // Procesar empleados actuales
+      empleadosActualizados.forEach((empleado) => {
+        const existente = mapaExistentes.get(empleado.asesor.id);
+
+        if (existente) {
+          // Existe, verificar si cambió el presupuesto
+          if (existente.presupuesto !== empleado.presupuesto) {
+            paraActualizar.push({
+              id: existente.id,
+              presupuesto: empleado.presupuesto,
+            });
+          }
+          // Marcar como procesado (eliminar del mapa)
+          mapaExistentes.delete(empleado.asesor.id);
+        } else {
+          // Nuevo, insertar
+          paraInsertar.push({
+            asesor: empleado.asesor.id,
+            fecha: fechaActual,
+            presupuesto: empleado.presupuesto,
+            tienda_id: empleado.tiendaId,
+            cargo: mapearCargoACargoId(empleado.cargoAsignado),
+          });
         }
+      });
+
+      // Los que quedan en mapaExistentes se eliminan
+      mapaExistentes.forEach((value) => {
+        paraEliminar.push(value.id);
+      });
+
+      // Ejecutar operaciones
+      if (paraInsertar.length > 0) {
+        await guardarPresupuestosEmpleados(paraInsertar);
       }
 
-      // ✅ USAR EMPLEADOS ACTUALIZADOS CON INFORMACIÓN PRESERVADA
-      const presupuestosParaGuardar = empleadosActualizados.map((empleado) => ({
-        asesor: empleado.asesor.id,
-        fecha: fechaActual,
-        presupuesto: empleado.presupuesto, // ← PRESUPUESTO ACTUALIZADO
-        tienda_id: empleado.tiendaId,
-        cargo: mapearCargoACargoId(empleado.cargoAsignado),
-      }));
+      for (const update of paraActualizar) {
+        await actualizarPresupuestoEmpleado(update.id, update.presupuesto);
+      }
 
-      await guardarPresupuestosEmpleados(presupuestosParaGuardar);
+      for (const id of paraEliminar) {
+        await eliminarPresupuestoEmpleado(id);
+      }
 
       // ✅ CORRECCIÓN 3: Calcular y mostrar presupuesto total de la tienda
       const presupuestoTotal = calcularPresupuestoTotalTienda(

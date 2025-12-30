@@ -111,6 +111,43 @@ export async function eliminarPresupuestosEmpleados(
 }
 
 /**
+ * Actualizar presupuesto diario de un empleado específico
+ */
+export async function actualizarPresupuestoEmpleado(
+  id: number,
+  presupuesto: number
+): Promise<DirectusPresupuestoDiarioEmpleado> {
+  try {
+    const updated = await withAutoRefresh(() =>
+      directus.request(
+        updateItems("presupuesto_diario_empleados", [id], {
+          presupuesto: presupuesto,
+        })
+      )
+    );
+
+    return updated[0] as DirectusPresupuestoDiarioEmpleado;
+  } catch (error) {
+    console.error("❌ Error al actualizar presupuesto empleado:", error);
+    throw error;
+  }
+}
+
+/**
+ * Eliminar presupuesto diario de un empleado específico
+ */
+export async function eliminarPresupuestoEmpleado(id: number): Promise<void> {
+  try {
+    await withAutoRefresh(() =>
+      directus.request(deleteItems("presupuesto_diario_empleados", [id]))
+    );
+  } catch (error) {
+    console.error("❌ Error al eliminar presupuesto empleado:", error);
+    throw error;
+  }
+}
+
+/**
  * Crear o actualizar ventas diarias de empleados
  */
 export async function guardarVentasEmpleados(
@@ -261,4 +298,3 @@ export async function createCargo(
     throw error;
   }
 }
-
