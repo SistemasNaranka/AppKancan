@@ -331,27 +331,30 @@ export async function obtenerPorcentajesMensuales(
       data as DirectusPorcentajeMensualNuevo[]
     ).map((item) => {
       const configMap: { [key: string]: any } = {};
-      item.configuracion_roles.forEach((config) => {
-        const rolLower = config.rol.toLowerCase();
-        configMap[`${rolLower}_tipo`] = config.tipo_calculo.toLowerCase() as
-          | "fijo"
-          | "distributivo";
-        configMap[`${rolLower}_porcentaje`] = config.porcentaje;
-      });
+      if (item.configuracion_roles && Array.isArray(item.configuracion_roles)) {
+        item.configuracion_roles.forEach((config) => {
+          const rolLower = config.rol.toLowerCase();
+          configMap[`${rolLower}_tipo`] = config.tipo_calculo.toLowerCase() as
+            | "fijo"
+            | "distributivo";
+          configMap[`${rolLower}_porcentaje`] = config.porcentaje;
+        });
+      }
 
       return {
         id: item.id,
         fecha: `${item.anio}-${item.mes}`,
-        gerente_tipo: configMap.gerente_tipo || "fijo",
-        gerente_porcentaje: configMap.gerente_porcentaje || 10,
-        asesor_tipo: configMap.asesor_tipo || "distributivo",
-        asesor_porcentaje: configMap.asesor_porcentaje || 90,
-        coadministrador_tipo: configMap.coadministrador_tipo || "distributivo",
-        coadministrador_porcentaje: configMap.coadministrador_porcentaje || 0,
-        cajero_tipo: configMap.cajero_tipo || "distributivo",
-        cajero_porcentaje: configMap.cajero_porcentaje || 0,
-        logistico_tipo: configMap.logistico_tipo || "distributivo",
-        logistico_porcentaje: configMap.logistico_porcentaje || 0,
+        configuracion_roles: item.configuracion_roles, // Mantener el array original
+        gerente_tipo: configMap.gerente_tipo,
+        gerente_porcentaje: configMap.gerente_porcentaje,
+        asesor_tipo: configMap.asesor_tipo,
+        asesor_porcentaje: configMap.asesor_porcentaje,
+        coadministrador_tipo: configMap.coadministrador_tipo,
+        coadministrador_porcentaje: configMap.coadministrador_porcentaje,
+        cajero_tipo: configMap.cajero_tipo,
+        cajero_porcentaje: configMap.cajero_porcentaje,
+        logistico_tipo: configMap.logistico_tipo,
+        logistico_porcentaje: configMap.logistico_porcentaje,
       };
     });
 

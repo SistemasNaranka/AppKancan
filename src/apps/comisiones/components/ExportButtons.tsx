@@ -40,56 +40,89 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
 
   const [csvModalOpen, setCsvModalOpen] = useState(false);
 
-  const [selectedCSVType, setSelectedCSVType] = useState<"General" | "Detallada" | null>(null);
+  const [selectedCSVType, setSelectedCSVType] = useState<
+    "General" | "Detallada" | null
+  >(null);
   const [selectedStores, setSelectedStores] = useState<string[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const availableStores = mesResumen?.tiendas.map((t) => t.tienda) || [];
   const [storeFilterOpen, setStoreFilterOpen] = useState(false);
-
 
   const handleExportGeneral = (stores: string[]) => {
     if (!mesResumen) return;
 
-    const filteredTiendas = mesResumen.tiendas.filter(t => stores.includes(t.tienda)).sort((a, b) => a.tienda.localeCompare(b.tienda));
+    const filteredTiendas = mesResumen.tiendas
+      .filter((t) => stores.includes(t.tienda))
+      .sort((a, b) => a.tienda.localeCompare(b.tienda));
 
     let csvContent = "Tienda;Presupuesto;Ventas;Cumplimiento;Comisiones\n";
 
     filteredTiendas.forEach((tienda) => {
-      const totalComisiones = tienda.empleados.reduce((tiendaTotal: number, empleado: any) => {
-        return tiendaTotal + (empleado.comision_monto || 0);
-      }, 0);
+      const totalComisiones = tienda.empleados.reduce(
+        (tiendaTotal: number, empleado: any) => {
+          return tiendaTotal + (empleado.comision_monto || 0);
+        },
+        0
+      );
 
-      csvContent += `${tienda.tienda};${formatCurrency(tienda.presupuesto_tienda)};${formatCurrency(tienda.ventas_tienda)};${tienda.cumplimiento_tienda_pct.toFixed(2)};${formatCurrency(totalComisiones)}\n`;
+      csvContent += `${tienda.tienda};${formatCurrency(
+        tienda.presupuesto_tienda
+      )};${formatCurrency(
+        tienda.ventas_tienda
+      )};${tienda.cumplimiento_tienda_pct.toFixed(2)};${formatCurrency(
+        totalComisiones
+      )}\n`;
     });
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `comisiones_general_${mes.replace(" ", "_")}.csv`);
+    link.setAttribute(
+      "download",
+      `comisiones_general_${mes.replace(" ", "_")}.csv`
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const handleExportDetallada = (stores: string[]) => {
+  const handleExportDetallada = (stores: string[], roles?: string[]) => {
     if (!mesResumen) return;
 
-    const filteredTiendas = mesResumen.tiendas.filter(t => stores.includes(t.tienda));
+    const filteredTiendas = mesResumen.tiendas.filter((t) =>
+      stores.includes(t.tienda)
+    );
 
-    let csvContent = "Tienda;Documento;Empleado;Dias laborados;Cargo;Presupuesto;Ventas;Cumplimiento %;Comision %;Comision $\n";
+    let csvContent =
+      "Tienda;Documento;Empleado;Dias laborados;Cargo;Presupuesto;Ventas;Cumplimiento %;Comision %;Comision $\n";
 
     filteredTiendas.forEach((tienda) => {
-      tienda.empleados.forEach((empleado) => {
-        csvContent += `${tienda.tienda};${empleado.documento};${empleado.nombre};${empleado.dias_laborados};${empleado.rol};${formatCurrency(empleado.presupuesto)};${formatCurrency(empleado.ventas)};${empleado.cumplimiento_pct};${empleado.comision_pct};${formatCurrency(empleado.comision_monto)}\n`;
-      });
+      tienda.empleados
+        .filter(
+          (empleado) =>
+            !roles || roles.length === 0 || roles.includes(empleado.rol)
+        )
+        .forEach((empleado) => {
+          csvContent += `${tienda.tienda};${empleado.documento};${
+            empleado.nombre
+          };${empleado.dias_laborados};${empleado.rol};${formatCurrency(
+            empleado.presupuesto
+          )};${formatCurrency(empleado.ventas)};${empleado.cumplimiento_pct};${
+            empleado.comision_pct
+          };${formatCurrency(empleado.comision_monto)}\n`;
+        });
     });
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `comisiones_detallada_${mes.replace(" ", "_")}.csv`);
+    link.setAttribute(
+      "download",
+      `comisiones_detallada_${mes.replace(" ", "_")}.csv`
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -231,10 +264,17 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     doc.save(`comisiones_${mes.replace(" ", "_")}.pdf`);
   };
 
-  const handleExport = (type: string, csvType?: "General" | "Detallada") => {
-    if (type === 'csv') {
+  const handleExport = (
+    type: string,
+    csvType?: "General" | "Detallada",
+    roles?: string[]
+  ) => {
+    if (type === "csv") {
       if (csvType) {
         setSelectedCSVType(csvType);
+        if (roles) {
+          setSelectedRoles(roles);
+        }
         setStoreFilterOpen(true);
         setCsvModalOpen(false);
       } else {
@@ -243,45 +283,47 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     }
   };
 
-const handleStoresSelected = (stores: string[]) => {
-  setSelectedStores(stores);
-  setStoreFilterOpen(false);
-  if (selectedCSVType === "General") {
-    handleExportGeneral(stores);
-  } else if (selectedCSVType === "Detallada") {
-    handleExportDetallada(stores);
-  }
-  // Deseleccionar las tiendas después de la descarga
-  setSelectedStores([]);
+  const handleStoresSelected = (stores: string[]) => {
+    setSelectedStores(stores);
+    setStoreFilterOpen(false);
+    if (selectedCSVType === "General") {
+      handleExportGeneral(stores);
+    } else if (selectedCSVType === "Detallada") {
+      handleExportDetallada(stores, selectedRoles);
+    }
+    // Deseleccionar las tiendas y roles después de la descarga
+    setSelectedStores([]);
+    setSelectedRoles([]);
+  };
+
+  return (
+    <>
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={() => handleExport("csv")}
+          disabled={!mesResumen}
+        >
+          Exportar CSV
+        </Button>
+      </Box>
+
+      <CSVData
+        open={csvModalOpen}
+        onClose={() => setCsvModalOpen(false)}
+        onSelectType={(type, roles) => handleExport("csv", type, roles)}
+        mesResumen={mesResumen}
+      />
+
+      <StoreFilterModal
+        showButton={false}
+        open={storeFilterOpen}
+        onClose={() => setStoreFilterOpen(false)}
+        availableStores={availableStores}
+        selectedStores={selectedStores}
+        onStoresSelected={handleStoresSelected}
+      />
+    </>
+  );
 };
-
-return (
-  <>
-    <Box sx={{ display: "flex", gap: 1 }}>
-      <Button
-        variant="outlined"
-        startIcon={<DownloadIcon />}
-        onClick={() => handleExport('csv')}
-        disabled={!mesResumen}
-      >
-        Exportar CSV
-      </Button>
-    </Box>
-
-    <CSVData
-      open={csvModalOpen}
-      onClose={() => setCsvModalOpen(false)}
-      onSelectType={(type) => handleExport('csv', type)}
-    />
-
-    <StoreFilterModal
-      showButton={false}
-      open={storeFilterOpen}
-      onClose={() => setStoreFilterOpen(false)}
-      availableStores={availableStores}
-      selectedStores={selectedStores}
-      onStoresSelected={handleStoresSelected}
-    />
-  </>
-);
-}

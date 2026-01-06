@@ -1,6 +1,8 @@
 import directus from "@/services/directus/directus";
 import {
+  createItem,
   createItems,
+  updateItem,
   updateItems,
   deleteItems,
   readItems,
@@ -296,5 +298,97 @@ export async function createCargo(
   } catch (error) {
     console.error("❌ Error al crear cargo:", error);
     throw error;
+  }
+}
+
+/**
+ * Guardar configuración de presupuesto mensual por rol (Formato Simplificado)
+ */
+export async function saveRoleBudgetConfiguration(data: {
+  id?: number | string; // ID opcional para actualización directa
+  mes: string; // "YYYY-MM"
+  roleConfigs: {
+    rol: string;
+    tipo_calculo: "Fijo" | "Distributivo";
+    porcentaje: number;
+  }[];
+}): Promise<any> {
+  try {
+    let anio: number = 0;
+    let mes: number = 0;
+
+    const [anioStr, mesStr] = data.mes.split("-");
+    anio = parseInt(anioStr);
+    mes = parseInt(mesStr);
+
+    if (isNaN(anio) || isNaN(mes)) {
+      throw new Error(`Fecha inválida recibida: "${data.mes}"`);
+    }
+
+    let recordId = data.id;
+
+    // Si no tenemos ID, buscamos por mes/año (fallback legacy)
+    if (!recordId) {
+      // 1. Buscar configuración existente usando STRINGs para asegurar coincidencia exacta
+      // Ya que guardamos mes como "01", "12" etc. y anio como string
+      const existingFilter = {
+        _and: [
+          { mes: { _eq: mesStr } },
+          { anio: { _eq: anioStr } }
+        ]
+      };
+
+      console.log("[saveRoleBudgetConfiguration] Buscando existente con:", JSON.stringify(existingFilter));
+
+      const existentes = await withAutoRefresh(() =>
+        directus.request(
+          readItems("porcentaje_mensual_presupuesto", {
+            filter: existingFilter,
+            limit: 1,
+          })
+        )
+      );
+
+      if (existentes && existentes.length > 0) {
+        recordId = existentes[0].id;
+      }
+    }
+
+    // 2. Preparar las configuraciones enviadas
+    const finalConfigs = data.roleConfigs.map(c => ({
+      rol: c.rol,
+      tipo_calculo: c.tipo_calculo,
+      porcentaje: c.tipo_calculo === "Distributivo" ? 0 : c.porcentaje
+    }));
+
+    // 3. Guardar cambios
+    if (recordId) {
+      console.log(`[saveRoleBudgetConfiguration] Actualizando ID ${recordId} con ${finalConfigs.length} roles.`);
+      return await withAutoRefresh(() =>
+        directus.request(
+          updateItem("porcentaje_mensual_presupuesto", recordId, {
+            configuracion_roles: finalConfigs,
+          })
+        )
+      );
+    } else {
+      const payload = {
+        mes: mes.toString().padStart(2, '0'),
+        anio: anio.toString(),
+        configuracion_roles: finalConfigs,
+      };
+
+      console.log("[saveRoleBudgetConfiguration] Creando nuevo registro:", JSON.stringify(payload));
+
+      return await withAutoRefresh(() =>
+        directus.request(
+          createItem("porcentaje_mensual_presupuesto", payload)
+        )
+      );
+    }
+  } catch (error: any) {
+    console.error("❌ Error en saveRoleBudgetConfiguration:", error);
+    const directusError = error.errors?.[0]?.message || error.message;
+    throw new Error(directusError || "Error desconocido al procesar la configuración.");
   }
 }

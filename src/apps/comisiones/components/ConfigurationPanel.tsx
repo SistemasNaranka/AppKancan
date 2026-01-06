@@ -1,533 +1,593 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
   TextField,
-  Select,
   MenuItem,
   FormControl,
   InputLabel,
-  Card,
-  CardContent,
+  Select,
   Alert,
+  CircularProgress,
   Box,
   Typography,
+  InputAdornment,
   IconButton,
+  styled,
+  Divider,
+  Tooltip,
+  Grid,
 } from "@mui/material";
-import { Add, Delete, Error, Store } from "@mui/icons-material";
-import { useCommission } from "../contexts/CommissionContext";
-import { validateManagerPercentage } from "../lib/validation";
-import { StaffMember, BudgetRecord, Role } from "../types";
-import { v4 as uuidv4 } from "uuid";
-import { obtenerTiendas } from "../api/directus/read";
+import {
+  Save,
+  Percent,
+  Close,
+  CalendarMonth,
+  Badge,
+  SettingsSuggest,
+  Event,
+  AddCircleOutline,
+  DeleteOutline,
+  InfoOutlined,
+} from "@mui/icons-material";
+import {
+  obtenerCargos,
+  obtenerPorcentajesMensuales,
+} from "../api/directus/read";
+import { saveRoleBudgetConfiguration } from "../api/directus/create";
+
+// Estilo corregido para ocultar las flechas del input numérico
+const StyledTextField = styled(TextField)({
+  "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
+    WebkitAppearance: "none",
+    margin: 0,
+  },
+  "& input[type=number]": {
+    MozAppearance: "textfield",
+  },
+});
 
 interface ConfigurationPanelProps {
-  mes: string;
+  open: boolean;
+  onClose: () => void;
+  initialMonth?: string;
+}
+
+const MESES = [
+  { value: "01", label: "Enero" },
+  { value: "02", label: "Febrero" },
+  { value: "03", label: "Marzo" },
+  { value: "04", label: "Abril" },
+  { value: "05", label: "Mayo" },
+  { value: "06", label: "Junio" },
+  { value: "07", label: "Julio" },
+  { value: "08", label: "Agosto" },
+  { value: "09", label: "Septiembre" },
+  { value: "10", label: "Octubre" },
+  { value: "11", label: "Noviembre" },
+  { value: "12", label: "Diciembre" },
+];
+
+interface RoleConfigRow {
+  id: string;
+  rol: string;
+  tipo_calculo: "Fijo" | "Distributivo";
+  porcentaje: string;
 }
 
 export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
-  mes,
+  open,
+  onClose,
+  initialMonth,
 }) => {
-  const {
-    state,
-    updateMonthConfig,
-    addStaffMember,
-    removeStaffMember,
-    getMonthConfig,
-    setBudgets,
-  } = useCommission();
-  const [porcentajeGerente, setPorcentajeGerente] = useState(
-    getMonthConfig(mes)?.porcentaje_gerente || 10
+  const now = new Date();
+
+  const parseInitialDate = (input?: string) => {
+    if (!input)
+      return {
+        mes: (now.getMonth() + 1).toString().padStart(2, "0"),
+        anio: now.getFullYear().toString(),
+      };
+    if (input.includes("-")) {
+      const [y, m] = input.split("-");
+      return { mes: m.padStart(2, "0"), anio: y };
+    }
+    return {
+      mes: (now.getMonth() + 1).toString().padStart(2, "0"),
+      anio: now.getFullYear().toString(),
+    };
+  };
+
+  const initialDate = parseInitialDate(initialMonth);
+
+  const [selectedMonth, setSelectedMonth] = useState(initialDate.mes);
+  const [selectedYear, setSelectedYear] = useState(initialDate.anio);
+
+  const createEmptyRow = useCallback(
+    (idPrefix: string = "row"): RoleConfigRow => ({
+      id: `${idPrefix}-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`,
+      rol: "",
+      tipo_calculo: "Fijo",
+      porcentaje: "",
+    }),
+    []
   );
-  const [errors, setErrors] = useState<string[]>([]);
-  const [showAddStaff, setShowAddStaff] = useState(false);
-  const [newStaff, setNewStaff] = useState({
-    nombre: "",
-    tienda: "",
-    fecha: "",
-    rol: "asesor" as Role,
-  });
-  const [showAddBudget, setShowAddBudget] = useState(false);
-  const [newBudget, setNewBudget] = useState({
-    tienda: "",
-    fecha: new Date().toISOString().split("T")[0],
-    presupuesto_total: 0,
-  });
-  const [tiendas, setTiendas] = useState<any[]>([]);
 
-  // Cargar tiendas al montar el componente
+  const [roleConfigs, setRoleConfigs] = useState<RoleConfigRow[]>([]);
+  const [cargos, setCargos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingCargos, setLoadingCargos] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  // Estado para guardar el ID del registro actual (si existe)
+  const [currentRecordId, setCurrentRecordId] = useState<
+    number | string | undefined
+  >(undefined);
+
+  // Inicialización de la primera fila al abrir
   useEffect(() => {
-    const loadTiendas = async () => {
-      try {
-        const tiendasData = await obtenerTiendas();
-        setTiendas(tiendasData);
-      } catch (error) {
-        console.error("Error cargando tiendas:", error);
-        setTiendas([]);
+    if (open && roleConfigs.length === 0) {
+      setRoleConfigs([createEmptyRow("init")]);
+    }
+  }, [open, roleConfigs.length, createEmptyRow]);
+
+  useEffect(() => {
+    if (open) {
+      const fetchCargos = async () => {
+        try {
+          setLoadingCargos(true);
+          const data = await obtenerCargos();
+          setCargos(data);
+        } catch (err) {
+          setError("No se pudieron cargar los roles.");
+        } finally {
+          setLoadingCargos(false);
+        }
+      };
+      fetchCargos();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (initialMonth && open) {
+      const d = parseInitialDate(initialMonth);
+      setSelectedMonth(d.mes);
+      setSelectedYear(d.anio);
+    }
+  }, [initialMonth, open]);
+
+  const loadExistingConfigs = useCallback(async () => {
+    if (!open || !selectedMonth || !selectedYear) return;
+
+    try {
+      setLoadingData(true);
+      setCurrentRecordId(undefined); // Resetear ID al cambiar de mes
+      const mesNombre =
+        MESES.find((m) => m.value === selectedMonth)?.label.substring(0, 3) ||
+        "Ene";
+      const data = await obtenerPorcentajesMensuales(
+        undefined,
+        `${mesNombre} ${selectedYear}`
+      );
+
+      if (data && data.length > 0) {
+        const item = data[0] as any;
+        setCurrentRecordId(item.id); // Guardamos el ID del registro encontrado
+        if (
+          item.configuracion_roles &&
+          Array.isArray(item.configuracion_roles) &&
+          item.configuracion_roles.length > 0
+        ) {
+          const configs: RoleConfigRow[] = item.configuracion_roles.map(
+            (c: any, index: number) => ({
+              id: `row-${index}-${Date.now()}`,
+              rol: c.rol,
+              tipo_calculo:
+                c.tipo_calculo === "Distributivo" ? "Distributivo" : "Fijo",
+              porcentaje: c.porcentaje?.toString() || "",
+            })
+          );
+          setRoleConfigs(configs);
+        } else {
+          setRoleConfigs([createEmptyRow("empty")]);
+        }
+      } else {
+        setRoleConfigs([createEmptyRow("new")]);
       }
-    };
-    loadTiendas();
-  }, []);
-
-  const handleUpdatePercentage = () => {
-    const validationErrors = validateManagerPercentage(porcentajeGerente);
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors.map((e) => e.message));
-    } else {
-      updateMonthConfig(mes, porcentajeGerente);
-      setErrors([]);
+    } catch (err) {
+      setRoleConfigs([createEmptyRow("err")]);
+    } finally {
+      setLoadingData(false);
     }
+  }, [selectedMonth, selectedYear, open, createEmptyRow]);
+
+  useEffect(() => {
+    loadExistingConfigs();
+  }, [loadExistingConfigs]);
+
+  const handleAddRow = () => {
+    setRoleConfigs([...roleConfigs, createEmptyRow("added")]);
   };
 
-  const handleAddStaff = () => {
-    if (
-      !newStaff.nombre.trim() ||
-      !newStaff.tienda.trim() ||
-      !newStaff.fecha.trim()
-    ) {
-      setErrors(["Por favor completa todos los campos"]);
+  const handleRemoveRow = (id: string) => {
+    if (roleConfigs.length === 1) {
+      setRoleConfigs([createEmptyRow("reset")]);
       return;
     }
-
-    const member: StaffMember = {
-      id: uuidv4(),
-      nombre: newStaff.nombre,
-      tienda: newStaff.tienda,
-      fecha: newStaff.fecha,
-      rol: newStaff.rol,
-    };
-
-    addStaffMember(member);
-    setNewStaff({
-      nombre: "",
-      tienda: "",
-      fecha: "",
-      rol: "asesor" as Role,
-    });
-    setShowAddStaff(false);
-    setErrors([]);
+    setRoleConfigs(roleConfigs.filter((row) => row.id !== id));
   };
 
-  const handleAddBudget = () => {
-    if (
-      !newBudget.tienda.trim() ||
-      !newBudget.fecha.trim() ||
-      newBudget.presupuesto_total <= 0
-    ) {
-      setErrors(["Por favor completa todos los campos con valores válidos"]);
-      return;
-    }
-
-    const budget: BudgetRecord = {
-      tienda: newBudget.tienda,
-      fecha: newBudget.fecha,
-      presupuesto_total: newBudget.presupuesto_total,
-      tienda_id: 0, // Valor por defecto
-      empresa: "", // Valor por defecto
-    };
-
-    // Agregar al estado existente
-    setBudgets([...state.budgets, budget]);
-
-    setNewBudget({
-      tienda: "",
-      fecha: new Date().toISOString().split("T")[0],
-      presupuesto_total: 0,
-    });
-    setShowAddBudget(false);
-    setErrors([]);
-  };
-
-  const staffForMonth = state.staff.filter((s) => {
-    // Usar fecha local en lugar de UTC
-    const staffDate = new Date(s.fecha + "T00:00:00");
-    const [mesStr, yearStr] = mes.split(" ");
-    const months: Record<string, number> = {
-      Ene: 0,
-      Feb: 1,
-      Mar: 2,
-      Abr: 3,
-      May: 4,
-      Jun: 5,
-      Jul: 6,
-      Ago: 7,
-      Sep: 8,
-      Oct: 9,
-      Nov: 10,
-      Dic: 11,
-    };
-    return (
-      staffDate.getMonth() === months[mesStr] && // Usar hora local
-      staffDate.getFullYear() === parseInt(yearStr) // Usar hora local
+  const handleRowChange = (
+    id: string,
+    field: keyof RoleConfigRow,
+    value: any
+  ) => {
+    setRoleConfigs((prev) =>
+      prev.map((row) => {
+        if (row.id === id) {
+          const updated = { ...row, [field]: value };
+          if (field === "tipo_calculo" && value === "Distributivo") {
+            updated.porcentaje = "0";
+          }
+          return updated;
+        }
+        return row;
+      })
     );
-  });
+  };
+
+  const handleSubmit = async () => {
+    setError("");
+    setSuccess("");
+
+    if (!selectedMonth || !selectedYear) {
+      setError("El mes y el año son obligatorios.");
+      return;
+    }
+
+    const validConfigs = roleConfigs.filter((c) => c.rol.trim() !== "");
+    if (validConfigs.length === 0) {
+      setError("Debe configurar al menos un rol.");
+      return;
+    }
+
+    const roles = validConfigs.map((c) => c.rol);
+    if (new Set(roles).size !== roles.length) {
+      setError("No se pueden repetir roles en la misma configuración.");
+      return;
+    }
+
+    for (const config of validConfigs) {
+      if (config.tipo_calculo === "Fijo") {
+        const p = parseFloat(config.porcentaje);
+        if (isNaN(p) || p < 0 || p > 100) {
+          setError(
+            `El porcentaje para ${config.rol} debe estar entre 0 y 100.`
+          );
+          return;
+        }
+      }
+    }
+
+    try {
+      setLoading(true);
+      await saveRoleBudgetConfiguration({
+        id: currentRecordId, // Le pasamos el ID explícito para que sepa exactamente qué actualizar
+        mes: `${selectedYear}-${selectedMonth}`,
+        roleConfigs: validConfigs.map((c) => ({
+          rol: c.rol,
+          tipo_calculo: c.tipo_calculo,
+          porcentaje: parseFloat(c.porcentaje) || 0,
+        })),
+      });
+      setSuccess("Configuraciones guardadas exitosamente.");
+
+      // Recargar datos para confirmar que se guardó y refrescar el ID si fuera nuevo
+      await loadExistingConfigs();
+
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      setError("Error al guardar: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Card sx={{ p: 3 }}>
-      <Typography variant="h6" sx={{ mb: 3 }}>
-        Configuración de Comisiones
-      </Typography>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 4, boxShadow: 24 } }}
+    >
+      <DialogTitle
+        sx={{
+          bgcolor: "#004b8d",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          py: 2.5,
+          px: 3,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <SettingsSuggest sx={{ fontSize: 28 }} />
+          <Box>
+            <Typography variant="h6" fontWeight="700" sx={{ lineHeight: 1.2 }}>
+              Configuración de Presupuesto
+            </Typography>
+            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+              Gestión masiva de porcentajes mensuales
+            </Typography>
+          </Box>
+        </Box>
+        <IconButton onClick={onClose} sx={{ color: "white" }} size="small">
+          <Close />
+        </IconButton>
+      </DialogTitle>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        {/* Configuración de Porcentaje de Gerente */}
-        <Box>
-          <Typography variant="subtitle1" sx={{ mb: 2 }}>
-            Configuración de Porcentaje - {mes}
-          </Typography>
+      <DialogContent sx={{ p: 4 }}>
+        <Box sx={{ mt: 1 }}>
+          {error && (
+            <Alert
+              severity="error"
+              variant="outlined"
+              sx={{ mb: 3, borderRadius: 2 }}
+            >
+              {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert
+              severity="success"
+              variant="filled"
+              sx={{ mb: 3, borderRadius: 2 }}
+            >
+              {success}
+            </Alert>
+          )}
+        </Box>
 
-          <Box sx={{ display: "flex", alignItems: "end", gap: 2 }}>
+        <Grid container spacing={3} sx={{ mb: 4, mt: 5 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Mes de Aplicación</InputLabel>
+              <Select
+                value={selectedMonth}
+                label="Mes de Aplicación"
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                startAdornment={
+                  <InputAdornment position="start">
+                    <CalendarMonth fontSize="small" />
+                  </InputAdornment>
+                }
+                sx={{ fontSize: "1rem" }}
+              >
+                {MESES.map((m) => (
+                  <MenuItem
+                    key={m.value}
+                    value={m.value}
+                    sx={{ fontSize: "0.95rem" }}
+                  >
+                    {m.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
+              size="small"
+              label="Año"
               type="number"
-              label="Porcentaje fijo del gerente (0-10%)"
-              slotProps={{
-                htmlInput: {
-                  min: 0,
-                  max: 10,
-                  step: 0.1,
-                },
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              InputProps={{
+                sx: { fontSize: "1rem" },
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Event fontSize="small" />
+                  </InputAdornment>
+                ),
               }}
-              value={porcentajeGerente}
-              onChange={(e) =>
-                setPorcentajeGerente(parseFloat(e.target.value) || 0)
-              }
-              placeholder="Ingrese el porcentaje del gerente"
             />
-            <Button onClick={handleUpdatePercentage} variant="contained">
-              Guardar Configuración
-            </Button>
-          </Box>
-        </Box>
+          </Grid>
+        </Grid>
 
-        {errors.length > 0 && (
-          <Alert severity="error" icon={<Error />}>
-            {errors.map((error, i) => (
-              <Typography
-                key={`error-${i}-${Date.now()}-${Math.random()}`}
-                variant="body2"
-              >
-                {error}
-              </Typography>
-            ))}
-          </Alert>
-        )}
+        <Divider sx={{ mb: 3 }}>
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            fontWeight="700"
+          >
+            Configuración por Roles
+          </Typography>
+        </Divider>
 
-        {/* Gestión de Presupuestos de Tienda */}
-        <Box sx={{ borderTop: "1px solid #e0e0e0", pt: 3 }}>
+        {loadingData || loadingCargos ? (
           <Box
             sx={{
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "space-between",
-              mb: 2,
+              py: 6,
+              gap: 2,
             }}
           >
-            <Typography variant="h6">Presupuestos Diarios de Tienda</Typography>
-            <Button
-              onClick={() => setShowAddBudget(!showAddBudget)}
-              variant="outlined"
-              size="small"
-              startIcon={<Store />}
-            >
-              Agregar Presupuesto
-            </Button>
-          </Box>
-
-          {showAddBudget && (
-            <Box
-              sx={{
-                bgcolor: "grey.50",
-                p: 3,
-                borderRadius: 1,
-                border: "1px solid #e0e0e0",
-                mb: 2,
-              }}
-            >
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                  <FormControl sx={{ flex: "1 1 45%", minWidth: "200px" }}>
-                    <InputLabel>Tienda</InputLabel>
-                    <Select
-                      value={newBudget.tienda}
-                      label="Tienda"
-                      onChange={(e) =>
-                        setNewBudget({ ...newBudget, tienda: e.target.value })
-                      }
-                    >
-                      {tiendas.slice(0, 5).map((tienda) => (
-                        <MenuItem key={tienda.id} value={tienda.nombre}>
-                          {tienda.nombre}
-                        </MenuItem>
-                      ))}
-                      {tiendas.length > 5 && (
-                        <MenuItem disabled value="">
-                          ... y {tiendas.length - 5} más
-                        </MenuItem>
-                      )}
-                    </Select>
-                  </FormControl>
-                  <TextField
-                    sx={{ flex: "1 1 45%", minWidth: "200px" }}
-                    type="date"
-                    label="Fecha"
-                    InputLabelProps={{ shrink: true }}
-                    value={newBudget.fecha}
-                    onChange={(e) =>
-                      setNewBudget({ ...newBudget, fecha: e.target.value })
-                    }
-                  />
-                </Box>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Presupuesto Total Diario"
-                  slotProps={{
-                    htmlInput: {
-                      min: 0,
-                      step: 1000,
-                    },
-                  }}
-                  value={newBudget.presupuesto_total}
-                  onChange={(e) =>
-                    setNewBudget({
-                      ...newBudget,
-                      presupuesto_total: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  placeholder="Ingrese el presupuesto total para el día"
-                />
-              </Box>
-              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                <Button
-                  onClick={handleAddBudget}
-                  variant="contained"
-                  size="small"
-                >
-                  Agregar Presupuesto
-                </Button>
-                <Button
-                  onClick={() => setShowAddBudget(false)}
-                  variant="outlined"
-                  size="small"
-                >
-                  Cancelar
-                </Button>
-              </Box>
-            </Box>
-          )}
-
-          {state.budgets.length === 0 ? (
-            <Typography color="text.secondary" variant="body2">
-              No hay presupuestos configurados
+            <CircularProgress size={32} thickness={4} />
+            <Typography variant="body2" color="text.secondary">
+              Cargando información...
             </Typography>
-          ) : (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              {state.budgets.slice(0, 5).map((budget, index) => (
-                <Box
-                  key={`budget-${budget.tienda}-${budget.fecha}-${index}`}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    bgcolor: "grey.50",
-                    p: 2,
-                    borderRadius: 1,
-                    border: "1px solid #e0e0e0",
-                  }}
-                >
-                  <Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {budget.tienda}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {budget.fecha} • $
-                      {budget.presupuesto_total.toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
-              {state.budgets.length > 5 && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: "grey.100",
-                    p: 2,
-                    borderRadius: 1,
-                    border: "1px solid #e0e0e0",
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    ... y {state.budgets.length - 5} presupuestos más
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          )}
-        </Box>
-
-        {/* Gestión de Personal */}
-        <Box sx={{ borderTop: "1px solid #e0e0e0", pt: 3 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              mb: 2,
-            }}
-          >
-            <Typography variant="h6">Personal del mes</Typography>
-            <Button
-              onClick={() => setShowAddStaff(!showAddStaff)}
-              variant="outlined"
-              size="small"
-              startIcon={<Add />}
-            >
-              Agregar Personal
-            </Button>
           </Box>
-
-          {showAddStaff && (
-            <Box
-              sx={{
-                bgcolor: "grey.50",
-                p: 3,
-                borderRadius: 1,
-                border: "1px solid #e0e0e0",
-                mb: 2,
-              }}
-            >
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                  <TextField
-                    sx={{ flex: "1 1 45%", minWidth: "200px" }}
-                    label="Nombre"
-                    placeholder="Nombre"
-                    value={newStaff.nombre}
-                    onChange={(e) =>
-                      setNewStaff({ ...newStaff, nombre: e.target.value })
-                    }
-                  />
-                  <TextField
-                    sx={{ flex: "1 1 45%", minWidth: "200px" }}
-                    label="Tienda"
-                    placeholder="Tienda"
-                    value={newStaff.tienda}
-                    onChange={(e) =>
-                      setNewStaff({ ...newStaff, tienda: e.target.value })
-                    }
-                  />
-                </Box>
-                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                  <TextField
-                    sx={{ flex: "1 1 45%", minWidth: "200px" }}
-                    type="date"
-                    label="Fecha"
-                    InputLabelProps={{ shrink: true }}
-                    value={newStaff.fecha}
-                    onChange={(e) =>
-                      setNewStaff({ ...newStaff, fecha: e.target.value })
-                    }
-                  />
-                  <FormControl sx={{ flex: "1 1 45%", minWidth: "200px" }}>
+        ) : (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            {roleConfigs.map((row) => (
+              <Grid container spacing={2} key={row.id} alignItems="center">
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <FormControl fullWidth size="small">
                     <InputLabel>Rol</InputLabel>
                     <Select
-                      value={newStaff.rol}
+                      value={row.rol}
                       label="Rol"
                       onChange={(e) =>
-                        setNewStaff({
-                          ...newStaff,
-                          rol: e.target.value as Role,
-                        })
+                        handleRowChange(row.id, "rol", e.target.value)
                       }
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <Badge sx={{ fontSize: 18 }} />
+                        </InputAdornment>
+                      }
+                      sx={{ fontSize: "1rem" }}
                     >
-                      <MenuItem value="gerente">Gerente</MenuItem>
-                      <MenuItem value="asesor">Asesor</MenuItem>
-                      <MenuItem value="coadministrador">
-                        Coadministrador
-                      </MenuItem>
-                      <MenuItem value="logistico">Logístico</MenuItem>
-                      <MenuItem value="cajero">Cajero</MenuItem>
+                      {cargos.map((c) => (
+                        <MenuItem
+                          key={c.id || c.nombre}
+                          value={c.nombre}
+                          sx={{ fontSize: "0.95rem" }}
+                        >
+                          {c.nombre}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
-                </Box>
-              </Box>
-              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                <Button
-                  onClick={handleAddStaff}
-                  variant="contained"
-                  size="small"
-                >
-                  Agregar
-                </Button>
-                <Button
-                  onClick={() => setShowAddStaff(false)}
-                  variant="outlined"
-                  size="small"
-                >
-                  Cancelar
-                </Button>
-              </Box>
-            </Box>
-          )}
-
-          {staffForMonth.length === 0 ? (
-            <Typography color="text.secondary" variant="body2">
-              No hay personal asignado para este mes
-            </Typography>
-          ) : (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              {staffForMonth.slice(0, 5).map((staff, index) => (
-                <Box
-                  key={`staff-${staff.id}-${index}-${Date.now()}`}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    bgcolor: "grey.50",
-                    p: 2,
-                    borderRadius: 1,
-                    border: "1px solid #e0e0e0",
-                  }}
-                >
-                  <Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {staff.nombre}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {staff.tienda} • {staff.rol} • {staff.fecha}
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    onClick={() => removeStaffMember(staff.id)}
+                </Grid>
+                <Grid size={{ xs: 7, sm: 3.5 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Tipo de Cálculo</InputLabel>
+                    <Select
+                      value={row.tipo_calculo}
+                      label="Tipo de Cálculo"
+                      onChange={(e) =>
+                        handleRowChange(row.id, "tipo_calculo", e.target.value)
+                      }
+                      sx={{ fontSize: "1rem" }}
+                    >
+                      <MenuItem value="Fijo" sx={{ fontSize: "0.95rem" }}>
+                        Fijo
+                      </MenuItem>
+                      <MenuItem
+                        value="Distributivo"
+                        sx={{ fontSize: "0.95rem" }}
+                      >
+                        Distributivo
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 5, sm: 3.5 }}>
+                  <StyledTextField
+                    fullWidth
                     size="small"
-                    sx={{ color: "error.main" }}
-                  >
-                    <Delete />
-                  </IconButton>
-                </Box>
-              ))}
-              {staffForMonth.length > 5 && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: "grey.100",
-                    p: 2,
-                    borderRadius: 1,
-                    border: "1px solid #e0e0e0",
-                  }}
+                    label="Porcentaje"
+                    type="number"
+                    value={row.porcentaje}
+                    onChange={(e) =>
+                      handleRowChange(row.id, "porcentaje", e.target.value)
+                    }
+                    disabled={row.tipo_calculo === "Distributivo"}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Percent sx={{ fontSize: 16 }} />
+                        </InputAdornment>
+                      ),
+                      sx: { fontWeight: "600", fontSize: "1rem" },
+                    }}
+                  />
+                </Grid>
+                <Grid
+                  size={{ xs: 12, sm: 1 }}
+                  sx={{ display: "flex", justifyContent: "center" }}
                 >
-                  <Typography variant="body2" color="text.secondary">
-                    ... y {staffForMonth.length - 5} empleados más
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          )}
-        </Box>
+                  <Tooltip title="Eliminar este rol">
+                    <IconButton
+                      onClick={() => handleRemoveRow(row.id)}
+                      color="error"
+                      size="small"
+                    >
+                      <DeleteOutline />
+                    </IconButton>
+                  </Tooltip>
+                </Grid>
+              </Grid>
+            ))}
+
+            <Button
+              startIcon={<AddCircleOutline />}
+              onClick={handleAddRow}
+              sx={{
+                alignSelf: "flex-start",
+                mt: 1,
+                textTransform: "none",
+                fontWeight: "700",
+                color: "#004b8d",
+                fontSize: "0.95rem",
+              }}
+              disabled={loading}
+            >
+              Agregar otro rol
+            </Button>
+          </Box>
+        )}
+      </DialogContent>
+
+      <Box
+        sx={{
+          p: 4,
+          pt: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          color: "text.secondary",
+          px: 4,
+        }}
+      >
+        <InfoOutlined fontSize="small" />
+        <Typography variant="caption" sx={{ fontSize: "0.9rem" }}>
+          Los roles con cálculo <b>Distributivo</b> se ajustan automáticamente a
+          0%.
+        </Typography>
       </Box>
-    </Card>
+
+      <DialogActions sx={{ p: 4, pt: 0, gap: 2 }}>
+        <Button
+          onClick={onClose}
+          disabled={loading}
+          color="inherit"
+          sx={{ textTransform: "none", fontWeight: "600", fontSize: "1.1rem" }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={loading || loadingData}
+          startIcon={
+            loading ? <CircularProgress size={20} color="inherit" /> : <Save />
+          }
+          sx={{
+            bgcolor: "#004b8d",
+            textTransform: "none",
+            px: 5,
+            py: 1.2,
+            borderRadius: 2,
+            fontWeight: 700,
+            boxShadow: 4,
+            fontSize: "1.1rem",
+          }}
+        >
+          {loading ? "Guardando..." : "Guardar Configuración"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
