@@ -71,26 +71,33 @@ export const useEditStoreModalLogic = ({
     }
   }, [fecha, tiendaSeleccionada]);
 
-  // Recalcular presupuestos cuando cambie la fecha
+  // Recalcular presupuestos cuando cambie la fecha o se carguen nuevos empleados
   useEffect(() => {
     if (fecha && tiendaSeleccionada && empleadosAsignados.length > 0) {
-      const recalculate = async () => {
-        setLoading(true);
-        try {
-          const listaCalculada = await recalculateBudgets(empleadosAsignados);
-          setEmpleadosAsignados(listaCalculada);
-        } catch (err) {
-          console.error(
-            "Error al recalcular presupuestos al cambiar fecha:",
-            err
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
-      recalculate();
+      // Solo recalcular si los empleados tienen presupuesto 0 o no tienen presupuesto definido
+      const needsRecalculation = empleadosAsignados.some(
+        (emp) => emp.presupuesto === 0 || emp.presupuesto === undefined
+      );
+
+      if (needsRecalculation) {
+        const recalculate = async () => {
+          setLoading(true);
+          try {
+            const listaCalculada = await recalculateBudgets(empleadosAsignados);
+            setEmpleadosAsignados(listaCalculada);
+          } catch (err) {
+            console.error(
+              "Error al recalcular presupuestos al cambiar fecha:",
+              err
+            );
+          } finally {
+            setLoading(false);
+          }
+        };
+        recalculate();
+      }
     }
-  }, [fecha]);
+  }, [fecha, empleadosAsignados]);
 
   // Buscar empleado automáticamente cuando se escribe código
   useEffect(() => {
