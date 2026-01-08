@@ -13,6 +13,7 @@ import {
   setTokenDirectus,
   refreshDirectus,
 } from "@/services/directus/auth";
+import { useNavigationPersistence } from "@/shared/hooks/useNavigationPersistence";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -69,6 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Usar el hook de navegación para manejar la persistencia de la ruta
+  const { clearSavedRoute, goToHome } = useNavigationPersistence();
+
   /**
    * Función de logout mejorada
    */
@@ -84,7 +88,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     // Limpiar navegación persistente al hacer logout
+    clearSavedRoute();
+
+    // Limpiar cualquier otra referencia a la ruta en el sessionStorage
+    sessionStorage.removeItem("lastVisitedRoute");
+
+    // Limpiar cualquier otra referencia a la ruta en el localStorage
     localStorage.removeItem("lastVisitedRoute");
+
+    // Redirigir al usuario al home para evitar que se quede en la última ruta
+    goToHome();
 
     borrarTokenStorage();
     setUser(null);
@@ -99,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Solo inicializar una vez
       if (initialized) return;
       setInitialized(true);
-      
+
       const tokens = cargarTokenStorage();
 
       if (!tokens) {
@@ -124,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             );
 
             await setTokenDirectus(res.access_token);
-          } catch (refreshError) {
+          } catch (refreshError: any) {
             console.error("❌ Error al refrescar tokens:", refreshError);
             // Solo limpiar tokens si es un error de autenticación, no de red
             if (refreshError?.response?.status === 401) {
@@ -154,10 +167,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           tienda_id: me.tienda_id,
           policies: extractedPolicies,
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("❌ Error al inicializar autenticación:", error);
         // Solo limpiar tokens si es un error de autenticación específico
-        if (error?.response?.status === 401 || error?.message?.includes("Invalid token")) {
+        if (
+          error?.response?.status === 401 ||
+          error?.message?.includes("Invalid token")
+        ) {
           borrarTokenStorage();
           setUser(null);
           await setTokenDirectus(null);
