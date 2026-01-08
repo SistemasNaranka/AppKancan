@@ -21,6 +21,10 @@ import {
   ShoppingCart,
   DocumentScanner,
   MonetizationOn,
+  LocalAtm,
+  CurrencyExchange,
+  Assignment,
+  Calculate,
 } from "@mui/icons-material";
 
 /**
@@ -40,7 +44,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Contabilidad
   AccountBalance,
   Description,
+  Calculate,
   Summarize,
+  Assignment,
   // 🔸 Categoría: Recursos Humanos
   PeopleAlt,
   Badge,
@@ -56,6 +62,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Ventas
   ShoppingCart,
   LocalOffer,
+  LocalAtm,
+  CurrencyExchange,
   MonetizationOn,
 
   // 🔸 Fallback por si algo no coincide

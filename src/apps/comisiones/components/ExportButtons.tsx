@@ -33,8 +33,11 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
   const [exportType, setExportType] = useState<string>("");
   const { hasPolicy } = useUserPolicies();
 
-  // Solo mostrar si el usuario tiene la política readComisionesAdmin
-  if (!hasPolicy("readComisionesAdmin")) {
+  // Solo mostrar si el usuario tiene la política readComisionesAdmin o readComisionesComercial
+  if (
+    !hasPolicy("readComisionesAdmin") &&
+    !hasPolicy("readComisionesComercial")
+  ) {
     return null;
   }
 
