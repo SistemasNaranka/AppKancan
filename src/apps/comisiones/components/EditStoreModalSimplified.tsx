@@ -322,7 +322,7 @@ export const EditStoreModalSimplified: React.FC<
                   flex: {
                     xs: "1 1 100%",
                     sm: "1 1 calc(50% - 8px)",
-                    md: "1 1 calc(20.83% - 8px)",
+                    md: "2", // Flex relativo para distribuir mejor
                   },
                 }}
               >
@@ -391,7 +391,7 @@ export const EditStoreModalSimplified: React.FC<
                   flex: {
                     xs: "1 1 100%",
                     sm: "1 1 calc(50% - 8px)",
-                    md: "1 1 calc(16.67% - 8px)",
+                    md: "1.5", // Menos espacio que cargo
                   },
                 }}
               >
@@ -426,10 +426,10 @@ export const EditStoreModalSimplified: React.FC<
                       fontWeight: 600,
                       // Hide Spinners
                       "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
-                        {
-                          WebkitAppearance: "none",
-                          margin: 0,
-                        },
+                      {
+                        WebkitAppearance: "none",
+                        margin: 0,
+                      },
                       "&[type=number]": {
                         MozAppearance: "textfield",
                       },
@@ -451,99 +451,110 @@ export const EditStoreModalSimplified: React.FC<
                 />
               </Box>
 
-              {/* Empleado Encontrado */}
+              {/* Nuevo contenedor agrupado para Empleado y Botón (para forzarlos juntos) */}
               <Box
-                sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(45.83% - 8px)" } }}
+                sx={{
+                  flex: { xs: "1 1 100%", md: "4" }, // Ocupa el resto del espacio
+                  display: "flex",
+                  gap: 2,
+                  alignItems: "flex-end",
+                  flexWrap: { xs: "wrap", sm: "nowrap" }, // Wrap en móvil, fila en desktop
+                }}
               >
-                {empleadoEncontrado ? (
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      bgcolor: "#e8f5e9", // Green lighter
-                      border: "1px solid",
-                      borderColor: "#66bb6a", // Green light
-                      borderRadius: 2,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1.5,
-                      height: "40px",
-                    }}
-                  >
-                    <CheckCircle sx={{ color: "#2e7d32", fontSize: 20 }} />
-                    <Typography
-                      variant="body2"
-                      fontWeight="700"
-                      color="#1b5e20"
-                      noWrap
-                      sx={{ fontSize: "0.9rem" }}
-                    >
-                      {empleadoEncontrado.nombre}
-                    </Typography>
+                {/* Empleado Encontrado */}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  {empleadoEncontrado ? (
                     <Box
                       sx={{
-                        bgcolor: "rgba(46, 125, 50, 0.1)",
-                        borderRadius: 1.5,
-                        px: 0.8,
-                        py: 0.2,
+                        px: 2,
+                        py: 1,
+                        bgcolor: "#e8f5e9", // Green lighter
+                        border: "1px solid",
+                        borderColor: "#66bb6a", // Green light
+                        borderRadius: 2,
                         display: "flex",
                         alignItems: "center",
-                        gap: 0.5,
+                        gap: 1.5,
+                        height: "40px",
                       }}
                     >
+                      <CheckCircle sx={{ color: "#2e7d32", fontSize: 20 }} />
                       <Typography
-                        variant="caption"
-                        fontWeight="600"
-                        color="#2e7d32"
-                        sx={{ fontSize: "0.7rem" }}
+                        variant="body2"
+                        fontWeight="700"
+                        color="#1b5e20"
+                        noWrap
+                        sx={{ fontSize: "0.9rem" }}
                       >
-                        Cod. {empleadoEncontrado.id}
+                        {empleadoEncontrado.nombre}
                       </Typography>
+                      <Box
+                        sx={{
+                          bgcolor: "rgba(46, 125, 50, 0.1)",
+                          borderRadius: 1.5,
+                          px: 0.8,
+                          py: 0.2,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          fontWeight="600"
+                          color="#2e7d32"
+                          sx={{ fontSize: "0.7rem" }}
+                        >
+                          Cod. {empleadoEncontrado.id}
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                ) : (
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      height: "40px", // Placeholder height equal to input
-                    }}
-                  />
-                )}
-              </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        height: "40px", // Placeholder height equal to input
+                        border: "1px dashed #e0e0e0",
+                        borderRadius: 2,
+                        bgcolor: "#fafafa"
+                      }}
+                    />
+                  )}
+                </Box>
 
-              {/* Botón Agregar */}
-              <Box
-                sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(16.67% - 8px)" } }}
-              >
-                <Button
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  startIcon={<Person />}
-                  onClick={handleAgregarEmpleado}
-                  disabled={
-                    !tiendaSeleccionada ||
-                    !empleadoEncontrado ||
-                    !cargoSeleccionado
-                  }
-                  sx={{
-                    py: 1,
-                    fontSize: "0.85rem",
-                    fontWeight: 700,
-                    borderRadius: 2,
-                    textTransform: "none",
-                    bgcolor: "primary.dark",
-                    height: "40px",
-                    boxShadow: "none",
-                    "&:hover": {
-                      bgcolor: "primary.main",
-                      boxShadow: 2,
-                    },
-                  }}
-                >
-                  Agregar
-                </Button>
+                {/* Botón Agregar */}
+                <Box sx={{ minWidth: "120px" }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    startIcon={<Person />}
+                    onClick={handleAgregarEmpleado}
+                    disabled={
+                      !tiendaSeleccionada ||
+                      !empleadoEncontrado ||
+                      !cargoSeleccionado
+                    }
+                    sx={{
+                      py: 1,
+                      fontSize: "0.85rem",
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      textTransform: "none",
+                      bgcolor: "primary.dark",
+                      height: "40px",
+                      boxShadow: "none",
+                      whiteSpace: "nowrap",
+                      "&:hover": {
+                        bgcolor: "primary.main",
+                        boxShadow: 2,
+                      },
+                    }}
+                  >
+                    Agregar
+                  </Button>
+                </Box>
               </Box>
             </Box>
 
@@ -595,8 +606,8 @@ export const EditStoreModalSimplified: React.FC<
                   {empleadosAsignados.length}
                 </Box>
               </Box>
-              <Typography variant="caption" color="text.secondary">
-                empleados para hoy
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: "capitalize" }}>
+                empleados del día {dayjs(fecha).format("dddd D [de] MMMM [de] YYYY")}
               </Typography>
             </Box>
 

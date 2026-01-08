@@ -266,10 +266,73 @@ export const useEditStoreModalLogic = ({
 
       // 2. Obtener porcentajes mensuales
       const mesAnio = fecha.substring(0, 7);
-      const porcentajes = await obtenerPorcentajesMensuales(undefined, mesAnio);
+
+      // 2. Obtener porcentajes mensuales
+      // ✅ CORREGIDO DEFINITIVO: Usar la FECHA del formulario como fuente de verdad única
+      // Esto asegura que si el usuario edita "2025-12-26", se usen los % de Diciembre 2025
+
+      let mesAnioParaAPI = "";
+      let shouldUseApi = false;
+
+      if (fecha && fecha.includes("-")) {
+        const partes = fecha.split("-"); // [YYYY, MM, DD]
+        if (partes.length >= 2) {
+          const anio = partes[0];
+          const mesNumero = partes[1];
+
+          const mesesMap: { [key: string]: string } = {
+            "01": "Ene",
+            "02": "Feb",
+            "03": "Mar",
+            "04": "Abr",
+            "05": "May",
+            "06": "Jun",
+            "07": "Jul",
+            "08": "Ago",
+            "09": "Sep",
+            "10": "Oct",
+            "11": "Nov",
+            "12": "Dic",
+          };
+
+          const mesNombre = mesesMap[mesNumero];
+
+          if (mesNombre && anio) {
+            mesAnioParaAPI = `${mesNombre} ${anio}`;
+            shouldUseApi = true;
+          }
+        }
+      }
+
+      console.log("📅 Fecha del formulario:", fecha);
+      console.log(
+        "🔍 Consultando porcentajes con filtro estricto:",
+        mesAnioParaAPI
+      );
+
+      // Si no pudimos determinar el mes válido, NO consultar la API (evita fallback al mes actual)
+      if (!shouldUseApi) {
+        console.warn(
+          "⚠️ No se pudo determinar el mes correcto para consultar porcentajes. Se aborta consulta para evitar fallback incorrecto."
+        );
+        return empleados.map((e) => ({ ...e, presupuesto: 0 }));
+      }
+
+      const porcentajes = await obtenerPorcentajesMensuales(
+        undefined,
+        mesAnioParaAPI
+      );
 
       if (!porcentajes || porcentajes.length === 0) {
         console.warn("No hay porcentajes configurados para este mes");
+        return empleados.map((e) => ({ ...e, presupuesto: 0 }));
+      }
+      // Validación adicional: asegurar que lo que devuelve la API coincide con lo que pedimos
+      // (Aunque read.ts ya filtra, doble verificación no hace daño)
+      if (!porcentajes || porcentajes.length === 0) {
+        console.warn(
+          `⚠️ No se encontraron porcentajes configurados para ${mesAnioParaAPI}`
+        );
         return empleados.map((e) => ({ ...e, presupuesto: 0 }));
       }
 
