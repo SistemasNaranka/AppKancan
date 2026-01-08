@@ -328,10 +328,10 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   const currentMessageType = saveSuccessMessage
     ? "success"
     : error
-      ? "error"
-      : success
-        ? "success"
-        : "info";
+    ? "error"
+    : success
+    ? "success"
+    : "info";
 
   // 🚀 NUEVO: Determinar texto y color del botón dinámicamente
   const getButtonConfig = () => {
@@ -352,15 +352,15 @@ export const CodesModal: React.FC<CodesModalProps> = ({
         cursor: canSave ? "pointer" : "not-allowed",
         hover: canSave
           ? {
-            backgroundColor: theme.palette.primary.dark,
-            transform: "translateY(-1px)",
-            boxShadow: theme.shadows[4],
-          }
+              backgroundColor: theme.palette.primary.dark,
+              transform: "translateY(-1px)",
+              boxShadow: theme.shadows[4],
+            }
           : {},
         active: canSave
           ? {
-            transform: "translateY(0)",
-          }
+              transform: "translateY(0)",
+            }
           : {},
       };
     }
@@ -373,15 +373,15 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       cursor: canSave ? "pointer" : "not-allowed",
       hover: canSave
         ? {
-          backgroundColor: theme.palette.primary.dark,
-          transform: "translateY(-1px)",
-          boxShadow: theme.shadows[4],
-        }
+            backgroundColor: theme.palette.primary.dark,
+            transform: "translateY(-1px)",
+            boxShadow: theme.shadows[4],
+          }
         : {},
       active: canSave
         ? {
-          transform: "translateY(0)",
-        }
+            transform: "translateY(0)",
+          }
         : {},
     };
   };
@@ -404,11 +404,11 @@ export const CodesModal: React.FC<CodesModalProps> = ({
 
       <Dialog
         open={isOpen}
-        onClose={(e) => {
+        onClose={(e: React.SyntheticEvent) => {
           // Prevenir navegación no deseada
           e?.preventDefault();
           e?.stopPropagation();
-          handleModalClose(e);
+          handleModalClose(e as React.MouseEvent | React.KeyboardEvent);
         }}
         maxWidth="lg"
         fullWidth
@@ -629,9 +629,9 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   "&:hover":
                     empleadosAsignados.length > 0
                       ? {
-                        backgroundColor: theme.palette.grey[100],
-                        borderColor: theme.palette.grey[400],
-                      }
+                          backgroundColor: theme.palette.grey[100],
+                          borderColor: theme.palette.grey[400],
+                        }
                       : {},
                   "&:disabled": {
                     opacity: 0.6,
