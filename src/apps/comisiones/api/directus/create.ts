@@ -332,13 +332,13 @@ export async function saveRoleBudgetConfiguration(data: {
       // 1. Buscar configuración existente usando STRINGs para asegurar coincidencia exacta
       // Ya que guardamos mes como "01", "12" etc. y anio como string
       const existingFilter = {
-        _and: [
-          { mes: { _eq: mesStr } },
-          { anio: { _eq: anioStr } }
-        ]
+        _and: [{ mes: { _eq: mesStr } }, { anio: { _eq: anioStr } }],
       };
 
-      console.log("[saveRoleBudgetConfiguration] Buscando existente con:", JSON.stringify(existingFilter));
+      console.log(
+        "[saveRoleBudgetConfiguration] Buscando existente con:",
+        JSON.stringify(existingFilter)
+      );
 
       const existentes = await withAutoRefresh(() =>
         directus.request(
@@ -355,15 +355,17 @@ export async function saveRoleBudgetConfiguration(data: {
     }
 
     // 2. Preparar las configuraciones enviadas
-    const finalConfigs = data.roleConfigs.map(c => ({
+    const finalConfigs = data.roleConfigs.map((c) => ({
       rol: c.rol,
       tipo_calculo: c.tipo_calculo,
-      porcentaje: c.tipo_calculo === "Distributivo" ? 0 : c.porcentaje
+      porcentaje: c.tipo_calculo === "Distributivo" ? 0 : c.porcentaje,
     }));
 
     // 3. Guardar cambios
     if (recordId) {
-      console.log(`[saveRoleBudgetConfiguration] Actualizando ID ${recordId} con ${finalConfigs.length} roles.`);
+      console.log(
+        `[saveRoleBudgetConfiguration] Actualizando ID ${recordId} con ${finalConfigs.length} roles.`
+      );
       return await withAutoRefresh(() =>
         directus.request(
           updateItem("porcentaje_mensual_presupuesto", recordId, {
@@ -373,22 +375,101 @@ export async function saveRoleBudgetConfiguration(data: {
       );
     } else {
       const payload = {
-        mes: mes.toString().padStart(2, '0'),
+        mes: mes.toString().padStart(2, "0"),
         anio: anio.toString(),
         configuracion_roles: finalConfigs,
       };
 
-      console.log("[saveRoleBudgetConfiguration] Creando nuevo registro:", JSON.stringify(payload));
+      console.log(
+        "[saveRoleBudgetConfiguration] Creando nuevo registro:",
+        JSON.stringify(payload)
+      );
 
       return await withAutoRefresh(() =>
-        directus.request(
-          createItem("porcentaje_mensual_presupuesto", payload)
-        )
+        directus.request(createItem("porcentaje_mensual_presupuesto", payload))
       );
     }
   } catch (error: any) {
     console.error("❌ Error en saveRoleBudgetConfiguration:", error);
     const directusError = error.errors?.[0]?.message || error.message;
-    throw new Error(directusError || "Error desconocido al procesar la configuración.");
+    throw new Error(
+      directusError || "Error desconocido al procesar la configuración."
+    );
+  }
+}
+
+// ==================== CONFIGURACIÓN DE UMBRALES DE COMISIONES ====================
+
+/**
+ * Guardar configuración de umbrales de comisión mensual
+ * Tabla: cumplimiento_mensual_comisiones
+ * Campo JSON: cumplimiento_valores
+ */
+export async function guardarUmbralesComisiones(data: {
+  id?: number | string; // ID opcional para actualización directa
+  mes: string; // "YYYY-MM"
+  cumplimiento_valores: Array<{
+    cumplimiento_min: number;
+    comision_pct: number;
+    nombre: string;
+  }>;
+}): Promise<any> {
+  try {
+    const [anioStr, mesStr] = data.mes.split("-");
+    const anio = anioStr;
+    const mes = mesStr;
+
+    let recordId = data.id;
+
+    // Si no tenemos ID, buscar por mes/año
+    if (!recordId) {
+      const existingFilter = {
+        _and: [{ mes: { _eq: mes } }, { anio: { _eq: anio } }],
+      };
+
+      const existentes = await withAutoRefresh(() =>
+        directus.request(
+          readItems("cumplimiento_mensual_comisiones", {
+            filter: existingFilter,
+            limit: 1,
+          })
+        )
+      );
+
+      if (existentes && existentes.length > 0) {
+        recordId = existentes[0].id;
+      }
+    }
+
+    // Ordenar umbrales por cumplimiento_min ascendente
+    const valoresOrdenados = [...data.cumplimiento_valores].sort(
+      (a, b) => a.cumplimiento_min - b.cumplimiento_min
+    );
+
+    if (recordId) {
+      // Actualizar
+      return await withAutoRefresh(() =>
+        directus.request(
+          updateItem("cumplimiento_mensual_comisiones", recordId, {
+            cumplimiento_valores: valoresOrdenados,
+          })
+        )
+      );
+    } else {
+      // Crear nuevo
+      const payload = {
+        mes: mes,
+        anio: anio,
+        cumplimiento_valores: valoresOrdenados,
+      };
+
+      return await withAutoRefresh(() =>
+        directus.request(createItem("cumplimiento_mensual_comisiones", payload))
+      );
+    }
+  } catch (error: any) {
+    console.error("❌ Error al guardar umbrales de comisiones:", error);
+    const directusError = error.errors?.[0]?.message || error.message;
+    throw new Error(directusError || "Error desconocido al guardar umbrales.");
   }
 }

@@ -3,22 +3,59 @@
  * Creado para mantener organizada la nueva funcionalidad
  */
 
+import { CommissionThreshold } from "../types";
+
 /**
- * Calcula la próxima comisión basada en la comisión actual
+ * Calcula la próxima comisión basada en la comisión actual y configuración de umbrales
  * @param comisionActual - La comisión actual en formato decimal (ej: 0.0035 para 0.35%)
+ * @param thresholdConfig - Configuración de umbrales de comisión (opcional)
  * @returns La próxima comisión en formato decimal o 'NN' si ya está en el máximo
  */
-export const getNextCommission = (comisionActual: number): number | string => {
-  // Mapeo de comisiones actuales a próximas comisiones
-  const escalonesComision: Record<number, number | string> = {
-    0: 0.0035, // 0.00% → 0.35%
-    0.0035: 0.005, // 0.35% → 0.50%
-    0.005: 0.007, // 0.50% → 0.70%
-    0.007: 0.01, // 0.70% → 1.00%
-    0.01: "NN", // 1.00% → NN (máximo alcanzado)
-  };
+export const getNextCommission = (
+  comisionActual: number,
+  thresholdConfig?: CommissionThreshold[]
+): number | string => {
+  // Usar configuración proporcionada o valores por defecto
+  const DEFAULT_THRESHOLDS = [
+    { cumplimiento_min: 90, comision_pct: 0.0035, nombre: "Muy Regular" },
+    { cumplimiento_min: 95, comision_pct: 0.005, nombre: "Regular" },
+    { cumplimiento_min: 100, comision_pct: 0.007, nombre: "Buena" },
+    { cumplimiento_min: 110, comision_pct: 0.01, nombre: "Excelente" },
+  ];
 
-  return escalonesComision[comisionActual] ?? "NN";
+  const umbrales =
+    thresholdConfig && thresholdConfig.length > 0
+      ? thresholdConfig
+      : DEFAULT_THRESHOLDS;
+
+  // Ordenar umbrales por comision_pct ascendente
+  const umbralesOrdenados = [...umbrales].sort(
+    (a, b) => a.comision_pct - b.comision_pct
+  );
+
+  // Encontrar el índice de la comisión actual
+  const currentIndex = umbralesOrdenados.findIndex(
+    (u) => Math.abs(u.comision_pct - comisionActual) < 0.0001 // Comparación con tolerancia
+  );
+
+  if (currentIndex === -1) {
+    // Si no encuentra la comisión exacta, buscar la más cercana por debajo
+    const closestIndex = umbralesOrdenados.findIndex(
+      (u) => u.comision_pct > comisionActual
+    );
+    if (closestIndex > 0) {
+      return umbralesOrdenados[closestIndex - 1].comision_pct;
+    }
+    return umbralesOrdenados[0]?.comision_pct ?? "NN";
+  }
+
+  // Si está en el último nivel, retornar "NN"
+  if (currentIndex >= umbralesOrdenados.length - 1) {
+    return "NN";
+  }
+
+  // Retornar el siguiente nivel
+  return umbralesOrdenados[currentIndex + 1].comision_pct;
 };
 
 /**
@@ -41,31 +78,50 @@ export const formatProximaComision = (
 };
 
 /**
- * Calcula el próximo presupuesto basado en la próxima comisión
+ * Calcula el próximo presupuesto basado en la próxima comisión y configuración de umbrales
  * @param proximaComision - La próxima comisión
  * @param presupuestoActual - El presupuesto actual del empleado
+ * @param thresholdConfig - Configuración de umbrales de comisión (opcional)
  * @returns El próximo presupuesto o null si no aplica
  */
 export const getNextBudget = (
   proximaComision: number | string,
-  presupuestoActual: number
+  presupuestoActual: number,
+  thresholdConfig?: CommissionThreshold[]
 ): number | null => {
   if (proximaComision === "NN" || typeof proximaComision !== "number") {
     return null; // No hay próximo presupuesto si ya está en el máximo
   }
 
-  // Factores de multiplicación basados en la próxima comisión
-  const factoresPresupuesto: Record<number, number> = {
-    0.0035: 0.9, // Próxima comisión 0.35% → multiplicar por 0.90
-    0.005: 0.95, // Próxima comisión 0.50% → multiplicar por 0.95
-    0.007: 1.0, // Próxima comisión 0.70% → multiplicar por 1.00
-    0.01: 1.1, // Próxima comisión 1.00% → multiplicar por 1.10
-  };
+  // Usar configuración proporcionada o valores por defecto
+  const DEFAULT_THRESHOLDS = [
+    { cumplimiento_min: 90, comision_pct: 0.0035, nombre: "Muy Regular" },
+    { cumplimiento_min: 95, comision_pct: 0.005, nombre: "Regular" },
+    { cumplimiento_min: 100, comision_pct: 0.007, nombre: "Buena" },
+    { cumplimiento_min: 110, comision_pct: 0.01, nombre: "Excelente" },
+  ];
 
-  const factor = factoresPresupuesto[proximaComision];
-  if (factor === undefined) {
-    return null;
+  const umbrales =
+    thresholdConfig && thresholdConfig.length > 0
+      ? thresholdConfig
+      : DEFAULT_THRESHOLDS;
+
+  // Ordenar umbrales por comision_pct ascendente
+  const umbralesOrdenados = [...umbrales].sort(
+    (a, b) => a.comision_pct - b.comision_pct
+  );
+
+  // Encontrar el índice de la próxima comisión
+  const nextIndex = umbralesOrdenados.findIndex(
+    (u) => Math.abs(u.comision_pct - proximaComision) < 0.0001 // Comparación con tolerancia
+  );
+
+  if (nextIndex === -1) {
+    return null; // No se encontró la comisión en los umbrales
   }
+
+  // Calcular factor basado en el cumplimiento_min del umbral
+  const factor = umbralesOrdenados[nextIndex].cumplimiento_min / 100;
 
   return Math.round(presupuestoActual * factor * 100) / 100; // Redondear a 2 decimales
 };

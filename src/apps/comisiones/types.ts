@@ -94,6 +94,7 @@ export interface AppState {
   ventas: VentasData[];
   ventasMensuales: VentasMensualesData[];
   presupuestosEmpleados: any[];
+  thresholdConfig: CommissionThresholdConfig | null; // Configuración actual de umbrales
 }
 
 // Interfaces para Directus
@@ -172,4 +173,35 @@ export interface DirectusVentasDiariasTienda {
   tienda_id: number | DirectusTienda;
   ventas_totales: number;
   fecha: string;
+}
+
+// ==================== CONFIGURACIÓN DE UMBRALES DE COMISIONES ====================
+
+/**
+ * Un umbral individual de comisión
+ * Solo necesita cumplimiento_min, ya que el max es implícito (min del siguiente umbral)
+ */
+export interface CommissionThreshold {
+  cumplimiento_min: number; // Porcentaje mínimo de cumplimiento (90, 95, 100, 110...)
+  comision_pct: number; // Porcentaje de comisión en formato decimal (0.0035 = 0.35%)
+  nombre: string; // Etiqueta para mostrar en UI (ej: "Muy Regular", "Regular")
+}
+
+/**
+ * Configuración de umbrales de comisión por mes
+ */
+export interface CommissionThresholdConfig {
+  mes: string; // "MMM YYYY"
+  anio: string; // "YYYY"
+  cumplimiento_valores: CommissionThreshold[]; // Array de umbrales ordenados por cumplimiento_min ascendente
+}
+
+/**
+ * Respuesta de Directus para cumplimiento_mensual_comisiones
+ */
+export interface DirectusCumplimientoComisiones {
+  id: number;
+  mes: string; // "01"-"12"
+  anio: string; // "YYYY"
+  cumplimiento_valores: CommissionThreshold[]; // JSON array
 }

@@ -9,6 +9,9 @@ import {
   DirectusPorcentajeMensualNuevo,
   DirectusPresupuestoDiarioEmpleado,
   DirectusVentasDiariasEmpleado,
+  DirectusCumplimientoComisiones,
+  CommissionThresholdConfig,
+  CommissionThreshold,
 } from "../../types";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
@@ -432,7 +435,9 @@ export async function obtenerEmpleadosPorFechaExacta(
     const tiendaIdsPermitidos = await obtenerTiendasIdsUsuarioActual();
 
     // Filtrar solo las tiendas que el usuario tiene permiso de ver
-    const tiendasFiltradas = tiendaIds.filter(id => tiendaIdsPermitidos.includes(id));
+    const tiendasFiltradas = tiendaIds.filter((id) =>
+      tiendaIdsPermitidos.includes(id)
+    );
 
     if (tiendasFiltradas.length === 0) {
       return [];
@@ -574,5 +579,100 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
     }
 
     throw error;
+  }
+}
+
+// ==================== CONFIGURACIÓN DE UMBRALES DE COMISIONES ====================
+
+/**
+ * Tipo de retorno para obtenerUmbralesComisiones que incluye el ID
+ */
+export interface CommissionThresholdConfigWithId {
+  id: number;
+  mes: string; // "MMM YYYY"
+  anio: string; // "YYYY"
+  cumplimiento_valores: CommissionThreshold[];
+}
+
+/**
+ * Obtener configuración de umbrales de comisión para un mes específico
+ * @param mesAnio - Formato "MMM YYYY" (ej: "Ene 2025")
+ * @returns CommissionThresholdConfigWithId o null si no existe
+ */
+export async function obtenerUmbralesComisiones(
+  mesAnio?: string
+): Promise<CommissionThresholdConfigWithId | null> {
+  try {
+    const filter: any = {};
+
+    if (mesAnio) {
+      const [mesNombre, anio] = mesAnio.split(" ");
+      const mesMap: { [key: string]: string } = {
+        Ene: "01",
+        Feb: "02",
+        Mar: "03",
+        Abr: "04",
+        May: "05",
+        Jun: "06",
+        Jul: "07",
+        Ago: "08",
+        Sep: "09",
+        Oct: "10",
+        Nov: "11",
+        Dic: "12",
+      };
+      const mesNumero = mesMap[mesNombre];
+      if (mesNumero) {
+        filter.mes = { _eq: mesNumero };
+        filter.anio = { _eq: anio };
+      }
+    }
+
+    const data = await withAutoRefresh(() =>
+      directus.request(
+        readItems("cumplimiento_mensual_comisiones", {
+          fields: ["id", "mes", "anio", "cumplimiento_valores"],
+          filter,
+          sort: ["-anio", "-mes"],
+          limit: 1,
+        })
+      )
+    );
+
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const item = data[0] as DirectusCumplimientoComisiones;
+
+    // Convertir a formato de configuración
+    const mesesLabels: { [key: string]: string } = {
+      "01": "Ene",
+      "02": "Feb",
+      "03": "Mar",
+      "04": "Abr",
+      "05": "May",
+      "06": "Jun",
+      "07": "Jul",
+      "08": "Ago",
+      "09": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dic",
+    };
+
+    return {
+      id: item.id,
+      mes: `${mesesLabels[item.mes]} ${item.anio}`,
+      anio: item.anio,
+      cumplimiento_valores: item.cumplimiento_valores || [],
+    };
+  } catch (error: any) {
+    // Si la colección no existe o hay error, retornar null para usar valores por defecto
+    if (error.response?.status === 404) {
+      return null;
+    }
+    console.error("Error al obtener umbrales de comisiones:", error);
+    return null;
   }
 }

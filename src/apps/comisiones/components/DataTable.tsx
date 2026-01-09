@@ -14,7 +14,13 @@
  */
 
 import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
-import { TiendaResumen, Role, DirectusCargo } from "../types";
+import {
+  TiendaResumen,
+  Role,
+  DirectusCargo,
+  CommissionThreshold,
+  CommissionThresholdConfig,
+} from "../types";
 import { Paper, Typography, Box } from "@mui/material";
 import { DataTableAccordion } from "./DataTableAccordion";
 import { DataTableLoadingState } from "./LoadingState";
@@ -42,6 +48,7 @@ interface DataTableProps {
   isLoading?: boolean;
   isRefetching?: boolean;
   isFiltering?: boolean;
+  thresholdConfig?: CommissionThresholdConfig | null;
 }
 
 // =============================================================================
@@ -84,6 +91,7 @@ const DataTableContent = ({
   incrementallyLoadedCount,
   isIncrementallyLoading,
   tiendaKeys,
+  thresholdConfig,
 }: {
   visibleTiendas: TiendaResumen[];
   expandedTiendas: Set<string>;
@@ -100,6 +108,7 @@ const DataTableContent = ({
   incrementallyLoadedCount: number;
   isIncrementallyLoading: boolean;
   tiendaKeys: string[];
+  thresholdConfig?: CommissionThreshold[];
 }) => {
   // Renderizado de tiendas normal
   const renderTiendas = () => {
@@ -116,6 +125,7 @@ const DataTableContent = ({
           readOnly={readOnly}
           getCumplimientoColor={getCumplimientoColor}
           handleVentaChange={handleVentaChange}
+          thresholdConfig={thresholdConfig}
         />
       );
     });
@@ -141,6 +151,7 @@ const DataTableContent = ({
               readOnly={readOnly}
               getCumplimientoColor={getCumplimientoColor}
               handleVentaChange={handleVentaChange}
+              thresholdConfig={thresholdConfig}
             />
           );
         })}
@@ -275,6 +286,7 @@ export const DataTable: React.FC<DataTableProps> = memo(
     isLoading = false,
     isRefetching = false,
     isFiltering = false,
+    thresholdConfig,
   }) => {
     // Estados para inputs temporales de ventas
     const [ventasInputs, setVentasInputs] = useState<Record<string, number>>(
@@ -386,6 +398,7 @@ export const DataTable: React.FC<DataTableProps> = memo(
           incrementallyLoadedCount={incrementallyLoadedCount}
           isIncrementallyLoading={isIncrementallyLoading}
           tiendaKeys={tiendaKeys}
+          thresholdConfig={thresholdConfig?.cumplimiento_valores}
         />
       );
     }, [

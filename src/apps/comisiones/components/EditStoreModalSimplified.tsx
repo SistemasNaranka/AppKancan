@@ -39,28 +39,27 @@ import { useEditStoreModalLogic } from "../hooks/useEditStoreModalLogic";
 interface EditStoreModalSimplifiedProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveComplete?: () => void;
   selectedMonth?: string;
 }
 
 export const EditStoreModalSimplified: React.FC<
   EditStoreModalSimplifiedProps
-> = ({ isOpen, onClose, onSaveComplete, selectedMonth }) => {
-  // Usar el hook para toda la lógica de negocio
+> = ({ isOpen, onClose, selectedMonth }) => {
+  // Estado para controlar si se ha guardado correctamente
+  const [saveCompleted, setSaveCompleted] = React.useState(false);
+  const [saveError, setSaveError] = React.useState(false);
+
+  // Usar el hook para toda la lógica de negocio (sin onSaveComplete, la recarga se maneja en onClose)
   const {
     // Estados
     fecha,
-    setFecha,
     tiendaSeleccionada,
     tiendaNombre,
     cargoSeleccionado,
-    setCargoSeleccionado,
     codigoEmpleado,
-    setCodigoEmpleado,
     empleadoEncontrado,
     empleadosAsignados,
     tiendas,
-    todosEmpleados,
     cargos,
     loading,
     error,
@@ -75,12 +74,30 @@ export const EditStoreModalSimplified: React.FC<
     // Utils
     setError,
     setSuccess,
+    setFecha,
+    setCargoSeleccionado,
+    setCodigoEmpleado,
   } = useEditStoreModalLogic({
     isOpen,
     onClose,
-    onSaveComplete,
     selectedMonth,
   });
+
+  const handleGuardarWrapper = async () => {
+    const success = await handleGuardar();
+    if (!success) {
+      setSaveError(true);
+    }
+  };
+
+  // 🚀 NUEVO: Efecto para limpiar estados cuando se cierra el modal
+  React.useEffect(() => {
+    if (!isOpen) {
+      // El modal se cerró, limpiar estados
+      setSaveCompleted(false);
+      setSaveError(false);
+    }
+  }, [isOpen]);
 
   return (
     <>
@@ -426,10 +443,10 @@ export const EditStoreModalSimplified: React.FC<
                       fontWeight: 600,
                       // Hide Spinners
                       "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
-                      {
-                        WebkitAppearance: "none",
-                        margin: 0,
-                      },
+                        {
+                          WebkitAppearance: "none",
+                          margin: 0,
+                        },
                       "&[type=number]": {
                         MozAppearance: "textfield",
                       },
@@ -517,7 +534,7 @@ export const EditStoreModalSimplified: React.FC<
                         height: "40px", // Placeholder height equal to input
                         border: "1px dashed #e0e0e0",
                         borderRadius: 2,
-                        bgcolor: "#fafafa"
+                        bgcolor: "#fafafa",
                       }}
                     />
                   )}
@@ -606,8 +623,13 @@ export const EditStoreModalSimplified: React.FC<
                   {empleadosAsignados.length}
                 </Box>
               </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: "capitalize" }}>
-                empleados del día {dayjs(fecha).format("dddd D [de] MMMM [de] YYYY")}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ textTransform: "capitalize" }}
+              >
+                empleados del día{" "}
+                {dayjs(fecha).format("dddd D [de] MMMM [de] YYYY")}
               </Typography>
             </Box>
 

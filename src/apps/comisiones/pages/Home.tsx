@@ -6,6 +6,7 @@ import { SummaryCards } from "../components/SummaryCards";
 import { DataTable } from "../components/DataTable";
 import { Charts } from "../components/Charts";
 import { LoadingState } from "../components/LoadingState";
+import { CommissionThresholdPanel } from "../components/CommissionThresholdPanel";
 import {
   getAvailableMonths,
   calculateMesResumenAgrupado,
@@ -17,6 +18,7 @@ import StorefrontIcon from "@mui/icons-material/Storefront";
 import GroupsIcon from "@mui/icons-material/Groups";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import { Alert, Button, Box, Typography } from "@mui/material";
+import { CommissionThresholdConfig } from "../types";
 
 // 🚀 HOOK OPTIMIZADO - ELIMINA CONGELAMIENTO
 import { useFiltersOptimized } from "../hooks/useFilters.optimized";
@@ -48,6 +50,7 @@ export default function Home() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showCodesModal, setShowCodesModal] = useState(false);
+  const [showThresholdModal, setShowThresholdModal] = useState(false);
 
   // 🚀 NUEVO: Estado para pantalla de carga de guardado
   const [showSaveLoading, setShowSaveLoading] = useState(false);
@@ -92,6 +95,7 @@ export default function Home() {
     ventas = [],
     presupuestosEmpleados = [],
     cargos = [],
+    thresholdConfig, // ✅ Extraer umbrales de comisiones
   } = commissionData || {};
 
   // Sincronizar datos con el contexto
@@ -206,8 +210,18 @@ export default function Home() {
         0
       );
       const presupuestosCount = presupuestosEmpleadosState.length;
+      // ✅ AGREGAR hash de umbrales al cache key
+      const thresholdHash = thresholdConfig?.cumplimiento_valores
+        ? thresholdConfig.cumplimiento_valores.reduce(
+            (acc, t) =>
+              acc +
+              Math.round(t.cumplimiento_min * 1000) +
+              Math.round(t.comision_pct * 100000),
+            0
+          )
+        : 0;
 
-      return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}`;
+      return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}_${thresholdHash}`;
     };
 
     const dataHash = createDataHash();
@@ -224,7 +238,8 @@ export default function Home() {
       staff,
       ventas,
       porcentajeGerente,
-      presupuestosEmpleadosState
+      presupuestosEmpleadosState,
+      thresholdConfig // ✅ PASAR thresholdConfig a los cálculos
     );
 
     // ✅ VALIDAR QUE result TENGA DATOS COMPLETOS
@@ -249,6 +264,7 @@ export default function Home() {
     ventas,
     porcentajeGerente,
     presupuestosEmpleados,
+    thresholdConfig, // ✅ AGREGAR a dependencias
   ]);
 
   const mesResumenFiltrado = useMemo(() => {
@@ -455,6 +471,7 @@ export default function Home() {
       onTiendaChange: setFilterTienda,
       onShowConfigModal: () => setShowConfigModal(true),
       onShowCodesModal: () => setShowCodesModal(true),
+      onShowThresholdModal: () => setShowThresholdModal(true),
       onShowEditStoreModal: () => setShowEditStoreModal(true),
       onToggleAllStores: handleToggleAllStoresWrapper,
       expandedTiendas,
@@ -757,6 +774,7 @@ export default function Home() {
                         isLoading={isLoading}
                         isRefetching={isRefetching}
                         isFiltering={isFiltering}
+                        thresholdConfig={thresholdConfig}
                       />
                     </section>
 
@@ -792,18 +810,26 @@ export default function Home() {
             setShowCodesModal(false);
             // Solo cerrar, no ejecutar pantalla de carga automáticamente
           }}
-          onCloseEditStoreModal={() => setShowEditStoreModal(false)}
-          onCloseNoDataModal={() => setShowNoDataModal(false)}
-          onAssignmentComplete={handleAssignmentComplete}
-          onEditStoreComplete={() => {
-            // Refrescar datos cuando se complete la edición de tienda
+          onCloseEditStoreModal={() => {
+            // 🚀 RECARGAR DATOS AL CERRAR EL MODAL (no en cada guardado)
             refetch();
             revalidateBudgetData();
+            setShowEditStoreModal(false);
           }}
+          onCloseNoDataModal={() => setShowNoDataModal(false)}
+          onAssignmentComplete={handleAssignmentComplete}
         />
 
         {/* 🚀 NUEVO: Pantalla de carga para guardado */}
         <SaveLoadingScreen />
+
+        {/* Modal de configuración de umbrales de comisión */}
+        <CommissionThresholdPanel
+          open={showThresholdModal}
+          onClose={() => setShowThresholdModal(false)}
+          initialMonth={selectedMonth}
+          onThresholdSaved={refetch}
+        />
       </div>
     </LoadingState>
   );

@@ -22,7 +22,6 @@ interface HomeModalsProps {
   onCloseNoDataModal: () => void;
   onAssignmentComplete?: (ventasData: any) => void;
   onShowSaveLoading?: (error?: any) => void;
-  onEditStoreComplete?: () => void;
 }
 
 export const HomeModals: React.FC<HomeModalsProps> = ({
@@ -40,7 +39,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   onCloseNoDataModal,
   onAssignmentComplete,
   onShowSaveLoading,
-  onEditStoreComplete,
 }) => {
   const handleAssignmentComplete = (ventasData: any) => {
     if (onAssignmentComplete) {
@@ -79,18 +77,12 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         message={modalMessage}
       />
 
-
       {/* Edit Store Modal - SIMPLIFICADO */}
       <EditStoreModalSimplified
         isOpen={showEditStoreModal}
         onClose={() => {
           // Limpiar estado antes de cerrar para evitar cargas innecesarias
           onCloseEditStoreModal();
-        }}
-        onSaveComplete={() => {
-          if (onEditStoreComplete) {
-            onEditStoreComplete();
-          }
         }}
         selectedMonth={selectedMonth}
       />

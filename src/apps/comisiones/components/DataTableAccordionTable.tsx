@@ -23,7 +23,7 @@ import {
   CalendarToday as CalendarTodayIcon,
   VpnKey as VpnKeyIcon,
 } from "@mui/icons-material";
-import { TiendaResumen, Role } from "../types";
+import { TiendaResumen, Role, CommissionThreshold } from "../types";
 import { formatCurrency } from "../lib/utils";
 import { formatProximaComision } from "../lib/calculations.next-commission";
 import { grey, green, blue, orange, pink } from "@mui/material/colors";
@@ -223,6 +223,7 @@ interface DataTableAccordionTableProps {
     asesorId: string,
     newValue: string
   ) => void;
+  thresholdConfig?: CommissionThreshold[];
 }
 
 /**
@@ -231,7 +232,13 @@ interface DataTableAccordionTableProps {
  */
 export const DataTableAccordionTable: React.FC<
   DataTableAccordionTableProps
-> = ({ tienda, readOnly, getCumplimientoColor, handleVentaChange }) => {
+> = ({
+  tienda,
+  readOnly,
+  getCumplimientoColor,
+  handleVentaChange,
+  thresholdConfig,
+}) => {
   const isMobile = useMediaQuery("(max-width:600px)");
   const isTablet = useMediaQuery("(max-width:900px)");
 
@@ -252,7 +259,13 @@ export const DataTableAccordionTable: React.FC<
       tienda: tienda.tienda,
       fecha: tienda.fecha,
     });
-  }, [tienda.empleados, tienda.tienda, tienda.fecha, sortState]);
+  }, [
+    tienda.empleados,
+    tienda.tienda,
+    tienda.fecha,
+    sortState,
+    thresholdConfig,
+  ]);
 
   // ✅ FILTRAR EMPLEADOS: Ocultar filas con 0 presupuesto Y 0 ventas (solo en vista)
   const filteredRows = useMemo(() => {

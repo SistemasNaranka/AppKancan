@@ -29,10 +29,7 @@ export const useEditStoreModalLogic = ({
   // Estados principales
   // Usar la fecha del mes seleccionado si está disponible, de lo contrario usar la fecha actual
   const [fecha, setFecha] = useState(() => {
-    if (selectedMonth) {
-      // Si selectedMonth está en formato YYYY-MM, agregamos un día para obtener una fecha válida
-      return `${selectedMonth}-01`;
-    }
+    // Siempre usar la fecha actual, independientemente de selectedMonth
     return new Date().toISOString().split("T")[0];
   });
   const [tiendaSeleccionada, setTiendaSeleccionada] = useState<number | "">("");
@@ -111,10 +108,8 @@ export const useEditStoreModalLogic = ({
   }, [codigoEmpleado, todosEmpleados]);
 
   const resetForm = () => {
-    // No restablecer la fecha si selectedMonth está definido
-    if (!selectedMonth) {
-      setFecha(new Date().toISOString().split("T")[0]);
-    }
+    // Siempre usar la fecha actual, independientemente de selectedMonth
+    setFecha(new Date().toISOString().split("T")[0]);
     setTiendaSeleccionada("");
     setTiendaNombre("");
 
@@ -526,18 +521,12 @@ export const useEditStoreModalLogic = ({
       await guardarPresupuestosEmpleados(presupuestosParaGuardar);
 
       setSuccess("✅ Asignación actualizada correctamente");
-
-      // 3️⃣ Esperar un momento y cerrar el modal
-      setTimeout(() => {
-        // Llamar al callback para refrescar datos en el componente padre
-        if (onSaveComplete) {
-          onSaveComplete();
-        }
-        onClose();
-      }, 1500);
+      setTimeout(() => setSuccess(""), 3000);
+      return true; // Indicar que el guardado fue exitoso
     } catch (err: any) {
       console.error("Error al guardar:", err);
       setError("Error al guardar: " + err.message);
+      return false; // Indicar que el guardado falló
     } finally {
       setLoading(false);
     }

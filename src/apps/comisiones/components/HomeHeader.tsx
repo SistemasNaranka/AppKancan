@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@mui/material";
-import { Settings, Person, Store } from "@mui/icons-material";
+import { Settings, Person, Store, TrendingUp } from "@mui/icons-material";
 import { ExportButtons } from "./ExportButtons";
 import { SimpleFilters } from "./SimpleFilters";
 import { SummaryCards } from "./SummaryCards";
@@ -18,6 +18,7 @@ interface HomeHeaderProps {
   onTiendaChange: (tiendas: string[]) => void;
   onShowConfigModal: () => void;
   onShowCodesModal: () => void;
+  onShowThresholdModal: () => void;
   onShowEditStoreModal: () => void;
   onToggleAllStores: () => void;
   expandedTiendas: Set<string>;
@@ -45,6 +46,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onTiendaChange,
   onShowConfigModal,
   onShowCodesModal,
+  onShowThresholdModal,
   onShowEditStoreModal,
   onToggleAllStores,
   expandedTiendas,
@@ -95,24 +97,50 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
               <div className="flex flex-wrap gap-2 sm:gap-3 flex-shrink-0 lg:flex-row lg:items-end">
                 {/* Botón Configuración - Solo para readComisionesAdmin */}
                 {canSeeConfig() && (
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onShowConfigModal();
-                    }}
-                    variant="outlined"
-                    startIcon={<Settings />}
-                    size="small"
-                    sx={{
-                      lineHeight: 2.2,
-                      minWidth: "auto",
-                      px: { xs: 1.5, sm: 2 },
-                    }}
-                  >
-                    <span className="hidden xs:inline">Configuración</span>
-                    <span className="xs:hidden">Conf</span>
-                  </Button>
+                  <>
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onShowThresholdModal();
+                      }}
+                      variant="outlined"
+                      startIcon={<TrendingUp />}
+                      size="small"
+                      sx={{
+                        lineHeight: 2.2,
+                        minWidth: "auto",
+                        px: { xs: 1.5, sm: 2 },
+                        borderColor: "#2e7d32",
+                        color: "#2e7d32",
+                        "&:hover": {
+                          borderColor: "#1b5e20",
+                          backgroundColor: "rgba(46, 125, 50, 0.04)",
+                        },
+                      }}
+                    >
+                      <span className="hidden xs:inline">Umbrales</span>
+                      <span className="xs:hidden">Umbrales</span>
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onShowConfigModal();
+                      }}
+                      variant="outlined"
+                      startIcon={<Settings />}
+                      size="small"
+                      sx={{
+                        lineHeight: 2.2,
+                        minWidth: "auto",
+                        px: { xs: 1.5, sm: 2 },
+                      }}
+                    >
+                      <span className="hidden xs:inline">Configuración</span>
+                      <span className="xs:hidden">Conf</span>
+                    </Button>
+                  </>
                 )}
                 {(mesResumenFiltrado || mesResumen) && (
                   <ExportButtons

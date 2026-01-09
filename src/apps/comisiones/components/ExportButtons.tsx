@@ -14,9 +14,6 @@ import {
   Box,
   Typography,
 } from "@mui/material";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { formatCurrency } from "../lib/utils";
 import { useUserPolicies } from "../hooks/useUserPolicies";
 import CSVData from "./CSVData";
 import { StoreFilterModal } from "./StoreFilterModal";
@@ -58,7 +55,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
       .filter((t) => stores.includes(t.tienda))
       .sort((a, b) => a.tienda.localeCompare(b.tienda));
 
-    let csvContent = "Tienda;Presupuesto;Ventas;Cumplimiento;Comisiones\n";
+    let csvContent = "Tienda,Presupuesto,Ventas,Cumplimiento,Comisiones\n";
 
     filteredTiendas.forEach((tienda) => {
       const totalComisiones = tienda.empleados.reduce(
@@ -68,13 +65,9 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
         0
       );
 
-      csvContent += `${tienda.tienda};${formatCurrency(
-        tienda.presupuesto_tienda
-      )};${formatCurrency(
+      csvContent += `${tienda.tienda},${tienda.presupuesto_tienda},${
         tienda.ventas_tienda
-      )};${tienda.cumplimiento_tienda_pct.toFixed(2)};${formatCurrency(
-        totalComisiones
-      )}\n`;
+      },${tienda.cumplimiento_tienda_pct.toFixed(2)},${totalComisiones}\n`;
     });
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -99,7 +92,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     );
 
     let csvContent =
-      "Tienda;Documento;Empleado;Dias laborados;Cargo;Presupuesto;Ventas;Cumplimiento %;Comision %;Comision $\n";
+      "Tienda,Documento,Empleado,Dias laborados,Cargo,Presupuesto,Ventas,Cumplimiento %,Comision %,Comision $\n";
 
     filteredTiendas.forEach((tienda) => {
       tienda.empleados
@@ -108,13 +101,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
             !roles || roles.length === 0 || roles.includes(empleado.rol)
         )
         .forEach((empleado) => {
-          csvContent += `${tienda.tienda};${empleado.documento};${
-            empleado.nombre
-          };${empleado.dias_laborados};${empleado.rol};${formatCurrency(
-            empleado.presupuesto
-          )};${formatCurrency(empleado.ventas)};${empleado.cumplimiento_pct};${
-            empleado.comision_pct
-          };${formatCurrency(empleado.comision_monto)}\n`;
+          csvContent += `${tienda.tienda},${empleado.documento},${empleado.nombre},${empleado.dias_laborados},${empleado.rol},${empleado.presupuesto},${empleado.ventas},${empleado.cumplimiento_pct},${empleado.comision_pct},${empleado.comision_monto}\n`;
         });
     });
 
@@ -130,141 +117,6 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handleExportPDF = () => {
-    if (!mesResumen) return;
-
-    // Calcular totales dinámicos basados en datos filtrados
-    const totalComisiones = mesResumen.tiendas.reduce(
-      (total: number, tienda: any) => {
-        return (
-          total +
-          tienda.empleados.reduce((tiendaTotal: number, empleado: any) => {
-            return tiendaTotal + (empleado.comision_monto || 0);
-          }, 0)
-        );
-      },
-      0
-    );
-
-    const comisionesPorRol = mesResumen.tiendas.reduce(
-      (acc: any, tienda: any) => {
-        tienda.empleados.forEach((empleado: any) => {
-          acc[empleado.rol] =
-            (acc[empleado.rol] || 0) + (empleado.comision_monto || 0);
-        });
-        return acc;
-      },
-      {
-        gerente: 0,
-        asesor: 0,
-        cajero: 0,
-        logistico: 0,
-      }
-    );
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    let yPosition = 20;
-
-    // Título
-    doc.setFontSize(16);
-    doc.text(
-      "Calculadora de Comisiones por Cumplimiento",
-      pageWidth / 2,
-      yPosition,
-      { align: "center" }
-    );
-    yPosition += 10;
-
-    doc.setFontSize(12);
-    doc.text(`Mes: ${mes}`, pageWidth / 2, yPosition, { align: "center" });
-    yPosition += 15;
-
-    // Resumen
-    doc.setFontSize(11);
-    doc.text("RESUMEN MENSUAL", 20, yPosition);
-    yPosition += 8;
-
-    doc.setFontSize(10);
-    doc.text(
-      `Total Comisiones: $${formatCurrency(totalComisiones)}`,
-      25,
-      yPosition
-    );
-    yPosition += 6;
-    doc.text(
-      `Comisiones Gerentes: $${formatCurrency(comisionesPorRol.gerente)}`,
-      25,
-      yPosition
-    );
-    yPosition += 6;
-    doc.text(
-      `Comisiones Asesores: $${formatCurrency(comisionesPorRol.asesor)}`,
-      25,
-      yPosition
-    );
-    yPosition += 6;
-    doc.text(
-      `Comisiones Cajeros: $${formatCurrency(comisionesPorRol.cajero)}`,
-      25,
-      yPosition
-    );
-    yPosition += 15;
-
-    // Tabla de detalle
-    const tableData = mesResumen.tiendas.flatMap((tienda) =>
-      tienda.empleados.map((empleado) => [
-        tienda.tienda,
-        tienda.fecha,
-        formatCurrency(tienda.presupuesto_tienda),
-        formatCurrency(tienda.ventas_tienda),
-        tienda.cumplimiento_tienda_pct.toFixed(2),
-        empleado.nombre,
-        empleado.rol,
-        empleado.documento,
-        formatCurrency(empleado.presupuesto),
-        formatCurrency(empleado.ventas),
-        empleado.cumplimiento_pct.toFixed(2),
-        (empleado.comision_pct * 100).toFixed(2),
-        formatCurrency(empleado.comision_monto),
-      ])
-    );
-
-    autoTable(doc, {
-      head: [
-        [
-          "Tienda",
-          "Documento",
-          "Empleado",
-          "Dias laborados",
-          "Cargo",
-          "Presupuesto",
-          "Ventas",
-          "Cumplimiento",
-          "Comision %",
-          "Comision $",
-        ],
-      ],
-      body: tableData,
-      startY: yPosition,
-      styles: {
-        fontSize: 8,
-        cellPadding: 3,
-      },
-      headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: 255,
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [245, 245, 245],
-      },
-    });
-
-    doc.save(`comisiones_${mes.replace(" ", "_")}.pdf`);
   };
 
   const handleExport = (
