@@ -6,7 +6,6 @@ import { EditStoreModalSimplified } from "./EditStoreModalSimplified";
 
 interface HomeModalsProps {
   // Modal states
-  showConfigModal: boolean;
   showCodesModal: boolean;
   showEditStoreModal: boolean;
   showNoDataModal: boolean;
@@ -16,7 +15,6 @@ interface HomeModalsProps {
   hasSavedData?: boolean;
 
   // Modal actions
-  onCloseConfigModal: () => void;
   onCloseCodesModal: () => void;
   onCloseEditStoreModal: () => void;
   onCloseNoDataModal: () => void;
@@ -25,7 +23,6 @@ interface HomeModalsProps {
 }
 
 export const HomeModals: React.FC<HomeModalsProps> = ({
-  showConfigModal,
   showCodesModal,
   showEditStoreModal,
   showNoDataModal,
@@ -33,7 +30,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   modalMessage,
   selectedMonth,
   hasSavedData,
-  onCloseConfigModal,
   onCloseCodesModal,
   onCloseEditStoreModal,
   onCloseNoDataModal,
@@ -48,13 +44,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
 
   return (
     <>
-      {/* Configuration Modal */}
-      <ConfigurationPanel
-        open={showConfigModal}
-        onClose={onCloseConfigModal}
-        initialMonth={selectedMonth}
-      />
-
       {/* Codes Modal */}
       <CodesModal
         isOpen={showCodesModal}

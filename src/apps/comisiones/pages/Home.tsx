@@ -7,6 +7,7 @@ import { DataTable } from "../components/DataTable";
 import { Charts } from "../components/Charts";
 import { LoadingState } from "../components/LoadingState";
 import { CommissionThresholdPanel } from "../components/CommissionThresholdPanel";
+import { ConfigurationTabsPanel } from "../components/ConfigurationTabsPanel";
 import {
   getAvailableMonths,
   calculateMesResumenAgrupado,
@@ -48,9 +49,9 @@ export default function Home() {
 
   // Estados locales
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const [showConfigModal, setShowConfigModal] = useState(false);
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [showThresholdModal, setShowThresholdModal] = useState(false);
+  const [showTabsConfigModal, setShowTabsConfigModal] = useState(false);
 
   // 🚀 NUEVO: Estado para pantalla de carga de guardado
   const [showSaveLoading, setShowSaveLoading] = useState(false);
@@ -469,9 +470,8 @@ export default function Home() {
       mesResumenFiltrado: shouldShowMainContent ? mesResumenFiltrado : null,
       onMonthChange: handleMonthChange,
       onTiendaChange: setFilterTienda,
-      onShowConfigModal: () => setShowConfigModal(true),
+      onShowConfigModal: () => setShowTabsConfigModal(true),
       onShowCodesModal: () => setShowCodesModal(true),
-      onShowThresholdModal: () => setShowThresholdModal(true),
       onShowEditStoreModal: () => setShowEditStoreModal(true),
       onToggleAllStores: handleToggleAllStoresWrapper,
       expandedTiendas,
@@ -796,7 +796,6 @@ export default function Home() {
 
         {/* Modales */}
         <HomeModals
-          showConfigModal={showConfigModal}
           showCodesModal={showCodesModal}
           showEditStoreModal={showEditStoreModal}
           showNoDataModal={showNoDataModal}
@@ -805,7 +804,6 @@ export default function Home() {
           selectedMonth={selectedMonth}
           hasSavedData={hasBudgetData === true} // Solo mostrar X si ya hay datos guardados
           onShowSaveLoading={onShowSaveLoading}
-          onCloseConfigModal={() => setShowConfigModal(false)}
           onCloseCodesModal={() => {
             setShowCodesModal(false);
             // Solo cerrar, no ejecutar pantalla de carga automáticamente
@@ -827,6 +825,14 @@ export default function Home() {
         <CommissionThresholdPanel
           open={showThresholdModal}
           onClose={() => setShowThresholdModal(false)}
+          initialMonth={selectedMonth}
+          onThresholdSaved={refetch}
+        />
+
+        {/* Modal de configuración con pestañas */}
+        <ConfigurationTabsPanel
+          open={showTabsConfigModal}
+          onClose={() => setShowTabsConfigModal(false)}
           initialMonth={selectedMonth}
           onThresholdSaved={refetch}
         />

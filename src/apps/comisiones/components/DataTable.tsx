@@ -262,10 +262,6 @@ const useIncrementalLoading = (
   return { incrementallyLoadedCount, isIncrementallyLoading };
 };
 
-// =============================================================================
-// COMPONENTE PRINCIPAL
-// =============================================================================
-
 /**
  * 🚀 DataTable MODULARIZADO CON MATERIAL UI TABLE
  * - Elimina useTransition y Suspense para mejor performance

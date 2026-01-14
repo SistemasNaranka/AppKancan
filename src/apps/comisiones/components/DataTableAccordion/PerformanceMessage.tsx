@@ -6,7 +6,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Star as StarIcon,
 } from "@mui/icons-material";
-import { green, orange, blue, grey, pink } from "@mui/material/colors";
+import { green, orange, blue, grey, pink, purple } from "@mui/material/colors";
 import { TiendaResumen, CommissionThreshold } from "../../types";
 import { formatCurrency } from "../../lib/utils";
 
@@ -78,14 +78,22 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
     }
 
     // Mensajes basados en el nivel actual
-    const messages = [
-      umbralesOrdenados[0]?.nombre || "Buen Inicio",
-      umbralesOrdenados[1]?.nombre || "Buen progreso",
-      umbralesOrdenados[2]?.nombre || "Muy buen trabajo",
-      umbralesOrdenados[3]?.nombre || "Excelente desempeño",
-    ];
+    const messages = umbralesOrdenados.map((umbral) => umbral.nombre);
 
-    const colors = [pink[300], orange[600], blue[600], green[600]];
+    // Colores basados en los umbrales
+    const getCumplimientoColor = (pct: number) => {
+      if (pct < 80) return grey[600];
+      if (pct < 90) return purple[300];
+      if (pct < 95) return pink[300];
+      if (pct < 100) return orange[600];
+      if (pct < 110) return blue[600];
+      return green[600];
+    };
+
+    const colors = umbralesOrdenados.map((umbral) =>
+      getCumplimientoColor(umbral.cumplimiento_min)
+    );
+
     const icons = [
       <TrendingUpIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
       <TrendingUpIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,

@@ -16,9 +16,8 @@ interface HomeHeaderProps {
   mesResumenFiltrado?: any;
   onMonthChange: (month: string) => void;
   onTiendaChange: (tiendas: string[]) => void;
-  onShowConfigModal: () => void;
   onShowCodesModal: () => void;
-  onShowThresholdModal: () => void;
+  onShowConfigModal: () => void;
   onShowEditStoreModal: () => void;
   onToggleAllStores: () => void;
   expandedTiendas: Set<string>;
@@ -44,9 +43,8 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   mesResumenFiltrado,
   onMonthChange,
   onTiendaChange,
-  onShowConfigModal,
   onShowCodesModal,
-  onShowThresholdModal,
+  onShowConfigModal,
   onShowEditStoreModal,
   onToggleAllStores,
   expandedTiendas,
@@ -98,30 +96,6 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {/* Botón Configuración - Solo para readComisionesAdmin */}
                 {canSeeConfig() && (
                   <>
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onShowThresholdModal();
-                      }}
-                      variant="outlined"
-                      startIcon={<TrendingUp />}
-                      size="small"
-                      sx={{
-                        lineHeight: 2.2,
-                        minWidth: "auto",
-                        px: { xs: 1.5, sm: 2 },
-                        borderColor: "#2e7d32",
-                        color: "#2e7d32",
-                        "&:hover": {
-                          borderColor: "#1b5e20",
-                          backgroundColor: "rgba(46, 125, 50, 0.04)",
-                        },
-                      }}
-                    >
-                      <span className="hidden xs:inline">Umbrales</span>
-                      <span className="xs:hidden">Umbrales</span>
-                    </Button>
                     <Button
                       onClick={(e) => {
                         e.preventDefault();

@@ -118,25 +118,25 @@ export const CommissionThresholdPanel: React.FC<
     {
       ...createEmptyRow("d1"),
       cumplimiento_min: "90",
-      comision_pct: "0.35",
+      comision_pct: "0.0035",
       nombre: "Muy Regular",
     },
     {
       ...createEmptyRow("d2"),
       cumplimiento_min: "95",
-      comision_pct: "0.50",
+      comision_pct: "0.005",
       nombre: "Regular",
     },
     {
       ...createEmptyRow("d3"),
       cumplimiento_min: "100",
-      comision_pct: "0.70",
+      comision_pct: "0.007",
       nombre: "Buena",
     },
     {
       ...createEmptyRow("d4"),
       cumplimiento_min: "110",
-      comision_pct: "1.00",
+      comision_pct: "0.01",
       nombre: "Excelente",
     },
   ];
@@ -180,6 +180,13 @@ export const CommissionThresholdPanel: React.FC<
     }
   }, [initialMonth, open]);
 
+  // Cargar datos cuando cambia el mes o el año
+  useEffect(() => {
+    if (open && selectedMonth && selectedYear) {
+      loadExistingConfigs();
+    }
+  }, [selectedMonth, selectedYear, open]);
+
   const loadExistingConfigs = useCallback(async () => {
     if (!open || !selectedMonth || !selectedYear) return;
 
@@ -205,7 +212,7 @@ export const CommissionThresholdPanel: React.FC<
           (t, index) => ({
             id: `row-${index}-${Date.now()}`,
             cumplimiento_min: t.cumplimiento_min.toString(),
-            comision_pct: (t.comision_pct * 100).toString(), // Convertir de decimal a porcentaje para mostrar
+            comision_pct: t.comision_pct.toString(), // Mostrar el valor exactamente como está guardado
             nombre: t.nombre || "",
           })
         );
@@ -291,10 +298,10 @@ export const CommissionThresholdPanel: React.FC<
     try {
       setLoading(true);
 
-      // Convertir porcentaje a decimal (0.35 -> 0.0035)
+      // Tomar los valores exactamente como se ingresan
       const valores: CommissionThreshold[] = validRows.map((r) => ({
         cumplimiento_min: parseFloat(r.cumplimiento_min),
-        comision_pct: parseFloat(r.comision_pct) / 100,
+        comision_pct: parseFloat(r.comision_pct),
         nombre: r.nombre.trim() || "",
       }));
 
