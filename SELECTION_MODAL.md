@@ -2,13 +2,13 @@
 
 ## 📋 Descripción General
 
-`SelectionModal` es un componente React moderno y atractivo construido con **Material UI 7.3.4** que proporciona una interfaz elegante para seleccionar múltiples elementos. Incluye dos modos: **selección** (interactivo) y **consulta** (solo lectura).
+`SelectionModal` es un componente React moderno y atr construido con **Material UI 7.3.4** que proporciona una interfaz elegante para seleccionar múltiples elementos. Incluye dos modos: **selección** (inter) y **consulta** (solo lectura).
 
 ### Características Principales
 
 ✨ **Diseño Moderno**
 
-- Gradientes de color atractivos (púrpura/azul)
+- Gradientes de color atrs (púrpura/azul)
 - Animaciones suaves y transiciones
 - Interfaz responsiva y accesible
 
@@ -372,7 +372,7 @@ El componente incluye características de accesibilidad:
 - ✅ Soporte para teclado (Tab, Enter, Escape)
 - ✅ Labels semánticos
 - ✅ Contraste de colores WCAG AA
-- ✅ Aria labels en elementos interactivos
+- ✅ Aria labels en elementos inters
 - ✅ Cierre con tecla Escape
 - ✅ Navegación con flechas en autocomplete
 
