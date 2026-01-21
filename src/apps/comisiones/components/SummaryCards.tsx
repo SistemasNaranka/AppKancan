@@ -2,7 +2,6 @@ import React, { useMemo, useCallback } from "react";
 import { MesResumen, Role } from "../types";
 
 import { Card as MuiCard, CardContent as MuiCardContent } from "@mui/material";
-import { border, borderRadius } from "@mui/system";
 
 interface SummaryCardsProps {
   mesResumen: MesResumen | null;

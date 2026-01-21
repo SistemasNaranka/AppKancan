@@ -3,7 +3,7 @@
  */
 
 import { BudgetRecord } from "../types";
-import { round, getMonthYear } from "./calculations.basic";
+import { round, getMonthYear } from "./calculations.utils";
 
 /**
  * Calcula presupuestos diarios con sistema fijo/distributivo

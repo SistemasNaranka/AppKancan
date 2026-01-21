@@ -36,7 +36,7 @@ export default function AppRoutes() {
     const homes = import.meta.glob("@/homes/**/Home.tsx");
     const areaLower = area.toLowerCase();
     const homePath = Object.keys(homes).find((path) =>
-      path.toLowerCase().includes(`/homes/${areaLower}/home.tsx`)
+      path.toLowerCase().includes(`/homes/${areaLower}/home.tsx`),
     );
 
     if (!homePath) return null;
@@ -73,7 +73,7 @@ export default function AppRoutes() {
     const cargarRutas = async () => {
       try {
         const rutasDisponibles = import.meta.glob<{ default: RouteObject[] }>(
-          "@/apps/**/routes.tsx"
+          "@/apps/**/routes.tsx",
         );
 
         // Filtrar apps permitidas
@@ -87,7 +87,7 @@ export default function AppRoutes() {
                 path.toLowerCase().includes(rutaLimipia) &&
                 path.toLowerCase().endsWith("routes.tsx")
               );
-            })
+            }),
         );
 
         const modulosCargados = await Promise.all(
@@ -96,7 +96,7 @@ export default function AppRoutes() {
             const module = await importer();
             routesCache[path] = module.default;
             return module.default;
-          })
+          }),
         );
 
         // Validación
@@ -105,8 +105,8 @@ export default function AppRoutes() {
             modulosPermitidos.map(([path], i) => [
               path,
               { default: modulosCargados[i] },
-            ])
-          )
+            ]),
+          ),
         );
 
         if (error) {
@@ -114,8 +114,8 @@ export default function AppRoutes() {
             new Error(
               error
                 .map((e: RouteValidationError) => e.message)
-                .join("\n\n" + "-".repeat(80) + "\n\n")
-            )
+                .join("\n\n" + "-".repeat(80) + "\n\n"),
+            ),
           );
         }
 
@@ -154,8 +154,12 @@ export default function AppRoutes() {
       { path: "/login", element: <Login /> },
       { path: "*", element: <Login /> },
     ];
-  } else if (isLoading) {
-    // Cargando datos de la app - suprimir warnings de rutas no encontradas
+  } else if (
+    isLoading ||
+    modulosComplejosFiltrados.length === 0 ||
+    !homeRoute
+  ) {
+    // Cargando datos de la app o rutas no cargadas - mostrar spinner
     routesToUse = [
       {
         path: "*",
@@ -200,7 +204,13 @@ export default function AppRoutes() {
       },
     ];
 
-    // Solo agregar NotFound en casos muy específicos de error del sistema
+    // Ruta 404 para rutas no encontradas
+    routesToUse.push({
+      path: "*",
+      element: <NotFound />,
+    });
+
+    // Solo agregar ErrorPage en casos muy específicos de error del sistema
     if (errorEnRutas && !isLoading && import.meta.env.DEV) {
       routesToUse.push({
         path: "*",
@@ -211,7 +221,12 @@ export default function AppRoutes() {
 
   // Suprimir warnings de React Router durante estados de carga
   const originalWarn = console.warn;
-  if (authLoading || isLoading) {
+  if (
+    authLoading ||
+    isLoading ||
+    modulosComplejosFiltrados.length === 0 ||
+    !homeRoute
+  ) {
     console.warn = (...args) => {
       if (!args[0]?.includes?.("No routes matched location")) {
         originalWarn(...args);
@@ -222,7 +237,12 @@ export default function AppRoutes() {
   const result = useRoutes(routesToUse);
 
   // Restaurar console.warn después de renderizar
-  if (authLoading || isLoading) {
+  if (
+    authLoading ||
+    isLoading ||
+    modulosComplejosFiltrados.length === 0 ||
+    !homeRoute
+  ) {
     setTimeout(() => {
       console.warn = originalWarn;
     }, 0);

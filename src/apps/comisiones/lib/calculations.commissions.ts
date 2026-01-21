@@ -2,14 +2,13 @@
  * Funciones de cálculos de comisiones y cumplimiento
  */
 
-import { StaffMember, EmployeeCommission } from "../types";
-import { round } from "./calculations.basic";
+import { StaffMember, EmployeeCommission, CommissionThreshold } from "../types";
 import {
+  round,
   getNextCommission,
   getNextBudget,
   getNextSale,
-  getNextCommissionAmount,
-} from "./calculations.next-commission";
+} from "./calculations.utils";
 
 /**
  * Calcula el porcentaje de cumplimiento
@@ -34,15 +33,58 @@ export const calculateBaseSale = (
 };
 
 /**
- * Obtiene el porcentaje de comisión según cumplimiento (corregida)
- * Los decimales son importantes para los cálculos
+ * Valores por defecto para umbrales de comisión (hardcodeados)
+ * Se usan cuando no hay configuración en la base de datos
  */
-export const getCommissionPercentage = (compliance: number): number => {
-  if (compliance >= 110.0) return 0.01; // Excelente: 1.00%
-  if (compliance >= 100.0) return 0.007; // Buena: 0.70%
-  if (compliance >= 95.0) return 0.005; // Regular: 0.50%
-  if (compliance >= 90.0) return 0.0035; // Muy regular: 0.35%
-  return 0; // Sin comisión
+const DEFAULT_THRESHOLDS = [
+  {
+    id: "default-1",
+    cumplimiento_min: 90,
+    comision_pct: 0.0035,
+    nombre: "Muy Regular",
+  },
+  {
+    id: "default-2",
+    cumplimiento_min: 95,
+    comision_pct: 0.005,
+    nombre: "Regular",
+  },
+  {
+    id: "default-3",
+    cumplimiento_min: 100,
+    comision_pct: 0.007,
+    nombre: "Buena",
+  },
+  {
+    id: "default-4",
+    cumplimiento_min: 110,
+    comision_pct: 0.01,
+    nombre: "Excelente",
+  },
+];
+
+/**
+ * Obtiene el porcentaje de comisión según cumplimiento
+ * Soporta configuración dinámica desde base de datos o valores por defecto
+ * @param compliance - Porcentaje de cumplimiento (ej: 92.5)
+ * @param thresholdConfig - Configuración de umbrales (opcional)
+ */
+export const getCommissionPercentage = (
+  compliance: number,
+  thresholdConfig?: CommissionThreshold[]
+): number => {
+  // Usar configuración proporcionada o valores por defecto
+  const umbrales =
+    thresholdConfig && thresholdConfig.length > 0
+      ? thresholdConfig
+      : DEFAULT_THRESHOLDS;
+
+  // Ordenar por cumplimiento_min descendente para encontrar el umbral correcto
+  const umbral = umbrales
+    .sort((a, b) => b.cumplimiento_min - a.cumplimiento_min)
+    .find((u) => compliance >= u.cumplimiento_min);
+
+  return umbral?.comision_pct || 0;
 };
 
 /**
@@ -61,17 +103,23 @@ export const calculateCommissionAmount = (
  * @param comision_pct - Comisión actual
  * @param presupuesto - Presupuesto actual
  * @param ventas - Ventas actuales
+ * @param thresholdConfig - Configuración de umbrales de comisión (opcional)
  * @returns Objeto con los valores calculados
  */
 const calculateNextValues = (
   comision_pct: number,
   presupuesto: number,
-  ventas: number
+  ventas: number,
+  thresholdConfig?: CommissionThreshold[]
 ) => {
-  const proxima_comision = getNextCommission(comision_pct);
+  const proxima_comision = getNextCommission(comision_pct, thresholdConfig);
 
   // Siempre calcular próximo presupuesto (incluso si es 0)
-  const proximo_presupuesto = getNextBudget(proxima_comision, presupuesto);
+  const proximo_presupuesto = getNextBudget(
+    proxima_comision,
+    presupuesto,
+    thresholdConfig
+  );
 
   // Calcular próxima venta solo si hay próximo presupuesto
   let proxima_venta: number | null = null;
@@ -108,11 +156,12 @@ const calculateNextValues = (
 export const calculateEmployeeCommission = (
   empleado: StaffMember,
   presupuesto: number,
-  ventas: number
+  ventas: number,
+  thresholdConfig?: CommissionThreshold[]
 ): EmployeeCommission => {
   const cumplimiento = calculateCompliance(ventas, presupuesto);
   const venta_sin_iva = calculateBaseSale(ventas);
-  const comision_pct = getCommissionPercentage(cumplimiento);
+  const comision_pct = getCommissionPercentage(cumplimiento, thresholdConfig);
   const comision_monto = calculateCommissionAmount(venta_sin_iva, comision_pct);
 
   const {
@@ -120,7 +169,7 @@ export const calculateEmployeeCommission = (
     proximo_presupuesto,
     proxima_venta,
     proximo_monto_comision,
-  } = calculateNextValues(comision_pct, presupuesto, ventas);
+  } = calculateNextValues(comision_pct, presupuesto, ventas, thresholdConfig);
 
   return {
     id: empleado.id,
@@ -156,7 +205,8 @@ export const calculateGerenteCommission = (
   presupuestoGerente: number,
   ventasIndividualesGerente: number,
   ventasTiendaTotal: number,
-  presupuestoTiendaTotal: number
+  presupuestoTiendaTotal: number,
+  thresholdConfig?: CommissionThreshold[]
 ): EmployeeCommission => {
   // 1. CUMPLIMIENTO: basado en la tienda completa
   const cumplimientoTienda = calculateCompliance(
@@ -165,7 +215,10 @@ export const calculateGerenteCommission = (
   );
 
   // 2. PORCENTAJE DE COMISIÓN: basado en cumplimiento de la tienda
-  const comision_pct = getCommissionPercentage(cumplimientoTienda);
+  const comision_pct = getCommissionPercentage(
+    cumplimientoTienda,
+    thresholdConfig
+  );
 
   // 3. MONTO DE COMISIÓN: basado en ventas de la tienda (no ventas individuales del gerente)
   const ventaTiendaSinIVA = calculateBaseSale(ventasTiendaTotal);
@@ -183,7 +236,8 @@ export const calculateGerenteCommission = (
   } = calculateNextValues(
     comision_pct,
     presupuestoTiendaTotal, // Usar presupuesto total de la tienda
-    ventasTiendaTotal // Usar ventas totales de la tienda
+    ventasTiendaTotal, // Usar ventas totales de la tienda
+    thresholdConfig
   );
 
   return {
@@ -218,6 +272,7 @@ export const calculateGerenteCommission = (
  * @param ventasIndividualesEmpleado - Ventas individuales del empleado (para mostrar)
  * @param presupuestoIndividualEmpleado - Presupuesto individual del empleado (para mostrar)
  * @param rol - Rol específico del empleado
+ * @param thresholdConfig - Configuración de umbrales de comisión (opcional)
  * @returns EmployeeCommission con los datos calculados
  */
 const calculateCollectiveRoleCommission = (
@@ -227,7 +282,8 @@ const calculateCollectiveRoleCommission = (
   cantidadEmpleadosRol: number,
   ventasIndividualesEmpleado: number = 0,
   presupuestoIndividualEmpleado: number = 0,
-  rol: "cajero" | "logistico"
+  rol: "cajero" | "logistico",
+  thresholdConfig?: CommissionThreshold[]
 ): EmployeeCommission => {
   // Calcular cumplimiento de la tienda
   const cumplimientoTienda = calculateCompliance(
@@ -236,7 +292,11 @@ const calculateCollectiveRoleCommission = (
   );
 
   // Obtener porcentaje de comisión basado en cumplimiento de la tienda
-  const comision_pct = getCommissionPercentage(cumplimientoTienda);
+  // ✅ SOPORTAR thresholdConfig desde base de datos
+  const comision_pct = getCommissionPercentage(
+    cumplimientoTienda,
+    thresholdConfig
+  );
 
   // Calcular venta base sin IVA de la tienda
   const ventaTiendaSinIVA = calculateBaseSale(ventasTiendaTotal);
@@ -260,7 +320,8 @@ const calculateCollectiveRoleCommission = (
   } = calculateNextValues(
     comision_pct,
     presupuestoIndividualEmpleado,
-    ventasIndividualesEmpleado
+    ventasIndividualesEmpleado,
+    thresholdConfig
   );
 
   return {
@@ -296,7 +357,8 @@ export const calculateCajeroCommission = (
   presupuestoTiendaTotal: number,
   cantidadEmpleadosRol: number,
   ventasIndividualesEmpleado: number = 0,
-  presupuestoIndividualEmpleado: number = 0
+  presupuestoIndividualEmpleado: number = 0,
+  thresholdConfig?: CommissionThreshold[]
 ): EmployeeCommission => {
   return calculateCollectiveRoleCommission(
     empleado,
@@ -305,7 +367,8 @@ export const calculateCajeroCommission = (
     cantidadEmpleadosRol,
     ventasIndividualesEmpleado,
     presupuestoIndividualEmpleado,
-    "cajero"
+    "cajero",
+    thresholdConfig
   );
 };
 
@@ -322,7 +385,8 @@ export const calculateLogisticoCommission = (
   presupuestoTiendaTotal: number,
   cantidadEmpleadosRol: number,
   ventasIndividualesEmpleado: number = 0,
-  presupuestoIndividualEmpleado: number = 0
+  presupuestoIndividualEmpleado: number = 0,
+  thresholdConfig?: CommissionThreshold[]
 ): EmployeeCommission => {
   return calculateCollectiveRoleCommission(
     empleado,
@@ -331,7 +395,8 @@ export const calculateLogisticoCommission = (
     cantidadEmpleadosRol,
     ventasIndividualesEmpleado,
     presupuestoIndividualEmpleado,
-    "logistico"
+    "logistico",
+    thresholdConfig
   );
 };
 
@@ -358,7 +423,7 @@ export const calculateGerenteOnlineCommission = (
     presupuestoIndividualEmpleado
   );
 
-  // Calcular próximos valores
+  // Calcular próximos valores (gerente online usa comisión fija, pero próximos valores dinámicos)
   const {
     proxima_comision,
     proximo_presupuesto,
@@ -367,7 +432,8 @@ export const calculateGerenteOnlineCommission = (
   } = calculateNextValues(
     comision_pct,
     presupuestoIndividualEmpleado,
-    ventasIndividualesEmpleado
+    ventasIndividualesEmpleado,
+    undefined // No usar thresholdConfig para gerente online (usa valores por defecto)
   );
 
   return {

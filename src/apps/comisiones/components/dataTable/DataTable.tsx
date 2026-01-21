@@ -1,24 +1,15 @@
-/**
- * 🚀 DataTable MODULARIZADO - VERSIÓN SIMPLIFICADA
- *
- * ESTRUCTURA MODULAR INTERNA:
- * ├── DataTable.tsx (Componente principal con componentes internos)
- * │   ├── DataTableLoading (componente interno)
- * │   ├── DataTableEmpty (componente interno)
- * │   └── DataTableContent (componente interno)
- *
- * ✅ COMPONENTE PRINCIPAL LIMPIO Y FUNCIONAL
- * ✅ Funcionalidad 100% preservada
- * ✅ Código modular dentro del mismo archivo
- * ✅ Sin dependencias circulares
- */
-
 import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
-import { TiendaResumen, Role, DirectusCargo } from "../types";
+import {
+  TiendaResumen,
+  Role,
+  DirectusCargo,
+  CommissionThreshold,
+  CommissionThresholdConfig,
+} from "../../types";
 import { Paper, Typography, Box } from "@mui/material";
 import { DataTableAccordion } from "./DataTableAccordion";
-import { DataTableLoadingState } from "./LoadingState";
-import { green, blue, orange, grey, pink } from "@mui/material/colors";
+import { DataTableLoadingState } from "../ui/LoadingState";
+import { green, blue, orange, grey, pink, red } from "@mui/material/colors";
 
 // =============================================================================
 // TIPOS E INTERFACES
@@ -32,7 +23,7 @@ interface DataTableProps {
     tienda: string,
     fecha: string,
     ventas_tienda: number,
-    ventas_por_asesor: Record<string, number>
+    ventas_por_asesor: Record<string, number>,
   ) => void;
   readOnly?: boolean;
   expandedTiendas: Set<string>;
@@ -42,6 +33,7 @@ interface DataTableProps {
   isLoading?: boolean;
   isRefetching?: boolean;
   isFiltering?: boolean;
+  thresholdConfig?: CommissionThresholdConfig | null;
 }
 
 // =============================================================================
@@ -84,6 +76,7 @@ const DataTableContent = ({
   incrementallyLoadedCount,
   isIncrementallyLoading,
   tiendaKeys,
+  thresholdConfig,
 }: {
   visibleTiendas: TiendaResumen[];
   expandedTiendas: Set<string>;
@@ -94,12 +87,13 @@ const DataTableContent = ({
     tiendaName: string,
     fecha: string,
     asesorId: string,
-    newValue: string
+    newValue: string,
   ) => void;
   hasManyExpandedStores: boolean;
   incrementallyLoadedCount: number;
   isIncrementallyLoading: boolean;
   tiendaKeys: string[];
+  thresholdConfig?: CommissionThreshold[];
 }) => {
   // Renderizado de tiendas normal
   const renderTiendas = () => {
@@ -116,6 +110,7 @@ const DataTableContent = ({
           readOnly={readOnly}
           getCumplimientoColor={getCumplimientoColor}
           handleVentaChange={handleVentaChange}
+          thresholdConfig={thresholdConfig}
         />
       );
     });
@@ -141,6 +136,7 @@ const DataTableContent = ({
               readOnly={readOnly}
               getCumplimientoColor={getCumplimientoColor}
               handleVentaChange={handleVentaChange}
+              thresholdConfig={thresholdConfig}
             />
           );
         })}
@@ -190,7 +186,7 @@ const useDataTableFilters = (tiendas: TiendaResumen[], filterRol?: Role[]) => {
     }
 
     return tiendas.filter((tienda) =>
-      tienda.empleados.some((empleado) => filterRol.includes(empleado.rol))
+      tienda.empleados.some((empleado) => filterRol.includes(empleado.rol)),
     );
   }, [tiendas, filterRol]);
 };
@@ -198,7 +194,7 @@ const useDataTableFilters = (tiendas: TiendaResumen[], filterRol?: Role[]) => {
 // Hook para carga incremental
 const useIncrementalLoading = (
   visibleTiendas: TiendaResumen[],
-  hasManyExpandedStores: boolean
+  hasManyExpandedStores: boolean,
 ) => {
   const [incrementallyLoadedCount, setIncrementallyLoadedCount] = useState(0);
   const [isIncrementallyLoading, setIsIncrementallyLoading] = useState(false);
@@ -251,10 +247,6 @@ const useIncrementalLoading = (
   return { incrementallyLoadedCount, isIncrementallyLoading };
 };
 
-// =============================================================================
-// COMPONENTE PRINCIPAL
-// =============================================================================
-
 /**
  * 🚀 DataTable MODULARIZADO CON MATERIAL UI TABLE
  * - Elimina useTransition y Suspense para mejor performance
@@ -264,22 +256,17 @@ const useIncrementalLoading = (
 export const DataTable: React.FC<DataTableProps> = memo(
   ({
     tiendas,
-    cargos = [],
-    selectedMonth,
     onVentasUpdate,
     readOnly = false,
     expandedTiendas,
-    onToggleAllStores,
     toggleSingleStore,
     filterRol,
     isLoading = false,
     isRefetching = false,
-    isFiltering = false,
+    thresholdConfig,
   }) => {
     // Estados para inputs temporales de ventas
-    const [ventasInputs, setVentasInputs] = useState<Record<string, number>>(
-      {}
-    );
+    const [, setVentasInputs] = useState<Record<string, number>>({});
 
     // Hooks modulares
     const visibleTiendas = useDataTableFilters(tiendas, filterRol);
@@ -306,7 +293,7 @@ export const DataTable: React.FC<DataTableProps> = memo(
         tiendaName: string,
         fecha: string,
         asesorId: string,
-        newValue: string
+        newValue: string,
       ) => {
         const val = parseFloat(newValue);
         const numericVal = isNaN(val) ? 0 : val;
@@ -318,7 +305,7 @@ export const DataTable: React.FC<DataTableProps> = memo(
         }));
 
         const tiendaActual = tiendas.find(
-          (t) => t.tienda === tiendaName && t.fecha === fecha
+          (t) => t.tienda === tiendaName && t.fecha === fecha,
         );
 
         if (tiendaActual) {
@@ -331,18 +318,18 @@ export const DataTable: React.FC<DataTableProps> = memo(
           ventasPorAsesorUpdated[asesorId] = numericVal;
 
           const totalVentasTienda = Object.values(
-            ventasPorAsesorUpdated
+            ventasPorAsesorUpdated,
           ).reduce((a, b) => a + b, 0);
 
           onVentasUpdate(
             tiendaName,
             fecha,
             totalVentasTienda,
-            ventasPorAsesorUpdated
+            ventasPorAsesorUpdated,
           );
         }
       },
-      [tiendas, onVentasUpdate]
+      [tiendas, onVentasUpdate],
     );
 
     // Handler simple para acordeones
@@ -350,16 +337,124 @@ export const DataTable: React.FC<DataTableProps> = memo(
       (tiendaKey: string) => {
         toggleSingleStore(tiendaKey);
       },
-      [toggleSingleStore]
+      [toggleSingleStore],
     );
 
-    const getCumplimientoColor = useCallback((pct: number) => {
-      if (pct < 90) return grey[600];
-      if (pct < 95) return pink[300];
-      if (pct < 100) return orange[600];
-      if (pct < 110) return blue[600];
-      return green[600];
-    }, []);
+    const getCumplimientoColor = useCallback(
+      (pct: number) => {
+        // Valores por defecto si no hay configuración
+        const DEFAULT_THRESHOLDS = [
+          {
+            cumplimiento_min: 85,
+            comision_pct: 0.002,
+            nombre: "Básico",
+            color: "red",
+          },
+          {
+            cumplimiento_min: 90,
+            comision_pct: 0.0035,
+            nombre: "Muy Regular",
+            color: "pink",
+          },
+          {
+            cumplimiento_min: 95,
+            comision_pct: 0.005,
+            nombre: "Regular",
+            color: "orange",
+          },
+          {
+            cumplimiento_min: 100,
+            comision_pct: 0.007,
+            nombre: "Buena",
+            color: "blue",
+          },
+          {
+            cumplimiento_min: 110,
+            comision_pct: 0.01,
+            nombre: "Excelente",
+            color: "green",
+          },
+        ];
+
+        const umbrales =
+          thresholdConfig?.cumplimiento_valores &&
+          thresholdConfig.cumplimiento_valores.length > 0
+            ? thresholdConfig.cumplimiento_valores
+            : DEFAULT_THRESHOLDS;
+
+        // Ordenar umbrales por cumplimiento_min ascendente
+        const umbralesOrdenados = [...umbrales].sort(
+          (a, b) => a.cumplimiento_min - b.cumplimiento_min,
+        );
+
+        // Verificar si el cumplimiento está dentro de alguno de los umbrales configurados
+        const isWithinThresholds = umbralesOrdenados.some((umbral) => {
+          const nextUmbral =
+            umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
+          return (
+            pct >= umbral.cumplimiento_min &&
+            (!nextUmbral || pct < nextUmbral.cumplimiento_min)
+          );
+        });
+
+        // Asignar color SOLO si el cumplimiento está dentro de los umbrales configurados
+        if (!isWithinThresholds) {
+          return grey[600]; // Gris (sin color) para cumplimiento < umbral mínimo o fuera de rango
+        }
+
+        // Mapa de colores MUI a nombres de colores
+        const colorMap: Record<string, string> = {
+          red: red[300],
+          pink: pink[300],
+          orange: orange[600],
+          blue: blue[600],
+          green: green[600],
+          purple: "#9c27b0",
+          yellow: "#ffeb3b",
+        };
+
+        // Asignar color basado EN LOS UMBRALES CONFIGURADOS para el mes
+        for (let i = 0; i < umbralesOrdenados.length; i++) {
+          const umbral = umbralesOrdenados[i];
+          const nextUmbral = umbralesOrdenados[i + 1];
+
+          if (
+            pct >= umbral.cumplimiento_min &&
+            (!nextUmbral || pct < nextUmbral.cumplimiento_min)
+          ) {
+            // Si el umbral tiene un color configurado, usarlo
+            if (umbral.color && colorMap[umbral.color]) {
+              return colorMap[umbral.color];
+            }
+
+            // Si no, usar la lógica de color por defecto
+            if (umbral.cumplimiento_min >= 85 && umbral.cumplimiento_min < 90) {
+              return red[300]; // Rojo para umbrales 85-89%
+            } else if (
+              umbral.cumplimiento_min >= 90 &&
+              umbral.cumplimiento_min < 95
+            ) {
+              return pink[300]; // Rosa para umbrales 90-94%
+            } else if (
+              umbral.cumplimiento_min >= 95 &&
+              umbral.cumplimiento_min < 100
+            ) {
+              return orange[600]; // Naranja para umbrales 95-99%
+            } else if (
+              umbral.cumplimiento_min >= 100 &&
+              umbral.cumplimiento_min < 110
+            ) {
+              return blue[600]; // Azul para umbrales 100-109%
+            } else {
+              return green[600]; // Verde para umbrales ≥110%
+            }
+          }
+        }
+
+        return grey[600]; // Default
+      },
+      [thresholdConfig],
+    );
 
     // Contenido de la tabla optimizado
     const tableContent = useMemo(() => {
@@ -386,6 +481,7 @@ export const DataTable: React.FC<DataTableProps> = memo(
           incrementallyLoadedCount={incrementallyLoadedCount}
           isIncrementallyLoading={isIncrementallyLoading}
           tiendaKeys={tiendaKeys}
+          thresholdConfig={thresholdConfig?.cumplimiento_valores}
         />
       );
     }, [
@@ -450,7 +546,7 @@ export const DataTable: React.FC<DataTableProps> = memo(
         tienda.ventas_tienda === nextTienda.ventas_tienda
       );
     });
-  }
+  },
 );
 
 DataTable.displayName = "DataTable";

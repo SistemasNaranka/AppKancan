@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useUserPolicies } from "./useUserPolicies";
 import { obtenerTiendas } from "../api/directus/read";
 import { DirectusTienda } from "../types/modal";
@@ -24,7 +24,7 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
   const [hasPermission, setHasPermission] = useState(false);
   const [tiendasCount, setTiendasCount] = useState(0);
   const [tiendaUsuario, setTiendaUsuario] = useState<DirectusTienda | null>(
-    null
+    null,
   );
   const [validationCompleted, setValidationCompleted] = useState(false);
   const [showMultipleStoresWarning, setShowMultipleStoresWarning] =
@@ -53,7 +53,7 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
       if (tiendas.length > 1) {
         setShowMultipleStoresWarning(true);
         setError(
-          `Tienes ${tiendas.length} tiendas asignadas. Por favor, contacta a Soporte/Sistemas para asignar una sola tienda.`
+          `Tienes ${tiendas.length} tiendas asignadas. Por favor, contacta a Soporte/Sistemas para asignar una sola tienda.`,
         );
         return;
       }

@@ -23,9 +23,6 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
   empleadosAsignados,
   saving,
   onRemoveEmpleado,
-  getCargoNombre,
-  getTiendaNombre,
-  isMobile = false,
 }) => {
   const theme = useTheme();
 

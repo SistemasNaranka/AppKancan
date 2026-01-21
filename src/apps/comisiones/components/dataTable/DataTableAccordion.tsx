@@ -6,10 +6,10 @@ import {
   AttachMoney as AttachMoneyIcon,
   People as PeopleIcon, // ← AGREGADO
 } from "@mui/icons-material";
-import { TiendaResumen } from "../types";
-import { formatCurrency } from "../lib/utils";
+import { TiendaResumen, CommissionThreshold } from "../../types";
+import { formatCurrency } from "../../lib/utils";
 import { blue, grey } from "@mui/material/colors";
-import PerformanceMessage from "./DataTableAccordion/PerformanceMessage";
+import PerformanceMessage from "./PerformanceMessage";
 import DataTableAccordionTable from "./DataTableAccordionTable";
 
 interface DataTableAccordionProps {
@@ -22,8 +22,9 @@ interface DataTableAccordionProps {
     tiendaName: string,
     fecha: string,
     asesorId: string,
-    newValue: string
+    newValue: string,
   ) => void;
+  thresholdConfig?: CommissionThreshold[];
 }
 
 const AccordionHeader = ({
@@ -32,12 +33,14 @@ const AccordionHeader = ({
   onToggle,
   getCumplimientoColor,
   empleadosVisibles = 0,
+  thresholdConfig,
 }: {
   tienda: TiendaResumen;
   expanded: boolean;
   onToggle: () => void;
   getCumplimientoColor: (pct: number) => string;
   empleadosVisibles?: number; // Nuevo prop para el conteo real de empleados visibles
+  thresholdConfig?: CommissionThreshold[];
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -45,7 +48,7 @@ const AccordionHeader = ({
   // Calcular comisión total una sola vez
   const totalComision = tienda.empleados.reduce(
     (t, e) => t + (e.comision_monto || 0),
-    0
+    0,
   );
 
   // Determinar el conteo a mostrar
@@ -212,7 +215,11 @@ const AccordionHeader = ({
                 >
                   {tienda.cumplimiento_tienda_pct.toFixed(2)}%
                 </Typography>
-                <PerformanceMessage tienda={tienda} size="small" />
+                <PerformanceMessage
+                  tienda={tienda}
+                  size="small"
+                  thresholdConfig={thresholdConfig}
+                />
               </Box>
             </Box>
 
@@ -286,7 +293,11 @@ const AccordionHeader = ({
                 {tienda.cumplimiento_tienda_pct.toFixed(2)}%
               </Typography>
             </Box>
-            <PerformanceMessage tienda={tienda} size="medium" />
+            <PerformanceMessage
+              tienda={tienda}
+              size="medium"
+              thresholdConfig={thresholdConfig}
+            />
           </Box>
         )}
       </Box>
@@ -340,11 +351,12 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
     readOnly,
     getCumplimientoColor,
     handleVentaChange,
+    thresholdConfig,
   }) => {
     // ✅ CALCULAR EMPLEADOS VISIBLES (filtrar 0 presupuesto Y 0 ventas)
     const empleadosVisibles = React.useMemo(() => {
       return tienda.empleados.filter(
-        (empleado) => empleado.presupuesto > 0 || empleado.ventas > 0
+        (empleado) => empleado.presupuesto > 0 || empleado.ventas > 0,
       ).length;
     }, [tienda.empleados]);
 
@@ -370,6 +382,7 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
           onToggle={onToggle}
           getCumplimientoColor={getCumplimientoColor}
           empleadosVisibles={empleadosVisibles}
+          thresholdConfig={thresholdConfig}
         />
 
         <Box
@@ -387,6 +400,7 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
             readOnly={readOnly}
             getCumplimientoColor={getCumplimientoColor}
             handleVentaChange={handleVentaChange}
+            thresholdConfig={thresholdConfig}
           />
         </Box>
       </Box>
@@ -406,7 +420,7 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
 
     // Solo permitir re-render si hay cambios importantes
     return !tiendaChanged && !dataChanged && !expandedChanged;
-  }
+  },
 );
 
 DataTableAccordion.displayName = "DataTableAccordion";

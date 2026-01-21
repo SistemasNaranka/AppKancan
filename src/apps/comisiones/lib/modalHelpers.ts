@@ -2,10 +2,7 @@
  * Funciones auxiliares para el modal de códigos
  */
 
-export const getFechaActual = (mesSeleccionado?: string): string => {
-  // Usar zona horaria de Colombia (UTC-5) para obtener la fecha correcta
-  const now = new Date();
-
+export const getFechaActual = (selectedMonth: string | undefined): string => {
   // Usar toLocaleDateString con formato sueco que da YYYY-MM-DD
   return new Date().toLocaleDateString("sv-SE", { timeZone: "America/Bogota" });
 };

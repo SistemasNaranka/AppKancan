@@ -23,10 +23,10 @@ import {
   CalendarToday as CalendarTodayIcon,
   VpnKey as VpnKeyIcon,
 } from "@mui/icons-material";
-import { TiendaResumen, Role } from "../types";
-import { formatCurrency } from "../lib/utils";
-import { formatProximaComision } from "../lib/calculations.next-commission";
-import { grey, green, blue, orange, pink } from "@mui/material/colors";
+import { TiendaResumen, Role, CommissionThreshold } from "../../types";
+import { formatCurrency } from "../../lib/utils";
+import { formatProximaComision } from "../../lib/calculations.utils";
+import { grey, green, blue, orange, pink, red } from "@mui/material/colors";
 
 // =============================================================================
 // TIPOS Y UTILIDADES
@@ -114,7 +114,7 @@ const compareValues = (
   a: any,
   b: any,
   field: SortField,
-  order: SortState["order"]
+  order: SortState["order"],
 ): number => {
   // Orden jerárquico por defecto (cuando field es "nombre")
   if (field === "nombre") {
@@ -163,29 +163,183 @@ const compareValues = (
   return 0;
 };
 
-// Función para obtener el color de fondo suave según el porcentaje
-const getRowBackgroundColor = (pct: number): string => {
-  if (pct >= 1.0) return green[50]; // Verde muy suave para 100%+
-  if (pct >= 0.7) return blue[50]; // Azul muy suave para 70%+
-  if (pct >= 0.5) return orange[50]; // Rosa muy suave para 50%+
-  if (pct >= 0.35) return pink[50]; // Naranja muy suave para 35%+
-  return grey[100]; // Sin fondo para <35%
+// Función para obtener el color de fondo suave según el porcentaje y los umbrales del mes
+const getRowBackgroundColor = (
+  pct: number,
+  thresholdConfig?: CommissionThreshold[],
+): string => {
+  // Si no hay configuración, usar gris por defecto
+  if (!thresholdConfig || thresholdConfig.length === 0) {
+    return grey[100];
+  }
+
+  const umbrales = thresholdConfig;
+
+  // Ordenar umbrales por cumplimiento_min ascendente
+  const umbralesOrdenados = [...umbrales].sort(
+    (a, b) => a.cumplimiento_min - b.cumplimiento_min,
+  );
+
+  // Convertir pct de decimal a porcentaje (ej: 0.95 → 95%)
+  const pctValue = pct * 100;
+
+  // Verificar si el cumplimiento está dentro de alguno de los umbrales configurados
+  const isWithinThresholds = umbralesOrdenados.some((umbral) => {
+    const nextUmbral = umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
+    return (
+      pctValue >= umbral.cumplimiento_min &&
+      (!nextUmbral || pctValue < nextUmbral.cumplimiento_min)
+    );
+  });
+
+  // Asignar color SOLO si el cumplimiento está dentro de los umbrales configurados
+  if (!isWithinThresholds) {
+    return grey[100]; // Sin fondo para cumplimiento < umbral mínimo o fuera de rango
+  }
+
+  // Mapa de colores de fondo suave
+  const backgroundColorMap: Record<string, string> = {
+    red: red[50],
+    pink: pink[50],
+    orange: orange[50],
+    blue: blue[50],
+    green: green[50],
+    purple: "#f3e5f5",
+    yellow: "#fff9c4",
+  };
+
+  // Asignar color de fondo suave basado EN LOS UMBRALES CONFIGURADOS para el mes
+  for (let i = 0; i < umbralesOrdenados.length; i++) {
+    const umbral = umbralesOrdenados[i];
+    const nextUmbral = umbralesOrdenados[i + 1];
+
+    if (
+      pctValue >= umbral.cumplimiento_min &&
+      (!nextUmbral || pctValue < nextUmbral.cumplimiento_min)
+    ) {
+      // Si el umbral tiene un color configurado, usarlo
+      if (umbral.color && backgroundColorMap[umbral.color]) {
+        return backgroundColorMap[umbral.color];
+      }
+
+      // Si no, usar la lógica de color por defecto
+      if (umbral.cumplimiento_min >= 85 && umbral.cumplimiento_min < 90) {
+        return red[50]; // Rojo muy suave para umbrales 85-89%
+      } else if (
+        umbral.cumplimiento_min >= 90 &&
+        umbral.cumplimiento_min < 95
+      ) {
+        return pink[50]; // Rosa muy suave para umbrales 90-94%
+      } else if (
+        umbral.cumplimiento_min >= 95 &&
+        umbral.cumplimiento_min < 100
+      ) {
+        return orange[50]; // Naranja muy suave para umbrales 95-99%
+      } else if (
+        umbral.cumplimiento_min >= 100 &&
+        umbral.cumplimiento_min < 110
+      ) {
+        return blue[50]; // Azul muy suave para umbrales 100-109%
+      } else {
+        return green[50]; // Verde muy suave para umbrales ≥110%
+      }
+    }
+  }
+
+  return grey[100]; // Default
 };
 
-// Función para obtener el color de hover según el porcentaje
-const getRowHoverColor = (pct: number): string => {
-  if (pct >= 1.0) return green[100]; // 100 → 200
-  if (pct >= 0.7) return blue[100]; // 100 → 200
-  if (pct >= 0.5) return orange[100]; // 100 → 200
-  if (pct >= 0.35) return pink[100]; // 100 → 200
-  return grey[200]; //  → grey[200]
+// Función para obtener el color de hover según el porcentaje y los umbrales del mes
+const getRowHoverColor = (
+  pct: number,
+  thresholdConfig?: CommissionThreshold[],
+): string => {
+  // Si no hay configuración, usar gris por defecto
+  if (!thresholdConfig || thresholdConfig.length === 0) {
+    return grey[200];
+  }
+
+  const umbrales = thresholdConfig;
+
+  // Ordenar umbrales por cumplimiento_min ascendente
+  const umbralesOrdenados = [...umbrales].sort(
+    (a, b) => a.cumplimiento_min - b.cumplimiento_min,
+  );
+
+  // Convertir pct de decimal a porcentaje (ej: 0.95 → 95%)
+  const pctValue = pct * 100;
+
+  // Verificar si el cumplimiento está dentro de alguno de los umbrales configurados
+  const isWithinThresholds = umbralesOrdenados.some((umbral) => {
+    const nextUmbral = umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
+    return (
+      pctValue >= umbral.cumplimiento_min &&
+      (!nextUmbral || pctValue < nextUmbral.cumplimiento_min)
+    );
+  });
+
+  // Asignar color SOLO si el cumplimiento está dentro de los umbrales configurados
+  if (!isWithinThresholds) {
+    return grey[200]; // Hover gris para cumplimiento < umbral mínimo o fuera de rango
+  }
+
+  // Mapa de colores de hover
+  const hoverColorMap: Record<string, string> = {
+    red: red[100],
+    pink: pink[100],
+    orange: orange[100],
+    blue: blue[100],
+    green: green[100],
+    purple: "#e1bee7",
+    yellow: "#fff59d",
+  };
+
+  // Asignar color de hover basado EN LOS UMBRALES CONFIGURADOS para el mes
+  for (let i = 0; i < umbralesOrdenados.length; i++) {
+    const umbral = umbralesOrdenados[i];
+    const nextUmbral = umbralesOrdenados[i + 1];
+
+    if (
+      pctValue >= umbral.cumplimiento_min &&
+      (!nextUmbral || pctValue < nextUmbral.cumplimiento_min)
+    ) {
+      // Si el umbral tiene un color configurado, usarlo
+      if (umbral.color && hoverColorMap[umbral.color]) {
+        return hoverColorMap[umbral.color];
+      }
+
+      // Si no, usar la lógica de color por defecto
+      if (umbral.cumplimiento_min >= 85 && umbral.cumplimiento_min < 90) {
+        return red[100]; // Hover rojo para umbrales 85-89%
+      } else if (
+        umbral.cumplimiento_min >= 90 &&
+        umbral.cumplimiento_min < 95
+      ) {
+        return pink[100]; // Hover rosa para umbrales 90-94%
+      } else if (
+        umbral.cumplimiento_min >= 95 &&
+        umbral.cumplimiento_min < 100
+      ) {
+        return orange[100]; // Hover naranja para umbrales 95-99%
+      } else if (
+        umbral.cumplimiento_min >= 100 &&
+        umbral.cumplimiento_min < 110
+      ) {
+        return blue[100]; // Hover azul para umbrales 100-109%
+      } else {
+        return green[100]; // Hover verde para umbrales ≥110%
+      }
+    }
+  }
+
+  return grey[200]; // Default
 };
 
 // Función para procesar filas con ordenamiento
 const processRowsWithSorting = (
   employeesData: any[],
   sortState: SortState,
-  tienda: { tienda: string; fecha: string }
+  tienda: { tienda: string; fecha: string },
 ) => {
   return [...employeesData]
     .sort((a, b) => compareValues(a, b, sortState.field, sortState.order))
@@ -221,8 +375,9 @@ interface DataTableAccordionTableProps {
     tiendaName: string,
     fecha: string,
     asesorId: string,
-    newValue: string
+    newValue: string,
   ) => void;
+  thresholdConfig?: CommissionThreshold[];
 }
 
 /**
@@ -231,7 +386,7 @@ interface DataTableAccordionTableProps {
  */
 export const DataTableAccordionTable: React.FC<
   DataTableAccordionTableProps
-> = ({ tienda, readOnly, getCumplimientoColor, handleVentaChange }) => {
+> = ({ tienda, getCumplimientoColor, thresholdConfig }) => {
   const isMobile = useMediaQuery("(max-width:600px)");
   const isTablet = useMediaQuery("(max-width:900px)");
 
@@ -252,7 +407,13 @@ export const DataTableAccordionTable: React.FC<
       tienda: tienda.tienda,
       fecha: tienda.fecha,
     });
-  }, [tienda.empleados, tienda.tienda, tienda.fecha, sortState]);
+  }, [
+    tienda.empleados,
+    tienda.tienda,
+    tienda.fecha,
+    sortState,
+    thresholdConfig,
+  ]);
 
   // ✅ FILTRAR EMPLEADOS: Ocultar filas con 0 presupuesto Y 0 ventas (solo en vista)
   const filteredRows = useMemo(() => {
@@ -289,7 +450,7 @@ export const DataTableAccordionTable: React.FC<
   const renderSortHeader = (
     field: string,
     label: string,
-    icon?: React.ReactNode
+    icon?: React.ReactNode,
   ) => (
     <TableSortLabel {...sortLabelProps(field as any)}>
       <Box display="flex" alignItems="center" gap={0.5}>
@@ -387,7 +548,7 @@ export const DataTableAccordionTable: React.FC<
                   <Box display="flex" alignItems="center" gap={0.5}>
                     <VpnKeyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
                     <PersonIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
-                  </Box>
+                  </Box>,
                 )}
               </TableCell>
 
@@ -401,7 +562,7 @@ export const DataTableAccordionTable: React.FC<
                 {renderSortHeader(
                   "rol",
                   "Rol",
-                  <BadgeIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                  <BadgeIcon sx={{ fontSize: isMobile ? 14 : 16 }} />,
                 )}
               </TableCell>
 
@@ -416,7 +577,7 @@ export const DataTableAccordionTable: React.FC<
                 {renderSortHeader(
                   "dias_laborados",
                   "Días Labor",
-                  <CalendarTodayIcon sx={{ fontSize: isMobile ? 12 : 14 }} />
+                  <CalendarTodayIcon sx={{ fontSize: isMobile ? 12 : 14 }} />,
                 )}
               </TableCell>
 
@@ -431,7 +592,7 @@ export const DataTableAccordionTable: React.FC<
                 {renderSortHeader(
                   "presupuesto",
                   "Presupuesto",
-                  <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                  <AttachMoneyIcon sx={{ fontSize: isMobile ? 14 : 16 }} />,
                 )}
               </TableCell>
 
@@ -446,7 +607,7 @@ export const DataTableAccordionTable: React.FC<
                 {renderSortHeader(
                   "ventasActuales",
                   "Ventas",
-                  <TrendingUpIcon sx={{ fontSize: isMobile ? 14 : 16 }} />
+                  <TrendingUpIcon sx={{ fontSize: isMobile ? 14 : 16 }} />,
                 )}
               </TableCell>
 
@@ -461,7 +622,7 @@ export const DataTableAccordionTable: React.FC<
                 {renderSortHeader(
                   "cumplimiento_pct",
                   "Cumplimiento ",
-                  <CheckCircleIcon sx={{ fontSize: isMobile ? 12 : 14 }} />
+                  <CheckCircleIcon sx={{ fontSize: isMobile ? 12 : 14 }} />,
                 )}
               </TableCell>
 
@@ -476,7 +637,7 @@ export const DataTableAccordionTable: React.FC<
                 {renderSortHeader(
                   "comision_pct",
                   "Comisión",
-                  <PercentIcon sx={{ fontSize: isMobile ? 12 : 14 }} />
+                  <PercentIcon sx={{ fontSize: isMobile ? 12 : 14 }} />,
                 )}
               </TableCell>
 
@@ -528,9 +689,13 @@ export const DataTableAccordionTable: React.FC<
           <TableBody>
             {filteredRows.map((row: EmployeeRow) => {
               const backgroundColor = getRowBackgroundColor(
-                row.comision_pct * 100
+                row.cumplimiento_pct / 100, // Convertir a decimal (ej: 95% → 0.95)
+                thresholdConfig,
               );
-              const hoverColor = getRowHoverColor(row.comision_pct * 100);
+              const hoverColor = getRowHoverColor(
+                row.cumplimiento_pct / 100, // Convertir a decimal (ej: 95% → 0.95)
+                thresholdConfig,
+              );
 
               return (
                 <TableRow
@@ -728,7 +893,7 @@ export const DataTableAccordionTable: React.FC<
                     >
                       {(() => {
                         const textoFormateado = formatProximaComision(
-                          row.proxima_comision
+                          row.proxima_comision,
                         );
                         const esMaxima = row.proxima_comision === "NN";
                         return (

@@ -17,10 +17,8 @@ import {
   guardarPresupuestosEmpleados,
   eliminarPresupuestosEmpleados,
 } from "../api/directus/create";
-import {
-  calcularDiasLaboradosPorEmpleado,
-  calculateMesResumenAgrupado,
-} from "../lib/calculations";
+import { calculateMesResumenAgrupado } from "../lib/calculations.summary";
+import { calcularDiasLaboradosPorEmpleado } from "../lib/utils";
 import { useAuth } from "@/auth/hooks/useAuth";
 
 export interface StoreData {

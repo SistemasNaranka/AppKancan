@@ -1,12 +1,10 @@
 import React from "react";
-import { ConfigurationPanel } from "./ConfigurationPanel";
 import { CodesModal } from "./CodesModal";
 import { NoDataModal } from "./NoDataModal";
 import { EditStoreModalSimplified } from "./EditStoreModalSimplified";
 
 interface HomeModalsProps {
   // Modal states
-  showConfigModal: boolean;
   showCodesModal: boolean;
   showEditStoreModal: boolean;
   showNoDataModal: boolean;
@@ -16,17 +14,15 @@ interface HomeModalsProps {
   hasSavedData?: boolean;
 
   // Modal actions
-  onCloseConfigModal: () => void;
   onCloseCodesModal: () => void;
   onCloseEditStoreModal: () => void;
   onCloseNoDataModal: () => void;
   onAssignmentComplete?: (ventasData: any) => void;
   onShowSaveLoading?: (error?: any) => void;
-  onEditStoreComplete?: () => void;
+  onSaveComplete?: () => Promise<void>;
 }
 
 export const HomeModals: React.FC<HomeModalsProps> = ({
-  showConfigModal,
   showCodesModal,
   showEditStoreModal,
   showNoDataModal,
@@ -34,13 +30,12 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   modalMessage,
   selectedMonth,
   hasSavedData,
-  onCloseConfigModal,
   onCloseCodesModal,
   onCloseEditStoreModal,
   onCloseNoDataModal,
   onAssignmentComplete,
   onShowSaveLoading,
-  onEditStoreComplete,
+  onSaveComplete,
 }) => {
   const handleAssignmentComplete = (ventasData: any) => {
     if (onAssignmentComplete) {
@@ -50,13 +45,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
 
   return (
     <>
-      {/* Configuration Modal */}
-      <ConfigurationPanel
-        open={showConfigModal}
-        onClose={onCloseConfigModal}
-        initialMonth={selectedMonth}
-      />
-
       {/* Codes Modal */}
       <CodesModal
         isOpen={showCodesModal}
@@ -79,7 +67,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         message={modalMessage}
       />
 
-
       {/* Edit Store Modal - SIMPLIFICADO */}
       <EditStoreModalSimplified
         isOpen={showEditStoreModal}
@@ -87,12 +74,8 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
           // Limpiar estado antes de cerrar para evitar cargas innecesarias
           onCloseEditStoreModal();
         }}
-        onSaveComplete={() => {
-          if (onEditStoreComplete) {
-            onEditStoreComplete();
-          }
-        }}
         selectedMonth={selectedMonth}
+        onSaveComplete={onSaveComplete}
       />
     </>
   );

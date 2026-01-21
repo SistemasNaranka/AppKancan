@@ -30,7 +30,7 @@ interface UseEmployeeManagementReturn {
   handleSaveAsignaciones: (fechaActual: string) => Promise<void>;
   cargarDatosExistentes: (
     fecha: string,
-    mesSeleccionado?: string
+    mesSeleccionado?: string,
   ) => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
   onAssignmentComplete?: (ventasData: any[]) => void;
@@ -52,7 +52,7 @@ interface UseEmployeeManagementReturn {
 
 export const useEmployeeManagement = (
   tiendaUsuario: DirectusTienda | null,
-  onAssignmentComplete?: (ventasData: any[]) => void
+  onAssignmentComplete?: (ventasData: any[]) => void,
 ): UseEmployeeManagementReturn => {
   // Hook para datos
   const {
@@ -65,7 +65,6 @@ export const useEmployeeManagement = (
     loadAsesoresDisponibles,
     setCargoSeleccionado: setCargoSeleccionadoInData,
     buscarEmpleadoPorCodigo,
-    getCurrentMessage,
   } = useEmployeeData([], tiendaUsuario);
 
   // Hook para operaciones
@@ -86,7 +85,6 @@ export const useEmployeeManagement = (
     handleRemoveEmpleado,
     handleClearEmpleados,
     handleSaveAsignaciones,
-    handleKeyPress,
     cargarDatosExistentes,
     codigoInputRef,
     getCargoNombre,
@@ -115,13 +113,13 @@ export const useEmployeeManagement = (
   // ✅ NUEVO: Modificar cargarDatosExistentes para incluir datos necesarios
   const cargarDatosExistentesModified = async (
     fecha: string,
-    mesSeleccionado?: string
+    mesSeleccionado?: string,
   ) => {
     await cargarDatosExistentes(
       fecha,
       mesSeleccionado,
       asesoresDisponibles,
-      cargosDisponibles
+      cargosDisponibles,
     );
   };
 

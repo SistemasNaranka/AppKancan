@@ -89,7 +89,7 @@ export const CommissionDistributionChart: React.FC<
 
   // ✅ MEJORADO: Solo mostrar roles que realmente tienen comisiones > 0
   const comisionesPorRolFiltradas = Object.entries(
-    mesResumen.comisiones_por_rol
+    mesResumen.comisiones_por_rol,
   ).filter(([_, amount]) => amount > 0); // Volver al filtro original
 
   // Si no hay datos de comisiones en absoluto, mostrar mensaje de no datos
@@ -110,13 +110,10 @@ export const CommissionDistributionChart: React.FC<
 
   const totalComisiones = comisionesPorRolFiltradas.reduce(
     (sum, [_, val]) => sum + val,
-    0
+    0,
   );
 
   // Si el total es 0, mostrar todos los roles con 0% pero manteniendo la estructura
-  const shouldShowEmptyState =
-    totalComisiones === 0 &&
-    comisionesPorRolFiltradas.every(([_, val]) => val === 0);
 
   // ✅ MEJORADO: Datos del gráfico filtrados y mejor formateados
   const chartData = {

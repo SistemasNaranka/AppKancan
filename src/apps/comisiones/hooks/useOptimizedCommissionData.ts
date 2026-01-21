@@ -9,6 +9,7 @@ import {
   obtenerPorcentajesMensuales,
   obtenerPresupuestosEmpleados,
   obtenerVentasEmpleados,
+  obtenerUmbralesComisiones,
 } from "../api/directus/read";
 
 // Función auxiliar para convertir nombre de mes a número
@@ -40,7 +41,7 @@ const processCommissionData = async (selectedMonth: string) => {
   const fechaInicio = `${anio}-${mesNumero}-01`;
   const fechaFin = `${anio}-${mesNumero}-${ultimoDia}`;
 
-  // Cargar todos los datos en paralelo
+  // Cargar todos los datos en paralelo (incluyendo umbrales de comisiones)
   const [
     tiendas,
     asesores,
@@ -49,6 +50,7 @@ const processCommissionData = async (selectedMonth: string) => {
     porcentajesBD,
     presupuestosEmpleadosData,
     ventasEmpleados,
+    umbralesData,
   ] = await Promise.all([
     obtenerTiendas(),
     obtenerAsesores(),
@@ -57,6 +59,7 @@ const processCommissionData = async (selectedMonth: string) => {
     obtenerPorcentajesMensuales(undefined, selectedMonth),
     obtenerPresupuestosEmpleados(undefined, fechaFin, selectedMonth),
     obtenerVentasEmpleados(undefined, fechaFin, selectedMonth),
+    obtenerUmbralesComisiones(selectedMonth),
   ]);
 
   // Convertir presupuestos diarios a BudgetRecord
@@ -234,6 +237,15 @@ const processCommissionData = async (selectedMonth: string) => {
 
   const ventas = Array.from(ventasMap.values());
 
+  // Procesar umbrales de comisiones (si existen en BD)
+  const thresholdConfig = umbralesData
+    ? {
+        mes: umbralesData.mes,
+        anio: umbralesData.anio,
+        cumplimiento_valores: umbralesData.cumplimiento_valores,
+      }
+    : null;
+
   return {
     budgets,
     staff,
@@ -241,6 +253,7 @@ const processCommissionData = async (selectedMonth: string) => {
     ventas,
     presupuestosEmpleados: presupuestosEmpleadosData,
     cargos,
+    thresholdConfig, // ✅ Agregar umbrales de comisiones
     metadata: {
       selectedMonth,
       fechaInicio,
@@ -326,6 +339,7 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
       ventas: query.data.ventas || [],
       presupuestosEmpleados: query.data.presupuestosEmpleados || [],
       cargos: query.data.cargos || [],
+      thresholdConfig: query.data.thresholdConfig || null, // ✅ Agregar umbrales
       metadata: query.data.metadata,
     };
   }, [query.data]);

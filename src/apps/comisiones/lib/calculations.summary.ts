@@ -10,15 +10,21 @@ import {
   MesResumen,
   Role,
   EmployeeCommission,
+  CommissionThresholdConfig,
 } from "../types";
 import {
   round,
   getMonthYear,
   isCurrentMonth,
   getCurrentDate,
-} from "./calculations.basic";
+  getEmployeeVentas,
+  getTiendaVentas,
+  getNextCommission,
+  getNextBudget,
+  getNextSale,
+  getNextCommissionAmount,
+} from "./calculations.utils";
 import { filterBudgetsByMonth } from "./calculations.budgets";
-import { getEmployeeVentas, getTiendaVentas } from "./calculations.data";
 import {
   calculateEmployeeCommission,
   calculateGerenteCommission,
@@ -29,12 +35,6 @@ import {
   calculateBaseSale,
   getCommissionPercentage,
 } from "./calculations.commissions";
-import {
-  getNextCommission,
-  getNextBudget,
-  getNextSale,
-  getNextCommissionAmount,
-} from "./calculations.next-commission";
 
 /**
  * Calcula el resumen de comisiones para una tienda en una fecha específica
@@ -46,7 +46,8 @@ export const calculateTiendaResumen = (
   staff: StaffMember[],
   ventasData: VentasData[],
   porcentaje_gerente: number,
-  presupuestosEmpleados?: any[]
+  presupuestosEmpleados?: any[],
+  thresholdConfig?: CommissionThresholdConfig | null
 ): TiendaResumen => {
   const budget = budgets.find((b) => b.tienda === tienda && b.fecha === fecha);
   if (!budget) {
@@ -107,7 +108,8 @@ export const calculateTiendaResumen = (
         budget.presupuesto_total,
         totalEmpleadosDia,
         ventasIndividuales,
-        presupuestoIndividual
+        presupuestoIndividual,
+        thresholdConfig?.cumplimiento_valores
       );
     } else if (empleado.rol === "logistico") {
       // Logísticos: comisión basada en rendimiento de la tienda
@@ -136,7 +138,8 @@ export const calculateTiendaResumen = (
         budget.presupuesto_total,
         totalEmpleadosDia,
         ventasIndividuales,
-        presupuestoIndividual
+        presupuestoIndividual,
+        thresholdConfig?.cumplimiento_valores
       );
     } else if (empleado.rol === "gerente_online") {
       // Gerente Online: comisión especial del 1% sobre venta sin IVA
@@ -194,7 +197,8 @@ export const calculateTiendaResumen = (
         presupuestoGerente,
         ventasIndividualesGerente,
         tiendaVentas, // Ventas de la tienda para cálculos
-        budget.presupuesto_total // Presupuesto de la tienda para cálculos
+        budget.presupuesto_total, // Presupuesto de la tienda para cálculos
+        thresholdConfig?.cumplimiento_valores
       );
     } else {
       // Asesores: lógica tradicional individual
@@ -225,7 +229,12 @@ export const calculateTiendaResumen = (
       // Obtener ventas del empleado
       ventas = getEmployeeVentas(ventasData, tienda, fecha, empleado.id);
 
-      return calculateEmployeeCommission(empleado, presupuesto, ventas);
+      return calculateEmployeeCommission(
+        empleado,
+        presupuesto,
+        ventas,
+        thresholdConfig?.cumplimiento_valores
+      );
     }
   });
 
@@ -264,73 +273,6 @@ export const calculateTiendaResumen = (
 };
 
 /**
- * Calcula las comisiones para gerentes y asesores con lógica tradicional
- */
-const calculateTraditionalEmployeeCommission = (
-  empleado: StaffMember,
-  presupuesto: number,
-  ventas: number,
-  tiendaVentas: number,
-  presupuestoTienda: number
-): EmployeeCommission => {
-  // Calcular cumplimiento individual
-  const cumplimientoIndividual = calculateCompliance(ventas, presupuesto);
-
-  // Para GERENTE: usar cumplimiento de la tienda para calcular comisión
-  // pero mostrar sus ventas individuales
-  let cumplimientoParaComision = cumplimientoIndividual;
-  const ventaBaseParaComision = calculateBaseSale(ventas);
-
-  if (empleado.rol === "gerente") {
-    // Gerente usa cumplimiento de la tienda para calcular comisión
-    // pero muestra sus ventas individuales (no las de la tienda)
-    const cumplimientoTienda = calculateCompliance(
-      tiendaVentas,
-      presupuestoTienda
-    );
-    cumplimientoParaComision = cumplimientoTienda;
-  }
-
-  const comision_pct = getCommissionPercentage(cumplimientoParaComision);
-  const comision_monto = round(ventaBaseParaComision * comision_pct);
-
-  // Calcular próximos valores
-  const proxima_comision = getNextCommission(comision_pct);
-  const proximo_presupuesto = getNextBudget(proxima_comision, presupuesto);
-  const proxima_venta =
-    proximo_presupuesto !== null
-      ? getNextSale(proximo_presupuesto, ventas)
-      : null;
-  const proximo_monto_comision = getNextCommissionAmount(
-    proximo_presupuesto,
-    proxima_comision
-  );
-
-  return {
-    id: empleado.id,
-    nombre: empleado.nombre,
-    documento: empleado.documento,
-    rol: empleado.rol,
-    tienda: empleado.tienda,
-    fecha: empleado.fecha,
-    presupuesto: presupuesto, // Mantener precisión para cálculos
-    ventas: ventas, // Todos los empleados muestran sus ventas individuales (incluyendo gerentes)
-    cumplimiento_pct:
-      empleado.rol === "gerente"
-        ? calculateCompliance(tiendaVentas, presupuestoTienda)
-        : cumplimientoIndividual,
-    comision_pct,
-    comision_monto,
-    proxima_comision,
-    proximo_presupuesto: proximo_presupuesto || undefined,
-    proxima_venta:
-      proxima_venta !== null && proxima_venta > 0 ? proxima_venta : undefined,
-    proximo_monto_comision: proximo_monto_comision || undefined,
-    dias_laborados: 1, // Por defecto 1 día para funciones individuales
-  };
-};
-
-/**
  * Calcula el resumen agrupado de comisiones para un mes
  */
 export const calculateMesResumenAgrupado = (
@@ -339,7 +281,8 @@ export const calculateMesResumenAgrupado = (
   staff: StaffMember[],
   ventasData: VentasData[],
   porcentaje_gerente: number,
-  presupuestosEmpleados?: any[]
+  presupuestosEmpleados?: any[],
+  thresholdConfig?: CommissionThresholdConfig | null
 ): MesResumen => {
   // Validar datos
   if (!Array.isArray(ventasData)) {
@@ -585,7 +528,7 @@ export const calculateMesResumenAgrupado = (
         // Datos reales de venta_diaria_empleado filtrados por tienda_id
         if (empleadoData.ventasMensual === 0) {
           // Solo calcular si no se ha hecho ya
-          tiendaData.ventasPorDia.forEach((ventasDia, fechaDia) => {
+          tiendaData.ventasPorDia.forEach((ventasDia) => {
             // Cajero/Logístico: buscar ventas individuales registradas en venta_diaria_empleado
             // Si no tienen ventas registradas, ventasEmpleado será 0
             const ventasEmpleado =
@@ -620,11 +563,14 @@ export const calculateMesResumenAgrupado = (
         empleadoComision = calculateCajeroCommission(
           empleado,
           tiendaData.ventasTotal,
-          presupuestoTotalTienda, // ✅ Ahora usa el presupuesto correcto
+          presupuestoTotalTienda,
           totalEmpleadosTienda,
           empleadoData.ventasMensual,
-          empleadoData.presupuestoMensual
+          empleadoData.presupuestoMensual,
+          thresholdConfig?.cumplimiento_valores || undefined
         );
+        empleadoComision.fecha = diasTrabajados[0];
+        empleadoComision.dias_laborados = diasTrabajados.length;
       } else if (empleado.rol === "logistico") {
         // Logísticos: comisión basada en rendimiento de la tienda
         const totalEmpleadosTienda = empleadosUnicos.size;
@@ -632,11 +578,14 @@ export const calculateMesResumenAgrupado = (
         empleadoComision = calculateLogisticoCommission(
           empleado,
           tiendaData.ventasTotal,
-          presupuestoTotalTienda, // ✅ Ahora usa el presupuesto correcto
+          presupuestoTotalTienda,
           totalEmpleadosTienda,
           empleadoData.ventasMensual,
-          empleadoData.presupuestoMensual
+          empleadoData.presupuestoMensual,
+          thresholdConfig?.cumplimiento_valores || undefined
         );
+        empleadoComision.fecha = diasTrabajados[0];
+        empleadoComision.dias_laborados = diasTrabajados.length;
       } else if (empleado.rol === "gerente_online") {
         // Gerente Online: comisión especial del 1% sobre venta sin IVA
         empleadoComision = calculateGerenteOnlineCommission(
@@ -653,19 +602,79 @@ export const calculateMesResumenAgrupado = (
           presupuestoMensual,
           ventasMensual,
           tiendaData.ventasTotal,
-          presupuestoTotalTienda // ✅ CORREGIDO: Ahora pasa el presupuesto real de la tienda
+          presupuestoTotalTienda, // ✅ CORREGIDO: Ahora pasa el presupuesto real de la tienda
+          thresholdConfig?.cumplimiento_valores || undefined // ✅ PASAR thresholdConfig
         );
         empleadoComision.fecha = diasTrabajados[0];
         empleadoComision.dias_laborados = diasTrabajados.length;
       } else {
         // Asesores y Coadministradores: lógica tradicional individual
-        empleadoComision = calculateTraditionalEmployeeCommission(
-          empleado,
-          presupuestoMensual,
+        const cumplimientoIndividual = calculateCompliance(
           ventasMensual,
-          tiendaData.ventasTotal,
-          presupuestoTotalTienda // ✅ Ahora usa el presupuesto correcto
+          presupuestoMensual
         );
+        const comision_pct = getCommissionPercentage(
+          cumplimientoIndividual,
+          thresholdConfig?.cumplimiento_valores || undefined
+        );
+        const ventaBase = calculateBaseSale(ventasMensual);
+        const comision_monto = round(ventaBase * comision_pct);
+
+        empleadoComision = {
+          id: empleado.id,
+          nombre: empleado.nombre,
+          documento: empleado.documento,
+          rol: empleado.rol,
+          // cargo_id: empleado.cargo_id, // Commented out - no existe en StaffMember
+          tienda: empleado.tienda,
+          fecha: diasTrabajados[0],
+          presupuesto: presupuestoMensual,
+          ventas: ventasMensual,
+          cumplimiento_pct: cumplimientoIndividual,
+          comision_pct,
+          comision_monto,
+          proxima_comision: getNextCommission(
+            comision_pct,
+            thresholdConfig?.cumplimiento_valores || undefined
+          ),
+          proximo_presupuesto:
+            getNextBudget(
+              getNextCommission(
+                comision_pct,
+                thresholdConfig?.cumplimiento_valores || undefined
+              ),
+              presupuestoMensual,
+              thresholdConfig?.cumplimiento_valores || undefined
+            ) || undefined,
+          proxima_venta:
+            getNextSale(
+              getNextBudget(
+                getNextCommission(
+                  comision_pct,
+                  thresholdConfig?.cumplimiento_valores || undefined
+                ),
+                presupuestoMensual,
+                thresholdConfig?.cumplimiento_valores || undefined
+              ),
+              ventasMensual
+            ) || undefined,
+          proximo_monto_comision:
+            getNextCommissionAmount(
+              getNextBudget(
+                getNextCommission(
+                  comision_pct,
+                  thresholdConfig?.cumplimiento_valores || undefined
+                ),
+                presupuestoMensual,
+                thresholdConfig?.cumplimiento_valores || undefined
+              ),
+              getNextCommission(
+                comision_pct,
+                thresholdConfig?.cumplimiento_valores || undefined
+              )
+            ) || undefined,
+          dias_laborados: diasTrabajados.length,
+        };
         empleadoComision.fecha = diasTrabajados[0];
         empleadoComision.dias_laborados = diasTrabajados.length;
       }

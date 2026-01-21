@@ -22,7 +22,7 @@ import {
   obtenerAsesores,
   obtenerCargos,
 } from "../api/directus/read";
-import { calculateBudgetsWithFixedDistributive } from "../lib/calculations";
+import { calculateBudgetsWithFixedDistributive } from "../lib/calculations.budgets";
 import { getFechaActual } from "../lib/modalHelpers";
 
 interface UseEmployeeOperationsReturn {

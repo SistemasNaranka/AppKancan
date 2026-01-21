@@ -3,9 +3,9 @@ import { Button } from "@mui/material";
 import { Settings, Person, Store } from "@mui/icons-material";
 import { ExportButtons } from "./ExportButtons";
 import { SimpleFilters } from "./SimpleFilters";
-import { SummaryCards } from "./SummaryCards";
-import { Role } from "../types";
-import { useUserPolicies } from "../hooks/useUserPolicies";
+import { SummaryCards } from "../SummaryCards";
+import { Role } from "../../types";
+import { useUserPolicies } from "../../hooks/useUserPolicies";
 
 interface HomeHeaderProps {
   selectedMonth: string;
@@ -16,8 +16,8 @@ interface HomeHeaderProps {
   mesResumenFiltrado?: any;
   onMonthChange: (month: string) => void;
   onTiendaChange: (tiendas: string[]) => void;
-  onShowConfigModal: () => void;
   onShowCodesModal: () => void;
+  onShowConfigModal: () => void;
   onShowEditStoreModal: () => void;
   onToggleAllStores: () => void;
   expandedTiendas: Set<string>;
@@ -43,8 +43,8 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   mesResumenFiltrado,
   onMonthChange,
   onTiendaChange,
-  onShowConfigModal,
   onShowCodesModal,
+  onShowConfigModal,
   onShowEditStoreModal,
   onToggleAllStores,
   expandedTiendas,
@@ -95,24 +95,26 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
               <div className="flex flex-wrap gap-2 sm:gap-3 flex-shrink-0 lg:flex-row lg:items-end">
                 {/* Botón Configuración - Solo para readComisionesAdmin */}
                 {canSeeConfig() && (
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onShowConfigModal();
-                    }}
-                    variant="outlined"
-                    startIcon={<Settings />}
-                    size="small"
-                    sx={{
-                      lineHeight: 2.2,
-                      minWidth: "auto",
-                      px: { xs: 1.5, sm: 2 },
-                    }}
-                  >
-                    <span className="hidden xs:inline">Configuración</span>
-                    <span className="xs:hidden">Conf</span>
-                  </Button>
+                  <>
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onShowConfigModal();
+                      }}
+                      variant="outlined"
+                      startIcon={<Settings />}
+                      size="small"
+                      sx={{
+                        lineHeight: 2.2,
+                        minWidth: "auto",
+                        px: { xs: 1.5, sm: 2 },
+                      }}
+                    >
+                      <span className="hidden xs:inline">Configuración</span>
+                      <span className="xs:hidden">Conf</span>
+                    </Button>
+                  </>
                 )}
                 {(mesResumenFiltrado || mesResumen) && (
                   <ExportButtons

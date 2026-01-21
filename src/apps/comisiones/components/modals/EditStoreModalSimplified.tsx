@@ -17,7 +17,7 @@ import {
   Grid,
   Autocomplete,
 } from "@mui/material";
-import { InlineMessage } from "./modal/InlineMessage";
+import { InlineMessage } from "./InlineMessage";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -26,7 +26,6 @@ import "dayjs/locale/es"; // Localización español
 import {
   Close,
   Save,
-  Add,
   Person,
   Search,
   Store,
@@ -34,33 +33,33 @@ import {
   Groups,
   CheckCircle,
 } from "@mui/icons-material";
-import { useEditStoreModalLogic } from "../hooks/useEditStoreModalLogic";
+import { useEditStoreModalLogic } from "../../hooks/useEditStoreModalLogic";
 
 interface EditStoreModalSimplifiedProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveComplete?: () => void;
   selectedMonth?: string;
+  onSaveComplete?: () => void;
 }
 
 export const EditStoreModalSimplified: React.FC<
   EditStoreModalSimplifiedProps
-> = ({ isOpen, onClose, onSaveComplete, selectedMonth }) => {
-  // Usar el hook para toda la lógica de negocio
+> = ({ isOpen, onClose, selectedMonth, onSaveComplete }) => {
+  // Estado para controlar si se ha guardado correctamente
+  const [, setSaveCompleted] = React.useState(false);
+  const [, setSaveError] = React.useState(false);
+
+  // Usar el hook para toda la lógica de negocio (sin onSaveComplete, la recarga se maneja en onClose)
   const {
     // Estados
     fecha,
-    setFecha,
     tiendaSeleccionada,
     tiendaNombre,
     cargoSeleccionado,
-    setCargoSeleccionado,
     codigoEmpleado,
-    setCodigoEmpleado,
     empleadoEncontrado,
     empleadosAsignados,
     tiendas,
-    todosEmpleados,
     cargos,
     loading,
     error,
@@ -75,12 +74,32 @@ export const EditStoreModalSimplified: React.FC<
     // Utils
     setError,
     setSuccess,
+    setFecha,
+    setCargoSeleccionado,
+    setCodigoEmpleado,
   } = useEditStoreModalLogic({
     isOpen,
     onClose,
-    onSaveComplete,
     selectedMonth,
+    onSaveComplete,
+    onStateChange: undefined,
   });
+
+  const handleGuardarWrapper = async () => {
+    const success = await handleGuardar();
+    if (!success) {
+      setSaveError(true);
+    }
+  };
+
+  // 🚀 NUEVO: Efecto para limpiar estados cuando se cierra el modal
+  React.useEffect(() => {
+    if (!isOpen) {
+      // El modal se cerró, limpiar estados
+      setSaveCompleted(false);
+      setSaveError(false);
+    }
+  }, [isOpen]);
 
   return (
     <>
@@ -254,7 +273,7 @@ export const EditStoreModalSimplified: React.FC<
                     `${option.nombre} - ${option.empresa}`
                   }
                   value={
-                    tiendas.find((t) => t.id === tiendaSeleccionada) || null
+                    tiendas.find((t) => t.id == tiendaSeleccionada) || null
                   }
                   onChange={(_, newValue) =>
                     handleTiendaChange(newValue ? newValue.id : 0)
@@ -426,10 +445,10 @@ export const EditStoreModalSimplified: React.FC<
                       fontWeight: 600,
                       // Hide Spinners
                       "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
-                      {
-                        WebkitAppearance: "none",
-                        margin: 0,
-                      },
+                        {
+                          WebkitAppearance: "none",
+                          margin: 0,
+                        },
                       "&[type=number]": {
                         MozAppearance: "textfield",
                       },
@@ -517,7 +536,7 @@ export const EditStoreModalSimplified: React.FC<
                         height: "40px", // Placeholder height equal to input
                         border: "1px dashed #e0e0e0",
                         borderRadius: 2,
-                        bgcolor: "#fafafa"
+                        bgcolor: "#fafafa",
                       }}
                     />
                   )}
@@ -606,8 +625,13 @@ export const EditStoreModalSimplified: React.FC<
                   {empleadosAsignados.length}
                 </Box>
               </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: "capitalize" }}>
-                empleados del día {dayjs(fecha).format("dddd D [de] MMMM [de] YYYY")}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ textTransform: "capitalize" }}
+              >
+                empleados del día{" "}
+                {dayjs(fecha).format("dddd D [de] MMMM [de] YYYY")}
               </Typography>
             </Box>
 
@@ -746,7 +770,7 @@ export const EditStoreModalSimplified: React.FC<
                               $
                             </Box>
                             {Number(empleado.presupuesto).toLocaleString(
-                              "en-US"
+                              "en-US",
                             )}
                           </Typography>
                         </Box>
@@ -789,7 +813,7 @@ export const EditStoreModalSimplified: React.FC<
           <Button
             variant="contained"
             startIcon={<Save />}
-            onClick={handleGuardar}
+            onClick={handleGuardarWrapper}
             disabled={
               loading || !tiendaSeleccionada || empleadosAsignados.length === 0
             }
