@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Role } from "../types";
 
 export interface FilterState {
@@ -17,7 +17,7 @@ export interface FilterActions {
   handleToggleAllStores: (
     tiendas: string[],
     forceExpand?: boolean,
-    shouldContract?: boolean
+    shouldContract?: boolean,
   ) => void;
   toggleSingleStore: (tiendaKey: string) => void;
   // Función para limpiar todos los caches
@@ -57,9 +57,9 @@ export const useFiltersOptimized = (): FilterState &
   const [filterTienda, setFilterTienda] = useState<string[]>([]);
   const [filterRol, setFilterRol] = useState<Role[]>([]);
   const [expandedTiendas, setExpandedTiendas] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [isFiltering] = useState(false);
 
   // Refs para optimización
   const calculationCacheRef = useRef<Map<string, any>>(new Map());
@@ -144,7 +144,7 @@ export const useFiltersOptimized = (): FilterState &
 
       // Crear clave para cache
       const cacheKey = `filters_${filterTienda.join(",")}_${filterRol.join(
-        ","
+        ",",
       )}_${mesResumen.tiendas.length}`;
 
       // Verificar cache
@@ -159,7 +159,7 @@ export const useFiltersOptimized = (): FilterState &
       // Aplicar filtros O(1) usando índices
       let tiendaIndices = Array.from(
         { length: mesResumen.tiendas.length },
-        (_, i) => i
+        (_, i) => i,
       );
 
       // Filtrar por tienda usando índices O(1)
@@ -192,7 +192,7 @@ export const useFiltersOptimized = (): FilterState &
           if (filterRol.length > 0) {
             const roleSet = new Set(filterRol);
             empleados = empleados.filter((empleado: any) =>
-              roleSet.has(empleado.rol)
+              roleSet.has(empleado.rol),
             );
           }
 
@@ -200,7 +200,7 @@ export const useFiltersOptimized = (): FilterState &
           const totalComisionesTienda = empleados.reduce(
             (sum: number, empleado: any) =>
               sum + (empleado.comision_monto || 0),
-            0
+            0,
           );
 
           return {
@@ -214,7 +214,7 @@ export const useFiltersOptimized = (): FilterState &
       // Recalcular totales optimizado usando los totales recalculados de cada tienda
       const total_comisiones = tiendasFiltradas.reduce(
         (sum: number, t: any) => sum + (t.total_comisiones || 0),
-        0
+        0,
       );
 
       const comisiones_por_rol: Record<string, number> = {
@@ -254,7 +254,7 @@ export const useFiltersOptimized = (): FilterState &
 
       return result;
     },
-    [filterTienda, filterRol, buildIndexes]
+    [filterTienda, filterRol, buildIndexes],
   );
 
   // ========================================================================
@@ -300,7 +300,7 @@ export const useFiltersOptimized = (): FilterState &
         });
       });
     },
-    []
+    [],
   );
 
   const toggleSingleStore = useCallback((tiendaKey: string) => {
@@ -365,7 +365,7 @@ export const useFiltersOptimized = (): FilterState &
       const tiendasParaCalcular =
         filterTienda.length > 0
           ? mesResumen.tiendas.filter((tienda: any) =>
-              filterTienda.includes(tienda.tienda)
+              filterTienda.includes(tienda.tienda),
             )
           : mesResumen.tiendas;
 
@@ -374,7 +374,7 @@ export const useFiltersOptimized = (): FilterState &
         const empleadosParaCalcular =
           filterRol.length > 0
             ? tienda.empleados.filter((empleado: any) =>
-                filterRol.includes(empleado.rol)
+                filterRol.includes(empleado.rol),
               )
             : tienda.empleados;
 
@@ -395,7 +395,7 @@ export const useFiltersOptimized = (): FilterState &
       Object.keys(comisionesPorRol).forEach((rol) => {
         comisionesPorRol[rol as keyof typeof comisionesPorRol] =
           Math.round(
-            comisionesPorRol[rol as keyof typeof comisionesPorRol] * 100
+            comisionesPorRol[rol as keyof typeof comisionesPorRol] * 100,
           ) / 100;
       });
 
@@ -405,7 +405,7 @@ export const useFiltersOptimized = (): FilterState &
         comisiones_por_rol: comisionesPorRol,
       };
     },
-    [filterTienda, filterRol]
+    [filterTienda, filterRol],
   );
 
   return {

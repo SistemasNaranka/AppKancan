@@ -6,10 +6,10 @@ import {
   AttachMoney as AttachMoneyIcon,
   People as PeopleIcon, // ← AGREGADO
 } from "@mui/icons-material";
-import { TiendaResumen, CommissionThreshold } from "../types";
-import { formatCurrency } from "../lib/utils";
+import { TiendaResumen, CommissionThreshold } from "../../types";
+import { formatCurrency } from "../../lib/utils";
 import { blue, grey } from "@mui/material/colors";
-import PerformanceMessage from "./DataTableAccordion/PerformanceMessage";
+import PerformanceMessage from "./PerformanceMessage";
 import DataTableAccordionTable from "./DataTableAccordionTable";
 
 interface DataTableAccordionProps {
@@ -22,7 +22,7 @@ interface DataTableAccordionProps {
     tiendaName: string,
     fecha: string,
     asesorId: string,
-    newValue: string
+    newValue: string,
   ) => void;
   thresholdConfig?: CommissionThreshold[];
 }
@@ -48,7 +48,7 @@ const AccordionHeader = ({
   // Calcular comisión total una sola vez
   const totalComision = tienda.empleados.reduce(
     (t, e) => t + (e.comision_monto || 0),
-    0
+    0,
   );
 
   // Determinar el conteo a mostrar
@@ -356,7 +356,7 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
     // ✅ CALCULAR EMPLEADOS VISIBLES (filtrar 0 presupuesto Y 0 ventas)
     const empleadosVisibles = React.useMemo(() => {
       return tienda.empleados.filter(
-        (empleado) => empleado.presupuesto > 0 || empleado.ventas > 0
+        (empleado) => empleado.presupuesto > 0 || empleado.ventas > 0,
       ).length;
     }, [tienda.empleados]);
 
@@ -420,7 +420,7 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
 
     // Solo permitir re-render si hay cambios importantes
     return !tiendaChanged && !dataChanged && !expandedChanged;
-  }
+  },
 );
 
 DataTableAccordion.displayName = "DataTableAccordion";

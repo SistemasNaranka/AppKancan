@@ -1,6 +1,6 @@
 import React from "react";
 import { FormControl, InputLabel, Select, MenuItem, Box } from "@mui/material";
-import { StoreFilterModal } from "./StoreFilterModal";
+import { StoreFilterModal } from "../modals/StoreFilterModal";
 
 interface SimpleFiltersProps {
   selectedMonth: string;

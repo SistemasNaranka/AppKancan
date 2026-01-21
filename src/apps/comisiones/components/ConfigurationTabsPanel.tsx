@@ -30,7 +30,6 @@ import {
   CalendarMonth,
   Badge,
   SettingsSuggest,
-  Event,
   AddCircleOutline,
   DeleteOutline,
   InfoOutlined,
@@ -40,7 +39,6 @@ import {
   obtenerCargos,
   obtenerPorcentajesMensuales,
   obtenerUmbralesComisiones,
-  CommissionThresholdConfigWithId,
 } from "../api/directus/read";
 import {
   saveRoleBudgetConfiguration,
@@ -81,6 +79,17 @@ const MESES = [
   { value: "12", label: "Diciembre" },
 ];
 
+// Opciones de colores disponibles
+const COLOR_OPTIONS = [
+  { value: "red", label: "Rojo", hex: "#f44336" },
+  { value: "pink", label: "Rosa", hex: "#f06292" },
+  { value: "orange", label: "Naranja", hex: "#fb8c00" },
+  { value: "blue", label: "Azul", hex: "#1e88e5" },
+  { value: "green", label: "Verde", hex: "#43a047" },
+  { value: "purple", label: "Púrpura", hex: "#9c27b0" },
+  { value: "yellow", label: "Amarillo", hex: "#ffeb3b" },
+];
+
 interface RoleConfigRow {
   id: string;
   rol: string;
@@ -93,6 +102,7 @@ interface ThresholdRow {
   cumplimiento_min: string;
   comision_pct: string;
   nombre: string;
+  color: string;
 }
 
 export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
@@ -135,7 +145,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       tipo_calculo: "Fijo",
       porcentaje: "",
     }),
-    []
+    [],
   );
 
   const createEmptyThresholdRow = useCallback(
@@ -146,8 +156,9 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       cumplimiento_min: "",
       comision_pct: "",
       nombre: "",
+      color: "",
     }),
-    []
+    [],
   );
 
   const createDefaultThresholdRows = (): ThresholdRow[] => [
@@ -156,24 +167,28 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       cumplimiento_min: "90",
       comision_pct: "0.0035",
       nombre: "Muy Regular",
+      color: "pink",
     },
     {
       ...createEmptyThresholdRow("d2"),
       cumplimiento_min: "95",
       comision_pct: "0.005",
       nombre: "Regular",
+      color: "orange",
     },
     {
       ...createEmptyThresholdRow("d3"),
       cumplimiento_min: "100",
       comision_pct: "0.007",
       nombre: "Buena",
+      color: "blue",
     },
     {
       ...createEmptyThresholdRow("d4"),
       cumplimiento_min: "110",
       comision_pct: "0.01",
       nombre: "Excelente",
+      color: "green",
     },
   ];
 
@@ -260,7 +275,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
         "Ene";
       const data = await obtenerPorcentajesMensuales(
         undefined,
-        `${mesNombre} ${selectedYear}`
+        `${mesNombre} ${selectedYear}`,
       );
 
       if (data && data.length > 0) {
@@ -278,7 +293,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
               tipo_calculo:
                 c.tipo_calculo === "Distributivo" ? "Distributivo" : "Fijo",
               porcentaje: c.porcentaje?.toString() || "",
-            })
+            }),
           );
           setRoleConfigs(configs);
         } else {
@@ -304,7 +319,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
         MESES.find((m) => m.value === selectedMonth)?.label.substring(0, 3) ||
         "Ene";
       const data = await obtenerUmbralesComisiones(
-        `${mesNombre} ${selectedYear}`
+        `${mesNombre} ${selectedYear}`,
       );
 
       if (
@@ -320,7 +335,8 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
             cumplimiento_min: t.cumplimiento_min.toString(),
             comision_pct: t.comision_pct.toString(),
             nombre: t.nombre || "",
-          })
+            color: t.color || "",
+          }),
         );
         setThresholdRows(rows);
       } else {
@@ -348,7 +364,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
   const handleRoleRowChange = (
     id: string,
     field: keyof RoleConfigRow,
-    value: any
+    value: any,
   ) => {
     setRoleConfigs((prev) =>
       prev.map((row) => {
@@ -360,7 +376,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
           return updated;
         }
         return row;
-      })
+      }),
     );
   };
 
@@ -376,7 +392,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
   const handleThresholdRowChange = (
     id: string,
     field: keyof ThresholdRow,
-    value: string
+    value: string,
   ) => {
     setThresholdRows((prev) =>
       prev.map((row) => {
@@ -384,7 +400,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
           return { ...row, [field]: value };
         }
         return row;
-      })
+      }),
     );
   };
 
@@ -414,7 +430,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
         const p = parseFloat(config.porcentaje);
         if (isNaN(p) || p < 0 || p > 100) {
           setError(
-            `El porcentaje para ${config.rol} debe estar entre 0 y 100.`
+            `El porcentaje para ${config.rol} debe estar entre 0 y 100.`,
           );
           return;
         }
@@ -454,7 +470,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
     }
 
     const validRows = thresholdRows.filter(
-      (r) => r.cumplimiento_min.trim() !== "" && r.comision_pct.trim() !== ""
+      (r) => r.cumplimiento_min.trim() !== "" && r.comision_pct.trim() !== "",
     );
 
     if (validRows.length === 0) {
@@ -463,7 +479,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
     }
 
     const cumplimientoValues = validRows.map((r) =>
-      parseFloat(r.cumplimiento_min)
+      parseFloat(r.cumplimiento_min),
     );
     const uniqueValues = new Set(cumplimientoValues);
     if (uniqueValues.size !== cumplimientoValues.length) {
@@ -493,6 +509,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
         cumplimiento_min: parseFloat(r.cumplimiento_min),
         comision_pct: parseFloat(r.comision_pct),
         nombre: r.nombre.trim() || "",
+        color: r.color?.trim() || "",
       }));
 
       await guardarUmbralesComisiones({
@@ -515,7 +532,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
@@ -722,7 +739,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                             handleRoleRowChange(
                               row.id,
                               "tipo_calculo",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           sx={{ fontSize: "1rem" }}
@@ -750,7 +767,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                           handleRoleRowChange(
                             row.id,
                             "porcentaje",
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         disabled={row.tipo_calculo === "Distributivo"}
@@ -882,7 +899,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                             handleThresholdRowChange(
                               row.id,
                               "cumplimiento_min",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           InputProps={{
@@ -901,7 +918,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                             handleThresholdRowChange(
                               row.id,
                               "comision_pct",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           InputProps={{
@@ -914,7 +931,94 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                           }}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 5 }}>
+                      <Grid size={{ xs: 12, sm: 2 }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Color</InputLabel>
+                          <Select
+                            value={row.color || ""}
+                            label="Color"
+                            onChange={(e) =>
+                              handleThresholdRowChange(
+                                row.id,
+                                "color",
+                                e.target.value,
+                              )
+                            }
+                            sx={{ fontSize: "1rem" }}
+                            renderValue={(selected) => {
+                              if (!selected) return "Seleccionar...";
+                              const colorOption = COLOR_OPTIONS.find(
+                                (c) => c.value === selected,
+                              );
+                              return (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 16,
+                                      height: 16,
+                                      borderRadius: "50%",
+                                      backgroundColor:
+                                        colorOption?.hex || "grey.400",
+                                      border: "1px solid #ccc",
+                                    }}
+                                  />
+                                  {colorOption?.label || selected}
+                                </Box>
+                              );
+                            }}
+                          >
+                            <MenuItem value="">
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: "50%",
+                                    backgroundColor: "grey.400",
+                                    border: "1px solid #ccc",
+                                  }}
+                                />
+                                Seleccionar...
+                              </Box>
+                            </MenuItem>
+                            {COLOR_OPTIONS.map((color) => (
+                              <MenuItem key={color.value} value={color.value}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 16,
+                                      height: 16,
+                                      borderRadius: "50%",
+                                      backgroundColor: color.hex,
+                                      border: "1px solid #ccc",
+                                    }}
+                                  />
+                                  {color.label}
+                                </Box>
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 3 }}>
                         <StyledTextField
                           fullWidth
                           size="small"
@@ -924,7 +1028,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                             handleThresholdRowChange(
                               row.id,
                               "nombre",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           placeholder="Ej: Muy Regular, Regular, Buena..."

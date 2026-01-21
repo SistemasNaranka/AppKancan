@@ -30,13 +30,13 @@ interface UseEmployeeDataReturn {
 
 export const useEmployeeData = (
   empleadosAsignados: EmpleadoAsignado[],
-  tiendaUsuario?: { id: number } | null
+  tiendaUsuario?: { id: number } | null,
 ): UseEmployeeDataReturn => {
   const [asesoresDisponibles, setAsesoresDisponibles] = useState<
     DirectusAsesor[]
   >([]);
   const [cargosDisponibles, setCargosDisponibles] = useState<DirectusCargo[]>(
-    []
+    [],
   );
   const [cargosFiltrados, setCargosFiltrados] = useState<DirectusCargo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,13 +69,6 @@ export const useEmployeeData = (
         obtenerCargos(),
       ]);
 
-      // Verificar que el cargo "Gerente Online" existe
-      const gerenteOnlineExists = cargos.some(
-        (cargo) =>
-          cargo.nombre.toLowerCase().includes("gerente") &&
-          cargo.nombre.toLowerCase().includes("online")
-      );
-
       setAsesoresDisponibles(asesores);
       setCargosDisponibles(cargos);
     } catch (err) {
@@ -91,10 +84,10 @@ export const useEmployeeData = (
   // Filtrar cargos basados en empleados asignados (ocultar roles exclusivos ya seleccionados) y tienda
   useEffect(() => {
     const rolesAsignados = empleadosAsignadosMemo.map((e) =>
-      e.cargoAsignado.toLowerCase()
+      e.cargoAsignado.toLowerCase(),
     );
     const cargosExclusivosUsados = rolesAsignados.filter((role) =>
-      ROLES_EXCLUSIVOS.includes(role as any)
+      ROLES_EXCLUSIVOS.includes(role as any),
     );
 
     let cargosFiltrados = cargosDisponibles;
@@ -120,11 +113,6 @@ export const useEmployeeData = (
       });
     } else if (tiendaIdNum === 5) {
       // Para tienda 5, verificar que gerente_online esté incluido
-      const hasGerenteOnline = cargosFiltrados.some(
-        (cargo) =>
-          cargo.nombre.toLowerCase().includes("gerente") &&
-          cargo.nombre.toLowerCase().includes("online")
-      );
     }
 
     setCargosFiltrados(cargosFiltrados);
@@ -134,7 +122,7 @@ export const useEmployeeData = (
   useEffect(() => {
     if (cargosFiltrados.length > 0) {
       const asesorCargo = cargosFiltrados.find(
-        (c) => c.nombre.toLowerCase() === "asesor"
+        (c) => c.nombre.toLowerCase() === "asesor",
       );
       if (asesorCargo) {
         // Solo establecer si no hay cargo seleccionado o si está vacío
@@ -158,7 +146,7 @@ export const useEmployeeData = (
     }
 
     const empleado = asesoresDisponibles.find(
-      (a) => a.id === codigoNum || a.id.toString() === codigo.trim()
+      (a) => a.id === codigoNum || a.id.toString() === codigo.trim(),
     );
     setEmpleadoEncontrado(empleado || null);
   };

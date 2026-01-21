@@ -185,6 +185,7 @@ export interface CommissionThreshold {
   cumplimiento_min: number; // Porcentaje mínimo de cumplimiento (90, 95, 100, 110...)
   comision_pct: number; // Porcentaje de comisión en formato decimal (0.0035 = 0.35%)
   nombre: string; // Etiqueta para mostrar en UI (ej: "Muy Regular", "Regular")
+  color?: string; // Color hexadecimal o nombre de color (ej: "#00ffff", "cyan", "pink")
 }
 
 /**

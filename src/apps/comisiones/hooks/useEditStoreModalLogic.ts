@@ -7,7 +7,7 @@ import {
   obtenerPresupuestosDiarios,
   obtenerPorcentajesMensuales,
 } from "../api/directus/read";
-import { calculateBudgetsWithFixedDistributive } from "../lib/calculations";
+import { calculateBudgetsWithFixedDistributive } from "../lib/calculations.budgets";
 import {
   guardarPresupuestosEmpleados,
   eliminarPresupuestosEmpleados,
@@ -18,22 +18,20 @@ interface UseEditStoreModalLogicProps {
   onClose: () => void;
   onSaveComplete?: () => void;
   selectedMonth?: string;
+  onStateChange?: (fecha: string, tienda: number | "") => void;
 }
 
 export const useEditStoreModalLogic = ({
   isOpen,
-  onClose,
   onSaveComplete,
-  selectedMonth,
 }: UseEditStoreModalLogicProps) => {
   // Estados principales
-  // Usar la fecha del mes seleccionado si está disponible, de lo contrario usar la fecha actual
-  const [fecha, setFecha] = useState(() => {
-    // Siempre usar la fecha actual, independientemente de selectedMonth
-    return new Date().toISOString().split("T")[0];
+  const [fecha, setFecha] = useState<string>(() => {
+    const saved = localStorage.getItem("modalFecha");
+    return saved || new Date().toISOString().split("T")[0];
   });
   const [tiendaSeleccionada, setTiendaSeleccionada] = useState<number | "">("");
-  const [tiendaNombre, setTiendaNombre] = useState("");
+  const [tiendaNombre, setTiendaNombre] = useState<string>("");
   const [cargoSeleccionado, setCargoSeleccionado] = useState<number | "">("");
   const [codigoEmpleado, setCodigoEmpleado] = useState("");
   const [empleadoEncontrado, setEmpleadoEncontrado] = useState<any | null>(
@@ -55,7 +53,33 @@ export const useEditStoreModalLogic = ({
   useEffect(() => {
     if (isOpen) {
       loadCatalogos();
+    }
+  }, [isOpen]);
+
+  // Resetear formulario al cerrar modal
+  useEffect(() => {
+    if (!isOpen) {
       resetForm();
+    }
+  }, [isOpen]);
+
+  // Al abrir el modal, setear tiendaNombre si hay tienda seleccionada
+  useEffect(() => {
+    if (isOpen && tiendaSeleccionada && tiendas.length > 0) {
+      const tienda = tiendas.find((t) => t.id === tiendaSeleccionada);
+      setTiendaNombre(tienda?.nombre || "");
+    }
+  }, [isOpen, tiendaSeleccionada, tiendas]);
+
+  // Forzar carga de empleados al abrir si hay valores
+  useEffect(() => {
+    if (
+      isOpen &&
+      fecha &&
+      tiendaSeleccionada &&
+      empleadosAsignados.length === 0
+    ) {
+      loadEmpleadosAsignados();
     }
   }, [isOpen]);
 
@@ -68,33 +92,19 @@ export const useEditStoreModalLogic = ({
     }
   }, [fecha, tiendaSeleccionada]);
 
-  // Recalcular presupuestos cuando cambie la fecha o se carguen nuevos empleados
+  // Cargar empleados asignados cuando cambian fecha o tienda
   useEffect(() => {
-    if (fecha && tiendaSeleccionada && empleadosAsignados.length > 0) {
-      // Solo recalcular si los empleados tienen presupuesto 0 o no tienen presupuesto definido
-      const needsRecalculation = empleadosAsignados.some(
-        (emp) => emp.presupuesto === 0 || emp.presupuesto === undefined
-      );
-
-      if (needsRecalculation) {
-        const recalculate = async () => {
-          setLoading(true);
-          try {
-            const listaCalculada = await recalculateBudgets(empleadosAsignados);
-            setEmpleadosAsignados(listaCalculada);
-          } catch (err) {
-            console.error(
-              "Error al recalcular presupuestos al cambiar fecha:",
-              err
-            );
-          } finally {
-            setLoading(false);
-          }
-        };
-        recalculate();
-      }
+    if (fecha && tiendaSeleccionada) {
+      loadEmpleadosAsignados();
+    } else {
+      setEmpleadosAsignados([]);
     }
-  }, [fecha, empleadosAsignados]);
+  }, [fecha, tiendaSeleccionada]);
+
+  // Guardar fecha en localStorage cuando cambia
+  useEffect(() => {
+    localStorage.setItem("modalFecha", fecha);
+  }, [fecha]);
 
   // Buscar empleado automáticamente cuando se escribe código
   useEffect(() => {
@@ -133,7 +143,11 @@ export const useEditStoreModalLogic = ({
         obtenerCargos(),
       ]);
 
-      setTiendas(tiendasData);
+      // Ordenar tiendas por ID de menor a mayor
+      const tiendasOrdenadas = tiendasData.sort(
+        (a: any, b: any) => a.id - b.id
+      );
+      setTiendas(tiendasOrdenadas);
       setTodosEmpleados(empleadosData);
       setCargos(cargosData);
 
@@ -185,6 +199,24 @@ export const useEditStoreModalLogic = ({
       });
 
       setEmpleadosAsignados(empleadosConInfo);
+
+      // Intentar recalcular presupuestos si es necesario (solo una vez por carga)
+      const needsRecalculation = empleadosConInfo.some(
+        (emp: any) => emp.presupuesto === 0 || emp.presupuesto === undefined
+      );
+      if (needsRecalculation) {
+        // Intentar recalcular en background sin bloquear la UI
+        recalculateBudgets(empleadosConInfo)
+          .then((result) => {
+            if (result.calculated) {
+              setEmpleadosAsignados(result.empleados);
+            }
+            // Si no se calculó, dejar como está
+          })
+          .catch((err) => {
+            console.error("Error al recalcular presupuestos al cargar:", err);
+          });
+      }
     } catch (err: any) {
       console.error("Error al cargar empleados asignados:", err);
       setError("Error al cargar empleados: " + err.message);
@@ -247,7 +279,8 @@ export const useEditStoreModalLogic = ({
 
   // ✅ Función para recalcular presupuestos
   const recalculateBudgets = async (empleados: any[]) => {
-    if (!tiendaSeleccionada || empleados.length === 0) return empleados;
+    if (!tiendaSeleccionada || empleados.length === 0)
+      return { empleados, calculated: false };
 
     try {
       // 1. Obtener presupuesto diario de la tienda
@@ -261,13 +294,13 @@ export const useEditStoreModalLogic = ({
         console.warn(
           "No hay presupuesto diario asignado para esta tienda y fecha"
         );
-        return empleados.map((e) => ({ ...e, presupuesto: 0 }));
+        return {
+          empleados: empleados.map((e) => ({ ...e, presupuesto: 0 })),
+          calculated: false,
+        };
       }
 
       const presupuestoTotal = presupuestosTienda[0].presupuesto;
-
-      // 2. Obtener porcentajes mensuales
-      const mesAnio = fecha.substring(0, 7);
 
       // 2. Obtener porcentajes mensuales
       // ✅ CORREGIDO DEFINITIVO: Usar la FECHA del formulario como fuente de verdad única
@@ -306,18 +339,15 @@ export const useEditStoreModalLogic = ({
         }
       }
 
-      console.log("📅 Fecha del formulario:", fecha);
-      console.log(
-        "🔍 Consultando porcentajes con filtro estricto:",
-        mesAnioParaAPI
-      );
-
       // Si no pudimos determinar el mes válido, NO consultar la API (evita fallback al mes actual)
       if (!shouldUseApi) {
         console.warn(
           "⚠️ No se pudo determinar el mes correcto para consultar porcentajes. Se aborta consulta para evitar fallback incorrecto."
         );
-        return empleados.map((e) => ({ ...e, presupuesto: 0 }));
+        return {
+          empleados: empleados.map((e) => ({ ...e, presupuesto: 0 })),
+          calculated: false,
+        };
       }
 
       const porcentajes = await obtenerPorcentajesMensuales(
@@ -327,7 +357,10 @@ export const useEditStoreModalLogic = ({
 
       if (!porcentajes || porcentajes.length === 0) {
         console.warn("No hay porcentajes configurados para este mes");
-        return empleados.map((e) => ({ ...e, presupuesto: 0 }));
+        return {
+          empleados: empleados.map((e) => ({ ...e, presupuesto: 0 })),
+          calculated: false,
+        };
       }
       // Validación adicional: asegurar que lo que devuelve la API coincide con lo que pedimos
       // (Aunque read.ts ya filtra, doble verificación no hace daño)
@@ -335,7 +368,10 @@ export const useEditStoreModalLogic = ({
         console.warn(
           `⚠️ No se encontraron porcentajes configurados para ${mesAnioParaAPI}`
         );
-        return empleados.map((e) => ({ ...e, presupuesto: 0 }));
+        return {
+          empleados: empleados.map((e) => ({ ...e, presupuesto: 0 })),
+          calculated: false,
+        };
       }
 
       const porcentajeConfig = porcentajes[0];
@@ -372,7 +408,7 @@ export const useEditStoreModalLogic = ({
       );
 
       // 5. Asignar presupuestos individuales
-      return empleados.map((empleado) => {
+      const empleadosCalculados = empleados.map((empleado) => {
         const rolLower = empleado.cargo_nombre.toLowerCase();
         let presupuestoNuevo = 0;
 
@@ -403,10 +439,11 @@ export const useEditStoreModalLogic = ({
           presupuesto: presupuestoNuevo,
         };
       });
+      return { empleados: empleadosCalculados, calculated: true };
     } catch (error) {
       console.error("Error al recalcular presupuestos:", error);
-      // En caso de error, mantener los actuales o devolver 0
-      return empleados;
+      // En caso de error, mantener los actuales
+      return { empleados, calculated: false };
     }
   };
 
@@ -450,8 +487,8 @@ export const useEditStoreModalLogic = ({
     // Calcular presupuestos con la nueva lista
     setLoading(true);
     try {
-      const listaCalculada = await recalculateBudgets(nuevaLista);
-      setEmpleadosAsignados(listaCalculada);
+      const result = await recalculateBudgets(nuevaLista);
+      setEmpleadosAsignados(result.empleados);
 
       // Limpiar campos
       setCodigoEmpleado("");
@@ -478,8 +515,8 @@ export const useEditStoreModalLogic = ({
 
     setLoading(true);
     try {
-      const listaCalculada = await recalculateBudgets(nuevaLista);
-      setEmpleadosAsignados(listaCalculada);
+      const result = await recalculateBudgets(nuevaLista);
+      setEmpleadosAsignados(result.empleados);
     } catch (err) {
       console.error("Error al quitar y calcular:", err);
       setEmpleadosAsignados(nuevaLista);
@@ -522,6 +559,17 @@ export const useEditStoreModalLogic = ({
 
       setSuccess("✅ Asignación actualizada correctamente");
       setTimeout(() => setSuccess(""), 3000);
+
+      // Recargar empleados asignados en el modal
+      await loadEmpleadosAsignados();
+
+      // Actualizar la vista principal con delay para evitar interferencias
+      if (onSaveComplete) {
+        setTimeout(() => {
+          onSaveComplete();
+        }, 100);
+      }
+
       return true; // Indicar que el guardado fue exitoso
     } catch (err: any) {
       console.error("Error al guardar:", err);

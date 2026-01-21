@@ -10,7 +10,6 @@ import {
   DirectusPresupuestoDiarioEmpleado,
   DirectusVentasDiariasEmpleado,
   DirectusCumplimientoComisiones,
-  CommissionThresholdConfig,
   CommissionThreshold,
 } from "../../types";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
@@ -59,8 +58,8 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
           filter,
           sort: ["id"],
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
     return data as DirectusTienda[];
   } catch (error) {
@@ -79,8 +78,8 @@ export async function obtenerCargos(): Promise<DirectusCargo[]> {
           fields: ["id", "nombre"],
           sort: ["nombre"],
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
     return data as DirectusCargo[];
   } catch (error) {
@@ -108,8 +107,8 @@ export async function obtenerAsesores(): Promise<DirectusAsesor[]> {
           ],
           sort: ["id"],
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
     return data as DirectusAsesor[];
   } catch (error) {
@@ -164,7 +163,7 @@ export async function obtenerPresupuestosDiarios(
   tiendaId?: number,
   fechaInicio?: string,
   fechaFin?: string,
-  mesSeleccionado?: string
+  mesSeleccionado?: string,
 ): Promise<DirectusPresupuestoDiarioTienda[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
@@ -200,8 +199,8 @@ export async function obtenerPresupuestosDiarios(
           filter,
           sort: ["-fecha"],
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
 
     return data as DirectusPresupuestoDiarioTienda[];
@@ -230,8 +229,8 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
           filter,
           sort: ["-fecha"],
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
 
     // Extraer todos los meses únicos de las fechas
@@ -292,7 +291,7 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
  */
 export async function obtenerPorcentajesMensuales(
   tiendaId?: number,
-  mesAnio?: string
+  mesAnio?: string,
 ): Promise<DirectusPorcentajeMensual[]> {
   try {
     const filter: any = {};
@@ -325,8 +324,8 @@ export async function obtenerPorcentajesMensuales(
           filter,
           sort: ["-anio", "-mes"],
           limit: 1,
-        })
-      )
+        }),
+      ),
     );
 
     // Convertir el formato nuevo al formato esperado
@@ -373,7 +372,7 @@ export async function obtenerPorcentajesMensuales(
 export async function obtenerPresupuestosEmpleados(
   tiendaId?: number,
   fecha?: string,
-  mesSeleccionado?: string
+  mesSeleccionado?: string,
 ): Promise<DirectusPresupuestoDiarioEmpleado[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
@@ -413,8 +412,8 @@ export async function obtenerPresupuestosEmpleados(
           filter,
           sort: ["fecha", "asesor"],
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
 
     return data as DirectusPresupuestoDiarioEmpleado[];
@@ -429,14 +428,14 @@ export async function obtenerPresupuestosEmpleados(
  */
 export async function obtenerEmpleadosPorFechaExacta(
   tiendaIds: number[],
-  fechaExacta: string
+  fechaExacta: string,
 ): Promise<DirectusPresupuestoDiarioEmpleado[]> {
   try {
     const tiendaIdsPermitidos = await obtenerTiendasIdsUsuarioActual();
 
     // Filtrar solo las tiendas que el usuario tiene permiso de ver
     const tiendasFiltradas = tiendaIds.filter((id) =>
-      tiendaIdsPermitidos.includes(id)
+      tiendaIdsPermitidos.includes(id),
     );
 
     if (tiendasFiltradas.length === 0) {
@@ -445,7 +444,7 @@ export async function obtenerEmpleadosPorFechaExacta(
 
     const filter: any = {
       tienda_id: { _in: tiendasFiltradas },
-      fecha: { _eq: fechaExacta }, // ← EXACTA, no _lte
+      fecha: { _eq: fechaExacta },
     };
 
     const data = await withAutoRefresh(() =>
@@ -462,8 +461,8 @@ export async function obtenerEmpleadosPorFechaExacta(
           filter,
           sort: ["asesor"],
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
 
     return data as DirectusPresupuestoDiarioEmpleado[];
@@ -479,7 +478,7 @@ export async function obtenerEmpleadosPorFechaExacta(
 export async function obtenerVentasEmpleados(
   tiendaId?: number,
   fecha?: string,
-  mesSeleccionado?: string
+  mesSeleccionado?: string,
 ): Promise<DirectusVentasDiariasEmpleado[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
@@ -512,8 +511,8 @@ export async function obtenerVentasEmpleados(
           filter,
           sort: ["fecha", "asesor_id"],
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
 
     return data as DirectusVentasDiariasEmpleado[];
@@ -526,7 +525,7 @@ export async function obtenerVentasEmpleados(
  * Obtener tiendas asignadas a un usuario específico
  */
 export async function obtenerTiendasUsuario(
-  usuarioId: number
+  usuarioId: number,
 ): Promise<{ tienda_id: number; estado: string }[]> {
   try {
     const data = await withAutoRefresh(() =>
@@ -538,8 +537,8 @@ export async function obtenerTiendasUsuario(
             estado: { _eq: "Activo" },
           },
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
 
     return data as { tienda_id: number; estado: string }[];
@@ -566,8 +565,8 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
             estado: { _eq: "Activo" },
           },
           limit: -1,
-        })
-      )
+        }),
+      ),
     );
 
     const tiendaIds = data.map((item: any) => item.tienda_id);
@@ -600,7 +599,7 @@ export interface CommissionThresholdConfigWithId {
  * @returns CommissionThresholdConfigWithId o null si no existe
  */
 export async function obtenerUmbralesComisiones(
-  mesAnio?: string
+  mesAnio?: string,
 ): Promise<CommissionThresholdConfigWithId | null> {
   try {
     const filter: any = {};
@@ -635,8 +634,8 @@ export async function obtenerUmbralesComisiones(
           filter,
           sort: ["-anio", "-mes"],
           limit: 1,
-        })
-      )
+        }),
+      ),
     );
 
     if (!data || data.length === 0) {

@@ -8,17 +8,57 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
+  DialogTitle,
+  Typography,
 } from "@mui/material";
-import {
-  CodesModalHeader,
-  MultipleStoresWarning,
-  EmployeeSelector,
-  AssignedEmployeesList,
-  InlineMessage,
-  usePermissionsValidation,
-  useEmployeeManagement,
-  getFechaActual,
-} from "./modal";
+import { Work, Warning } from "@mui/icons-material";
+import { EmployeeSelector } from "../modals/EmployeeSelector";
+import { AssignedEmployeesList } from "../modals/AssignedEmployeesList";
+import { InlineMessage } from "../modals/InlineMessage";
+import { usePermissionsValidation } from "../../hooks/usePermissionsValidation";
+import { useEmployeeManagement } from "../../hooks/useEmployeeManagement";
+import { getFechaActual } from "../../lib/modalHelpers";
+import { DirectusTienda } from "../../types";
+
+// Header del modal de códigos
+interface CodesModalHeaderProps {
+  tiendaUsuario: DirectusTienda | null;
+  fechaActual: string;
+}
+
+const CodesModalHeader: React.FC<CodesModalHeaderProps> = ({
+  tiendaUsuario,
+  fechaActual,
+}) => {
+  return (
+    <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Work />
+      Asignar Asesores {tiendaUsuario?.nombre || "Tienda"} - {fechaActual}
+    </DialogTitle>
+  );
+};
+
+// Aviso para múltiples tiendas
+interface MultipleStoresWarningProps {
+  tiendasCount: number;
+}
+
+const MultipleStoresWarning: React.FC<MultipleStoresWarningProps> = ({
+  tiendasCount,
+}) => {
+  return (
+    <Alert severity="warning" icon={<Warning />} sx={{ mb: 3 }}>
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        Múltiples Tiendas Asignadas
+      </Typography>
+      <Typography variant="body2">
+        Tienes {tiendasCount} tiendas asignadas. Para usar esta función,
+        necesitas tener asignada únicamente una tienda. Por favor, contacta al
+        administrador para resolver esta situación.
+      </Typography>
+    </Alert>
+  );
+};
 
 interface CodesModalProps {
   isOpen: boolean;
@@ -63,10 +103,8 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     saving,
     error,
     success,
-    messageType,
     canSave,
     hasExistingData,
-    isUpdateMode,
     empleadoEncontrado,
     setCodigoInput,
     setCargoSeleccionado,
@@ -157,8 +195,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       dataReady && // Solo cuando los datos base estén listos
       (!dataLoadTriggered || forceReload)
     ) {
-      const fechaActual = new Date().toISOString().split("T")[0];
-
       // Siempre cargar datos existentes cuando el modal se abre
       const timer = setTimeout(() => {
         setDataLoadTriggered(true); // Marcar como ejecutado
@@ -328,10 +364,10 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   const currentMessageType = saveSuccessMessage
     ? "success"
     : error
-    ? "error"
-    : success
-    ? "success"
-    : "info";
+      ? "error"
+      : success
+        ? "success"
+        : "info";
 
   // 🚀 NUEVO: Determinar texto y color del botón dinámicamente
   const getButtonConfig = () => {

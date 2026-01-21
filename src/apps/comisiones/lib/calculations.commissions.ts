@@ -3,13 +3,12 @@
  */
 
 import { StaffMember, EmployeeCommission, CommissionThreshold } from "../types";
-import { round } from "./calculations.basic";
 import {
+  round,
   getNextCommission,
   getNextBudget,
   getNextSale,
-  getNextCommissionAmount,
-} from "./calculations.next-commission";
+} from "./calculations.utils";
 
 /**
  * Calcula el porcentaje de cumplimiento

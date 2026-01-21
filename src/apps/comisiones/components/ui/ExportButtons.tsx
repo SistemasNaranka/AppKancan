@@ -1,22 +1,10 @@
 import React, { useState } from "react";
-import { MesResumen } from "../types";
-import {
-  Download as DownloadIcon,
-  Description,
-  FileDownload as FileDownloadIcon,
-} from "@mui/icons-material";
-import {
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Box,
-  Typography,
-} from "@mui/material";
-import { useUserPolicies } from "../hooks/useUserPolicies";
-import CSVData from "./CSVData";
-import { StoreFilterModal } from "./StoreFilterModal";
+import { MesResumen } from "../../types";
+import { Download as DownloadIcon } from "@mui/icons-material";
+import { Button, Box } from "@mui/material";
+import { useUserPolicies } from "../../hooks/useUserPolicies";
+import CSVData from "../CSVData";
+import { StoreFilterModal } from "../modals/StoreFilterModal";
 
 interface ExportButtonsProps {
   mesResumen: MesResumen | null;
@@ -27,7 +15,6 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
   mesResumen,
   mes,
 }) => {
-  const [exportType, setExportType] = useState<string>("");
   const { hasPolicy } = useUserPolicies();
 
   // Solo mostrar si el usuario tiene la política readComisionesAdmin o readComisionesComercial
@@ -62,7 +49,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
         (tiendaTotal: number, empleado: any) => {
           return tiendaTotal + (empleado.comision_monto || 0);
         },
-        0
+        0,
       );
 
       csvContent += `${tienda.tienda},${tienda.presupuesto_tienda},${
@@ -76,7 +63,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `comisiones_general_${mes.replace(" ", "_")}.csv`
+      `comisiones_general_${mes.replace(" ", "_")}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -88,7 +75,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     if (!mesResumen) return;
 
     const filteredTiendas = mesResumen.tiendas.filter((t) =>
-      stores.includes(t.tienda)
+      stores.includes(t.tienda),
     );
 
     let csvContent =
@@ -98,7 +85,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
       tienda.empleados
         .filter(
           (empleado) =>
-            !roles || roles.length === 0 || roles.includes(empleado.rol)
+            !roles || roles.length === 0 || roles.includes(empleado.rol),
         )
         .forEach((empleado) => {
           csvContent += `${tienda.tienda},${empleado.documento},${empleado.nombre},${empleado.dias_laborados},${empleado.rol},${empleado.presupuesto},${empleado.ventas},${empleado.cumplimiento_pct},${empleado.comision_pct},${empleado.comision_monto}\n`;
@@ -111,7 +98,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `comisiones_detallada_${mes.replace(" ", "_")}.csv`
+      `comisiones_detallada_${mes.replace(" ", "_")}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -122,7 +109,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
   const handleExport = (
     type: string,
     csvType?: "General" | "Detallada",
-    roles?: string[]
+    roles?: string[],
   ) => {
     if (type === "csv") {
       if (csvType) {

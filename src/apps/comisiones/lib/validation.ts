@@ -2,7 +2,7 @@
  * Validaciones para datos de presupuestos y configuración
  */
 
-import { BudgetRecord, StaffMember, MonthConfig } from "../types";
+import { StaffMember } from "../types";
 
 export interface ValidationError {
   row?: number;

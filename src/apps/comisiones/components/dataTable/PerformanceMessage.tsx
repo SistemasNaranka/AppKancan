@@ -6,7 +6,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Star as StarIcon,
 } from "@mui/icons-material";
-import { green, orange, blue, grey, pink, purple } from "@mui/material/colors";
+import { green, orange, blue, grey, pink, red } from "@mui/material/colors";
 import { TiendaResumen, CommissionThreshold } from "../../types";
 import { formatCurrency } from "../../lib/utils";
 
@@ -28,22 +28,21 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
   const getPerformanceInfo = () => {
     const cumplimientoPct = tienda.cumplimiento_tienda_pct;
 
-    // Usar configuración proporcionada o valores por defecto
-    const DEFAULT_THRESHOLDS = [
-      { cumplimiento_min: 90, comision_pct: 0.0035, nombre: "Muy Regular" },
-      { cumplimiento_min: 95, comision_pct: 0.005, nombre: "Regular" },
-      { cumplimiento_min: 100, comision_pct: 0.007, nombre: "Buena" },
-      { cumplimiento_min: 110, comision_pct: 0.01, nombre: "Excelente" },
-    ];
+    // Usar configuración proporcionada o array vacío
+    const umbrales = thresholdConfig || [];
 
-    const umbrales =
-      thresholdConfig && thresholdConfig.length > 0
-        ? thresholdConfig
-        : DEFAULT_THRESHOLDS;
+    // Si no hay umbrales configurados, mostrar sin comisión
+    if (umbrales.length === 0) {
+      return {
+        message: "Sin comisión",
+        icon: <CancelIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
+        color: grey[600],
+      };
+    }
 
     // Ordenar umbrales por cumplimiento_min ascendente
     const umbralesOrdenados = [...umbrales].sort(
-      (a, b) => a.cumplimiento_min - b.cumplimiento_min
+      (a, b) => a.cumplimiento_min - b.cumplimiento_min,
     );
 
     // Si no alcanza el primer umbral
@@ -53,7 +52,7 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
       if (gerente && gerente.proxima_venta) {
         return {
           message: `Vende ${formatCurrency(
-            gerente.proxima_venta
+            gerente.proxima_venta,
           )} para comisionar`,
           icon: <CancelIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
           color: grey[800],
@@ -80,19 +79,77 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
     // Mensajes basados en el nivel actual
     const messages = umbralesOrdenados.map((umbral) => umbral.nombre);
 
-    // Colores basados en los umbrales
-    const getCumplimientoColor = (pct: number) => {
-      if (pct < 80) return grey[600];
-      if (pct < 90) return purple[300];
-      if (pct < 95) return pink[300];
-      if (pct < 100) return orange[600];
-      if (pct < 110) return blue[600];
-      return green[600];
+    // Mapa de colores MUI a nombres de colores
+    const colorMap: Record<string, string> = {
+      red: red[300],
+      pink: pink[300],
+      orange: orange[600],
+      blue: blue[600],
+      green: green[600],
+      purple: "#9c27b0",
+      yellow: "#ffeb3b",
     };
 
-    const colors = umbralesOrdenados.map((umbral) =>
-      getCumplimientoColor(umbral.cumplimiento_min)
-    );
+    // Colores basados en los umbrales configurados para el mes
+    const getCumplimientoColor = (pct: number) => {
+      // Verificar si el cumplimiento está dentro de alguno de los umbrales configurados
+      const isWithinThresholds = umbralesOrdenados.some((umbral) => {
+        const nextUmbral =
+          umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
+        return (
+          pct >= umbral.cumplimiento_min &&
+          (!nextUmbral || pct < nextUmbral.cumplimiento_min)
+        );
+      });
+
+      // Asignar color SOLO si el cumplimiento está dentro de los umbrales configurados
+      if (!isWithinThresholds) {
+        return grey[600]; // Gris (sin color) para cumplimiento < umbral mínimo o fuera de rango
+      }
+
+      // Asignar color basado EN LOS UMBRALES CONFIGURADOS para el mes
+      for (let i = 0; i < umbralesOrdenados.length; i++) {
+        const umbral = umbralesOrdenados[i];
+        const nextUmbral = umbralesOrdenados[i + 1];
+
+        if (
+          pct >= umbral.cumplimiento_min &&
+          (!nextUmbral || pct < nextUmbral.cumplimiento_min)
+        ) {
+          // Si el umbral tiene un color configurado, usarlo
+          if (umbral.color && colorMap[umbral.color]) {
+            return colorMap[umbral.color];
+          }
+
+          // Si no, usar la lógica de color por defecto
+          if (umbral.cumplimiento_min >= 85 && umbral.cumplimiento_min < 90) {
+            return red[300]; // Rojo para umbrales 85-89%
+          } else if (
+            umbral.cumplimiento_min >= 90 &&
+            umbral.cumplimiento_min < 95
+          ) {
+            return pink[300]; // Rosa para umbrales 90-94%
+          } else if (
+            umbral.cumplimiento_min >= 95 &&
+            umbral.cumplimiento_min < 100
+          ) {
+            return orange[600]; // Naranja para umbrales 95-99%
+          } else if (
+            umbral.cumplimiento_min >= 100 &&
+            umbral.cumplimiento_min < 110
+          ) {
+            return blue[600]; // Azul para umbrales 100-109%
+          } else {
+            return green[600]; // Verde para umbrales ≥110%
+          }
+        }
+      }
+
+      return grey[600]; // Default
+    };
+
+    // Obtener el color basado en el cumplimiento real de la tienda y la configuración del mes
+    const color = getCumplimientoColor(cumplimientoPct);
 
     const icons = [
       <TrendingUpIcon sx={{ fontSize: size === "small" ? 14 : 16 }} />,
@@ -104,7 +161,7 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
     return {
       message: messages[Math.min(currentLevel, messages.length - 1)],
       icon: icons[Math.min(currentLevel, icons.length - 1)],
-      color: colors[Math.min(currentLevel, colors.length - 1)],
+      color: color,
     };
   };
 

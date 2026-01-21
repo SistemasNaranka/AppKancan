@@ -1,11 +1,11 @@
 import React from "react";
 import { Button } from "@mui/material";
-import { Settings, Person, Store, TrendingUp } from "@mui/icons-material";
+import { Settings, Person, Store } from "@mui/icons-material";
 import { ExportButtons } from "./ExportButtons";
 import { SimpleFilters } from "./SimpleFilters";
-import { SummaryCards } from "./SummaryCards";
-import { Role } from "../types";
-import { useUserPolicies } from "../hooks/useUserPolicies";
+import { SummaryCards } from "../SummaryCards";
+import { Role } from "../../types";
+import { useUserPolicies } from "../../hooks/useUserPolicies";
 
 interface HomeHeaderProps {
   selectedMonth: string;

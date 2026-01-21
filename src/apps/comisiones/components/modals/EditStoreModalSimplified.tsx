@@ -17,7 +17,7 @@ import {
   Grid,
   Autocomplete,
 } from "@mui/material";
-import { InlineMessage } from "./modal/InlineMessage";
+import { InlineMessage } from "./InlineMessage";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -26,7 +26,6 @@ import "dayjs/locale/es"; // Localización español
 import {
   Close,
   Save,
-  Add,
   Person,
   Search,
   Store,
@@ -34,20 +33,21 @@ import {
   Groups,
   CheckCircle,
 } from "@mui/icons-material";
-import { useEditStoreModalLogic } from "../hooks/useEditStoreModalLogic";
+import { useEditStoreModalLogic } from "../../hooks/useEditStoreModalLogic";
 
 interface EditStoreModalSimplifiedProps {
   isOpen: boolean;
   onClose: () => void;
   selectedMonth?: string;
+  onSaveComplete?: () => void;
 }
 
 export const EditStoreModalSimplified: React.FC<
   EditStoreModalSimplifiedProps
-> = ({ isOpen, onClose, selectedMonth }) => {
+> = ({ isOpen, onClose, selectedMonth, onSaveComplete }) => {
   // Estado para controlar si se ha guardado correctamente
-  const [saveCompleted, setSaveCompleted] = React.useState(false);
-  const [saveError, setSaveError] = React.useState(false);
+  const [, setSaveCompleted] = React.useState(false);
+  const [, setSaveError] = React.useState(false);
 
   // Usar el hook para toda la lógica de negocio (sin onSaveComplete, la recarga se maneja en onClose)
   const {
@@ -81,6 +81,8 @@ export const EditStoreModalSimplified: React.FC<
     isOpen,
     onClose,
     selectedMonth,
+    onSaveComplete,
+    onStateChange: undefined,
   });
 
   const handleGuardarWrapper = async () => {
@@ -271,7 +273,7 @@ export const EditStoreModalSimplified: React.FC<
                     `${option.nombre} - ${option.empresa}`
                   }
                   value={
-                    tiendas.find((t) => t.id === tiendaSeleccionada) || null
+                    tiendas.find((t) => t.id == tiendaSeleccionada) || null
                   }
                   onChange={(_, newValue) =>
                     handleTiendaChange(newValue ? newValue.id : 0)
@@ -768,7 +770,7 @@ export const EditStoreModalSimplified: React.FC<
                               $
                             </Box>
                             {Number(empleado.presupuesto).toLocaleString(
-                              "en-US"
+                              "en-US",
                             )}
                           </Typography>
                         </Box>
@@ -811,7 +813,7 @@ export const EditStoreModalSimplified: React.FC<
           <Button
             variant="contained"
             startIcon={<Save />}
-            onClick={handleGuardar}
+            onClick={handleGuardarWrapper}
             disabled={
               loading || !tiendaSeleccionada || empleadosAsignados.length === 0
             }

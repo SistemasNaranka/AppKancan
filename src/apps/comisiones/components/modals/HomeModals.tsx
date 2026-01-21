@@ -1,5 +1,4 @@
 import React from "react";
-import { ConfigurationPanel } from "./ConfigurationPanel";
 import { CodesModal } from "./CodesModal";
 import { NoDataModal } from "./NoDataModal";
 import { EditStoreModalSimplified } from "./EditStoreModalSimplified";
@@ -20,6 +19,7 @@ interface HomeModalsProps {
   onCloseNoDataModal: () => void;
   onAssignmentComplete?: (ventasData: any) => void;
   onShowSaveLoading?: (error?: any) => void;
+  onSaveComplete?: () => Promise<void>;
 }
 
 export const HomeModals: React.FC<HomeModalsProps> = ({
@@ -35,6 +35,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   onCloseNoDataModal,
   onAssignmentComplete,
   onShowSaveLoading,
+  onSaveComplete,
 }) => {
   const handleAssignmentComplete = (ventasData: any) => {
     if (onAssignmentComplete) {
@@ -74,6 +75,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
           onCloseEditStoreModal();
         }}
         selectedMonth={selectedMonth}
+        onSaveComplete={onSaveComplete}
       />
     </>
   );

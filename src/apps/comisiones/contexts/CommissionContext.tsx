@@ -49,6 +49,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
     ventas: [],
     ventasMensuales: [],
     presupuestosEmpleados: [],
+    thresholdConfig: null,
   });
 
   const setBudgets = useCallback((budgets: BudgetRecord[]) => {
@@ -190,6 +191,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
       ventas: [],
       ventasMensuales: [],
       presupuestosEmpleados: [],
+      thresholdConfig: null,
     });
   }, []);
 

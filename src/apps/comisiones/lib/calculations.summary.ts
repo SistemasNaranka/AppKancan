@@ -10,7 +10,6 @@ import {
   MesResumen,
   Role,
   EmployeeCommission,
-  CommissionThreshold,
   CommissionThresholdConfig,
 } from "../types";
 import {
@@ -18,9 +17,14 @@ import {
   getMonthYear,
   isCurrentMonth,
   getCurrentDate,
-} from "./calculations.basic";
+  getEmployeeVentas,
+  getTiendaVentas,
+  getNextCommission,
+  getNextBudget,
+  getNextSale,
+  getNextCommissionAmount,
+} from "./calculations.utils";
 import { filterBudgetsByMonth } from "./calculations.budgets";
-import { getEmployeeVentas, getTiendaVentas } from "./calculations.data";
 import {
   calculateEmployeeCommission,
   calculateGerenteCommission,
@@ -31,12 +35,6 @@ import {
   calculateBaseSale,
   getCommissionPercentage,
 } from "./calculations.commissions";
-import {
-  getNextCommission,
-  getNextBudget,
-  getNextSale,
-  getNextCommissionAmount,
-} from "./calculations.next-commission";
 
 /**
  * Calcula el resumen de comisiones para una tienda en una fecha específica
@@ -271,77 +269,6 @@ export const calculateTiendaResumen = (
     cumplimiento_tienda_pct: cumplimiento_tienda,
     empleados: empleadosFiltrados,
     total_comisiones,
-  };
-};
-
-/**
- * Calcula las comisiones para gerentes y asesores con lógica tradicional
- */
-const calculateTraditionalEmployeeCommission = (
-  empleado: StaffMember,
-  presupuesto: number,
-  ventas: number,
-  tiendaVentas: number,
-  presupuestoTienda: number
-): EmployeeCommission => {
-  // Calcular cumplimiento individual
-  const cumplimientoIndividual = calculateCompliance(ventas, presupuesto);
-
-  // Para GERENTE: usar cumplimiento de la tienda para calcular comisión
-  // pero mostrar sus ventas individuales
-  let cumplimientoParaComision = cumplimientoIndividual;
-  const ventaBaseParaComision = calculateBaseSale(ventas);
-
-  if (empleado.rol === "gerente") {
-    // Gerente usa cumplimiento de la tienda para calcular comisión
-    // pero muestra sus ventas individuales (no las de la tienda)
-    const cumplimientoTienda = calculateCompliance(
-      tiendaVentas,
-      presupuestoTienda
-    );
-    cumplimientoParaComision = cumplimientoTienda;
-  }
-
-  const comision_pct = getCommissionPercentage(cumplimientoParaComision);
-  const comision_monto = round(ventaBaseParaComision * comision_pct);
-
-  // Calcular próximos valores
-  const proxima_comision = getNextCommission(comision_pct, undefined); // Usar valores por defecto
-  const proximo_presupuesto = getNextBudget(
-    proxima_comision,
-    presupuesto,
-    undefined
-  );
-  const proxima_venta =
-    proximo_presupuesto !== null
-      ? getNextSale(proximo_presupuesto, ventas)
-      : null;
-  const proximo_monto_comision = getNextCommissionAmount(
-    proximo_presupuesto,
-    proxima_comision
-  );
-
-  return {
-    id: empleado.id,
-    nombre: empleado.nombre,
-    documento: empleado.documento,
-    rol: empleado.rol,
-    tienda: empleado.tienda,
-    fecha: empleado.fecha,
-    presupuesto: presupuesto, // Mantener precisión para cálculos
-    ventas: ventas, // Todos los empleados muestran sus ventas individuales (incluyendo gerentes)
-    cumplimiento_pct:
-      empleado.rol === "gerente"
-        ? calculateCompliance(tiendaVentas, presupuestoTienda)
-        : cumplimientoIndividual,
-    comision_pct,
-    comision_monto,
-    proxima_comision,
-    proximo_presupuesto: proximo_presupuesto || undefined,
-    proxima_venta:
-      proxima_venta !== null && proxima_venta > 0 ? proxima_venta : undefined,
-    proximo_monto_comision: proximo_monto_comision || undefined,
-    dias_laborados: 1, // Por defecto 1 día para funciones individuales
   };
 };
 
@@ -601,7 +528,7 @@ export const calculateMesResumenAgrupado = (
         // Datos reales de venta_diaria_empleado filtrados por tienda_id
         if (empleadoData.ventasMensual === 0) {
           // Solo calcular si no se ha hecho ya
-          tiendaData.ventasPorDia.forEach((ventasDia, fechaDia) => {
+          tiendaData.ventasPorDia.forEach((ventasDia) => {
             // Cajero/Logístico: buscar ventas individuales registradas en venta_diaria_empleado
             // Si no tienen ventas registradas, ventasEmpleado será 0
             const ventasEmpleado =
