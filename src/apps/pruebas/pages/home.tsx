@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import {
@@ -17,6 +17,20 @@ import {
   IconButton,
   Chip,
 } from "@mui/material";
+
+import {
+  findBestMatch,
+  mapearNombresTiendasEnTodasLasCeldas,
+  eliminarColumnas,
+  obtenerColumnasFinales
+} from '../utils/fileNormalization';
+
+
+import {
+  MapeoArchivo, 
+  TiendaMapeo 
+} from '../types/mapeo.types';
+
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -28,11 +42,76 @@ interface ArchivoSubido {
   tipo: string;
   datos: any[];
   columnas: string[];
+  normalizado?: boolean;
+  mapeoEncontrado?: MapeoArchivo;
+  tipoArchivo?: string;
 }
+
 
 const Home: React.FC = () => {
   const [archivos, setArchivos] = useState<ArchivoSubido[]>([]);
   const [archivoSeleccionado, setArchivoSeleccionado] = useState<ArchivoSubido | null>(null);
+  const [tablasMapeo, setTablasMapeo] = useState<MapeoArchivo[]>([]);
+  const [tiendaMapeos, setTiendaMapeos] = useState<TiendaMapeo[]>([]);
+  const [cargando, setCargando] = useState(false);
+
+    // Cargar datos de mapeo al iniciar
+  useEffect(() => {
+    cargarDatosMapeo();
+  }, []);
+
+const cargarDatosMapeo = async () => {
+  try {
+    // Aquí después conectarás con tu API
+    // const response = await fetch('/api/mapeo-archivos');
+    // const data = await response.json();
+    
+    // Datos de prueba - Define UNA VEZ cada tipo de archivo
+    setTablasMapeo([
+      {
+        archivoOrigen: "creditos",
+        columnasEliminar: ["ID_Temp", "Hash_Internal"] // Columnas a eliminar de archivos tipo "creditos"
+      },
+      {
+        archivoOrigen: "maria perez",
+        columnasEliminar: ["Notas", "Sistema"] // Columnas a eliminar de "Maria Perez"
+      },
+      {
+        archivoOrigen: "reportediario",
+        columnasEliminar: ["Flag", "ID_Sistema"] // Columnas a eliminar de "ReporteDiario"
+      },
+      {
+        archivoOrigen: "transactions",
+        columnasEliminar: ["Internal_ID"] // Columnas a eliminar de "transactions"
+      }
+    ]);
+    
+    // Define TODOS los nombres de tiendas para TODOS los tipos de archivos
+    setTiendaMapeos([
+      // Para archivos tipo "creditos"
+      { archivoOrigen: "creditos", tiendaArchivo: "ALKOSTO", tiendaNormalizada: "Alkosto Bogotá", tiendaId: 1 },
+      { archivoOrigen: "creditos", tiendaArchivo: "BANCO OCCIDENTE", tiendaNormalizada: "Banco Occidente", tiendaId: 2 },
+      
+      // Para archivos tipo "maria perez"
+      { archivoOrigen: "maria perez", tiendaArchivo: "Bco Occidente", tiendaNormalizada: "Banco Occidente", tiendaId: 2 },
+      { archivoOrigen: "maria perez", tiendaArchivo: "OCCIDENTE", tiendaNormalizada: "Banco Occidente", tiendaId: 2 },
+      
+      // Para archivos tipo "reportediario"
+      { archivoOrigen: "reportediario", tiendaArchivo: "COMERCIO CENTRO", tiendaNormalizada: "Comercio Bogotá", tiendaId: 3 },
+      { archivoOrigen: "reportediario", tiendaArchivo: "COMERCIO", tiendaNormalizada: "Comercio Bogotá", tiendaId: 3 },
+      
+      // Para archivos tipo "transactions"
+      { archivoOrigen: "transactions", tiendaArchivo: "ALKOSTO", tiendaNormalizada: "Alkosto Bogotá", tiendaId: 1 },
+      { archivoOrigen: "transactions", tiendaArchivo: "EXITO", tiendaNormalizada: "Éxito Centro", tiendaId: 4 }
+    ]);
+  } catch (error) {
+    console.error('Error al cargar datos de mapeo:', error);
+  }
+};
+
+
+
+
 
   const leerArchivo = (archivo: File): Promise<ArchivoSubido> => {
     return new Promise((resolve, reject) => {
@@ -99,23 +178,42 @@ const Home: React.FC = () => {
     });
   };
 
-  const handleSubirArchivos = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+const handleSubirArchivos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = e.target.files;
+  if (!files) return;
 
-    for (let i = 0; i < files.length; i++) {
-      try {
-        const nuevoArchivo = await leerArchivo(files[i]);
-        setArchivos((prev) => [...prev, nuevoArchivo]);
-        if (i === 0) {
-          setArchivoSeleccionado(nuevoArchivo);
-        }
-      } catch (error) {
-        console.error(`Error al leer ${files[i].name}:`, error);
+  setCargando(true);
+
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const nuevoArchivo = await leerArchivo(files[i]);
+      
+      // Buscar mapeo usando fuzzy matching
+      const resultado = findBestMatch(nuevoArchivo.nombre, tablasMapeo);
+      
+      if (resultado) {
+        nuevoArchivo.mapeoEncontrado = resultado.mapeo;
+        nuevoArchivo.tipoArchivo = resultado.tipoArchivo;
+        console.log(`✓ Mapeo encontrado para ${nuevoArchivo.nombre} → Tipo: ${resultado.tipoArchivo}`);
+      } else {
+        console.warn(`⚠ No se encontró mapeo para ${nuevoArchivo.nombre}`);
       }
+      
+      setArchivos((prev) => [...prev, nuevoArchivo]);
+      
+      if (i === 0) {
+        setArchivoSeleccionado(nuevoArchivo);
+      }
+    } catch (error) {
+      console.error(`Error al leer ${files[i].name}:`, error);
     }
-    e.target.value = "";
-  };
+  }
+  
+  setCargando(false);
+  e.target.value = "";
+};
+
+
 
   const handleEliminarArchivo = (nombre: string) => {
     setArchivos((prev) => prev.filter((a) => a.nombre !== nombre));
@@ -133,11 +231,73 @@ const Home: React.FC = () => {
     alert("Función de comparación en desarrollo...\n\nArchivos a comparar:\n" + archivos.map(a => `- ${a.nombre}`).join("\n"));
   };
 
+const normalizarArchivo = async (archivo: ArchivoSubido) => {
+  if (!archivo.mapeoEncontrado || !archivo.tipoArchivo) {
+    alert("No se puede normalizar: no hay mapeo definido");
+    return;
+  }
+
+  setCargando(true);
+
+  try {
+    const mapeo = archivo.mapeoEncontrado;
+    
+    // 1. Buscar y cambiar nombres de tiendas en TODAS las celdas
+    let datosNormalizados = mapearNombresTiendasEnTodasLasCeldas(
+      archivo.datos,
+      tiendaMapeos,
+      archivo.tipoArchivo
+    );
+    
+    // 2. Eliminar columnas no deseadas
+    datosNormalizados = eliminarColumnas(
+      datosNormalizados,
+      mapeo.columnasEliminar
+    );
+    
+    // 3. Obtener columnas finales
+    const columnasFinales = obtenerColumnasFinales(
+      archivo.columnas,
+      mapeo.columnasEliminar
+    );
+    
+    // Agregar columna tiendaId si no existe
+    if (!columnasFinales.includes('tiendaId')) {
+      columnasFinales.push('tiendaId');
+    }
+
+    // 4. Actualizar archivo
+    const archivoNormalizado: ArchivoSubido = {
+      ...archivo,
+      datos: datosNormalizados,
+      columnas: columnasFinales,
+      normalizado: true
+    };
+
+    setArchivos((prev) =>
+      prev.map((a) => (a.nombre === archivo.nombre ? archivoNormalizado : a))
+    );
+    
+    setArchivoSeleccionado(archivoNormalizado);
+    
+    alert(`✓ Archivo normalizado exitosamente`);
+  } catch (error) {
+    console.error("Error al normalizar:", error);
+    alert("Error al normalizar el archivo");
+  } finally {
+    setCargando(false);
+  }
+};
+
+
+
   const formatearValor = (valor: any): string => {
     if (valor === null || valor === undefined) return "";
     if (typeof valor === "number") return valor.toLocaleString();
     return String(valor);
   };
+
+
 
   return (
     <Box sx={{ p: 3, minHeight: "100vh", backgroundColor: "transparent" }}>
@@ -185,6 +345,30 @@ const Home: React.FC = () => {
         >
           Comparación
         </Button> 
+
+        <Button
+  variant="contained"
+  onClick={() => {
+    if (archivoSeleccionado) {
+      normalizarArchivo(archivoSeleccionado);
+    } else {
+      alert("Selecciona un archivo primero");
+    }
+  }}
+  disabled={!archivoSeleccionado || archivoSeleccionado.normalizado || cargando}
+  sx={{ 
+    backgroundColor: "#28a745", 
+    boxShadow: 'none', 
+    color: '#ffffff',
+    "&:hover": {
+      boxShadow: "none",
+      backgroundColor: "#218838"
+    }
+  }}
+>
+  {cargando ? "Procesando..." : "Normalizar Archivo"}
+</Button>
+
       </Box>
 
       <Box sx={{ display: "flex", gap: 3 }}>
