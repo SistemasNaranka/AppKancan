@@ -28,9 +28,19 @@ const appColors = [
   "#45b7d1",
   "#f9ca24",
   "#6c5ce7",
-  "#a29bfe",
   "#fd79a8",
   "#fdcb6e",
+  "#4CAF50",
+  "#F18F01",
+  "#A23B72",
+  "#009688",
+  "#2196F3",
+  "#E91E63",
+  "#3F51B5",
+  "#FFC107",
+  "#FF5722",
+  "#795548",
+  "#607D8B",
 ];
 const externalApps = [
   {
@@ -76,8 +86,8 @@ const getGreeting = () => {
   return h < 12
     ? "¡Buenos días!"
     : h < 18
-    ? "¡Buenas tardes!"
-    : "¡Buenas noches!";
+      ? "¡Buenas tardes!"
+      : "¡Buenas noches!";
 };
 
 function Home() {
@@ -146,8 +156,8 @@ function Home() {
     const key = url.includes("mail")
       ? "gmailTab"
       : url.includes("drive")
-      ? "driveTab"
-      : "sheetsTab";
+        ? "driveTab"
+        : "sheetsTab";
     if (appTabs[key]?.closed === false) return appTabs[key]!.focus();
     const tab = window.open(url, key);
     if (tab) {

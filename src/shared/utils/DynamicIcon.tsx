@@ -25,6 +25,7 @@ import {
   CurrencyExchange,
   Assignment,
   Calculate,
+  Difference,
 } from "@mui/icons-material";
 
 /**
@@ -46,6 +47,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Description,
   Calculate,
   Summarize,
+  Difference,
   Assignment,
   // 🔸 Categoría: Recursos Humanos
   PeopleAlt,
