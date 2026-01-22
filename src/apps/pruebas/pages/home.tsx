@@ -16,37 +16,34 @@ import {
   Paper,
   IconButton,
   Chip,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 
 import {
   findBestMatch,
   mapearNombresTiendasEnTodasLasCeldas,
-  eliminarColumnas,
-  obtenerColumnasFinales
+  eliminarColumnasPorNombre,
+  obtenerColumnasRestantes
 } from '../utils/fileNormalization';
 
+import {
+  obtenerMapeosArchivos,
+  procesarMapeosParaNormalizacion
+} from '../services/mapeoService';
 
 import {
-  MapeoArchivo, 
-  TiendaMapeo 
+  MapeoArchivo,
+  TiendaMapeo,
+  ArchivoSubido
 } from '../types/mapeo.types';
 
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import { auto } from "@popperjs/core";
-
-interface ArchivoSubido {
-  nombre: string;
-  tipo: string;
-  datos: any[];
-  columnas: string[];
-  normalizado?: boolean;
-  mapeoEncontrado?: MapeoArchivo;
-  tipoArchivo?: string;
-}
-
+import RefreshIcon from "@mui/icons-material/Refresh";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const Home: React.FC = () => {
   const [archivos, setArchivos] = useState<ArchivoSubido[]>([]);
@@ -54,64 +51,41 @@ const Home: React.FC = () => {
   const [tablasMapeo, setTablasMapeo] = useState<MapeoArchivo[]>([]);
   const [tiendaMapeos, setTiendaMapeos] = useState<TiendaMapeo[]>([]);
   const [cargando, setCargando] = useState(false);
+  const [cargandoMapeos, setCargandoMapeos] = useState(true);
+  const [errorMapeos, setErrorMapeos] = useState<string | null>(null);
 
-    // Cargar datos de mapeo al iniciar
+  // Cargar datos de mapeo desde Directus al iniciar
   useEffect(() => {
     cargarDatosMapeo();
   }, []);
 
-const cargarDatosMapeo = async () => {
-  try {
-    // Aquí después conectarás con tu API
-    // const response = await fetch('/api/mapeo-archivos');
-    // const data = await response.json();
+  const cargarDatosMapeo = async () => {
+    setCargandoMapeos(true);
+    setErrorMapeos(null);
     
-    // Datos de prueba - Define UNA VEZ cada tipo de archivo
-    setTablasMapeo([
-      {
-        archivoOrigen: "creditos",
-        columnasEliminar: ["ID_Temp", "Hash_Internal"] // Columnas a eliminar de archivos tipo "creditos"
-      },
-      {
-        archivoOrigen: "maria perez",
-        columnasEliminar: ["Notas", "Sistema"] // Columnas a eliminar de "Maria Perez"
-      },
-      {
-        archivoOrigen: "reportediario",
-        columnasEliminar: ["Flag", "ID_Sistema"] // Columnas a eliminar de "ReporteDiario"
-      },
-      {
-        archivoOrigen: "transactions",
-        columnasEliminar: ["Internal_ID"] // Columnas a eliminar de "transactions"
-      }
-    ]);
-    
-    // Define TODOS los nombres de tiendas para TODOS los tipos de archivos
-    setTiendaMapeos([
-      // Para archivos tipo "creditos"
-      { archivoOrigen: "creditos", tiendaArchivo: "ALKOSTO", tiendaNormalizada: "Alkosto Bogotá", tiendaId: 1 },
-      { archivoOrigen: "creditos", tiendaArchivo: "BANCO OCCIDENTE", tiendaNormalizada: "Banco Occidente", tiendaId: 2 },
+    try {
+      // Obtener datos de Directus
+      const mapeosDirectus = await obtenerMapeosArchivos();
       
-      // Para archivos tipo "maria perez"
-      { archivoOrigen: "maria perez", tiendaArchivo: "Bco Occidente", tiendaNormalizada: "Banco Occidente", tiendaId: 2 },
-      { archivoOrigen: "maria perez", tiendaArchivo: "OCCIDENTE", tiendaNormalizada: "Banco Occidente", tiendaId: 2 },
+      console.log('📦 Datos cargados de Directus:', mapeosDirectus);
       
-      // Para archivos tipo "reportediario"
-      { archivoOrigen: "reportediario", tiendaArchivo: "COMERCIO CENTRO", tiendaNormalizada: "Comercio Bogotá", tiendaId: 3 },
-      { archivoOrigen: "reportediario", tiendaArchivo: "COMERCIO", tiendaNormalizada: "Comercio Bogotá", tiendaId: 3 },
+      // Procesar y separar en las estructuras que necesitamos
+      const { tablasMapeo, tiendaMapeos } = procesarMapeosParaNormalizacion(mapeosDirectus);
       
-      // Para archivos tipo "transactions"
-      { archivoOrigen: "transactions", tiendaArchivo: "ALKOSTO", tiendaNormalizada: "Alkosto Bogotá", tiendaId: 1 },
-      { archivoOrigen: "transactions", tiendaArchivo: "EXITO", tiendaNormalizada: "Éxito Centro", tiendaId: 4 }
-    ]);
-  } catch (error) {
-    console.error('Error al cargar datos de mapeo:', error);
-  }
-};
-
-
-
-
+      setTablasMapeo(tablasMapeo);
+      setTiendaMapeos(tiendaMapeos);
+      
+      console.log('✅ Mapeos procesados:');
+      console.log('  - Tipos de archivo:', tablasMapeo.map(t => t.archivoOrigen));
+      console.log('  - Tiendas mapeadas:', tiendaMapeos.length);
+      
+    } catch (error) {
+      console.error('❌ Error al cargar mapeos:', error);
+      setErrorMapeos('Error al cargar los mapeos desde Directus. Verifica la conexión.');
+    } finally {
+      setCargandoMapeos(false);
+    }
+  };
 
   const leerArchivo = (archivo: File): Promise<ArchivoSubido> => {
     return new Promise((resolve, reject) => {
@@ -137,13 +111,13 @@ const cargarDatosMapeo = async () => {
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
-              const arrayData = new Uint8Array(e.target?.result as ArrayBuffer);
-              const workbook = XLSX.read(arrayData, { type: "array" });
-              // Si tiene más de una hoja, usar la segunda (índice 1), sino usar la primera
-              const nombreHoja = workbook.SheetNames.length > 1 
-                ? workbook.SheetNames[1] 
-                : workbook.SheetNames[0];
-              const hoja = workbook.Sheets[nombreHoja];
+            const arrayData = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(arrayData, { type: "array" });
+            // Si tiene más de una hoja, usar la segunda (índice 1), sino usar la primera
+            const nombreHoja = workbook.SheetNames.length > 1 
+              ? workbook.SheetNames[1] 
+              : workbook.SheetNames[0];
+            const hoja = workbook.Sheets[nombreHoja];
             const jsonData: any[][] = XLSX.utils.sheet_to_json(hoja, { header: 1 });
 
             if (jsonData.length === 0) {
@@ -178,42 +152,41 @@ const cargarDatosMapeo = async () => {
     });
   };
 
-const handleSubirArchivos = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const files = e.target.files;
-  if (!files) return;
+  const handleSubirArchivos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
 
-  setCargando(true);
+    setCargando(true);
 
-  for (let i = 0; i < files.length; i++) {
-    try {
-      const nuevoArchivo = await leerArchivo(files[i]);
-      
-      // Buscar mapeo usando fuzzy matching
-      const resultado = findBestMatch(nuevoArchivo.nombre, tablasMapeo);
-      
-      if (resultado) {
-        nuevoArchivo.mapeoEncontrado = resultado.mapeo;
-        nuevoArchivo.tipoArchivo = resultado.tipoArchivo;
-        console.log(`✓ Mapeo encontrado para ${nuevoArchivo.nombre} → Tipo: ${resultado.tipoArchivo}`);
-      } else {
-        console.warn(`⚠ No se encontró mapeo para ${nuevoArchivo.nombre}`);
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const nuevoArchivo = await leerArchivo(files[i]);
+        
+        // Buscar mapeo usando fuzzy matching
+        const resultado = findBestMatch(nuevoArchivo.nombre, tablasMapeo);
+        
+        if (resultado) {
+          nuevoArchivo.tipoArchivo = resultado.tipoArchivo;
+          nuevoArchivo.columnasEliminar = resultado.mapeo.columnasEliminar;
+          console.log(`✓ Mapeo encontrado para ${nuevoArchivo.nombre} → Tipo: ${resultado.tipoArchivo}`);
+          console.log(`  Columnas a eliminar:`, resultado.mapeo.columnasEliminar);
+        } else {
+          console.warn(`⚠ No se encontró mapeo para ${nuevoArchivo.nombre}`);
+        }
+        
+        setArchivos((prev) => [...prev, nuevoArchivo]);
+        
+        if (i === 0) {
+          setArchivoSeleccionado(nuevoArchivo);
+        }
+      } catch (error) {
+        console.error(`Error al leer ${files[i].name}:`, error);
       }
-      
-      setArchivos((prev) => [...prev, nuevoArchivo]);
-      
-      if (i === 0) {
-        setArchivoSeleccionado(nuevoArchivo);
-      }
-    } catch (error) {
-      console.error(`Error al leer ${files[i].name}:`, error);
     }
-  }
-  
-  setCargando(false);
-  e.target.value = "";
-};
-
-
+    
+    setCargando(false);
+    e.target.value = "";
+  };
 
   const handleEliminarArchivo = (nombre: string) => {
     setArchivos((prev) => prev.filter((a) => a.nombre !== nombre));
@@ -227,69 +200,135 @@ const handleSubirArchivos = async (e: React.ChangeEvent<HTMLInputElement>) => {
       alert("Necesitas al menos 2 archivos para comparar");
       return;
     }
-    // TODO: Implementar lógica de comparación
     alert("Función de comparación en desarrollo...\n\nArchivos a comparar:\n" + archivos.map(a => `- ${a.nombre}`).join("\n"));
   };
 
-const normalizarArchivo = async (archivo: ArchivoSubido) => {
-  if (!archivo.mapeoEncontrado || !archivo.tipoArchivo) {
-    alert("No se puede normalizar: no hay mapeo definido");
-    return;
-  }
-
-  setCargando(true);
-
-  try {
-    const mapeo = archivo.mapeoEncontrado;
+  const exportarArchivosNormalizados = () => {
+    // Filtrar solo archivos normalizados
+    const archivosNormalizados = archivos.filter(a => a.normalizado);
     
-    // 1. Buscar y cambiar nombres de tiendas en TODAS las celdas
-    let datosNormalizados = mapearNombresTiendasEnTodasLasCeldas(
-      archivo.datos,
-      tiendaMapeos,
-      archivo.tipoArchivo
-    );
-    
-    // 2. Eliminar columnas no deseadas
-    datosNormalizados = eliminarColumnas(
-      datosNormalizados,
-      mapeo.columnasEliminar
-    );
-    
-    // 3. Obtener columnas finales
-    const columnasFinales = obtenerColumnasFinales(
-      archivo.columnas,
-      mapeo.columnasEliminar
-    );
-    
-    // Agregar columna tiendaId si no existe
-    if (!columnasFinales.includes('tiendaId')) {
-      columnasFinales.push('tiendaId');
+    if (archivosNormalizados.length === 0) {
+      alert("No hay archivos normalizados para exportar");
+      return;
     }
 
-    // 4. Actualizar archivo
-    const archivoNormalizado: ArchivoSubido = {
-      ...archivo,
-      datos: datosNormalizados,
-      columnas: columnasFinales,
-      normalizado: true
-    };
-
-    setArchivos((prev) =>
-      prev.map((a) => (a.nombre === archivo.nombre ? archivoNormalizado : a))
-    );
+    // Combinar todos los datos
+    let datosCombinados: any[] = [];
     
-    setArchivoSeleccionado(archivoNormalizado);
+    archivosNormalizados.forEach(archivo => {
+      // Agregar columna de origen para identificar de qué archivo viene cada fila
+      const datosConOrigen = archivo.datos.map(fila => ({
+        ...fila,
+        _archivo_origen: archivo.tipoArchivo || archivo.nombre
+      }));
+      datosCombinados = [...datosCombinados, ...datosConOrigen];
+    });
+
+    // Obtener todas las columnas únicas de todos los archivos
+    const todasLasColumnas = new Set<string>();
+    archivosNormalizados.forEach(archivo => {
+      archivo.columnas.forEach(col => todasLasColumnas.add(col));
+    });
+    todasLasColumnas.add('_archivo_origen');
     
-    alert(`✓ Archivo normalizado exitosamente`);
-  } catch (error) {
-    console.error("Error al normalizar:", error);
-    alert("Error al normalizar el archivo");
-  } finally {
-    setCargando(false);
-  }
-};
+    const columnasArray = Array.from(todasLasColumnas);
 
+    // Crear contenido CSV
+    const csvHeader = columnasArray.join(',');
+    const csvRows = datosCombinados.map(fila => {
+      return columnasArray.map(col => {
+        const valor = fila[col] ?? '';
+        // Escapar valores que contengan comas o comillas
+        const valorStr = String(valor);
+        if (valorStr.includes(',') || valorStr.includes('"') || valorStr.includes('\n')) {
+          return `"${valorStr.replace(/"/g, '""')}"`;
+        }
+        return valorStr;
+      }).join(',');
+    });
 
+    const csvContent = [csvHeader, ...csvRows].join('\n');
+
+    // Descargar archivo
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `archivos_normalizados_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    alert(`✓ Exportados ${archivosNormalizados.length} archivo(s) con ${datosCombinados.length} filas en total`);
+  };
+
+  const normalizarArchivo = async (archivo: ArchivoSubido) => {
+    if (!archivo.tipoArchivo) {
+      alert("No se puede normalizar: no hay mapeo definido para este archivo");
+      return;
+    }
+
+    setCargando(true);
+
+    try {
+      console.log("=== DATOS ANTES DE NORMALIZAR ===");
+      console.log("Tipo de archivo:", archivo.tipoArchivo);
+      console.log("Primera fila:", archivo.datos[0]);
+      console.log("Tienda Mapeos disponibles:", tiendaMapeos);
+      
+      // 1. Buscar y cambiar nombres de tiendas en TODAS las celdas
+      let datosNormalizados = mapearNombresTiendasEnTodasLasCeldas(
+        archivo.datos,
+        tiendaMapeos,
+        archivo.tipoArchivo
+      );
+      
+      console.log("=== DATOS DESPUÉS DE MAPEAR TIENDAS ===");
+      console.log("Primera fila:", datosNormalizados[0]);
+      
+      // 2. Eliminar columnas especificadas
+      if (archivo.columnasEliminar && archivo.columnasEliminar.length > 0) {
+        console.log(`Eliminando columnas:`, archivo.columnasEliminar);
+        datosNormalizados = eliminarColumnasPorNombre(
+          datosNormalizados,
+          archivo.columnasEliminar
+        );
+      }
+      
+      // 3. Obtener columnas finales
+      let columnasFinales = obtenerColumnasRestantes(
+        archivo.columnas,
+        archivo.columnasEliminar || []
+      );
+
+      // 4. Actualizar archivo
+      const archivoNormalizado: ArchivoSubido = {
+        ...archivo,
+        datos: datosNormalizados,
+        columnas: columnasFinales,
+        normalizado: true
+      };
+
+      setArchivos((prev) =>
+        prev.map((a) => (a.nombre === archivo.nombre ? archivoNormalizado : a))
+      );
+      
+      setArchivoSeleccionado(archivoNormalizado);
+      
+      const columnasEliminadas = archivo.columnasEliminar?.length || 0;
+      const tiendasMapeadas = tiendaMapeos.filter(
+        t => t.archivoOrigen.toLowerCase() === archivo.tipoArchivo?.toLowerCase()
+      ).length;
+      
+      alert(`✓ Archivo normalizado\n- ${tiendasMapeadas} tiendas configuradas para mapeo\n- ${columnasEliminadas} columnas eliminadas`);
+    } catch (error) {
+      console.error("Error al normalizar:", error);
+      alert("Error al normalizar el archivo");
+    } finally {
+      setCargando(false);
+    }
+  };
 
   const formatearValor = (valor: any): string => {
     if (valor === null || valor === undefined) return "";
@@ -297,7 +336,26 @@ const normalizarArchivo = async (archivo: ArchivoSubido) => {
     return String(valor);
   };
 
+  /**
+   * Exporta todos los archivos normalizados en un solo CSV
+   */
 
+  // Mostrar loader mientras cargan los mapeos
+  if (cargandoMapeos) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '50vh',
+        gap: 2
+      }}>
+        <CircularProgress />
+        <Typography>Cargando configuración de mapeos...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3, minHeight: "100vh", backgroundColor: "transparent" }}>
@@ -305,8 +363,24 @@ const normalizarArchivo = async (archivo: ArchivoSubido) => {
         Pruebas - Comparación de Archivos
       </Typography>
 
+      {/* Alerta de error si falla la carga de mapeos */}
+      {errorMapeos && (
+        <Alert 
+          severity="error" 
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={cargarDatosMapeo}>
+              Reintentar
+            </Button>
+          }
+        >
+          {errorMapeos}
+        </Alert>
+      )}
+
+
       {/* Botones principales */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3, }}>
+      <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
         <input
           type="file"
           accept=".csv,.xls,.xlsx"
@@ -320,10 +394,15 @@ const normalizarArchivo = async (archivo: ArchivoSubido) => {
             variant="contained"
             component="span"
             startIcon={<CloudUploadIcon />}
-            sx={{ backgroundColor: "#ffffff63", boxShadow: 'none', color: '#004680', border: 'solid 1px',
+            disabled={cargandoMapeos || !!errorMapeos}
+            sx={{ 
+              backgroundColor: "#ffffff63", 
+              boxShadow: 'none', 
+              color: '#004680', 
+              border: 'solid 1px',
               "&:hover": {
-                 boxShadow: "none",
-                 backgroundColor: "#0c4c810e"
+                boxShadow: "none",
+                backgroundColor: "#0c4c810e"
               }
             }}
           >
@@ -331,49 +410,69 @@ const normalizarArchivo = async (archivo: ArchivoSubido) => {
           </Button>
         </label>
 
-        <Button
+        {/* <Button
           variant="contained"
           startIcon={<CompareArrowsIcon />}
           onClick={handleComparacion}
           disabled={archivos.length < 2}
-          sx={{ backgroundColor: "#017ce1",  boxShadow: 'none', color: '#ffffff',
+          sx={{ 
+            backgroundColor: "#017ce1", 
+            boxShadow: 'none', 
+            color: '#ffffff',
             "&:hover": {
               boxShadow: "none",
               backgroundColor: "#006fc9"
             }
-           }}
+          }}
         >
           Comparación
-        </Button> 
+        </Button>  */}
 
         <Button
-  variant="contained"
-  onClick={() => {
-    if (archivoSeleccionado) {
-      normalizarArchivo(archivoSeleccionado);
-    } else {
-      alert("Selecciona un archivo primero");
-    }
-  }}
-  disabled={!archivoSeleccionado || archivoSeleccionado.normalizado || cargando}
-  sx={{ 
-    backgroundColor: "#28a745", 
-    boxShadow: 'none', 
-    color: '#ffffff',
-    "&:hover": {
-      boxShadow: "none",
-      backgroundColor: "#218838"
-    }
-  }}
->
-  {cargando ? "Procesando..." : "Normalizar Archivo"}
-</Button>
+          variant="contained"
+          startIcon={<DownloadIcon />}
+          onClick={exportarArchivosNormalizados}
+          disabled={!archivos.some(a => a.normalizado)}
+          sx={{ 
+            backgroundColor: "#017ce1", 
+            boxShadow: 'none', 
+            color: '#ffffff',
+            "&:hover": {
+              boxShadow: "none",
+              backgroundColor: "#006fc9"
+            }
+          }}
+        >
+          Exportar
+        </Button>
 
+        <Button
+          variant="contained"
+          onClick={() => {
+            if (archivoSeleccionado) {
+              normalizarArchivo(archivoSeleccionado);
+            } else {
+              alert("Selecciona un archivo primero");
+            }
+          }}
+          disabled={!archivoSeleccionado || archivoSeleccionado.normalizado || cargando}
+          sx={{ 
+            backgroundColor: "#28a745", 
+            boxShadow: 'none', 
+            color: '#ffffff',
+            "&:hover": {
+              boxShadow: "none",
+              backgroundColor: "#218838"
+            }
+          }}
+        >
+          {cargando ? "Procesando..." : "Normalizar Archivo"}
+        </Button>
       </Box>
 
       <Box sx={{ display: "flex", gap: 3 }}>
         {/* Panel izquierdo - Lista de archivos */}
-        <Card sx={{ width: 335, height: "fit-content", borderRadius: 2, }}>
+        <Card sx={{ width: 335, height: "fit-content", borderRadius: 2 }}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
               Archivos Subidos ({archivos.length})
@@ -424,7 +523,7 @@ const normalizarArchivo = async (archivo: ArchivoSubido) => {
                         >
                           {archivo.nombre}
                         </Typography>
-                        <Box sx={{ display: "flex", gap: 1.0 }}>
+                        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                           <Chip
                             label={archivo.tipo}
                             size="small"
@@ -437,6 +536,22 @@ const normalizarArchivo = async (archivo: ArchivoSubido) => {
                             variant="outlined"
                             sx={{ fontSize: "0.7rem", height: 20 }}
                           />
+                          {archivo.normalizado && (
+                            <Chip
+                              label="Normalizado"
+                              size="small"
+                              color="success"
+                              sx={{ fontSize: "0.7rem", height: 20 }}
+                            />
+                          )}
+                          {!archivo.tipoArchivo && (
+                            <Chip
+                              label="Sin mapeo"
+                              size="small"
+                              color="warning"
+                              sx={{ fontSize: "0.7rem", height: 20 }}
+                            />
+                          )}
                         </Box>
                       </Box>
                     </Box>
@@ -458,7 +573,7 @@ const normalizarArchivo = async (archivo: ArchivoSubido) => {
         </Card>
 
         {/* Panel derecho - Vista previa */}
-        <Card sx={{ flex: 1, borderRadius: 2,}}>
+        <Card sx={{ flex: 1, borderRadius: 2 }}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
               Vista Previa
@@ -474,6 +589,13 @@ const normalizarArchivo = async (archivo: ArchivoSubido) => {
                   <Chip label={`Archivo: ${archivoSeleccionado.nombre}`} color="primary" />
                   <Chip label={`Filas: ${archivoSeleccionado.datos.length}`} variant="outlined" />
                   <Chip label={`Columnas: ${archivoSeleccionado.columnas.length}`} variant="outlined" />
+                  {archivoSeleccionado.tipoArchivo && (
+                    <Chip 
+                      label={`Tipo: ${archivoSeleccionado.tipoArchivo}`} 
+                      color="secondary" 
+                      variant="outlined"
+                    />
+                  )}
                 </Box>
 
                 <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: "auto", boxShadow: "none" }}>

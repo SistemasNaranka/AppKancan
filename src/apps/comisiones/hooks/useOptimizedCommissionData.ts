@@ -77,7 +77,7 @@ const processCommissionData = async (selectedMonth: string) => {
 
   // Agregar tiendas sin presupuestos diarios con presupuesto 0
   const tiendasConPresupuestos = new Set(
-    presupuestosDiarios.map((p: any) => p.tienda_id)
+    presupuestosDiarios.map((p: any) => p.tienda_id),
   );
 
   tiendas.forEach((tienda: any) => {
@@ -119,14 +119,14 @@ const processCommissionData = async (selectedMonth: string) => {
       cargoNombre === "gerente"
         ? "gerente"
         : cargoNombre === "asesor"
-        ? "asesor"
-        : cargoNombre === "cajero"
-        ? "cajero"
-        : cargoNombre === "coadministrador"
-        ? "coadministrador"
-        : cargoNombre === "gerente online"
-        ? "gerente_online"
-        : "logistico";
+          ? "asesor"
+          : cargoNombre === "cajero"
+            ? "cajero"
+            : cargoNombre === "coadministrador"
+              ? "coadministrador"
+              : cargoNombre === "gerente online"
+                ? "gerente_online"
+                : "logistico";
 
     staff.push({
       id: asesor.id.toString(),
@@ -141,7 +141,7 @@ const processCommissionData = async (selectedMonth: string) => {
 
   // Agregar empleados adicionales de todas las tiendas
   const empleadosConPresupuestos = new Set(
-    presupuestosDelMes.map((pe: any) => pe.asesor.toString())
+    presupuestosDelMes.map((pe: any) => pe.asesor.toString()),
   );
 
   asesores.forEach((asesor: any) => {
@@ -157,14 +157,14 @@ const processCommissionData = async (selectedMonth: string) => {
               cargoNombre === "gerente"
                 ? "gerente"
                 : cargoNombre === "asesor"
-                ? "asesor"
-                : cargoNombre === "cajero"
-                ? "cajero"
-                : cargoNombre === "coadministrador"
-                ? "coadministrador"
-                : cargoNombre === "gerente online"
-                ? "gerente_online"
-                : "logistico";
+                  ? "asesor"
+                  : cargoNombre === "cajero"
+                    ? "cajero"
+                    : cargoNombre === "coadministrador"
+                      ? "coadministrador"
+                      : cargoNombre === "gerente online"
+                        ? "gerente_online"
+                        : "logistico";
           }
         }
 
@@ -325,7 +325,7 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
         gcTime: 1000 * 60 * 30,
       });
     },
-    [queryClient, user]
+    [queryClient, user],
   );
 
   // Memo para datos transformados
