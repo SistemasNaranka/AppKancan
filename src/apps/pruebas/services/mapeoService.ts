@@ -113,14 +113,14 @@ export const procesarMapeosParaNormalizacion = (
       "comisión",
       "Retenciones",
     ],//						
-    "Creditos": [
-      "Almacén",
-      "Identificación",
-      "Pagaré",
-      "Factura",
-      "Retención",
-      "Usuario Almacén",
-    ],
+      "Creditos": [
+        "Almacén",
+        "Identificación",
+        "Pagaré",
+        "Factura",
+        "Retención",
+        "Usuario Almacén",
+      ],
   };
 
   // 3. Crear tablasMapeo con las columnas específicas para cada tipo

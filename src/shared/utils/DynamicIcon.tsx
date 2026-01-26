@@ -26,6 +26,7 @@ import {
   Assignment,
   Calculate,
   Difference,
+  EditCalendar,
 } from "@mui/icons-material";
 
 /**
@@ -54,6 +55,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Badge,
   Business,
   Group,
+  EditCalendar,
   // 🔸 Categoría: Aplicación
   Apps,
   Home,
