@@ -16,33 +16,33 @@ export const fuzzyMatch = (search: string, target: string): number => {
       .replace(/\s+/g, ' ')                    // Múltiples espacios -> uno
       .trim();
   };
-  
+
   const searchNorm = normalize(search);
   const targetNorm = normalize(target);
-  
+
   // Coincidencia exacta
   if (searchNorm === targetNorm) return 1.0;
-  
+
   // Uno contiene al otro
   if (targetNorm.includes(searchNorm) || searchNorm.includes(targetNorm)) {
     return 0.9;
   }
-  
+
   // Comparar palabras clave
   const searchWords = searchNorm.split(' ').filter(w => w.length > 2);
   const targetWords = targetNorm.split(' ').filter(w => w.length > 2);
-  
+
   if (searchWords.length === 0 || targetWords.length === 0) return 0;
-  
+
   let matches = 0;
   searchWords.forEach(searchWord => {
-    if (targetWords.some(targetWord => 
+    if (targetWords.some(targetWord =>
       targetWord.includes(searchWord) || searchWord.includes(targetWord)
     )) {
       matches++;
     }
   });
-  
+
   return matches / Math.max(searchWords.length, targetWords.length);
 };
 
@@ -56,26 +56,26 @@ export const findBestMatch = (
   let bestMatch: MapeoArchivo | null = null;
   let bestScore = 0.5; // Umbral mínimo de coincidencia
   let tipoArchivo = '';
-  
+
   console.log(`🔍 Buscando mapeo para: "${fileName}"`);
-  
+
   mappingTable.forEach((mapping) => {
     const score = fuzzyMatch(mapping.archivoOrigen, fileName);
     console.log(`  - "${mapping.archivoOrigen}" → Score: ${(score * 100).toFixed(1)}%`);
-    
+
     if (score > bestScore) {
       bestScore = score;
       bestMatch = mapping;
       tipoArchivo = mapping.archivoOrigen;
     }
   });
-  
+
   if (bestMatch) {
     console.log(`✓ Mejor coincidencia: "${tipoArchivo}" (${(bestScore * 100).toFixed(1)}%)`);
   } else {
     console.log(`✗ No se encontró coincidencia válida (umbral: 50%)`);
   }
-  
+
   return bestMatch ? { mapeo: bestMatch, tipoArchivo } : null;
 };
 
@@ -87,7 +87,7 @@ export const eliminarColumnasPorNombre = (
   columnasEliminar: string[]
 ): any[] => {
   const columnasSet = new Set(columnasEliminar.map(c => c.toLowerCase()));
-  
+
   return datos.map((fila) => {
     const filaNueva: any = {};
     Object.keys(fila).forEach(col => {
@@ -124,26 +124,26 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     const filaNueva: any = { ...fila };
     let tiendaIdEncontrado: number | null = null;
     let tiendaEncontrada: string | null = null;
-    
+
     // Buscar en cada celda de la fila
     Object.keys(fila).forEach((columna) => {
       const valor = String(fila[columna] || '').trim();
       if (!valor) return;
-      
+
       // Buscar coincidencia con algún mapeo
       for (const mapeo of mapeosRelevantes) {
         const valorLower = valor.toLowerCase();
         const tiendaLower = mapeo.tiendaArchivo.toLowerCase();
-        
+
         // Coincidencia exacta o parcial
-        if (valorLower === tiendaLower || 
-            valorLower.includes(tiendaLower) || 
-            tiendaLower.includes(valorLower)) {
-          
+        if (valorLower === tiendaLower ||
+          valorLower.includes(tiendaLower) ||
+          tiendaLower.includes(valorLower)) {
+
           filaNueva[columna] = mapeo.tiendaNormalizada;
           tiendaIdEncontrado = mapeo.tiendaId;
-          tiendaEncontrada = mapeo.tiendaArchivo;
-          
+          tiendaEncontrada = mapeo.tiendaNormalizada; // Guardamos el nombre normalizado
+
           if (index < 3) { // Log solo para las primeras filas
             console.log(`  Fila ${index + 1}: "${valor}" → "${mapeo.tiendaNormalizada}" (ID: ${mapeo.tiendaId})`);
           }
@@ -151,12 +151,13 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
         }
       }
     });
-    
-    // Agregar tiendaId a la fila
+
+    // Agregar metadatos de tienda a la fila
     if (tiendaIdEncontrado !== null) {
       filaNueva['tiendaId'] = tiendaIdEncontrado;
+      filaNueva['_tienda_normalizada'] = tiendaEncontrada;
     }
-    
+
     return filaNueva;
   });
 };
