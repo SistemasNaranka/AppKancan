@@ -1,3 +1,0 @@
-mes,anio,cumplimiento_valores
-"01","2025","[{""cumplimiento_min"": 90, ""comision_pct"": 0.0035, ""nombre"": ""Muy Regular""}, {""cumplimiento_min"": 95, ""comision_pct"": 0.005, ""nombre"": ""Regular""}, {""cumplimiento_min"": 100, ""comision_pct"": 0.007, ""nombre"": ""Buena""}, {""cumplimiento_min"": 110, ""comision_pct"": 0.01, ""nombre"": ""Excelente""}]"
-"12","2024","[{""cumplimiento_min"": 90, ""comision_pct"": 0.0035, ""nombre"": ""Muy Regular""}, {""cumplimiento_min"": 95, ""comision_pct"": 0.005, ""nombre"": ""Regular""}, {""cumplimiento_min"": 100, ""comision_pct"": 0.007, ""nombre"": ""Buena""}, {""cumplimiento_min"": 110, ""comision_pct"": 0.01, ""nombre"": ""Excelente""}]"

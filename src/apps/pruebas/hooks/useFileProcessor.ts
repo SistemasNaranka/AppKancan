@@ -113,6 +113,10 @@ export const useFileProcessor = () => {
                 if (resultadoDecision) {
                     nuevoArchivo.tipoArchivo = resultadoDecision.tipoArchivo;
                     nuevoArchivo.columnasEliminar = resultadoDecision.mapeo.columnasEliminar;
+                } else {
+                    // Si no se reconoce, permitir procesarlo como tipo genérico
+                    nuevoArchivo.tipoArchivo = "ARCHIVO EXTERNO";
+                    nuevoArchivo.columnasEliminar = [];
                 }
 
                 setArchivos(prev => [...prev, nuevoArchivo]);
@@ -141,14 +145,14 @@ export const useFileProcessor = () => {
         const columnasAEliminarAdicionales: string[] = [];
         archivo.columnas.forEach(col => {
             const colNorm = normalizarString(col);
-
-            // Regla especial para ReporteDiariodeVentasComercio: ocultar columna documento
-            // ya que este reporte trae direcciones en ese campo
-            if (archivo.tipoArchivo?.trim().toLowerCase() === 'reportediariodeventascomercio' && (colNorm.includes('documento') || colNorm === 'documento')) {
-                columnasAEliminarAdicionales.push(col);
-                return;
-            }
-
+            /* 
+                        // Regla especial para ReporteDiariodeVentasComercio: ocultar columna documento
+                        // ya que este reporte trae direcciones en ese campo
+                        if (archivo.tipoArchivo?.trim().toLowerCase() === 'reportediariodeventascomercio' && (colNorm.includes('documento') || colNorm === 'documento')) {
+                            columnasAEliminarAdicionales.push(col);
+                            return;
+                        }
+            */
             // Identificar documentos para mapeo
             let esDoc = false;
             if (keywordsDocumento.some(key => colNorm.includes(key)) && !excludeKeywords.some(ex => colNorm.includes(ex))) {
@@ -306,134 +310,117 @@ export const useFileProcessor = () => {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet("Reporte Kancan");
 
-            let currentRow = 1;
+            let currentStoreRow = 1;
 
             Object.entries(gruposPorTienda).forEach(([tienda, fuentes]) => {
-                // TÍTULO DE LA TIENDA
-                const tiendaRow = worksheet.getRow(currentRow);
+                // TÍTULO DE LA TIENDA (Abarca ambas columnas de la cuadrícula)
+                const tiendaRow = worksheet.getRow(currentStoreRow);
                 tiendaRow.values = [`TIENDA: ${tienda.toUpperCase()}`];
-                worksheet.mergeCells(currentRow, 1, currentRow, 5); // Fusionar para el título
+                worksheet.mergeCells(currentStoreRow, 1, currentStoreRow, 15);
 
                 tiendaRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
                 tiendaRow.fill = {
                     type: 'pattern',
                     pattern: 'solid',
-                    fgColor: { argb: 'FF1976D2' } // Color Azul Principal de la Tienda para Excel
+                    fgColor: { argb: 'FF1976D2' }
                 };
                 tiendaRow.alignment = { horizontal: 'center' };
-                currentRow += 2; // Espacio después del título
 
-                Object.entries(fuentes).forEach(([fuente, datos]) => {
-                    if (datos.length === 0) return;
+                let startRowSources = currentStoreRow + 2;
+                let maxRowInThisSection = startRowSources;
 
-                    // FUENTE TITLE
-                    const fuenteRow = worksheet.getRow(currentRow);
-                    fuenteRow.values = [`FUENTE: ${fuente.toUpperCase()}`];
-                    fuenteRow.font = { bold: true, size: 12, color: { argb: 'FF333333' } };
-                    currentRow++;
+                // Agrupar fuentes de dos en dos para el diseño en paralelo
+                const nombresFuentes = Object.keys(fuentes);
+                for (let i = 0; i < nombresFuentes.length; i += 2) {
+                    const fuentesEnEstaFila = [nombresFuentes[i], nombresFuentes[i + 1]].filter(Boolean);
+                    let rowForThisPair = startRowSources;
+                    let innerMaxRow = rowForThisPair;
 
-                    // COLUMNS
-                    let columnasFuente = columnasPorFuente[fuente] || [];
-                    if (columnasFuente.length === 0) {
-                        columnasFuente = Object.keys(datos[0]).filter(col => !col.startsWith('_') && col !== 'tiendaId');
-                    }
+                    fuentesEnEstaFila.forEach((fuente, index) => {
+                        const colStart = index === 0 ? 1 : 9; // Columna A o Columna I
+                        const datos = fuentes[fuente];
+                        let r = rowForThisPair;
 
-                    const headerRow = worksheet.getRow(currentRow);
-                    headerRow.values = columnasFuente.map(c => String(c).toUpperCase());
+                        // Título de la Fuente
+                        const fRow = worksheet.getRow(r);
+                        fRow.getCell(colStart).value = `FUENTE: ${fuente.toUpperCase()}`;
+                        fRow.getCell(colStart).font = { bold: true, size: 12, color: { argb: 'FF333333' } };
+                        r++;
 
-                    // Estilo de encabezados de tabla
-                    headerRow.eachCell((cell) => {
-                        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                        cell.fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'FF424242' } // Gris oscuro para encabezados
-                        };
-                        cell.alignment = { horizontal: 'center' };
-                        cell.border = {
-                            top: { style: 'thin' },
-                            left: { style: 'thin' },
-                            bottom: { style: 'thin' },
-                            right: { style: 'thin' }
-                        };
-                    });
-                    currentRow++;
+                        // Encabezados
+                        let columnasFuente = columnasPorFuente[fuente] || [];
+                        if (columnasFuente.length === 0 && datos.length > 0) {
+                            columnasFuente = Object.keys(datos[0]).filter(col => !col.startsWith('_') && col !== 'tiendaId');
+                        }
 
-                    // DATA
-                    let totalFuente = 0;
-                    datos.forEach(fila => {
-                        const rowData = columnasFuente.map(col => {
-                            let val = fila[col];
-                            const colL = col.toLowerCase();
+                        const hRow = worksheet.getRow(r);
+                        columnasFuente.forEach((col, cIdx) => {
+                            const cell = hRow.getCell(colStart + cIdx);
+                            cell.value = String(col).toUpperCase();
+                            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF424242' } };
+                            cell.alignment = { horizontal: 'center' };
+                            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                        });
+                        r++;
 
-                            // Normalización de Fechas para Excel (Formato TRANSFERENCIAS: YYYY-MM-DD)
-                            if (colL.includes('fecha')) {
-                                // Usamos la lógica de formatearValor para asegurar consistencia
-                                return formatearValor(val, col);
-                            }
+                        // Datos
+                        let totalFuente = 0;
+                        datos.forEach(fila => {
+                            const dRow = worksheet.getRow(r);
+                            columnasFuente.forEach((col, cIdx) => {
+                                let val = fila[col];
+                                const colL = col.toLowerCase();
+                                const cell = dRow.getCell(colStart + cIdx);
 
-                            // Sumar totales si es columna de valor
-                            if (colL.includes('valor') || colL.includes('monto') || colL.includes('total') || colL.includes('neto')) {
-                                const num = typeof val === 'number' ? val : Number(String(val || 0).replace(/[^0-9.-]+/g, ""));
-                                totalFuente += isNaN(num) ? 0 : num;
-                                return isNaN(num) ? 0 : num;
-                            }
-                            return val;
+                                if (colL.includes('fecha') || colL.includes('hora') || colL.includes('time') || colL.includes('creacion')) {
+                                    cell.value = formatearValor(val, col);
+                                } else if (colL.includes('valor') || colL.includes('monto') || colL.includes('total') || colL.includes('neto')) {
+                                    const num = typeof val === 'number' ? val : Number(String(val || 0).replace(/[^0-9.-]+/g, ""));
+                                    totalFuente += isNaN(num) ? 0 : num;
+                                    cell.value = isNaN(num) ? 0 : num;
+                                    cell.numFmt = '"$"#,##0';
+                                } else {
+                                    cell.value = val;
+                                }
+
+                                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                            });
+                            r++;
                         });
 
-                        const dataRow = worksheet.getRow(currentRow);
-                        dataRow.values = rowData;
+                        // Fila de Total
+                        const tRow = worksheet.getRow(r);
+                        const labelCell = tRow.getCell(colStart + Math.max(0, columnasFuente.length - 2));
+                        const valueCell = tRow.getCell(colStart + Math.max(0, columnasFuente.length - 1));
 
-                        // Formatear celdas de datos
-                        dataRow.eachCell((cell, colNumber) => {
-                            const colName = columnasFuente[colNumber - 1].toLowerCase();
-                            if (colName.includes('valor') || colName.includes('monto') || colName.includes('total') || colName.includes('neto')) {
-                                cell.numFmt = '"$"#,##0';
-                            }
-                            cell.border = {
-                                top: { style: 'thin' },
-                                left: { style: 'thin' },
-                                bottom: { style: 'thin' },
-                                right: { style: 'thin' }
-                            };
-                        });
-                        currentRow++;
+                        labelCell.value = `TOTAL ${fuente.toUpperCase()}:`;
+                        labelCell.font = { bold: true };
+                        valueCell.value = totalFuente;
+                        valueCell.font = { bold: true };
+                        valueCell.numFmt = '"$"#,##0';
+
+                        // Estilo fondo fila total
+                        for (let c = 0; c < columnasFuente.length; c++) {
+                            tRow.getCell(colStart + c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                        }
+                        r += 2; // Espacio después de la tabla
+
+                        if (r > innerMaxRow) innerMaxRow = r;
                     });
 
-                    // FILA DE TOTAL
-                    const totalRow = worksheet.getRow(currentRow);
-                    const totalValues = new Array(columnasFuente.length).fill("");
-                    if (columnasFuente.length >= 2) {
-                        totalValues[columnasFuente.length - 2] = `TOTAL ${fuente.toUpperCase()}:`;
-                        totalValues[columnasFuente.length - 1] = totalFuente;
-                    } else {
-                        totalValues[0] = `TOTAL ${fuente.toUpperCase()}: ${totalFuente}`;
-                    }
-                    totalRow.values = totalValues;
+                    startRowSources = innerMaxRow;
+                    if (innerMaxRow > maxRowInThisSection) maxRowInThisSection = innerMaxRow;
+                }
 
-                    // Estilo de fila de total
-                    totalRow.font = { bold: true };
-                    totalRow.getCell(columnasFuente.length).numFmt = '"$"#,##0';
-                    totalRow.eachCell((cell) => {
-                        cell.fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'FFF5F5F5' } // Gris muy claro
-                        };
-                    });
-
-                    currentRow += 2; // Espacio entre fuentes
-                });
-
-                // Separador de tiendas
-                worksheet.addRow([]);
-                currentRow++;
+                currentStoreRow = maxRowInThisSection + 1;
+                worksheet.addRow([]); // Fila vacía entre tiendas
+                currentStoreRow++;
             });
 
-            // Ajuste dinámico de columnas
-            worksheet.columns = Array(15).fill(0).map((_, i) => ({ width: i === 0 ? 30 : 20 }));
+            // Ajuste de anchos de columna
+            worksheet.columns = Array(20).fill(0).map(() => ({ width: 18 }));
 
-            // Generar y descargar
             const buffer = await workbook.xlsx.writeBuffer();
             saveAs(new Blob([buffer]), `Reporte_Kancan_Agrupado_${new Date().toISOString().split('T')[0]}.xlsx`);
 

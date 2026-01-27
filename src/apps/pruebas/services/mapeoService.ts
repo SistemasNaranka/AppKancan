@@ -35,7 +35,7 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
   try {
     // Asegurar que el token esté establecido antes de la petición
     await asegurarToken();
-    
+
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("mapeo_nombres_archivos", {
@@ -64,12 +64,12 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
 export const procesarMapeosParaNormalizacion = (
   mapeos: MapeoNombreArchivo[]
 ): { tablasMapeo: MapeoArchivo[]; tiendaMapeos: TiendaMapeo[] } => {
-  
+
   // 1. Agrupar por archivo_origen para obtener los tipos de archivo únicos
   const archivoOrigenUnicos = [...new Set(mapeos.map(m => m.archivo_origen))];
 
-//===========================  LISTA DE COLUMNAS A ELIMINAR  ===========================//
-  
+  //===========================  LISTA DE COLUMNAS A ELIMINAR  ===========================//
+
   // 2. Configuración de columnas a eliminar por tipo de archivo
   const columnasEliminarPorTipo: Record<string, string[]> = {
     "Maria Perez - Bco Occidente": [
@@ -107,7 +107,6 @@ export const procesarMapeosParaNormalizacion = (
       "tiendaid"
     ],
     "ReporteDiariodeVentasComercio": [
-      "Dirección",
       "Cantidad de Transacciones",
       "Tasa Aerop o Propina",
       "comisión",

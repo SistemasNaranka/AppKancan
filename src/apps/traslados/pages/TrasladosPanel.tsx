@@ -26,7 +26,7 @@ const TrasladosPanel: React.FC = () => {
   // ✅ Query para cargar traslados con cache automático
   const {
     data: pendientes = [],
-    isLoading: loading,
+    isLoading: loading, 
     isError,
     error: queryError,
   } = useQuery({

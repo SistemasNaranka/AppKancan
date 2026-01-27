@@ -109,11 +109,12 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
   tipoArchivo: string
 ): any[] => {
   // Filtrar solo los mapeos relevantes para este tipo de archivo
-  const mapeosRelevantes = mapeosTienda.filter(
-    m => m.archivoOrigen.toLowerCase() === tipoArchivo.toLowerCase()
-  );
+  // Si es ARCHIVO EXTERNO, usamos TODOS los mapeos disponibles para intentar identificar la tienda
+  const mapeosRelevantes = tipoArchivo === "ARCHIVO EXTERNO"
+    ? mapeosTienda
+    : mapeosTienda.filter(m => m.archivoOrigen.toLowerCase() === tipoArchivo.toLowerCase());
 
-  console.log(`📋 Mapeos de tiendas para "${tipoArchivo}":`, mapeosRelevantes);
+  console.log(`📋 Mapeos de tiendas para "${tipoArchivo}" (${mapeosRelevantes.length} disponibles):`, mapeosRelevantes);
 
   if (mapeosRelevantes.length === 0) {
     console.warn(`⚠ No hay mapeos de tiendas configurados para "${tipoArchivo}"`);

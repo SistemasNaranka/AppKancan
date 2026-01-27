@@ -8,7 +8,7 @@ export const formatearValor = (valor: any, columna?: string): string => {
     // No formatear como moneda si la columna es de tipo documento, nombre o identificador
     const keywordsNoMoneda = [
         'documento', 'cc', 'nit', 'cedula', 'identificaci', 'idemisor', 'nro_', 'id_',
-        'almacen', 'nombre', 'tienda', 'cliente', 'factura', 'pagare', 'referencia', 'codigo'
+        'almacen', 'nombre', 'tienda', 'cliente', 'factura', 'pagare', 'referencia', 'codigo', 'comercio'
     ];
 
     const esIdentidad = keywordsNoMoneda.some(key => colNorm.includes(key));
@@ -54,6 +54,45 @@ export const formatearValor = (valor: any, columna?: string): string => {
 
         return null;
     };
+
+    // Función para normalizar HORA a HH:mm:ss (Formato TRANSFERENCIAS)
+    const normalizarHora = (v: any, col: string): string | null => {
+        const c = col.toLowerCase();
+        // Solo aplicar si la columna parece ser de hora o si el valor tiene formato de hora
+        if (!c.includes('hora') && !c.includes('time') && !c.includes('creacion') && !c.includes('cancelacion')) return null;
+
+        let s = String(v).trim();
+        if (!s) return null;
+
+        // Caso AM/PM: "12:10 p. m." o "12:10 PM"
+        const matchAMPM = s.match(/(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*([ap]\.?\s*m\.?|am|pm)/i);
+        if (matchAMPM) {
+            let [_, h, m, sec, meridiem] = matchAMPM;
+            let hours = parseInt(h);
+            const minutes = m.padStart(2, '0');
+            const seconds = (sec || '00').padStart(2, '0');
+            const isPM = meridiem.toLowerCase().includes('p');
+
+            if (isPM && hours < 12) hours += 12;
+            if (!isPM && hours === 12) hours = 0;
+
+            return `${String(hours).padStart(2, '0')}:${minutes}:${seconds}`;
+        }
+
+        // Caso ISO o Date: extraer solo la hora
+        if (v instanceof Date && !isNaN(v.getTime())) {
+            return v.toTimeString().split(' ')[0];
+        }
+
+        // Caso ya en HH:mm:ss.SSS (como TRANSFERENCIAS)
+        const matchHHMMSS = s.match(/^(\d{2}):(\d{2}):(\d{2})(\.\d+)?/);
+        if (matchHHMMSS) return s;
+
+        return null;
+    };
+
+    const horaNormalizada = normalizarHora(valor, columna || "");
+    if (horaNormalizada) return horaNormalizada;
 
     const fechaNormalizada = normalizarFecha(valor);
     if (fechaNormalizada) return fechaNormalizada;
