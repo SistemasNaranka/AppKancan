@@ -19,6 +19,7 @@ interface HomeHeaderProps {
   onShowCodesModal: () => void;
   onShowConfigModal: () => void;
   onShowEditStoreModal: () => void;
+  onShowEditStoreBudgetModal: () => void;
   onToggleAllStores: () => void;
   expandedTiendas: Set<string>;
   filterRol: Role[];
@@ -30,7 +31,7 @@ interface HomeHeaderProps {
   onRoleFilterClear: () => void;
   /** Callback para renderizar SummaryCards en móvil */
   renderMobileSummaryCards?: () => React.ReactNode;
-  /** Indica si hay presupuesto diario asignado */
+  /** Indica si hay presupuesto diario asignado para el día de hoy */
   hasBudgetData?: boolean;
 }
 
@@ -46,6 +47,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onShowCodesModal,
   onShowConfigModal,
   onShowEditStoreModal,
+  onShowEditStoreBudgetModal,
   onToggleAllStores,
   expandedTiendas,
   filterRol,
@@ -53,6 +55,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onRoleFilterToggle,
   onRoleFilterClear,
   renderMobileSummaryCards,
+  hasBudgetData,
 }) => {
   const { canSeeConfig, canAssignEmployees, canSeeStoreFilter, hasPolicy } =
     useUserPolicies();
@@ -122,16 +125,25 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                     mes={selectedMonth}
                   />
                 )}
-                {/* Botón EDITAR PRESUPUESTO - Dependiendo del rol */}
+                {/* Botón EDITAR PRESUPUESTO - Dependiendo del rol y si hay presupuesto del día */}
                 {canAssignEmployees() && (
                   <Button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      // Si es tienda, abre CodesModal; si es admin, abre EditStoreModal
+                      // Si es tienda:
+                      // - Si NO hay presupuesto del día de hoy, abre CodesModal (asignación inicial)
+                      // - Si SÍ hay presupuesto del día de hoy, abre EditStoreBudgetModal (edición con fecha)
                       if (hasPolicy("readComisionesTienda")) {
-                        onShowCodesModal();
+                        if (hasBudgetData === false) {
+                          // No hay presupuesto del día de hoy, abrir CodesModal
+                          onShowCodesModal();
+                        } else {
+                          // Hay presupuesto del día de hoy, abrir EditStoreBudgetModal
+                          onShowEditStoreBudgetModal();
+                        }
                       } else if (hasPolicy("readComisionesAdmin")) {
+                        // Admin siempre abre EditStoreModal
                         onShowEditStoreModal();
                       }
                     }}
