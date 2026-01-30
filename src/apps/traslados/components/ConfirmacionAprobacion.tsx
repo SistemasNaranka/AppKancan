@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -31,10 +31,18 @@ const ConfirmacionAprobacion: React.FC<Props> = ({
   const [identificacion, setIdentificacion] = useState(""); // solo dígitos
   const [mostrarIdentificacion, setMostrarIdentificacion] = useState(false);
   const [error, setError] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  // Handle Enter key press
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && identificacion.trim()) {
+      handleConfirm();
+    }
+  };
 
   const handleConfirm = () => {
     if (!identificacion.trim()) {
-      setError("Por favor ingrese su Contrase del UltraSystem.");
+      setError("Por favor ingrese su Contraseña del UltraSystem.");
       return;
     }
 
@@ -61,6 +69,16 @@ const ConfirmacionAprobacion: React.FC<Props> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      onKeyDown={handleKeyDown}
+      slotProps={{
+        transition: {
+          onEntered: () => {
+            if (passwordRef.current) {
+              passwordRef.current.focus();
+            }
+          },
+        },
+      }}
       sx={(theme) => ({
         "& .MuiDialog-paper": {
           borderRadius: 4,
@@ -118,9 +136,11 @@ const ConfirmacionAprobacion: React.FC<Props> = ({
                 setIdentificacion(valor);
               }
             }}
+            onKeyDown={handleKeyDown}
             type={mostrarIdentificacion ? "text" : "password"}
             error={!!error}
             placeholder="******"
+            inputRef={passwordRef}
             slotProps={{
               htmlInput: {
                 maxLength: 10,
