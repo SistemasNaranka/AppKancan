@@ -213,21 +213,52 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
   const openDia = Boolean(anchorDia);
   const openReserva = Boolean(anchorReserva);
 
+  const mesActual = `${MESES[fechaActual.getMonth()]} ${fechaActual.getFullYear()}`;
+
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}>
+      {/* Header: Título + Botón Reservar */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
           Calendario Mensual
         </Typography>
-        <Typography variant="body2" sx={{ color: "#6b7280" }}>
-          Gestiona la disponibilidad y reservas de las salas de juntas.
-        </Typography>
+        
+        {onNuevaReserva && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => onNuevaReserva()}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              backgroundColor: "#0f9568",
+              boxShadow: "none",
+              borderRadius: 1.5,
+              px: 2.5,
+              "&:hover": { backgroundColor: "#13BE85", boxShadow: "none" },
+            }}
+          >
+            Reservar Ahora
+          </Button>
+        )}
       </Box>
 
-      {/* Controles: Toggle vista + Toggle salas + Botón reservar */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+      {/* Fila de controles: Toggles | Navegación | Mes actual */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          p: 1.5,
+          mb: 2,
+          border: "1px solid #e0e0e0",
+          borderRadius: 2,
+          backgroundColor: "#fff",
+        }}
+      >
+        {/* Toggles a la izquierda */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           {/* Toggle Semanal/Mes */}
           {onCambiarVista && (
             <ToggleButtonGroup
@@ -240,14 +271,15 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               sx={{
                 "& .MuiToggleButton-root": {
                   textTransform: "none",
-                  px: 2.5,
-                  py: 0.75,
+                  px: 2,
+                  py: 0.5,
+                  fontSize: "0.85rem",
                   fontWeight: 500,
                   borderColor: "#e0e0e0",
                   "&.Mui-selected": {
-                    backgroundColor: "#3B82F6",
+                    backgroundColor: "#004680",
                     color: "white",
-                    "&:hover": { backgroundColor: "#2563EB" },
+                    "&:hover": { backgroundColor: "#005AA3" }
                   },
                 },
               }}
@@ -268,14 +300,15 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             sx={{
               "& .MuiToggleButton-root": {
                 textTransform: "none",
-                px: 2.5,
-                py: 0.75,
+                px: 2,
+                py: 0.5,
+                fontSize: "0.85rem",
                 fontWeight: 500,
                 borderColor: "#e0e0e0",
                 "&.Mui-selected": {
-                  backgroundColor: "#3B82F6",
+                  backgroundColor: "#004680",
                   color: "white",
-                  "&:hover": { backgroundColor: "#2563EB" },
+                  "&:hover": { backgroundColor: "#005AA3" },
                 },
               },
             }}
@@ -288,56 +321,39 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
           </ToggleButtonGroup>
         </Box>
 
-        {onNuevaReserva && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => onNuevaReserva()}
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              backgroundColor: "#2196F3",
-              boxShadow: "none",
-              "&:hover": { backgroundColor: "#2196F3", boxShadow: "none" },
-            }}
-          >
-            Reservar Ahora
-          </Button>
-        )}
-      </Box>
-
-      {/* Navegación del mes */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        {/* Navegación al centro-derecha */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <IconButton onClick={navegarAnterior} size="small" sx={{ border: "1px solid #e0e0e0" }}>
-            <ChevronLeftIcon />
+          <IconButton onClick={navegarAnterior} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+            <ChevronLeftIcon fontSize="small" />
           </IconButton>
-          <IconButton onClick={navegarSiguiente} size="small" sx={{ border: "1px solid #e0e0e0" }}>
-            <ChevronRightIcon />
+          <IconButton onClick={navegarSiguiente} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+            <ChevronRightIcon fontSize="small" />
           </IconButton>
+          
           <Button
             variant="outlined"
-            onClick={irAHoy}
             size="small"
-            sx={{
-              textTransform: "none",
-              borderColor: "#e0e0e0",
+            onClick={irAHoy}
+            sx={{ 
+              textTransform: "none", 
+              borderColor: "#e0e0e0", 
               color: "#374151",
-              ml: 1,
+              fontSize: "0.85rem",
+              px: 1.5,
+              minWidth: "auto",
             }}
           >
             Hoy
           </Button>
 
-          {/* Selector de mes/año */}
-          <FormControl size="small" sx={{ minWidth: 120, ml: 2 }}>
+          {/* Selectores de mes y año */}
+          <FormControl size="small" sx={{ minWidth: 100 }}>
             <Select
               value={fechaActual.getMonth()}
               onChange={(e) => handleCambiarMes(e.target.value as number)}
               sx={{
-                fontWeight: 600,
-                color: "#1a2a3a",
-                "& .MuiOutlinedInput-notchedOutline": { border: "1px solid #e0e0e0" },
+                fontSize: "0.85rem",
+                "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e0e0e0" },
               }}
             >
               {MESES.map((mes, index) => (
@@ -347,14 +363,13 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               ))}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 90 }}>
+          <FormControl size="small" sx={{ minWidth: 80 }}>
             <Select
               value={fechaActual.getFullYear()}
               onChange={(e) => handleCambiarAño(e.target.value as number)}
               sx={{
-                fontWeight: 600,
-                color: "#1a2a3a",
-                "& .MuiOutlinedInput-notchedOutline": { border: "1px solid #e0e0e0" },
+                fontSize: "0.85rem",
+                "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e0e0e0" },
               }}
             >
               {AÑOS.map((año) => (
@@ -365,7 +380,12 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             </Select>
           </FormControl>
         </Box>
-      </Box>
+
+        {/* Mes actual a la derecha */}
+        <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a2a3a", minWidth: 150, textAlign: "right" }}>
+          {mesActual}
+        </Typography>
+      </Paper>
 
       {/* Vista Mensual */}
       <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: 2, overflow: "hidden" }}>
@@ -566,7 +586,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                   onClick={() => handleNuevaReservaConFecha(diaSeleccionado)}
                   sx={{ textTransform: "none", boxShadow: "none" }}
                 >
-                  + Nueva reserva
+                  Nueva reserva
                 </Button>
               )}
             </Box>

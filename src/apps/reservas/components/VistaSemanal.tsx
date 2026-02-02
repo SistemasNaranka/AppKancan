@@ -37,7 +37,7 @@ import {
   isSameDay,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import type { Reserva, Sala, EstadoReserva } from "../types/reservas.types";
+import type { Reserva, EstadoReserva } from "../types/reservas.types";
 import { SALAS_DISPONIBLES, puedeModificarse, COLORES_ESTADO, COLORES_TEXTO_ESTADO } from "../types/reservas.types";
 
 interface VistaSemanalProps {
@@ -214,20 +214,49 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Box>
-        {/* Header */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}>
+        {/* Header: Título + Botón Reservar */}
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
             Horario Semanal
           </Typography>
-          <Typography variant="body2" sx={{ color: "#6b7280" }}>
-            Gestiona la disponibilidad y reservas de las salas de juntas.
-          </Typography>
+          
+          {onNuevaReserva && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => onNuevaReserva()}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                backgroundColor: "#0F9568",
+                boxShadow: "none",
+                borderRadius: 1.5,
+                px: 2.5,
+                "&:hover": { backgroundColor: "#13BE85", boxShadow: "none" },
+              }}
+            >
+              Reservar Ahora
+            </Button>
+          )}
         </Box>
 
-        {/* Controles: Toggle vista + Toggle salas + Botón reservar */}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            {/* Toggle Semanal/Mes - solo si hay onCambiarVista */}
+        {/* Fila de controles: Toggles | Navegación | Rango fechas */}
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center", 
+            p: 1.5,
+            mb: 2,
+            border: "1px solid #e0e0e0",
+            borderRadius: 2,
+            backgroundColor: "#F9FAFB",
+          }}
+        >
+          {/* Toggles a la izquierda */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            {/* Toggle Semanal/Mes */}
             {onCambiarVista && (
               <ToggleButtonGroup
                 value={vistaCalendario}
@@ -239,14 +268,15 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 sx={{
                   "& .MuiToggleButton-root": {
                     textTransform: "none",
-                    px: 2.5,
-                    py: 0.75,
+                    px: 2,
+                    py: 0.5,
+                    fontSize: "0.85rem",
                     fontWeight: 500,
                     borderColor: "#e0e0e0",
                     "&.Mui-selected": {
-                      backgroundColor: "#3B82F6",
+                      backgroundColor: "#004680",
                       color: "white",
-                      "&:hover": { backgroundColor: "#2563EB" },
+                      "&:hover": { backgroundColor: "#005AA3" },
                     },
                   },
                 }}
@@ -267,14 +297,15 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               sx={{
                 "& .MuiToggleButton-root": {
                   textTransform: "none",
-                  px: 2.5,
-                  py: 0.75,
+                  px: 2,
+                  py: 0.5,
+                  fontSize: "0.85rem",
                   fontWeight: 500,
                   borderColor: "#e0e0e0",
                   "&.Mui-selected": {
-                    backgroundColor: "#3B82F6",
+                    backgroundColor: "#004680",
                     color: "white",
-                    "&:hover": { backgroundColor: "#2563EB" },
+                    "&:hover": { backgroundColor: "#005AA3" },
                   },
                 },
               }}
@@ -287,38 +318,27 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             </ToggleButtonGroup>
           </Box>
 
-          {onNuevaReserva && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => onNuevaReserva()}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                backgroundColor: "#2196F3",
-                boxShadow: "none",
-                "&:hover": { backgroundColor: "#1386e4", boxShadow: "none" },
-              }}
-            >
-              Reservar Ahora
-            </Button>
-          )}
-        </Box>
-
-        {/* Navegación con DatePicker */}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          {/* Navegación al centro-derecha */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <IconButton onClick={semanaAnterior} size="small" sx={{ border: "1px solid #e0e0e0" }}>
-              <ChevronLeftIcon />
+            <IconButton onClick={semanaAnterior} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+              <ChevronLeftIcon fontSize="small" />
             </IconButton>
-            <IconButton onClick={semanaSiguiente} size="small" sx={{ border: "1px solid #e0e0e0" }}>
-              <ChevronRightIcon />
+            <IconButton onClick={semanaSiguiente} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+              <ChevronRightIcon fontSize="small" />
             </IconButton>
+            
             <Button
               variant="outlined"
               size="small"
               onClick={irAHoy}
-              sx={{ textTransform: "none", borderColor: "#e0e0e0", color: "#374151", ml: 1 }}
+              sx={{ 
+                textTransform: "none", 
+                borderColor: "#e0e0e0", 
+                color: "#374151",
+                fontSize: "0.85rem",
+                px: 1.5,
+                minWidth: "auto",
+              }}
             >
               Esta semana
             </Button>
@@ -329,24 +349,31 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               slotProps={{
                 textField: {
                   size: "small",
-                  sx: { ml: 1, width: 160, "& .MuiOutlinedInput-root": { borderRadius: 1 } },
+                  sx: { 
+                    width: 140, 
+                    "& .MuiOutlinedInput-root": { 
+                      borderRadius: 1,
+                      fontSize: "0.85rem",
+                    } 
+                  },
                 },
               }}
               format="dd/MM/yyyy"
             />
           </Box>
 
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
+          {/* Rango de fechas a la derecha */}
+          <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a2a3a", minWidth: 150, textAlign: "right" }}>
             {rangoFechas}
           </Typography>
-        </Box>
+        </Paper>
 
         {/* Calendario */}
         <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: 2, overflow: "hidden" }}>
           {/* Header de días */}
-          <Box sx={{ display: "grid", gridTemplateColumns: "80px repeat(5, 1fr)", borderBottom: "1px solid #e0e0e0" }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: "70px repeat(5, 1fr)", borderBottom: "1px solid #e0e0e0" }}>
             <Box sx={{ p: 1.5, backgroundColor: "#f9fafb", borderRight: "1px solid #e0e0e0" }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase", fontSize: "0.7rem" }}>
                 Hora
               </Typography>
             </Box>
@@ -364,13 +391,12 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 >
                   <Typography
                     variant="subtitle2"
-                    sx={{ fontWeight: 600, color: esHoy ? "#2563EB" : "#1a2a3a", textTransform: "capitalize" }}
+                    sx={{ fontWeight: 600, color: esHoy ? "#004680" : "#1a2a3a", textTransform: "capitalize", fontSize: "0.85rem" }}
                   >
                     {format(dia, "EEEE", { locale: es })}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: esHoy ? "#3B82F6" : "#6b7280" }}>
+                  <Typography variant="caption" sx={{ color: esHoy ? "#005AA3" : "#6b7280", fontSize: "0.75rem" }}>
                     {format(dia, "d MMM", { locale: es })}
-                    {esHoy && " (Hoy)"}
                   </Typography>
                 </Box>
               );
@@ -378,14 +404,14 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
           </Box>
 
           {/* Grid de horas */}
-          <Box sx={{ maxHeight: 600, overflowY: "auto" }}>
+          <Box sx={{ maxHeight: 500, overflowY: "auto" }}>
             {HORAS.map((hora, horaIdx) => (
               <Box
                 key={hora}
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "80px repeat(5, 1fr)",
-                  minHeight: 70,
+                  gridTemplateColumns: "70px repeat(5, 1fr)",
+                  minHeight: 60,
                   borderBottom: horaIdx < HORAS.length - 1 ? "1px solid #e0e0e0" : "none",
                 }}
               >
@@ -400,7 +426,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                     borderRight: "1px solid #e0e0e0",
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.75rem" }}>
+                  <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.7rem" }}>
                     {formatearHora12h(hora)}
                   </Typography>
                 </Box>
@@ -417,7 +443,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                         position: "relative",
                         borderRight: diaIdx < 4 ? "1px solid #e0e0e0" : "none",
                         backgroundColor: esHoy ? "#FAFBFF" : "transparent",
-                        minHeight: 70,
+                        minHeight: 60,
                         cursor: reservasEnCelda.length === 0 ? "pointer" : "default",
                         "&:hover": reservasEnCelda.length === 0 ? { backgroundColor: "#f0f9ff" } : {},
                       }}
@@ -438,7 +464,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                               backgroundColor: colores.bg,
                               borderLeft: `3px solid ${colores.text}`,
                               borderRadius: esInicio && esFin ? "4px" : esInicio ? "4px 4px 0 0" : esFin ? "0 0 4px 4px" : "0",
-                              p: 0.75,
+                              p: 0.5,
                               cursor: "pointer",
                               overflow: "hidden",
                               zIndex: 1,
@@ -450,7 +476,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                               <>
                                 <Typography
                                   sx={{
-                                    fontSize: "0.7rem",
+                                    fontSize: "0.65rem",
                                     fontWeight: 600,
                                     color: colores.text,
                                     lineHeight: 1.2,
@@ -463,7 +489,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                 </Typography>
                                 <Typography
                                   sx={{
-                                    fontSize: "0.6rem",
+                                    fontSize: "0.55rem",
                                     color: colores.text,
                                     opacity: 0.85,
                                   }}
@@ -483,7 +509,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
           </Box>
         </Paper>
 
-        {/* Popover de detalle - Estilo igual a vista mensual */}
+        {/* Popover de detalle */}
         <Popover
           open={Boolean(anchorEl)}
           anchorEl={anchorEl}
@@ -502,7 +528,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 <Box
                   sx={{
                     p: 2,
-                    backgroundColor: estado.bg,
+                    backgroundColor: colores.bg,
                     borderBottom: `3px solid ${colores.text}`,
                     display: "flex",
                     justifyContent: "space-between",

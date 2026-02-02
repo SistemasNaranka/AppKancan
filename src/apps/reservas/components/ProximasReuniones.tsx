@@ -82,7 +82,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     
     switch (estado) {
       case "en curso":
-        return { texto: "En Curso", color: "#3B82F6" };
+        return { texto: "En Curso", color: "#004680" };
       case "vigente":
         return { texto: "Confirmado", color: "#10B981" };
       case "cancelado":
@@ -131,7 +131,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
             display: "flex",
             alignItems: "center",
             gap: 0.5,
-            color: "#3B82F6",
+            color: "#004680",
             textDecoration: "none",
             fontWeight: "bold",
             fontSize: "0.875rem",
@@ -232,7 +232,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
               <Typography
                 variant="body2"
                 sx={{
-                  color: cancelada ? "#9ca3af" : "#3B82F6",
+                  color: cancelada ? "#9ca3af" : "#004680",
                   fontWeight: 500,
                   textDecoration: cancelada ? "line-through" : "none",
                   overflow: "hidden",

@@ -16,10 +16,11 @@ import {
   ToggleButton,
 } from "@mui/material";
 import { CalendarMonth as CalendarIcon } from "@mui/icons-material";
-import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/hooks/useAuth";
+
+import { Add as AddIcon } from "@mui/icons-material"
 
 // Componentes
 import EstadoSalas from "../components/EstadoSalas";
@@ -222,53 +223,51 @@ const ReservasView: React.FC = () => {
   ];
 
   return (
-    <Box>
+    <Box sx={{ mt: -1 }}>
       {/* Header con pestañas */}
       <Box
         sx={{
-          fontWeight: "bold",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          mb: 2,
-          pb: 1.5,
+          justifyContent: "flex-start",
+          mb: 1,
+          pb: 0.5,
           borderBottom: "1px solid #e0e0e0",
         }}
       >
-        {/* Lado izquierdo: Logo + Título + Pestañas */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-          {/* Logo y título */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Box
-              sx={{
-                width: 44,
-                height: 44,
-                borderRadius: 2,
-                backgroundColor: "#1976d2",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <CalendarIcon sx={{ color: "white", fontSize: 24 }} />
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
-              Reservar Sala
-            </Typography>
+        {/* Logo y título */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 180 }}>
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: 2,
+              backgroundColor: "#1976d2",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
           </Box>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: "#1a2a3a", fontSize: "1rem" }}>
+            Reservar Sala
+          </Typography>
+        </Box>
 
-          {/* Pestañas de navegación */}
-          <Box sx={{ display: "flex", gap: 0.5, ml: 2 }}>
+        {/* Pestañas de navegación - Centradas */}
+        <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          <Box sx={{ display: "flex", gap: 1 }}>
             {tabs.map((tab) => (
               <Box
                 key={tab.id}
                 onClick={() => setTabActual(tab.id)}
                 sx={{
                   px: 2,
-                  py: 1,
+                  py: 0.5,
                   cursor: "pointer",
                   fontWeight: "bold",
-                  fontSize: "0.9rem",
+                  fontSize: "0.875rem",
                   color: tabActual === tab.id ? "#1976d2" : "#6b7280",
                   borderBottom: tabActual === tab.id ? "2px solid #1976d2" : "2px solid transparent",
                   transition: "all 0.2s",
@@ -282,6 +281,9 @@ const ReservasView: React.FC = () => {
             ))}
           </Box>
         </Box>
+
+        {/* Espacio derecho para balance */}
+        <Box sx={{ minWidth: 180 }} />
       </Box>
 
       {/* Contenido de Reserva */}
@@ -328,23 +330,20 @@ const ReservasView: React.FC = () => {
             </Box>
 
             <Button
-              startIcon={<AddOutlinedIcon />}
+              startIcon={<AddIcon />}
               variant="contained"
               onClick={() => handleAbrirNuevaReserva()}
               sx={{
-                backgroundColor: "transparent",
-                border: "1px solid",
-                color: "#2563EB",
                 boxShadow: "none",
                 textTransform: "none",
                 fontWeight: "600",
                 "&:hover": {
                   boxShadow: "none",
-                  backgroundColor: "#148aeb20",
+                  backgroundColor: "#005da9",
                 },
               }}
             >
-            Nueva reserva
+              Nueva reserva
             </Button>
           </Box>
 
