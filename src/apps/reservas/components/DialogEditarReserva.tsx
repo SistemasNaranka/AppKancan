@@ -46,7 +46,7 @@ interface DialogEditarReservaProps {
     fecha: string,
     horaInicio: string,
     horaFinal: string,
-    reservaIdExcluir: number
+    reservaIdExcluir: number,
   ) => Promise<boolean>;
 }
 
@@ -69,8 +69,8 @@ const OPCIONES_HORA = generarOpcionesHora();
 
 // Info de salas
 const INFO_SALAS: Record<string, string> = {
-  "Sala A": "Grande",
-  "Sala B": "Compacta",
+  "Sala Principal": "Grande",
+  "Sala Secundaria": "Compacta",
 };
 
 const schema = yup.object({
@@ -99,31 +99,37 @@ const schema = yup.object({
   hora_final: yup
     .string()
     .required("Selecciona hora de fin")
-    .test("duracion-minima", `La reunión debe durar mínimo ${DURACION_MINIMA_MINUTOS} minutos`, function (value) {
-      const { hora_inicio } = this.parent;
-      if (!value || !hora_inicio) return false;
+    .test(
+      "duracion-minima",
+      `La reunión debe durar mínimo ${DURACION_MINIMA_MINUTOS} minutos`,
+      function (value) {
+        const { hora_inicio } = this.parent;
+        if (!value || !hora_inicio) return false;
 
-      const [horaIni, minIni] = hora_inicio.split(":").map(Number);
-      const [horaFin, minFin] = value.split(":").map(Number);
+        const [horaIni, minIni] = hora_inicio.split(":").map(Number);
+        const [horaFin, minFin] = value.split(":").map(Number);
 
-      const minutosInicio = horaIni * 60 + minIni;
-      const minutosFin = horaFin * 60 + minFin;
+        const minutosInicio = horaIni * 60 + minIni;
+        const minutosFin = horaFin * 60 + minFin;
 
-      return minutosFin - minutosInicio >= DURACION_MINIMA_MINUTOS;
-    })
-    .test("hora-mayor", "La hora de fin debe ser mayor a la hora de inicio", function (value) {
-      const { hora_inicio } = this.parent;
-      if (!value || !hora_inicio) return false;
-      return value > hora_inicio;
-    }),
+        return minutosFin - minutosInicio >= DURACION_MINIMA_MINUTOS;
+      },
+    )
+    .test(
+      "hora-mayor",
+      "La hora de fin debe ser mayor a la hora de inicio",
+      function (value) {
+        const { hora_inicio } = this.parent;
+        if (!value || !hora_inicio) return false;
+        return value > hora_inicio;
+      },
+    ),
   titulo: yup
     .string()
     .required("El título es obligatorio")
     .min(3, "Mínimo 3 caracteres")
     .max(100, "Máximo 100 caracteres"),
-  observaciones: yup
-    .string()
-    .max(500, "Máximo 500 caracteres"),
+  observaciones: yup.string().max(500, "Máximo 500 caracteres"),
 });
 
 const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
@@ -176,7 +182,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
 
   const handleSalaChange = (
     _event: React.MouseEvent<HTMLElement>,
-    newSala: Sala | null
+    newSala: Sala | null,
   ) => {
     if (newSala) {
       setValue("nombre_sala", newSala);
@@ -202,7 +208,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
           data.fecha,
           data.hora_inicio,
           data.hora_final,
-          reserva.id
+          reserva.id,
         );
 
         if (hayConflicto) {
@@ -239,25 +245,36 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-      <Dialog 
-        open={open} 
-        onClose={handleClose} 
-        maxWidth="md" 
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 3, maxWidth: 900 }
+          sx: { borderRadius: 3, maxWidth: 900 },
         }}
       >
         <DialogContent sx={{ p: 0 }}>
           {/* Header */}
           <Box sx={{ p: 3, pb: 2 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}>
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}
+            >
               Editar Reservación
             </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#6b7280" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                color: "#6b7280",
+              }}
+            >
               <ScheduleIcon sx={{ fontSize: 16 }} />
               <Typography variant="body2">
-                Modifique los detalles de su reservación. Horario comercial: 7 AM - 5 PM.
+                Modifique los detalles de su reservación. Horario comercial: 7
+                AM - 5 PM.
               </Typography>
             </Box>
           </Box>
@@ -265,7 +282,11 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
           <form onSubmit={handleSubmit(onFormSubmit)}>
             <Box sx={{ px: 3, pb: 3 }}>
               {error && (
-                <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+                <Alert
+                  severity="error"
+                  onClose={() => setError(null)}
+                  sx={{ mb: 2 }}
+                >
                   {error}
                 </Alert>
               )}
@@ -286,7 +307,10 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {/* Título de la Reunión */}
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, fontWeight: 600, color: "#374151" }}
+                    >
                       Título de la Reunión *
                     </Typography>
                     <Controller
@@ -313,7 +337,10 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
 
                   {/* Seleccionar Sala */}
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, fontWeight: 600, color: "#374151" }}
+                    >
                       Seleccionar Sala *
                     </Typography>
                     <Controller
@@ -349,7 +376,11 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                           }}
                         >
                           {SALAS_DISPONIBLES.map((sala) => (
-                            <ToggleButton key={sala} value={sala} disabled={loading}>
+                            <ToggleButton
+                              key={sala}
+                              value={sala}
+                              disabled={loading}
+                            >
                               {sala} ({INFO_SALAS[sala]})
                             </ToggleButton>
                           ))}
@@ -357,16 +388,29 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                       )}
                     />
                     {errors.nombre_sala && (
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+                      <Typography
+                        variant="caption"
+                        color="error"
+                        sx={{ mt: 0.5, display: "block" }}
+                      >
                         {errors.nombre_sala.message}
                       </Typography>
                     )}
                   </Box>
 
                   {/* Hora de Inicio y Hora de Fin */}
-                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 2,
+                    }}
+                  >
                     <Box>
-                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ mb: 1, fontWeight: 600, color: "#374151" }}
+                      >
                         Hora de Inicio *
                       </Typography>
                       <Controller
@@ -381,13 +425,20 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                               sx={{ backgroundColor: "white" }}
                             >
                               {OPCIONES_HORA.map((opcion) => (
-                                <MenuItem key={opcion.value} value={opcion.value}>
+                                <MenuItem
+                                  key={opcion.value}
+                                  value={opcion.value}
+                                >
                                   {opcion.label}
                                 </MenuItem>
                               ))}
                             </Select>
                             {errors.hora_inicio && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                              <Typography
+                                variant="caption"
+                                color="error"
+                                sx={{ mt: 0.5 }}
+                              >
                                 {errors.hora_inicio.message}
                               </Typography>
                             )}
@@ -396,7 +447,10 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                       />
                     </Box>
                     <Box>
-                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ mb: 1, fontWeight: 600, color: "#374151" }}
+                      >
                         Hora de Fin *
                       </Typography>
                       <Controller
@@ -411,13 +465,20 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                               sx={{ backgroundColor: "white" }}
                             >
                               {OPCIONES_HORA.map((opcion) => (
-                                <MenuItem key={opcion.value} value={opcion.value}>
+                                <MenuItem
+                                  key={opcion.value}
+                                  value={opcion.value}
+                                >
                                   {opcion.label}
                                 </MenuItem>
                               ))}
                             </Select>
                             {errors.hora_final && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                              <Typography
+                                variant="caption"
+                                color="error"
+                                sx={{ mt: 0.5 }}
+                              >
                                 {errors.hora_final.message}
                               </Typography>
                             )}
@@ -429,7 +490,10 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
 
                   {/* Observaciones */}
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, fontWeight: 600, color: "#374151" }}
+                    >
                       Observaciones
                     </Typography>
                     <Controller
@@ -443,7 +507,10 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                           rows={3}
                           placeholder="Detalles adicionales, participantes, materiales necesarios, agenda de la reunión..."
                           error={!!errors.observaciones}
-                          helperText={errors.observaciones?.message || "Opcional - máximo 500 caracteres"}
+                          helperText={
+                            errors.observaciones?.message ||
+                            "Opcional - máximo 500 caracteres"
+                          }
                           disabled={loading}
                           sx={{
                             "& .MuiOutlinedInput-root": {
@@ -458,7 +525,10 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
 
                 {/* Columna derecha - Calendario */}
                 <Box>
-                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 1, fontWeight: 600, color: "#374151" }}
+                  >
                     Fecha *
                   </Typography>
                   <Box
@@ -474,7 +544,11 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                       control={control}
                       render={({ field }) => (
                         <StaticDatePicker
-                          value={field.value ? parse(field.value, "yyyy-MM-dd", new Date()) : null}
+                          value={
+                            field.value
+                              ? parse(field.value, "yyyy-MM-dd", new Date())
+                              : null
+                          }
                           onChange={handleDateChange}
                           shouldDisableDate={shouldDisableDate}
                           disabled={loading}
@@ -496,7 +570,11 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                     />
                   </Box>
                   {errors.fecha && (
-                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+                    <Typography
+                      variant="caption"
+                      color="error"
+                      sx={{ mt: 0.5, display: "block" }}
+                    >
                       {errors.fecha.message}
                     </Typography>
                   )}
@@ -504,7 +582,14 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
               </Box>
 
               {/* Botones de acción */}
-              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 2,
+                  mt: 3,
+                }}
+              >
                 <Button
                   onClick={handleClose}
                   disabled={loading}
@@ -520,7 +605,13 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                   type="submit"
                   variant="contained"
                   disabled={loading}
-                  startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                  startIcon={
+                    loading ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <SaveIcon />
+                    )
+                  }
                   sx={{
                     textTransform: "none",
                     fontWeight: 600,

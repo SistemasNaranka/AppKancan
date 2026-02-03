@@ -1,13 +1,7 @@
 // src/apps/reservas/components/EstadoSalas.tsx
 
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-} from "@mui/material";
+import { Box, Paper, Typography, Button, Chip } from "@mui/material";
 import {
   PersonOutlineOutlined as PersonOutlineOutlinedIcon,
   DescriptionOutlined as DescriptionOutlinedIcon,
@@ -37,8 +31,8 @@ interface EstadoSala {
 
 // Información adicional de las salas
 const INFO_SALAS: Record<string, { tipo: string }> = {
-  "Sala A": { tipo: "" },
-  "Sala B": { tipo: "" },
+  "Sala Principal": { tipo: "" },
+  "Sala Secundaria": { tipo: "" },
 };
 
 const EstadoSalas: React.FC<EstadoSalasProps> = ({
@@ -69,7 +63,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
           r.nombre_sala === sala &&
           r.fecha === hoy &&
           ((r.estadoCalculado || r.estado)?.toLowerCase() === "vigente" ||
-            (r.estadoCalculado || r.estado)?.toLowerCase() === "en curso")
+            (r.estadoCalculado || r.estado)?.toLowerCase() === "en curso"),
       );
 
       // Buscar reunión en curso
@@ -120,12 +114,21 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
   };
 
   // Día actual formateado
-  const diaActual = format(tiempoActual, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+  const diaActual = format(tiempoActual, "EEEE, d 'de' MMMM 'de' yyyy", {
+    locale: es,
+  });
 
   return (
     <Box sx={{ mb: 4 }}>
       {/* Header con título y botón */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          mb: 2,
+        }}
+      >
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
             <DataUsageOutlinedIcon sx={{ color: "#6b7280" }} />
@@ -133,13 +136,16 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
               Estado Actual de las Salas
             </Typography>
           </Box>
-          <Typography variant="body2" sx={{ color: "#6b7280", textTransform: "capitalize" }}>
+          <Typography
+            variant="body2"
+            sx={{ color: "#6b7280", textTransform: "capitalize" }}
+          >
             {diaActual} • Horario laboral: 7:00 AM - 4:30 PM
           </Typography>
         </Box>
         <Button
           variant="contained"
-          startIcon={<AddIcon/>}
+          startIcon={<AddIcon />}
           onClick={onNuevaReserva}
           sx={{
             textTransform: "none",
@@ -165,11 +171,14 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
         }}
       >
         {estadosSalas.map((estado) => {
-          const infoSala = INFO_SALAS[estado.sala] || { tipo: "Sala", capacidad: 10 };
+          const infoSala = INFO_SALAS[estado.sala] || {
+            tipo: "Sala",
+            capacidad: 10,
+          };
 
           if (estado.ocupada && estado.reunionActual) {
             // Card OCUPADO - Mostrar solo el TÍTULO
-            
+
             return (
               <Paper
                 key={estado.sala}
@@ -192,9 +201,18 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     p: 2.5,
                   }}
                 >
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
                     <Box>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      <Typography
+                        variant="h5"
+                        sx={{ fontWeight: 700, mb: 0.5 }}
+                      >
                         {estado.sala}
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9 }}>
@@ -217,10 +235,26 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                 {/* Contenido */}
                 <Box sx={{ p: 2.5 }}>
                   {/* Organizador */}
-                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <PersonOutlineOutlinedIcon sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }} />
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      mb: 2,
+                    }}
+                  >
+                    <PersonOutlineOutlinedIcon
+                      sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }}
+                    />
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#6b7280", display: "block", fontWeight: 600 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#6b7280",
+                          display: "block",
+                          fontWeight: 600,
+                        }}
+                      >
                         ORGANIZADOR ACTUAL
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -228,8 +262,12 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                           ? `${estado.reunionActual.usuario_id.first_name} ${estado.reunionActual.usuario_id.last_name}`
                           : "Usuario"}
                         {estado.reunionActual.usuario_id?.rol_usuario?.area && (
-                          <Typography component="span" sx={{ color: "#6b7280" }}>
-                            {" "}({estado.reunionActual.usuario_id.rol_usuario.area})
+                          <Typography
+                            component="span"
+                            sx={{ color: "#6b7280" }}
+                          >
+                            {" "}
+                            ({estado.reunionActual.usuario_id.rol_usuario.area})
                           </Typography>
                         )}
                       </Typography>
@@ -237,10 +275,26 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                   </Box>
 
                   {/* Reunión actual - Solo TÍTULO */}
-                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <DescriptionOutlinedIcon sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }} />
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      mb: 2,
+                    }}
+                  >
+                    <DescriptionOutlinedIcon
+                      sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }}
+                    />
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#0F9568", display: "block", fontWeight: 600 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#0F9568",
+                          display: "block",
+                          fontWeight: 600,
+                        }}
+                      >
                         REUNIÓN ACTUAL
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -260,7 +314,10 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     }}
                   >
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#6b7280", display: "block" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "#6b7280", display: "block" }}
+                      >
                         FINALIZA EN
                       </Typography>
                       <Typography
@@ -271,7 +328,9 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                           fontFamily: "monospace",
                         }}
                       >
-                        {calcularTiempoRestante(estado.reunionActual.hora_final)}
+                        {calcularTiempoRestante(
+                          estado.reunionActual.hora_final,
+                        )}
                       </Typography>
                     </Box>
                     <Button
@@ -296,7 +355,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
             );
           } else {
             // Card DISPONIBLE
-            
+
             return (
               <Paper
                 key={estado.sala}
@@ -319,9 +378,18 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     p: 2.5,
                   }}
                 >
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
                     <Box>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      <Typography
+                        variant="h5"
+                        sx={{ fontWeight: 700, mb: 0.5 }}
+                      >
                         {estado.sala}
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9 }}>
@@ -344,26 +412,64 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                 {/* Contenido */}
                 <Box sx={{ p: 2.5 }}>
                   {/* Estado actual */}
-                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <CheckCircleOutlineOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      mb: 2,
+                    }}
+                  >
+                    <CheckCircleOutlineOutlinedIcon
+                      sx={{ color: "#004680", fontSize: 20, mt: 0.25 }}
+                    />
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#6b7280", display: "block", fontWeight: 600 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#6b7280",
+                          display: "block",
+                          fontWeight: 600,
+                        }}
+                      >
                         ESTADO ACTUAL
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: "#6f7073",}}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 500, color: "#6f7073" }}
+                      >
                         Disponible para reserva
                       </Typography>
                     </Box>
                   </Box>
 
                   {/* Próxima reserva - Solo TÍTULO */}
-                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <AccessTimeOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      mb: 2,
+                    }}
+                  >
+                    <AccessTimeOutlinedIcon
+                      sx={{ color: "#004680", fontSize: 20, mt: 0.25 }}
+                    />
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#004680", display: "block", fontWeight: 600 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#004680",
+                          display: "block",
+                          fontWeight: 600,
+                        }}
+                      >
                         PRÓXIMA RESERVA
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: "#6f7073"}}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 500, color: "#6f7073" }}
+                      >
                         {estado.proximaReserva
                           ? `${formatearHora(estado.proximaReserva.hora_inicio)} - ${estado.proximaReserva.titulo_reunion || "Sin título"}`
                           : "Sin reservas programadas hoy"}
@@ -382,7 +488,10 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     }}
                   >
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#6b7280", display: "block" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "#6b7280", display: "block" }}
+                      >
                         DISPONIBILIDAD
                       </Typography>
                       <Typography
