@@ -73,24 +73,6 @@ const INFO_SALAS: Record<string, string> = {
   "Sala B": "Compacta",
 };
 
-// Función para separar título y observaciones
-const separarTituloObservaciones = (texto: string | undefined): { titulo: string; observaciones: string } => {
-  if (!texto) return { titulo: "", observaciones: "" };
-  
-  const separador = "\n---\n";
-  const indice = texto.indexOf(separador);
-  
-  if (indice !== -1) {
-    return {
-      titulo: texto.substring(0, indice),
-      observaciones: texto.substring(indice + separador.length),
-    };
-  }
-  
-  // Si no hay separador, todo es título
-  return { titulo: texto, observaciones: "" };
-};
-
 const schema = yup.object({
   nombre_sala: yup.string().required("Selecciona una sala"),
   fecha: yup
@@ -174,15 +156,14 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
 
   useEffect(() => {
     if (reserva && open) {
-      const { titulo, observaciones } = separarTituloObservaciones(reserva.observaciones);
-      
+      // Leer directamente de los campos separados de la BD
       reset({
         nombre_sala: reserva.nombre_sala as Sala,
         fecha: reserva.fecha,
         hora_inicio: reserva.hora_inicio.substring(0, 5),
         hora_final: reserva.hora_final.substring(0, 5),
-        titulo,
-        observaciones,
+        titulo: reserva.titulo_reunion || "",
+        observaciones: reserva.observaciones || "",
       });
     }
   }, [reserva, open, reset]);
@@ -231,17 +212,14 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
         }
       }
 
-      // Combinar título y observaciones para guardar en el campo observaciones de la BD
-      const observacionesCombinadas = data.observaciones 
-        ? `${data.titulo}\n---\n${data.observaciones}`
-        : data.titulo;
-
+      // Guardar en campos separados de la BD
       await onSubmit(reserva.id, {
         nombre_sala: data.nombre_sala,
         fecha: data.fecha,
         hora_inicio: data.hora_inicio,
         hora_final: data.hora_final,
-        observaciones: observacionesCombinadas,
+        titulo_reunion: data.titulo,
+        observaciones: data.observaciones?.trim() || "",
       });
       handleClose();
     } catch (err: any) {
@@ -267,7 +245,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
         maxWidth="md" 
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 3, maxWidth: 850 }
+          sx: { borderRadius: 3, maxWidth: 900 }
         }}
       >
         <DialogContent sx={{ p: 0 }}>
@@ -296,7 +274,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                  gridTemplateColumns: { xs: "1fr", md: "1.2fr 1fr" },
                   gap: 3,
                   p: 3,
                   backgroundColor: "#f9fafb",
@@ -463,7 +441,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                           fullWidth
                           multiline
                           rows={3}
-                          placeholder="Detalles adicionales, participantes, materiales necesarios..."
+                          placeholder="Detalles adicionales, participantes, materiales necesarios, agenda de la reunión..."
                           error={!!errors.observaciones}
                           helperText={errors.observaciones?.message || "Opcional - máximo 500 caracteres"}
                           disabled={loading}

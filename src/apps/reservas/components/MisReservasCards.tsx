@@ -166,7 +166,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
                       size="small"
                       onClick={() => onEditar(reserva)}
                       sx={{
-                        color: "#1976d2",
+                        color: "#004680",
                         padding: "4px",
                         "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.08)" }
                       }}
@@ -317,7 +317,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
         titulo="En curso"
         cantidad={reservasEnCurso.length}
         reservas={reservasEnCurso}
-        colorIndicador="#3B82F6"
+        colorIndicador="#0F9568"
       />
 
       {/* Vigentes */}
@@ -325,7 +325,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
         titulo="Vigentes"
         cantidad={reservasVigentes.length}
         reservas={reservasVigentes}
-        colorIndicador="#22c55e"
+        colorIndicador="#004680"
       />
 
       {/* Finalizadas */}

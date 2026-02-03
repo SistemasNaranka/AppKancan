@@ -219,17 +219,14 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         }
       }
 
-      // Combinar título y observaciones para guardar en el campo observaciones de la BD
-      const observacionesCombinadas = data.observaciones 
-        ? `${data.titulo}\n---\n${data.observaciones}`
-        : data.titulo;
-
+      // Guardar en campos separados de la BD
       await onSubmit({
         nombre_sala: data.nombre_sala,
         fecha: data.fecha,
         hora_inicio: data.hora_inicio,
         hora_final: data.hora_final,
-        observaciones: observacionesCombinadas,
+        titulo_reunion: data.titulo,
+        observaciones: data.observaciones?.trim() || "",
       });
       handleClose();
     } catch (err: any) {
@@ -253,7 +250,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         maxWidth="md" 
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 3, maxWidth: 850 }
+          sx: { borderRadius: 3, maxWidth: 900 }
         }}
       >
         <DialogContent sx={{ p: 0 }}>
@@ -282,7 +279,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                  gridTemplateColumns: { xs: "1fr", md: "1.2fr 1fr" },
                   gap: 3,
                   p: 3,
                   backgroundColor: "#f9fafb",
@@ -449,7 +446,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           fullWidth
                           multiline
                           rows={3}
-                          placeholder="Detalles adicionales, participantes, materiales necesarios..."
+                          placeholder="Detalles adicionales, participantes, materiales necesarios, agenda de la reunión..."
                           error={!!errors.observaciones}
                           helperText={errors.observaciones?.message || "Opcional - máximo 500 caracteres"}
                           disabled={loading}

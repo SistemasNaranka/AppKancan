@@ -82,9 +82,9 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     
     switch (estado) {
       case "en curso":
-        return { texto: "En Curso", color: "#004680" };
+        return { texto: "En Curso", color: "#10B981" };
       case "vigente":
-        return { texto: "Confirmado", color: "#10B981" };
+        return { texto: "Vigente", color: "#004680" };
       case "cancelado":
       case "cancelada":
         return { texto: "Cancelado", color: "#EF4444" };
@@ -228,7 +228,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                 }}
               />
 
-              {/* Asunto */}
+              {/* Asunto - Solo TÍTULO */}
               <Typography
                 variant="body2"
                 sx={{
@@ -240,7 +240,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {reserva.observaciones || "Sin título"}
+                {reserva.titulo_reunion || "Sin título"}
               </Typography>
 
               {/* Organizador */}
@@ -309,13 +309,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
           textAlign: "center",
         }}
       >
-        {/* <Typography variant="body2" sx={{ color: "#6b7280" }}>
-          El horario comercial termina a las 4:30 PM hoy. Quedan{" "}
-          <Typography component="span" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
-            {reservasPendientes} reservas pendientes
-          </Typography>
-          .
-        </Typography> */}
+        {/* Espacio para futura información */}
       </Box>
     </Paper>
   );

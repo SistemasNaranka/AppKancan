@@ -24,6 +24,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Business as AreaIcon,
+  Notes as NotesIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -38,7 +39,13 @@ import {
 } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Reserva, EstadoReserva } from "../types/reservas.types";
-import { SALAS_DISPONIBLES, puedeModificarse, COLORES_ESTADO, COLORES_TEXTO_ESTADO } from "../types/reservas.types";
+import { 
+  SALAS_DISPONIBLES, 
+  puedeModificarse, 
+  COLORES_ESTADO, 
+  COLORES_TEXTO_ESTADO, 
+  getReservaColor,
+} from "../types/reservas.types";
 
 interface VistaSemanalProps {
   reservas: Reserva[];
@@ -109,7 +116,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     return `${hour}:00 AM`;
   };
 
-  // Obtener color según estado
+  // Obtener color según estado (para chip de estado)
   const getColorEstado = (reserva: Reserva) => {
     const estado = (reserva.estadoCalculado || reserva.estado) as EstadoReserva;
     return {
@@ -124,7 +131,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     const [horaFin, minFin] = reserva.hora_final.split(":").map(Number);
     
     const bloques: { hora: string; esInicio: boolean; esFin: boolean }[] = [];
-    const horaFinAjustada = minFin > 0 ? horaFin : horaFin;
+    const horaFinAjustada = minFin > 0 ? horaFin + 1 : horaFin;
     
     for (let h = horaIni; h < horaFinAjustada; h++) {
       bloques.push({
@@ -228,11 +235,11 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               sx={{
                 textTransform: "none",
                 fontWeight: 600,
-                backgroundColor: "#0F9568",
+                backgroundColor: "#10B981",
                 boxShadow: "none",
                 borderRadius: 1.5,
                 px: 2.5,
-                "&:hover": { backgroundColor: "#13BE85", boxShadow: "none" },
+                "&:hover": { backgroundColor: "#059669", boxShadow: "none" },
               }}
             >
               Reservar Ahora
@@ -251,7 +258,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             mb: 2,
             border: "1px solid #e0e0e0",
             borderRadius: 2,
-            backgroundColor: "#F9FAFB",
+            backgroundColor: "#fff",
           }}
         >
           {/* Toggles a la izquierda */}
@@ -274,9 +281,9 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                     fontWeight: 500,
                     borderColor: "#e0e0e0",
                     "&.Mui-selected": {
-                      backgroundColor: "#004680",
+                      backgroundColor: "#3B82F6",
                       color: "white",
-                      "&:hover": { backgroundColor: "#005AA3" },
+                      "&:hover": { backgroundColor: "#2563EB" },
                     },
                   },
                 }}
@@ -303,9 +310,9 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                   fontWeight: 500,
                   borderColor: "#e0e0e0",
                   "&.Mui-selected": {
-                    backgroundColor: "#004680",
+                    backgroundColor: "#3B82F6",
                     color: "white",
-                    "&:hover": { backgroundColor: "#005AA3" },
+                    "&:hover": { backgroundColor: "#2563EB" },
                   },
                 },
               }}
@@ -370,8 +377,15 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
 
         {/* Calendario */}
         <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: 2, overflow: "hidden" }}>
-          {/* Header de días */}
-          <Box sx={{ display: "grid", gridTemplateColumns: "70px repeat(5, 1fr)", borderBottom: "1px solid #e0e0e0" }}>
+          {/* Header de días - con padding derecho para compensar scrollbar */}
+          <Box 
+            sx={{ 
+              display: "grid", 
+              gridTemplateColumns: "70px repeat(5, 1fr)", 
+              borderBottom: "1px solid #e0e0e0",
+              pr: "8px", // Compensar ancho del scrollbar
+            }}
+          >
             <Box sx={{ p: 1.5, backgroundColor: "#f9fafb", borderRight: "1px solid #e0e0e0" }}>
               <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase", fontSize: "0.7rem" }}>
                 Hora
@@ -403,8 +417,8 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             })}
           </Box>
 
-          {/* Grid de horas */}
-          <Box sx={{ maxHeight: 500, overflowY: "auto" }}>
+          {/* Grid de horas - con scroll */}
+          <Box sx={{ maxHeight: 500, overflowY: "auto", overflowX: "hidden" }}>
             {HORAS.map((hora, horaIdx) => (
               <Box
                 key={hora}
@@ -449,7 +463,9 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                       }}
                     >
                       {reservasEnCelda.map(({ reserva, esInicio, esFin }) => {
-                        const colores = getColorEstado(reserva);
+                        const colorReserva = getReservaColor(reserva.id);
+                        const estadoActual = (reserva.estadoCalculado || reserva.estado)?.toLowerCase();
+                        const esEnCurso = estadoActual === "en curso";
 
                         return (
                           <Box
@@ -461,41 +477,84 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                               left: 4,
                               right: 4,
                               bottom: 2,
-                              backgroundColor: colores.bg,
-                              borderLeft: `3px solid ${colores.text}`,
-                              borderRadius: esInicio && esFin ? "4px" : esInicio ? "4px 4px 0 0" : esFin ? "0 0 4px 4px" : "0",
-                              p: 0.5,
+                              backgroundColor: colorReserva,
+                              borderRadius: esInicio && esFin ? "8px" : esInicio ? "8px 8px 0 0" : esFin ? "0 0 8px 8px" : "0",
+                              p: 1,
                               cursor: "pointer",
                               overflow: "hidden",
                               zIndex: 1,
-                              "&:hover": { opacity: 0.9, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
+                              "&:hover": { opacity: 0.9, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" },
                               transition: "all 0.15s ease",
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "flex-start",
                             }}
                           >
                             {esInicio && (
                               <>
+                                {/* Título */}
                                 <Typography
                                   sx={{
-                                    fontSize: "0.65rem",
-                                    fontWeight: 600,
-                                    color: colores.text,
+                                    fontSize: "0.75rem",
+                                    fontWeight: 700,
+                                    color: "#ffffff",
                                     lineHeight: 1.2,
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",
+                                    mb: 0.25,
                                   }}
                                 >
-                                  {reserva.observaciones || "Sin título"}
+                                  {reserva.titulo_reunion || "Sin título"}
                                 </Typography>
+                                {/* Sala */}
                                 <Typography
                                   sx={{
-                                    fontSize: "0.55rem",
-                                    color: colores.text,
-                                    opacity: 0.85,
+                                    fontSize: "0.65rem",
+                                    color: "#ffffff",
+                                    opacity: 0.9,
+                                    mb: 0.5,
                                   }}
                                 >
-                                  {reserva.nombre_sala} • {getEstadoTexto(reserva)}
+                                  {reserva.nombre_sala}
                                 </Typography>
+                                {/* Chip de estado */}
+                                <Box
+                                  sx={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                    backgroundColor: "rgba(255,255,255,0.2)",
+                                    borderRadius: "12px",
+                                    px: 0.75,
+                                    py: 0.25,
+                                    width: "fit-content",
+                                  }}
+                                >
+                                  {esEnCurso ? (
+                                    <TimeIcon sx={{ fontSize: 10, color: "#ffffff" }} />
+                                  ) : (
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: "50%",
+                                        border: "1.5px solid #ffffff",
+                                        display: "inline-block",
+                                      }}
+                                    />
+                                  )}
+                                  <Typography
+                                    sx={{
+                                      fontSize: "0.55rem",
+                                      fontWeight: 600,
+                                      color: "#ffffff",
+                                    }}
+                                  >
+                                    {esEnCurso ? "En curso" : "Vigente"}
+                                  </Typography>
+                                </Box>
                               </>
                             )}
                           </Box>
@@ -516,20 +575,23 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
           onClose={handleClosePopover}
           anchorOrigin={{ vertical: "center", horizontal: "right" }}
           transformOrigin={{ vertical: "center", horizontal: "left" }}
-          PaperProps={{ sx: { width: 320, maxHeight: 400, borderRadius: 2, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" } }}
+          PaperProps={{ sx: { width: 340, maxHeight: 450, borderRadius: 2, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" } }}
         >
           {reservaSeleccionada && (() => {
-            const colores = getColorEstado(reservaSeleccionada);
+            const colorReserva = getReservaColor(reservaSeleccionada.id);
+            const coloresEstado = getColorEstado(reservaSeleccionada);
             const estado = reservaSeleccionada.estadoCalculado || reservaSeleccionada.estado;
+            
+            // Título: primero titulo_reunion, si no existe "Sin título"
+            const tituloMostrar = reservaSeleccionada.titulo_reunion || "Sin título";
             
             return (
               <Box>
-                {/* Header con color de estado */}
+                {/* Header con color - TÍTULO DE LA REUNIÓN */}
                 <Box
                   sx={{
                     p: 2,
-                    backgroundColor: colores.bg,
-                    borderBottom: `3px solid ${colores.text}`,
+                    backgroundColor: colorReserva,
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "flex-start",
@@ -540,7 +602,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                       variant="subtitle1"
                       sx={{
                         fontWeight: 600,
-                        color: colores.text,
+                        color: "#ffffff",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         display: "-webkit-box",
@@ -548,15 +610,15 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                         WebkitBoxOrient: "vertical",
                       }}
                     >
-                      {reservaSeleccionada.observaciones || "Sin título"}
+                      {tituloMostrar}
                     </Typography>
                     <Chip
                       label={estado}
                       size="small"
                       sx={{
                         mt: 0.5,
-                        backgroundColor: colores.text,
-                        color: "white",
+                        backgroundColor: "rgba(255,255,255,0.25)",
+                        color: "#ffffff",
                         fontWeight: 600,
                         fontSize: "0.7rem",
                         height: 20,
@@ -574,7 +636,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                 handleClosePopover();
                                 onEditarReserva(reservaSeleccionada);
                               }}
-                              sx={{ color: colores.text }}
+                              sx={{ color: "#ffffff" }}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -588,7 +650,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                 handleClosePopover();
                                 onCancelarReserva(reservaSeleccionada);
                               }}
-                              sx={{ color: "#EF4444" }}
+                              sx={{ color: "#ffffff" }}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -596,7 +658,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                         )}
                       </>
                     )}
-                    <IconButton size="small" onClick={handleClosePopover}>
+                    <IconButton size="small" onClick={handleClosePopover} sx={{ color: "#ffffff" }}>
                       <CloseIcon fontSize="small" />
                     </IconButton>
                   </Box>
@@ -628,10 +690,20 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                   )}
                   
                   {reservaSeleccionada.usuario_id?.rol_usuario?.area && (
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
                       <AreaIcon sx={{ color: "#6b7280", fontSize: 20 }} />
                       <Typography variant="body2">
                         {reservaSeleccionada.usuario_id.rol_usuario.area}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Observaciones (si existen) */}
+                  {reservaSeleccionada.observaciones && (
+                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mt: 2, pt: 2, borderTop: "1px solid #e0e0e0" }}>
+                      <NotesIcon sx={{ color: "#6b7280", fontSize: 20, mt: 0.25 }} />
+                      <Typography variant="body2" sx={{ color: "#374151", whiteSpace: "pre-wrap" }}>
+                        {reservaSeleccionada.observaciones}
                       </Typography>
                     </Box>
                   )}

@@ -91,30 +91,24 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
     });
   }, [reservas, tiempoActual]);
 
-// Calcular tiempo restante para una reserva en formato H:MM:SS
-const calcularTiempoRestante = (horaFinal: string): string => {
-  const hoy = format(tiempoActual, "yyyy-MM-dd");
-  const fechaFin = new Date(`${hoy}T${horaFinal}`);
-  const diffSeconds = differenceInSeconds(fechaFin, tiempoActual);
+  // Calcular tiempo restante para una reserva en formato H:MM:SS
+  const calcularTiempoRestante = (horaFinal: string): string => {
+    const hoy = format(tiempoActual, "yyyy-MM-dd");
+    const fechaFin = new Date(`${hoy}T${horaFinal}`);
+    const diffSeconds = differenceInSeconds(fechaFin, tiempoActual);
 
-  if (diffSeconds <= 0) return "00:00:00";
+    if (diffSeconds <= 0) return "00:00:00";
 
-  // 1. Extraer las horas (3600 segundos = 1 hora)
-  const horas = Math.floor(diffSeconds / 3600);
-  
-  // 2. Extraer los minutos restantes del sobrante de las horas
-  const minutos = Math.floor((diffSeconds % 3600) / 60);
-  
-  // 3. El resto son los segundos
-  const segundos = diffSeconds % 60;
+    const horas = Math.floor(diffSeconds / 3600);
+    const minutos = Math.floor((diffSeconds % 3600) / 60);
+    const segundos = diffSeconds % 60;
 
-  // 4. Formatear con padStart para que siempre tengan 2 dígitos (excepto las horas)
-  const hDisplay = horas > 0 ? `${horas}:` : "0:"; // O "" si prefieres no mostrar el 0
-  const mDisplay = minutos.toString().padStart(2, "0");
-  const sDisplay = segundos.toString().padStart(2, "0");
+    const hDisplay = horas > 0 ? `${horas}:` : "0:";
+    const mDisplay = minutos.toString().padStart(2, "0");
+    const sDisplay = segundos.toString().padStart(2, "0");
 
-  return `${hDisplay}${mDisplay}:${sDisplay}`;
-};
+    return `${hDisplay}${mDisplay}:${sDisplay}`;
+  };
 
   // Formatear hora para mostrar
   const formatearHora = (hora: string): string => {
@@ -174,7 +168,8 @@ const calcularTiempoRestante = (horaFinal: string): string => {
           const infoSala = INFO_SALAS[estado.sala] || { tipo: "Sala", capacidad: 10 };
 
           if (estado.ocupada && estado.reunionActual) {
-            // Card OCUPADO
+            // Card OCUPADO - Mostrar solo el TÍTULO
+            
             return (
               <Paper
                 key={estado.sala}
@@ -189,10 +184,10 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                   },
                 }}
               >
-                {/* Header azul */}
+                {/* Header en curso */}
                 <Box
                   sx={{
-                    background: "#004680",
+                    background: "#0F9568",
                     color: "white",
                     p: 2.5,
                   }}
@@ -223,7 +218,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                 <Box sx={{ p: 2.5 }}>
                   {/* Organizador */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <PersonOutlineOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
+                    <PersonOutlineOutlinedIcon sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }} />
                     <Box>
                       <Typography variant="caption" sx={{ color: "#6b7280", display: "block", fontWeight: 600 }}>
                         ORGANIZADOR ACTUAL
@@ -243,13 +238,13 @@ const calcularTiempoRestante = (horaFinal: string): string => {
 
                   {/* Reunión actual */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <DescriptionOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
+                    <DescriptionOutlinedIcon sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }} />
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#004680", display: "block", fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ color: "#0F9568", display: "block", fontWeight: 600 }}>
                         REUNIÓN ACTUAL
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {estado.reunionActual.observaciones || "Sin título"}
+                        {estado.reunionActual.titulo_reunion || "Sin título"}
                       </Typography>
                     </Box>
                   </Box>
@@ -272,7 +267,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                         variant="h4"
                         sx={{
                           fontWeight: 700,
-                          color: "#004680",
+                          color: "#0F9568",
                           fontFamily: "monospace",
                         }}
                       >
@@ -285,11 +280,11 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                       sx={{
                         textTransform: "none",
                         borderColor: "#e0e0e0",
-                        color: "#374151",
+                        color: "#374151", 
                         borderRadius: 2,
                         "&:hover": {
-                          borderColor: "#004680",
-                          color: "#005AA3",
+                          borderColor: "#0F9568",
+                          color: "#0F9568",
                         },
                       }}
                     >
@@ -301,6 +296,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
             );
           } else {
             // Card DISPONIBLE
+            
             return (
               <Paper
                 key={estado.sala}
@@ -315,10 +311,10 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                   },
                 }}
               >
-                {/* Header verde */}
+                {/* Header Vigente */}
                 <Box
                   sx={{
-                    background: "#0F9568",
+                    background: "#004680",
                     color: "white",
                     p: 2.5,
                   }}
@@ -349,7 +345,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                 <Box sx={{ p: 2.5 }}>
                   {/* Estado actual */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <CheckCircleOutlineOutlinedIcon sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }} />
+                    <CheckCircleOutlineOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
                     <Box>
                       <Typography variant="caption" sx={{ color: "#6b7280", display: "block", fontWeight: 600 }}>
                         ESTADO ACTUAL
@@ -369,7 +365,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500, color: "#6f7073"}}>
                         {estado.proximaReserva
-                          ? `${formatearHora(estado.proximaReserva.hora_inicio)} - ${estado.proximaReserva.observaciones || "Sin título"}`
+                          ? `${formatearHora(estado.proximaReserva.hora_inicio)} - ${estado.proximaReserva.titulo_reunion || "Sin título"}`
                           : "Sin reservas programadas hoy"}
                       </Typography>
                     </Box>
@@ -393,7 +389,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                         variant="h5"
                         sx={{
                           fontWeight: 700,
-                          color: "#0F9568",
+                          color: "#004680",
                         }}
                       >
                         Ahora
@@ -405,11 +401,11 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                       sx={{
                         textTransform: "none",
                         fontWeight: "bold",
-                        backgroundColor: "#0F9568",
+                        backgroundColor: "#004680",
                         borderRadius: 2,
                         boxShadow: "none",
                         "&:hover": {
-                          borderColor: "#00af75",
+                          backgroundColor: "#005AA3",
                           boxShadow: "none",
                         },
                       }}

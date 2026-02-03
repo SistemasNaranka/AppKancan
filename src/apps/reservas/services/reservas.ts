@@ -29,6 +29,7 @@ const RESERVATION_FIELDS = [
   "hora_inicio",
   "hora_final",
   "estado",
+  "titulo_reunion",
   "observaciones",
 ];
 

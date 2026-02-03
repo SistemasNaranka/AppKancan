@@ -26,8 +26,8 @@ export interface Reserva {
   hora_inicio: string;
   hora_final: string;
   estado: EstadoReserva;
-  observaciones: string;
-  // Campo calculado en frontend
+  titulo_reunion: string;
+  observaciones?: string;
   estadoCalculado?: EstadoReserva;
 }
 
@@ -37,10 +37,8 @@ export interface Reserva {
  */
 export type EstadoReserva = 
   | "Vigente" 
-  | "En curso"
-  | "Finalizada" 
+  | "En curso" 
   | "Finalizado" 
-  | "Cancelada" 
   | "Cancelado";
 
 /**
@@ -66,13 +64,13 @@ export const SALAS_DISPONIBLES: Sala[] = [
   "Sala B",
 ];
 
-/**
- * Información de configuración de las salas
- */
-export const INFO_SALAS: Record<string, { tipo: string; capacidad: number }> = {
-  "Sala A": { tipo: "", capacidad: 12 },
-  "Sala B": { tipo: "", capacidad: 6 },
-};
+// /**
+//  * Información de configuración de las salas
+//  */
+// export const INFO_SALAS: Record<string, { tipo: string; capacidad: number }> = {
+//   "Sala A": { tipo: "", capacidad: 12 },
+//   "Sala B": { tipo: "", capacidad: 6 },
+// };
 
 /**
  * Datos para crear una nueva reserva
@@ -82,7 +80,8 @@ export interface NuevaReserva {
   fecha: string;
   hora_inicio: string;
   hora_final: string;
-  observaciones: string;
+  titulo_reunion: string;
+  observaciones?: string;
 }
 
 /**
@@ -94,6 +93,7 @@ export interface ActualizarReserva {
   hora_inicio?: string;
   hora_final?: string;
   estado?: EstadoReserva;
+  titulo_reunion?: string;
   observaciones?: string;
 }
 
@@ -111,23 +111,19 @@ export interface FiltrosReserva {
  * Configuración de colores de FONDO por estado
  */
 export const COLORES_ESTADO: Record<EstadoReserva, string> = {
-  "Vigente": "#DCFCE7",
-  "En curso": "#DBEAFE",
-  "Finalizada": "#F3F4F6",
+  "Vigente": "#004680",
+  "En curso": "#0F9568",
   "Finalizado": "#F3F4F6",
-  "Cancelada": "#FEE2E2",
-  "Cancelado": "#FEE2E2",
+  "Cancelado": "#FEE2E2", 
 };
 
 /**
  * Configuración de colores de TEXTO por estado
  */
 export const COLORES_TEXTO_ESTADO: Record<EstadoReserva, string> = {
-  "Vigente": "#166534",
-  "En curso": "#1D4ED8",
-  "Finalizada": "#374151",
+  "Vigente": "#5CB6FF",
+  "En curso": "#41ECB3",
   "Finalizado": "#374151",
-  "Cancelada": "#DC2626",
   "Cancelado": "#DC2626",
 };
 
@@ -196,4 +192,33 @@ export const estaCancelado = (estado: string): boolean => {
 export const puedeModificarse = (estado: string): boolean => {
   const estadoLower = estado?.toLowerCase() || "";
   return estadoLower === "vigente";
+};
+
+// Paleta de colores variados para el Calendario
+export const PALETA_RESERVAS = [
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#f59e0b",
+  "#10b981",
+  "#6366f1",
+  "#0ea5e9",
+  "#f43f5e",
+  "#14b8a6",
+  "#d946ef",
+  "#f97316",
+  "#84cc16",
+  "#06b6d4",
+  "#a855f7",
+];
+
+// Función: Devuelve siempre el mismo color para el mismo ID
+export const getReservaColor = (id: number): string => {
+  if (!id) return "#9e9e9e"; // Color gris si no hay ID
+  return PALETA_RESERVAS[id % PALETA_RESERVAS.length];
+};
+
+// Retorna siempre blanco para el texto
+export const getRandomTextColor = (): string => {
+  return "#ffffff";
 };
