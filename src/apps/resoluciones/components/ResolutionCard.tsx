@@ -4,7 +4,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { Resolucion } from "../types";
 import StatusBadge from "./StatusBadge";
 import Button from "./Button";
-import { diasRestantes } from "../api/read";
+import { diasRestantes } from "../utils/calculos";
 
 interface ResolutionCardProps {
   resolucion: Resolucion | null;
@@ -33,6 +33,17 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
     return `${s.slice(0, 4)} ${s.slice(4, 8)} ${s.slice(8, 11)} ${s.slice(11, 14)}`;
   };
 
+  // Calcular información de facturas
+  const facturasRestantes = resolucion?.facturas_restantes ?? 0;
+  const ultimaFactura = resolucion?.ultima_factura ?? 0;
+  const hastaNumero = resolucion?.hasta_numero ?? 0;
+  const desdeNumero = resolucion?.desde_numero ?? 0;
+
+  // Calcular facturas usadas (última_factura - desde_numero + 1)
+  const facturasUsadas =
+    ultimaFactura > 0 ? ultimaFactura - desdeNumero + 1 : 0;
+  const totalFacturas = hastaNumero - desdeNumero + 1;
+
   const campos = [
     {
       etiqueta: "Resolución",
@@ -49,6 +60,14 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
     { etiqueta: "Vencimiento", valor: infoVencimiento?.texto || "" },
     { etiqueta: "Tipo", valor: resolucion?.tipo_solicitud },
     { etiqueta: "Fecha", valor: resolucion?.fecha_creacion },
+    {
+      etiqueta: "Facturas",
+      valor: `${facturasUsadas.toLocaleString()} de ${totalFacturas.toLocaleString()}`,
+    },
+    {
+      etiqueta: "Disponibles",
+      valor: facturasRestantes > 0 ? facturasRestantes.toLocaleString() : "0",
+    },
   ];
 
   return (
@@ -91,6 +110,17 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
                       colorTexto = "#ed6c02";
                     } else {
                       colorTexto = "#2e7d32";
+                    }
+                  }
+
+                  // Colores para disponibles
+                  if (campo.etiqueta === "Disponibles") {
+                    if (facturasRestantes <= 10) {
+                      colorTexto = "#d32f2f"; // Rojo - Vencido
+                    } else if (facturasRestantes <= 70) {
+                      colorTexto = "#ed6c02"; // Naranja - Por vencer
+                    } else {
+                      colorTexto = "#2e7d32"; // Verde - Vigente
                     }
                   }
 

@@ -82,6 +82,8 @@ export default function Home() {
 
   // 🚀 NUEVO: Variable para controlar el estado del modal de edición
   const [showEditStoreModal, setShowEditStoreModal] = useState(false);
+  const [showEditStoreBudgetModal, setShowEditStoreBudgetModal] =
+    useState(false);
 
   const {
     budgets = [],
@@ -460,6 +462,7 @@ export default function Home() {
       onShowConfigModal: () => setShowTabsConfigModal(true),
       onShowCodesModal: () => setShowCodesModal(true),
       onShowEditStoreModal: () => setShowEditStoreModal(true),
+      onShowEditStoreBudgetModal: () => setShowEditStoreBudgetModal(true),
       onToggleAllStores: handleToggleAllStoresWrapper,
       expandedTiendas,
       filterRol,
@@ -786,6 +789,7 @@ export default function Home() {
         <HomeModals
           showCodesModal={showCodesModal}
           showEditStoreModal={showEditStoreModal}
+          showEditStoreBudgetModal={showEditStoreBudgetModal}
           showNoDataModal={showNoDataModal}
           modalTitle={modalTitle}
           modalMessage={modalMessage}
@@ -798,6 +802,9 @@ export default function Home() {
           }}
           onCloseEditStoreModal={() => {
             setShowEditStoreModal(false);
+          }}
+          onCloseEditStoreBudgetModal={() => {
+            setShowEditStoreBudgetModal(false);
           }}
           onCloseNoDataModal={() => setShowNoDataModal(false)}
           onAssignmentComplete={handleAssignmentComplete}

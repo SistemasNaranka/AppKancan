@@ -6,7 +6,6 @@ import {
   Paper,
   Typography,
   Chip,
-  Avatar,
   Link,
 } from "@mui/material";
 import { ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
@@ -24,9 +23,6 @@ const COLORES_SALA: Record<string, { bg: string; color: string }> = {
   "Sala A": { bg: "#DBEAFE", color: "#1D4ED8" },
   "Sala B": { bg: "#E0F2FE", color: "#0369A1" },
 };
-
-// Colores para avatares
-const COLORES_AVATAR = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
 
 const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
   reservas,
@@ -62,18 +58,6 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     const ampm = hour >= 12 ? "PM" : "AM";
     const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${hour12}:${m} ${ampm}`;
-  };
-
-  // Obtener iniciales del usuario
-  const getIniciales = (usuario: Reserva["usuario_id"]): string => {
-    if (!usuario) return "??";
-    return `${usuario.first_name?.charAt(0) || ""}${usuario.last_name?.charAt(0) || ""}`.toUpperCase();
-  };
-
-  // Obtener color del avatar basado en el nombre
-  const getColorAvatar = (nombre: string): string => {
-    const index = nombre.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return COLORES_AVATAR[index % COLORES_AVATAR.length];
   };
 
   // Obtener estado de la reserva para mostrar
@@ -167,7 +151,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
           Asunto
         </Typography>
         <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
-          Organizador
+          Área
         </Typography>
         <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase", textAlign: "right" }}>
           Estado
@@ -243,46 +227,19 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                 {reserva.titulo_reunion || "Sin título"}
               </Typography>
 
-              {/* Organizador */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Avatar
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    backgroundColor: reserva.usuario_id
-                      ? getColorAvatar(reserva.usuario_id.first_name || "")
-                      : "#9ca3af",
-                  }}
-                >
-                  {getIniciales(reserva.usuario_id)}
-                </Avatar>
-                <Box sx={{ overflow: "hidden" }}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 500,
-                      color: "#1a2a3a",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {reserva.usuario_id
-                      ? `${reserva.usuario_id.first_name} ${reserva.usuario_id.last_name}`
-                      : "Sin asignar"}
-                  </Typography>
-                  {reserva.usuario_id?.rol_usuario?.area && (
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#9ca3af", display: "block" }}
-                    >
-                      {reserva.usuario_id.rol_usuario.area}
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
+              {/* Área */}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 500,
+                  color: "#1a2a3a",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {reserva.usuario_id?.rol_usuario?.area || "Sin área"}
+              </Typography>
 
               {/* Estado */}
               <Typography

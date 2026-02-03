@@ -19,8 +19,9 @@ import { CalendarMonth as CalendarIcon } from "@mui/icons-material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/hooks/useAuth";
+import { useApps } from "@/apps/hooks/useApps";
 
-import { Add as AddIcon } from "@mui/icons-material"
+import { Add as AddIcon } from "@mui/icons-material";
 
 // Componentes
 import EstadoSalas from "../components/EstadoSalas";
@@ -40,23 +41,39 @@ import {
   cancelarReserva,
   verificarConflictoHorario,
 } from "../services/reservas";
-import type { Reserva, NuevaReserva, ActualizarReserva, FiltrosReserva, Sala } from "../types/reservas.types";
+import type {
+  Reserva,
+  NuevaReserva,
+  ActualizarReserva,
+  FiltrosReserva,
+  Sala,
+} from "../types/reservas.types";
 
 type TabReservas = "Reserva" | "mis" | "calendario";
 
 const ReservasView: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { area } = useApps();
 
   const [tabActual, setTabActual] = useState<TabReservas>("Reserva");
-  const [vistaCalendario, setVistaCalendario] = useState<"semanal" | "mes">("semanal");
+  const [vistaCalendario, setVistaCalendario] = useState<"semanal" | "mes">(
+    "semanal",
+  );
   const [dialogNueva, setDialogNueva] = useState(false);
   const [dialogEditar, setDialogEditar] = useState(false);
   const [dialogCancelar, setDialogCancelar] = useState(false);
-  const [reservaSeleccionada, setReservaSeleccionada] = useState<Reserva | null>(null);
-  const [fechaInicialReserva, setFechaInicialReserva] = useState<string | undefined>(undefined);
-  const [salaInicialReserva, setSalaInicialReserva] = useState<Sala | undefined>(undefined);
-  const [horaInicialReserva, setHoraInicialReserva] = useState<string | undefined>(undefined);
+  const [reservaSeleccionada, setReservaSeleccionada] =
+    useState<Reserva | null>(null);
+  const [fechaInicialReserva, setFechaInicialReserva] = useState<
+    string | undefined
+  >(undefined);
+  const [salaInicialReserva, setSalaInicialReserva] = useState<
+    Sala | undefined
+  >(undefined);
+  const [horaInicialReserva, setHoraInicialReserva] = useState<
+    string | undefined
+  >(undefined);
 
   // Filtros para cada sección
   const [filtrosMis, setFiltrosMis] = useState<FiltrosReserva>({});
@@ -150,11 +167,20 @@ const ReservasView: React.FC = () => {
 
   // Handlers
   const handleCrearReserva = async (datos: NuevaReserva) => {
-    await mutationCrear.mutateAsync(datos);
+    // Agregar el área del usuario a los datos de la reserva
+    const datosConArea = {
+      ...datos,
+      area: area || null,
+    };
+    await mutationCrear.mutateAsync(datosConArea);
   };
 
   // Handler para abrir diálogo de nueva reserva
-  const handleAbrirNuevaReserva = (fecha?: string, sala?: string, hora?: string) => {
+  const handleAbrirNuevaReserva = (
+    fecha?: string,
+    sala?: string,
+    hora?: string,
+  ) => {
     setFechaInicialReserva(fecha);
     setSalaInicialReserva(sala as Sala | undefined);
     setHoraInicialReserva(hora);
@@ -174,7 +200,10 @@ const ReservasView: React.FC = () => {
     setDialogEditar(true);
   };
 
-  const handleActualizarReserva = async (id: number, datos: ActualizarReserva) => {
+  const handleActualizarReserva = async (
+    id: number,
+    datos: ActualizarReserva,
+  ) => {
     await mutationActualizar.mutateAsync({ id, datos });
   };
 
@@ -194,9 +223,15 @@ const ReservasView: React.FC = () => {
     fecha: string,
     horaInicio: string,
     horaFinal: string,
-    reservaIdExcluir?: number
+    reservaIdExcluir?: number,
   ) => {
-    return await verificarConflictoHorario(sala, fecha, horaInicio, horaFinal, reservaIdExcluir);
+    return await verificarConflictoHorario(
+      sala,
+      fecha,
+      horaInicio,
+      horaFinal,
+      reservaIdExcluir,
+    );
   };
 
   const handleCloseSnackbar = () => {
@@ -236,7 +271,14 @@ const ReservasView: React.FC = () => {
         }}
       >
         {/* Logo y título */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 180 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            minWidth: 180,
+          }}
+        >
           <Box
             sx={{
               width: 38,
@@ -250,7 +292,10 @@ const ReservasView: React.FC = () => {
           >
             <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: "#1a2a3a", fontSize: "1rem" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 700, color: "#1a2a3a", fontSize: "1rem" }}
+          >
             Reservar Sala
           </Typography>
         </Box>
@@ -269,7 +314,10 @@ const ReservasView: React.FC = () => {
                   fontWeight: "bold",
                   fontSize: "0.875rem",
                   color: tabActual === tab.id ? "#1976d2" : "#6b7280",
-                  borderBottom: tabActual === tab.id ? "2px solid #1976d2" : "2px solid transparent",
+                  borderBottom:
+                    tabActual === tab.id
+                      ? "2px solid #1976d2"
+                      : "2px solid transparent",
                   transition: "all 0.2s",
                   "&:hover": {
                     color: "#1976d2",
@@ -318,14 +366,22 @@ const ReservasView: React.FC = () => {
             }}
           >
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 600, color: "#1a2a3a" }}
+              >
                 Mis Reservas
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {misReservas.filter(r => {
-                  const estado = (r.estadoCalculado || r.estado)?.toLowerCase();
-                  return estado === "vigente" || estado === "en curso";
-                }).length} reservas activas
+                {
+                  misReservas.filter((r) => {
+                    const estado = (
+                      r.estadoCalculado || r.estado
+                    )?.toLowerCase();
+                    return estado === "vigente" || estado === "en curso";
+                  }).length
+                }{" "}
+                reservas activas
               </Typography>
             </Box>
 
@@ -455,7 +511,11 @@ const ReservasView: React.FC = () => {
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

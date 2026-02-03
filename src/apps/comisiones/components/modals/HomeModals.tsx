@@ -2,11 +2,13 @@ import React from "react";
 import { CodesModal } from "./CodesModal";
 import { NoDataModal } from "./NoDataModal";
 import { EditStoreModalSimplified } from "./EditStoreModalSimplified";
+import { EditStoreBudgetModal } from "./EditStoreBudgetModal";
 
 interface HomeModalsProps {
   // Modal states
   showCodesModal: boolean;
   showEditStoreModal: boolean;
+  showEditStoreBudgetModal: boolean;
   showNoDataModal: boolean;
   modalTitle: string;
   modalMessage: string;
@@ -16,6 +18,7 @@ interface HomeModalsProps {
   // Modal actions
   onCloseCodesModal: () => void;
   onCloseEditStoreModal: () => void;
+  onCloseEditStoreBudgetModal: () => void;
   onCloseNoDataModal: () => void;
   onAssignmentComplete?: (ventasData: any) => void;
   onShowSaveLoading?: (error?: any) => void;
@@ -25,6 +28,7 @@ interface HomeModalsProps {
 export const HomeModals: React.FC<HomeModalsProps> = ({
   showCodesModal,
   showEditStoreModal,
+  showEditStoreBudgetModal,
   showNoDataModal,
   modalTitle,
   modalMessage,
@@ -32,6 +36,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   hasSavedData,
   onCloseCodesModal,
   onCloseEditStoreModal,
+  onCloseEditStoreBudgetModal,
   onCloseNoDataModal,
   onAssignmentComplete,
   onShowSaveLoading,
@@ -73,6 +78,17 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         onClose={() => {
           // Limpiar estado antes de cerrar para evitar cargas innecesarias
           onCloseEditStoreModal();
+        }}
+        selectedMonth={selectedMonth}
+        onSaveComplete={onSaveComplete}
+      />
+
+      {/* Edit Store Budget Modal - PARA USUARIOS CON POLÍTICA DE TIENDA */}
+      <EditStoreBudgetModal
+        isOpen={showEditStoreBudgetModal}
+        onClose={() => {
+          // Limpiar estado antes de cerrar para evitar cargas innecesarias
+          onCloseEditStoreBudgetModal();
         }}
         selectedMonth={selectedMonth}
         onSaveComplete={onSaveComplete}

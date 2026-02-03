@@ -236,7 +236,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Reunión actual */}
+                  {/* Reunión actual - Solo TÍTULO */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
                     <DescriptionOutlinedIcon sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }} />
                     <Box>
@@ -280,7 +280,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                       sx={{
                         textTransform: "none",
                         borderColor: "#e0e0e0",
-                        color: "#374151", 
+                        color: "#374151",
                         borderRadius: 2,
                         "&:hover": {
                           borderColor: "#0F9568",
@@ -356,7 +356,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Próxima reserva */}
+                  {/* Próxima reserva - Solo TÍTULO */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
                     <AccessTimeOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
                     <Box>

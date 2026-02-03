@@ -1,54 +1,53 @@
-import React from 'react';
-import { Button as MuiButton } from '@mui/material';
-import { borderRadius } from '@mui/system';
+import React from "react";
+import { Button as MuiButton } from "@mui/material";
 
 interface ButtonProps {
   texto: string;
   onClick: () => void;
-  variante?: 'primario' | 'secundario' | 'peligro';
+  variante?: "primario" | "secundario" | "peligro";
   disabled?: boolean;
   icono?: React.ReactNode;
 }
 
-const Button: React.FC<ButtonProps> = ({ 
-  texto, 
-  onClick, 
-  variante = 'primario',
+const Button: React.FC<ButtonProps> = ({
+  texto,
+  onClick,
+  variante = "primario",
   disabled = false,
-  icono
+  icono,
 }) => {
   const obtenerEstilo = () => {
     switch (variante) {
-      case 'primario':
+      case "primario":
         return {
-          backgroundColor: '#1976d2',
-          color: 'white',
-          transition: 'all 0.3s ease',
-          '&:hover': { backgroundColor: '#1565c0' },
+          backgroundColor: "#1976d2",
+          color: "white",
+          transition: "all 0.3s ease",
+          "&:hover": { backgroundColor: "#1565c0" },
         };
-      case 'secundario':
+      case "secundario":
         return {
-          backgroundColor: '#ffffff3b',
-          color: '#004680',
-          border: '1px solid #004680',
-          borderRadius: '4px',
-          boxShadow: 'none',
-           transition: 'all 0.3s ease',
-          '&:hover': { 
-            backgroundColor: '#00468010',
-            boxShadow: 'none',
+          backgroundColor: "#ffffff3b",
+          color: "#004680",
+          border: "1px solid #004680",
+          borderRadius: "4px",
+          boxShadow: "none",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            backgroundColor: "#00468010",
+            boxShadow: "none",
           },
         };
-      case 'peligro':
+      case "peligro":
         return {
-          backgroundColor: '#d32f2f',
-          color: '#ffebee',
-          boxShadow: 'none',
-          transition: 'all 0.3s ease',
-          '&:hover': { 
-            backgroundColor: '#cc1d1dff',
-            border: '2px solid #transparent',
-            boxShadow: 'none',
+          backgroundColor: "#d32f2f",
+          color: "#ffebee",
+          boxShadow: "none",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            backgroundColor: "#cc1d1dff",
+            border: "2px solid #transparent",
+            boxShadow: "none",
           },
         };
       default:
@@ -62,7 +61,15 @@ const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       startIcon={icono}
-      sx={obtenerEstilo()}
+      size="small"
+      sx={{
+        ...obtenerEstilo(),
+        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+        px: { xs: 1.5, sm: 2 },
+        py: { xs: 0.5, sm: 0.75 },
+        minWidth: { xs: "auto", sm: "64px" },
+        whiteSpace: "nowrap",
+      }}
     >
       {texto}
     </MuiButton>

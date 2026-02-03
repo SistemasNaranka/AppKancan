@@ -19,7 +19,11 @@ import { Edit as EditIcon, Cancel as CancelIcon } from "@mui/icons-material";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Reserva, EstadoReserva } from "../types/reservas.types";
-import { COLORES_ESTADO, COLORES_TEXTO_ESTADO, puedeModificarse } from "../types/reservas.types";
+import {
+  COLORES_ESTADO,
+  COLORES_TEXTO_ESTADO,
+  puedeModificarse,
+} from "../types/reservas.types";
 
 interface TablaReservasProps {
   reservas: Reserva[];
@@ -36,10 +40,10 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
   onCancelar,
   loading = false,
 }) => {
-  
   // Filtrar solo reservas vigentes y en curso (no mostrar finalizadas ni canceladas)
   const reservasFiltradas = reservas.filter((reserva) => {
-    const estado = (reserva.estadoCalculado || reserva.estado)?.toLowerCase() || "";
+    const estado =
+      (reserva.estadoCalculado || reserva.estado)?.toLowerCase() || "";
     return estado === "vigente" || estado === "en curso";
   });
 
@@ -47,21 +51,23 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
     if (!usuarioActualId) return false;
     if (!reserva.usuario_id) return false;
     if (reserva.usuario_id.id !== usuarioActualId) return false;
-    
+
     // Usar estado calculado para determinar si puede modificarse
     const estadoActual = reserva.estadoCalculado || reserva.estado;
     if (!puedeModificarse(estadoActual)) return false;
 
     const ahora = new Date();
     const fechaReserva = new Date(`${reserva.fecha}T${reserva.hora_inicio}`);
-    
+
     return fechaReserva > ahora;
   };
 
   const formatearFecha = (fecha: string): string => {
     try {
       // Agregar T12:00:00 para evitar problemas de zona horaria
-      return format(new Date(fecha + "T12:00:00"), "d MMM yyyy", { locale: es });
+      return format(new Date(fecha + "T12:00:00"), "d MMM yyyy", {
+        locale: es,
+      });
     } catch {
       return fecha;
     }
@@ -78,11 +84,12 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
     return `${reserva.usuario_id.first_name} ${reserva.usuario_id.last_name}`;
   };
 
-  const getAreaUsuario = (reserva: Reserva): string => {
-    if (!reserva.usuario_id?.rol_usuario?.area) {
-      return "-";
+  const getAreaReserva = (reserva: Reserva): string => {
+    if (!reserva.area) {
+      // Si no hay área en la reserva, intentar obtenerla del usuario (fallback)
+      return reserva.usuario_id?.rol_usuario?.area || "-";
     }
-    return reserva.usuario_id.rol_usuario.area;
+    return reserva.area;
   };
 
   // Obtener el estado a mostrar (calculado o guardado)
@@ -111,7 +118,11 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
   }
 
   return (
-    <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid #e0e0e0" }}>
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{ border: "1px solid #e0e0e0" }}
+    >
       <Table>
         <TableHead>
           <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
@@ -136,7 +147,13 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
             <TableCell sx={{ fontWeight: "bold", color: "#1a2a3ae0" }}>
               ESTADO
             </TableCell>
-            <TableCell sx={{ fontWeight: "bold", color: "#1a2a3ae0", textAlign: "center" }}>
+            <TableCell
+              sx={{
+                fontWeight: "bold",
+                color: "#1a2a3ae0",
+                textAlign: "center",
+              }}
+            >
               ACCIONES
             </TableCell>
           </TableRow>
@@ -146,11 +163,10 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
             const puedeModificarReserva = puedeModificar(reserva);
             const estadoMostrar = getEstadoMostrar(reserva);
 
-
             return (
               <TableRow
-              key={reserva.id}
-              sx={{
+                key={reserva.id}
+                sx={{
                   "&:hover": { backgroundColor: "#fafafa" },
                 }}
               >
@@ -166,12 +182,12 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
                   )}
                 </TableCell>
 
-                  {/* Área */}
-                  <TableCell>
-                    <Typography variant="body2">
-                      {getAreaUsuario(reserva)}
-                    </Typography>
-                  </TableCell>
+                {/* Área */}
+                <TableCell>
+                  <Typography variant="body2">
+                    {getAreaReserva(reserva)}
+                  </Typography>
+                </TableCell>
 
                 {/* Fecha */}
                 <TableCell>
@@ -201,14 +217,14 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
                   </Typography>
                 </TableCell> */}
 
-
                 {/* Estado */}
                 <TableCell>
                   <Chip
                     label={estadoMostrar}
                     size="small"
                     sx={{
-                      backgroundColor: COLORES_ESTADO[estadoMostrar] || "#F3F4F6",
+                      backgroundColor:
+                        COLORES_ESTADO[estadoMostrar] || "#F3F4F6",
                       color: COLORES_TEXTO_ESTADO[estadoMostrar] || "#374151",
                       fontWeight: "600",
                     }}
@@ -218,7 +234,9 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
                 {/* Acciones */}
                 <TableCell sx={{ textAlign: "center" }}>
                   {puedeModificarReserva ? (
-                    <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                    <Box
+                      sx={{ display: "flex", gap: 1, justifyContent: "center" }}
+                    >
                       {onEditar && (
                         <Tooltip title="Editar reserva">
                           <IconButton
