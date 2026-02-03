@@ -87,7 +87,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ archivo }) => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {archivo.datos.slice(0, 50).map((fila, indexFila) => (
+                            {archivo.datos.map((fila, indexFila) => (
                                 <TableRow
                                     key={indexFila}
                                     hover
@@ -117,15 +117,13 @@ const FilePreview: React.FC<FilePreviewProps> = ({ archivo }) => {
                     </Table>
                 </TableContainer>
 
-                {archivo.datos.length > 50 && (
-                    <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mt: 1, textAlign: "center" }}
-                    >
-                        Mostrando 50 de {archivo.datos.length} filas
-                    </Typography>
-                )}
+                <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1, textAlign: "center" }}
+                >
+                    Total filas: {archivo.datos.length}
+                </Typography>
             </CardContent>
         </Card>
     );

@@ -9,6 +9,7 @@ import HomeHeader from "../components/HomeHeader";
 import FileSidebar from "../components/FileSidebar";
 import FilePreview from "../components/FilePreview";
 import GroupedView from "../components/GroupedView";
+import ValidationAlert from "../components/ValidationAlert";
 
 const Home: React.FC = () => {
   const [mostrarAgrupado, setMostrarAgrupado] = useState(false);
@@ -21,6 +22,7 @@ const Home: React.FC = () => {
     cargando,
     cargandoMapeos,
     errorMapeos,
+    validacionesArchivos,
     setArchivoSeleccionado,
     handleSubirArchivos,
     handleEliminarArchivo,
@@ -80,6 +82,9 @@ const Home: React.FC = () => {
           {errorMapeos}
         </Alert>
       )}
+
+      {/* Mostrar alertas de validación */}
+      <ValidationAlert validaciones={validacionesArchivos} />
 
       {!mostrarAgrupado ? (
         <Box sx={{ display: "flex", gap: 3 }}>

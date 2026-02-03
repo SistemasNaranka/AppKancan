@@ -1,3 +1,9 @@
+export const formatearMoneda = (valor: number): string => {
+    // Formatear con es-CO y luego reemplazar puntos por comas
+    const formateado = valor.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+    return formateado.replace(/\./g, ',');
+};
+
 export const formatearValor = (valor: any, columna?: string): string => {
     if (valor === null || valor === undefined || valor === "") return "";
 
@@ -99,14 +105,17 @@ export const formatearValor = (valor: any, columna?: string): string => {
 
     if (typeof valor === "number") {
         if (esIdentidad) return String(valor);
-        return valor.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+        return formatearMoneda(valor);
     }
+
+    // Si el valor contiene letras, devolverlo tal cual (evita formatear "ARMENIA 14" como dinero)
+    if (/[a-zA-Z]/.test(String(valor))) return String(valor).trim();
 
     // Intentar convertir string a número si parece un número y no es una fecha
     const num = Number(String(valor).replace(/[^0-9.-]+/g, ""));
     if (!isNaN(num) && String(valor).match(/[0-9]/) && !String(valor).includes('-') && !String(valor).includes('/')) {
         if (esIdentidad) return String(valor).trim();
-        return num.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+        return formatearMoneda(num);
     }
 
     return String(valor);

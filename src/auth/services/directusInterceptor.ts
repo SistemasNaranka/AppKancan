@@ -90,11 +90,12 @@ export async function requestWithAutoRefresh<T>(
     throw error;
   }
 }
-
+ 
 /**
  * Función helper para usar con directus.request
  *
  * Uso:
+ * 
  * ```typescript
  * import { withAutoRefresh } from "@/services/directus/directusInterceptor";
  * import { readItems } from "@directus/sdk";

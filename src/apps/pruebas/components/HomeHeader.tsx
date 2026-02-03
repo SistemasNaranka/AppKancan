@@ -16,7 +16,7 @@ interface HomeHeaderProps {
     setMostrarAgrupado: (val: boolean) => void;
     handleSubirArchivos: (e: React.ChangeEvent<HTMLInputElement>) => void;
     normalizarTodosArchivos: () => void;
-    exportarArchivosNormalizados: () => void;
+    exportarArchivosNormalizados: (tiendaFiltrada?: string | null) => void;
     busqueda: string;
     setBusqueda: (val: string) => void;
     valorSeleccionado: string | null;
@@ -41,12 +41,32 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     tiendasDisponibles
 }) => {
     return (
-        <Box>
-            <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: "#1a2a3a" }}>
-                Pruebas - Comparación de Archivos
-            </Typography>
+        <>
+            <Box sx={{ mb: 3 }}>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "#1a2a3a" }}>
+                    Pruebas - Comparación de Archivos
+                </Typography>
+            </Box>
 
-            <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Barra de Acciones Sticky */}
+            <Box sx={{
+                display: "flex",
+                gap: 2,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                position: 'sticky',
+                top: 0,
+                zIndex: 1100,
+                backgroundColor: 'rgba(240, 244, 248, 0.9)', // Más transparencia
+                backdropFilter: 'blur(10px)',
+                py: 2,
+                px: 3,
+                mx: -3,  // Compensa el padding del padre (Home)
+                mb: 3,
+                borderBottom: '1px solid rgba(0,0,0,0.08)',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                transition: 'all 0.3s ease'
+            }}>
                 <input
                     type="file"
                     accept=".csv,.xls,.xlsx"
@@ -62,14 +82,15 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                         startIcon={<CloudUploadIcon />}
                         disabled={cargandoMapeos || !!errorMapeos}
                         sx={{
-                            backgroundColor: "#ffffff63",
-                            boxShadow: 'none',
+                            backgroundColor: "#ffffff",
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                             color: '#004680',
-                            border: 'solid 1px',
+                            border: '1px solid #e2e8f0',
                             height: '40px',
+                            fontWeight: 600,
                             "&:hover": {
-                                boxShadow: "none",
-                                backgroundColor: "#0c4c810e"
+                                boxShadow: "0 4px 6px rgba(0,0,0,0.08)",
+                                backgroundColor: "#f8fafc"
                             }
                         }}
                     >
@@ -80,15 +101,16 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 <Button
                     variant="contained"
                     startIcon={<DownloadIcon />}
-                    onClick={exportarArchivosNormalizados}
+                    onClick={() => exportarArchivosNormalizados(valorSeleccionado)}
                     disabled={!archivos.some(a => a.normalizado)}
                     sx={{
                         backgroundColor: "#017ce1",
-                        boxShadow: 'none',
+                        boxShadow: '0 2px 4px rgba(1, 124, 225, 0.2)',
                         color: '#ffffff',
                         height: '40px',
+                        fontWeight: 600,
                         "&:hover": {
-                            boxShadow: "none",
+                            boxShadow: "0 4px 8px rgba(1, 124, 225, 0.3)",
                             backgroundColor: "#006fc9"
                         }
                     }}
@@ -101,17 +123,18 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                     onClick={normalizarTodosArchivos}
                     disabled={archivos.length === 0 || !archivos.some(a => !a.normalizado && a.tipoArchivo) || cargando}
                     sx={{
-                        backgroundColor: "#218838",
-                        boxShadow: 'none',
+                        backgroundColor: "#10b981", // Verde más moderno
+                        boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
                         color: '#ffffff',
                         height: '40px',
+                        fontWeight: 600,
                         "&:hover": {
-                            boxShadow: "none",
-                            backgroundColor: "#1e7e34"
+                            boxShadow: "0 4px 8px rgba(16, 185, 129, 0.3)",
+                            backgroundColor: "#059669"
                         }
                     }}
                 >
-                    {cargando ? "Procesando Todo..." : "Normalizar Todo"}
+                    {cargando ? "Procesando..." : "Normalizar Todo"}
                 </Button>
 
                 {archivos.some(a => a.normalizado) && (
@@ -123,9 +146,11 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                             borderColor: "#017ce1",
                             color: '#017ce1',
                             height: '40px',
+                            fontWeight: 600,
+                            backgroundColor: 'white',
                             "&:hover": {
                                 borderColor: "#006fc9",
-                                backgroundColor: "#017ce10a"
+                                backgroundColor: "#f0f9ff"
                             }
                         }}
                     >
@@ -152,14 +177,18 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                                     sx={{
                                         '& .MuiOutlinedInput-root': {
                                             height: '40px',
-                                            backgroundColor: '#ffffff'
+                                            backgroundColor: '#ffffff',
+                                            borderRadius: 2,
+                                            fieldset: { borderColor: '#e2e8f0' },
+                                            '&:hover fieldset': { borderColor: '#cbd5e1' },
+                                            '&.Mui-focused fieldset': { borderColor: '#017ce1' }
                                         }
                                     }}
                                     InputProps={{
                                         ...params.InputProps,
                                         startAdornment: (
                                             <InputAdornment position="start">
-                                                <SearchIcon fontSize="small" sx={{ color: '#017ce1' }} />
+                                                <SearchIcon fontSize="small" sx={{ color: '#64748b' }} />
                                             </InputAdornment>
                                         ),
                                     }}
@@ -169,7 +198,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                     </Box>
                 )}
             </Box>
-        </Box>
+        </>
     );
 };
 

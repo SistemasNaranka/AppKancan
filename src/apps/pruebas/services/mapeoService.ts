@@ -12,6 +12,7 @@ import { MapeoArchivo, TiendaMapeo } from "../types/mapeo.types";
 export interface MapeoNombreArchivo {
   archivo_origen: string;
   tienda_archivo: string;
+  terminal: string; // Nuevo campo
   tienda_id: {
     id: number;
     nombre: string;
@@ -42,6 +43,7 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
           fields: [
             "archivo_origen",
             "tienda_archivo",
+            "terminal",
             "tienda_id.id",
             "tienda_id.nombre",
           ],
@@ -134,6 +136,7 @@ export const procesarMapeosParaNormalizacion = (
     tiendaArchivo: m.tienda_archivo,
     tiendaNormalizada: m.tienda_id.nombre,  // Nombre viene de la relación
     tiendaId: m.tienda_id.id,               // ID viene de la relación
+    terminal: m.terminal                    // Nuevo campo
   }));
 
   return { tablasMapeo, tiendaMapeos };

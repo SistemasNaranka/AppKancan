@@ -7,7 +7,9 @@ import {
     findBestMatch,
     mapearNombresTiendasEnTodasLasCeldas,
     eliminarColumnasPorNombre,
-    obtenerColumnasRestantes
+    obtenerColumnasRestantes,
+    validarDatosNormalizados,
+    ResultadoValidacion
 } from '../utils/fileNormalization';
 import { formatearValor } from '../utils/formatters';
 import {
@@ -28,6 +30,7 @@ export const useFileProcessor = () => {
     const [cargando, setCargando] = useState(false);
     const [cargandoMapeos, setCargandoMapeos] = useState(true);
     const [errorMapeos, setErrorMapeos] = useState<string | null>(null);
+    const [validacionesArchivos, setValidacionesArchivos] = useState<Record<string, ResultadoValidacion>>({});
 
     useEffect(() => {
         cargarDatosMapeo();
@@ -216,6 +219,25 @@ export const useFileProcessor = () => {
             columnasFinales = columnasFinales.filter(c => c.toLowerCase() !== 'documento');
         }
 
+        // Validar la calidad del mapeo de tiendas
+        const validacion = validarDatosNormalizados(datosNormalizados, archivo.tipoArchivo);
+
+        // Guardar validación para mostrar al usuario
+        setValidacionesArchivos(prev => ({
+            ...prev,
+            [archivo.nombre]: validacion
+        }));
+
+        // Mostrar resumen de validación en consola
+        console.log(`\n🔍 Validación de "${archivo.nombre}":`);
+        if (validacion.errores.length > 0) {
+            console.error('❌ Errores:', validacion.errores);
+        }
+        if (validacion.advertencias.length > 0) {
+            console.warn('⚠️ Advertencias:', validacion.advertencias);
+        }
+        console.log('📊 Estadísticas:', validacion.estadisticas);
+
         return { ...archivo, datos: datosNormalizados, columnas: columnasFinales, normalizado: true };
     };
 
@@ -242,33 +264,93 @@ export const useFileProcessor = () => {
 
     const gruposPorTienda = useMemo(() => {
         const grupos: Record<string, Record<string, any[]>> = {};
+        let totalFilasProcesadas = 0;
+        let filasSinTienda = 0;
 
         // Mapeo detallado para asegurar que coincidan los nombres de los archivos
         const mapeoVisual = [
             { keys: ["transactions", "addi"], label: "ADDI" },
             { keys: ["reportediario", "ventascomercio", "redebana"], label: "REDEBANA" },
-            { keys: ["maria", "perez", "occidente", "transferencias"], label: "TRANSFERENCIAS" },
-            { keys: ["creditos", "sistecreditos"], label: "SISTECREDITOS" }
+            { keys: ["maria", "perez", "occidente", "transferencia", "banco"], label: "TRANSFERENCIAS" },
+            { keys: ["credito", "sistecredito", "sistecrédito"], label: "SISTECREDITOS" }
         ];
+
+        console.log('\n🔄 Iniciando agrupación por tienda...');
+        console.log(`📁 Archivos normalizados a procesar: ${archivos.filter(a => a.normalizado).length}`);
 
         archivos.filter(a => a.normalizado).forEach(archivo => {
             const nombreLower = archivo.nombre.toLowerCase();
             const tipoLower = (archivo.tipoArchivo || "").toLowerCase();
+
+            console.log(`\n📄 Procesando archivo: "${archivo.nombre}"`);
+            console.log(`   Tipo detectado: "${archivo.tipoArchivo}"`);
 
             // Buscamos coincidencia parcial en el nombre del archivo o en el tipo detectado
             const match = mapeoVisual.find(m =>
                 m.keys.some(k => nombreLower.includes(k) || tipoLower.includes(k))
             );
 
-            const fuenteNombre = match ? match.label : (archivo.tipoArchivo || archivo.nombre);
+            // Si no hay match por palabras clave, intentar normalizar el tipo/nombre
+            let fuenteNombre = match ? match.label : (archivo.tipoArchivo || archivo.nombre);
+
+            // Verificación extra: si la fuente detectada se parece a alguna de las estándar, forzarla
+            if (!match) {
+                const fuenteUpper = fuenteNombre.toUpperCase();
+                if (fuenteUpper.includes('TRANSFERENCIA')) fuenteNombre = 'TRANSFERENCIAS';
+                else if (fuenteUpper.includes('ADDI')) fuenteNombre = 'ADDI';
+                else if (fuenteUpper.includes('REDEBANA') || fuenteUpper.includes('REDEBAN')) fuenteNombre = 'REDEBANA';
+                else if (fuenteUpper.includes('CREDITO') || fuenteUpper.includes('SISTECREDITO')) fuenteNombre = 'SISTECREDITOS';
+            }
+
+            console.log(`   ✓ Etiqueta asignada: "${fuenteNombre}"`);
+            console.log(`   📊 Filas en archivo: ${archivo.datos.length}`);
+
+            let filasAgrupadasEnArchivo = 0;
+            let tiendasVistasEnEsteArchivo = new Set<string>();
 
             archivo.datos.forEach(fila => {
-                const tienda = fila._tienda_normalizada || "SIN TIENDA";
+                totalFilasProcesadas++;
+                // NORMALIZACIÓN DE TIENDA: Siempre Mayúsculas y Trim para agrupar correctamente
+                const tiendaRaw = fila._tienda_normalizada || "SIN TIENDA";
+                const tienda = String(tiendaRaw).trim().toUpperCase();
+
+                if (tienda === "SIN TIENDA") {
+                    filasSinTienda++;
+                } else {
+                    tiendasVistasEnEsteArchivo.add(tienda);
+                }
+
                 if (!grupos[tienda]) grupos[tienda] = {};
                 if (!grupos[tienda][fuenteNombre]) grupos[tienda][fuenteNombre] = [];
                 grupos[tienda][fuenteNombre].push(fila);
+                filasAgrupadasEnArchivo++;
             });
+
+            console.log(`   ✓ Filas agrupadas: ${filasAgrupadasEnArchivo}`);
+            console.log(`   🏬 Tiendas identificadas en este archivo:`, Array.from(tiendasVistasEnEsteArchivo));
         });
+
+        // Logging de estadísticas de agrupación
+        if (totalFilasProcesadas > 0) {
+            console.log(`\n🏪 Estadísticas de Agrupación por Tienda:`);
+            console.log(`  📊 Total de filas procesadas: ${totalFilasProcesadas}`);
+            console.log(`  🏬 Tiendas únicas encontradas: ${Object.keys(grupos).length}`);
+            console.log(`  📋 Tiendas:`, Object.keys(grupos).sort());
+
+            // Mostrar detalle de fuentes por tienda
+            Object.entries(grupos).forEach(([tienda, fuentes]) => {
+                console.log(`\n  🏪 ${tienda}:`);
+                Object.entries(fuentes).forEach(([fuente, datos]) => {
+                    console.log(`     - ${fuente}: ${datos.length} registros`);
+                });
+            });
+
+            if (filasSinTienda > 0) {
+                console.warn(`\n  ⚠️ Filas sin tienda asignada: ${filasSinTienda} (${((filasSinTienda / totalFilasProcesadas) * 100).toFixed(1)}%)`);
+                console.warn(`     Estas filas aparecerán en el grupo "SIN TIENDA"`);
+            }
+        }
+
         return grupos;
     }, [archivos]);
 
@@ -302,7 +384,7 @@ export const useFileProcessor = () => {
         return cache;
     }, [gruposPorTienda]);
 
-    const exportarArchivosNormalizados = async () => {
+    const exportarArchivosNormalizados = async (tiendaFiltrada?: string | null) => {
         const archivosNormalizados = archivos.filter(a => a.normalizado);
         if (archivosNormalizados.length === 0) return;
 
@@ -312,7 +394,12 @@ export const useFileProcessor = () => {
 
             let currentStoreRow = 1;
 
-            Object.entries(gruposPorTienda).forEach(([tienda, fuentes]) => {
+            // Filtrar tiendas si hay una seleccionada
+            const tiendasAExportar = tiendaFiltrada
+                ? Object.entries(gruposPorTienda).filter(([tienda]) => tienda === tiendaFiltrada)
+                : Object.entries(gruposPorTienda);
+
+            tiendasAExportar.forEach(([tienda, fuentes]) => {
                 // TÍTULO DE LA TIENDA (Abarca ambas columnas de la cuadrícula)
                 const tiendaRow = worksheet.getRow(currentStoreRow);
                 tiendaRow.values = [`TIENDA: ${tienda.toUpperCase()}`];
@@ -435,6 +522,7 @@ export const useFileProcessor = () => {
         cargando,
         cargandoMapeos,
         errorMapeos,
+        validacionesArchivos,
         setArchivoSeleccionado,
         handleSubirArchivos,
         handleEliminarArchivo,
