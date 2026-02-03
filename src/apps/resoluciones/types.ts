@@ -22,4 +22,6 @@ export interface Resolucion {
   tienda_nombre: string;
   ente_facturador: string;
   empresa: string;
+  facturas_disponibles: number;
+  facturas_restantes: number; // hasta_numero - ultima_factura
 }

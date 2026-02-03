@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { getResoluciones } from "../api/read";
+import { obtenerResoluciones } from "../api/read";
+import { aplanarResolucion } from "../utils/calculos";
 import { Resolucion } from "../types";
 
 export const useResoluciones = () => {
@@ -10,8 +11,9 @@ export const useResoluciones = () => {
   useEffect(() => {
     const fetchResoluciones = async () => {
       try {
-        const data = await getResoluciones();
-        setResoluciones(data);
+        const data = await obtenerResoluciones();
+        const resolucionesAplanadas = data.map(aplanarResolucion);
+        setResoluciones(resolucionesAplanadas);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
       } finally {
