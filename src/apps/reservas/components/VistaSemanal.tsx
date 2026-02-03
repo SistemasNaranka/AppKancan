@@ -45,6 +45,7 @@ import {
   COLORES_ESTADO, 
   COLORES_TEXTO_ESTADO, 
   getReservaColor,
+  capitalize,
 } from "../types/reservas.types";
 
 interface VistaSemanalProps {
@@ -55,6 +56,7 @@ interface VistaSemanalProps {
   usuarioActualId?: string;
   vistaCalendario?: "semanal" | "mes";
   onCambiarVista?: (vista: "semanal" | "mes") => void;
+  salaInicial?: string;
 }
 
 // Horas del día (7:00 AM - 4:00 PM)
@@ -71,9 +73,10 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
   usuarioActualId,
   vistaCalendario = "semanal",
   onCambiarVista,
+  salaInicial,
 }) => {
   const [fechaBase, setFechaBase] = useState(new Date());
-  const [salaSeleccionada, setSalaSeleccionada] = useState<string>(SALAS_DISPONIBLES[0]);
+  const [salaSeleccionada, setSalaSeleccionada] = useState<string>(salaInicial || SALAS_DISPONIBLES[0]);
   
   // Popover para detalle de reserva
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -352,7 +355,6 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             
             <DatePicker
               value={fechaBase}
-              onChange={handleDateChange}
               slotProps={{
                 textField: {
                   size: "small",
@@ -507,16 +509,17 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                 >
                                   {reserva.titulo_reunion || "Sin título"}
                                 </Typography>
-                                {/* Sala */}
+                                {/* Título de la reunión */}
                                 <Typography
                                   sx={{
+                                    fontWeight: "bold",
                                     fontSize: "0.65rem",
                                     color: "#ffffff",
                                     opacity: 0.9,
                                     mb: 0.5,
                                   }}
                                 >
-                                  {reserva.nombre_sala}
+                                  {reserva.titulo_reunion || "Sin título"}
                                 </Typography>
                                 {/* Chip de estado */}
                                 <Box
@@ -689,16 +692,16 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                     </Box>
                   )}
                   
-                  {reservaSeleccionada.usuario_id?.rol_usuario?.area && (
+                  {reservaSeleccionada.area && (
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
                       <AreaIcon sx={{ color: "#6b7280", fontSize: 20 }} />
                       <Typography variant="body2">
-                        {reservaSeleccionada.usuario_id.rol_usuario.area}
+                        {capitalize(reservaSeleccionada.area)}
                       </Typography>
                     </Box>
                   )}
 
-                  {/* Observaciones (si existen) */}
+                  {/* Observaciones */}
                   {reservaSeleccionada.observaciones && (
                     <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mt: 2, pt: 2, borderTop: "1px solid #e0e0e0" }}>
                       <NotesIcon sx={{ color: "#6b7280", fontSize: 20, mt: 0.25 }} />

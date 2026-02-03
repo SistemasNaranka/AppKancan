@@ -9,7 +9,6 @@ export interface MapeoNombreArchivo {
   Tienda_archivo: string;   // Nombre de tienda en el archivo (ej: "SUPER CENTRO TULUA D")
   Tienda_ID: number;        // ID de la tienda
   Nombre: string;           // Nombre normalizado final (ej: "SUPERCENTRO")
-  Terminal: string;         // Nuevo campo: ID de terminal para identificar la tienda
 }
 
 /**
@@ -28,7 +27,6 @@ export interface TiendaMapeo {
   tiendaArchivo: string;      // Nombre original en el archivo
   tiendaNormalizada: string;  // Nombre final normalizado
   tiendaId: number;           // ID de la tienda
-  terminal?: string;          // ID de terminal (opcional)
 }
 
 /**

@@ -58,7 +58,7 @@ interface ModalState {
 
 const NormalizarView: React.FC = () => {
   const queryClient = useQueryClient();
-
+  
   const [archivos, setArchivos] = useState<ArchivoSubido[]>([]);
   const [archivoSeleccionado, setArchivoSeleccionado] = useState<ArchivoSubido | null>(null);
   const [cargando, setCargando] = useState(false);
@@ -83,13 +83,13 @@ const NormalizarView: React.FC = () => {
     queryFn: async () => {
       const mapeosDirectus = await obtenerMapeosArchivos();
       console.log('📦 Datos cargados de Directus:', mapeosDirectus);
-
+      
       const resultado = procesarMapeosParaNormalizacion(mapeosDirectus);
-
+      
       console.log('✅ Mapeos procesados:');
       console.log('  - Tipos de archivo:', resultado.tablasMapeo.map(t => t.archivoOrigen));
       console.log('  - Tiendas mapeadas:', resultado.tiendaMapeos.length);
-
+      
       return resultado;
     },
     staleTime: 1000 * 60 * 60, // 1 hora - los datos se consideran frescos
@@ -147,8 +147,8 @@ const NormalizarView: React.FC = () => {
           try {
             const arrayData = new Uint8Array(e.target?.result as ArrayBuffer);
             const workbook = XLSX.read(arrayData, { type: "array" });
-            const nombreHoja = workbook.SheetNames.length > 1
-              ? workbook.SheetNames[1]
+            const nombreHoja = workbook.SheetNames.length > 1 
+              ? workbook.SheetNames[1] 
               : workbook.SheetNames[0];
             const hoja = workbook.Sheets[nombreHoja];
             const jsonData: any[][] = XLSX.utils.sheet_to_json(hoja, { header: 1 });
@@ -202,7 +202,7 @@ const NormalizarView: React.FC = () => {
 
         const nuevoArchivo = await leerArchivo(files[i]);
         const resultado = findBestMatch(nuevoArchivo.nombre, tablasMapeo);
-
+        
         if (resultado) {
           nuevoArchivo.tipoArchivo = resultado.tipoArchivo;
           nuevoArchivo.columnasEliminar = resultado.mapeo.columnasEliminar;
@@ -210,9 +210,9 @@ const NormalizarView: React.FC = () => {
         } else {
           console.warn(`No se encontró mapeo para ${nuevoArchivo.nombre}`);
         }
-
+        
         setArchivos((prev) => [...prev, nuevoArchivo]);
-
+        
         if (i === 0 && !archivoSeleccionado) {
           setArchivoSeleccionado(nuevoArchivo);
         }
@@ -220,7 +220,7 @@ const NormalizarView: React.FC = () => {
         console.error(`Error al leer ${files[i].name}:`, error);
       }
     }
-
+    
     if (archivosDuplicados.length > 0) {
       mostrarModal(
         "advertencia",
@@ -244,14 +244,14 @@ const NormalizarView: React.FC = () => {
 
   const exportarArchivosNormalizados = () => {
     const archivosNormalizados = archivos.filter(a => a.normalizado);
-
+    
     if (archivosNormalizados.length === 0) {
       mostrarModal("advertencia", "Sin archivos", "No hay archivos normalizados para exportar");
       return;
     }
 
     let datosCombinados: any[] = [];
-
+    
     archivosNormalizados.forEach(archivo => {
       // Filtrar filas vacías antes de agregar
       const datosFiltrados = filtrarFilasVacias(archivo.datos);
@@ -267,7 +267,7 @@ const NormalizarView: React.FC = () => {
       archivo.columnas.forEach(col => todasLasColumnas.add(col));
     });
     todasLasColumnas.add('_archivo_origen');
-
+    
     const columnasArray = Array.from(todasLasColumnas);
 
     const csvHeader = columnasArray.join(',');
@@ -312,14 +312,14 @@ const NormalizarView: React.FC = () => {
         tiendaMapeos,
         archivo.tipoArchivo
       );
-
+      
       if (archivo.columnasEliminar && archivo.columnasEliminar.length > 0) {
         datosNormalizados = eliminarColumnasPorNombre(
           datosNormalizados,
           archivo.columnasEliminar
         );
       }
-
+      
       let columnasFinales = obtenerColumnasRestantes(
         archivo.columnas,
         archivo.columnasEliminar || []
@@ -339,7 +339,7 @@ const NormalizarView: React.FC = () => {
 
   const normalizarTodosLosArchivos = async () => {
     const archivosPorNormalizar = archivos.filter(a => a.tipoArchivo && !a.normalizado);
-
+    
     if (archivosPorNormalizar.length === 0) {
       mostrarModal("advertencia", "Sin archivos", "No hay archivos pendientes por normalizar");
       return;
@@ -369,7 +369,7 @@ const NormalizarView: React.FC = () => {
       });
 
       setArchivos(archivosActualizados);
-
+      
       const primerNormalizado = archivosActualizados.find(a => a.normalizado);
       if (primerNormalizado) {
         setArchivoSeleccionado(primerNormalizado);
@@ -449,11 +449,11 @@ const NormalizarView: React.FC = () => {
 
   if (cargandoMapeos) {
     return (
-      <Box sx={{
-        display: 'flex',
+      <Box sx={{ 
+        display: 'flex', 
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: 'center', 
+        justifyContent: 'center', 
         minHeight: '50vh',
         gap: 2
       }}>
@@ -466,8 +466,8 @@ const NormalizarView: React.FC = () => {
   return (
     <Box>
       {errorMapeos && (
-        <Alert
-          severity="error"
+        <Alert 
+          severity="error" 
           sx={{ mb: 2 }}
           action={
             <Button color="inherit" size="small" onClick={refrescarMapeos}>
@@ -498,10 +498,10 @@ const NormalizarView: React.FC = () => {
                 component="span"
                 startIcon={<CloudUploadIcon />}
                 disabled={cargandoMapeos || !!errorMapeos}
-                sx={{
-                  backgroundColor: "#ffffff63",
-                  boxShadow: 'none',
-                  color: '#004680',
+                sx={{ 
+                  backgroundColor: "#ffffff63", 
+                  boxShadow: 'none', 
+                  color: '#004680', 
                   border: 'solid 1px',
                   "&:hover": {
                     boxShadow: "none",
@@ -517,9 +517,9 @@ const NormalizarView: React.FC = () => {
               variant="contained"
               onClick={normalizarTodosLosArchivos}
               disabled={archivos.length === 0 || archivos.every(a => a.normalizado || !a.tipoArchivo) || cargando}
-              sx={{
-                backgroundColor: "#28a745",
-                boxShadow: 'none',
+              sx={{ 
+                backgroundColor: "#28a745", 
+                boxShadow: 'none', 
                 color: '#ffffff',
                 "&:hover": {
                   boxShadow: "none",
@@ -535,9 +535,9 @@ const NormalizarView: React.FC = () => {
               startIcon={<DeleteIcon />}
               onClick={limpiarTodosLosArchivos}
               disabled={archivos.length === 0}
-              sx={{
-                backgroundColor: "#dc3545",
-                boxShadow: 'none',
+              sx={{ 
+                backgroundColor: "#dc3545", 
+                boxShadow: 'none', 
                 color: '#ffffff',
                 "&:hover": {
                   boxShadow: "none",
@@ -553,9 +553,9 @@ const NormalizarView: React.FC = () => {
               startIcon={<DownloadIcon />}
               onClick={exportarArchivosNormalizados}
               disabled={!archivos.some(a => a.normalizado)}
-              sx={{
-                backgroundColor: "#004680",
-                boxShadow: 'none',
+              sx={{ 
+                backgroundColor: "#004680", 
+                boxShadow: 'none', 
                 color: '#ffffff',
                 "&:hover": {
                   boxShadow: "none",
@@ -571,7 +571,7 @@ const NormalizarView: React.FC = () => {
               <Button
                 variant="outlined"
                 onClick={() => setViewMode("normalized")}
-                sx={{
+                sx={{ 
                   marginLeft: "auto",
                   borderColor: "#00468000",
                   backgroundColor: "#004680",
@@ -579,7 +579,7 @@ const NormalizarView: React.FC = () => {
                   "&:hover": {
                     boxShadow: "none",
                     backgroundColor: "#0f5fa1"
-                  }
+                }
                 }}
               >
                 Ver Normalizados
@@ -665,7 +665,7 @@ const NormalizarView: React.FC = () => {
                                 <Chip
                                   label="Sin mapeo"
                                   size="small"
-                                  sx={{ fontSize: "0.7rem", height: 20, backgroundColor: "#d63e3e", color: "#fff" }}
+                                  sx={{ fontSize: "0.7rem", height: 20, backgroundColor: "#d63e3e", color: "#fff"}}
                                 />
                               )}
                             </Box>
@@ -691,7 +691,7 @@ const NormalizarView: React.FC = () => {
             {/* Panel derecho - Vista previa */}
             <Card sx={{ flex: 1, borderRadius: 2 }}>
               <CardContent>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold"}}>
                   Vista Previa
                 </Typography>
 
@@ -702,9 +702,9 @@ const NormalizarView: React.FC = () => {
                 ) : (
                   <>
 
-                    <TableContainer component={Paper} sx={{
-                      maxHeight: 500,
-                      overflow: "auto",
+                    <TableContainer component={Paper} sx={{ 
+                      maxHeight: 500, 
+                      overflow: "auto", 
                       boxShadow: "none",
                       "&::-webkit-scrollbar": {
                         display: "none"
@@ -751,7 +751,7 @@ const NormalizarView: React.FC = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {filtrarFilasVacias(archivoSeleccionado.datos).map((fila, indexFila) => (
+                          {filtrarFilasVacias(archivoSeleccionado.datos).slice(0, 50).map((fila, indexFila) => (
                             <TableRow
                               key={indexFila}
                               hover
@@ -781,13 +781,15 @@ const NormalizarView: React.FC = () => {
                       </Table>
                     </TableContainer>
 
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mt: 1, textAlign: "center" }}
-                    >
-                      Total filas: {filtrarFilasVacias(archivoSeleccionado.datos).length}
-                    </Typography>
+                    {filtrarFilasVacias(archivoSeleccionado.datos).length > 50 && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mt: 1, textAlign: "center" }}
+                      >
+                        Mostrando 50 de {filtrarFilasVacias(archivoSeleccionado.datos).length} filas
+                      </Typography>
+                    )}
                   </>
                 )}
               </CardContent>
@@ -803,9 +805,9 @@ const NormalizarView: React.FC = () => {
               variant="contained"
               startIcon={<DownloadIcon />}
               onClick={exportarArchivosNormalizados}
-              sx={{
-                backgroundColor: "#004680",
-                boxShadow: 'none',
+              sx={{ 
+                backgroundColor: "#004680", 
+                boxShadow: 'none', 
                 color: '#ffffff',
                 "&:hover": {
                   boxShadow: "none",
@@ -817,16 +819,16 @@ const NormalizarView: React.FC = () => {
             </Button>
 
             {/* Título centrado */}
-            <Typography variant="h4" sx={{ fontWeight: "bold", color: "#1a2a3ae0" }}>
+            <Typography variant="h4" sx={{ fontWeight: "bold", color: "#1a2a3ae0"}}>
               Archivos Normalizados
             </Typography>
-
+            
             {/* Botón Volver a la derecha */}
             <Button
               variant="outlined"
               startIcon={<ArrowBackIcon />}
               onClick={() => setViewMode("preview")}
-              sx={{
+              sx={{ 
                 borderColor: "#1976d200",
                 color: "#ffffff",
                 backgroundColor: "#004680",
@@ -868,9 +870,9 @@ const NormalizarView: React.FC = () => {
                           {obtenerNombreTabla(archivo.nombre)}
                         </Typography>
 
-                        <TableContainer component={Paper} sx={{
-                          maxHeight: 400,
-                          overflow: "auto",
+                        <TableContainer component={Paper} sx={{ 
+                          maxHeight: 400, 
+                          overflow: "auto", 
                           boxShadow: "none",
                           "&::-webkit-scrollbar": {
                             display: "none"
@@ -906,7 +908,7 @@ const NormalizarView: React.FC = () => {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {filtrarFilasVacias(archivo.datos).map((fila, indexFila) => (
+                              {filtrarFilasVacias(archivo.datos).slice(0, 50).map((fila, indexFila) => (
                                 <TableRow
                                   key={indexFila}
                                   hover
@@ -943,8 +945,7 @@ const NormalizarView: React.FC = () => {
             );
           })()}
         </Box>
-      )
-      }
+      )}
 
       {/* Modal de confirmación/alerta */}
       <ModalConfirmacion
@@ -955,7 +956,7 @@ const NormalizarView: React.FC = () => {
         titulo={modal.titulo}
         mensaje={modal.mensaje}
       />
-    </Box >
+    </Box>
   );
 };
 

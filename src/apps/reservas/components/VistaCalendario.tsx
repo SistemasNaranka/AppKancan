@@ -53,6 +53,7 @@ import {
   getReservaColor, 
   puedeModificarse, 
   SALAS_DISPONIBLES,
+  capitalize,
 } from "../types/reservas.types";
 
 interface VistaCalendarioProps {
@@ -62,6 +63,7 @@ interface VistaCalendarioProps {
   usuarioActualId?: string;
   vistaCalendario?: "semanal" | "mes";
   onCambiarVista?: (vista: "semanal" | "mes") => void;
+  salaInicial?: string;
 }
 
 // Nombres de los meses en español
@@ -80,9 +82,10 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
   usuarioActualId,
   vistaCalendario = "mes",
   onCambiarVista,
+  salaInicial,
 }) => {
   const [fechaActual, setFechaActual] = useState(new Date());
-  const [salaSeleccionada, setSalaSeleccionada] = useState<string>(SALAS_DISPONIBLES[0]);
+  const [salaSeleccionada, setSalaSeleccionada] = useState<string>(salaInicial || SALAS_DISPONIBLES[0]);
   const [mostrarFinesSemana, setMostrarFinesSemana] = useState(false);
 
   // Estado para Popover de día
@@ -350,15 +353,17 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               fontWeight: 500,
               px: 1.5,
               borderColor: "#e0e0e0",
+              boxShadow: "none",
               color: mostrarFinesSemana ? "white" : "#374151",
               backgroundColor: mostrarFinesSemana ? "#3B82F6" : "transparent",
               "&:hover": {
                 backgroundColor: mostrarFinesSemana ? "#2563EB" : "#f3f4f6",
                 borderColor: "#e0e0e0",
+                boxShadow: "none"
               },
             }}
           >
-            {mostrarFinesSemana ? "Ocultar Fines Semana" : "Mostrar Fines Semana"}
+            {mostrarFinesSemana ? "Ocultar fines de semana" : "Mostrar fines de semana"}
           </Button>
         </Box>
 
@@ -755,11 +760,11 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 )}
 
                 {/* Área */}
-                {reservaSeleccionada.usuario_id?.rol_usuario?.area && (
+                {reservaSeleccionada.area && (
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
                     <AreaIcon sx={{ color: "#6b7280", fontSize: 20 }} />
                     <Typography variant="body2">
-                      {reservaSeleccionada.usuario_id.rol_usuario.area}
+                      {capitalize(reservaSeleccionada.area)}
                     </Typography>
                   </Box>
                 )}

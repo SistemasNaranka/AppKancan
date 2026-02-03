@@ -1,6 +1,6 @@
 // src/apps/reservas/components/DialogNuevaReserva.tsx
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,10 +15,12 @@ import {
   MenuItem,
   Select,
   FormControl,
+  Chip,
 } from "@mui/material";
 import {
   Schedule as ScheduleIcon,
   CheckCircle as CheckIcon,
+  Info as InfoIcon,
 } from "@mui/icons-material";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -35,6 +37,7 @@ import {
   HORARIO_FIN,
   DURACION_MINIMA_MINUTOS,
 } from "../types/reservas.types";
+import { getConfiguracionReserva } from "../services/reservas";
 
 interface DialogNuevaReservaProps {
   open: boolean;
@@ -51,10 +54,10 @@ interface DialogNuevaReservaProps {
   horaInicial?: string;
 }
 
-// Generar opciones de hora en formato AM/PM
-const generarOpcionesHora = () => {
+// Generar opciones de hora dinámicamente según configuración
+const generarOpcionesHora = (horaInicio: number = 7, horaFin: number = 17) => {
   const opciones: { value: string; label: string }[] = [];
-  for (let h = 7; h <= 17; h++) {
+  for (let h = horaInicio; h <= horaFin; h++) {
     for (let m = 0; m < 60; m += 30) {
       const hora24 = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
       const hora12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
@@ -66,66 +69,19 @@ const generarOpcionesHora = () => {
   return opciones;
 };
 
-const OPCIONES_HORA = generarOpcionesHora();
+// Función para formatear hora a formato legible (12h)
+const formatearHoraLegible = (hora24: string): string => {
+  const [h, m] = hora24.split(":").map(Number);
+  const hora12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  const ampm = h >= 12 ? "PM" : "AM";
+  return `${hora12}:${m.toString().padStart(2, "0")} ${ampm}`;
+};
 
 // Info de salas
 const INFO_SALAS: Record<string, string> = {
-  "Sala A": "Grande",
-  "Sala B": "Compacta",
+  "Sala Principal": "Grande",
+  "Sala Secundaria": "Compacta",
 };
-
-const schema = yup.object({
-  nombre_sala: yup.string().required("Selecciona una sala"),
-  fecha: yup
-    .string()
-    .required("Selecciona una fecha")
-    .test("fecha-valida", "No puedes reservar fechas pasadas", (value) => {
-      if (!value) return false;
-      const fechaSeleccionada = new Date(value + "T00:00:00");
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      return fechaSeleccionada >= hoy;
-    }),
-  hora_inicio: yup
-    .string()
-    .required("Selecciona hora de inicio")
-    .test("horario-minimo", `Debe ser desde las ${HORARIO_INICIO}`, (value) => {
-      if (!value) return false;
-      return value >= HORARIO_INICIO;
-    })
-    .test("horario-maximo", `Debe ser antes de las ${HORARIO_FIN}`, (value) => {
-      if (!value) return false;
-      return value < HORARIO_FIN;
-    }),
-  hora_final: yup
-    .string()
-    .required("Selecciona hora de fin")
-    .test("duracion-minima", `La reunión debe durar mínimo ${DURACION_MINIMA_MINUTOS} minutos`, function (value) {
-      const { hora_inicio } = this.parent;
-      if (!value || !hora_inicio) return false;
-
-      const [horaIni, minIni] = hora_inicio.split(":").map(Number);
-      const [horaFin, minFin] = value.split(":").map(Number);
-
-      const minutosInicio = horaIni * 60 + minIni;
-      const minutosFin = horaFin * 60 + minFin;
-
-      return minutosFin - minutosInicio >= DURACION_MINIMA_MINUTOS;
-    })
-    .test("hora-mayor", "La hora de fin debe ser mayor a la hora de inicio", function (value) {
-      const { hora_inicio } = this.parent;
-      if (!value || !hora_inicio) return false;
-      return value > hora_inicio;
-    }),
-  titulo: yup
-    .string()
-    .required("El título es obligatorio")
-    .min(3, "Mínimo 3 caracteres")
-    .max(100, "Máximo 100 caracteres"),
-  observaciones: yup
-    .string()
-    .max(500, "Máximo 500 caracteres"),
-});
 
 const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   open,
@@ -138,6 +94,116 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [configCargando, setConfigCargando] = useState(true);
+  
+  // Estado para la configuración de horarios
+  const [horarioConfig, setHorarioConfig] = useState({
+    horaApertura: HORARIO_INICIO,
+    horaCierre: HORARIO_FIN,
+  });
+
+  // Generar opciones de hora dinámicamente
+  const opcionesHora = useMemo(() => {
+    const horaInicioNum = parseInt(horarioConfig.horaApertura.split(":")[0]);
+    const horaFinNum = parseInt(horarioConfig.horaCierre.split(":")[0]);
+    return generarOpcionesHora(horaInicioNum, horaFinNum);
+  }, [horarioConfig]);
+
+  // Cargar configuración de horarios al abrir el diálogo
+  useEffect(() => {
+    const cargarConfiguracion = async () => {
+      setConfigCargando(true);
+      try {
+        const config = await getConfiguracionReserva();
+        if (config) {
+          const horaApertura = config.hora_apertura?.substring(0, 5) || HORARIO_INICIO;
+          const horaCierre = config.hora_cierre?.substring(0, 5) || HORARIO_FIN;
+          setHorarioConfig({ horaApertura, horaCierre });
+        }
+      } catch (err) {
+        console.error("Error cargando configuración:", err);
+      } finally {
+        setConfigCargando(false);
+      }
+    };
+
+    if (open) {
+      cargarConfiguracion();
+    }
+  }, [open]);
+
+  // Schema de validación dinámico basado en la configuración
+  const schema = useMemo(() => yup.object({
+    nombre_sala: yup.string().required("Selecciona una sala"),
+    fecha: yup
+      .string()
+      .required("Selecciona una fecha")
+      .test("fecha-valida", "No puedes reservar fechas pasadas", (value) => {
+        if (!value) return false;
+        const fechaSeleccionada = new Date(value + "T00:00:00");
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        return fechaSeleccionada >= hoy;
+      }),
+    hora_inicio: yup
+      .string()
+      .required("Selecciona hora de inicio")
+      .test(
+        "horario-minimo",
+        `Debe ser desde las ${formatearHoraLegible(horarioConfig.horaApertura)}`,
+        (value) => {
+          if (!value) return false;
+          return value >= horarioConfig.horaApertura;
+        }
+      )
+      .test(
+        "horario-maximo",
+        `Debe ser antes de las ${formatearHoraLegible(horarioConfig.horaCierre)}`,
+        (value) => {
+          if (!value) return false;
+          return value < horarioConfig.horaCierre;
+        }
+      ),
+    hora_final: yup
+      .string()
+      .required("Selecciona hora de fin")
+      .test(
+        "duracion-minima",
+        `La reunión debe durar mínimo ${DURACION_MINIMA_MINUTOS} minutos`,
+        function (value) {
+          const { hora_inicio } = this.parent;
+          if (!value || !hora_inicio) return false;
+          const [horaIni, minIni] = hora_inicio.split(":").map(Number);
+          const [horaFin, minFin] = value.split(":").map(Number);
+          const minutosInicio = horaIni * 60 + minIni;
+          const minutosFin = horaFin * 60 + minFin;
+          return minutosFin - minutosInicio >= DURACION_MINIMA_MINUTOS;
+        }
+      )
+      .test(
+        "hora-mayor",
+        "La hora de fin debe ser mayor a la hora de inicio",
+        function (value) {
+          const { hora_inicio } = this.parent;
+          if (!value || !hora_inicio) return false;
+          return value > hora_inicio;
+        }
+      )
+      .test(
+        "horario-maximo-cierre",
+        `Debe ser hasta las ${formatearHoraLegible(horarioConfig.horaCierre)}`,
+        (value) => {
+          if (!value) return false;
+          return value <= horarioConfig.horaCierre;
+        }
+      ),
+    titulo: yup
+      .string()
+      .required("El título es obligatorio")
+      .min(3, "Mínimo 3 caracteres")
+      .max(100, "Máximo 100 caracteres"),
+    observaciones: yup.string().max(500, "Máximo 500 caracteres"),
+  }), [horarioConfig]);
 
   const {
     control,
@@ -150,15 +216,28 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     defaultValues: {
       nombre_sala: "" as Sala,
       fecha: format(new Date(), "yyyy-MM-dd"),
-      hora_inicio: "09:00",
-      hora_final: "10:00",
+      hora_inicio: horarioConfig.horaApertura,
+      hora_final: "",
       titulo: "",
       observaciones: "",
     },
   });
 
+  // Actualizar valores cuando cambia la configuración
   useEffect(() => {
-    if (open) {
+    if (!configCargando && opcionesHora.length > 0) {
+      // Establecer hora inicial según configuración
+      const horaInicioDefault = horarioConfig.horaApertura;
+      const [h] = horaInicioDefault.split(":").map(Number);
+      const horaFinDefault = `${(h + 1).toString().padStart(2, "0")}:00`;
+      
+      setValue("hora_inicio", horaInicioDefault);
+      setValue("hora_final", horaFinDefault);
+    }
+  }, [configCargando, opcionesHora, horarioConfig, setValue]);
+
+  useEffect(() => {
+    if (open && !configCargando) {
       if (fechaInicial) {
         setValue("fecha", fechaInicial);
       } else {
@@ -170,13 +249,21 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       }
       
       if (horaInicial) {
-        setValue("hora_inicio", horaInicial);
-        const [h] = horaInicial.split(":").map(Number);
-        const horaFin = `${(h + 1).toString().padStart(2, "0")}:00`;
-        setValue("hora_final", horaFin);
+        // Validar que la hora inicial esté dentro del rango permitido
+        if (horaInicial >= horarioConfig.horaApertura && horaInicial < horarioConfig.horaCierre) {
+          setValue("hora_inicio", horaInicial);
+          const [h] = horaInicial.split(":").map(Number);
+          const horaFin = `${(h + 1).toString().padStart(2, "0")}:00`;
+          // Asegurar que la hora fin no exceda el cierre
+          if (horaFin <= horarioConfig.horaCierre) {
+            setValue("hora_final", horaFin);
+          } else {
+            setValue("hora_final", horarioConfig.horaCierre);
+          }
+        }
       }
     }
-  }, [open, fechaInicial, salaInicial, horaInicial, setValue]);
+  }, [open, configCargando, fechaInicial, salaInicial, horaInicial, horarioConfig, setValue]);
 
   const handleClose = () => {
     reset();
@@ -369,66 +456,87 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                   </Box>
 
                   {/* Hora de Inicio y Hora de Fin */}
-                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-                    <Box>
-                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                        Hora de Inicio *
+                  <Box>
+                    {/* Indicador visual del rango válido */}
+                    <Box 
+                      sx={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: 1, 
+                        mb: 2,
+                        p: 1.5,
+                        backgroundColor: "#EFF6FF",
+                        borderRadius: 1,
+                        border: "1px solid #BFDBFE"
+                      }}
+                    >
+                      <InfoIcon sx={{ color: "#3B82F6", fontSize: 20 }} />
+                      <Typography variant="body2" sx={{ color: "#1E40AF" }}>
+                        Horario disponible: <strong>{formatearHoraLegible(horarioConfig.horaApertura)}</strong> a <strong>{formatearHoraLegible(horarioConfig.horaCierre)}</strong>
                       </Typography>
-                      <Controller
-                        name="hora_inicio"
-                        control={control}
-                        render={({ field }) => (
-                          <FormControl fullWidth error={!!errors.hora_inicio}>
-                            <Select
-                              {...field}
-                              disabled={loading}
-                              size="small"
-                              sx={{ backgroundColor: "white" }}
-                            >
-                              {OPCIONES_HORA.map((opcion) => (
-                                <MenuItem key={opcion.value} value={opcion.value}>
-                                  {opcion.label}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                            {errors.hora_inicio && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                {errors.hora_inicio.message}
-                              </Typography>
-                            )}
-                          </FormControl>
-                        )}
-                      />
                     </Box>
-                    <Box>
-                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                        Hora de Fin *
-                      </Typography>
-                      <Controller
-                        name="hora_final"
-                        control={control}
-                        render={({ field }) => (
-                          <FormControl fullWidth error={!!errors.hora_final}>
-                            <Select
-                              {...field}
-                              disabled={loading}
-                              size="small"
-                              sx={{ backgroundColor: "white" }}
-                            >
-                              {OPCIONES_HORA.map((opcion) => (
-                                <MenuItem key={opcion.value} value={opcion.value}>
-                                  {opcion.label}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                            {errors.hora_final && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                {errors.hora_final.message}
-                              </Typography>
-                            )}
-                          </FormControl>
-                        )}
-                      />
+
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                          Hora de Inicio *
+                        </Typography>
+                        <Controller
+                          name="hora_inicio"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth error={!!errors.hora_inicio}>
+                              <Select
+                                {...field}
+                                disabled={loading || configCargando}
+                                size="small"
+                                sx={{ backgroundColor: "white" }}
+                              >
+                                {opcionesHora.map((opcion) => (
+                                  <MenuItem key={opcion.value} value={opcion.value}>
+                                    {opcion.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              {errors.hora_inicio && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                                  {errors.hora_inicio.message}
+                                </Typography>
+                              )}
+                            </FormControl>
+                          )}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                          Hora de Fin *
+                        </Typography>
+                        <Controller
+                          name="hora_final"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth error={!!errors.hora_final}>
+                              <Select
+                                {...field}
+                                disabled={loading || configCargando}
+                                size="small"
+                                sx={{ backgroundColor: "white" }}
+                              >
+                                {opcionesHora.map((opcion) => (
+                                  <MenuItem key={opcion.value} value={opcion.value}>
+                                    {opcion.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              {errors.hora_final && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                                  {errors.hora_final.message}
+                                </Typography>
+                              )}
+                            </FormControl>
+                          )}
+                        />
+                      </Box>
                     </Box>
                   </Box>
 
@@ -480,8 +588,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                       render={({ field }) => (
                         <StaticDatePicker
                           value={field.value ? parse(field.value, "yyyy-MM-dd", new Date()) : null}
-                          onChange={handleDateChange}
-                          shouldDisableDate={shouldDisableDate}
                           disabled={loading}
                           displayStaticWrapperAs="desktop"
                           slotProps={{

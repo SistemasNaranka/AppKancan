@@ -11,6 +11,7 @@ import {
 import { ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
 import { format } from "date-fns";
 import type { Reserva } from "../types/reservas.types";
+import { capitalize } from "../types/reservas.types";
 
 interface ProximasReunionesProps {
   reservas: Reserva[];
@@ -20,8 +21,8 @@ interface ProximasReunionesProps {
 
 // Colores para chips de sala
 const COLORES_SALA: Record<string, { bg: string; color: string }> = {
-  "Sala A": { bg: "#DBEAFE", color: "#1D4ED8" },
-  "Sala B": { bg: "#E0F2FE", color: "#0369A1" },
+  "Sala Principal": { bg: "#DBEAFE", color: "#1D4ED8" },
+  "Sala Secundaria": { bg: "#E0F2FE", color: "#0369A1" },
 };
 
 const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
@@ -238,7 +239,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {reserva.usuario_id?.rol_usuario?.area || "Sin área"}
+                {capitalize(reserva.area) || "-"}
               </Typography>
 
               {/* Estado */}

@@ -19,7 +19,7 @@ import {
 import { format, differenceInSeconds } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Reserva } from "../types/reservas.types";
-import { SALAS_DISPONIBLES } from "../types/reservas.types";
+import { SALAS_DISPONIBLES, capitalize } from "../types/reservas.types";
 
 interface EstadoSalasProps {
   reservas: Reserva[];
@@ -37,8 +37,8 @@ interface EstadoSala {
 
 // Información adicional de las salas
 const INFO_SALAS: Record<string, { tipo: string }> = {
-  "Sala A": { tipo: "" },
-  "Sala B": { tipo: "" },
+  "Sala Princiapal": { tipo: "" },
+  "Sala Secundaria": { tipo: "" },
 };
 
 const EstadoSalas: React.FC<EstadoSalasProps> = ({
@@ -165,7 +165,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
         }}
       >
         {estadosSalas.map((estado) => {
-          const infoSala = INFO_SALAS[estado.sala] || { tipo: "Sala", capacidad: 10 };
+          const infoSala = INFO_SALAS[estado.sala] || { tipo: "", capacidad: 10 };
 
           if (estado.ocupada && estado.reunionActual) {
             // Card OCUPADO - Mostrar solo el TÍTULO
@@ -227,11 +227,6 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         {estado.reunionActual.usuario_id
                           ? `${estado.reunionActual.usuario_id.first_name} ${estado.reunionActual.usuario_id.last_name}`
                           : "Usuario"}
-                        {estado.reunionActual.usuario_id?.rol_usuario?.area && (
-                          <Typography component="span" sx={{ color: "#6b7280" }}>
-                            {" "}({estado.reunionActual.usuario_id.rol_usuario.area})
-                          </Typography>
-                        )}
                       </Typography>
                     </Box>
                   </Box>
