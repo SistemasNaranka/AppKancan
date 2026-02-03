@@ -7,7 +7,14 @@ import ReservasView from "../views/ReservasView";
 
 const Home: React.FC = () => {
   return (
-    <Box sx={{ p: 3, minHeight: "100vh", backgroundColor: "#f6f7f8" }}>
+    <Box
+      sx={{
+        paddingX: 3,
+        paddingY: 0,
+        minHeight: "100vh",
+        backgroundColor: "transparent",
+      }}
+    >
       {/* Header con título e ícono */}
       <Box
         sx={{

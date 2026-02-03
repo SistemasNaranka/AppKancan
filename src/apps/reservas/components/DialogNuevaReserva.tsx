@@ -1,6 +1,6 @@
 // src/apps/reservas/components/DialogNuevaReserva.tsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,11 +15,9 @@ import {
   MenuItem,
   Select,
   FormControl,
-  InputLabel,
 } from "@mui/material";
 import {
   Schedule as ScheduleIcon,
-  Info as InfoIcon,
   CheckCircle as CheckIcon,
 } from "@mui/icons-material";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
@@ -119,11 +117,14 @@ const schema = yup.object({
       if (!value || !hora_inicio) return false;
       return value > hora_inicio;
     }),
-  observaciones: yup
+  titulo: yup
     .string()
     .required("El título es obligatorio")
     .min(3, "Mínimo 3 caracteres")
     .max(100, "Máximo 100 caracteres"),
+  observaciones: yup
+    .string()
+    .max(500, "Máximo 500 caracteres"),
 });
 
 const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
@@ -144,7 +145,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     formState: { errors },
     reset,
     setValue,
-    watch,
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -152,11 +152,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       fecha: format(new Date(), "yyyy-MM-dd"),
       hora_inicio: "09:00",
       hora_final: "10:00",
+      titulo: "",
       observaciones: "",
     },
   });
-
-  const fechaActual = watch("fecha");
 
   useEffect(() => {
     if (open) {
@@ -220,7 +219,18 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         }
       }
 
-      await onSubmit(data);
+      // Combinar título y observaciones para guardar en el campo observaciones de la BD
+      const observacionesCombinadas = data.observaciones 
+        ? `${data.titulo}\n---\n${data.observaciones}`
+        : data.titulo;
+
+      await onSubmit({
+        nombre_sala: data.nombre_sala,
+        fecha: data.fecha,
+        hora_inicio: data.hora_inicio,
+        hora_final: data.hora_final,
+        observaciones: observacionesCombinadas,
+      });
       handleClose();
     } catch (err: any) {
       setError(err.message || "Error al crear la reserva");
@@ -243,7 +253,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         maxWidth="md" 
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 3, maxWidth: 800 }
+          sx: { borderRadius: 3, maxWidth: 850 }
         }}
       >
         <DialogContent sx={{ p: 0 }}>
@@ -281,23 +291,24 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                 }}
               >
                 {/* Columna izquierda */}
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {/* Título de la Reunión */}
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                      Título de la Reunión
+                      Título de la Reunión *
                     </Typography>
                     <Controller
-                      name="observaciones"
+                      name="titulo"
                       control={control}
                       render={({ field }) => (
                         <TextField
                           {...field}
                           fullWidth
                           placeholder="ej. Sincronización Semanal"
-                          error={!!errors.observaciones}
-                          helperText={errors.observaciones?.message}
+                          error={!!errors.titulo}
+                          helperText={errors.titulo?.message}
                           disabled={loading}
+                          size="small"
                           sx={{
                             "& .MuiOutlinedInput-root": {
                               backgroundColor: "white",
@@ -311,7 +322,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                   {/* Seleccionar Sala */}
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                      Seleccionar Sala
+                      Seleccionar Sala *
                     </Typography>
                     <Controller
                       name="nombre_sala"
@@ -325,10 +336,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           sx={{
                             "& .MuiToggleButton-root": {
                               flex: 1,
-                              py: 1.5,
+                              py: 1,
                               textTransform: "none",
                               fontWeight: 500,
-                              fontSize: "0.9rem",
+                              fontSize: "0.875rem",
                               border: "1px solid #d1d5db",
                               backgroundColor: "white",
                               "&.Mui-selected": {
@@ -364,7 +375,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                   <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
                     <Box>
                       <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                        Hora de Inicio
+                        Hora de Inicio *
                       </Typography>
                       <Controller
                         name="hora_inicio"
@@ -374,6 +385,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                             <Select
                               {...field}
                               disabled={loading}
+                              size="small"
                               sx={{ backgroundColor: "white" }}
                             >
                               {OPCIONES_HORA.map((opcion) => (
@@ -393,7 +405,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                     </Box>
                     <Box>
                       <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                        Hora de Fin
+                        Hora de Fin *
                       </Typography>
                       <Controller
                         name="hora_final"
@@ -403,6 +415,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                             <Select
                               {...field}
                               disabled={loading}
+                              size="small"
                               sx={{ backgroundColor: "white" }}
                             >
                               {OPCIONES_HORA.map((opcion) => (
@@ -422,34 +435,39 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Nota sobre horario */}
-                  {/* <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 1,
-                      p: 2,
-                      backgroundColor: "#FEF3C7",
-                      borderRadius: 2,
-                      border: "1px solid #F59E0B",
-                    }}
-                  >
-                    <InfoIcon sx={{ color: "#D97706", fontSize: 20, mt: 0.25 }} />
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#92400E" }}>
-                        NOTA
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#92400E" }}>
-                        Las reservaciones están estrictamente limitadas al horario comercial (07:00 AM - 05:00 PM).
-                      </Typography>
-                    </Box>
-                  </Box> */}
+                  {/* Observaciones */}
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                      Observaciones
+                    </Typography>
+                    <Controller
+                      name="observaciones"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          multiline
+                          rows={3}
+                          placeholder="Detalles adicionales, participantes, materiales necesarios..."
+                          error={!!errors.observaciones}
+                          helperText={errors.observaciones?.message || "Opcional - máximo 500 caracteres"}
+                          disabled={loading}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "white",
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                  </Box>
                 </Box>
 
                 {/* Columna derecha - Calendario */}
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                    Fecha
+                    Fecha *
                   </Typography>
                   <Box
                     sx={{

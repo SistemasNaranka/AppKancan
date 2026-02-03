@@ -22,7 +22,11 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Reserva, EstadoReserva } from "../types/reservas.types";
-import { COLORES_ESTADO, COLORES_TEXTO_ESTADO, puedeModificarse } from "../types/reservas.types";
+import {
+  COLORES_ESTADO,
+  COLORES_TEXTO_ESTADO,
+  puedeModificarse,
+} from "../types/reservas.types";
 
 interface MisReservasCardsProps {
   reservas: Reserva[];
@@ -40,22 +44,23 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   loading = false,
 }) => {
   // Separar reservas por estado calculado
-  const getEstado = (r: Reserva) => (r.estadoCalculado || r.estado)?.toLowerCase() || "";
-  
+  const getEstado = (r: Reserva) =>
+    (r.estadoCalculado || r.estado)?.toLowerCase() || "";
+
   const reservasEnCurso = reservas.filter((r) => getEstado(r) === "en curso");
   const reservasVigentes = reservas.filter((r) => getEstado(r) === "vigente");
-  const reservasFinalizadas = reservas.filter((r) => 
-    getEstado(r) === "finalizado" || getEstado(r) === "finalizada"
+  const reservasFinalizadas = reservas.filter(
+    (r) => getEstado(r) === "finalizado" || getEstado(r) === "finalizada",
   );
-  const reservasCanceladas = reservas.filter((r) => 
-    getEstado(r) === "cancelado" || getEstado(r) === "cancelada"
+  const reservasCanceladas = reservas.filter(
+    (r) => getEstado(r) === "cancelado" || getEstado(r) === "cancelada",
   );
 
   const puedeModificar = (reserva: Reserva): boolean => {
     if (!usuarioActualId) return false;
     if (!reserva.usuario_id) return false;
     if (reserva.usuario_id.id !== usuarioActualId) return false;
-    
+
     const estadoActual = reserva.estadoCalculado || reserva.estado;
     if (!puedeModificarse(estadoActual)) return false;
 
@@ -66,7 +71,9 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
 
   const formatearFecha = (fecha: string): string => {
     try {
-      return format(new Date(fecha + "T12:00:00"), "EEE, d MMM yyyy", { locale: es });
+      return format(new Date(fecha + "T12:00:00"), "EEE, d MMM yyyy", {
+        locale: es,
+      });
     } catch {
       return fecha;
     }
@@ -112,14 +119,17 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     const estadoLower = estado?.toLowerCase() || "";
     if (estadoLower === "en curso") return estilosCard["en curso"];
     if (estadoLower === "vigente") return estilosCard.vigente;
-    if (estadoLower === "finalizado" || estadoLower === "finalizada") return estilosCard.finalizado;
-    if (estadoLower === "cancelado" || estadoLower === "cancelada") return estilosCard.cancelado;
+    if (estadoLower === "finalizado" || estadoLower === "finalizada")
+      return estilosCard.finalizado;
+    if (estadoLower === "cancelado" || estadoLower === "cancelada")
+      return estilosCard.cancelado;
     return estilosCard.finalizado;
   };
 
   const ReservaCard: React.FC<{ reserva: Reserva }> = ({ reserva }) => {
     const canModify = puedeModificar(reserva);
-    const estadoMostrar = (reserva.estadoCalculado || reserva.estado) as EstadoReserva;
+    const estadoMostrar = (reserva.estadoCalculado ||
+      reserva.estado) as EstadoReserva;
     const estilo = getEstiloCard(estadoMostrar);
 
     return (
@@ -137,11 +147,11 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
       >
         <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
           {/* Header con Estado y Acciones */}
-          <Box 
-            sx={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
-              alignItems: "flex-start", 
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
               mb: 1.5,
               gap: 1,
             }}
@@ -168,7 +178,9 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
                       sx={{
                         color: "#1976d2",
                         padding: "4px",
-                        "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.08)" }
+                        "&:hover": {
+                          backgroundColor: "rgba(25, 118, 210, 0.08)",
+                        },
                       }}
                     >
                       <EditIcon sx={{ fontSize: 18 }} />
@@ -183,7 +195,9 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
                       sx={{
                         color: "#ef4444",
                         padding: "4px",
-                        "&:hover": { backgroundColor: "rgba(239, 68, 68, 0.08)" }
+                        "&:hover": {
+                          backgroundColor: "rgba(239, 68, 68, 0.08)",
+                        },
                       }}
                     >
                       <CancelIcon sx={{ fontSize: 18 }} />
@@ -219,24 +233,32 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
             <TimeIcon sx={{ fontSize: 18, color: "#64748b" }} />
             <Typography variant="body2" sx={{ color: "#475569" }}>
-              {formatearHora(reserva.hora_inicio)} - {formatearHora(reserva.hora_final)}
+              {formatearHora(reserva.hora_inicio)} -{" "}
+              {formatearHora(reserva.hora_final)}
             </Typography>
           </Box>
 
           {/* Área */}
-          {reserva.usuario_id?.rol_usuario?.area && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
-              <AreaIcon sx={{ fontSize: 18, color: "#64748b" }} />
-              <Typography variant="body2" sx={{ color: "#475569" }}>
-                {reserva.usuario_id.rol_usuario.area}
-              </Typography>
-            </Box>
-          )}
+          {reserva.area ||
+            (reserva.usuario_id?.rol_usuario?.area && (
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}
+              >
+                <AreaIcon sx={{ fontSize: 18, color: "#64748b" }} />
+                <Typography variant="body2" sx={{ color: "#475569" }}>
+                  {reserva.area || reserva.usuario_id?.rol_usuario?.area}
+                </Typography>
+              </Box>
+            ))}
 
           {/* Observaciones */}
           {reserva.observaciones && (
-            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mt: 1 }}>
-              <DescriptionIcon sx={{ fontSize: 18, color: "#64748b", mt: 0.25 }} />
+            <Box
+              sx={{ display: "flex", alignItems: "flex-start", gap: 1, mt: 1 }}
+            >
+              <DescriptionIcon
+                sx={{ fontSize: 18, color: "#64748b", mt: 0.25 }}
+              />
               <Typography
                 variant="body2"
                 sx={{

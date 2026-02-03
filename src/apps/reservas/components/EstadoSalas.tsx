@@ -151,10 +151,10 @@ const calcularTiempoRestante = (horaFinal: string): string => {
             textTransform: "none",
             fontWeight: "bold",
             boxShadow: "none",
-            backgroundColor: "#2196F3",
+            backgroundColor: "#004680",
             "&:hover": {
               boxShadow: "none",
-              backgroundColor: "#0d87ea",
+              backgroundColor: "#005AA3",
             },
           }}
         >
@@ -192,7 +192,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                 {/* Header azul */}
                 <Box
                   sx={{
-                    background: "#2196F3",
+                    background: "#004680",
                     color: "white",
                     p: 2.5,
                   }}
@@ -223,7 +223,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                 <Box sx={{ p: 2.5 }}>
                   {/* Organizador */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <PersonOutlineOutlinedIcon sx={{ color: "#2196F3", fontSize: 20, mt: 0.25 }} />
+                    <PersonOutlineOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
                     <Box>
                       <Typography variant="caption" sx={{ color: "#6b7280", display: "block", fontWeight: 600 }}>
                         ORGANIZADOR ACTUAL
@@ -243,9 +243,9 @@ const calcularTiempoRestante = (horaFinal: string): string => {
 
                   {/* Reunión actual */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <DescriptionOutlinedIcon sx={{ color: "#2196F3", fontSize: 20, mt: 0.25 }} />
+                    <DescriptionOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#2196F3", display: "block", fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ color: "#004680", display: "block", fontWeight: 600 }}>
                         REUNIÓN ACTUAL
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -272,7 +272,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                         variant="h4"
                         sx={{
                           fontWeight: 700,
-                          color: "#2196F3",
+                          color: "#004680",
                           fontFamily: "monospace",
                         }}
                       >
@@ -288,8 +288,8 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                         color: "#374151",
                         borderRadius: 2,
                         "&:hover": {
-                          borderColor: "#2196F3",
-                          color: "#2196F3",
+                          borderColor: "#004680",
+                          color: "#005AA3",
                         },
                       }}
                     >
@@ -318,7 +318,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                 {/* Header verde */}
                 <Box
                   sx={{
-                    background: "#15d293",
+                    background: "#0F9568",
                     color: "white",
                     p: 2.5,
                   }}
@@ -349,7 +349,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                 <Box sx={{ p: 2.5 }}>
                   {/* Estado actual */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <CheckCircleOutlineOutlinedIcon sx={{ color: "#15d293", fontSize: 20, mt: 0.25 }} />
+                    <CheckCircleOutlineOutlinedIcon sx={{ color: "#0F9568", fontSize: 20, mt: 0.25 }} />
                     <Box>
                       <Typography variant="caption" sx={{ color: "#6b7280", display: "block", fontWeight: 600 }}>
                         ESTADO ACTUAL
@@ -362,9 +362,9 @@ const calcularTiempoRestante = (horaFinal: string): string => {
 
                   {/* Próxima reserva */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 2 }}>
-                    <AccessTimeOutlinedIcon sx={{ color: "#2196F3", fontSize: 20, mt: 0.25 }} />
+                    <AccessTimeOutlinedIcon sx={{ color: "#004680", fontSize: 20, mt: 0.25 }} />
                     <Box>
-                      <Typography variant="caption" sx={{ color: "#2196F3", display: "block", fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ color: "#004680", display: "block", fontWeight: 600 }}>
                         PRÓXIMA RESERVA
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500, color: "#6f7073"}}>
@@ -393,7 +393,7 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                         variant="h5"
                         sx={{
                           fontWeight: 700,
-                          color: "#15d293",
+                          color: "#0F9568",
                         }}
                       >
                         Ahora
@@ -405,11 +405,11 @@ const calcularTiempoRestante = (horaFinal: string): string => {
                       sx={{
                         textTransform: "none",
                         fontWeight: "bold",
-                        backgroundColor: "#15d293",
+                        backgroundColor: "#0F9568",
                         borderRadius: 2,
                         boxShadow: "none",
                         "&:hover": {
-                          backgroundColor: "#00af75",
+                          borderColor: "#00af75",
                           boxShadow: "none",
                         },
                       }}

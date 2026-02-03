@@ -27,6 +27,7 @@ export interface Reserva {
   hora_final: string;
   estado: EstadoReserva;
   observaciones: string;
+  area?: string; // ✅ Área de la reserva (guardado en BD)
   // Campo calculado en frontend
   estadoCalculado?: EstadoReserva;
 }
@@ -35,12 +36,12 @@ export interface Reserva {
  * Estados posibles de una reserva
  * "En curso" se calcula dinámicamente, no se guarda en BD
  */
-export type EstadoReserva = 
-  | "Vigente" 
+export type EstadoReserva =
+  | "Vigente"
   | "En curso"
-  | "Finalizada" 
-  | "Finalizado" 
-  | "Cancelada" 
+  | "Finalizada"
+  | "Finalizado"
+  | "Cancelada"
   | "Cancelado";
 
 /**
@@ -48,7 +49,7 @@ export type EstadoReserva =
  */
 export const ESTADOS_FILTRO = [
   "Vigente",
-  "En curso", 
+  "En curso",
   "Finalizado",
   "Cancelado",
 ] as const;
@@ -61,10 +62,7 @@ export type Sala = "Sala A" | "Sala B";
 /**
  * Lista de salas disponibles
  */
-export const SALAS_DISPONIBLES: Sala[] = [
-  "Sala A",
-  "Sala B",
-];
+export const SALAS_DISPONIBLES: Sala[] = ["Sala A", "Sala B"];
 
 /**
  * Información de configuración de las salas
@@ -83,6 +81,7 @@ export interface NuevaReserva {
   hora_inicio: string;
   hora_final: string;
   observaciones: string;
+  area?: string | null; // ✅ Área de la reserva (puede ser null)
 }
 
 /**
@@ -111,24 +110,24 @@ export interface FiltrosReserva {
  * Configuración de colores de FONDO por estado
  */
 export const COLORES_ESTADO: Record<EstadoReserva, string> = {
-  "Vigente": "#DCFCE7",
+  Vigente: "#DCFCE7",
   "En curso": "#DBEAFE",
-  "Finalizada": "#F3F4F6",
-  "Finalizado": "#F3F4F6",
-  "Cancelada": "#FEE2E2",
-  "Cancelado": "#FEE2E2",
+  Finalizada: "#F3F4F6",
+  Finalizado: "#F3F4F6",
+  Cancelada: "#FEE2E2",
+  Cancelado: "#FEE2E2",
 };
 
 /**
  * Configuración de colores de TEXTO por estado
  */
 export const COLORES_TEXTO_ESTADO: Record<EstadoReserva, string> = {
-  "Vigente": "#166534",
+  Vigente: "#166534",
   "En curso": "#1D4ED8",
-  "Finalizada": "#374151",
-  "Finalizado": "#374151",
-  "Cancelada": "#DC2626",
-  "Cancelado": "#DC2626",
+  Finalizada: "#374151",
+  Finalizado: "#374151",
+  Cancelada: "#DC2626",
+  Cancelado: "#DC2626",
 };
 
 /**

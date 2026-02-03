@@ -1,14 +1,7 @@
 // src/apps/reservas/components/ProximasReuniones.tsx
 
 import React, { useMemo } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  Chip,
-  Avatar,
-  Link,
-} from "@mui/material";
+import { Box, Paper, Typography, Chip, Avatar, Link } from "@mui/material";
 import { ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
 import { format } from "date-fns";
 import type { Reserva } from "../types/reservas.types";
@@ -26,7 +19,14 @@ const COLORES_SALA: Record<string, { bg: string; color: string }> = {
 };
 
 // Colores para avatares
-const COLORES_AVATAR = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
+const COLORES_AVATAR = [
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#EC4899",
+];
 
 const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
   reservas,
@@ -46,7 +46,10 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     // Contar solo las pendientes (vigentes y en curso, no canceladas ni finalizadas)
     const pendientes = todasHoy.filter((r) => {
       const estado = (r.estadoCalculado || r.estado)?.toLowerCase();
-      return (estado === "vigente" || estado === "en curso") && r.hora_final > horaActual;
+      return (
+        (estado === "vigente" || estado === "en curso") &&
+        r.hora_final > horaActual
+      );
     }).length;
 
     return {
@@ -72,17 +75,21 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
 
   // Obtener color del avatar basado en el nombre
   const getColorAvatar = (nombre: string): string => {
-    const index = nombre.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const index = nombre
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return COLORES_AVATAR[index % COLORES_AVATAR.length];
   };
 
   // Obtener estado de la reserva para mostrar
-  const getEstadoDisplay = (reserva: Reserva): { texto: string; color: string } => {
+  const getEstadoDisplay = (
+    reserva: Reserva,
+  ): { texto: string; color: string } => {
     const estado = (reserva.estadoCalculado || reserva.estado)?.toLowerCase();
-    
+
     switch (estado) {
       case "en curso":
-        return { texto: "En Curso", color: "#3B82F6" };
+        return { texto: "En Curso", color: "#004680" };
       case "vigente":
         return { texto: "Confirmado", color: "#10B981" };
       case "cancelado":
@@ -131,12 +138,12 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
             display: "flex",
             alignItems: "center",
             gap: 0.5,
-            color: "#3B82F6",
+            color: "#004680",
             textDecoration: "none",
             fontWeight: "bold",
             fontSize: "0.875rem",
             "&:hover": {
-            textDecoration: "underline",
+              textDecoration: "underline",
             },
           }}
         >
@@ -157,19 +164,39 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
           borderBottom: "1px solid #e0e0e0",
         }}
       >
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
           Hora
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
           Sala
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
           Asunto
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
           Organizador
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase", textAlign: "right" }}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 600,
+            color: "#6b7280",
+            textTransform: "uppercase",
+            textAlign: "right",
+          }}
+        >
           Estado
         </Typography>
       </Box>
@@ -185,7 +212,10 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
         reservasHoy.map((reserva, index) => {
           const cancelada = estaCancelada(reserva);
           const estadoInfo = getEstadoDisplay(reserva);
-          const colorSala = COLORES_SALA[reserva.nombre_sala] || { bg: "#F3F4F6", color: "#374151" };
+          const colorSala = COLORES_SALA[reserva.nombre_sala] || {
+            bg: "#F3F4F6",
+            color: "#374151",
+          };
 
           return (
             <Box
@@ -196,7 +226,8 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                 gap: 2,
                 px: 2.5,
                 py: 2,
-                borderBottom: index < reservasHoy.length - 1 ? "1px solid #f0f0f0" : "none",
+                borderBottom:
+                  index < reservasHoy.length - 1 ? "1px solid #f0f0f0" : "none",
                 opacity: cancelada ? 0.6 : 1,
                 "&:hover": {
                   backgroundColor: "#f9fafb",
@@ -212,7 +243,8 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   textDecoration: cancelada ? "line-through" : "none",
                 }}
               >
-                {formatearHora(reserva.hora_inicio)} - {formatearHora(reserva.hora_final)}
+                {formatearHora(reserva.hora_inicio)} -{" "}
+                {formatearHora(reserva.hora_final)}
               </Typography>
 
               {/* Sala */}
@@ -232,7 +264,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
               <Typography
                 variant="body2"
                 sx={{
-                  color: cancelada ? "#9ca3af" : "#3B82F6",
+                  color: cancelada ? "#9ca3af" : "#004680",
                   fontWeight: 500,
                   textDecoration: cancelada ? "line-through" : "none",
                   overflow: "hidden",
@@ -273,14 +305,15 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                       ? `${reserva.usuario_id.first_name} ${reserva.usuario_id.last_name}`
                       : "Sin asignar"}
                   </Typography>
-                  {reserva.usuario_id?.rol_usuario?.area && (
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#9ca3af", display: "block" }}
-                    >
-                      {reserva.usuario_id.rol_usuario.area}
-                    </Typography>
-                  )}
+                  {reserva.area ||
+                    (reserva.usuario_id?.rol_usuario?.area && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "#9ca3af", display: "block" }}
+                      >
+                        {reserva.area || reserva.usuario_id?.rol_usuario?.area}
+                      </Typography>
+                    ))}
                 </Box>
               </Box>
 
