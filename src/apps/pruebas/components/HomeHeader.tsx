@@ -22,6 +22,7 @@ interface HomeHeaderProps {
     valorSeleccionado: string | null;
     setValorSeleccionado: (val: string | null) => void;
     tiendasDisponibles: string[];
+    procesarArchivosRaw: (files: FileList | File[]) => Promise<void>;
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -38,8 +39,50 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     setBusqueda,
     valorSeleccionado,
     setValorSeleccionado,
-    tiendasDisponibles
+    tiendasDisponibles,
+    procesarArchivosRaw
 }) => {
+    const [dragging, setDragging] = React.useState(false);
+
+    // Estado local para debounce de búsqueda
+    const [busquedaLocal, setBusquedaLocal] = React.useState(busqueda);
+
+    // Efecto para actualizar la búsqueda global con delay
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setBusqueda(busquedaLocal);
+        }, 300); // 300ms de delay
+
+        return () => clearTimeout(timer);
+    }, [busquedaLocal, setBusqueda]);
+
+    // Sincronizar búsqueda local si cambia desde fuera (ej: limpiar)
+    React.useEffect(() => {
+        setBusquedaLocal(busqueda);
+    }, [busqueda]);
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(false);
+
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            await procesarArchivosRaw(files);
+        }
+    };
     return (
         <>
             <Box sx={{ mb: 3 }}>
@@ -49,24 +92,29 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             </Box>
 
             {/* Barra de Acciones Sticky */}
-            <Box sx={{
-                display: "flex",
-                gap: 2,
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                position: 'sticky',
-                top: 0,
-                zIndex: 1100,
-                backgroundColor: 'rgba(240, 244, 248, 0.9)', // Más transparencia
-                backdropFilter: 'blur(10px)',
-                py: 2,
-                px: 3,
-                mx: -3,  // Compensa el padding del padre (Home)
-                mb: 3,
-                borderBottom: '1px solid rgba(0,0,0,0.08)',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                transition: 'all 0.3s ease'
-            }}>
+            <Box
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                sx={{
+                    display: "flex",
+                    gap: 2,
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1100,
+                    backgroundColor: dragging ? 'rgba(1, 124, 225, 0.15)' : 'rgba(240, 244, 248, 0.9)',
+                    backdropFilter: 'blur(10px)',
+                    py: 2,
+                    px: 3,
+                    mx: -3,  // Compensa el padding del padre (Home)
+                    mb: 3,
+                    borderBottom: dragging ? '2px dashed #017ce1' : '1px solid rgba(0,0,0,0.08)',
+                    boxShadow: dragging ? '0 8px 12px -1px rgba(1, 124, 225, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                    transition: 'all 0.2s ease',
+                    cursor: dragging ? 'copy' : 'default'
+                }}>
                 <input
                     type="file"
                     accept=".csv,.xls,.xlsx"
@@ -166,8 +214,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                             options={tiendasDisponibles}
                             value={valorSeleccionado}
                             onChange={(_, newValue) => setValorSeleccionado(newValue)}
-                            inputValue={busqueda}
-                            onInputChange={(_, newInputValue) => setBusqueda(newInputValue)}
+                            inputValue={busquedaLocal}
+                            onInputChange={(_, newInputValue) => setBusquedaLocal(newInputValue)}
                             sx={{ width: 300 }}
                             renderInput={(params) => (
                                 <TextField

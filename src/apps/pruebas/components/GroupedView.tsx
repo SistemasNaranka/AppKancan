@@ -53,40 +53,57 @@ const GroupedView: React.FC<GroupedViewProps> = ({
     valorSeleccionado
 }) => {
 
-    const gruposFiltrados = useMemo(() => {
-        const query = (valorSeleccionado || busqueda).toLowerCase().trim();
-        if (!query) return gruposPorTienda;
-
-        const resultado: Record<string, Record<string, any[]>> = {};
-
-        Object.entries(gruposPorTienda).forEach(([tienda, fuentes]) => {
-            if (tienda.toLowerCase().includes(query)) {
-                resultado[tienda] = fuentes;
-            }
-        });
-
-        return resultado;
-    }, [gruposPorTienda, busqueda, valorSeleccionado]);
+    // Función optimizada para identificar la columna de valor una sola vez
+    const identificarColumnaValor = (fila: any): string | null => {
+        if (!fila) return null;
+        return Object.keys(fila).find(k => {
+            const kl = k.toLowerCase();
+            return kl.includes('valor') || kl.includes('monto') || kl.includes('total') || kl.includes('neto');
+        }) || null;
+    };
 
     // Función para calcular el total de una fuente
     const calcularTotal = (datos: any[]) => {
+        if (!datos || datos.length === 0) return 0;
+
+        // Identificar la columna una sola vez para todo el array
+        const columnaValor = identificarColumnaValor(datos[0]);
+        if (!columnaValor) return 0;
+
         return datos.reduce((acc, fila) => {
-            const v = Object.keys(fila).find(k => {
-                const kl = k.toLowerCase();
-                return kl.includes('valor') || kl.includes('monto') || kl.includes('total') || kl.includes('neto');
-            });
-            const val = fila[v || ''];
+            const val = fila[columnaValor];
             const num = typeof val === 'number' ? val : Number(String(val || 0).replace(/[^0-9.-]+/g, ""));
             return acc + (isNaN(num) ? 0 : num);
         }, 0);
     };
 
-    // Función para calcular el gran total de todas las fuentes de una tienda
-    const calcularGranTotal = (fuentes: Record<string, any[]>) => {
-        return Object.values(fuentes).reduce((total, datos) => {
-            return total + calcularTotal(datos);
-        }, 0);
-    };
+    const gruposFiltrados = useMemo(() => {
+        const query = (valorSeleccionado || busqueda).toLowerCase().trim();
+
+        // 1. Filtrar las tiendas
+        const tiendasFiltradas = query
+            ? Object.entries(gruposPorTienda).filter(([tienda]) => tienda.toLowerCase().includes(query))
+            : Object.entries(gruposPorTienda);
+
+        // 2. Calcular totales y preparar objeto de resultados
+        return tiendasFiltradas.map(([tienda, fuentes]) => {
+            const totalesPorFuente: Record<string, number> = {};
+            let granTotal = 0;
+
+            Object.entries(fuentes).forEach(([nombre, datos]) => {
+                const total = calcularTotal(datos);
+                totalesPorFuente[nombre] = total;
+                granTotal += total;
+            });
+
+            return {
+                nombre: tienda,
+                fuentes,
+                totalesPorFuente,
+                granTotal
+            };
+        });
+    }, [gruposPorTienda, busqueda, valorSeleccionado]);
 
     // Función para determinar si un valor es negativo o cero
     const esValorNegativoOCero = (valor: any, nombreColumna: string): boolean => {
@@ -119,9 +136,7 @@ const GroupedView: React.FC<GroupedViewProps> = ({
                 </Box>
             ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {Object.entries(gruposFiltrados).map(([tienda, fuentes]) => {
-                        const granTotal = calcularGranTotal(fuentes);
-
+                    {gruposFiltrados.map(({ nombre: tienda, fuentes, totalesPorFuente, granTotal }) => {
                         return (
                             <Card
                                 key={tienda}
@@ -179,7 +194,7 @@ const GroupedView: React.FC<GroupedViewProps> = ({
                                 <Box sx={{ p: 3, backgroundColor: '#f8fafc' }}>
                                     <Box sx={{
                                         display: 'grid',
-                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                        gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' },
                                         gap: 3
                                     }}>
                                         {ordenFuentes.map(fuenteNombre => {
@@ -218,7 +233,8 @@ const GroupedView: React.FC<GroupedViewProps> = ({
                                             }
 
                                             const columnasAMostrar = columnasPorFuente[fuenteNombre] || [];
-                                            const totalFuente = calcularTotal(datos);
+                                            const totalFuente = totalesPorFuente[fuenteNombre] ||
+                                                totalesPorFuente[Object.keys(totalesPorFuente).find(k => k.toUpperCase() === fuenteNombre.toUpperCase()) || ''] || 0;
 
                                             return (
                                                 <Card

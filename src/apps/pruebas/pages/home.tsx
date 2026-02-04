@@ -28,6 +28,7 @@ const Home: React.FC = () => {
     handleEliminarArchivo,
     normalizarTodosArchivos,
     exportarArchivosNormalizados,
+    procesarArchivosRaw,
     gruposPorTienda,
     columnasPorFuente,
     cargarDatosMapeo
@@ -66,7 +67,8 @@ const Home: React.FC = () => {
         setBusqueda={setBusqueda}
         valorSeleccionado={valorSeleccionado}
         setValorSeleccionado={setValorSeleccionado}
-        tiendasDisponibles={Object.keys(gruposPorTienda).sort()}
+        tiendasDisponibles={Object.keys(gruposPorTienda)}
+        procesarArchivosRaw={procesarArchivosRaw}
       />
 
       {errorMapeos && (

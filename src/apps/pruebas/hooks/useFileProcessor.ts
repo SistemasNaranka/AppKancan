@@ -11,6 +11,8 @@ import {
     validarDatosNormalizados,
     ResultadoValidacion
 } from '../utils/fileNormalization';
+import { ordenarGruposPorCodigo } from '../utils/sortingUtils';
+import { ordenarTiendasPorCodigo } from '../utils/storeSorting';
 import { formatearValor } from '../utils/formatters';
 import {
     obtenerMapeosArchivos,
@@ -77,7 +79,14 @@ export const useFileProcessor = () => {
                 reader.onload = (e) => {
                     try {
                         const arrayData = new Uint8Array(e.target?.result as ArrayBuffer);
-                        const workbook = XLSX.read(arrayData, { type: "array", cellDates: true });
+                        // Optimizar lectura: ignorar estilos y fórmulas si no son necesarios
+                        const workbook = XLSX.read(arrayData, {
+                            type: "array",
+                            cellDates: true,
+                            cellStyles: false,
+                            cellFormula: false,
+                            cellNF: false
+                        });
                         const hojasUtiles = workbook.SheetNames.filter(name => !name.toLowerCase().includes("portada"));
                         const nombreHoja = hojasUtiles.length > 0 ? hojasUtiles[0] : workbook.SheetNames[0];
                         const hoja = workbook.Sheets[nombreHoja];
@@ -103,30 +112,51 @@ export const useFileProcessor = () => {
         });
     };
 
+    const procesarArchivosRaw = async (files: FileList | File[]) => {
+        if (!files || files.length === 0) return;
+        setCargando(true);
+
+        const fileArray = Array.from(files);
+
+        try {
+            // Procesar todos los archivos en paralelo
+            const nuevosArchivos = await Promise.all(fileArray.map(async (file) => {
+                try {
+                    const nuevoArchivo = await leerArchivo(file);
+                    const resultadoDecision = findBestMatch(nuevoArchivo.nombre, tablasMapeo);
+
+                    if (resultadoDecision) {
+                        nuevoArchivo.tipoArchivo = resultadoDecision.tipoArchivo;
+                        nuevoArchivo.columnasEliminar = resultadoDecision.mapeo.columnasEliminar;
+                    } else {
+                        nuevoArchivo.tipoArchivo = "ARCHIVO EXTERNO";
+                        nuevoArchivo.columnasEliminar = [];
+                    }
+                    return nuevoArchivo;
+                } catch (error) {
+                    console.error(`Error al leer ${file.name}:`, error);
+                    return null;
+                }
+            }));
+
+            // Filtrar los que fallaron y actualizar estado una sola vez
+            const archivosValidos = nuevosArchivos.filter((a): a is ArchivoSubido => a !== null);
+
+            if (archivosValidos.length > 0) {
+                setArchivos(prev => [...prev, ...archivosValidos]);
+                setArchivoSeleccionado(prev => prev ? prev : archivosValidos[0]);
+            }
+        } catch (error) {
+            console.error("Error general al procesar archivos:", error);
+        } finally {
+            setCargando(false);
+        }
+    };
+
     const handleSubirArchivos = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
-        setCargando(true);
-
-        for (let i = 0; i < files.length; i++) {
-            try {
-                const nuevoArchivo = await leerArchivo(files[i]);
-                const resultadoDecision = findBestMatch(nuevoArchivo.nombre, tablasMapeo);
-
-                if (resultadoDecision) {
-                    nuevoArchivo.tipoArchivo = resultadoDecision.tipoArchivo;
-                    nuevoArchivo.columnasEliminar = resultadoDecision.mapeo.columnasEliminar;
-                } else {
-                    // Si no se reconoce, permitir procesarlo como tipo genérico
-                    nuevoArchivo.tipoArchivo = "ARCHIVO EXTERNO";
-                    nuevoArchivo.columnasEliminar = [];
-                }
-
-                setArchivos(prev => [...prev, nuevoArchivo]);
-                if (i === 0) setArchivoSeleccionado(nuevoArchivo);
-            } catch (error) { console.error(`Error al leer ${files[i].name}:`, error); }
-        }
-        setCargando(false);
+        await procesarArchivosRaw(files);
         e.target.value = "";
     };
 
@@ -351,8 +381,12 @@ export const useFileProcessor = () => {
             }
         }
 
-        return grupos;
-    }, [archivos]);
+        // Primero ordenar los registros dentro de cada tienda por su código
+        const gruposConRegistrosOrdenados = ordenarGruposPorCodigo(grupos);
+
+        // Luego ordenar las tiendas por su ID de la base de datos
+        return ordenarTiendasPorCodigo(gruposConRegistrosOrdenados, tiendaMapeos);
+    }, [archivos, tiendaMapeos]);
 
     const columnasPorFuente = useMemo(() => {
         const cache: Record<string, string[]> = {};
@@ -528,6 +562,7 @@ export const useFileProcessor = () => {
         handleEliminarArchivo,
         normalizarTodosArchivos,
         exportarArchivosNormalizados,
+        procesarArchivosRaw,
         gruposPorTienda,
         columnasPorFuente,
         cargarDatosMapeo
