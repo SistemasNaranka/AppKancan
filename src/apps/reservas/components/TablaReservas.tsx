@@ -23,6 +23,7 @@ import {
   COLORES_ESTADO,
   COLORES_TEXTO_ESTADO,
   puedeModificarse,
+  capitalize,
 } from "../types/reservas.types";
 
 interface TablaReservasProps {
@@ -82,14 +83,6 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
       return "Usuario no disponible";
     }
     return `${reserva.usuario_id.first_name} ${reserva.usuario_id.last_name}`;
-  };
-
-  const getAreaReserva = (reserva: Reserva): string => {
-    if (!reserva.area) {
-      // Si no hay área en la reserva, intentar obtenerla del usuario (fallback)
-      return reserva.usuario_id?.rol_usuario?.area || "-";
-    }
-    return reserva.area;
   };
 
   // Obtener el estado a mostrar (calculado o guardado)
@@ -184,9 +177,6 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
 
                 {/* Área */}
                 <TableCell>
-                  <Typography variant="body2">
-                    {getAreaReserva(reserva)}
-                  </Typography>
                 </TableCell>
 
                 {/* Fecha */}

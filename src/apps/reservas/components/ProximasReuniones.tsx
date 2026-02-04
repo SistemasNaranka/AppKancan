@@ -5,6 +5,7 @@ import { Box, Paper, Typography, Chip, Link } from "@mui/material";
 import { ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
 import { format } from "date-fns";
 import type { Reserva } from "../types/reservas.types";
+import { capitalize } from "../types/reservas.types";
 
 interface ProximasReunionesProps {
   reservas: Reserva[];
@@ -262,7 +263,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {reserva.usuario_id?.rol_usuario?.area || "Sin área"}
+                {capitalize(reserva.area) || "-"}
               </Typography>
 
               {/* Estado */}

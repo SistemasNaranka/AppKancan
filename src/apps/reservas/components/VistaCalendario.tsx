@@ -47,12 +47,13 @@ import {
 import { es } from "date-fns/locale";
 import { getReservasMes } from "../services/reservas";
 import type { Reserva, EstadoReserva } from "../types/reservas.types";
-import { 
-  COLORES_ESTADO, 
-  COLORES_TEXTO_ESTADO, 
-  getReservaColor, 
-  puedeModificarse, 
+import {
+  COLORES_ESTADO,
+  COLORES_TEXTO_ESTADO,
+  getReservaColor,
+  puedeModificarse,
   SALAS_DISPONIBLES,
+  capitalize,
 } from "../types/reservas.types";
 
 interface VistaCalendarioProps {
@@ -62,12 +63,23 @@ interface VistaCalendarioProps {
   usuarioActualId?: string;
   vistaCalendario?: "semanal" | "mes";
   onCambiarVista?: (vista: "semanal" | "mes") => void;
+  salaInicial?: string;
 }
 
 // Nombres de los meses en español
 const MESES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 // Años disponibles
@@ -80,9 +92,12 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
   usuarioActualId,
   vistaCalendario = "mes",
   onCambiarVista,
+  salaInicial,
 }) => {
   const [fechaActual, setFechaActual] = useState(new Date());
-  const [salaSeleccionada, setSalaSeleccionada] = useState<string>(SALAS_DISPONIBLES[0]);
+  const [salaSeleccionada, setSalaSeleccionada] = useState<string>(
+    salaInicial || SALAS_DISPONIBLES[0],
+  );
   const [mostrarFinesSemana, setMostrarFinesSemana] = useState(false);
 
   // Estado para Popover de día
@@ -91,12 +106,19 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
 
   // Estado para Popover de reserva
   const [anchorReserva, setAnchorReserva] = useState<HTMLElement | null>(null);
-  const [reservaSeleccionada, setReservaSeleccionada] = useState<Reserva | null>(null);
+  const [reservaSeleccionada, setReservaSeleccionada] =
+    useState<Reserva | null>(null);
 
   // Obtener reservas del mes
   const { data: reservasRaw = [] } = useQuery({
-    queryKey: ["reservas", "calendario", fechaActual.getFullYear(), fechaActual.getMonth() + 1],
-    queryFn: () => getReservasMes(fechaActual.getFullYear(), fechaActual.getMonth() + 1),
+    queryKey: [
+      "reservas",
+      "calendario",
+      fechaActual.getFullYear(),
+      fechaActual.getMonth() + 1,
+    ],
+    queryFn: () =>
+      getReservasMes(fechaActual.getFullYear(), fechaActual.getMonth() + 1),
   });
 
   // Filtrar reservas: solo vigentes y en curso, y por sala seleccionada
@@ -149,15 +171,19 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
     const inicioMes = startOfMonth(fechaActual);
     const finMes = endOfMonth(fechaActual);
     // Si mostramos fines de semana, empezamos en domingo (0), si no, en lunes (1)
-    const inicioCalendario = startOfWeek(inicioMes, { weekStartsOn: mostrarFinesSemana ? 0 : 1 });
-    const finCalendario = endOfWeek(finMes, { weekStartsOn: mostrarFinesSemana ? 0 : 1 });
+    const inicioCalendario = startOfWeek(inicioMes, {
+      weekStartsOn: mostrarFinesSemana ? 0 : 1,
+    });
+    const finCalendario = endOfWeek(finMes, {
+      weekStartsOn: mostrarFinesSemana ? 0 : 1,
+    });
 
     const dias: Date[] = [];
     let diaActual = inicioCalendario;
 
     while (diaActual <= finCalendario) {
       const diaSemana = diaActual.getDay(); // 0 = domingo, 6 = sábado
-      
+
       // Si no mostramos fines de semana, excluir sábado (6) y domingo (0)
       if (mostrarFinesSemana || (diaSemana !== 0 && diaSemana !== 6)) {
         dias.push(diaActual);
@@ -169,12 +195,15 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
   };
 
   // Días de la semana según configuración
-  const diasSemanaLabels = mostrarFinesSemana 
+  const diasSemanaLabels = mostrarFinesSemana
     ? ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"]
     : ["LUN", "MAR", "MIÉ", "JUE", "VIE"];
 
   // Handlers para Popover de día
-  const handleClickDia = (event: React.MouseEvent<HTMLElement>, fecha: Date) => {
+  const handleClickDia = (
+    event: React.MouseEvent<HTMLElement>,
+    fecha: Date,
+  ) => {
     setDiaSeleccionado(fecha);
     setAnchorDia(event.currentTarget);
   };
@@ -185,7 +214,10 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
   };
 
   // Handlers para Popover de reserva
-  const handleClickReserva = (event: React.MouseEvent<HTMLElement>, reserva: Reserva) => {
+  const handleClickReserva = (
+    event: React.MouseEvent<HTMLElement>,
+    reserva: Reserva,
+  ) => {
     event.stopPropagation();
     setReservaSeleccionada(reserva);
     setAnchorReserva(event.currentTarget);
@@ -237,11 +269,18 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
   return (
     <Box>
       {/* Header: Título + Botón Reservar */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
           Calendario Mensual
         </Typography>
-        
+
         {onNuevaReserva && (
           <Button
             variant="contained"
@@ -250,11 +289,11 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             sx={{
               textTransform: "none",
               fontWeight: 600,
-              backgroundColor: "#10B981",
+              backgroundColor: "primary.main",
               boxShadow: "none",
               borderRadius: 1.5,
               px: 2.5,
-              "&:hover": { backgroundColor: "#059669", boxShadow: "none" },
+              "&:hover": { backgroundColor: "primary.dark", boxShadow: "none" },
             }}
           >
             Reservar Ahora
@@ -263,12 +302,12 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
       </Box>
 
       {/* Fila de controles: Toggles | Navegación | Mes actual */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center", 
+      <Paper
+        elevation={0}
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
           p: 1.5,
           mb: 2,
           border: "1px solid #e0e0e0",
@@ -350,34 +389,46 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               fontWeight: 500,
               px: 1.5,
               borderColor: "#e0e0e0",
+              boxShadow: "none",
               color: mostrarFinesSemana ? "white" : "#374151",
               backgroundColor: mostrarFinesSemana ? "#3B82F6" : "transparent",
               "&:hover": {
                 backgroundColor: mostrarFinesSemana ? "#2563EB" : "#f3f4f6",
                 borderColor: "#e0e0e0",
+                boxShadow: "none",
               },
             }}
           >
-            {mostrarFinesSemana ? "Ocultar Fines Semana" : "Mostrar Fines Semana"}
+            {mostrarFinesSemana
+              ? "Ocultar fines de semana"
+              : "Mostrar fines de semana"}
           </Button>
         </Box>
 
         {/* Navegación al centro-derecha */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <IconButton onClick={navegarAnterior} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+          <IconButton
+            onClick={navegarAnterior}
+            size="small"
+            sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
+          >
             <ChevronLeftIcon fontSize="small" />
           </IconButton>
-          <IconButton onClick={navegarSiguiente} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+          <IconButton
+            onClick={navegarSiguiente}
+            size="small"
+            sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
+          >
             <ChevronRightIcon fontSize="small" />
           </IconButton>
-          
+
           <Button
             variant="outlined"
             size="small"
             onClick={irAHoy}
-            sx={{ 
-              textTransform: "none", 
-              borderColor: "#e0e0e0", 
+            sx={{
+              textTransform: "none",
+              borderColor: "#e0e0e0",
               color: "#374151",
               fontSize: "0.85rem",
               px: 1.5,
@@ -394,7 +445,9 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               onChange={(e) => handleCambiarMes(e.target.value as number)}
               sx={{
                 fontSize: "0.85rem",
-                "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e0e0e0" },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#e0e0e0",
+                },
               }}
             >
               {MESES.map((mes, index) => (
@@ -410,7 +463,9 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               onChange={(e) => handleCambiarAño(e.target.value as number)}
               sx={{
                 fontSize: "0.85rem",
-                "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e0e0e0" },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#e0e0e0",
+                },
               }}
             >
               {AÑOS.map((año) => (
@@ -423,13 +478,28 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
         </Box>
 
         {/* Mes actual a la derecha */}
-        <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a2a3a", minWidth: 150, textAlign: "right" }}>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+            color: "#1a2a3a",
+            minWidth: 150,
+            textAlign: "right",
+          }}
+        >
           {mesActual}
         </Typography>
       </Paper>
 
       {/* Vista Mensual */}
-      <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: 2, overflow: "hidden" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          border: "1px solid #e0e0e0",
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+      >
         {/* Días de la semana */}
         <Box
           sx={{
@@ -456,7 +526,12 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
         </Box>
 
         {/* Días del mes */}
-        <Box sx={{ display: "grid", gridTemplateColumns: `repeat(${numColumnas}, 1fr)` }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${numColumnas}, 1fr)`,
+          }}
+        >
           {dias.map((dia, index) => {
             const reservasDia = getReservasDia(dia);
             const esHoy = isSameDay(dia, hoy);
@@ -469,7 +544,10 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 sx={{
                   minHeight: 100,
                   p: 0.5,
-                  borderRight: index % numColumnas !== numColumnas - 1 ? "1px solid #e0e0e0" : "none",
+                  borderRight:
+                    index % numColumnas !== numColumnas - 1
+                      ? "1px solid #e0e0e0"
+                      : "none",
                   borderBottom: "1px solid #e0e0e0",
                   backgroundColor: esMesActual ? "white" : "#f9fafb",
                   cursor: "pointer",
@@ -477,7 +555,9 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                   "&:hover": { backgroundColor: "#f3f4f6" },
                 }}
               >
-                <Box sx={{ display: "flex", justifyContent: "center", mb: 0.5 }}>
+                <Box
+                  sx={{ display: "flex", justifyContent: "center", mb: 0.5 }}
+                >
                   <Box
                     sx={{
                       width: 28,
@@ -487,7 +567,11 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                       alignItems: "center",
                       justifyContent: "center",
                       backgroundColor: esHoy ? "#1976d2" : "transparent",
-                      color: esHoy ? "white" : esMesActual ? "#1a2a3a" : "#9ca3af",
+                      color: esHoy
+                        ? "white"
+                        : esMesActual
+                          ? "#1a2a3a"
+                          : "#9ca3af",
                       fontWeight: esHoy ? 600 : 400,
                       fontSize: "0.875rem",
                     }}
@@ -498,7 +582,14 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
 
                 {/* Reservas HORIZONTALES con color por ID */}
                 {reservasDia.length > 0 && (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: "2px", px: 0.25 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "2px",
+                      px: 0.25,
+                    }}
+                  >
                     {reservasDia.slice(0, 3).map((reserva) => {
                       const colorReserva = getReservaColor(reserva.id);
                       return (
@@ -530,7 +621,11 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                               textOverflow: "ellipsis",
                             }}
                           >
-                            {formatearHora(reserva.hora_inicio)} {truncarTexto(reserva.titulo_reunion || "Sin título", 10)}
+                            {formatearHora(reserva.hora_inicio)}{" "}
+                            {truncarTexto(
+                              reserva.titulo_reunion || "Sin título",
+                              10,
+                            )}
                           </Typography>
                         </Box>
                       );
@@ -539,7 +634,16 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 )}
 
                 {reservasDia.length > 3 && (
-                  <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.6rem", display: "block", textAlign: "center", mt: 0.25 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "#6b7280",
+                      fontSize: "0.6rem",
+                      display: "block",
+                      textAlign: "center",
+                      mt: 0.25,
+                    }}
+                  >
                     +{reservasDia.length - 3} más
                   </Typography>
                 )}
@@ -557,7 +661,11 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
         anchorOrigin={{ vertical: "center", horizontal: "right" }}
         transformOrigin={{ vertical: "center", horizontal: "left" }}
         PaperProps={{
-          sx: { width: 300, borderRadius: 2, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" },
+          sx: {
+            width: 300,
+            borderRadius: 2,
+            boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+          },
         }}
       >
         {diaSeleccionado && (
@@ -571,7 +679,10 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 alignItems: "center",
               }}
             >
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, textTransform: "capitalize" }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 600, textTransform: "capitalize" }}
+              >
                 {format(diaSeleccionado, "EEEE, d MMM", { locale: es })}
               </Typography>
               <IconButton size="small" onClick={handleCloseDia}>
@@ -581,11 +692,16 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
 
             <Box sx={{ p: 2, maxHeight: 280, overflowY: "auto" }}>
               {getReservasDia(diaSeleccionado).length === 0 ? (
-                <Typography color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
+                <Typography
+                  color="text.secondary"
+                  sx={{ textAlign: "center", py: 2 }}
+                >
                   No hay reservas para {salaSeleccionada}
                 </Typography>
               ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                >
                   {getReservasDia(diaSeleccionado).map((reserva) => {
                     const colorReserva = getReservaColor(reserva.id);
                     return (
@@ -608,7 +724,8 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                           {reserva.titulo_reunion || "Sin título"}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {formatearHora(reserva.hora_inicio)} - {formatearHora(reserva.hora_final)}
+                          {formatearHora(reserva.hora_inicio)} -{" "}
+                          {formatearHora(reserva.hora_final)}
                         </Typography>
                       </Box>
                     );
@@ -617,7 +734,14 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               )}
             </Box>
 
-            <Box sx={{ p: 2, borderTop: "1px solid #e0e0e0", display: "flex", gap: 1 }}>
+            <Box
+              sx={{
+                p: 2,
+                borderTop: "1px solid #e0e0e0",
+                display: "flex",
+                gap: 1,
+              }}
+            >
               {onNuevaReserva && (
                 <Button
                   fullWidth
@@ -642,141 +766,199 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
         anchorOrigin={{ vertical: "center", horizontal: "right" }}
         transformOrigin={{ vertical: "center", horizontal: "left" }}
         PaperProps={{
-          sx: { width: 340, maxHeight: 450, borderRadius: 2, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" },
+          sx: {
+            width: 340,
+            maxHeight: 450,
+            borderRadius: 2,
+            boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+          },
         }}
       >
-        {reservaSeleccionada && (() => {
-          const colorReserva = getReservaColor(reservaSeleccionada.id);
-          const estado = reservaSeleccionada.estadoCalculado || reservaSeleccionada.estado;
-          
-          // Título: solo titulo_reunion, si no existe "Sin título"
-          const tituloMostrar = reservaSeleccionada.titulo_reunion || "Sin título";
+        {reservaSeleccionada &&
+          (() => {
+            const colorReserva = getReservaColor(reservaSeleccionada.id);
+            const estado =
+              reservaSeleccionada.estadoCalculado || reservaSeleccionada.estado;
 
-          return (
-            <Box>
-              {/* Header con color - TÍTULO DE LA REUNIÓN */}
-              <Box
-                sx={{
-                  p: 2,
-                  backgroundColor: colorReserva,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Box sx={{ flex: 1, pr: 1 }}>
-                  <Typography
-                    variant="subtitle1"
+            // Título: solo titulo_reunion, si no existe "Sin título"
+            const tituloMostrar =
+              reservaSeleccionada.titulo_reunion || "Sin título";
+
+            return (
+              <Box>
+                {/* Header con color - TÍTULO DE LA REUNIÓN */}
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: colorReserva,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Box sx={{ flex: 1, pr: 1 }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 600,
+                        color: "#ffffff",
+                        wordBreak: "break-word",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {tituloMostrar}
+                    </Typography>
+                    <Chip
+                      label={estado}
+                      size="small"
+                      sx={{
+                        mt: 0.5,
+                        backgroundColor: "rgba(255,255,255,0.25)",
+                        color: "#ffffff",
+                        fontWeight: 600,
+                        fontSize: "0.7rem",
+                        height: 20,
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 0.5 }}>
+                    {puedeModificar(reservaSeleccionada) && (
+                      <>
+                        {onEditarReserva && (
+                          <Tooltip title="Editar">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                handleCloseReserva();
+                                onEditarReserva(reservaSeleccionada);
+                              }}
+                              sx={{ color: "#ffffff" }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {onCancelarReserva && (
+                          <Tooltip title="Cancelar">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                handleCloseReserva();
+                                onCancelarReserva(reservaSeleccionada);
+                              }}
+                              sx={{ color: "#ffffff" }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </>
+                    )}
+                    <IconButton
+                      size="small"
+                      onClick={handleCloseReserva}
+                      sx={{ color: "#ffffff" }}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+
+                {/* Contenido */}
+                <Box sx={{ p: 2 }}>
+                  {/* Horario */}
+                  <Box
                     sx={{
-                      fontWeight: 600,
-                      color: "#ffffff",
-                      wordBreak: "break-word",
-                      lineHeight: 1.3,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      mb: 1.5,
                     }}
                   >
-                    {tituloMostrar}
-                  </Typography>
-                  <Chip
-                    label={estado}
-                    size="small"
+                    <TimeIcon sx={{ color: "#6b7280", fontSize: 20 }} />
+                    <Typography variant="body2">
+                      {formatearHora(reservaSeleccionada.hora_inicio)} -{" "}
+                      {formatearHora(reservaSeleccionada.hora_final)}
+                    </Typography>
+                  </Box>
+
+                  {/* Sala */}
+                  <Box
                     sx={{
-                      mt: 0.5,
-                      backgroundColor: "rgba(255,255,255,0.25)",
-                      color: "#ffffff",
-                      fontWeight: 600,
-                      fontSize: "0.7rem",
-                      height: 20,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      mb: 1.5,
                     }}
-                  />
-                </Box>
-                <Box sx={{ display: "flex", gap: 0.5 }}>
-                  {puedeModificar(reservaSeleccionada) && (
-                    <>
-                      {onEditarReserva && (
-                        <Tooltip title="Editar">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              handleCloseReserva();
-                              onEditarReserva(reservaSeleccionada);
-                            }}
-                            sx={{ color: "#ffffff" }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {onCancelarReserva && (
-                        <Tooltip title="Cancelar">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              handleCloseReserva();
-                              onCancelarReserva(reservaSeleccionada);
-                            }}
-                            sx={{ color: "#ffffff" }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </>
+                  >
+                    <RoomIcon sx={{ color: "#6b7280", fontSize: 20 }} />
+                    <Typography variant="body2">
+                      {reservaSeleccionada.nombre_sala}
+                    </Typography>
+                  </Box>
+
+                  {/* Usuario */}
+                  {reservaSeleccionada.usuario_id && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        mb: 1.5,
+                      }}
+                    >
+                      <PersonIcon sx={{ color: "#6b7280", fontSize: 20 }} />
+                      <Typography variant="body2">
+                        {reservaSeleccionada.usuario_id.first_name}{" "}
+                        {reservaSeleccionada.usuario_id.last_name}
+                      </Typography>
+                    </Box>
                   )}
-                  <IconButton size="small" onClick={handleCloseReserva} sx={{ color: "#ffffff" }}>
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
+
+                  {/* Área */}
+                  {reservaSeleccionada.area && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        mb: 1.5,
+                      }}
+                    >
+                      <AreaIcon sx={{ color: "#6b7280", fontSize: 20 }} />
+                      <Typography variant="body2">
+                        {capitalize(reservaSeleccionada.area)}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Observaciones (si existen) */}
+                  {reservaSeleccionada.observaciones && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 1.5,
+                        mt: 2,
+                        pt: 2,
+                        borderTop: "1px solid #e0e0e0",
+                      }}
+                    >
+                      <NotesIcon
+                        sx={{ color: "#6b7280", fontSize: 20, mt: 0.25 }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#374151", whiteSpace: "pre-wrap" }}
+                      >
+                        {reservaSeleccionada.observaciones}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Box>
-
-              {/* Contenido */}
-              <Box sx={{ p: 2 }}>
-                {/* Horario */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
-                  <TimeIcon sx={{ color: "#6b7280", fontSize: 20 }} />
-                  <Typography variant="body2">
-                    {formatearHora(reservaSeleccionada.hora_inicio)} - {formatearHora(reservaSeleccionada.hora_final)}
-                  </Typography>
-                </Box>
-
-                {/* Sala */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
-                  <RoomIcon sx={{ color: "#6b7280", fontSize: 20 }} />
-                  <Typography variant="body2">{reservaSeleccionada.nombre_sala}</Typography>
-                </Box>
-
-                {/* Usuario */}
-                {reservaSeleccionada.usuario_id && (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
-                    <PersonIcon sx={{ color: "#6b7280", fontSize: 20 }} />
-                    <Typography variant="body2">
-                      {reservaSeleccionada.usuario_id.first_name} {reservaSeleccionada.usuario_id.last_name}
-                    </Typography>
-                  </Box>
-                )}
-
-                {/* Área */}
-                {reservaSeleccionada.usuario_id?.rol_usuario?.area && (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
-                    <AreaIcon sx={{ color: "#6b7280", fontSize: 20 }} />
-                    <Typography variant="body2">
-                      {reservaSeleccionada.usuario_id.rol_usuario.area}
-                    </Typography>
-                  </Box>
-                )}
-
-                {/* Observaciones (si existen) */}
-                {reservaSeleccionada.observaciones && (
-                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mt: 2, pt: 2, borderTop: "1px solid #e0e0e0" }}>
-                    <NotesIcon sx={{ color: "#6b7280", fontSize: 20, mt: 0.25 }} />
-                    <Typography variant="body2" sx={{ color: "#374151", whiteSpace: "pre-wrap" }}>
-                      {reservaSeleccionada.observaciones}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </Box>
-          );
-        })()}
+            );
+          })()}
       </Popover>
     </Box>
   );

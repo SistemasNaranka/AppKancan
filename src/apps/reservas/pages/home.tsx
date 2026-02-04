@@ -13,6 +13,7 @@ const Home: React.FC = () => {
         paddingY: 0,
         minHeight: "100vh",
         backgroundColor: "transparent",
+        width: "100%",
       }}
     >
       {/* Header con título e ícono */}

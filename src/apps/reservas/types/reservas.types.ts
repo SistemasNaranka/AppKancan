@@ -28,6 +28,7 @@ export interface Reserva {
   estado: EstadoReserva;
   titulo_reunion: string;
   observaciones?: string;
+  area?: string;
   estadoCalculado?: EstadoReserva;
 }
 
@@ -61,8 +62,8 @@ export const SALAS_DISPONIBLES: Sala[] = ["Sala Principal", "Sala Secundaria"];
 //  * Información de configuración de las salas
 //  */
 // export const INFO_SALAS: Record<string, { tipo: string; capacidad: number }> = {
-//   "Sala A": { tipo: "", capacidad: 12 },
-//   "Sala B": { tipo: "", capacidad: 6 },
+//   "Sala Principal": { tipo: "", capacidad: 12 },
+//   "Sala Secundaria": { tipo: "", capacidad: 6 },
 // };
 
 /**
@@ -130,6 +131,14 @@ export const HORARIO_COMERCIAL = {
 
 export const HORARIO_INICIO = HORARIO_COMERCIAL.inicio;
 export const HORARIO_FIN = HORARIO_COMERCIAL.fin;
+
+/**
+ * Capitaliza la primera letra de un string
+ */
+export const capitalize = (text: string): string => {
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+};
 
 /**
  * Duración mínima de reunión en minutos
