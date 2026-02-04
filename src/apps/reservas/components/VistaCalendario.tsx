@@ -289,6 +289,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             sx={{
               textTransform: "none",
               fontWeight: 600,
+              fontSize: "0.9rem",
               backgroundColor: "primary.main",
               boxShadow: "none",
               borderRadius: 1.5,
