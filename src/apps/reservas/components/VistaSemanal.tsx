@@ -10,6 +10,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Chip,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -23,10 +25,12 @@ import {
   Delete as DeleteIcon,
   Business as AreaIcon,
   Notes as NotesIcon,
+  Warning as WarningIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { useQuery } from "@tanstack/react-query";
 import {
   format,
   addDays,
@@ -36,6 +40,7 @@ import {
   isSameDay,
 } from "date-fns";
 import { es } from "date-fns/locale";
+import { getConfiguracionReserva } from "../services/reservas";
 import type { Reserva, EstadoReserva } from "../types/reservas.types";
 import {
   SALAS_DISPONIBLES,
@@ -44,6 +49,7 @@ import {
   COLORES_TEXTO_ESTADO,
   getReservaColor,
   capitalize,
+  CONFIGURACION_POR_DEFECTO,
 } from "../types/reservas.types";
 
 interface VistaSemanalProps {
@@ -57,11 +63,41 @@ interface VistaSemanalProps {
   salaInicial?: string;
 }
 
-// Horas del día (7:00 AM - 4:00 PM)
-const HORAS = Array.from({ length: 10 }, (_, i) => {
-  const hora = 7 + i;
-  return `${hora.toString().padStart(2, "0")}:00`;
-});
+/**
+ * Genera un array de horas en formato HH:mm desde la hora de inicio hasta la hora de fin
+ * @param horaInicio - Hora de inicio en formato HH:mm (ej: "07:00")
+ * @param horaFin - Hora de fin en formato HH:mm (ej: "18:00")
+ * @returns Array de horas en formato HH:mm
+ */
+const generarHorasRango = (horaInicio: string, horaFin: string): string[] => {
+  const horas: string[] = [];
+  
+  const [horaIni, minIni] = horaInicio.split(":").map(Number);
+  const [horaFinNum, minFin] = horaFin.split(":").map(Number);
+  
+  // Usar hora de inicio como primer valor
+  let horaActual = horaIni;
+  
+  while (horaActual <= horaFinNum) {
+    // Agregar la hora actual al array
+    horas.push(`${horaActual.toString().padStart(2, "0")}:00`);
+    horaActual++;
+  }
+  
+  return horas;
+};
+
+/**
+ * Convierte hora de formato 24h a 12h con AM/PM
+ * @param hora - Hora en formato HH:mm
+ * @returns Hora en formato 12h con AM/PM (ej: "7:00 AM")
+ */
+const formatearHora12h = (hora: string): string => {
+  const [h, m] = hora.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hora12 = h % 12 || 12;
+  return `${hora12}:${m.toString().padStart(2, "0")} ${ampm}`;
+};
 
 const VistaSemanal: React.FC<VistaSemanalProps> = ({
   reservas,
@@ -80,8 +116,42 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
 
   // Popover para detalle de reserva
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [reservaSeleccionada, setReservaSeleccionada] =
-    useState<Reserva | null>(null);
+  const [reservaSeleccionada, setReservaSeleccionada] = useState<Reserva | null>(null);
+
+  // Obtener configuración de horarios desde la base de datos
+  const { data: configuracion, isLoading: isLoadingConfig, isError: isErrorConfig } = useQuery({
+    queryKey: ["configuracion_reservas"],
+    queryFn: getConfiguracionReserva,
+    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+    retry: 1,
+  });
+
+  // Generar horas dinámicas basadas en la configuración
+  const horas = useMemo(() => {
+    if (isLoadingConfig) {
+      // Usar configuración por defecto mientras carga
+      return generarHorasRango(
+        CONFIGURACION_POR_DEFECTO.hora_inicio_operacion,
+        CONFIGURACION_POR_DEFECTO.hora_fin_operacion
+      );
+    }
+
+    if (isErrorConfig || !configuracion) {
+      // Usar configuración por defecto en caso de error
+      console.warn("⚠️ Usando configuración por defecto de horarios");
+      return generarHorasRango(
+        CONFIGURACION_POR_DEFECTO.hora_inicio_operacion,
+        CONFIGURACION_POR_DEFECTO.hora_fin_operacion
+      );
+    }
+
+    // Extraer horas de la configuración (quitar segundos si los hay)
+    const horaInicio = configuracion.hora_apertura?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_inicio_operacion;
+    const horaFin = configuracion.hora_cierre?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
+
+    console.log("✅ Generando horas desde", horaInicio, "hasta", horaFin);
+    return generarHorasRango(horaInicio, horaFin);
+  }, [configuracion, isLoadingConfig, isErrorConfig]);
 
   // Calcular días de la semana (Lunes a Viernes)
   const diasSemana = useMemo(() => {
@@ -132,6 +202,13 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
       bg: COLORES_ESTADO[estado] || "#F3F4F6",
       text: COLORES_TEXTO_ESTADO[estado] || "#374151",
     };
+  };
+
+  //truncar texto
+
+    const truncarTexto = (texto: string, limite: number) => {
+    if (!texto) return "";
+    return texto.length > limite ? texto.slice(0, limite) + "..." : texto;
   };
 
   // Generar bloques por hora para una reserva (con soporte para media hora)
@@ -315,7 +392,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 borderRadius: 1.5,
                 px: 2.5,
                 "&:hover": {
-                  backgroundColor: "primary.dark",
+                  backgroundColor: "#005AA3",
                   boxShadow: "none",
                 },
               }}
@@ -359,9 +436,9 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                     fontWeight: 500,
                     borderColor: "#e0e0e0",
                     "&.Mui-selected": {
-                      backgroundColor: "#3B82F6",
+                      backgroundColor: "#004680",
                       color: "white",
-                      "&:hover": { backgroundColor: "#2563EB" },
+                      "&:hover": { backgroundColor: "#005AA3" },
                     },
                   },
                 }}
@@ -388,9 +465,9 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                   fontWeight: 500,
                   borderColor: "#e0e0e0",
                   "&.Mui-selected": {
-                    backgroundColor: "#3B82F6",
+                    backgroundColor: "#004680",
                     color: "white",
-                    "&:hover": { backgroundColor: "#2563EB" },
+                    "&:hover": { backgroundColor: "#005AA3" },
                   },
                 },
               }}
@@ -469,7 +546,34 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
           </Typography>
         </Paper>
 
+        {/* Error al cargar configuración */}
+        {isErrorConfig && (
+          <Alert
+            severity="warning"
+            icon={<WarningIcon />}
+            sx={{ mb: 2, borderRadius: 2 }}
+          >
+            No se pudo cargar la configuración de horarios. Mostrando horarios por defecto.
+          </Alert>
+        )}
+
         {/* Calendario */}
+        {isLoadingConfig ? (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: 400,
+              gap: 2,
+            }}
+          >
+            <CircularProgress size={24} />
+            <Typography variant="body2" color="text.secondary">
+              Cargando horarios...
+            </Typography>
+          </Box>
+        ) : (
         <Paper
           elevation={0}
           sx={{
@@ -572,7 +676,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               width: "100%",
             }}
           >
-            {HORAS.map((hora, horaIdx) => (
+            {horas.map((hora, horaIdx) => (
               <Box
                 key={hora}
                 sx={{
@@ -580,7 +684,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                   gridTemplateColumns: "80px repeat(5, 1fr)",
                   height: 60,
                   borderBottom:
-                    horaIdx < HORAS.length - 1 ? "1px solid #e0e0e0" : "none",
+                    horaIdx < horas.length - 1 ? "1px solid #e0e0e0" : "none",
                   width: "100%",
                   boxSizing: "border-box",
                   minWidth: 700,
@@ -682,7 +786,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                             >
                               {esInicio && (
                                 <>
-                                  {/* Título */}
+                                  {/* Título con truncation */}
                                   <Typography
                                     sx={{
                                       fontSize: "0.75rem",
@@ -693,23 +797,12 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                       textOverflow: "ellipsis",
                                       whiteSpace: "nowrap",
                                       mb: 0.25,
+                                      flexShrink: 1,
                                     }}
                                   >
                                     {reserva.titulo_reunion || "Sin título"}
                                   </Typography>
-                                  {/* Título de la reunión */}
-                                  <Typography
-                                    sx={{
-                                      fontWeight: "bold",
-                                      fontSize: "0.65rem",
-                                      color: "#ffffff",
-                                      opacity: 0.9,
-                                      mb: 0.5,
-                                    }}
-                                  >
-                                    {reserva.titulo_reunion || "Sin título"}
-                                  </Typography>
-                                  {/* Chip de estado */}
+                                  {/* Chip de estado - siempre visible */}
                                   <Box
                                     sx={{
                                       display: "inline-flex",
@@ -720,6 +813,8 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                       px: 0.75,
                                       py: 0.25,
                                       width: "fit-content",
+                                      flexShrink: 0,
+                                      minWidth: "fit-content",
                                     }}
                                   >
                                     {esEnCurso ? (
@@ -761,8 +856,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             ))}
           </Box>
         </Paper>
-
-        {/* Popover de detalle */}
+        )}
         <Popover
           open={Boolean(anchorEl)}
           anchorEl={anchorEl}

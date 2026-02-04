@@ -287,14 +287,16 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             startIcon={<AddIcon />}
             onClick={() => onNuevaReserva()}
             sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: "0.9rem",
-              backgroundColor: "primary.main",
-              boxShadow: "none",
-              borderRadius: 1.5,
-              px: 2.5,
-              "&:hover": { backgroundColor: "primary.dark", boxShadow: "none" },
+                textTransform: "none",
+                fontWeight: 600,
+                backgroundColor: "primary.main",
+                boxShadow: "none",
+                borderRadius: 1.5,
+                px: 2.5,
+                "&:hover": {
+                  backgroundColor: "#005AA3",
+                  boxShadow: "none",
+                },
             }}
           >
             Reservar Ahora
@@ -336,9 +338,9 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                   fontWeight: 500,
                   borderColor: "#e0e0e0",
                   "&.Mui-selected": {
-                    backgroundColor: "#3B82F6",
+                    backgroundColor: "#004680",
                     color: "white",
-                    "&:hover": { backgroundColor: "#2563EB" },
+                    "&:hover": { backgroundColor: "#005AA3" },
                   },
                 },
               }}
@@ -365,9 +367,9 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 fontWeight: 500,
                 borderColor: "#e0e0e0",
                 "&.Mui-selected": {
-                  backgroundColor: "#3B82F6",
+                  backgroundColor: "#004680",
                   color: "white",
-                  "&:hover": { backgroundColor: "#2563EB" },
+                  "&:hover": { backgroundColor: "#005AA3" },
                 },
               },
             }}
@@ -392,9 +394,9 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               borderColor: "#e0e0e0",
               boxShadow: "none",
               color: mostrarFinesSemana ? "white" : "#374151",
-              backgroundColor: mostrarFinesSemana ? "#3B82F6" : "transparent",
+              backgroundColor: mostrarFinesSemana ? "#004680" : "transparent",
               "&:hover": {
-                backgroundColor: mostrarFinesSemana ? "#2563EB" : "#f3f4f6",
+                backgroundColor: mostrarFinesSemana ? "#005AA3" : "#f3f4f6",
                 borderColor: "#e0e0e0",
                 boxShadow: "none",
               },
@@ -625,7 +627,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                             {formatearHora(reserva.hora_inicio)}{" "}
                             {truncarTexto(
                               reserva.titulo_reunion || "Sin título",
-                              10,
+                              20,
                             )}
                           </Typography>
                         </Box>

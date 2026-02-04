@@ -92,6 +92,9 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [configCargando, setConfigCargando] = useState(true);
 
+  // Estado para rastrear la hora de inicio seleccionada
+  const [horaInicioSeleccionada, setHoraInicioSeleccionada] = useState<string>("");
+
   // Estado para la configuración de horarios
   const [horarioConfig, setHorarioConfig] = useState({
     horaApertura: HORARIO_INICIO,
@@ -104,6 +107,19 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
     const horaFinNum = parseInt(horarioConfig.horaCierre.split(":")[0]);
     return generarOpcionesHora(horaInicioNum, horaFinNum);
   }, [horarioConfig]);
+
+  // Filtrar opciones de hora_final para mostrar solo horas >= hora_inicio + 1 hora
+  const opcionesHoraFinal = useMemo(() => {
+    if (!horaInicioSeleccionada) return opcionesHora;
+    
+    // Calcular hora minima: hora_inicio + 1 hora
+    const [h, m] = horaInicioSeleccionada.split(":").map(Number);
+    let horaMinima = h + 1;
+    if (horaMinima >= 24) horaMinima = 23;
+    const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+    
+    return opcionesHora.filter((opcion) => opcion.value >= horaMinimaStr);
+  }, [opcionesHora, horaInicioSeleccionada]);
 
   // Cargar configuración de horarios al abrir el diálogo
   useEffect(() => {
@@ -171,25 +187,19 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
           .string()
           .required("Selecciona hora de fin")
           .test(
-            "duracion-minima",
-            `La reunión debe durar mínimo ${DURACION_MINIMA_MINUTOS} minutos`,
-            function (value) {
-              const { hora_inicio } = this.parent;
-              if (!value || !hora_inicio) return false;
-              const [horaIni, minIni] = hora_inicio.split(":").map(Number);
-              const [horaFin, minFin] = value.split(":").map(Number);
-              const minutosInicio = horaIni * 60 + minIni;
-              const minutosFin = horaFin * 60 + minFin;
-              return minutosFin - minutosInicio >= DURACION_MINIMA_MINUTOS;
-            },
-          )
-          .test(
             "hora-mayor",
-            "La hora de fin debe ser mayor a la hora de inicio",
+            "La hora de fin debe ser al menos 1 hora después de la hora de inicio",
             function (value) {
               const { hora_inicio } = this.parent;
               if (!value || !hora_inicio) return false;
-              return value > hora_inicio;
+              
+              // Calcular hora minima: hora_inicio + 1 hora
+              const [h, m] = hora_inicio.split(":").map(Number);
+              let horaMinima = h + 1;
+              if (horaMinima >= 24) horaMinima = 23;
+              const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+              
+              return value >= horaMinimaStr;
             },
           )
           .test(
@@ -213,6 +223,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
     reset,
     setValue,
@@ -241,6 +252,27 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
       });
     }
   }, [reserva, open, configCargando, reset]);
+
+  // Observar cambios en hora_inicio para actualizar opciones de hora_final
+  const horaInicioWatch = watch("hora_inicio");
+  const horaFinalWatch = watch("hora_final");
+  
+  useEffect(() => {
+    if (horaInicioWatch) {
+      setHoraInicioSeleccionada(horaInicioWatch);
+      
+      // Calcular hora minima: hora_inicio + 1 hora
+      const [h, m] = horaInicioWatch.split(":").map(Number);
+      let horaMinima = h + 1;
+      if (horaMinima >= 24) horaMinima = 23;
+      const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+      
+      // Si la hora_final actual es menor que la nueva hora_minima, actualizar hora_final
+      if (horaFinalWatch && horaFinalWatch < horaMinimaStr) {
+        setValue("hora_final", horaMinimaStr);
+      }
+    }
+  }, [horaInicioWatch, horaFinalWatch, setValue]);
 
   const handleClose = () => {
     reset();
@@ -559,7 +591,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                                 size="small"
                                 sx={{ backgroundColor: "white" }}
                               >
-                                {opcionesHora.map((opcion) => (
+                                {opcionesHoraFinal.map((opcion) => (
                                   <MenuItem
                                     key={opcion.value}
                                     value={opcion.value}
@@ -709,12 +741,12 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                   sx={{
                     textTransform: "none",
                     fontWeight: 600,
-                    backgroundColor: "#3B82F6",
+                    backgroundColor: "#004680",
                     borderRadius: 2,
                     px: 3,
                     boxShadow: "none",
                     "&:hover": {
-                      backgroundColor: "#2563EB",
+                      backgroundColor: "#005AA3",
                       boxShadow: "none",
                     },
                   }}
