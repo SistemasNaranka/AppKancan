@@ -8,7 +8,6 @@ import {
   AccessTimeOutlined as AccessTimeOutlinedIcon,
   CheckCircleOutlineOutlined as CheckCircleOutlineOutlinedIcon,
   DataUsageOutlined as DataUsageOutlinedIcon,
-  Add as AddIcon,
 } from "@mui/icons-material";
 import { format, differenceInSeconds, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -19,7 +18,6 @@ interface EstadoSalasProps {
   reservas: Reserva[];
   onVerCronograma: (sala: string) => void;
   onReservarAhora: (sala: string) => void;
-  onNuevaReserva: () => void;
 }
 
 interface EstadoSala {
@@ -41,7 +39,6 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
   reservas,
   onVerCronograma,
   onReservarAhora,
-  onNuevaReserva,
 }) => {
   const [tiempoActual, setTiempoActual] = useState(new Date());
 
@@ -177,48 +174,6 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
 
   return (
     <Box sx={{ mb: 4 }}>
-      {/* Header con título y botón */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          mb: 2,
-        }}
-      >
-        {/*   <Typography
-            variant="body2"
-            sx={{ color: "#6b7280", textTransform: "capitalize" }}
-          >
-            {diaActual} • Horario laboral: 7:00 AM - 4:30 PM
-          </Typography> */}
-        <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-            <DataUsageOutlinedIcon sx={{ color: "#6b7280" }} />
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
-              Estado Actual de las Salas
-            </Typography>
-          </Box>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={onNuevaReserva}
-          sx={{
-            textTransform: "none",
-            fontWeight: "bold",
-            boxShadow: "none",
-            backgroundColor: "#0F9568",
-            "&:hover": {
-              boxShadow: "none",
-              backgroundColor: "#0B6B4B",
-            },
-          }}
-        >
-          Nueva reserva
-        </Button>
-      </Box>
-
       {/* Cards de salas */}
       <Box
         sx={{

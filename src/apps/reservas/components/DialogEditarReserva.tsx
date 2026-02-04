@@ -256,6 +256,12 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   // Observar cambios en hora_inicio para actualizar opciones de hora_final
   const horaInicioWatch = watch("hora_inicio");
   const horaFinalWatch = watch("hora_final");
+  const observacionesWatch = watch("observaciones");
+  
+  // Contador de caracteres para observaciones
+  const caracteresObservaciones = observacionesWatch?.length || 0;
+  const caracteresRestantes = 500 - caracteresObservaciones;
+  const aproximandoLimite = caracteresObservaciones >= 450;
   
   useEffect(() => {
     if (horaInicioWatch) {
@@ -636,8 +642,23 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                           placeholder="Detalles adicionales, participantes, materiales necesarios, agenda de la reunión..."
                           error={!!errors.observaciones}
                           helperText={
-                            errors.observaciones?.message ||
-                            "Opcional - máximo 500 caracteres"
+                            errors.observaciones?.message || (
+                              <Typography
+                                component="span"
+                                sx={{
+                                  color: aproximandoLimite 
+                                    ? caracteresObservaciones >= 500 
+                                      ? "#ef4444"  // Rojo cuando llega al límite
+                                      : "#f59e0b"  // Naranja cuando se acerca
+                                    : "#6b7280",  // Gris normal
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                {caracteresObservaciones >= 500 
+                                  ? "Límite alcanzado"
+                                  : `Opcional - ${caracteresRestantes} caracteres restantes`}
+                              </Typography>
+                            )
                           }
                           disabled={loading}
                           sx={{

@@ -384,31 +384,6 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             alignItems: "center",
           }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
-            Horario Semanal
-          </Typography>
-
-          {onNuevaReserva && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => onNuevaReserva()}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                backgroundColor: "primary.main",
-                boxShadow: "none",
-                borderRadius: 1.5,
-                px: 2.5,
-                "&:hover": {
-                  backgroundColor: "#005AA3",
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Reservar Ahora
-            </Button>
-          )}
         </Box>
 
         {/* Barra de filtros reorganizada */}

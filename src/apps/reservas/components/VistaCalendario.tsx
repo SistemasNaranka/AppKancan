@@ -277,31 +277,6 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
           mb: 2,
         }}
       >
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
-          Calendario Mensual
-        </Typography>
-
-        {onNuevaReserva && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => onNuevaReserva()}
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              backgroundColor: "primary.main",
-              boxShadow: "none",
-              borderRadius: 1.5,
-              px: 2.5,
-              "&:hover": {
-                backgroundColor: "#005AA3",
-                boxShadow: "none",
-              },
-            }}
-          >
-            Reservar Ahora
-          </Button>
-        )}
       </Box>
 
       {/* Barra de filtros reorganizada */}
