@@ -300,7 +300,7 @@ export const useFileProcessor = () => {
         // Mapeo detallado para asegurar que coincidan los nombres de los archivos
         const mapeoVisual = [
             { keys: ["transactions", "addi"], label: "ADDI" },
-            { keys: ["reportediario", "ventascomercio", "redebana"], label: "REDEBANA" },
+            { keys: ["reportediario", "ventascomercio", "redeban"], label: "REDEBAN" },
             { keys: ["maria", "perez", "occidente", "transferencia", "banco"], label: "TRANSFERENCIAS" },
             { keys: ["credito", "sistecredito", "sistecrédito"], label: "SISTECREDITOS" }
         ];
@@ -328,7 +328,7 @@ export const useFileProcessor = () => {
                 const fuenteUpper = fuenteNombre.toUpperCase();
                 if (fuenteUpper.includes('TRANSFERENCIA')) fuenteNombre = 'TRANSFERENCIAS';
                 else if (fuenteUpper.includes('ADDI')) fuenteNombre = 'ADDI';
-                else if (fuenteUpper.includes('REDEBANA') || fuenteUpper.includes('REDEBAN')) fuenteNombre = 'REDEBANA';
+                else if (fuenteUpper.includes('REDEBAN') || fuenteUpper.includes('REDEBAN')) fuenteNombre = 'REDEBAN';
                 else if (fuenteUpper.includes('CREDITO') || fuenteUpper.includes('SISTECREDITO')) fuenteNombre = 'SISTECREDITOS';
             }
 
@@ -398,8 +398,8 @@ export const useFileProcessor = () => {
                     cache[fuente] = todasLasColumnas.filter(col => {
                         const colLower = col.toLowerCase();
                         if (col.startsWith('_') || col === 'tiendaId' || colLower.includes('descuento')) return false;
-                        // Regla para ocultar documento en REDEBANA (basado en el nombre nuevo o el antiguo)
-                        if ((fuente.includes('REDEBANA') || fuente.toLowerCase().includes('reportediario') || fuente.toLowerCase().includes('ventascomercio')) && colLower.includes('documento')) return false;
+                        // Regla para ocultar documento en REDEBAN (basado en el nombre nuevo o el antiguo)
+                        if ((fuente.includes('REDEBAN') || fuente.toLowerCase().includes('reportediario') || fuente.toLowerCase().includes('ventascomercio')) && colLower.includes('documento')) return false;
                         return keywords.some(key => colLower.includes(key));
                     }).sort((a, b) => {
                         const getScore = (s: string) => {

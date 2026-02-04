@@ -157,6 +157,12 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     // Buscamos coincidencia EXACTA para evitar borrar "TOTAL SPORT" o similares
     const esFilaTotal = valores.some(v => v.toUpperCase() === "TOTAL");
 
+    // 3. Filtrar filas "RECHAZADA" o "RECHAZADO"
+    const esRechazada = valores.some(v => {
+      const val = v.toUpperCase();
+      return val === "RECHAZADA" || val === "RECHAZADO";
+    });
+
     if (esPruebaRBM) {
       console.log("  🚫 Fila ignorada (contiene 'Prueba RBM'):", fila);
       return false;
@@ -164,6 +170,11 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
     if (esFilaTotal) {
       console.log("  🚫 Fila ignorada (es fila de 'TOTAL'):", fila);
+      return false;
+    }
+
+    if (esRechazada) {
+      console.log("  🚫 Fila ignorada (es 'RECHAZADA/O'):", fila);
       return false;
     }
 
