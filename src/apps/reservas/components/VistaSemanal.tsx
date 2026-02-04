@@ -494,6 +494,36 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                           >
                             {esInicio && (
                               <>
+                                {/* Indicador pulsante para reunión en curso */}
+                                {esEnCurso && (
+                                  <Box
+                                    sx={{
+                                      position: "absolute",
+                                      top: 8,
+                                      right: 8,
+                                      width: 12,
+                                      height: 12,
+                                      borderRadius: "50%",
+                                      backgroundColor: "#4ade80",
+                                      boxShadow: "0 0 8px rgba(74, 222, 128, 0.6)",
+                                      animation: "pulse 1.5s ease-in-out infinite",
+                                      "@keyframes pulse": {
+                                        "0%": {
+                                          transform: "scale(1)",
+                                          opacity: 1,
+                                        },
+                                        "50%": {
+                                          transform: "scale(1.4)",
+                                          opacity: 0.7,
+                                        },
+                                        "100%": {
+                                          transform: "scale(1)",
+                                          opacity: 1,
+                                        },
+                                      },
+                                    }}
+                                  />
+                                )}
                                 {/* Título */}
                                 <Typography
                                   sx={{
@@ -505,6 +535,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                     textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",
                                     mb: 0.25,
+                                    pr: esEnCurso ? 1.5 : 0,
                                   }}
                                 >
                                   {reserva.titulo_reunion || "Sin título"}

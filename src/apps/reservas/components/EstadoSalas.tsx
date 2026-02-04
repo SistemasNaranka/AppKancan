@@ -133,9 +133,6 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
               Estado Actual de las Salas
             </Typography>
           </Box>
-          <Typography variant="body2" sx={{ color: "#6b7280", textTransform: "capitalize" }}>
-            {diaActual} • Horario laboral: 7:00 AM - 4:30 PM
-          </Typography>
         </Box>
         <Button
           variant="contained"
@@ -201,16 +198,34 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         {infoSala.tipo}
                       </Typography>
                     </Box>
-                    <Chip
-                      label="OCUPADA"
-                      size="small"
-                      sx={{
-                        backgroundColor: "rgba(255,255,255,0.2)",
-                        color: "white",
-                        fontWeight: 600,
-                        fontSize: "0.75rem",
-                      }}
-                    />
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      {/* Indicador pulsante para reunión en curso */}
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          backgroundColor: "#4ade80",
+                          boxShadow: "0 0 8px rgba(74, 222, 128, 0.8)",
+                          animation: "pulse 1.5s ease-in-out infinite",
+                          "@keyframes pulse": {
+                            "0%": { transform: "scale(1)", opacity: 1 },
+                            "50%": { transform: "scale(1.4)", opacity: 0.7 },
+                            "100%": { transform: "scale(1)", opacity: 1 },
+                          },
+                        }}
+                      />
+                      <Chip
+                        label="OCUPADA"
+                        size="small"
+                        sx={{
+                          backgroundColor: "rgba(255,255,255,0.2)",
+                          color: "white",
+                          fontWeight: 600,
+                          fontSize: "0.75rem",
+                        }}
+                      />
+                    </Box>
                   </Box>
                 </Box>
 

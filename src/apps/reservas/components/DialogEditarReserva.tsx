@@ -319,12 +319,6 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
             <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}>
               Editar Reservación
             </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#6b7280" }}>
-              <ScheduleIcon sx={{ fontSize: 16 }} />
-              <Typography variant="body2">
-                Modifique los detalles de su reservación. Horario comercial: 7 AM - 5 PM.
-              </Typography>
-            </Box>
           </Box>
 
           <form onSubmit={handleSubmit(onFormSubmit)}>

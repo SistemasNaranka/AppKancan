@@ -178,6 +178,25 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
               gap: 1,
             }}
           >
+            {/* Indicador pulsante para reunión en curso */}
+            {estadoMostrar === "En curso" && (
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  backgroundColor: "#4ade80",
+                  boxShadow: "0 0 8px rgba(74, 222, 128, 0.6)",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                  flexShrink: 0,
+                  "@keyframes pulse": {
+                    "0%": { transform: "scale(1)", opacity: 1 },
+                    "50%": { transform: "scale(1.4)", opacity: 0.7 },
+                    "100%": { transform: "scale(1)", opacity: 1 },
+                  },
+                }}
+              />
+            )}
             <Chip
               label={estadoMostrar}
               size="small"

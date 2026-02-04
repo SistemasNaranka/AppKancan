@@ -270,13 +270,13 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
         elevation={0} 
         sx={{ 
           display: "flex", 
-          justifyContent: "space-between", 
+          justifyContent: "space-between",
           alignItems: "center", 
           p: 1.5,
           mb: 2,
           border: "1px solid #e0e0e0",
           borderRadius: 2,
-          backgroundColor: "#fff",
+          backgroundColor: "#fff",  
         }}
       >
         {/* Toggles a la izquierda */}
@@ -681,18 +681,38 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                   >
                     {tituloMostrar}
                   </Typography>
-                  <Chip
-                    label={estado}
-                    size="small"
-                    sx={{
-                      mt: 0.5,
-                      backgroundColor: "rgba(255,255,255,0.25)",
-                      color: "#ffffff",
-                      fontWeight: 600,
-                      fontSize: "0.7rem",
-                      height: 20,
-                    }}
-                  />
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
+                    {/* Indicador pulsante para reunión en curso */}
+                    {estado === "En curso" && (
+                      <Box
+                        sx={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          backgroundColor: "#4ade80",
+                          boxShadow: "0 0 8px rgba(74, 222, 128, 0.6)",
+                          animation: "pulse 1.5s ease-in-out infinite",
+                          flexShrink: 0,
+                          "@keyframes pulse": {
+                            "0%": { transform: "scale(1)", opacity: 1 },
+                            "50%": { transform: "scale(1.4)", opacity: 0.7 },
+                            "100%": { transform: "scale(1)", opacity: 1 },
+                          },
+                        }}
+                      />
+                    )}
+                    <Chip
+                      label={estado}
+                      size="small"
+                      sx={{
+                        backgroundColor: "rgba(255,255,255,0.25)",
+                        color: "#ffffff",
+                        fontWeight: 600,
+                        fontSize: "0.7rem",
+                        height: 20,
+                      }}
+                    />
+                  </Box>
                 </Box>
                 <Box sx={{ display: "flex", gap: 0.5 }}>
                   {puedeModificar(reservaSeleccionada) && (

@@ -209,16 +209,37 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
 
                 {/* Estado */}
                 <TableCell>
-                  <Chip
-                    label={estadoMostrar}
-                    size="small"
-                    sx={{
-                      backgroundColor:
-                        COLORES_ESTADO[estadoMostrar] || "#F3F4F6",
-                      color: COLORES_TEXTO_ESTADO[estadoMostrar] || "#374151",
-                      fontWeight: "600",
-                    }}
-                  />
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {/* Indicador pulsante para reunión en curso */}
+                    {estadoMostrar === "En curso" && (
+                      <Box
+                        sx={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          backgroundColor: "#4ade80",
+                          boxShadow: "0 0 6px rgba(74, 222, 128, 0.6)",
+                          animation: "pulse 1.5s ease-in-out infinite",
+                          flexShrink: 0,
+                          "@keyframes pulse": {
+                            "0%": { transform: "scale(1)", opacity: 1 },
+                            "50%": { transform: "scale(1.3)", opacity: 0.7 },
+                            "100%": { transform: "scale(1)", opacity: 1 },
+                          },
+                        }}
+                      />
+                    )}
+                    <Chip
+                      label={estadoMostrar}
+                      size="small"
+                      sx={{
+                        backgroundColor:
+                          COLORES_ESTADO[estadoMostrar] || "#F3F4F6",
+                        color: COLORES_TEXTO_ESTADO[estadoMostrar] || "#374151",
+                        fontWeight: "600",
+                      }}
+                    />
+                  </Box>
                 </TableCell>
 
                 {/* Acciones */}
