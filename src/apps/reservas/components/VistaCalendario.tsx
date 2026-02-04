@@ -289,12 +289,14 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             sx={{
               textTransform: "none",
               fontWeight: 600,
-              fontSize: "0.9rem",
               backgroundColor: "primary.main",
               boxShadow: "none",
               borderRadius: 1.5,
               px: 2.5,
-              "&:hover": { backgroundColor: "primary.dark", boxShadow: "none" },
+              "&:hover": {
+                backgroundColor: "#005AA3",
+                boxShadow: "none",
+              },
             }}
           >
             Reservar Ahora
@@ -302,29 +304,45 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
         )}
       </Box>
 
-      {/* Fila de controles: Toggles | Navegación | Mes actual */}
+      {/* Barra de filtros reorganizada */}
       <Paper
         elevation={0}
         sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          p: 1.5,
+          p: 2,
           mb: 2,
           border: "1px solid #e0e0e0",
           borderRadius: 2,
           backgroundColor: "#fff",
         }}
       >
-        {/* Toggles a la izquierda */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          {/* Toggle Semanal/Mes */}
-          {onCambiarVista && (
+        {/* Fila de controles principales */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            flexWrap: "wrap",
+          }}
+        >
+          {/* GRUPO 1: SALA */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: "#303030",
+                fontSize: "0.7rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Sala
+            </Typography>
             <ToggleButtonGroup
-              value={vistaCalendario}
+              value={salaSeleccionada}
               exclusive
               onChange={(_, valor) => {
-                if (valor) onCambiarVista(valor);
+                if (valor) setSalaSeleccionada(valor);
               }}
               size="small"
               sx={{
@@ -336,160 +354,243 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                   fontWeight: 500,
                   borderColor: "#e0e0e0",
                   "&.Mui-selected": {
-                    backgroundColor: "#3B82F6",
+                    backgroundColor: "#004680",
                     color: "white",
-                    "&:hover": { backgroundColor: "#2563EB" },
+                    "&:hover": { backgroundColor: "#005AA3" },
                   },
                 },
               }}
             >
-              <ToggleButton value="semanal">Semanal</ToggleButton>
-              <ToggleButton value="mes">Mes</ToggleButton>
+              {SALAS_DISPONIBLES.map((sala) => (
+                <ToggleButton key={sala} value={sala}>
+                  {sala}
+                </ToggleButton>
+              ))}
             </ToggleButtonGroup>
-          )}
+          </Box>
 
-          {/* Toggle Salas */}
-          <ToggleButtonGroup
-            value={salaSeleccionada}
-            exclusive
-            onChange={(_, valor) => {
-              if (valor) setSalaSeleccionada(valor);
-            }}
-            size="small"
-            sx={{
-              "& .MuiToggleButton-root": {
+          {/* GRUPO 2: VISTA */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: "#303030",
+                fontSize: "0.7rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Vista
+            </Typography>
+            {onCambiarVista && (
+              <ToggleButtonGroup
+                value={vistaCalendario}
+                exclusive
+                onChange={(_, valor) => {
+                  if (valor) onCambiarVista(valor);
+                }}
+                size="small"
+                sx={{
+                  "& .MuiToggleButton-root": {
+                    textTransform: "none",
+                    px: 2,
+                    py: 0.5,
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    borderColor: "#e0e0e0",
+                    "&.Mui-selected": {
+                      backgroundColor: "#004680",
+                      color: "white",
+                      "&:hover": { backgroundColor: "#005AA3" },
+                    },
+                  },
+                }}
+              >
+                <ToggleButton value="semanal">Semanal</ToggleButton>
+                <ToggleButton value="mes">Mes</ToggleButton>
+              </ToggleButtonGroup>
+            )}
+          </Box>
+
+          {/* GRUPO 3: NAVEGACIÓN */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: "#303030",
+                fontSize: "0.7rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Navegación
+            </Typography>
+            <Box sx={{ display: "flex", gap: 0.5 }}>
+              <IconButton
+                onClick={navegarAnterior}
+                size="small"
+                sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
+              >
+                <ChevronLeftIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                onClick={navegarSiguiente}
+                size="small"
+                sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
+              >
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={irAHoy}
+                sx={{
+                  textTransform: "none",
+                  borderColor: "#e0e0e0",
+                  color: "#374151",
+                  fontSize: "0.8rem",
+                  px: 1.5,
+                  minWidth: "auto",
+                }}
+              >
+                Hoy
+              </Button>
+            </Box>
+          </Box>
+
+          {/* GRUPO 4: FECHA (Mes y Año) */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: "#303030",
+                fontSize: "0.7rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Fecha
+            </Typography>
+            <Box sx={{ display: "flex", gap: 0.5 }}>
+              <FormControl size="small" sx={{ minWidth: 100 }}>
+                <Select
+                  value={fechaActual.getMonth()}
+                  onChange={(e) => handleCambiarMes(e.target.value as number)}
+                  sx={{
+                    fontSize: "0.85rem",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#e0e0e0",
+                    },
+                  }}
+                >
+                  {MESES.map((mes, index) => (
+                    <MenuItem key={mes} value={index}>
+                      {mes}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 80 }}>
+                <Select
+                  value={fechaActual.getFullYear()}
+                  onChange={(e) => handleCambiarAño(e.target.value as number)}
+                  sx={{
+                    fontSize: "0.85rem",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#e0e0e0",
+                    },
+                  }}
+                >
+                  {AÑOS.map((año) => (
+                    <MenuItem key={año} value={año}>
+                      {año}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+
+          {/* GRUPO 5: MOSTRAR */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: "#303030",
+                fontSize: "0.7rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Mostrar
+            </Typography>
+            <Button
+              variant={mostrarFinesSemana ? "contained" : "outlined"}
+              size="small"
+              onClick={() => setMostrarFinesSemana(!mostrarFinesSemana)}
+              sx={{
                 textTransform: "none",
-                px: 2,
-                py: 0.5,
-                fontSize: "0.85rem",
-                fontWeight: 500,
-                borderColor: "#e0e0e0",
-                "&.Mui-selected": {
-                  backgroundColor: "#3B82F6",
-                  color: "white",
-                  "&:hover": { backgroundColor: "#2563EB" },
-                },
-              },
-            }}
-          >
-            {SALAS_DISPONIBLES.map((sala) => (
-              <ToggleButton key={sala} value={sala}>
-                {sala}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-
-          {/* Toggle Fines de Semana */}
-          <Button
-            variant={mostrarFinesSemana ? "contained" : "outlined"}
-            size="small"
-            onClick={() => setMostrarFinesSemana(!mostrarFinesSemana)}
-            sx={{
-              textTransform: "none",
-              fontSize: "0.85rem",
-              fontWeight: 500,
-              px: 1.5,
-              borderColor: "#e0e0e0",
-              boxShadow: "none",
-              color: mostrarFinesSemana ? "white" : "#374151",
-              backgroundColor: mostrarFinesSemana ? "#3B82F6" : "transparent",
-              "&:hover": {
-                backgroundColor: mostrarFinesSemana ? "#2563EB" : "#f3f4f6",
+                fontSize: "0.8rem",
+                px: 1.5,
                 borderColor: "#e0e0e0",
                 boxShadow: "none",
-              },
-            }}
-          >
-            {mostrarFinesSemana
-              ? "Ocultar fines de semana"
-              : "Mostrar fines de semana"}
-          </Button>
-        </Box>
+                color: mostrarFinesSemana ? "white" : "#374151",
+                backgroundColor: mostrarFinesSemana ? "#004680" : "transparent",
+                "&:hover": {
+                  backgroundColor: mostrarFinesSemana ? "#005AA3" : "#f3f4f6",
+                  borderColor: "#e0e0e0",
+                  boxShadow: "none",
+                },
+              }}
+            >
+              {mostrarFinesSemana
+                ? "Con fines de semana"
+                : "Sin fines de semana"}
+            </Button>
+          </Box>
 
-        {/* Navegación al centro-derecha */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <IconButton
-            onClick={navegarAnterior}
-            size="small"
-            sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
-          >
-            <ChevronLeftIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            onClick={navegarSiguiente}
-            size="small"
-            sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
-          >
-            <ChevronRightIcon fontSize="small" />
-          </IconButton>
-
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={irAHoy}
+          {/* GRUPO 6: PERÍODO ACTUAL (derecha) */}
+          <Box
             sx={{
-              textTransform: "none",
-              borderColor: "#e0e0e0",
-              color: "#374151",
-              fontSize: "0.85rem",
-              px: 1.5,
-              minWidth: "auto",
+              ml: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 0.5,
             }}
           >
-            Hoy
-          </Button>
-
-          {/* Selectores de mes y año */}
-          <FormControl size="small" sx={{ minWidth: 100 }}>
-            <Select
-              value={fechaActual.getMonth()}
-              onChange={(e) => handleCambiarMes(e.target.value as number)}
+            <Typography
+              variant="caption"
               sx={{
-                fontSize: "0.85rem",
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#e0e0e0",
-                },
+                fontWeight: 700,
+                color: "#303030",
+                fontSize: "0.7rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
               }}
             >
-              {MESES.map((mes, index) => (
-                <MenuItem key={mes} value={index}>
-                  {mes}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl size="small" sx={{ minWidth: 80 }}>
-            <Select
-              value={fechaActual.getFullYear()}
-              onChange={(e) => handleCambiarAño(e.target.value as number)}
+              Período
+            </Typography>
+            <Typography
+              variant="body2"
               sx={{
-                fontSize: "0.85rem",
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#e0e0e0",
-                },
+                fontWeight: 700,
+                color: "#1a2a3a",
+                fontSize: "0.95rem",
+                backgroundColor: "#f3f4f6",
+                px: 2,
+                py: 0.75,
+                borderRadius: 1,
+                whiteSpace: "nowrap",
               }}
             >
-              {AÑOS.map((año) => (
-                <MenuItem key={año} value={año}>
-                  {año}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              {mesActual}
+            </Typography>
+          </Box>
         </Box>
-
-        {/* Mes actual a la derecha */}
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: 600,
-            color: "#1a2a3a",
-            minWidth: 150,
-            textAlign: "right",
-          }}
-        >
-          {mesActual}
-        </Typography>
       </Paper>
 
       {/* Vista Mensual */}
@@ -625,7 +726,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                             {formatearHora(reserva.hora_inicio)}{" "}
                             {truncarTexto(
                               reserva.titulo_reunion || "Sin título",
-                              10,
+                              20,
                             )}
                           </Typography>
                         </Box>

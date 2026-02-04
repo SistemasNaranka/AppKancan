@@ -294,10 +294,7 @@ const ReservasView: React.FC = () => {
           >
             <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
           </Box>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 700, color: "#1a2a3a", fontSize: "1rem" }}
-          >
+          <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
             Reservar Sala
           </Typography>
         </Box>
