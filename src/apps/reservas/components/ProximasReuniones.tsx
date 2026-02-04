@@ -263,20 +263,41 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {capitalize(reserva.area) || "-"}
+                {capitalize(reserva.area || "") || "-"}
               </Typography>
 
               {/* Estado */}
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  color: estadoInfo.color,
-                  textAlign: "right",
-                }}
-              >
-                {estadoInfo.texto}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
+                {/* Indicador pulsante para reunión en curso */}
+                {estadoInfo.texto === "En Curso" && (
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      backgroundColor: "#4ade80",
+                      boxShadow: "0 0 6px rgba(74, 222, 128, 0.6)",
+                      animation: "pulse 1.5s ease-in-out infinite",
+                      flexShrink: 0,
+                      "@keyframes pulse": {
+                        "0%": { transform: "scale(1)", opacity: 1 },
+                        "50%": { transform: "scale(1.3)", opacity: 0.7 },
+                        "100%": { transform: "scale(1)", opacity: 1 },
+                      },
+                    }}
+                  />
+                )}
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 600,
+                    color: estadoInfo.color,
+                    textAlign: "right",
+                  }}
+                >
+                  {estadoInfo.texto}
+                </Typography>
+              </Box>
             </Box>
           );
         })
