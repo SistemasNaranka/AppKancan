@@ -12,6 +12,7 @@ import { MapeoArchivo, TiendaMapeo } from "../types/mapeo.types";
 export interface MapeoNombreArchivo {
   archivo_origen: string;
   tienda_archivo: string;
+  terminal: string; // Nuevo campo
   tienda_id: {
     id: number;
     nombre: string;
@@ -35,13 +36,14 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
   try {
     // Asegurar que el token esté establecido antes de la petición
     await asegurarToken();
-    
+
     const data = await withAutoRefresh(() =>
       directus.request(
         readItems("mapeo_nombres_archivos", {
           fields: [
             "archivo_origen",
             "tienda_archivo",
+            "terminal",
             "tienda_id.id",
             "tienda_id.nombre",
           ],
@@ -64,12 +66,12 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
 export const procesarMapeosParaNormalizacion = (
   mapeos: MapeoNombreArchivo[]
 ): { tablasMapeo: MapeoArchivo[]; tiendaMapeos: TiendaMapeo[] } => {
-  
+
   // 1. Agrupar por archivo_origen para obtener los tipos de archivo únicos
   const archivoOrigenUnicos = [...new Set(mapeos.map(m => m.archivo_origen))];
 
-//===========================  LISTA DE COLUMNAS A ELIMINAR  ===========================//
-  
+  //===========================  LISTA DE COLUMNAS A ELIMINAR  ===========================//
+
   // 2. Configuración de columnas a eliminar por tipo de archivo
   const columnasEliminarPorTipo: Record<string, string[]> = {
     "Maria Perez - Bco Occidente": [
@@ -107,20 +109,19 @@ export const procesarMapeosParaNormalizacion = (
       "tiendaid"
     ],
     "ReporteDiariodeVentasComercio": [
-      "Dirección",
       "Cantidad de Transacciones",
       "Tasa Aerop o Propina",
       "comisión",
       "Retenciones",
     ],//						
-      "Creditos": [
-        "Almacén",
-        "Identificación",
-        "Pagaré",
-        "Factura",
-        "Retención",
-        "Usuario Almacén",
-      ],
+    "Creditos": [
+      "Almacén",
+      "Identificación",
+      "Pagaré",
+      "Factura",
+      "Retención",
+      "Usuario Almacén",
+    ],
   };
 
   // 3. Crear tablasMapeo con las columnas específicas para cada tipo
@@ -135,6 +136,7 @@ export const procesarMapeosParaNormalizacion = (
     tiendaArchivo: m.tienda_archivo,
     tiendaNormalizada: m.tienda_id.nombre,  // Nombre viene de la relación
     tiendaId: m.tienda_id.id,               // ID viene de la relación
+    terminal: m.terminal                    // Nuevo campo
   }));
 
   return { tablasMapeo, tiendaMapeos };
