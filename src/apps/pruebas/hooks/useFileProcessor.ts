@@ -13,7 +13,7 @@ import {
 } from '../utils/fileNormalization';
 import { ordenarGruposPorCodigo } from '../utils/sortingUtils';
 import { ordenarTiendasPorCodigo } from '../utils/storeSorting';
-import { formatearValor } from '../utils/formatters';
+import { formatearValor, parsearNumeroLatam } from '../utils/formatters';
 import {
     obtenerMapeosArchivos,
     procesarMapeosParaNormalizacion
@@ -490,16 +490,17 @@ export const useFileProcessor = () => {
                         datos.forEach(fila => {
                             const dRow = worksheet.getRow(r);
                             columnasFuente.forEach((col, cIdx) => {
-                                let val = fila[col];
+                                const val = fila[col];
                                 const colL = col.toLowerCase();
                                 const cell = dRow.getCell(colStart + cIdx);
 
                                 if (colL.includes('fecha') || colL.includes('hora') || colL.includes('time') || colL.includes('creacion')) {
                                     cell.value = formatearValor(val, col);
                                 } else if (colL.includes('valor') || colL.includes('monto') || colL.includes('total') || colL.includes('neto')) {
-                                    const num = typeof val === 'number' ? val : Number(String(val || 0).replace(/[^0-9.-]+/g, ""));
-                                    totalFuente += isNaN(num) ? 0 : num;
-                                    cell.value = isNaN(num) ? 0 : num;
+                                    // USAR PARSER ROBUSTO LATAM
+                                    const num = parsearNumeroLatam(val);
+                                    totalFuente += num;
+                                    cell.value = num;
                                     cell.numFmt = '"$"#,##0';
                                 } else {
                                     cell.value = val;

@@ -10,6 +10,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Chip,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -23,10 +25,12 @@ import {
   Delete as DeleteIcon,
   Business as AreaIcon,
   Notes as NotesIcon,
+  Warning as WarningIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { useQuery } from "@tanstack/react-query";
 import {
   format,
   addDays,
@@ -36,6 +40,7 @@ import {
   isSameDay,
 } from "date-fns";
 import { es } from "date-fns/locale";
+import { getConfiguracionReserva } from "../services/reservas";
 import type { Reserva, EstadoReserva } from "../types/reservas.types";
 import {
   SALAS_DISPONIBLES,
@@ -44,6 +49,7 @@ import {
   COLORES_TEXTO_ESTADO,
   getReservaColor,
   capitalize,
+  CONFIGURACION_POR_DEFECTO,
 } from "../types/reservas.types";
 
 interface VistaSemanalProps {
@@ -57,11 +63,41 @@ interface VistaSemanalProps {
   salaInicial?: string;
 }
 
-// Horas del día (7:00 AM - 4:00 PM)
-const HORAS = Array.from({ length: 10 }, (_, i) => {
-  const hora = 7 + i;
-  return `${hora.toString().padStart(2, "0")}:00`;
-});
+/**
+ * Genera un array de horas en formato HH:mm desde la hora de inicio hasta la hora de fin
+ * @param horaInicio - Hora de inicio en formato HH:mm (ej: "07:00")
+ * @param horaFin - Hora de fin en formato HH:mm (ej: "18:00")
+ * @returns Array de horas en formato HH:mm
+ */
+const generarHorasRango = (horaInicio: string, horaFin: string): string[] => {
+  const horas: string[] = [];
+
+  const [horaIni, minIni] = horaInicio.split(":").map(Number);
+  const [horaFinNum, minFin] = horaFin.split(":").map(Number);
+
+  // Usar hora de inicio como primer valor
+  let horaActual = horaIni;
+
+  while (horaActual <= horaFinNum) {
+    // Agregar la hora actual al array
+    horas.push(`${horaActual.toString().padStart(2, "0")}:00`);
+    horaActual++;
+  }
+
+  return horas;
+};
+
+/**
+ * Convierte hora de formato 24h a 12h con AM/PM
+ * @param hora - Hora en formato HH:mm
+ * @returns Hora en formato 12h con AM/PM (ej: "7:00 AM")
+ */
+const formatearHora12h = (hora: string): string => {
+  const [h, m] = hora.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hora12 = h % 12 || 12;
+  return `${hora12}:${m.toString().padStart(2, "0")} ${ampm}`;
+};
 
 const VistaSemanal: React.FC<VistaSemanalProps> = ({
   reservas,
@@ -82,6 +118,49 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [reservaSeleccionada, setReservaSeleccionada] =
     useState<Reserva | null>(null);
+
+  // Obtener configuración de horarios desde la base de datos
+  const {
+    data: configuracion,
+    isLoading: isLoadingConfig,
+    isError: isErrorConfig,
+  } = useQuery({
+    queryKey: ["configuracion_reservas"],
+    queryFn: getConfiguracionReserva,
+    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+    retry: 1,
+  });
+
+  // Generar horas dinámicas basadas en la configuración
+  const horas = useMemo(() => {
+    if (isLoadingConfig) {
+      // Usar configuración por defecto mientras carga
+      return generarHorasRango(
+        CONFIGURACION_POR_DEFECTO.hora_inicio_operacion,
+        CONFIGURACION_POR_DEFECTO.hora_fin_operacion,
+      );
+    }
+
+    if (isErrorConfig || !configuracion) {
+      // Usar configuración por defecto en caso de error
+      console.warn("⚠️ Usando configuración por defecto de horarios");
+      return generarHorasRango(
+        CONFIGURACION_POR_DEFECTO.hora_inicio_operacion,
+        CONFIGURACION_POR_DEFECTO.hora_fin_operacion,
+      );
+    }
+
+    // Extraer horas de la configuración (quitar segundos si los hay)
+    const horaInicio =
+      configuracion.hora_apertura?.split(":").slice(0, 2).join(":") ||
+      CONFIGURACION_POR_DEFECTO.hora_inicio_operacion;
+    const horaFin =
+      configuracion.hora_cierre?.split(":").slice(0, 2).join(":") ||
+      CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
+
+    console.log("✅ Generando horas desde", horaInicio, "hasta", horaFin);
+    return generarHorasRango(horaInicio, horaFin);
+  }, [configuracion, isLoadingConfig, isErrorConfig]);
 
   // Calcular días de la semana (Lunes a Viernes)
   const diasSemana = useMemo(() => {
@@ -132,6 +211,13 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
       bg: COLORES_ESTADO[estado] || "#F3F4F6",
       text: COLORES_TEXTO_ESTADO[estado] || "#374151",
     };
+  };
+
+  //truncar texto
+
+  const truncarTexto = (texto: string, limite: number) => {
+    if (!texto) return "";
+    return texto.length > limite ? texto.slice(0, limite) + "..." : texto;
   };
 
   // Generar bloques por hora para una reserva (con soporte para media hora)
@@ -298,56 +384,46 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             alignItems: "center",
           }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
-            Horario Semanal
-          </Typography>
-
-          {onNuevaReserva && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => onNuevaReserva()}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                backgroundColor: "primary.main",
-                boxShadow: "none",
-                borderRadius: 1.5,
-                px: 2.5,
-                "&:hover": {
-                  backgroundColor: "primary.dark",
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Reservar Ahora
-            </Button>
-          )}
         </Box>
 
-        {/* Fila de controles: Toggles | Navegación | Rango fechas */}
+        {/* Barra de filtros reorganizada */}
         <Paper
           elevation={0}
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
             p: 1.5,
-            mb: 2,
             border: "1px solid #e0e0e0",
             borderRadius: 2,
             backgroundColor: "#fff",
           }}
         >
-          {/* Toggles a la izquierda */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            {/* Toggle Semanal/Mes */}
-            {onCambiarVista && (
+          {/* Fila de controles principales */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              flexWrap: "wrap",
+            }}
+          >
+            {/* GRUPO 1: SALA */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "#303030",
+                  fontSize: "0.7rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Sala
+              </Typography>
               <ToggleButtonGroup
-                value={vistaCalendario}
+                value={salaSeleccionada}
                 exclusive
                 onChange={(_, valor) => {
-                  if (valor) onCambiarVista(valor);
+                  if (valor) setSalaSeleccionada(valor);
                 }}
                 size="small"
                 sx={{
@@ -359,410 +435,506 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                     fontWeight: 500,
                     borderColor: "#e0e0e0",
                     "&.Mui-selected": {
-                      backgroundColor: "#3B82F6",
+                      backgroundColor: "#004680",
                       color: "white",
-                      "&:hover": { backgroundColor: "#2563EB" },
+                      "&:hover": { backgroundColor: "#005AA3" },
                     },
                   },
                 }}
               >
-                <ToggleButton value="semanal">Semanal</ToggleButton>
-                <ToggleButton value="mes">Mes</ToggleButton>
+                {SALAS_DISPONIBLES.map((sala) => (
+                  <ToggleButton key={sala} value={sala}>
+                    {sala}
+                  </ToggleButton>
+                ))}
               </ToggleButtonGroup>
-            )}
+            </Box>
 
-            {/* Toggle Salas */}
-            <ToggleButtonGroup
-              value={salaSeleccionada}
-              exclusive
-              onChange={(_, valor) => {
-                if (valor) setSalaSeleccionada(valor);
-              }}
-              size="small"
-              sx={{
-                "& .MuiToggleButton-root": {
-                  textTransform: "none",
-                  px: 2,
-                  py: 0.5,
-                  fontSize: "0.85rem",
-                  fontWeight: 500,
-                  borderColor: "#e0e0e0",
-                  "&.Mui-selected": {
-                    backgroundColor: "#3B82F6",
-                    color: "white",
-                    "&:hover": { backgroundColor: "#2563EB" },
-                  },
-                },
-              }}
-            >
-              {SALAS_DISPONIBLES.map((sala) => (
-                <ToggleButton key={sala} value={sala}>
-                  {sala}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Box>
-
-          {/* Navegación al centro-derecha */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <IconButton
-              onClick={semanaAnterior}
-              size="small"
-              sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
-            >
-              <ChevronLeftIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              onClick={semanaSiguiente}
-              size="small"
-              sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
-            >
-              <ChevronRightIcon fontSize="small" />
-            </IconButton>
-
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={irAHoy}
-              sx={{
-                textTransform: "none",
-                borderColor: "#e0e0e0",
-                color: "#374151",
-                fontSize: "0.85rem",
-                px: 1.5,
-                minWidth: "auto",
-              }}
-            >
-              Esta semana
-            </Button>
-
-            <DatePicker
-              value={fechaBase}
-              onChange={(newValue) => handleDateChange(newValue as Date | null)}
-              slotProps={{
-                textField: {
-                  size: "small",
-                  sx: {
-                    width: 150,
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 1,
+            {/* GRUPO 2: VISTA */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "#303030",
+                  fontSize: "0.7rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Vista
+              </Typography>
+              {onCambiarVista && (
+                <ToggleButtonGroup
+                  value={vistaCalendario}
+                  exclusive
+                  onChange={(_, valor) => {
+                    if (valor) onCambiarVista(valor);
+                  }}
+                  size="small"
+                  sx={{
+                    "& .MuiToggleButton-root": {
+                      textTransform: "none",
+                      px: 2,
+                      py: 0.5,
                       fontSize: "0.85rem",
+                      fontWeight: 500,
+                      borderColor: "#e0e0e0",
+                      "&.Mui-selected": {
+                        backgroundColor: "#004680",
+                        color: "white",
+                        "&:hover": { backgroundColor: "#005AA3" },
+                      },
+                    },
+                  }}
+                >
+                  <ToggleButton value="semanal">Semanal</ToggleButton>
+                  <ToggleButton value="mes">Mes</ToggleButton>
+                </ToggleButtonGroup>
+              )}
+            </Box>
+
+            {/* GRUPO 3: NAVEGACIÓN */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "#303030",
+                  fontSize: "0.7rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Navegación
+              </Typography>
+              <Box sx={{ display: "flex", gap: 0.5 }}>
+                <IconButton
+                  onClick={semanaAnterior}
+                  size="small"
+                  sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
+                >
+                  <ChevronLeftIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  onClick={semanaSiguiente}
+                  size="small"
+                  sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}
+                >
+                  <ChevronRightIcon fontSize="small" />
+                </IconButton>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={irAHoy}
+                  sx={{
+                    textTransform: "none",
+                    borderColor: "#e0e0e0",
+                    color: "#374151",
+                    fontSize: "0.8rem",
+                    px: 1.5,
+                    minWidth: "auto",
+                  }}
+                >
+                  Esta semana
+                </Button>
+              </Box>
+            </Box>
+
+            {/* GRUPO 4: FECHA */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "#303030",
+                  fontSize: "0.7rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Fecha
+              </Typography>
+              <DatePicker
+                value={fechaBase}
+                onChange={(newValue) =>
+                  handleDateChange(newValue as Date | null)
+                }
+                slotProps={{
+                  textField: {
+                    size: "small",
+                    sx: {
+                      width: 150,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 1,
+                        fontSize: "0.85rem",
+                      },
                     },
                   },
-                },
-              }}
-              format="dd/MM/yyyy"
-            />
-          </Box>
+                }}
+                format="dd/MM/yyyy"
+              />
+            </Box>
 
-          {/* Rango de fechas a la derecha */}
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 600,
-              color: "#1a2a3a",
-              minWidth: 150,
-              textAlign: "right",
-            }}
-          >
-            {rangoFechas}
-          </Typography>
-        </Paper>
-
-        {/* Calendario */}
-        <Paper
-          elevation={0}
-          sx={{
-            border: "1px solid #e0e0e0",
-            borderRadius: 2,
-            overflow: "hidden",
-            width: "100%",
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
-          }}
-        >
-          {/* Header de días */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "80px repeat(5, 1fr)",
-              borderBottom: "1px solid #e0e0e0",
-              width: "100%",
-              flexShrink: 0,
-              minWidth: 700, // Ancho mínimo para alinear con scroll horizontal
-            }}
-          >
+            {/* GRUPO 5: PERÍODO ACTUAL (derecha) */}
             <Box
               sx={{
-                p: 1,
-                backgroundColor: "#f9fafb",
-                borderRight: "1px solid #e0e0e0",
-                borderBottom: "1px solid #e0e0e0",
+                ml: "auto",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: 60,
-                boxSizing: "border-box",
+                flexDirection: "column",
+                gap: 0.5,
               }}
             >
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  textTransform: "uppercase",
+                  fontWeight: 700,
+                  color: "#303030",
                   fontSize: "0.7rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}
               >
-                Hora
+                Período
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  color: "#1a2a3a",
+                  fontSize: "0.95rem",
+                  backgroundColor: "#f3f4f6",
+                  px: 2,
+                  py: 0.75,
+                  borderRadius: 1,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {rangoFechas}
               </Typography>
             </Box>
-            {diasSemana.map((dia, idx) => {
-              const esHoy = isSameDay(dia, hoy);
-              return (
-                <Box
-                  key={dia.toISOString()}
-                  sx={{
-                    p: 1,
-                    textAlign: "center",
-                    backgroundColor: esHoy ? "#EFF6FF" : "#f9fafb",
-                    borderRight: idx < 4 ? "1px solid #e0e0e0" : "none",
-                    borderBottom: "1px solid #e0e0e0",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: 60,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      color: esHoy ? "#004680" : "#1a2a3a",
-                      textTransform: "capitalize",
-                      fontSize: "0.85rem",
-                    }}
-                  >
-                    {format(dia, "EEEE", { locale: es })}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: esHoy ? "#005AA3" : "#6b7280",
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    {format(dia, "d MMM", { locale: es })}
-                  </Typography>
-                </Box>
-              );
-            })}
-          </Box>
-
-          {/* Grid de horas - con scroll */}
-          <Box
-            sx={{
-              flex: 1,
-              overflowY: "auto",
-              overflowX: "auto",
-              width: "100%",
-            }}
-          >
-            {HORAS.map((hora, horaIdx) => (
-              <Box
-                key={hora}
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "80px repeat(5, 1fr)",
-                  height: 60,
-                  borderBottom:
-                    horaIdx < HORAS.length - 1 ? "1px solid #e0e0e0" : "none",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  minWidth: 700,
-                }}
-              >
-                <Box
-                  sx={{
-                    p: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    pr: 1.5,
-                    backgroundColor: "#fafafa",
-                    borderRight: "1px solid #e0e0e0",
-                    height: 60,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#6b7280", fontSize: "0.7rem" }}
-                  >
-                    {formatearHora12h(hora)}
-                  </Typography>
-                </Box>
-
-                {diasSemana.map((dia, diaIdx) => {
-                  const reservasEnCelda = getReservasEnCelda(dia, hora);
-                  const esHoy = isSameDay(dia, hoy);
-
-                  return (
-                    <Box
-                      key={`${dia.toISOString()}-${hora}`}
-                      onClick={() =>
-                        reservasEnCelda.length === 0 &&
-                        handleClickCelda(dia, hora)
-                      }
-                      sx={{
-                        position: "relative",
-                        borderRight: diaIdx < 4 ? "1px solid #e0e0e0" : "none",
-                        borderBottom: "1px solid #e0e0e0",
-                        backgroundColor: esHoy ? "#FAFBFF" : "transparent",
-                        height: 60,
-                        boxSizing: "border-box",
-                        cursor:
-                          reservasEnCelda.length === 0 ? "pointer" : "default",
-                        "&:hover":
-                          reservasEnCelda.length === 0
-                            ? { backgroundColor: "#f0f9ff" }
-                            : {},
-                      }}
-                    >
-                      {reservasEnCelda.map(
-                        ({ reserva, esInicio, esFin, posicion }) => {
-                          const colorReserva = getReservaColor(reserva.id);
-                          const estadoActual = (
-                            reserva.estadoCalculado || reserva.estado
-                          )?.toLowerCase();
-                          const esEnCurso = estadoActual === "en curso";
-
-                          // Determinar borderRadius
-                          // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → borderRadius completo
-                          const alturaCompleta =
-                            Math.abs(posicion.height - 60) < 1;
-                          const borderRadius =
-                            alturaCompleta || (esInicio && esFin)
-                              ? "8px"
-                              : esInicio
-                                ? "8px 8px 0 0"
-                                : esFin
-                                  ? "0 0 8px 8px"
-                                  : "0";
-
-                          return (
-                            <Box
-                              key={`${reserva.id}-${hora}`}
-                              onClick={(e) => handleClickReserva(e, reserva)}
-                              sx={{
-                                position: "absolute",
-                                top: posicion.top + 2,
-                                left: 4,
-                                right: 4,
-                                height: posicion.height - 4,
-                                backgroundColor: colorReserva,
-                                borderRadius: borderRadius,
-                                p: 1,
-                                cursor: "pointer",
-                                overflow: "hidden",
-                                zIndex: 1,
-                                "&:hover": {
-                                  opacity: 0.9,
-                                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                                },
-                                transition: "all 0.15s ease",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "flex-start",
-                              }}
-                            >
-                              {esInicio && (
-                                <>
-                                  {/* Título */}
-                                  <Typography
-                                    sx={{
-                                      fontSize: "0.75rem",
-                                      fontWeight: 700,
-                                      color: "#ffffff",
-                                      lineHeight: 1.2,
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                      mb: 0.25,
-                                    }}
-                                  >
-                                    {reserva.titulo_reunion || "Sin título"}
-                                  </Typography>
-                                  {/* Título de la reunión */}
-                                  <Typography
-                                    sx={{
-                                      fontWeight: "bold",
-                                      fontSize: "0.65rem",
-                                      color: "#ffffff",
-                                      opacity: 0.9,
-                                      mb: 0.5,
-                                    }}
-                                  >
-                                    {reserva.titulo_reunion || "Sin título"}
-                                  </Typography>
-                                  {/* Chip de estado */}
-                                  <Box
-                                    sx={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 0.5,
-                                      backgroundColor: "rgba(255,255,255,0.2)",
-                                      borderRadius: "12px",
-                                      px: 0.75,
-                                      py: 0.25,
-                                      width: "fit-content",
-                                    }}
-                                  >
-                                    {esEnCurso ? (
-                                      <TimeIcon
-                                        sx={{ fontSize: 10, color: "#ffffff" }}
-                                      />
-                                    ) : (
-                                      <Box
-                                        component="span"
-                                        sx={{
-                                          width: 8,
-                                          height: 8,
-                                          borderRadius: "50%",
-                                          border: "1.5px solid #ffffff",
-                                          display: "inline-block",
-                                        }}
-                                      />
-                                    )}
-                                    <Typography
-                                      sx={{
-                                        fontSize: "0.55rem",
-                                        fontWeight: 600,
-                                        color: "#ffffff",
-                                      }}
-                                    >
-                                      {esEnCurso ? "En curso" : "Vigente"}
-                                    </Typography>
-                                  </Box>
-                                </>
-                              )}
-                            </Box>
-                          );
-                        },
-                      )}
-                    </Box>
-                  );
-                })}
-              </Box>
-            ))}
           </Box>
         </Paper>
 
-        {/* Popover de detalle */}
+        {/* Error al cargar configuración */}
+        {isErrorConfig && (
+          <Alert
+            severity="warning"
+            icon={<WarningIcon />}
+            sx={{ mb: 2, borderRadius: 2 }}
+          >
+            No se pudo cargar la configuración de horarios. Mostrando horarios
+            por defecto.
+          </Alert>
+        )}
+
+        {/* Calendario */}
+        {isLoadingConfig ? (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: 400,
+              gap: 2,
+            }}
+          >
+            <CircularProgress size={24} />
+            <Typography variant="body2" color="text.secondary">
+              Cargando horarios...
+            </Typography>
+          </Box>
+        ) : (
+          <Paper
+            elevation={0}
+            sx={{
+              border: "1px solid #e0e0e0",
+              borderRadius: 2,
+              overflow: "hidden",
+              width: "100%",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
+          >
+            {/* Header de días */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "80px repeat(5, 1fr)",
+                borderBottom: "1px solid #e0e0e0",
+                width: "100%",
+                flexShrink: 0,
+                minWidth: 700, // Ancho mínimo para alinear con scroll horizontal
+              }}
+            >
+              <Box
+                sx={{
+                  p: 1,
+                  backgroundColor: "#f9fafb",
+                  borderRight: "1px solid #e0e0e0",
+                  borderBottom: "1px solid #e0e0e0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: 60,
+                  boxSizing: "border-box",
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    fontSize: "0.7rem",
+                  }}
+                >
+                  Hora
+                </Typography>
+              </Box>
+              {diasSemana.map((dia, idx) => {
+                const esHoy = isSameDay(dia, hoy);
+                return (
+                  <Box
+                    key={dia.toISOString()}
+                    sx={{
+                      p: 1,
+                      textAlign: "center",
+                      backgroundColor: esHoy ? "#EFF6FF" : "#f9fafb",
+                      borderRight: idx < 4 ? "1px solid #e0e0e0" : "none",
+                      borderBottom: "1px solid #e0e0e0",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      height: 60,
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        color: esHoy ? "#004680" : "#1a2a3a",
+                        textTransform: "capitalize",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      {format(dia, "EEEE", { locale: es })}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: esHoy ? "#005AA3" : "#6b7280",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      {format(dia, "d MMM", { locale: es })}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {/* Grid de horas - con scroll */}
+            <Box
+              sx={{
+                flex: 1,
+                overflowY: "auto",
+                overflowX: "auto",
+                width: "100%",
+              }}
+            >
+              {horas.map((hora, horaIdx) => (
+                <Box
+                  key={hora}
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "80px repeat(5, 1fr)",
+                    height: 60,
+                    borderBottom:
+                      horaIdx < horas.length - 1 ? "1px solid #e0e0e0" : "none",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    minWidth: 700,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      p: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-end",
+                      pr: 1.5,
+                      backgroundColor: "#fafafa",
+                      borderRight: "1px solid #e0e0e0",
+                      height: 60,
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "#6b7280", fontSize: "0.7rem" }}
+                    >
+                      {formatearHora12h(hora)}
+                    </Typography>
+                  </Box>
+
+                  {diasSemana.map((dia, diaIdx) => {
+                    const reservasEnCelda = getReservasEnCelda(dia, hora);
+                    const esHoy = isSameDay(dia, hoy);
+
+                    return (
+                      <Box
+                        key={`${dia.toISOString()}-${hora}`}
+                        onClick={() =>
+                          reservasEnCelda.length === 0 &&
+                          handleClickCelda(dia, hora)
+                        }
+                        sx={{
+                          position: "relative",
+                          borderRight:
+                            diaIdx < 4 ? "1px solid #e0e0e0" : "none",
+                          borderBottom: "1px solid #e0e0e0",
+                          backgroundColor: esHoy ? "#FAFBFF" : "transparent",
+                          height: 60,
+                          boxSizing: "border-box",
+                          cursor:
+                            reservasEnCelda.length === 0
+                              ? "pointer"
+                              : "default",
+                          "&:hover":
+                            reservasEnCelda.length === 0
+                              ? { backgroundColor: "#f0f9ff" }
+                              : {},
+                        }}
+                      >
+                        {reservasEnCelda.map(
+                          ({ reserva, esInicio, esFin, posicion }) => {
+                            const colorReserva = getReservaColor(reserva.id);
+                            const estadoActual = (
+                              reserva.estadoCalculado || reserva.estado
+                            )?.toLowerCase();
+                            const esEnCurso = estadoActual === "en curso";
+
+                            // Determinar borderRadius
+                            // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → borderRadius completo
+                            const alturaCompleta =
+                              Math.abs(posicion.height - 60) < 1;
+                            const borderRadius =
+                              alturaCompleta || (esInicio && esFin)
+                                ? "8px"
+                                : esInicio
+                                  ? "8px 8px 0 0"
+                                  : esFin
+                                    ? "0 0 8px 8px"
+                                    : "0";
+
+                            return (
+                              <Box
+                                key={`${reserva.id}-${hora}`}
+                                onClick={(e) => handleClickReserva(e, reserva)}
+                                sx={{
+                                  position: "absolute",
+                                  top: posicion.top + 2,
+                                  left: 4,
+                                  right: 4,
+                                  height: posicion.height - 4,
+                                  backgroundColor: colorReserva,
+                                  borderRadius: borderRadius,
+                                  p: 1,
+                                  cursor: "pointer",
+                                  overflow: "hidden",
+                                  zIndex: 1,
+                                  "&:hover": {
+                                    opacity: 0.9,
+                                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                                  },
+                                  transition: "all 0.15s ease",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  justifyContent: "flex-start",
+                                }}
+                              >
+                                {esInicio && (
+                                  <>
+                                    {/* Título con truncation */}
+                                    <Typography
+                                      sx={{
+                                        fontSize: "0.75rem",
+                                        fontWeight: 700,
+                                        color: "#ffffff",
+                                        lineHeight: 1.2,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        mb: 0.25,
+                                        flexShrink: 1,
+                                      }}
+                                    >
+                                      {reserva.titulo_reunion || "Sin título"}
+                                    </Typography>
+                                    {/* Chip de estado - siempre visible */}
+                                    <Box
+                                      sx={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 0.5,
+                                        backgroundColor:
+                                          "rgba(255,255,255,0.2)",
+                                        borderRadius: "12px",
+                                        px: 0.75,
+                                        py: 0.25,
+                                        width: "fit-content",
+                                        flexShrink: 0,
+                                        minWidth: "fit-content",
+                                      }}
+                                    >
+                                      {esEnCurso ? (
+                                        <TimeIcon
+                                          sx={{
+                                            fontSize: 10,
+                                            color: "#ffffff",
+                                          }}
+                                        />
+                                      ) : (
+                                        <Box
+                                          component="span"
+                                          sx={{
+                                            width: 8,
+                                            height: 8,
+                                            borderRadius: "50%",
+                                            border: "1.5px solid #ffffff",
+                                            display: "inline-block",
+                                          }}
+                                        />
+                                      )}
+                                      <Typography
+                                        sx={{
+                                          fontSize: "0.55rem",
+                                          fontWeight: 600,
+                                          color: "#ffffff",
+                                        }}
+                                      >
+                                        {esEnCurso ? "En curso" : "Vigente"}
+                                      </Typography>
+                                    </Box>
+                                  </>
+                                )}
+                              </Box>
+                            );
+                          },
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ))}
+            </Box>
+          </Paper>
+        )}
         <Popover
           open={Boolean(anchorEl)}
           anchorEl={anchorEl}

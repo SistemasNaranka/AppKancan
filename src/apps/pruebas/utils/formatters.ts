@@ -120,3 +120,56 @@ export const formatearValor = (valor: any, columna?: string): string => {
 
     return String(valor);
 };
+
+export const parsearNumeroLatam = (valor: any): number => {
+    if (typeof valor === 'number') return valor;
+    if (valor === null || valor === undefined || valor === "") return 0;
+
+    let s = String(valor).trim();
+    // Remover símbolos de moneda y espacios
+    s = s.replace(/[$\s]/g, '');
+
+    // Si tiene tanto puntos como comas
+    if (s.includes('.') && s.includes(',')) {
+        // Formato COL/EUR: 1.234,56 -> eliminar puntos, coma a punto
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            // Formato USA: 1,234.56 -> eliminar comas
+            s = s.replace(/,/g, '');
+        }
+    } else {
+        // Solo puntos
+        if (s.includes('.')) {
+            // Si hay mas de un punto (1.200.300), son miles
+            if ((s.match(/\./g) || []).length > 1) {
+                s = s.replace(/\./g, '');
+            } else {
+                // Un solo punto. Ambiguedad.
+                // Si son 3 decimales exactos (1.234) podría ser mil, pero JS lo toma como 1.234
+                // ANÁLISIS DE CONTEXTO COLOMBIA:
+                // La mayoría de archivos financieros usan punto para miles si no tienen decimales.
+                // PERO si es un Excel normal, 1.5 es 1.5.
+                // ESTRATEGIA: Si el punto está seguido de 3 dígitos y NO hay más decimales, es probable mil.
+                // PERO esto es arriesgado.
+                // Lo más seguro para reportes Kancan (moneda): ENTEROS.
+                // Si el usuario sube "1.234", ¿quiere decir 1234 pesos o 1.2 pesos?
+                // En pesos colombianos 1.2 pesos no existe. Así que 1.234 es 1234.
+                // Si es "195.900", es 195900.
+
+                // Si parece formato de miles (punto seguido de 3 digitos al final)
+                if (/\.\d{3}$/.test(s)) {
+                    s = s.replace(/\./g, '');
+                }
+                // Si no, dejar el punto (decimal)
+            }
+        }
+        // Solo comas -> decimal
+        else if (s.includes(',')) {
+            s = s.replace(',', '.');
+        }
+    }
+
+    const num = Number(s);
+    return isNaN(num) ? 0 : num;
+};

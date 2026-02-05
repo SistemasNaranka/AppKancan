@@ -122,6 +122,35 @@ export const COLORES_TEXTO_ESTADO: Record<EstadoReserva, string> = {
 };
 
 /**
+ * Configuración de horario de operación para reservas
+ * Esta configuración viene de la base de datos
+ */
+export interface ConfiguracionHorario {
+  id: number;
+  hora_inicio: string; // Formato HH:mm
+  hora_fin: string;    // Formato HH:mm
+  activo: boolean;
+}
+
+/**
+ * Configuración de la aplicación de reservas
+ */
+export interface ConfiguracionReservas {
+  hora_inicio_operacion: string;
+  hora_fin_operacion: string;
+  intervalo_reserva_minutos: number;
+  dias_laborales: number[]; // 0=domingo, 1=lunes, ..., 6=sábado
+}
+
+// Valores por defecto mientras se carga la configuración
+export const CONFIGURACION_POR_DEFECTO: ConfiguracionReservas = {
+  hora_inicio_operacion: "07:00",
+  hora_fin_operacion: "18:00",
+  intervalo_reserva_minutos: 60,
+  dias_laborales: [1, 2, 3, 4, 5], // Lunes a Viernes
+};
+
+/**
  * Horario comercial (configurable - futuro: vendrá de BD)
  */
 export const HORARIO_COMERCIAL = {

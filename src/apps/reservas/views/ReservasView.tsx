@@ -51,6 +51,13 @@ import type {
 
 type TabReservas = "Reserva" | "mis" | "calendario";
 
+// Títulos dinámicos por pestaña
+const TITULOS_PESTANA: Record<TabReservas, string> = {
+  "Reserva": "Reservar Sala",
+  "mis": "Mis Reservas",
+  "calendario": "Calendario",
+};
+
 const ReservasView: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -294,11 +301,8 @@ const ReservasView: React.FC = () => {
           >
             <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
           </Box>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 700, color: "#1a2a3a", fontSize: "1rem" }}
-          >
-            Reservar Sala
+          <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
+            {TITULOS_PESTANA[tabActual]}
           </Typography>
         </Box>
 
@@ -337,8 +341,24 @@ const ReservasView: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Espacio derecho para balance */}
-        <Box sx={{ minWidth: 180 }} />
+        {/* Botón Nueva reserva - Alineado a la derecha */}
+        <Button
+          startIcon={<AddIcon />}
+          variant="contained"
+          onClick={() => handleAbrirNuevaReserva()}
+          sx={{
+            boxShadow: "none",
+            textTransform: "none",
+            fontWeight: "600",
+            backgroundColor: "#0F9568",
+            "&:hover": {
+              boxShadow: "none",
+              backgroundColor: "#0B6B4B",
+            },
+          }}
+        >
+          Nueva reserva
+        </Button>
       </Box>
 
       {/* Contenido de Reserva */}
@@ -349,7 +369,6 @@ const ReservasView: React.FC = () => {
             reservas={todasReservas}
             onVerCronograma={handleVerCronograma}
             onReservarAhora={handleReservarAhora}
-            onNuevaReserva={() => handleAbrirNuevaReserva()}
           />
 
           {/* Próximas reuniones */}
@@ -366,53 +385,6 @@ const ReservasView: React.FC = () => {
       {/* Contenido de Mis reservas */}
       {tabActual === "mis" && (
         <Box>
-          {/* Subheader */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 3,
-            }}
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: 600, color: "#1a2a3a" }}
-              >
-                Mis Reservas
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {
-                  misReservas.filter((r) => {
-                    const estado = (
-                      r.estadoCalculado || r.estado
-                    )?.toLowerCase();
-                    return estado === "vigente" || estado === "en curso";
-                  }).length
-                }{" "}
-                reservas activas
-              </Typography>
-            </Box>
-
-            <Button
-              startIcon={<AddIcon />}
-              variant="contained"
-              onClick={() => handleAbrirNuevaReserva()}
-              sx={{
-                boxShadow: "none",
-                textTransform: "none",
-                fontWeight: "600",
-                "&:hover": {
-                  boxShadow: "none",
-                  backgroundColor: "#005da9",
-                },
-              }}
-            >
-              Nueva reserva
-            </Button>
-          </Box>
-
           <MisReservasCards
             reservas={misReservas}
             usuarioActualId={user?.id}

@@ -1,6 +1,6 @@
 import React from "react";
-import { Button } from "@mui/material";
-import { Settings, Person, Store } from "@mui/icons-material";
+import { Button, Box } from "@mui/material";
+import { Settings, Person, Store, Assignment as AssignmentIcon } from "@mui/icons-material";
 import { ExportButtons } from "./ExportButtons";
 import { SimpleFilters } from "./SimpleFilters";
 import { SummaryCards } from "../SummaryCards";
@@ -33,6 +33,8 @@ interface HomeHeaderProps {
   renderMobileSummaryCards?: () => React.ReactNode;
   /** Indica si hay presupuesto diario asignado para el día de hoy */
   hasBudgetData?: boolean;
+  /** Cantidad de días sin presupuesto asignado en el mes */
+  missingDaysCount?: number;
 }
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -56,6 +58,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onRoleFilterClear,
   renderMobileSummaryCards,
   hasBudgetData,
+  missingDaysCount = 0,
 }) => {
   const { canSeeConfig, canAssignEmployees, canSeeStoreFilter, hasPolicy } =
     useUserPolicies();
@@ -127,53 +130,86 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 )}
                 {/* Botón EDITAR PRESUPUESTO - Dependiendo del rol y si hay presupuesto del día */}
                 {canAssignEmployees() && (
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      // Si es tienda:
-                      // - Si NO hay presupuesto del día de hoy, abre CodesModal (asignación inicial)
-                      // - Si SÍ hay presupuesto del día de hoy, abre EditStoreBudgetModal (edición con fecha)
-                      if (hasPolicy("readComisionesTienda")) {
-                        if (hasBudgetData === false) {
-                          // No hay presupuesto del día de hoy, abrir CodesModal
-                          onShowCodesModal();
-                        } else {
-                          // Hay presupuesto del día de hoy, abrir EditStoreBudgetModal
-                          onShowEditStoreBudgetModal();
+                  <Box sx={{ position: "relative" }}>
+                    {/* Aviso de días pendientes - Para Tiendas y Admins cuando hay filtro */}
+                    {missingDaysCount > 0 && (
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: -30,
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          bgcolor: "#fff4e5",
+                          color: "#663000",
+                          px: 1.75,
+                          py: 0.4,
+                          borderRadius: 1.5,
+                          fontSize: "0.8rem",
+                          fontWeight: "bold",
+                          whiteSpace: "nowrap",
+                          border: "1.5px solid #ffb74d",
+                          boxShadow: "0 4px 8px rgba(0,0,0,0.12)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.75,
+                          zIndex: 10,
+                          animation: "bounce 2s infinite",
+                          "@keyframes bounce": {
+                            "0%, 20%, 50%, 80%, 100%": { transform: "translateX(-50%) translateY(0)" },
+                            "40%": { transform: "translateX(-50%) translateY(-6px)" },
+                            "60%": { transform: "translateX(-50%) translateY(-3px)" },
+                          },
+                        }}
+                      >
+                        <AssignmentIcon sx={{ fontSize: 16, color: "#f57c00" }} />
+                        {missingDaysCount} {missingDaysCount === 1 ? 'día pendiente' : 'días pendientes'}
+                      </Box>
+                    )}
+
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Si es tienda:
+                        // - Si NO hay presupuesto del día de hoy, abre CodesModal (asignación inicial)
+                        // - Si SÍ hay presupuesto del día de hoy, abre EditStoreBudgetModal (edición con fecha)
+                        if (hasPolicy("readComisionesTienda")) {
+                          if (hasBudgetData === false) {
+                            // No hay presupuesto del día de hoy, abrir CodesModal
+                            onShowCodesModal();
+                          } else {
+                            // Hay presupuesto del día de hoy, abrir EditStoreBudgetModal
+                            onShowEditStoreBudgetModal();
+                          }
+                        } else if (hasPolicy("readComisionesAdmin")) {
+                          // Admin siempre abre EditStoreModal
+                          onShowEditStoreModal();
                         }
-                      } else if (hasPolicy("readComisionesAdmin")) {
-                        // Admin siempre abre EditStoreModal
-                        onShowEditStoreModal();
+                      }}
+                      variant="contained"
+                      startIcon={
+                        hasPolicy("readComisionesTienda") ? <Person /> : <Store />
                       }
-                    }}
-                    variant="contained"
-                    startIcon={
-                      hasPolicy("readComisionesTienda") ? <Person /> : <Store />
-                    }
-                    size="small"
-                    sx={{
-                      lineHeight: 2.2,
-                      minWidth: "auto",
-                      px: { xs: 1.5, sm: 2 },
-                      backgroundColor: "#1976d2",
-                      color: "white",
-                      textTransform: "none",
-                      fontWeight: 600,
-                      boxShadow: "0 2px 4px rgba(25, 118, 210, 0.2)",
-                      "&:hover": {
-                        backgroundColor: "#1565c0",
-                        boxShadow: "0 4px 8px rgba(25, 118, 210, 0.3)",
-                        transform: "translateY(-1px)",
-                      },
-                      "&:active": {
-                        transform: "translateY(0)",
-                      },
-                    }}
-                  >
-                    <span className="hidden xs:inline">EDITAR PRESUPUESTO</span>
-                    <span className="xs:hidden">EDITAR PRESUPUESTO</span>
-                  </Button>
+                      size="small"
+                      sx={{
+                        lineHeight: 2.2,
+                        minWidth: "auto",
+                        px: { xs: 1.5, sm: 2 },
+                        backgroundColor: "#1976d2",
+                        color: "white",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        "&:hover": {
+                          backgroundColor: "#1565c0",
+                          boxShadow: "0 4px 8px rgba(25, 118, 210, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                      }}
+                    >
+                      EDITAR PRESUPUESTO
+                    </Button>
+                  </Box>
                 )}
               </div>
             )}
