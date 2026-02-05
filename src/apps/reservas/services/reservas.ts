@@ -388,3 +388,40 @@ export async function verificarConflictoHorario(
     return false;
   }
 }
+
+/**
+ * Interfaz para la configuración de horarios de reservas
+ */
+export interface ConfiguracionReserva {
+  id: number;
+  hora_apertura: string;  // Ej: "08:00:00"
+  hora_cierre: string;    // Ej: "15:00:00"
+}
+
+/**
+ * Obtiene la configuración de horarios para reservas desde la BD
+ * @returns ConfiguracionReserva o null si no existe configuración
+ */
+export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | null> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("configuracion_reserva", {
+          fields: ["id", "hora_apertura", "hora_cierre"],
+          limit: 1,
+        })
+      )
+    );
+
+    if (items && items.length > 0) {
+      console.log("✅ Configuración de reservas cargada:", items[0]);
+      return items[0] as ConfiguracionReserva;
+    }
+    
+    console.warn("⚠️ No se encontró configuración de reservas, usando valores por defecto");
+    return null;
+  } catch (error) {
+    console.error("❌ Error al cargar configuración de reservas:", error);
+    return null;
+  }
+}

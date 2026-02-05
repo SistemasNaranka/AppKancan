@@ -60,6 +60,7 @@ const ReservasView: React.FC = () => {
   const [vistaCalendario, setVistaCalendario] = useState<"semanal" | "mes">(
     "semanal",
   );
+  const [salaInicial, setSalaInicial] = useState<string | undefined>(undefined);
   const [dialogNueva, setDialogNueva] = useState(false);
   const [dialogEditar, setDialogEditar] = useState(false);
   const [dialogCancelar, setDialogCancelar] = useState(false);
@@ -240,8 +241,9 @@ const ReservasView: React.FC = () => {
 
   // Handler para ver cronograma de una sala
   const handleVerCronograma = (sala: string) => {
+    setSalaInicial(sala);
+    setVistaCalendario("semanal");
     setTabActual("calendario");
-    // Se podría agregar lógica para seleccionar la sala en el calendario
   };
 
   // Handler para reservar ahora
@@ -306,7 +308,12 @@ const ReservasView: React.FC = () => {
             {tabs.map((tab) => (
               <Box
                 key={tab.id}
-                onClick={() => setTabActual(tab.id)}
+                onClick={() => {
+                  setTabActual(tab.id);
+                  if (tab.id !== "calendario") {
+                    setSalaInicial(undefined);
+                  }
+                }}
                 sx={{
                   px: 2,
                   py: 0.5,
@@ -348,7 +355,10 @@ const ReservasView: React.FC = () => {
           {/* Próximas reuniones */}
           <ProximasReuniones
             reservas={todasReservas}
-            onVerCalendarioCompleto={() => setTabActual("calendario")}
+            onVerCalendarioCompleto={() => {
+              setSalaInicial(undefined);
+              setTabActual("calendario");
+            }}
           />
         </Box>
       )}
@@ -415,7 +425,9 @@ const ReservasView: React.FC = () => {
 
       {/* Contenido de Calendario */}
       {tabActual === "calendario" && (
-        <Box>
+        <Box
+          sx={{ width: "100%", height: "calc(100vh - 180px)", minHeight: 400 }}
+        >
           {vistaCalendario === "semanal" ? (
             <VistaSemanal
               reservas={todasReservas}
@@ -425,6 +437,7 @@ const ReservasView: React.FC = () => {
               usuarioActualId={user?.id}
               vistaCalendario={vistaCalendario}
               onCambiarVista={setVistaCalendario}
+              salaInicial={salaInicial}
             />
           ) : (
             <VistaCalendario
@@ -434,6 +447,7 @@ const ReservasView: React.FC = () => {
               usuarioActualId={user?.id}
               vistaCalendario={vistaCalendario}
               onCambiarVista={setVistaCalendario}
+              salaInicial={salaInicial}
             />
           )}
         </Box>

@@ -1,16 +1,11 @@
 // src/apps/reservas/components/ProximasReuniones.tsx
 
 import React, { useMemo } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  Chip,
-  Link,
-} from "@mui/material";
+import { Box, Paper, Typography, Chip, Link } from "@mui/material";
 import { ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
 import { format } from "date-fns";
 import type { Reserva } from "../types/reservas.types";
+import { capitalize } from "../types/reservas.types";
 
 interface ProximasReunionesProps {
   reservas: Reserva[];
@@ -20,8 +15,8 @@ interface ProximasReunionesProps {
 
 // Colores para chips de sala
 const COLORES_SALA: Record<string, { bg: string; color: string }> = {
-  "Sala A": { bg: "#DBEAFE", color: "#1D4ED8" },
-  "Sala B": { bg: "#E0F2FE", color: "#0369A1" },
+  "Sala Principal": { bg: "#DBEAFE", color: "#1D4ED8" },
+  "Sala Secundaria": { bg: "#E0F2FE", color: "#0369A1" },
 };
 
 const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
@@ -42,7 +37,10 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     // Contar solo las pendientes (vigentes y en curso, no canceladas ni finalizadas)
     const pendientes = todasHoy.filter((r) => {
       const estado = (r.estadoCalculado || r.estado)?.toLowerCase();
-      return (estado === "vigente" || estado === "en curso") && r.hora_final > horaActual;
+      return (
+        (estado === "vigente" || estado === "en curso") &&
+        r.hora_final > horaActual
+      );
     }).length;
 
     return {
@@ -61,9 +59,11 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
   };
 
   // Obtener estado de la reserva para mostrar
-  const getEstadoDisplay = (reserva: Reserva): { texto: string; color: string } => {
+  const getEstadoDisplay = (
+    reserva: Reserva,
+  ): { texto: string; color: string } => {
     const estado = (reserva.estadoCalculado || reserva.estado)?.toLowerCase();
-    
+
     switch (estado) {
       case "en curso":
         return { texto: "En Curso", color: "#10B981" };
@@ -120,7 +120,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
             fontWeight: "bold",
             fontSize: "0.875rem",
             "&:hover": {
-            textDecoration: "underline",
+              textDecoration: "underline",
             },
           }}
         >
@@ -133,7 +133,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "160px 100px 1fr 200px 120px",
+          gridTemplateColumns: "160px 140px 1fr 200px 120px",
           gap: 2,
           px: 2.5,
           py: 1.5,
@@ -141,19 +141,39 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
           borderBottom: "1px solid #e0e0e0",
         }}
       >
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
           Hora
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
           Sala
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
           Asunto
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
           Área
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase", textAlign: "right" }}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 600,
+            color: "#6b7280",
+            textTransform: "uppercase",
+            textAlign: "right",
+          }}
+        >
           Estado
         </Typography>
       </Box>
@@ -169,18 +189,22 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
         reservasHoy.map((reserva, index) => {
           const cancelada = estaCancelada(reserva);
           const estadoInfo = getEstadoDisplay(reserva);
-          const colorSala = COLORES_SALA[reserva.nombre_sala] || { bg: "#F3F4F6", color: "#374151" };
+          const colorSala = COLORES_SALA[reserva.nombre_sala] || {
+            bg: "#F3F4F6",
+            color: "#374151",
+          };
 
           return (
             <Box
               key={reserva.id}
               sx={{
                 display: "grid",
-                gridTemplateColumns: "160px 100px 1fr 200px 120px",
+                gridTemplateColumns: "160px 140px 1fr 200px 120px",
                 gap: 2,
                 px: 2.5,
                 py: 2,
-                borderBottom: index < reservasHoy.length - 1 ? "1px solid #f0f0f0" : "none",
+                borderBottom:
+                  index < reservasHoy.length - 1 ? "1px solid #f0f0f0" : "none",
                 opacity: cancelada ? 0.6 : 1,
                 "&:hover": {
                   backgroundColor: "#f9fafb",
@@ -196,7 +220,8 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   textDecoration: cancelada ? "line-through" : "none",
                 }}
               >
-                {formatearHora(reserva.hora_inicio)} - {formatearHora(reserva.hora_final)}
+                {formatearHora(reserva.hora_inicio)} -{" "}
+                {formatearHora(reserva.hora_final)}
               </Typography>
 
               {/* Sala */}
@@ -238,20 +263,41 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {reserva.usuario_id?.rol_usuario?.area || "Sin área"}
+                {capitalize(reserva.area || "") || "-"}
               </Typography>
 
               {/* Estado */}
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  color: estadoInfo.color,
-                  textAlign: "right",
-                }}
-              >
-                {estadoInfo.texto}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
+                {/* Indicador pulsante para reunión en curso */}
+                {estadoInfo.texto === "En Curso" && (
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      backgroundColor: "#4ade80",
+                      boxShadow: "0 0 6px rgba(74, 222, 128, 0.6)",
+                      animation: "pulse 1.5s ease-in-out infinite",
+                      flexShrink: 0,
+                      "@keyframes pulse": {
+                        "0%": { transform: "scale(1)", opacity: 1 },
+                        "50%": { transform: "scale(1.3)", opacity: 0.7 },
+                        "100%": { transform: "scale(1)", opacity: 1 },
+                      },
+                    }}
+                  />
+                )}
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 600,
+                    color: estadoInfo.color,
+                    textAlign: "right",
+                  }}
+                >
+                  {estadoInfo.texto}
+                </Typography>
+              </Box>
             </Box>
           );
         })

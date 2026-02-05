@@ -10,13 +10,15 @@ import {
   Tooltip,
   Typography,
   Grid,
+  Tab,
+  Tabs,
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Cancel as CancelIcon,
   CalendarMonth as CalendarIcon,
   AccessTime as TimeIcon,
-  Description as DescriptionIcon,
+  Notes as NotesIcon,
   Business as AreaIcon,
 } from "@mui/icons-material";
 import { format } from "date-fns";
@@ -26,6 +28,7 @@ import {
   COLORES_ESTADO,
   COLORES_TEXTO_ESTADO,
   puedeModificarse,
+  capitalize,
 } from "../types/reservas.types";
 
 interface MisReservasCardsProps {
@@ -43,6 +46,8 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   onCancelar,
   loading = false,
 }) => {
+  const [tabValue, setTabValue] = React.useState(0);
+
   // Separar reservas por estado calculado
   const getEstado = (r: Reserva) =>
     (r.estadoCalculado || r.estado)?.toLowerCase() || "";
@@ -55,6 +60,20 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   const reservasCanceladas = reservas.filter(
     (r) => getEstado(r) === "cancelado" || getEstado(r) === "cancelada",
   );
+
+  // Obtener reservas según la pestaña seleccionada
+  const getReservasPorTab = () => {
+    switch (tabValue) {
+      case 0:
+        return reservasVigentes;
+      case 1:
+        return reservasFinalizadas;
+      case 2:
+        return reservasCanceladas;
+      default:
+        return reservasVigentes;
+    }
+  };
 
   const puedeModificar = (reserva: Reserva): boolean => {
     if (!usuarioActualId) return false;
@@ -143,9 +162,12 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
           "&:hover": {
             boxShadow: estilo.hoverShadow,
           },
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 }, flex: 1 }}>
           {/* Header con Estado y Acciones */}
           <Box
             sx={{
@@ -156,6 +178,25 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
               gap: 1,
             }}
           >
+            {/* Indicador pulsante para reunión en curso */}
+            {estadoMostrar === "En curso" && (
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  backgroundColor: "#4ade80",
+                  boxShadow: "0 0 8px rgba(74, 222, 128, 0.6)",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                  flexShrink: 0,
+                  "@keyframes pulse": {
+                    "0%": { transform: "scale(1)", opacity: 1 },
+                    "50%": { transform: "scale(1.4)", opacity: 0.7 },
+                    "100%": { transform: "scale(1)", opacity: 1 },
+                  },
+                }}
+              />
+            )}
             <Chip
               label={estadoMostrar}
               size="small"
@@ -239,24 +280,23 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
           </Box>
 
           {/* Área */}
-          {reserva.area ||
-            (reserva.usuario_id?.rol_usuario?.area && (
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}
-              >
-                <AreaIcon sx={{ fontSize: 18, color: "#64748b" }} />
-                <Typography variant="body2" sx={{ color: "#475569" }}>
-                  {reserva.area || reserva.usuario_id?.rol_usuario?.area}
-                </Typography>
-              </Box>
-            ))}
+          {reserva.area && (
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}
+            >
+              <AreaIcon sx={{ fontSize: 18, color: "#64748b" }} />
+              <Typography variant="body2" sx={{ color: "#475569" }}>
+                {capitalize(reserva.area)}
+              </Typography>
+            </Box>
+          )}
 
           {/* Observaciones */}
           {reserva.observaciones && (
             <Box
               sx={{ display: "flex", alignItems: "flex-start", gap: 1, mt: 1 }}
             >
-              <DescriptionIcon
+              <NotesIcon
                 sx={{ fontSize: 18, color: "#64748b", mt: 0.25 }}
               />
               <Typography
@@ -334,7 +374,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
 
   return (
     <Box>
-      {/* En curso - Primero y destacado */}
+      {/* En curso - Siempre visible */}
       <SeccionReservas
         titulo="En curso"
         cantidad={reservasEnCurso.length}
@@ -342,29 +382,101 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
         colorIndicador="#0F9568"
       />
 
-      {/* Vigentes */}
-      <SeccionReservas
-        titulo="Vigentes"
-        cantidad={reservasVigentes.length}
-        reservas={reservasVigentes}
-        colorIndicador="#004680"
-      />
+      {/* Tabs para otras reservas */}
+      <Box sx={{ mb: 3 }}>
+        <Tabs
+          value={tabValue}
+          onChange={(_, newValue) => setTabValue(newValue)}
+          sx={{
+            "& .MuiTab-root": {
+              textTransform: "none",
+              fontWeight: 600,
+              minWidth: 120,
+            },
+            "& .Mui-selected": {
+              color: "#004680",
+            },
+          }}
+        >
+          <Tab
+            label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography>Vigentes</Typography>
+                <Chip
+                  label={reservasVigentes.length}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: "0.7rem",
+                    backgroundColor: "#004680",
+                    color: "white",
+                  }}
+                />
+              </Box>
+            }
+          />
+          <Tab
+            label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography>Finalizadas</Typography>
+                <Chip
+                  label={reservasFinalizadas.length}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: "0.7rem",
+                    backgroundColor: "#9e9e9e",
+                    color: "white",
+                  }}
+                />
+              </Box>
+            }
+          />
+          <Tab
+            label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography>Canceladas</Typography>
+                <Chip
+                  label={reservasCanceladas.length}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: "0.7rem",
+                    backgroundColor: "#ef4444",
+                    color: "white",
+                  }}
+                />
+              </Box>
+            }
+          />
+        </Tabs>
+      </Box>
 
-      {/* Finalizadas */}
-      <SeccionReservas
-        titulo="Finalizadas"
-        cantidad={reservasFinalizadas.length}
-        reservas={reservasFinalizadas}
-        colorIndicador="#9e9e9e"
-      />
-
-      {/* Canceladas */}
-      <SeccionReservas
-        titulo="Canceladas"
-        cantidad={reservasCanceladas.length}
-        reservas={reservasCanceladas}
-        colorIndicador="#ef4444"
-      />
+      {/* Contenido según la pestaña */}
+      {tabValue === 0 && (
+        <SeccionReservas
+          titulo="Vigentes"
+          cantidad={reservasVigentes.length}
+          reservas={reservasVigentes}
+          colorIndicador="#004680"
+        />
+      )}
+      {tabValue === 1 && (
+        <SeccionReservas
+          titulo="Finalizadas"
+          cantidad={reservasFinalizadas.length}
+          reservas={reservasFinalizadas}
+          colorIndicador="#9e9e9e"
+        />
+      )}
+      {tabValue === 2 && (
+        <SeccionReservas
+          titulo="Canceladas"
+          cantidad={reservasCanceladas.length}
+          reservas={reservasCanceladas}
+          colorIndicador="#ef4444"
+        />
+      )}
     </Box>
   );
 };

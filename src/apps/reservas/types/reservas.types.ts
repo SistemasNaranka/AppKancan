@@ -28,6 +28,7 @@ export interface Reserva {
   estado: EstadoReserva;
   titulo_reunion: string;
   observaciones?: string;
+  area?: string;
   estadoCalculado?: EstadoReserva;
 }
 
@@ -35,18 +36,14 @@ export interface Reserva {
  * Estados posibles de una reserva
  * "En curso" se calcula dinámicamente, no se guarda en BD
  */
-export type EstadoReserva = 
-  | "Vigente" 
-  | "En curso" 
-  | "Finalizado" 
-  | "Cancelado";
+export type EstadoReserva = "Vigente" | "En curso" | "Finalizado" | "Cancelado";
 
 /**
  * Estados para mostrar en filtros (sin duplicados)
  */
 export const ESTADOS_FILTRO = [
   "Vigente",
-  "En curso", 
+  "En curso",
   "Finalizado",
   "Cancelado",
 ] as const;
@@ -54,22 +51,19 @@ export const ESTADOS_FILTRO = [
 /**
  * Opciones de salas disponibles
  */
-export type Sala = "Sala A" | "Sala B";
+export type Sala = "Sala Principal" | "Sala Secundaria";
 
 /**
  * Lista de salas disponibles
  */
-export const SALAS_DISPONIBLES: Sala[] = [
-  "Sala A",
-  "Sala B",
-];
+export const SALAS_DISPONIBLES: Sala[] = ["Sala Principal", "Sala Secundaria"];
 
 // /**
 //  * Información de configuración de las salas
 //  */
 // export const INFO_SALAS: Record<string, { tipo: string; capacidad: number }> = {
-//   "Sala A": { tipo: "", capacidad: 12 },
-//   "Sala B": { tipo: "", capacidad: 6 },
+//   "Sala Principal": { tipo: "", capacidad: 12 },
+//   "Sala Secundaria": { tipo: "", capacidad: 6 },
 // };
 
 /**
@@ -111,20 +105,20 @@ export interface FiltrosReserva {
  * Configuración de colores de FONDO por estado
  */
 export const COLORES_ESTADO: Record<EstadoReserva, string> = {
-  "Vigente": "#004680",
+  Vigente: "#004680",
   "En curso": "#0F9568",
-  "Finalizado": "#F3F4F6",
-  "Cancelado": "#FEE2E2", 
+  Finalizado: "#F3F4F6",
+  Cancelado: "#FEE2E2",
 };
 
 /**
  * Configuración de colores de TEXTO por estado
  */
 export const COLORES_TEXTO_ESTADO: Record<EstadoReserva, string> = {
-  "Vigente": "#5CB6FF",
+  Vigente: "#5CB6FF",
   "En curso": "#41ECB3",
-  "Finalizado": "#374151",
-  "Cancelado": "#DC2626",
+  Finalizado: "#374151",
+  Cancelado: "#DC2626",
 };
 
 /**
@@ -137,6 +131,14 @@ export const HORARIO_COMERCIAL = {
 
 export const HORARIO_INICIO = HORARIO_COMERCIAL.inicio;
 export const HORARIO_FIN = HORARIO_COMERCIAL.fin;
+
+/**
+ * Capitaliza la primera letra de un string
+ */
+export const capitalize = (text: string): string => {
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+};
 
 /**
  * Duración mínima de reunión en minutos

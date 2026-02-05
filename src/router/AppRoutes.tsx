@@ -156,7 +156,7 @@ export default function AppRoutes() {
     ];
   } else if (
     isLoading ||
-    (apps && apps.length > 0 && modulosComplejosFiltrados.length === 0) ||
+    modulosComplejosFiltrados.length === 0 ||
     !homeRoute
   ) {
     // Cargando datos de la app o rutas no cargadas - mostrar spinner
@@ -219,5 +219,34 @@ export default function AppRoutes() {
     }
   }
 
-  return useRoutes(routesToUse);
+  // Suprimir warnings de React Router durante estados de carga
+  const originalWarn = console.warn;
+  if (
+    authLoading ||
+    isLoading ||
+    modulosComplejosFiltrados.length === 0 ||
+    !homeRoute
+  ) {
+    console.warn = (...args) => {
+      if (!args[0]?.includes?.("No routes matched location")) {
+        originalWarn(...args);
+      }
+    };
+  }
+
+  const result = useRoutes(routesToUse);
+
+  // Restaurar console.warn después de renderizar
+  if (
+    authLoading ||
+    isLoading ||
+    modulosComplejosFiltrados.length === 0 ||
+    !homeRoute
+  ) {
+    setTimeout(() => {
+      console.warn = originalWarn;
+    }, 0);
+  }
+
+  return result;
 }
