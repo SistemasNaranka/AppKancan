@@ -12,8 +12,8 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  ToggleButtonGroup,
-  ToggleButton,
+  styled,
+  keyframes,
 } from "@mui/material";
 import { CalendarMonth as CalendarIcon } from "@mui/icons-material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -57,6 +57,87 @@ const TITULOS_PESTANA: Record<TabReservas, string> = {
   "mis": "Mis Reservas",
   "calendario": "Calendario",
 };
+
+// Configuracion de animaciones para el segmented control
+const tabPulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+`;
+
+const tabFadeIn = keyframes`
+  from { opacity: 0.8; transform: translateY(1px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const containerGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 0 0 rgba(25, 118, 210, 0); }
+  50% { box-shadow: 0 0 8px 2px rgba(25, 118, 210, 0.15); }
+`;
+
+// Styled components para tabs animados
+const TabContainer = styled(Box)({
+  display: "inline-flex",
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12,
+  padding: 4,
+  gap: 4,
+  position: "relative",
+  overflow: "hidden",
+});
+
+const AnimatedTab = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "isActive",
+})<{ isActive: boolean; isFirst: boolean; isLast: boolean }>(({ isActive, isFirst, isLast }) => ({
+  padding: "8px 16px",
+  cursor: "pointer",
+  fontWeight: 600,
+  fontSize: "0.875rem",
+  borderRadius: isFirst ? 10 : isLast ? 10 : 6,
+  backgroundColor: isActive ? "white" : "transparent",
+  color: isActive ? "#1976d2" : "#6b7280",
+  boxShadow: isActive 
+    ? "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)" 
+    : "none",
+  minWidth: 80,
+  border: "none",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  position: "relative",
+  overflow: "hidden",
+  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  transform: isActive ? "scale(1)" : "scale(0.95)",
+  animation: isActive 
+    ? `${tabPulse} 0.3s ease-out, ${tabFadeIn} 0.2s ease-out`
+    : "none",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    borderRadius: isFirst ? 10 : isLast ? 10 : 6,
+    padding: "1px",
+    background: isActive ? "none" : "transparent",
+    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+    WebkitMaskComposite: "xor",
+    maskComposite: "exclude",
+    pointerEvents: "none",
+  },
+  "&:hover": {
+    backgroundColor: isActive 
+      ? "white" 
+      : "rgba(25, 118, 210, 0.06)",
+    color: isActive ? "#1976d2" : "#374151",
+    transform: isActive ? "scale(1.02)" : "scale(1)",
+  },
+  "&:focus-visible": {
+    outline: "2px solid #1976d2",
+    outlineOffset: 2,
+  },
+  "&:active": {
+    transform: "scale(0.98)",
+  },
+}));
 
 const ReservasView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -306,39 +387,44 @@ const ReservasView: React.FC = () => {
           </Typography>
         </Box>
 
-        {/* Pestañas de navegación - Centradas */}
+        {/* Pestañas de navegación */}
         <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            {tabs.map((tab) => (
-              <Box
-                key={tab.id}
-                onClick={() => {
-                  setTabActual(tab.id);
-                  if (tab.id !== "calendario") {
-                    setSalaInicial(undefined);
-                  }
-                }}
-                sx={{
-                  px: 2,
-                  py: 0.5,
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "0.875rem",
-                  color: tabActual === tab.id ? "#1976d2" : "#6b7280",
-                  borderBottom:
-                    tabActual === tab.id
-                      ? "2px solid #1976d2"
-                      : "2px solid transparent",
-                  transition: "all 0.2s",
-                  "&:hover": {
-                    color: "#1976d2",
-                  },
-                }}
-              >
-                {tab.label}
-              </Box>
-            ))}
-          </Box>
+          <TabContainer>
+            {tabs.map((tab, index) => {
+              const isFirst = index === 0;
+              const isLast = index === tabs.length - 1;
+              const isActive = tabActual === tab.id;
+              
+              return (
+                <AnimatedTab
+                  key={tab.id}
+                  isActive={isActive}
+                  isFirst={isFirst}
+                  isLast={isLast}
+                  onClick={() => {
+                    setTabActual(tab.id);
+                    if (tab.id !== "calendario") {
+                      setSalaInicial(undefined);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="tab"
+                  aria-selected={isActive}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setTabActual(tab.id);
+                      if (tab.id !== "calendario") {
+                        setSalaInicial(undefined);
+                      }
+                    }
+                  }}
+                >
+                  {tab.label}
+                </AnimatedTab>
+              );
+            })}
+          </TabContainer>
         </Box>
 
         {/* Botón Nueva reserva - Alineado a la derecha */}

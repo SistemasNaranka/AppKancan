@@ -1,6 +1,6 @@
 // src/apps/reservas/components/VistaCalendario.tsx
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Box,
   IconButton,
@@ -108,6 +108,60 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
   const [anchorReserva, setAnchorReserva] = useState<HTMLElement | null>(null);
   const [reservaSeleccionada, setReservaSeleccionada] =
     useState<Reserva | null>(null);
+
+  // Refs para medir ancho de tabs del Segmented Control de Sala
+  const sala1Ref = useRef<HTMLDivElement>(null);
+  const sala2Ref = useRef<HTMLDivElement>(null);
+  const [salaSliderPos, setSalaSliderPos] = useState({ left: 4, width: 60 });
+
+  // Calcular posición y tamaño del slider de sala dinámicamente
+  useEffect(() => {
+    if (sala1Ref.current && sala2Ref.current) {
+      const sala1Rect = sala1Ref.current.getBoundingClientRect();
+      const sala2Rect = sala2Ref.current.getBoundingClientRect();
+      const container = sala1Ref.current.parentElement;
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        
+        if (salaSeleccionada === SALAS_DISPONIBLES[0]) {
+          const left = sala1Rect.left - containerRect.left + 4;
+          const width = sala1Rect.width - 8;
+          setSalaSliderPos({ left, width });
+        } else {
+          const left = sala2Rect.left - containerRect.left + 4;
+          const width = sala2Rect.width - 8;
+          setSalaSliderPos({ left, width });
+        }
+      }
+    }
+  }, [salaSeleccionada]);
+
+  // Refs para medir ancho de tabs del Segmented Control de Vista
+  const semanalRef = useRef<HTMLDivElement>(null);
+  const mesRef = useRef<HTMLDivElement>(null);
+  const [sliderPos, setSliderPos] = useState({ left: 4, width: 60 });
+
+  // Calcular posición y tamaño del slider dinámicamente
+  useEffect(() => {
+    if (semanalRef.current && mesRef.current) {
+      const semanalRect = semanalRef.current.getBoundingClientRect();
+      const mesRect = mesRef.current.getBoundingClientRect();
+      const container = semanalRef.current.parentElement;
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        
+        if (vistaCalendario === "semanal") {
+          const left = semanalRect.left - containerRect.left + 4;
+          const width = semanalRect.width - 8;
+          setSliderPos({ left, width });
+        } else {
+          const left = mesRect.left - containerRect.left + 4;
+          const width = mesRect.width - 8;
+          setSliderPos({ left, width });
+        }
+      }
+    }
+  }, [vistaCalendario]);
 
   // Obtener reservas del mes
   const { data: reservasRaw = [] } = useQuery({
@@ -304,7 +358,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             <Typography
               variant="caption"
               sx={{
-                fontWeight: 700,
+                fontWeight: 400,
                 color: "#303030",
                 fontSize: "0.7rem",
                 textTransform: "uppercase",
@@ -313,35 +367,71 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             >
               Sala
             </Typography>
-            <ToggleButtonGroup
-              value={salaSeleccionada}
-              exclusive
-              onChange={(_, valor) => {
-                if (valor) setSalaSeleccionada(valor);
-              }}
-              size="small"
+            {/* Segmented Control - Sala */}
+            <Box
               sx={{
-                "& .MuiToggleButton-root": {
-                  textTransform: "none",
+                display: "inline-flex",
+                backgroundColor: "#f1f5f9",
+                borderRadius: "10px",
+                padding: "4px",
+                position: "relative",
+              }}
+            >
+              {/* Slider animado con tamaño dinámico */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "4px",
+                  left: salaSliderPos.left,
+                  width: salaSliderPos.width,
+                  height: "calc(100% - 8px)",
+                  backgroundColor: "#004680",
+                  borderRadius: "8px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                  transition: "left 0.25s ease, width 0.25s ease",
+                }}
+              />
+              <Box
+                ref={sala1Ref}
+                onClick={() => setSalaSeleccionada(SALAS_DISPONIBLES[0])}
+                sx={{
                   px: 2,
                   py: 0.5,
                   fontSize: "0.85rem",
-                  fontWeight: 500,
-                  borderColor: "#e0e0e0",
-                  "&.Mui-selected": {
-                    backgroundColor: "#004680",
-                    color: "white",
-                    "&:hover": { backgroundColor: "#005AA3" },
-                  },
-                },
-              }}
-            >
-              {SALAS_DISPONIBLES.map((sala) => (
-                <ToggleButton key={sala} value={sala}>
-                  {sala}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+                  fontWeight: 400,
+                  color: salaSeleccionada === SALAS_DISPONIBLES[0] ? "#ffffff" : "#64748b",
+                  cursor: "pointer",
+                  borderRadius: "8px",
+                  position: "relative",
+                  zIndex: 1,
+                  transition: "color 0.2s ease",
+                  userSelect: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {SALAS_DISPONIBLES[0]}
+              </Box>
+              <Box
+                ref={sala2Ref}
+                onClick={() => setSalaSeleccionada(SALAS_DISPONIBLES[1])}
+                sx={{
+                  px: 2,
+                  py: 0.5,
+                  fontSize: "0.85rem",
+                  fontWeight: 400,
+                  color: salaSeleccionada === SALAS_DISPONIBLES[1] ? "#ffffff" : "#64748b",
+                  cursor: "pointer",
+                  borderRadius: "8px",
+                  position: "relative",
+                  zIndex: 1,
+                  transition: "color 0.2s ease",
+                  userSelect: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {SALAS_DISPONIBLES[1]}
+              </Box>
+            </Box>
           </Box>
 
           {/* GRUPO 2: VISTA */}
@@ -349,7 +439,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
             <Typography
               variant="caption"
               sx={{
-                fontWeight: 700,
+                fontWeight: 400,
                 color: "#303030",
                 fontSize: "0.7rem",
                 textTransform: "uppercase",
@@ -359,32 +449,71 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               Vista
             </Typography>
             {onCambiarVista && (
-              <ToggleButtonGroup
-                value={vistaCalendario}
-                exclusive
-                onChange={(_, valor) => {
-                  if (valor) onCambiarVista(valor);
-                }}
-                size="small"
+              /* Segmented Control - Vista */
+              <Box
                 sx={{
-                  "& .MuiToggleButton-root": {
-                    textTransform: "none",
+                  display: "inline-flex",
+                  backgroundColor: "#f1f5f9",
+                  borderRadius: "10px",
+                  padding: "4px",
+                  position: "relative",
+                }}
+              >
+                {/* Slider animado con tamaño dinámico */}
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "4px",
+                    left: sliderPos.left,
+                    width: sliderPos.width,
+                    height: "calc(100% - 8px)",
+                    backgroundColor: "#004680",
+                    borderRadius: "8px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    transition: "left 0.25s ease, width 0.25s ease",
+                  }}
+                />
+                <Box
+                  ref={semanalRef}
+                  onClick={() => onCambiarVista("semanal")}
+                  sx={{
                     px: 2,
                     py: 0.5,
                     fontSize: "0.85rem",
-                    fontWeight: 500,
-                    borderColor: "#e0e0e0",
-                    "&.Mui-selected": {
-                      backgroundColor: "#004680",
-                      color: "white",
-                      "&:hover": { backgroundColor: "#005AA3" },
-                    },
-                  },
-                }}
-              >
-                <ToggleButton value="semanal">Semanal</ToggleButton>
-                <ToggleButton value="mes">Mes</ToggleButton>
-              </ToggleButtonGroup>
+                    fontWeight: 400,
+                    color: vistaCalendario === "semanal" ? "#ffffff" : "#64748b",
+                    cursor: "pointer",
+                    borderRadius: "8px",
+                    position: "relative",
+                    zIndex: 1,
+                    transition: "color 0.2s ease",
+                    userSelect: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Semanal
+                </Box>
+                <Box
+                  ref={mesRef}
+                  onClick={() => onCambiarVista("mes")}
+                  sx={{
+                    px: 2,
+                    py: 0.5,
+                    fontSize: "0.85rem",
+                    fontWeight: 400,
+                    color: vistaCalendario === "mes" ? "#ffffff" : "#64748b",
+                    cursor: "pointer",
+                    borderRadius: "8px",
+                    position: "relative",
+                    zIndex: 1,
+                    transition: "color 0.2s ease",
+                    userSelect: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Mes
+                </Box>
+              </Box>
             )}
           </Box>
 
@@ -767,7 +896,27 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               </IconButton>
             </Box>
 
-            <Box sx={{ p: 2, maxHeight: 280, overflowY: "auto" }}>
+            <Box
+              sx={{
+                p: 2,
+                maxHeight: 280,
+                overflowY: "auto",
+                // Scrollbar hide - Cross-browser compatible
+                scrollbarWidth: "none",
+                "&::-webkit-scrollbar": {
+                  display: "none",
+                  width: 0,
+                  height: 0,
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  display: "none",
+                },
+                "&::-webkit-scrollbar-track": {
+                  display: "none",
+                },
+                msOverflowStyle: "none",
+              }}
+            >
               {getReservasDia(diaSeleccionado).length === 0 ? (
                 <Typography
                   color="text.secondary"

@@ -7,8 +7,6 @@ import {
   IconButton,
   Popover,
   Tooltip,
-  ToggleButton,
-  ToggleButtonGroup,
   Chip,
   Alert,
   CircularProgress,
@@ -371,6 +369,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
   const rangoFechas = `${format(diasSemana[0], "d MMM", { locale: es })} - ${format(diasSemana[4], "d MMM, yyyy", { locale: es })}`;
   const hoy = new Date();
 
+  
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Box
@@ -410,7 +409,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 400,
                   color: "#303030",
                   fontSize: "0.7rem",
                   textTransform: "uppercase",
@@ -419,35 +418,53 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               >
                 Sala
               </Typography>
-              <ToggleButtonGroup
-                value={salaSeleccionada}
-                exclusive
-                onChange={(_, valor) => {
-                  if (valor) setSalaSeleccionada(valor);
-                }}
-                size="small"
+              {/* Segmented Control - Sala */}
+              <Box
                 sx={{
-                  "& .MuiToggleButton-root": {
-                    textTransform: "none",
-                    px: 2,
-                    py: 0.5,
-                    fontSize: "0.85rem",
-                    fontWeight: 500,
-                    borderColor: "#e0e0e0",
-                    "&.Mui-selected": {
-                      backgroundColor: "#004680",
-                      color: "white",
-                      "&:hover": { backgroundColor: "#005AA3" },
-                    },
-                  },
+                  display: "flex",
+                  backgroundColor: "#f1f5f9",
+                  borderRadius: "10px",
+                  padding: "4px",
+                  position: "relative",
                 }}
               >
+                {/* Slider animado */}
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "4px",
+                    left: salaSeleccionada === SALAS_DISPONIBLES[0] ? "4px" : "calc(49.5% + 1px)",
+                    width: "calc(50% - 10px)",
+                    height: "calc(100% - 8px)",
+                    backgroundColor: "#004680",
+                    borderRadius: "8px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    transition: "left 0.2s ease",
+                  }}
+                />
                 {SALAS_DISPONIBLES.map((sala) => (
-                  <ToggleButton key={sala} value={sala}>
+                  <Box
+                    key={sala}
+                    onClick={() => setSalaSeleccionada(sala)}
+                    sx={{
+                      px: 2,
+                      py: 0.5,
+                      fontSize: "0.85rem",
+                      fontWeight: 400,
+                      color: salaSeleccionada === sala ? "#ffffff" : "#64748b",
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      position: "relative",
+                      zIndex: 1,
+                      transition: "color 0.2s ease",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {sala}
-                  </ToggleButton>
+                  </Box>
                 ))}
-              </ToggleButtonGroup>
+              </Box>
             </Box>
 
             {/* GRUPO 2: VISTA */}
@@ -455,7 +472,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 400,
                   color: "#303030",
                   fontSize: "0.7rem",
                   textTransform: "uppercase",
@@ -465,32 +482,67 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 Vista
               </Typography>
               {onCambiarVista && (
-                <ToggleButtonGroup
-                  value={vistaCalendario}
-                  exclusive
-                  onChange={(_, valor) => {
-                    if (valor) onCambiarVista(valor);
-                  }}
-                  size="small"
+                /* Segmented Control - Vista */
+                <Box
                   sx={{
-                    "& .MuiToggleButton-root": {
-                      textTransform: "none",
+                    display: "flex",
+                    backgroundColor: "#f1f5f9",
+                    borderRadius: "10px",
+                    padding: "4px",
+                    position: "relative",
+                  }}
+                >
+                  {/* Slider animado */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: "4px",
+                      left: vistaCalendario === "semanal" ? "4px" : "calc(50% + 2px)",
+                      width: "calc(50% - -10px)",
+                      height: "calc(100% - 8px)",
+                      backgroundColor: "#004680",
+                      borderRadius: "8px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                      transition: "left 0.2s ease",
+                    }}
+                  />
+                  <Box
+                    onClick={() => onCambiarVista("semanal")}
+                    sx={{
                       px: 2,
                       py: 0.5,
                       fontSize: "0.85rem",
-                      fontWeight: 500,
-                      borderColor: "#e0e0e0",
-                      "&.Mui-selected": {
-                        backgroundColor: "#004680",
-                        color: "white",
-                        "&:hover": { backgroundColor: "#005AA3" },
-                      },
-                    },
-                  }}
-                >
-                  <ToggleButton value="semanal">Semanal</ToggleButton>
-                  <ToggleButton value="mes">Mes</ToggleButton>
-                </ToggleButtonGroup>
+                      fontWeight: 400,
+                      color: vistaCalendario === "semanal" ? "#ffffff" : "#64748b",
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      position: "relative",
+                      zIndex: 1,
+                      transition: "color 0.2s ease",
+                      userSelect: "none",
+                    }}
+                  >
+                    Semanal
+                  </Box>
+                  <Box
+                    onClick={() => onCambiarVista("mes")}
+                    sx={{
+                      px: 2,
+                      py: 0.5,
+                      fontSize: "0.85rem",
+                      fontWeight: 400,
+                      color: vistaCalendario === "mes" ? "#1e293b" : "#64748b",
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      position: "relative",
+                      zIndex: 1,
+                      transition: "color 0.2s ease",
+                      userSelect: "none",
+                    }}
+                  >
+                    Mes
+                  </Box>
+                </Box>
               )}
             </Box>
 
@@ -666,7 +718,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 borderBottom: "1px solid #e0e0e0",
                 width: "100%",
                 flexShrink: 0,
-                minWidth: 700, // Ancho mínimo para alinear con scroll horizontal
+                minWidth: 700,
               }}
             >
               <Box
@@ -745,6 +797,20 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 overflowY: "auto",
                 overflowX: "auto",
                 width: "100%",
+                // Scrollbar hide - Cross-browser compatible
+                scrollbarWidth: "none",
+                "&::-webkit-scrollbar": {
+                  display: "none",
+                  width: 0,
+                  height: 0,
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  display: "none",
+                },
+                "&::-webkit-scrollbar-track": {
+                  display: "none",
+                },
+                msOverflowStyle: "none",
               }}
             >
               {horas.map((hora, horaIdx) => (
