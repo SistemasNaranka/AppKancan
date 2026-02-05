@@ -112,3 +112,50 @@ body.dark {
     @apply bg-background text-foreground;
   }
 }
+
+/* React Joyride Styles */
+/* Target spotlights for tour highlights */
+.joyride-spotlight {
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px #004680, 0 0 20px rgba(0, 70, 128, 0.3);
+}
+
+/* Tooltip styles */
+.joyride-tooltip {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+}
+
+/* Overlay styles */
+.joyride-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Beacon styles */
+.joyride-beacon {
+  background-color: #004680;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Button styles */
+.joyride-button--primary {
+  background-color: #004680;
+  color: #fff;
+}
+
+.joyride-button--primary:hover {
+  background-color: #005AA3;
+}
+
+.joyride-button--secondary {
+  color: #666;
+}
+
+.joyride-button--secondary:hover {
+  background-color: transparent;
+  color: #333;
+}

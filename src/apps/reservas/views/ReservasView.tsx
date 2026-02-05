@@ -1,6 +1,9 @@
 // src/apps/reservas/views/ReservasView.tsx
 
 import React, { useState } from "react";
+
+// Importar el componente de Tour
+import { ReservasTour } from "../components/ReservasTour";
 import {
   Box,
   Button,
@@ -348,250 +351,253 @@ const ReservasView: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ mt: -1 }}>
-      {/* Header con pestañas */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          mb: 1,
-          pb: 0.5,
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
-        {/* Logo y título */}
+    <ReservasTour>
+      <Box sx={{ mt: -1 }}>
+        {/* Header con pestañas */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 1.5,
-            minWidth: 180,
+            justifyContent: "flex-start",
+            mb: 1,
+            pb: 0.5,
+            borderBottom: "1px solid #e0e0e0",
           }}
         >
+          {/* Logo y título */}
           <Box
             sx={{
-              width: 38,
-              height: 38,
-              borderRadius: 2,
-              backgroundColor: "#1976d2",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              gap: 1.5,
+              minWidth: 180,
             }}
           >
-            <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
+            <Box
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: 2,
+                backgroundColor: "#1976d2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
+              {TITULOS_PESTANA[tabActual]}
+            </Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
-            {TITULOS_PESTANA[tabActual]}
-          </Typography>
-        </Box>
 
-        {/* Pestañas de navegación */}
-        <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
-          <TabContainer>
-            {tabs.map((tab, index) => {
-              const isFirst = index === 0;
-              const isLast = index === tabs.length - 1;
-              const isActive = tabActual === tab.id;
-              
-              return (
-                <AnimatedTab
-                  key={tab.id}
-                  isActive={isActive}
-                  isFirst={isFirst}
-                  isLast={isLast}
-                  onClick={() => {
-                    setTabActual(tab.id);
-                    if (tab.id !== "calendario") {
-                      setSalaInicial(undefined);
-                    }
-                  }}
-                  tabIndex={0}
-                  role="tab"
-                  aria-selected={isActive}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
+          {/* Pestañas de navegación */}
+          <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
+            <TabContainer>
+              {tabs.map((tab, index) => {
+                const isFirst = index === 0;
+                const isLast = index === tabs.length - 1;
+                const isActive = tabActual === tab.id;
+                
+                return (
+                  <AnimatedTab
+                    key={tab.id}
+                    isActive={isActive}
+                    isFirst={isFirst}
+                    isLast={isLast}
+                    onClick={() => {
                       setTabActual(tab.id);
                       if (tab.id !== "calendario") {
                         setSalaInicial(undefined);
                       }
-                    }
-                  }}
-                >
-                  {tab.label}
-                </AnimatedTab>
-              );
-            })}
-          </TabContainer>
-        </Box>
+                    }}
+                    tabIndex={0}
+                    role="tab"
+                    aria-selected={isActive}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setTabActual(tab.id);
+                        if (tab.id !== "calendario") {
+                          setSalaInicial(undefined);
+                        }
+                      }
+                    }}
+                  >
+                    {tab.label}
+                  </AnimatedTab>
+                );
+              })}
+            </TabContainer>
+          </Box>
 
-        {/* Botón Nueva reserva - Alineado a la derecha */}
-        <Button
-          startIcon={<AddIcon />}
-          variant="contained"
-          onClick={() => handleAbrirNuevaReserva()}
-          sx={{
-            boxShadow: "none",
-            textTransform: "none",
-            fontWeight: "600",
-            backgroundColor: "#0F9568",
-            "&:hover": {
-              boxShadow: "none",
-              backgroundColor: "#0B6B4B",
-            },
-          }}
-        >
-          Nueva reserva
-        </Button>
-      </Box>
-
-      {/* Contenido de Reserva */}
-      {tabActual === "Reserva" && (
-        <Box>
-          {/* Estado de las salas */}
-          <EstadoSalas
-            reservas={todasReservas}
-            onVerCronograma={handleVerCronograma}
-            onReservarAhora={handleReservarAhora}
-          />
-
-          {/* Próximas reuniones */}
-          <ProximasReuniones
-            reservas={todasReservas}
-            onVerCalendarioCompleto={() => {
-              setSalaInicial(undefined);
-              setTabActual("calendario");
-            }}
-          />
-        </Box>
-      )}
-
-      {/* Contenido de Mis reservas */}
-      {tabActual === "mis" && (
-        <Box>
-          <MisReservasCards
-            reservas={misReservas}
-            usuarioActualId={user?.id}
-            onEditar={handleEditarReserva}
-            onCancelar={handleCancelarReserva}
-            loading={loadingMis}
-          />
-        </Box>
-      )}
-
-      {/* Contenido de Calendario */}
-      {tabActual === "calendario" && (
-        <Box
-          sx={{ width: "100%", height: "calc(100vh - 180px)", minHeight: 400 }}
-        >
-          {vistaCalendario === "semanal" ? (
-            <VistaSemanal
-              reservas={todasReservas}
-              onNuevaReserva={handleAbrirNuevaReserva}
-              onEditarReserva={handleEditarReserva}
-              onCancelarReserva={handleCancelarReserva}
-              usuarioActualId={user?.id}
-              vistaCalendario={vistaCalendario}
-              onCambiarVista={setVistaCalendario}
-              salaInicial={salaInicial}
-            />
-          ) : (
-            <VistaCalendario
-              onNuevaReserva={handleAbrirNuevaReserva}
-              onEditarReserva={handleEditarReserva}
-              onCancelarReserva={handleCancelarReserva}
-              usuarioActualId={user?.id}
-              vistaCalendario={vistaCalendario}
-              onCambiarVista={setVistaCalendario}
-              salaInicial={salaInicial}
-            />
-          )}
-        </Box>
-      )}
-
-      {/* Diálogo Nueva Reserva */}
-      <DialogNuevaReserva
-        open={dialogNueva}
-        onClose={handleCerrarNuevaReserva}
-        onSubmit={handleCrearReserva}
-        verificarConflicto={handleVerificarConflicto}
-        fechaInicial={fechaInicialReserva}
-        salaInicial={salaInicialReserva}
-        horaInicial={horaInicialReserva}
-      />
-
-      {/* Diálogo Editar Reserva */}
-      <DialogEditarReserva
-        open={dialogEditar}
-        reserva={reservaSeleccionada}
-        onClose={() => {
-          setDialogEditar(false);
-          setReservaSeleccionada(null);
-        }}
-        onSubmit={handleActualizarReserva}
-        verificarConflicto={handleVerificarConflicto}
-      />
-
-      {/* Diálogo Confirmar Cancelación */}
-      <Dialog
-        open={dialogCancelar}
-        onClose={() => setDialogCancelar(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Cancelar Reserva</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            ¿Estás seguro de que deseas cancelar esta reserva?
-            <br />
-            <br />
-            <strong>Sala:</strong> {reservaSeleccionada?.nombre_sala}
-            <br />
-            <strong>Fecha:</strong> {reservaSeleccionada?.fecha}
-            <br />
-            <strong>Hora:</strong> {reservaSeleccionada?.hora_inicio} -{" "}
-            {reservaSeleccionada?.hora_final}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogCancelar(false)}>No, mantener</Button>
+          {/* Botón Nueva reserva - Alineado a la derecha */}
           <Button
-            onClick={confirmarCancelar}
-            color="error"
+            className="tour-nueva-reserva"
+            startIcon={<AddIcon />}
             variant="contained"
-            disabled={mutationCancelar.isPending}
+            onClick={() => handleAbrirNuevaReserva()}
             sx={{
-              backgroundColor: "#ef4444",
               boxShadow: "none",
+              textTransform: "none",
+              fontWeight: "600",
+              backgroundColor: "#0F9568",
               "&:hover": {
                 boxShadow: "none",
-                backgroundColor: "#dc2626",
+                backgroundColor: "#0B6B4B",
               },
             }}
           >
-            Sí, cancelar
+            Nueva reserva
           </Button>
-        </DialogActions>
-      </Dialog>
+        </Box>
 
-      {/* Snackbar para notificaciones */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          variant="filled"
+        {/* Contenido de Reserva */}
+        {tabActual === "Reserva" && (
+          <Box>
+            {/* Estado de las salas */}
+            <EstadoSalas
+              reservas={todasReservas}
+              onVerCronograma={handleVerCronograma}
+              onReservarAhora={handleReservarAhora}
+            />
+
+            {/* Próximas reuniones */}
+            <ProximasReuniones
+              reservas={todasReservas}
+              onVerCalendarioCompleto={() => {
+                setSalaInicial(undefined);
+                setTabActual("calendario");
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Contenido de Mis reservas */}
+        {tabActual === "mis" && (
+          <Box>
+            <MisReservasCards
+              reservas={misReservas}
+              usuarioActualId={user?.id}
+              onEditar={handleEditarReserva}
+              onCancelar={handleCancelarReserva}
+              loading={loadingMis}
+            />
+          </Box>
+        )}
+
+        {/* Contenido de Calendario */}
+        {tabActual === "calendario" && (
+          <Box
+            sx={{ width: "100%", height: "calc(100vh - 180px)", minHeight: 400 }}
+          >
+            {vistaCalendario === "semanal" ? (
+              <VistaSemanal
+                reservas={todasReservas}
+                onNuevaReserva={handleAbrirNuevaReserva}
+                onEditarReserva={handleEditarReserva}
+                onCancelarReserva={handleCancelarReserva}
+                usuarioActualId={user?.id}
+                vistaCalendario={vistaCalendario}
+                onCambiarVista={setVistaCalendario}
+                salaInicial={salaInicial}
+              />
+            ) : (
+              <VistaCalendario
+                onNuevaReserva={handleAbrirNuevaReserva}
+                onEditarReserva={handleEditarReserva}
+                onCancelarReserva={handleCancelarReserva}
+                usuarioActualId={user?.id}
+                vistaCalendario={vistaCalendario}
+                onCambiarVista={setVistaCalendario}
+                salaInicial={salaInicial}
+              />
+            )}
+          </Box>
+        )}
+
+        {/* Diálogo Nueva Reserva */}
+        <DialogNuevaReserva
+          open={dialogNueva}
+          onClose={handleCerrarNuevaReserva}
+          onSubmit={handleCrearReserva}
+          verificarConflicto={handleVerificarConflicto}
+          fechaInicial={fechaInicialReserva}
+          salaInicial={salaInicialReserva}
+          horaInicial={horaInicialReserva}
+        />
+
+        {/* Diálogo Editar Reserva */}
+        <DialogEditarReserva
+          open={dialogEditar}
+          reserva={reservaSeleccionada}
+          onClose={() => {
+            setDialogEditar(false);
+            setReservaSeleccionada(null);
+          }}
+          onSubmit={handleActualizarReserva}
+          verificarConflicto={handleVerificarConflicto}
+        />
+
+        {/* Diálogo Confirmar Cancelación */}
+        <Dialog
+          open={dialogCancelar}
+          onClose={() => setDialogCancelar(false)}
+          maxWidth="xs"
+          fullWidth
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+          <DialogTitle>Cancelar Reserva</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              ¿Estás seguro de que deseas cancelar esta reserva?
+              <br />
+              <br />
+              <strong>Sala:</strong> {reservaSeleccionada?.nombre_sala}
+              <br />
+              <strong>Fecha:</strong> {reservaSeleccionada?.fecha}
+              <br />
+              <strong>Hora:</strong> {reservaSeleccionada?.hora_inicio} -{" "}
+              {reservaSeleccionada?.hora_final}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDialogCancelar(false)}>No, mantener</Button>
+            <Button
+              onClick={confirmarCancelar}
+              color="error"
+              variant="contained"
+              disabled={mutationCancelar.isPending}
+              sx={{
+                backgroundColor: "#ef4444",
+                boxShadow: "none",
+                "&:hover": {
+                  boxShadow: "none",
+                  backgroundColor: "#dc2626",
+                },
+              }}
+            >
+              Sí, cancelar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        >
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            variant="filled"
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </ReservasTour>
   );
 };
 

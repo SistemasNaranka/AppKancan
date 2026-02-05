@@ -28,6 +28,8 @@ import {
   Business as AreaIcon,
   Add as AddIcon,
   Notes as NotesIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -354,11 +356,11 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
           }}
         >
           {/* GRUPO 1: SALA */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Box className="tour-sala-selector" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
             <Typography
               variant="caption"
               sx={{
-                fontWeight: 400,
+                fontWeight: "bold",
                 color: "#303030",
                 fontSize: "0.7rem",
                 textTransform: "uppercase",
@@ -435,11 +437,11 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
           </Box>
 
           {/* GRUPO 2: VISTA */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Box className="tour-vista-selector" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
             <Typography
               variant="caption"
               sx={{
-                fontWeight: 400,
+                fontWeight: "bold",
                 color: "#303030",
                 fontSize: "0.7rem",
                 textTransform: "uppercase",
@@ -518,7 +520,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
           </Box>
 
           {/* GRUPO 3: NAVEGACIÓN */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Box className="tour-navegacion" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
             <Typography
               variant="caption"
               sx={{
@@ -565,7 +567,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
           </Box>
 
           {/* GRUPO 4: FECHA (Mes y Año) */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Box className="tour-selector-fecha" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
             <Typography
               variant="caption"
               sx={{
@@ -630,35 +632,51 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 letterSpacing: "0.5px",
               }}
             >
-              Mostrar
+              Fines de semana
             </Typography>
-            <Button
-              variant={mostrarFinesSemana ? "contained" : "outlined"}
-              size="small"
+            {/* Toggle con iconos para mostrar/ocultar fines de semana */}
+            <Box
               onClick={() => setMostrarFinesSemana(!mostrarFinesSemana)}
               sx={{
-                textTransform: "none",
-                fontSize: "0.8rem",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
                 px: 1.5,
-                borderColor: "#e0e0e0",
-                boxShadow: "none",
-                color: mostrarFinesSemana ? "white" : "#374151",
-                backgroundColor: mostrarFinesSemana ? "#004680" : "transparent",
+                py: 0.5,
+                backgroundColor: mostrarFinesSemana ? "#004680" : "#f1f5f9",
+                borderRadius: "10px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
                 "&:hover": {
-                  backgroundColor: mostrarFinesSemana ? "#005AA3" : "#f3f4f6",
-                  borderColor: "#e0e0e0",
-                  boxShadow: "none",
+                  backgroundColor: mostrarFinesSemana ? "#005AA3" : "#e2e8f0",
                 },
               }}
             >
-              {mostrarFinesSemana
-                ? "Con fines de semana"
-                : "Sin fines de semana"}
-            </Button>
+              {mostrarFinesSemana ? (
+                <VisibilityOffIcon
+                  sx={{
+                    fontSize: 18,
+                    color: "#ffffff",
+                    transition: "color 0.2s ease",
+                  }}
+                  aria-label="Ocultar fines de semana"
+                />
+              ) : (
+                <VisibilityIcon
+                  sx={{
+                    fontSize: 18,
+                    color: "#64748b",
+                    transition: "color 0.2s ease",
+                  }}
+                  aria-label="Mostrar fines de semana"
+                />
+              )}
+            </Box>
           </Box>
 
           {/* GRUPO 6: PERÍODO ACTUAL (derecha) */}
           <Box
+            className="tour-periodo"
             sx={{
               ml: "auto",
               display: "flex",
@@ -699,6 +717,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
 
       {/* Vista Mensual */}
       <Paper
+        className="tour-calendario"
         elevation={0}
         sx={{
           border: "1px solid #e0e0e0",

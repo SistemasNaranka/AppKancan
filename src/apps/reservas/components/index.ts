@@ -11,3 +11,4 @@ export { default as EstadoSalas } from "./EstadoSalas";
 export { default as ProximasReuniones } from "./ProximasReuniones";
 export { default as VistaSemanal } from "./VistaSemanal";
 export { default as VistaCalendario } from "./VistaCalendario";
+export { ReservasTour } from "./ReservasTour";

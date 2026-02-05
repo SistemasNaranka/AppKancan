@@ -10,6 +10,9 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  FormControl,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -25,7 +28,6 @@ import {
   Notes as NotesIcon,
   Warning as WarningIcon,
 } from "@mui/icons-material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { useQuery } from "@tanstack/react-query";
@@ -36,6 +38,8 @@ import {
   addWeeks,
   subWeeks,
   isSameDay,
+  setMonth,
+  setYear,
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { getConfiguracionReserva } from "../services/reservas";
@@ -49,6 +53,28 @@ import {
   capitalize,
   CONFIGURACION_POR_DEFECTO,
 } from "../types/reservas.types";
+
+// Nombres de los meses en español
+const MESES = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+
+// Años disponibles
+const AÑOS = Array.from({ length: 7 }, (_, i) => 2024 + i);
+
+// Días del mes para selector
+const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 interface VistaSemanalProps {
   reservas: Reserva[];
@@ -192,6 +218,23 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
   const semanaAnterior = () => setFechaBase(subWeeks(fechaBase, 1));
   const semanaSiguiente = () => setFechaBase(addWeeks(fechaBase, 1));
   const irAHoy = () => setFechaBase(new Date());
+
+  // Cambiar día
+  const handleCambiarDia = (dia: number) => {
+    const nuevaFecha = new Date(fechaBase);
+    nuevaFecha.setDate(dia);
+    setFechaBase(nuevaFecha);
+  };
+
+  // Cambiar mes
+  const handleCambiarMes = (mes: number) => {
+    setFechaBase(setMonth(fechaBase, mes));
+  };
+
+  // Cambiar año
+  const handleCambiarAño = (año: number) => {
+    setFechaBase(setYear(fechaBase, año));
+  };
 
   // Formatear hora 12h
   const formatearHora12h = (hora: string): string => {
@@ -346,13 +389,6 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     setReservaSeleccionada(null);
   };
 
-  // Handler para DatePicker
-  const handleDateChange = (date: Date | null) => {
-    if (date) {
-      setFechaBase(date);
-    }
-  };
-
   // Obtener texto de estado
   const getEstadoTexto = (reserva: Reserva): string => {
     const estado = (reserva.estadoCalculado || reserva.estado)?.toLowerCase();
@@ -366,7 +402,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     }
   };
 
-  const rangoFechas = `${format(diasSemana[0], "d MMM", { locale: es })} - ${format(diasSemana[4], "d MMM, yyyy", { locale: es })}`;
+  const rangoFechas = `${format(diasSemana[0], "d MMM", { locale: es })} - ${format(diasSemana[4], "d MMM yyyy", { locale: es })}`;
   const hoy = new Date();
 
   
@@ -405,11 +441,11 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             }}
           >
             {/* GRUPO 1: SALA */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Box className="tour-sala-selector" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 400,
+                  fontWeight: "bold",
                   color: "#303030",
                   fontSize: "0.7rem",
                   textTransform: "uppercase",
@@ -468,11 +504,11 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             </Box>
 
             {/* GRUPO 2: VISTA */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Box className="tour-vista-selector" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 400,
+                  fontWeight: "bold",
                   color: "#303030",
                   fontSize: "0.7rem",
                   textTransform: "uppercase",
@@ -547,7 +583,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             </Box>
 
             {/* GRUPO 3: NAVEGACIÓN */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Box className="tour-navegacion" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography
                 variant="caption"
                 sx={{
@@ -594,7 +630,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             </Box>
 
             {/* GRUPO 4: FECHA */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Box className="tour-selector-fecha" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography
                 variant="caption"
                 sx={{
@@ -607,29 +643,66 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               >
                 Fecha
               </Typography>
-              <DatePicker
-                value={fechaBase}
-                onChange={(newValue) =>
-                  handleDateChange(newValue as Date | null)
-                }
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    sx: {
-                      width: 150,
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: 1,
-                        fontSize: "0.85rem",
+              <Box sx={{ display: "flex", gap: 0.5 }}>
+                <FormControl size="small" sx={{ minWidth: 60 }}>
+                  <Select
+                    value={fechaBase.getDate()}
+                    onChange={(e) => handleCambiarDia(e.target.value as number)}
+                    sx={{
+                      fontSize: "0.85rem",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#e0e0e0",
                       },
-                    },
-                  },
-                }}
-                format="dd/MM/yyyy"
-              />
+                    }}
+                  >
+                    {DIAS.map((dia) => (
+                      <MenuItem key={dia} value={dia}>
+                        {dia}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 100 }}>
+                  <Select
+                    value={fechaBase.getMonth()}
+                    onChange={(e) => handleCambiarMes(e.target.value as number)}
+                    sx={{
+                      fontSize: "0.85rem",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#e0e0e0",
+                      },
+                    }}
+                  >
+                    {MESES.map((mes, index) => (
+                      <MenuItem key={mes} value={index}>
+                        {mes}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <Select
+                    value={fechaBase.getFullYear()}
+                    onChange={(e) => handleCambiarAño(e.target.value as number)}
+                    sx={{
+                      fontSize: "0.85rem",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#e0e0e0",
+                      },
+                    }}
+                  >
+                    {AÑOS.map((año) => (
+                      <MenuItem key={año} value={año}>
+                        {año}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
             </Box>
 
             {/* GRUPO 5: PERÍODO ACTUAL (derecha) */}
-            <Box
+            <Box className="tour-periodo"
               sx={{
                 ml: "auto",
                 display: "flex",
@@ -698,6 +771,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
           </Box>
         ) : (
           <Paper
+            className="tour-calendario"
             elevation={0}
             sx={{
               border: "1px solid #e0e0e0",
