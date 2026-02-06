@@ -11,4 +11,8 @@ export { default as EstadoSalas } from "./EstadoSalas";
 export { default as ProximasReuniones } from "./ProximasReuniones";
 export { default as VistaSemanal } from "./VistaSemanal";
 export { default as VistaCalendario } from "./VistaCalendario";
+export { default as PulsatingMeetingIndicator } from "./PulsatingMeetingIndicator";
 export { ReservasTour } from "./ReservasTour";
+export { default as FloatingHelpButton } from "./FloatingHelpButton";
+export type { TabReservas } from "./TourContext";
+export { TourProvider, useTourContext } from "./TourContext";

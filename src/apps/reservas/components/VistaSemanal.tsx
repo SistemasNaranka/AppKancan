@@ -53,6 +53,7 @@ import {
   capitalize,
   CONFIGURACION_POR_DEFECTO,
 } from "../types/reservas.types";
+import PulsatingMeetingIndicator from "./PulsatingMeetingIndicator";
 
 // Nombres de los meses en español
 const MESES = [
@@ -366,7 +367,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     return puedeModificarse(estadoActual);
   };
 
-  // Handler para click en celda vacía
+  // Manejador para clic en celda vacía
   const handleClickCelda = (dia: Date, hora: string) => {
     if (onNuevaReserva) {
       const fechaStr = format(dia, "yyyy-MM-dd");
@@ -454,7 +455,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               >
                 Sala
               </Typography>
-              {/* Segmented Control - Sala */}
+              {/* Control Segmentado - Sala */}
               <Box
                 sx={{
                   display: "flex",
@@ -464,7 +465,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                   position: "relative",
                 }}
               >
-                {/* Slider animado */}
+                {/* Indicador deslizante animado */}
                 <Box
                   sx={{
                     position: "absolute",
@@ -518,7 +519,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 Vista
               </Typography>
               {onCambiarVista && (
-                /* Segmented Control - Vista */
+                /* Control Segmentado - Vista */
                 <Box
                   sx={{
                     display: "flex",
@@ -528,7 +529,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                     position: "relative",
                   }}
                 >
-                  {/* Slider animado */}
+                  {/* Indicador deslizante animado */}
                   <Box
                     sx={{
                       position: "absolute",
@@ -822,6 +823,12 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               </Box>
               {diasSemana.map((dia, idx) => {
                 const esHoy = isSameDay(dia, hoy);
+                const fechaStr = format(dia, "yyyy-MM-dd");
+                const reservaEnCurso = reservasSemana.find(
+                  (r) =>
+                    r.fecha === fechaStr &&
+                    r.estadoCalculado?.toLowerCase() === "en curso",
+                );
                 return (
                   <Box
                     key={dia.toISOString()}
@@ -839,17 +846,29 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                       boxSizing: "border-box",
                     }}
                   >
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 600,
-                        color: esHoy ? "#004680" : "#1a2a3a",
-                        textTransform: "capitalize",
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      {format(dia, "EEEE", { locale: es })}
-                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 600,
+                          color: esHoy ? "#004680" : "#1a2a3a",
+                          textTransform: "capitalize",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {format(dia, "EEEE", { locale: es })}
+                      </Typography>
+                      {/* Indicador pulsante si hay reunión en curso hoy */}
+                      {reservaEnCurso && (
+                        <PulsatingMeetingIndicator
+                          meetingDate={fechaStr}
+                          startTime={reservaEnCurso.hora_inicio}
+                          endTime={reservaEnCurso.hora_final}
+                          size={6}
+                          color="success"
+                        />
+                      )}
+                    </Box>
                     <Typography
                       variant="caption"
                       sx={{
@@ -871,7 +890,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 overflowY: "auto",
                 overflowX: "auto",
                 width: "100%",
-                // Scrollbar hide - Cross-browser compatible
+                // Ocultar scrollbar - Compatible con todos los navegadores
                 scrollbarWidth: "none",
                 "&::-webkit-scrollbar": {
                   display: "none",
@@ -959,8 +978,8 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                             )?.toLowerCase();
                             const esEnCurso = estadoActual === "en curso";
 
-                            // Determinar borderRadius
-                            // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → borderRadius completo
+                            // Determinar radio de borde
+                            // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → radio completo
                             const alturaCompleta =
                               Math.abs(posicion.height - 60) < 1;
                             const borderRadius =
@@ -1079,6 +1098,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
           open={Boolean(anchorEl)}
           anchorEl={anchorEl}
           onClose={handleClosePopover}
+          disableScrollLock={true}
           anchorOrigin={{ vertical: "center", horizontal: "right" }}
           transformOrigin={{ vertical: "center", horizontal: "left" }}
           PaperProps={{

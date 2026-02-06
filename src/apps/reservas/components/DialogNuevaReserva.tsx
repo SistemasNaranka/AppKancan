@@ -747,6 +747,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                             }
                           }}
                           disabled={loading}
+                          shouldDisableDate={shouldDisableDate}
                           displayStaticWrapperAs="desktop"
                           slotProps={{
                             actionBar: { actions: [] },
@@ -758,6 +759,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                             },
                             "& .MuiDayCalendar-root": {
                               width: "100%",
+                            },
+                            "& .MuiPickersDay-root.Mui-disabled": {
+                              color: "#ccc",
+                              backgroundColor: "#f5f5f5",
                             },
                           }}
                         />

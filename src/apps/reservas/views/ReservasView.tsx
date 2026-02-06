@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 
 // Importar el componente de Tour
-import { ReservasTour } from "../components/ReservasTour";
+import { ReservasTour, TourProvider, FloatingHelpButton } from "../components";
 import {
   Box,
   Button,
@@ -351,8 +351,10 @@ const ReservasView: React.FC = () => {
   ];
 
   return (
-    <ReservasTour>
-      <Box sx={{ mt: -1 }}>
+    <TourProvider initialTab={tabActual}>
+      <ReservasTour activeTab={tabActual}>
+        <FloatingHelpButton activeTab={tabActual} onTabChange={setTabActual} />
+        <Box sx={{ mt: -1 }}>
         {/* Header con pestañas */}
         <Box
           sx={{
@@ -456,26 +458,30 @@ const ReservasView: React.FC = () => {
         {tabActual === "Reserva" && (
           <Box>
             {/* Estado de las salas */}
-            <EstadoSalas
-              reservas={todasReservas}
-              onVerCronograma={handleVerCronograma}
-              onReservarAhora={handleReservarAhora}
-            />
+            <Box className="tour-estado-salas">
+              <EstadoSalas
+                reservas={todasReservas}
+                onVerCronograma={handleVerCronograma}
+                onReservarAhora={handleReservarAhora}
+              />
+            </Box>
 
             {/* Próximas reuniones */}
-            <ProximasReuniones
-              reservas={todasReservas}
-              onVerCalendarioCompleto={() => {
-                setSalaInicial(undefined);
-                setTabActual("calendario");
-              }}
-            />
+            <Box className="tour-proximas-reuniones">
+              <ProximasReuniones
+                reservas={todasReservas}
+                onVerCalendarioCompleto={() => {
+                  setSalaInicial(undefined);
+                  setTabActual("calendario");
+                }}
+              />
+            </Box>
           </Box>
         )}
 
         {/* Contenido de Mis reservas */}
         {tabActual === "mis" && (
-          <Box>
+          <Box className="tour-tabla-reservas">
             <MisReservasCards
               reservas={misReservas}
               usuarioActualId={user?.id}
@@ -598,6 +604,7 @@ const ReservasView: React.FC = () => {
         </Snackbar>
       </Box>
     </ReservasTour>
+    </TourProvider>
   );
 };
 

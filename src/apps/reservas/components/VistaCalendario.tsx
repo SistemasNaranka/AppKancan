@@ -57,6 +57,7 @@ import {
   SALAS_DISPONIBLES,
   capitalize,
 } from "../types/reservas.types";
+import PulsatingMeetingIndicator from "./PulsatingMeetingIndicator";
 
 interface VistaCalendarioProps {
   onNuevaReserva?: (fecha?: string, sala?: string) => void;
@@ -621,7 +622,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
           </Box>
 
           {/* GRUPO 5: MOSTRAR */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Box className="tour-fines-semana" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
             <Typography
               variant="caption"
               sx={{
@@ -653,7 +654,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
               }}
             >
               {mostrarFinesSemana ? (
-                <VisibilityOffIcon
+                <VisibilityIcon
                   sx={{
                     fontSize: 18,
                     color: "#ffffff",
@@ -662,7 +663,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                   aria-label="Ocultar fines de semana"
                 />
               ) : (
-                <VisibilityIcon
+                <VisibilityOffIcon
                   sx={{
                     fontSize: 18,
                     color: "#64748b",
@@ -781,7 +782,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 }}
               >
                 <Box
-                  sx={{ display: "flex", justifyContent: "center", mb: 0.5 }}
+                  sx={{ display: "flex", justifyContent: "center", mb: 0.5, alignItems: "center", gap: 0.5 }}
                 >
                   <Box
                     sx={{
@@ -803,6 +804,16 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                   >
                     {format(dia, "d")}
                   </Box>
+                  {/* Indicador pulsante si hay reunión en curso hoy */}
+                  {reservasDia.some((r) => r.estadoCalculado?.toLowerCase() === "en curso") && (
+                    <PulsatingMeetingIndicator
+                      meetingDate={format(dia, "yyyy-MM-dd")}
+                      startTime={reservasDia.find((r) => r.estadoCalculado?.toLowerCase() === "en curso")?.hora_inicio || ""}
+                      endTime={reservasDia.find((r) => r.estadoCalculado?.toLowerCase() === "en curso")?.hora_final || ""}
+                      size={6}
+                      color="success"
+                    />
+                  )}
                 </Box>
 
                 {/* Reservas HORIZONTALES con color por ID */}
@@ -883,6 +894,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
         open={openDia}
         anchorEl={anchorDia}
         onClose={handleCloseDia}
+        disableScrollLock={true}
         anchorOrigin={{ vertical: "center", horizontal: "right" }}
         transformOrigin={{ vertical: "center", horizontal: "left" }}
         PaperProps={{
@@ -920,20 +932,29 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 p: 2,
                 maxHeight: 280,
                 overflowY: "auto",
-                // Scrollbar hide - Cross-browser compatible
-                scrollbarWidth: "none",
+                // Scrollbar styling - consistent with Material-UI design
+                scrollbarWidth: "thin",
+                scrollbarColor: "#c1c1c1 #f1f1f1",
                 "&::-webkit-scrollbar": {
-                  display: "none",
-                  width: 0,
-                  height: 0,
-                },
-                "&::-webkit-scrollbar-thumb": {
-                  display: "none",
+                  width: 6,
+                  height: 6,
                 },
                 "&::-webkit-scrollbar-track": {
-                  display: "none",
+                  background: "#f1f1f1",
+                  borderRadius: 3,
                 },
-                msOverflowStyle: "none",
+                "&::-webkit-scrollbar-thumb": {
+                  background: "#c1c1c1",
+                  borderRadius: 3,
+                  "&:hover": {
+                    background: "#a1a1a1",
+                  },
+                },
+                "&::-ms-thumb": {
+                  background: "#c1c1c1",
+                  borderRadius: 3,
+                },
+                msOverflowStyle: "auto",
               }}
             >
               {getReservasDia(diaSeleccionado).length === 0 ? (
@@ -949,6 +970,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                 >
                   {getReservasDia(diaSeleccionado).map((reserva) => {
                     const colorReserva = getReservaColor(reserva.id);
+                    const esEnCurso = reserva.estadoCalculado?.toLowerCase() === "en curso";
                     return (
                       <Box
                         key={reserva.id}
@@ -963,15 +985,30 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
                           borderLeft: `4px solid ${colorReserva}`,
                           cursor: "pointer",
                           "&:hover": { backgroundColor: "#f9fafb" },
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1.5,
                         }}
                       >
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {reserva.titulo_reunion || "Sin título"}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {formatearHora(reserva.hora_inicio)} -{" "}
-                          {formatearHora(reserva.hora_final)}
-                        </Typography>
+                        {/* Indicador pulsante para reunión en curso */}
+                        {esEnCurso && (
+                          <PulsatingMeetingIndicator
+                            meetingDate={reserva.fecha}
+                            startTime={reserva.hora_inicio}
+                            endTime={reserva.hora_final}
+                            size={8}
+                            color="success"
+                          />
+                        )}
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {reserva.titulo_reunion || "Sin título"}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatearHora(reserva.hora_inicio)} -{" "}
+                            {formatearHora(reserva.hora_final)}
+                          </Typography>
+                        </Box>
                       </Box>
                     );
                   })}

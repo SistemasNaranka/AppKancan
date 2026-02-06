@@ -28,9 +28,10 @@ type PanelPendientesProps = {
   totalPendientes: number;
   onEliminarTrasladosAprobados?: (
     ids: number[],
-    clave: string
+    clave: string,
   ) => Promise<void>;
-  onRetry?: () => void; // ✅ YA EXISTE - no cambios
+  onRetry?: () => void;
+  tienePoliticaTrasladosJefezona?: boolean;
 };
 
 export const PanelPendientes: React.FC<PanelPendientesProps> = ({
@@ -48,6 +49,7 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
   totalPendientes,
   onEliminarTrasladosAprobados,
   onRetry,
+  tienePoliticaTrasladosJefezona = false,
 }) => {
   const [dialogoAprobacionAbierto, setDialogoAprobacionAbierto] =
     useState(false);
@@ -58,13 +60,13 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
   const todosSeleccionados =
     filtrados.length > 0 &&
     filtrados.every(
-      (t) => t.traslado !== undefined && idsSeleccionados.includes(t.traslado)
+      (t) => t.traslado !== undefined && idsSeleccionados.includes(t.traslado),
     );
 
   const algunSeleccionado =
     filtrados.length > 0 &&
     filtrados.some(
-      (t) => t.traslado !== undefined && idsSeleccionados.includes(t.traslado)
+      (t) => t.traslado !== undefined && idsSeleccionados.includes(t.traslado),
     );
 
   // ✅ Función que se ejecuta al confirmar en el modal (recibe la contraseña)
@@ -97,7 +99,7 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
     } catch (error: any) {
       setErrorAprobacion(
         error?.message ||
-          "Ocurrió un error al aprobar los traslados. Intenta nuevamente."
+          "Ocurrió un error al aprobar los traslados. Intenta nuevamente.",
       );
       console.error("❌ Error al aprobar traslados:", error);
       await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -308,6 +310,7 @@ export const PanelPendientes: React.FC<PanelPendientesProps> = ({
                 onAbrirDialogoAprobacion={() =>
                   setDialogoAprobacionAbierto(true)
                 }
+                tienePoliticaTrasladosJefezona={tienePoliticaTrasladosJefezona}
               />
             </Box>
           </Box>

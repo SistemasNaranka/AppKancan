@@ -26,7 +26,7 @@ const TrasladosPanel: React.FC = () => {
   // ✅ Query para cargar traslados con cache automático
   const {
     data: pendientes = [],
-    isLoading: loading, 
+    isLoading: loading,
     isError,
     error: queryError,
   } = useQuery({
@@ -61,7 +61,7 @@ const TrasladosPanel: React.FC = () => {
       if (t.nombre_destino && !bodegas.has(t.nombre_destino)) {
         bodegas.set(
           t.nombre_destino,
-          `${t.bodega_destino} - ${t.nombre_destino}`
+          `${t.bodega_destino} - ${t.nombre_destino}`,
         );
       }
     });
@@ -91,7 +91,7 @@ const TrasladosPanel: React.FC = () => {
   // ✅ Selección de traslados
   const handleToggleSeleccion = (id: number) => {
     setIdsSeleccionados((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -102,7 +102,7 @@ const TrasladosPanel: React.FC = () => {
       setIdsSeleccionados([...new Set([...idsSeleccionados, ...idsFiltrados])]);
     } else {
       setIdsSeleccionados((prev) =>
-        prev.filter((id) => !idsFiltrados.includes(id))
+        prev.filter((id) => !idsFiltrados.includes(id)),
       );
     }
   };
@@ -110,7 +110,7 @@ const TrasladosPanel: React.FC = () => {
   // ✅ Función que ejecuta el hijo cuando aprueba traslados
   const handleEliminarTrasladosAprobados = async (
     ids: number[],
-    clave: string
+    clave: string,
   ) => {
     try {
       if (!user?.empresa || !user?.codigo_ultra) {
@@ -118,7 +118,7 @@ const TrasladosPanel: React.FC = () => {
       }
 
       const trasladosSeleccionados = pendientes.filter((t) =>
-        ids.includes(t.traslado)
+        ids.includes(t.traslado),
       );
 
       if (trasladosSeleccionados.length === 0) {
@@ -131,7 +131,7 @@ const TrasladosPanel: React.FC = () => {
           trasladosSeleccionados,
           user.empresa,
           user.codigo_ultra,
-          clave
+          clave,
         );
       }
 
@@ -139,13 +139,13 @@ const TrasladosPanel: React.FC = () => {
         trasladosSeleccionados,
         user.empresa,
         user.codigo_ultra,
-        clave
+        clave,
       );
 
       // ✅ Actualizar el cache de TanStack Query
       queryClient.setQueryData<Traslado[]>(
         ["traslados_pendientes", user?.codigo_ultra, user?.empresa],
-        (old = []) => old.filter((p) => !ids.includes(p.traslado))
+        (old = []) => old.filter((p) => !ids.includes(p.traslado)),
       );
 
       setIdsSeleccionados([]);
@@ -169,6 +169,10 @@ const TrasladosPanel: React.FC = () => {
   const handleGoHome = () => {
     navigate("/");
   };
+
+  // ✅ Verificar si el usuario tiene la política que impide aprobar traslados
+  const tienePoliticaTrasladosJefezona =
+    user?.policies?.includes("TrasladosJefezona") ?? false;
 
   return (
     <Box
@@ -206,6 +210,7 @@ const TrasladosPanel: React.FC = () => {
             onToggleSeleccionarTodos={handleToggleSeleccionarTodos}
             onEliminarTrasladosAprobados={handleEliminarTrasladosAprobados}
             onRetry={handleRetry}
+            tienePoliticaTrasladosJefezona={tienePoliticaTrasladosJefezona}
           />
 
           {/* Snackbar de éxito */}

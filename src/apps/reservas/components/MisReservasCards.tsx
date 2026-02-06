@@ -383,7 +383,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
       />
 
       {/* Tabs para otras reservas */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3 }} className="tour-mis-reservas-tabs">
         <Tabs
           value={tabValue}
           onChange={(_, newValue) => setTabValue(newValue)}
