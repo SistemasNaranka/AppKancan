@@ -78,7 +78,7 @@ export const AssignedEmployeesSection: React.FC<
             No hay empleados asignados
           </Typography>
           <Typography variant="caption" sx={{ fontSize: "0.8rem" }}>
-            Agregue empleados usando el formulario de arriba
+            Agregue los empleados usando el formulario de arriba
           </Typography>
         </Box>
       ) : (
