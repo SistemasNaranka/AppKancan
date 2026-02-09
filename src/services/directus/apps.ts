@@ -11,8 +11,8 @@ export async function getUserArea() {
     directus.request(
       readItems("rol_usuario", {
         fields: ["id", "area", "rol_id.name"],
-      })
-    )
+      }),
+    ),
   );
 }
 
@@ -26,8 +26,8 @@ export async function getUserBodegas() {
       directus.request(
         readItems("util_bodega_usuario", {
           fields: ["bodega"],
-        })
-      )
+        }),
+      ),
     );
 
     // 🔹 Aplanar los datos - bodega es el número directo
@@ -61,8 +61,8 @@ export async function getUserBodegas() {
             "app_id.icono_categoria",
             "app_id.rol.name",
           ],
-        })
-      )
+        }),
+      ),
     );
 
     // 🔹 Aplanar los datos

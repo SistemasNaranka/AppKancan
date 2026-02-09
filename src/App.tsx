@@ -7,6 +7,37 @@ import { AuthProvider } from "@/auth/hooks/AuthProvider";
 import { AppProvider } from "./apps/hooks/AppProvider";
 import client from "./services/tankstack/QueryClient";
 import { AppThemeProvider } from "@/shared/hooks/ThemeContext";
+import { ForcePasswordChangeModal } from "@/auth/components/ForcePasswordChangeModal";
+import { useAuth } from "@/auth/hooks/useAuth";
+
+// Componente que usa el modal de cambio de contraseña
+const AppWithPasswordModal = () => {
+  const { user, isAuthenticated } = useAuth();
+  const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Mostrar modal solo si el usuario está autenticado y requiere cambio de contraseña
+    if (isAuthenticated && user?.requires_password_change) {
+      setModalOpen(true);
+    } else {
+      setModalOpen(false);
+    }
+  }, [isAuthenticated, user]);
+
+  return (
+    <>
+      <AppRoutes />
+      <ForcePasswordChangeModal
+        open={modalOpen}
+        onClose={() => {
+          // No permitir cerrar el modal sin cambiar la contraseña
+        }}
+      />
+    </>
+  );
+};
+
+import { useState, useEffect } from "react";
 
 function App() {
   return (
@@ -15,7 +46,7 @@ function App() {
         <BrowserRouter>
           <AuthProvider>
             <AppProvider>
-              <AppRoutes />
+              <AppWithPasswordModal />
             </AppProvider>
           </AuthProvider>
         </BrowserRouter>

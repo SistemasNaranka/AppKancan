@@ -1,5 +1,5 @@
 import { RouteObject } from "react-router-dom";
-import Home from "../pruebas/pages/home";
+import Home from "./pages/home";
 
 const routes: RouteObject[] = [
   {
