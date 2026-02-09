@@ -63,6 +63,11 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   const { canSeeConfig, canAssignEmployees, canSeeStoreFilter, hasPolicy } =
     useUserPolicies();
 
+  // 🚀 LOG: Verificar valor de missingDaysCount
+  React.useEffect(() => {
+    console.log(`🏠 [HomeHeader] missingDaysCount = ${missingDaysCount}`);
+  }, [missingDaysCount]);
+
   // Determinar qué botones están visibles
   const hasVisibleButtons = (() => {
     const hasConfig = canSeeConfig();

@@ -13,6 +13,7 @@ export interface MapeoNombreArchivo {
   archivo_origen: string;
   tienda_archivo: string;
   terminal: string; // Nuevo campo
+  idadquiriente: string; // Nuevo campo
   tienda_id: {
     id: number;
     nombre: string;
@@ -44,6 +45,7 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
             "archivo_origen",
             "tienda_archivo",
             "terminal",
+            "idadquiriente",
             "tienda_id.id",
             "tienda_id.nombre",
           ],
@@ -53,6 +55,12 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
     );
 
     console.log("📦 Respuesta cruda de Directus:", data);
+    if (data && Array.isArray(data)) {
+      console.log(`ℹ️ Se obtuvieron ${data.length} mapeos de Directus.`);
+      if (data.length > 0) {
+        console.log("🔍 Ejemplo del primer mapeo:", JSON.stringify(data[0], null, 2));
+      }
+    }
     return data as MapeoNombreArchivo[];
   } catch (error) {
     console.error("❌ Error al obtener mapeos de archivos:", error);
@@ -136,7 +144,8 @@ export const procesarMapeosParaNormalizacion = (
     tiendaArchivo: m.tienda_archivo,
     tiendaNormalizada: m.tienda_id.nombre,  // Nombre viene de la relación
     tiendaId: m.tienda_id.id,               // ID viene de la relación
-    terminal: m.terminal                    // Nuevo campo
+    terminal: m.terminal,                   // Nuevo campo
+    idadquiriente: m.idadquiriente          // Nuevo campo
   }));
 
   return { tablasMapeo, tiendaMapeos };

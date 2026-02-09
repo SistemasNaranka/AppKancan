@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCommission } from "../contexts/CommissionContext";
 import { HomeHeader } from "../components/ui/HomeHeader";
 import { HomeModals } from "../components/modals/HomeModals";
@@ -55,6 +56,9 @@ export default function Home() {
 
   // Flag para evitar que useEffect interfiera cuando hacemos clic en "Total Comisiones"
   const skipEffectRef = useRef(false);
+
+  // 🚀 QueryClient para limpiar caché
+  const queryClient = useQueryClient();
 
   // Hook optimizado para datos de comisiones
   const {
@@ -276,14 +280,37 @@ export default function Home() {
     return getUniqueTiendas(mesResumen);
   }, [mesResumen, getUniqueTiendas]);
 
+  // 🚀 SOLUCIÓN: Usar una clave forzada para forzar re-render del HomeHeader
+  const [headerKey, setHeaderKey] = useState(0);
+
   const handleAssignmentComplete = async () => {
+    console.log(`🔄 [Home] handleAssignmentComplete INICIADO`);
     calculationCacheRef.current.clear();
 
     clearFilterCache();
 
-    await refetch();
+    // 🚀 LIMPIAR CACHÉ DE REACT QUERY
+    queryClient.clear();
+    console.log(`🔄 [Home] caché de React Query limpiada`);
 
+    // 🚀 CORRECCIÓN: Primero revalidar presupuesto Y ESPERAR a que termine
+    // Esto asegura que la counter se actualice ANTES de cualquier re-render
+    console.log(`🔄 [Home] calling revalidateBudgetData...`);
     await revalidateBudgetData();
+    console.log(`🔄 [Home] revalidateBudgetData completado`);
+
+    // Luego hacer refetch de los datos de comisiones
+    console.log(`🔄 [Home] esperando refetch...`);
+    await refetch();
+    console.log(`🔄 [Home] refetch completado`);
+
+    // Pequeño delay adicional para asegurar que el contexto se actualice
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // 🚀 FORZAR re-render del HomeHeader para asegurar que se actualice el mensaje
+    setHeaderKey(prev => prev + 1);
+    
+    console.log(`🔄 [Home] handleAssignmentComplete FINALIZADO`);
   };
 
   // 🚀 NUEVO: Función para mostrar pantalla de carga (usada directamente desde el modal)
@@ -293,6 +320,7 @@ export default function Home() {
 
   // 🚀 NUEVO: Manejar guardado desde el modal
   const handleCodesModalSave = async (originalError?: any) => {
+    console.log("🔔 [Home] handleCodesModalSave INICIADO - Error:", originalError);
     setShowSaveLoading(true);
     setSaveSuccess(false);
     setSaveError(false);
@@ -300,7 +328,7 @@ export default function Home() {
     try {
       // Si hubo error en el guardado original, mostrar error directamente
       if (originalError) {
-        console.log("❌ Error en guardado original:", originalError);
+        console.log("❌ [Home] Error en guardado original:", originalError);
         setSaveError(true);
 
         // Mostrar error y ocultar pantalla de carga
@@ -312,10 +340,12 @@ export default function Home() {
       }
 
       // Si no hay error, actualizar datos en segundo plano
+      console.log("🔔 [Home] handleCodesModalSave - Calling handleAssignmentComplete");
       await handleAssignmentComplete();
 
       // Una vez completada la operación real, mostrar éxito
       setSaveSuccess(true);
+      console.log("✅ [Home] handleCodesModalSave - saveSuccess=true");
 
       // Ocultar pantalla de carga después de mostrar éxito brevemente
       setTimeout(() => {
@@ -323,7 +353,7 @@ export default function Home() {
         setSaveSuccess(false);
       }, 1000); // 1 segundo para el mensaje de éxito6
     } catch (error: any) {
-      console.error("❌ Error durante guardado:", error);
+      console.error("❌ [Home] Error durante guardado:", error);
       setSaveError(true);
 
       // Mostrar mensaje de error más claro
@@ -517,77 +547,47 @@ export default function Home() {
     hasBudgetData,
   ]);
 
-  // 🚀 NUEVO: Componente de pantalla de carga para guardado
+  // 🚀 NUEVO: Componente de pantalla de carga para guardado - VERSIÓN SIMPLIFICADA
+  // Ya no muestra pantalla oscura para evitar эффект doble recarga
   const SaveLoadingScreen = () => {
     if (!showSaveLoading) return null;
 
+    // Mostrar solo un indicador sutil sin pantalla oscura completa
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 text-center">
-          {saveSuccess ? (
-            // Mensaje de éxito
-            <div>
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                ¡Guardado Correctamente!
-              </h3>
-              <p className="text-gray-600">
-                Los empleados han sido asignados exitosamente.
-              </p>
-            </div>
-          ) : saveError ? (
-            // Mensaje de error
-            <div>
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Error de Permisos
-              </h3>
-              <p className="text-gray-600">
-                No tiene permisos para guardar asignaciones. Contacte al
-                administrador.
-              </p>
-            </div>
-          ) : (
-            // Pantalla de carga
-            <div>
-              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Guardando...
-              </h3>
-              <p className="text-gray-600">
-                Procesando asignación de empleados.
-              </p>
-            </div>
-          )}
-        </div>
+      <div 
+        style={{
+          position: 'fixed',
+          top: 20,
+          right: 20,
+          zIndex: 9999,
+          backgroundColor: saveSuccess ? '#4caf50' : saveError ? '#f44336' : '#2196f3',
+          color: 'white',
+          padding: '8px 16px',
+          borderRadius: 4,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: 14,
+          fontWeight: 500,
+        }}
+      >
+        {saveSuccess ? (
+          <>
+            <span style={{fontSize: 16}}>✓</span>
+            Guardado correctamente
+          </>
+        ) : saveError ? (
+          <>
+            <span style={{fontSize: 16}}>✕</span>
+            Error al guardar
+          </>
+        ) : (
+          <>
+            <span className="animate-spin" style={{display: 'inline-block', fontSize: 16}}>⟳</span>
+            Guardando...
+          </>
+        )}
       </div>
     );
   };
@@ -602,7 +602,7 @@ export default function Home() {
       <div className="min-h-screen px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4">
         <div className="max-w-full sm:max-w-[calc(100vw-4rem)] lg:max-w-[calc(100vw-8rem)] xl:max-w-[calc(100vw-12rem)] mx-auto">
           {/* Header */}
-          <HomeHeader {...homeHeaderProps} />
+          <HomeHeader key={headerKey} {...homeHeaderProps} />
 
           {/* Contenido con borde - Optimizado para móvil */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">

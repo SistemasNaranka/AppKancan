@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   obtenerEmpleadosPorFechaExacta,
   obtenerAsesores,
@@ -44,6 +44,9 @@ export const useEditStoreBudgetModalLogic = ({
     null,
   );
   const [empleadosAsignados, setEmpleadosAsignados] = useState<any[]>([]);
+
+  // 🔧 NUEVO: Estado original para dirty check
+  const [empleadosAsignadosOriginal, setEmpleadosAsignadosOriginal] = useState<any[]>([]);
 
   // Datos de catálogos
   const [todosEmpleados, setTodosEmpleados] = useState<any[]>([]);
@@ -210,6 +213,8 @@ export const useEditStoreBudgetModalLogic = ({
     setCodigoEmpleado("");
     setEmpleadoEncontrado(null);
     setEmpleadosAsignados([]);
+    // 🔧 LIMPIAR estado original para dirty check
+    setEmpleadosAsignadosOriginal([]);
     setDiasSinPresupuesto([]);
     setDiasConPresupuestoCero([]);
     setDiasConAsignacion([]);
@@ -276,6 +281,9 @@ export const useEditStoreBudgetModalLogic = ({
       });
 
       setEmpleadosAsignados(empleadosConInfo);
+
+      // 🔧 GUARDAR estado original para dirty check
+      setEmpleadosAsignadosOriginal(empleadosConInfo);
 
       // Intentar recalcular presupuestos si es necesario (solo una vez por carga)
       const needsRecalculation = empleadosConInfo.some(
@@ -659,9 +667,7 @@ export const useEditStoreBudgetModalLogic = ({
 
       // Actualizar la vista principal
       if (onSaveComplete) {
-        setTimeout(() => {
-          onSaveComplete();
-        }, 100);
+        onSaveComplete();
       }
 
       return true;
@@ -709,6 +715,48 @@ export const useEditStoreBudgetModalLogic = ({
     setSelectedDays([]);
   };
 
+  // ✅ Nueva validación de combinación de personal
+  const isValidStaffCombination = useMemo(() => {
+    if (empleadosAsignados.length === 0) return false;
+
+    const hasAsesor = empleadosAsignados.some(e =>
+      e.cargo_nombre.toLowerCase() === "asesor"
+    );
+
+    const hasSuperior = empleadosAsignados.some(e => {
+      const cargo = e.cargo_nombre.toLowerCase();
+      return cargo === "gerente" ||
+        cargo === "coadministrador" ||
+        cargo === "gerente online" ||
+        cargo.includes("online");
+    });
+
+    return hasAsesor && hasSuperior;
+  }, [empleadosAsignados]);
+
+  // 🔧 NUEVO: Dirty check - detectar si hay cambios respecto al estado original
+  const hasChanges = useMemo(() => {
+    if (empleadosAsignadosOriginal.length !== empleadosAsignados.length) {
+      return true;
+    }
+
+    // Comparar IDs de empleados
+    const originalIds = new Set(empleadosAsignadosOriginal.map(e => e.id));
+    const currentIds = new Set(empleadosAsignados.map(e => e.id));
+
+    // Verificar si hay empleados agregados o eliminados
+    const hasAdded = empleadosAsignados.some(e => !originalIds.has(e.id));
+    const hasRemoved = empleadosAsignadosOriginal.some(e => !currentIds.has(e.id));
+
+    // Verificar cambios de rol
+    const hasRoleChange = empleadosAsignados.some(current => {
+      const original = empleadosAsignadosOriginal.find(o => o.id === current.id);
+      return original && original.cargo_id !== current.cargo_id;
+    });
+
+    return hasAdded || hasRemoved || hasRoleChange;
+  }, [empleadosAsignados, empleadosAsignadosOriginal]);
+
   return {
     // Estados
     fecha,
@@ -740,6 +788,9 @@ export const useEditStoreBudgetModalLogic = ({
     selectAllPendingDays,
     clearDaySelection,
     handleTiendaChange, // NUEVO
+    // Validaciones
+    isValidStaffCombination,
+    hasChanges, // NUEVO
     // Utils
     setError,
     setSuccess,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   obtenerTiendas,
   obtenerEmpleadosPorFechaExacta,
@@ -45,6 +45,9 @@ export const useEditStoreModalLogic = ({
     null
   );
   const [empleadosAsignados, setEmpleadosAsignados] = useState<any[]>([]);
+  
+  // 🔧 NUEVO: Estado original para dirty check
+  const [empleadosAsignadosOriginal, setEmpleadosAsignadosOriginal] = useState<any[]>([]);
 
   // Datos de catálogos
   const [tiendas, setTiendas] = useState<any[]>([]);
@@ -140,6 +143,8 @@ export const useEditStoreModalLogic = ({
     setCodigoEmpleado("");
     setEmpleadoEncontrado(null);
     setEmpleadosAsignados([]);
+    // 🔧 LIMPIAR estado original para dirty check
+    setEmpleadosAsignadosOriginal([]);
     setDiasSinPresupuesto([]);
     setDiasConPresupuestoCero([]);
     setDiasConAsignacion([]);
@@ -271,6 +276,10 @@ export const useEditStoreModalLogic = ({
       });
 
       setEmpleadosAsignados(empleadosConInfo);
+      
+      // 🔧 GUARDAR estado original para dirty check
+      setEmpleadosAsignadosOriginal(empleadosConInfo);
+      console.log(`📋 [useEditStoreModalLogic] Estado original guardado: ${empleadosConInfo.length} empleados`);
 
       // Intentar recalcular presupuestos si es necesario (solo una vez por carga)
       const needsRecalculation = empleadosConInfo.some(
@@ -282,6 +291,8 @@ export const useEditStoreModalLogic = ({
           .then((result) => {
             if (result.calculated) {
               setEmpleadosAsignados(result.empleados);
+              // 🔧 También actualizar el original después de recalcular
+              setEmpleadosAsignadosOriginal(result.empleados);
             }
             // Si no se calculó, dejar como está
           })
@@ -604,24 +615,31 @@ export const useEditStoreModalLogic = ({
   };
 
   const handleGuardar = async () => {
+    console.log("🚀 [handleGuardar] INICIADO");
+    
     if (!tiendaSeleccionada) {
+      console.log("❌ [handleGuardar] Error: No hay tienda seleccionada");
       setError("Debe seleccionar una tienda");
       return;
     }
 
     if (empleadosAsignados.length === 0) {
+      console.log("❌ [handleGuardar] Error: No hay empleados asignados");
       setError("Debe asignar al menos un empleado");
       return;
     }
 
     // Determinar qué días vamos a guardar
     const diasAGuardar = selectedDays.length > 0 ? selectedDays : [fecha];
+    console.log(`📅 [handleGuardar] Días a guardar: ${JSON.stringify(diasAGuardar)}`);
 
     try {
       setLoading(true);
+      console.log("💾 [handleGuardar] Guardando...");
 
       // 1️⃣ Eliminar asignaciones existentes y Guardar nuevas para cada día
       for (const dia of diasAGuardar) {
+        console.log(`📅 [handleGuardar] Procesando día: ${dia}`);
         await eliminarPresupuestosEmpleados(tiendaSeleccionada as number, dia);
 
         // ✅ RECALCULAR: Obtener los presupuestos específicos para este día concreto
@@ -637,6 +655,7 @@ export const useEditStoreModalLogic = ({
         }));
 
         await guardarPresupuestosEmpleados(presupuestosParaGuardar);
+        console.log(`✅ [handleGuardar] Día ${dia} guardado correctamente`);
       }
 
       setSuccess(`✅ Asignación actualizada correctamente para ${diasAGuardar.length} día(s)`);
@@ -645,17 +664,22 @@ export const useEditStoreModalLogic = ({
       // Limpiar selección después de guardar
       setSelectedDays([]);
 
-      // Recargar empleados asignados en el modal
+      // 🔧 MEJORA: Recargar empleados y días ANTES de cerrar el modal
+      console.log("🔄 [handleGuardar] Recargando datos locales...");
       await loadEmpleadosAsignados();
       await loadDiasSinPresupuesto();
+      console.log("🔄 [handleGuardar] Datos locales recargados");
 
-      // Actualizar la vista principal
+      // 🔧 MEJORA: Esperar a que el callback complete ANTES de retornar
       if (onSaveComplete) {
-        setTimeout(() => {
-          onSaveComplete();
-        }, 100);
+        console.log("🔔 [handleGuardar] Ejecutando onSaveComplete callback...");
+        await onSaveComplete();
+        console.log("🔔 [handleGuardar] onSaveComplete completado");
+      } else {
+        console.log("⚠️ [handleGuardar] onSaveComplete es undefined!");
       }
 
+      console.log("✅ [handleGuardar] FINALIZADO CON ÉXITO");
       return true;
     } catch (err: any) {
       console.error("Error al guardar:", err);
@@ -700,6 +724,54 @@ export const useEditStoreModalLogic = ({
     setSelectedDays([]);
   };
 
+  // 🔧 NUEVO: Validación de combinación de personal (mínimo 2 personas: Asesor + Superior)
+  const isValidStaffCombination = useMemo(() => {
+    if (empleadosAsignados.length === 0) return false;
+
+    const hasAsesor = empleadosAsignados.some(e =>
+      e.cargo_nombre?.toLowerCase() === "asesor"
+    );
+
+    const hasSuperior = empleadosAsignados.some(e => {
+      const cargo = e.cargo_nombre?.toLowerCase() || "";
+      return cargo === "gerente" ||
+        cargo === "coadministrador" ||
+        cargo === "gerente online" ||
+        cargo.includes("online");
+    });
+
+    return hasAsesor && hasSuperior;
+  }, [empleadosAsignados]);
+
+  // 🔧 NUEVO: Dirty check - detectar si hay cambios respecto al estado original
+  const hasChanges = useMemo(() => {
+    if (empleadosAsignadosOriginal.length !== empleadosAsignados.length) {
+      console.log(`🔍 [useEditStoreModalLogic] hasChanges=true (cantidad diferente: ${empleadosAsignadosOriginal.length} vs ${empleadosAsignados.length})`);
+      return true;
+    }
+
+    // Comparar IDs de empleados
+    const originalIds = new Set(empleadosAsignadosOriginal.map(e => e.id));
+    const currentIds = new Set(empleadosAsignados.map(e => e.id));
+
+    // Verificar si hay empleados agregados o eliminados
+    const hasAdded = empleadosAsignados.some(e => !originalIds.has(e.id));
+    const hasRemoved = empleadosAsignadosOriginal.some(e => !currentIds.has(e.id));
+
+    // Verificar cambios de rol
+    const hasRoleChange = empleadosAsignados.some(current => {
+      const original = empleadosAsignadosOriginal.find(o => o.id === current.id);
+      return original && original.cargo_id !== current.cargo_id;
+    });
+
+    const changesDetected = hasAdded || hasRemoved || hasRoleChange;
+    if (changesDetected) {
+      console.log(`🔍 [useEditStoreModalLogic] hasChanges=true (added: ${hasAdded}, removed: ${hasRemoved}, roleChange: ${hasRoleChange})`);
+    }
+
+    return changesDetected;
+  }, [empleadosAsignados, empleadosAsignadosOriginal]);
+
   return {
     // Estados
     fecha,
@@ -722,6 +794,9 @@ export const useEditStoreModalLogic = ({
     diasConPresupuestoCero,
     diasConAsignacion,
     selectedDays,
+    // 🔧 Validaciones
+    isValidStaffCombination,
+    hasChanges,
     // Handlers
     handleTiendaChange,
     handleKeyPress,
