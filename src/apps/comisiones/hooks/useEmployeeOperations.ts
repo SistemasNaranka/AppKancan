@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   DirectusAsesor,
   DirectusCargo,
@@ -38,6 +38,7 @@ interface UseEmployeeOperationsReturn {
   canSave: boolean;
   hasExistingData: boolean;
   isUpdateMode: boolean;
+  hasChanges: boolean; // 🔧 NUEVO: Dirty check
 
   // Handlers
   setCodigoInput: (value: string) => void;
@@ -84,6 +85,10 @@ export const useEmployeeOperations = (
   const [codigoInput, setCodigoInput] = useState("");
   const [cargoSeleccionado, setCargoSeleccionado] = useState("");
   const [empleadosAsignados, setEmpleadosAsignados] = useState<
+    EmpleadoAsignado[]
+  >([]);
+  // 🔧 NUEVO: Estado original para dirty check
+  const [empleadosOriginal, setEmpleadosOriginal] = useState<
     EmpleadoAsignado[]
   >([]);
   const [loading, setLoading] = useState(false);
@@ -146,6 +151,46 @@ export const useEmployeeOperations = (
       setButtonConfig(newButtonConfig);
     }
   }, [empleadosAsignados, hasExistingData, canSave, buttonConfig]);
+
+  // 🔧 NUEVO: Dirty check - detectar si hay cambios respecto al estado original
+  const hasChanges = useMemo(() => {
+    // Si no hay datos originales, siempre hay "cambios" (modo creación)
+    if (empleadosOriginal.length === 0 && empleadosAsignados.length > 0) {
+      return true;
+    }
+    
+    // Si no hay datos originales ni actuales, no hay cambios
+    if (empleadosOriginal.length === 0 && empleadosAsignados.length === 0) {
+      return false;
+    }
+
+    // Comparar cantidades
+    if (empleadosOriginal.length !== empleadosAsignados.length) {
+      console.log(`🔍 [useEmployeeOperations] hasChanges=true (cantidad diferente: ${empleadosOriginal.length} vs ${empleadosAsignados.length})`);
+      return true;
+    }
+
+    // Comparar IDs de empleados
+    const originalIds = new Set(empleadosOriginal.map(e => e.asesor.id));
+    const currentIds = new Set(empleadosAsignados.map(e => e.asesor.id));
+
+    // Verificar si hay empleados agregados o eliminados
+    const hasAdded = empleadosAsignados.some(e => !originalIds.has(e.asesor.id));
+    const hasRemoved = empleadosOriginal.some(e => !currentIds.has(e.asesor.id));
+
+    // Verificar cambios de rol
+    const hasRoleChange = empleadosAsignados.some(current => {
+      const original = empleadosOriginal.find(o => o.asesor.id === current.asesor.id);
+      return original && original.cargoAsignado !== current.cargoAsignado;
+    });
+
+    const changesDetected = hasAdded || hasRemoved || hasRoleChange;
+    if (changesDetected) {
+      console.log(`🔍 [useEmployeeOperations] hasChanges=true (added: ${hasAdded}, removed: ${hasRemoved}, roleChange: ${hasRoleChange})`);
+    }
+
+    return changesDetected;
+  }, [empleadosAsignados, empleadosOriginal]);
 
   // 🚀 NUEVO: Cargar datos existentes para edición (solo del día actual)
   const cargarDatosExistentes = async (
@@ -239,6 +284,9 @@ export const useEmployeeOperations = (
 
         // ✅ MEJORADO: Actualizar estados con lógica más robusta
         setEmpleadosAsignados(empleadosExistentes);
+        // 🔧 GUARDAR estado original para dirty check
+        setEmpleadosOriginal(empleadosExistentes);
+        console.log(`📋 [useEmployeeOperations] Estado original guardado: ${empleadosExistentes.length} empleados`);
         setHasExistingData(true);
         setIsUpdateMode(true);
 
@@ -933,6 +981,7 @@ export const useEmployeeOperations = (
     canSave,
     hasExistingData,
     isUpdateMode,
+    hasChanges, // 🔧 NUEVO: Dirty check
     setCodigoInput,
     setCargoSeleccionado,
     handleAddEmpleado,

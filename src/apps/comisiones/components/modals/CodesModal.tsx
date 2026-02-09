@@ -105,6 +105,7 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     success,
     canSave,
     hasExistingData,
+    hasChanges, // 🔧 NUEVO: Dirty check
     empleadoEncontrado,
     setCodigoInput,
     setCargoSeleccionado,
@@ -329,7 +330,13 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       if (onShowSaveLoading) {
         onShowSaveLoading(); // Sin error = guardado exitoso
       }
-      // Cerrar modal
+      
+      // 🔧 CORRECCIÓN: Llamar a onAssignmentComplete ANTES de cerrar para refrescar datos
+      if (onAssignmentComplete) {
+        onAssignmentComplete([]);
+      }
+      
+      // Cerrar el modal
       onClose();
     } catch (error) {
       // Si hay error, ejecutar pantalla de carga con error
@@ -378,47 +385,96 @@ export const CodesModal: React.FC<CodesModalProps> = ({
         cursor: "not-allowed",
         hover: {},
         active: {},
+        disabled: true,
+        reason: "",
       };
     }
 
+    // 🚀 MEJORA: Si hay datos existentes, verificar cambios primero
     if (hasExistingData) {
+      // Si no hay cambios, deshabilitar botón
+      if (!hasChanges) {
+        return {
+          text: `Actualizar Asignación (${empleadosAsignados.length} empleados)`,
+          bgColor: theme.palette.grey[400],
+          cursor: "not-allowed",
+          hover: {},
+          active: {},
+          disabled: true,
+          reason: "Sin cambios - No hay modificaciones",
+        };
+      }
+
+      // Hay cambios, verificar combinación de roles
+      if (!canSave) {
+        return {
+          text: `Actualizar Asignación (${empleadosAsignados.length} empleados)`,
+          bgColor: theme.palette.warning.main,
+          cursor: "not-allowed",
+          hover: {},
+          active: {},
+          disabled: true,
+          reason: "Requiere: Asesor + Gerente/Coadministrador",
+        };
+      }
+
+      // Hay cambios y cumple validación
       return {
         text: `Actualizar Asignación (${empleadosAsignados.length} empleados)`,
-        bgColor: canSave ? theme.palette.primary.main : theme.palette.grey[500],
-        cursor: canSave ? "pointer" : "not-allowed",
-        hover: canSave
-          ? {
-              backgroundColor: theme.palette.primary.dark,
-              transform: "translateY(-1px)",
-              boxShadow: theme.shadows[4],
-            }
-          : {},
-        active: canSave
-          ? {
-              transform: "translateY(0)",
-            }
-          : {},
+        bgColor: theme.palette.primary.main,
+        cursor: "pointer",
+        hover: {
+          backgroundColor: theme.palette.primary.dark,
+          transform: "translateY(-1px)",
+          boxShadow: theme.shadows[4],
+        },
+        active: {
+          transform: "translateY(0)",
+        },
+        disabled: false,
+        reason: "",
+      };
+    }
+
+    // Modo creación - sin datos existentes
+    if (empleadosAsignados.length === 0) {
+      return {
+        text: "Guardar Asignación",
+        bgColor: theme.palette.warning.main,
+        cursor: "not-allowed",
+        hover: {},
+        active: {},
+        disabled: true,
+        reason: "Agregue empleados primero",
+      };
+    }
+
+    if (!canSave) {
+      return {
+        text: `Guardar Asignación (${empleadosAsignados.length} empleados)`,
+        bgColor: theme.palette.warning.main,
+        cursor: "not-allowed",
+        hover: {},
+        active: {},
+        disabled: true,
+        reason: "Requiere: Asesor + Gerente/Coadministrador",
       };
     }
 
     return {
       text: `Guardar Asignación (${empleadosAsignados.length} empleados)`,
-      bgColor: canSave
-        ? theme.palette.primary.main
-        : theme.palette.warning.main,
-      cursor: canSave ? "pointer" : "not-allowed",
-      hover: canSave
-        ? {
-            backgroundColor: theme.palette.primary.dark,
-            transform: "translateY(-1px)",
-            boxShadow: theme.shadows[4],
-          }
-        : {},
-      active: canSave
-        ? {
-            transform: "translateY(0)",
-          }
-        : {},
+      bgColor: theme.palette.primary.main,
+      cursor: "pointer",
+      hover: {
+        backgroundColor: theme.palette.primary.dark,
+        transform: "translateY(-1px)",
+        boxShadow: theme.shadows[4],
+      },
+      active: {
+        transform: "translateY(0)",
+      },
+      disabled: false,
+      reason: "",
     };
   };
 
@@ -701,16 +757,10 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                   },
                 }}
                 disabled={
-                  empleadosAsignados.length === 0 ||
-                  saving ||
-                  !hasPermission ||
-                  !canSave
+                  buttonConfig.disabled ||
+                  !hasPermission
                 }
-                title={
-                  !canSave
-                    ? "Debe asignar al menos un gerente o coadministrador y 1 asesor"
-                    : ""
-                }
+                title={buttonConfig.reason || (!canSave ? "Debe asignar al menos un gerente o coadministrador y 1 asesor" : "")}
               >
                 {buttonConfig.text}
               </Box>

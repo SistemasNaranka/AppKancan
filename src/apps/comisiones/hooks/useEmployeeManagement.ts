@@ -19,6 +19,7 @@ interface UseEmployeeManagementReturn {
   canSave: boolean;
   hasExistingData: boolean;
   isUpdateMode: boolean;
+  hasChanges: boolean; // 🔧 NUEVO: Dirty check
   empleadoEncontrado: any | null;
 
   // Handlers
@@ -79,6 +80,7 @@ export const useEmployeeManagement = (
     canSave,
     hasExistingData,
     isUpdateMode,
+    hasChanges, // 🔧 NUEVO: Dirty check
     setCodigoInput,
     setCargoSeleccionado: setCargoSeleccionadoInOperations,
     handleAddEmpleado,
@@ -163,6 +165,7 @@ export const useEmployeeManagement = (
     canSave,
     hasExistingData,
     isUpdateMode,
+    hasChanges, // 🔧 NUEVO: Dirty check
     empleadoEncontrado,
     setCodigoInput,
     setCargoSeleccionado,
