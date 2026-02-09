@@ -900,7 +900,7 @@ export const EditStoreModalSimplified: React.FC<
             variant="contained"
             startIcon={<Save />}
             onClick={handleGuardarWrapper}
-            disabled={loading || (!hasChanges && diasSinPresupuesto.length === 0) || !isValidStaffCombination || (empleadosAsignados.length === 0 && selectedDays.length === 0)}
+            disabled={loading || (empleadosAsignados.length === 0 && selectedDays.length === 0)}
             sx={{
               minWidth: 200,
               fontWeight: 600,
@@ -924,12 +924,7 @@ export const EditStoreModalSimplified: React.FC<
           )}
           {!loading && !hasChanges && diasSinPresupuesto.length > 0 && (
             <Typography variant="caption" color="warning.main" sx={{ ml: 1 }}>
-              (Sin cambios - Hay días pendientes por asignar)
-            </Typography>
-          )}
-          {!loading && hasChanges && !isValidStaffCombination && (
-            <Typography variant="caption" color="warning.main" sx={{ ml: 1 }}>
-              (Requiere: Asesor + Gerente/Coadministrador)
+              (Sin cambios locales - Hay días pendientes)
             </Typography>
           )}
         </DialogActions>

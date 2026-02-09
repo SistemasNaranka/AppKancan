@@ -173,7 +173,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
   };
 
   return (
-    <Box sx={{ mb: 4 }}>
+    <Box className="tour-estado-salas" sx={{ mb: 4 }}>
       {/* Cards de salas */}
       <Box
         sx={{
@@ -240,7 +240,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                           borderRadius: "50%",
                           backgroundColor: "#4ade80",
                           boxShadow: "0 0 8px rgba(74, 222, 128, 0.8)",
-                          animation: "pulse 1.5s ease-in-out infinite",
+                          animation: "pulse 3.0s ease-in-out infinite",
                           "@keyframes pulse": {
                             "0%": { transform: "scale(1)", opacity: 1 },
                             "50%": { transform: "scale(1.4)", opacity: 0.7 },

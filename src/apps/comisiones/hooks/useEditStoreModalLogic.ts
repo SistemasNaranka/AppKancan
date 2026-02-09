@@ -724,10 +724,14 @@ export const useEditStoreModalLogic = ({
     setSelectedDays([]);
   };
 
-  // 🔧 NUEVO: Validación de combinación de personal (mínimo 2 personas: Asesor + Superior)
+  // 🔧 MODIFICADO: Validación de combinación de personal
+  // Admin: Mínimo 2 personas (pueden ser 2 asesores)
+  // Tienda: Asesor + Superior (Gerente/Coadmin)
   const isValidStaffCombination = useMemo(() => {
     if (empleadosAsignados.length === 0) return false;
 
+    // Para Admin: mínimo 2 personas (cualquier combinación)
+    // Para Tienda: necesita Asesor + Superior
     const hasAsesor = empleadosAsignados.some(e =>
       e.cargo_nombre?.toLowerCase() === "asesor"
     );
@@ -740,7 +744,9 @@ export const useEditStoreModalLogic = ({
         cargo.includes("online");
     });
 
-    return hasAsesor && hasSuperior;
+    // Si hay 2 o más personas, es válido (para Admin)
+    // Si hay menos de 2, necesita Asesor + Superior (para Tienda)
+    return empleadosAsignados.length >= 2 || (hasAsesor && hasSuperior);
   }, [empleadosAsignados]);
 
   // 🔧 NUEVO: Dirty check - detectar si hay cambios respecto al estado original

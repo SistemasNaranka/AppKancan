@@ -364,7 +364,7 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
             variant="contained"
             startIcon={<Save />}
             onClick={handleGuardarWrapper}
-            disabled={loading || (!hasChanges && diasSinPresupuesto.length === 0) || empleadosAsignados.length === 0 || !isValidStaffCombination}
+            disabled={loading || !hasChanges || empleadosAsignados.length === 0 || !isValidStaffCombination}
             sx={{
               minWidth: 200,
               fontWeight: 600,
@@ -384,14 +384,9 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
                 : `Actualizar Asignación (${empleadosAsignados.length} empleados)`}
           </Button>
           {/* 🔧 Mensaje de estado del botón */}
-          {!loading && !hasChanges && diasSinPresupuesto.length === 0 && (
+          {!loading && !hasChanges && (
             <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
-              (Todos los días asignados)
-            </Typography>
-          )}
-          {!loading && !hasChanges && diasSinPresupuesto.length > 0 && (
-            <Typography variant="caption" sx={{ color: 'warning.dark', fontWeight: 600, ml: 1 }}>
-              (Sin cambios - Hay días pendientes)
+              (Sin cambios locales)
             </Typography>
           )}
         </DialogActions>

@@ -7,11 +7,12 @@ import {
   IconButton,
   Popover,
   Tooltip,
-  ToggleButton,
-  ToggleButtonGroup,
   Chip,
   Alert,
   CircularProgress,
+  FormControl,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -27,7 +28,6 @@ import {
   Notes as NotesIcon,
   Warning as WarningIcon,
 } from "@mui/icons-material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +38,8 @@ import {
   addWeeks,
   subWeeks,
   isSameDay,
+  setMonth,
+  setYear,
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { getConfiguracionReserva } from "../services/reservas";
@@ -51,6 +53,29 @@ import {
   capitalize,
   CONFIGURACION_POR_DEFECTO,
 } from "../types/reservas.types";
+import PulsatingMeetingIndicator from "./PulsatingMeetingIndicator";
+
+// Nombres de los meses en español
+const MESES = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+
+// Años disponibles
+const AÑOS = Array.from({ length: 7 }, (_, i) => 2024 + i);
+
+// Días del mes para selector
+const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 interface VistaSemanalProps {
   reservas: Reserva[];
@@ -195,6 +220,23 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
   const semanaSiguiente = () => setFechaBase(addWeeks(fechaBase, 1));
   const irAHoy = () => setFechaBase(new Date());
 
+  // Cambiar día
+  const handleCambiarDia = (dia: number) => {
+    const nuevaFecha = new Date(fechaBase);
+    nuevaFecha.setDate(dia);
+    setFechaBase(nuevaFecha);
+  };
+
+  // Cambiar mes
+  const handleCambiarMes = (mes: number) => {
+    setFechaBase(setMonth(fechaBase, mes));
+  };
+
+  // Cambiar año
+  const handleCambiarAño = (año: number) => {
+    setFechaBase(setYear(fechaBase, año));
+  };
+
   // Formatear hora 12h
   const formatearHora12h = (hora: string): string => {
     const [h] = hora.split(":");
@@ -325,7 +367,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     return puedeModificarse(estadoActual);
   };
 
-  // Handler para click en celda vacía
+  // Manejador para clic en celda vacía
   const handleClickCelda = (dia: Date, hora: string) => {
     if (onNuevaReserva) {
       const fechaStr = format(dia, "yyyy-MM-dd");
@@ -348,13 +390,6 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     setReservaSeleccionada(null);
   };
 
-  // Handler para DatePicker
-  const handleDateChange = (date: Date | null) => {
-    if (date) {
-      setFechaBase(date);
-    }
-  };
-
   // Obtener texto de estado
   const getEstadoTexto = (reserva: Reserva): string => {
     const estado = (reserva.estadoCalculado || reserva.estado)?.toLowerCase();
@@ -368,9 +403,10 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     }
   };
 
-  const rangoFechas = `${format(diasSemana[0], "d MMM", { locale: es })} - ${format(diasSemana[4], "d MMM, yyyy", { locale: es })}`;
+  const rangoFechas = `${format(diasSemana[0], "d MMM", { locale: es })} - ${format(diasSemana[4], "d MMM yyyy", { locale: es })}`;
   const hoy = new Date();
 
+  
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Box
@@ -383,8 +419,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             justifyContent: "space-between",
             alignItems: "center",
           }}
-        >
-        </Box>
+        ></Box>
 
         {/* Barra de filtros reorganizada */}
         <Paper
@@ -406,11 +441,11 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             }}
           >
             {/* GRUPO 1: SALA */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Box className="tour-sala-selector" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: "bold",
                   color: "#303030",
                   fontSize: "0.7rem",
                   textTransform: "uppercase",
@@ -419,43 +454,61 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               >
                 Sala
               </Typography>
-              <ToggleButtonGroup
-                value={salaSeleccionada}
-                exclusive
-                onChange={(_, valor) => {
-                  if (valor) setSalaSeleccionada(valor);
-                }}
-                size="small"
+              {/* Control Segmentado - Sala */}
+              <Box
                 sx={{
-                  "& .MuiToggleButton-root": {
-                    textTransform: "none",
-                    px: 2,
-                    py: 0.5,
-                    fontSize: "0.85rem",
-                    fontWeight: 500,
-                    borderColor: "#e0e0e0",
-                    "&.Mui-selected": {
-                      backgroundColor: "#004680",
-                      color: "white",
-                      "&:hover": { backgroundColor: "#005AA3" },
-                    },
-                  },
+                  display: "flex",
+                  backgroundColor: "#f1f5f9",
+                  borderRadius: "10px",
+                  padding: "4px",
+                  position: "relative",
                 }}
               >
+                {/* Indicador deslizante animado */}
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "4px",
+                    left: salaSeleccionada === SALAS_DISPONIBLES[0] ? "4px" : "calc(49.5% + 1px)",
+                    width: "calc(50% - 10px)",
+                    height: "calc(100% - 8px)",
+                    backgroundColor: "#004680",
+                    borderRadius: "8px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    transition: "left 0.2s ease",
+                  }}
+                />
                 {SALAS_DISPONIBLES.map((sala) => (
-                  <ToggleButton key={sala} value={sala}>
+                  <Box
+                    key={sala}
+                    onClick={() => setSalaSeleccionada(sala)}
+                    sx={{
+                      px: 2,
+                      py: 0.5,
+                      fontSize: "0.85rem",
+                      fontWeight: 400,
+                      color: salaSeleccionada === sala ? "#ffffff" : "#64748b",
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      position: "relative",
+                      zIndex: 1,
+                      transition: "color 0.2s ease",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {sala}
-                  </ToggleButton>
+                  </Box>
                 ))}
-              </ToggleButtonGroup>
+              </Box>
             </Box>
 
             {/* GRUPO 2: VISTA */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Box className="tour-vista-selector" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: "bold",
                   color: "#303030",
                   fontSize: "0.7rem",
                   textTransform: "uppercase",
@@ -465,37 +518,72 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 Vista
               </Typography>
               {onCambiarVista && (
-                <ToggleButtonGroup
-                  value={vistaCalendario}
-                  exclusive
-                  onChange={(_, valor) => {
-                    if (valor) onCambiarVista(valor);
-                  }}
-                  size="small"
+                /* Control Segmentado - Vista */
+                <Box
                   sx={{
-                    "& .MuiToggleButton-root": {
-                      textTransform: "none",
+                    display: "flex",
+                    backgroundColor: "#f1f5f9",
+                    borderRadius: "10px",
+                    padding: "4px",
+                    position: "relative",
+                  }}
+                >
+                  {/* Indicador deslizante animado */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: "4px",
+                      left: vistaCalendario === "semanal" ? "4px" : "calc(50% + 2px)",
+                      width: "calc(50% - -10px)",
+                      height: "calc(100% - 8px)",
+                      backgroundColor: "#004680",
+                      borderRadius: "8px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                      transition: "left 0.2s ease",
+                    }}
+                  />
+                  <Box
+                    onClick={() => onCambiarVista("semanal")}
+                    sx={{
                       px: 2,
                       py: 0.5,
                       fontSize: "0.85rem",
-                      fontWeight: 500,
-                      borderColor: "#e0e0e0",
-                      "&.Mui-selected": {
-                        backgroundColor: "#004680",
-                        color: "white",
-                        "&:hover": { backgroundColor: "#005AA3" },
-                      },
-                    },
-                  }}
-                >
-                  <ToggleButton value="semanal">Semanal</ToggleButton>
-                  <ToggleButton value="mes">Mes</ToggleButton>
-                </ToggleButtonGroup>
+                      fontWeight: 400,
+                      color: vistaCalendario === "semanal" ? "#ffffff" : "#64748b",
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      position: "relative",
+                      zIndex: 1,
+                      transition: "color 0.2s ease",
+                      userSelect: "none",
+                    }}
+                  >
+                    Semanal
+                  </Box>
+                  <Box
+                    onClick={() => onCambiarVista("mes")}
+                    sx={{
+                      px: 2,
+                      py: 0.5,
+                      fontSize: "0.85rem",
+                      fontWeight: 400,
+                      color: vistaCalendario === "mes" ? "#1e293b" : "#64748b",
+                      cursor: "pointer",
+                      borderRadius: "8px",
+                      position: "relative",
+                      zIndex: 1,
+                      transition: "color 0.2s ease",
+                      userSelect: "none",
+                    }}
+                  >
+                    Mes
+                  </Box>
+                </Box>
               )}
             </Box>
 
             {/* GRUPO 3: NAVEGACIÓN */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Box className="tour-navegacion" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography
                 variant="caption"
                 sx={{
@@ -542,7 +630,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             </Box>
 
             {/* GRUPO 4: FECHA */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Box className="tour-selector-fecha" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography
                 variant="caption"
                 sx={{
@@ -555,29 +643,66 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               >
                 Fecha
               </Typography>
-              <DatePicker
-                value={fechaBase}
-                onChange={(newValue) =>
-                  handleDateChange(newValue as Date | null)
-                }
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    sx: {
-                      width: 150,
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: 1,
-                        fontSize: "0.85rem",
+              <Box sx={{ display: "flex", gap: 0.5 }}>
+                <FormControl size="small" sx={{ minWidth: 60 }}>
+                  <Select
+                    value={fechaBase.getDate()}
+                    onChange={(e) => handleCambiarDia(e.target.value as number)}
+                    sx={{
+                      fontSize: "0.85rem",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#e0e0e0",
                       },
-                    },
-                  },
-                }}
-                format="dd/MM/yyyy"
-              />
+                    }}
+                  >
+                    {DIAS.map((dia) => (
+                      <MenuItem key={dia} value={dia}>
+                        {dia}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 100 }}>
+                  <Select
+                    value={fechaBase.getMonth()}
+                    onChange={(e) => handleCambiarMes(e.target.value as number)}
+                    sx={{
+                      fontSize: "0.85rem",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#e0e0e0",
+                      },
+                    }}
+                  >
+                    {MESES.map((mes, index) => (
+                      <MenuItem key={mes} value={index}>
+                        {mes}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <Select
+                    value={fechaBase.getFullYear()}
+                    onChange={(e) => handleCambiarAño(e.target.value as number)}
+                    sx={{
+                      fontSize: "0.85rem",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#e0e0e0",
+                      },
+                    }}
+                  >
+                    {AÑOS.map((año) => (
+                      <MenuItem key={año} value={año}>
+                        {año}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
             </Box>
 
             {/* GRUPO 5: PERÍODO ACTUAL (derecha) */}
-            <Box
+            <Box className="tour-periodo"
               sx={{
                 ml: "auto",
                 display: "flex",
@@ -646,6 +771,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
           </Box>
         ) : (
           <Paper
+            className="tour-calendario"
             elevation={0}
             sx={{
               border: "1px solid #e0e0e0",
@@ -666,7 +792,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 borderBottom: "1px solid #e0e0e0",
                 width: "100%",
                 flexShrink: 0,
-                minWidth: 700, // Ancho mínimo para alinear con scroll horizontal
+                minWidth: 700,
               }}
             >
               <Box
@@ -696,6 +822,12 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               </Box>
               {diasSemana.map((dia, idx) => {
                 const esHoy = isSameDay(dia, hoy);
+                const fechaStr = format(dia, "yyyy-MM-dd");
+                const reservaEnCurso = reservasSemana.find(
+                  (r) =>
+                    r.fecha === fechaStr &&
+                    r.estadoCalculado?.toLowerCase() === "en curso",
+                );
                 return (
                   <Box
                     key={dia.toISOString()}
@@ -713,17 +845,29 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                       boxSizing: "border-box",
                     }}
                   >
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 600,
-                        color: esHoy ? "#004680" : "#1a2a3a",
-                        textTransform: "capitalize",
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      {format(dia, "EEEE", { locale: es })}
-                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 600,
+                          color: esHoy ? "#004680" : "#1a2a3a",
+                          textTransform: "capitalize",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {format(dia, "EEEE", { locale: es })}
+                      </Typography>
+                      {/* Indicador pulsante si hay reunión en curso hoy */}
+                      {reservaEnCurso && (
+                        <PulsatingMeetingIndicator
+                          meetingDate={fechaStr}
+                          startTime={reservaEnCurso.hora_inicio}
+                          endTime={reservaEnCurso.hora_final}
+                          size={6}
+                          color="success"
+                        />
+                      )}
+                    </Box>
                     <Typography
                       variant="caption"
                       sx={{
@@ -745,6 +889,20 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 overflowY: "auto",
                 overflowX: "auto",
                 width: "100%",
+                // Ocultar scrollbar - Compatible con todos los navegadores
+                scrollbarWidth: "none",
+                "&::-webkit-scrollbar": {
+                  display: "none",
+                  width: 0,
+                  height: 0,
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  display: "none",
+                },
+                "&::-webkit-scrollbar-track": {
+                  display: "none",
+                },
+                msOverflowStyle: "none",
               }}
             >
               {horas.map((hora, horaIdx) => (
@@ -819,17 +977,19 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                             )?.toLowerCase();
                             const esEnCurso = estadoActual === "en curso";
 
-                            // Determinar borderRadius
-                            // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → borderRadius completo
+                            // Determinar radio de borde
+                            // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → radio completo
                             const alturaCompleta =
                               Math.abs(posicion.height - 60) < 1;
+                            const esReservaCorta = posicion.height < 50;
+                            const esReservaMuyCorta = posicion.height < 35;
                             const borderRadius =
                               alturaCompleta || (esInicio && esFin)
-                                ? "8px"
+                                ? "6px"
                                 : esInicio
-                                  ? "8px 8px 0 0"
+                                  ? "6px 6px 0 0"
                                   : esFin
-                                    ? "0 0 8px 8px"
+                                    ? "0 0 6px 6px"
                                     : "0";
 
                             return (
@@ -839,14 +999,13 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                 sx={{
                                   position: "absolute",
                                   top: posicion.top + 2,
-                                  left: 4,
-                                  right: 4,
+                                  left: 2,
+                                  right: 2,
                                   height: posicion.height - 4,
                                   backgroundColor: colorReserva,
                                   borderRadius: borderRadius,
-                                  p: 1,
+                                  p: esReservaMuyCorta ? 0.5 : 0.75,
                                   cursor: "pointer",
-                                  overflow: "hidden",
                                   zIndex: 1,
                                   "&:hover": {
                                     opacity: 0.9,
@@ -855,28 +1014,25 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                   transition: "all 0.15s ease",
                                   display: "flex",
                                   flexDirection: "column",
-                                  justifyContent: "flex-start",
+                                  justifyContent: "center",
+                                  gap: esReservaMuyCorta ? 0.25 : 0.5,
                                 }}
                               >
-                                {esInicio && (
+                                {esInicio && !esReservaCorta && (
                                   <>
-                                    {/* Título con truncation */}
                                     <Typography
                                       sx={{
-                                        fontSize: "0.75rem",
+                                        fontSize: "0.7rem",
                                         fontWeight: 700,
                                         color: "#ffffff",
                                         lineHeight: 1.2,
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
                                         whiteSpace: "nowrap",
-                                        mb: 0.25,
-                                        flexShrink: 1,
                                       }}
                                     >
                                       {reserva.titulo_reunion || "Sin título"}
                                     </Typography>
-                                    {/* Chip de estado - siempre visible */}
                                     <Box
                                       sx={{
                                         display: "inline-flex",
@@ -884,12 +1040,9 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                         gap: 0.5,
                                         backgroundColor:
                                           "rgba(255,255,255,0.2)",
-                                        borderRadius: "12px",
-                                        px: 0.75,
-                                        py: 0.25,
-                                        width: "fit-content",
-                                        flexShrink: 0,
-                                        minWidth: "fit-content",
+                                        borderRadius: "10px",
+                                        px: 0.5,
+                                        py: 0.125,
                                       }}
                                     >
                                       {esEnCurso ? (
@@ -903,17 +1056,17 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                         <Box
                                           component="span"
                                           sx={{
-                                            width: 8,
-                                            height: 8,
+                                            width: 6,
+                                            height: 6,
                                             borderRadius: "50%",
-                                            border: "1.5px solid #ffffff",
+                                            border: "1px solid #ffffff",
                                             display: "inline-block",
                                           }}
                                         />
                                       )}
                                       <Typography
                                         sx={{
-                                          fontSize: "0.55rem",
+                                          fontSize: "0.5rem",
                                           fontWeight: 600,
                                           color: "#ffffff",
                                         }}
@@ -922,6 +1075,23 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                       </Typography>
                                     </Box>
                                   </>
+                                )}
+                                {esInicio && esReservaCorta && (
+                                  <Typography
+                                    sx={{
+                                      fontSize: esReservaMuyCorta
+                                        ? "0.6rem"
+                                        : "0.65rem",
+                                      fontWeight: 600,
+                                      color: "#ffffff",
+                                      lineHeight: 1.2,
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {reserva.titulo_reunion || "Sin título"}
+                                  </Typography>
                                 )}
                               </Box>
                             );
@@ -939,6 +1109,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
           open={Boolean(anchorEl)}
           anchorEl={anchorEl}
           onClose={handleClosePopover}
+          disableScrollLock={true}
           anchorOrigin={{ vertical: "center", horizontal: "right" }}
           transformOrigin={{ vertical: "center", horizontal: "left" }}
           PaperProps={{

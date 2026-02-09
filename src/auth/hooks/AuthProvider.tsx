@@ -116,14 +116,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const tokens = cargarTokenStorage();
 
       if (!tokens) {
-        console.log("ℹ️ No hay tokens guardados");
         setLoading(false);
         return;
       }
 
       try {
-        if (isExpired(tokens.expires_at)) {
-          console.log("🔄 Token expirado, refrescando...");
+        const marginMinutes = 5;
+        if (isExpired(tokens.expires_at, marginMinutes)) {
           try {
             const res = await refreshDirectus(tokens.refresh);
             if (!res) {
@@ -133,13 +132,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             guardarTokenStorage(
               res.access_token,
               res.refresh_token,
-              res.expires_at
+              res.expires_at,
             );
 
             await setTokenDirectus(res.access_token);
           } catch (refreshError: any) {
-            console.error("❌ Error al refrescar tokens:", refreshError);
-            // Solo limpiar tokens si es un error de autenticación, no de red
             if (refreshError?.response?.status === 401) {
               borrarTokenStorage();
               setUser(null);
@@ -168,8 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           policies: extractedPolicies,
         });
       } catch (error: any) {
-        console.error("❌ Error al inicializar autenticación:", error);
-        // Solo limpiar tokens si es un error de autenticación específico
         if (
           error?.response?.status === 401 ||
           error?.message?.includes("Invalid token")
@@ -178,7 +173,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setUser(null);
           await setTokenDirectus(null);
         }
-        // Para otros errores (red, servidor), mantener el estado actual
       } finally {
         setLoading(false);
       }

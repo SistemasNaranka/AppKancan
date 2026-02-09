@@ -96,8 +96,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const [configCargando, setConfigCargando] = useState(true);
 
   // Estado para rastrear la hora de inicio seleccionada
-  const [horaInicioSeleccionada, setHoraInicioSeleccionada] =
-    useState<string>("");
+  const [horaInicioSeleccionada, setHoraInicioSeleccionada] = useState<string>("");
 
   // Estado para la configuración de horarios
   const [horarioConfig, setHorarioConfig] = useState({
@@ -112,21 +111,16 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     return generarOpcionesHora(horaInicioNum, horaFinNum);
   }, [horarioConfig]);
 
-  // Filtrar opciones de hora_final para mostrar solo horas >= hora_inicio + 30 minutos
+  // Filtrar opciones de hora_final para mostrar solo horas >= hora_inicio + 1 hora
   const opcionesHoraFinal = useMemo(() => {
     if (!horaInicioSeleccionada) return opcionesHora;
-
-    // Calcular hora minima: hora_inicio + 30 minutos
+    
+    // Calcular hora minima: hora_inicio + 1 hora
     const [h, m] = horaInicioSeleccionada.split(":").map(Number);
-    let horaMinima = h;
-    let minutosMinimos = m + 30;
-    if (minutosMinimos >= 60) {
-      horaMinima = h + 1;
-      minutosMinimos = minutosMinimos - 60;
-    }
+    let horaMinima = h + 1;
     if (horaMinima >= 24) horaMinima = 23; // Limitar a 23 si pasa de midnight
-    const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutosMinimos.toString().padStart(2, "0")}`;
-
+    const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+    
     return opcionesHora.filter((opcion) => opcion.value >= horaMinimaStr);
   }, [opcionesHora, horaInicioSeleccionada]);
 
@@ -197,22 +191,17 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
           .required("Selecciona hora de fin")
           .test(
             "hora-mayor",
-            "La hora de fin debe ser al menos 30 minutos después de la hora de inicio",
+            "La hora de fin debe ser al menos 1 hora después de la hora de inicio",
             function (value) {
               const { hora_inicio } = this.parent;
               if (!value || !hora_inicio) return false;
-
-              // Calcular hora minima: hora_inicio + 30 minutos
+              
+              // Calcular hora minima: hora_inicio + 1 hora
               const [h, m] = hora_inicio.split(":").map(Number);
-              let horaMinima = h;
-              let minutosMinimos = m + 30;
-              if (minutosMinimos >= 60) {
-                horaMinima = h + 1;
-                minutosMinimos = minutosMinimos - 60;
-              }
+              let horaMinima = h + 1;
               if (horaMinima >= 24) horaMinima = 23;
-              const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutosMinimos.toString().padStart(2, "0")}`;
-
+              const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+              
               return value >= horaMinimaStr;
             },
           )
@@ -310,27 +299,22 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const horaInicioWatch = watch("hora_inicio");
   const horaFinalWatch = watch("hora_final");
   const observacionesWatch = watch("observaciones");
-
+  
   // Contador de caracteres para observaciones
   const caracteresObservaciones = observacionesWatch?.length || 0;
   const caracteresRestantes = 500 - caracteresObservaciones;
   const aproximandoLimite = caracteresObservaciones >= 450;
-
+  
   useEffect(() => {
     if (horaInicioWatch) {
       setHoraInicioSeleccionada(horaInicioWatch);
-
-      // Calcular hora minima: hora_inicio + 30 minutos
+      
+      // Calcular hora minima: hora_inicio + 1 hora
       const [h, m] = horaInicioWatch.split(":").map(Number);
-      let horaMinima = h;
-      let minutosMinimos = m + 30;
-      if (minutosMinimos >= 60) {
-        horaMinima = h + 1;
-        minutosMinimos = minutosMinimos - 60;
-      }
+      let horaMinima = h + 1;
       if (horaMinima >= 24) horaMinima = 23;
-      const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutosMinimos.toString().padStart(2, "0")}`;
-
+      const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+      
       // Si la hora_final actual es menor que la nueva hora_minima, actualizar hora_final
       if (horaFinalWatch && horaFinalWatch < horaMinimaStr) {
         setValue("hora_final", horaMinimaStr);
@@ -396,11 +380,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     }
   };
 
-  const shouldDisableDate = (date: Date | any) => {
+  const shouldDisableDate = (date: Date) => {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    const fecha = date instanceof Date ? date : date.toDate();
-    return fecha < hoy;
+    return date < hoy;
   };
 
   return (
@@ -695,21 +678,20 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           rows={3}
                           placeholder="Detalles adicionales, participantes, materiales necesarios, agenda de la reunión..."
                           error={!!errors.observaciones}
-                          inputProps={{ maxLength: 500 }}
                           helperText={
                             errors.observaciones?.message || (
                               <Typography
                                 component="span"
                                 sx={{
-                                  color: aproximandoLimite
-                                    ? caracteresObservaciones >= 500
-                                      ? "#ef4444" // Rojo cuando llega al límite
-                                      : "#f59e0b" // Naranja cuando se acerca
-                                    : "#6b7280", // Gris normal
+                                  color: aproximandoLimite 
+                                    ? caracteresObservaciones >= 500 
+                                      ? "#ef4444"  // Rojo cuando llega al límite
+                                      : "#f59e0b"  // Naranja cuando se acerca
+                                    : "#6b7280",  // Gris normal
                                   fontSize: "0.75rem",
                                 }}
                               >
-                                {caracteresObservaciones >= 500
+                                {caracteresObservaciones >= 500 
                                   ? "Límite alcanzado"
                                   : `Opcional - ${caracteresRestantes} caracteres restantes`}
                               </Typography>
@@ -764,8 +746,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                               );
                             }
                           }}
-                          shouldDisableDate={shouldDisableDate}
                           disabled={loading}
+                          shouldDisableDate={shouldDisableDate}
                           displayStaticWrapperAs="desktop"
                           slotProps={{
                             actionBar: { actions: [] },
@@ -777,6 +759,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                             },
                             "& .MuiDayCalendar-root": {
                               width: "100%",
+                            },
+                            "& .MuiPickersDay-root.Mui-disabled": {
+                              color: "#ccc",
+                              backgroundColor: "#f5f5f5",
                             },
                           }}
                         />
