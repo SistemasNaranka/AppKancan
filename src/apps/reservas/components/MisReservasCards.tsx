@@ -194,25 +194,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
           position: "relative",
         }}
       >
-        {/* Badge para la reserva del usuario */}
-        {isUserCreated && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: -10,
-              left: 16,
-              backgroundColor: "#004680",
-              color: "white",
-              px: 1.5,
-              py: 0.25,
-              borderRadius: 1,
-              fontSize: "0.7rem",
-              fontWeight: 600,
-            }}
-          >
-            ✨ Tu reserva
-          </Box>
-        )}
 
         <CardContent
           sx={{ p: 2, "&:last-child": { pb: 2 }, flex: 1, pt: isUserCreated ? 3 : 2 }}
@@ -445,9 +426,9 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
         >
           <Typography
             variant="body2"
-            sx={{ color: "#1E40AF", fontWeight: 500, textAlign: "center" }}
+            sx={{ color: "#1E40AF", fontWeight: "bold", textAlign: "center" }}
           >
-            🎯 Aquí puedes ver y gestionar todas tus reservas
+            Aquí puedes ver y gestionar todas tus reservas
           </Typography>
         </Box>
       )}

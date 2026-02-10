@@ -75,6 +75,25 @@ interface DialogNuevaReservaProps {
   horaInicial?: string;
 }
 
+interface SpotlightConfig {
+  // Padding uniforme (se usa si no se especifican individuales)
+  padding?: number;
+  // Paddings individuales (tienen prioridad sobre padding)
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  // Estilos
+  borderRadius?: number;
+  borderWidth?: number;
+  borderColor?: string;
+  borderStyle?: string;
+  glowColor?: string;
+  glowSize?: number;
+  overlayColor?: string;
+  animate?: boolean;
+}
+
 // ============================================
 // TOUR STEPS CONFIG
 // ============================================
@@ -89,44 +108,87 @@ interface DialogTourStep {
   disableScrollParentFix?: true;
   spotlightClicks?: true;
   spotlightPadding?: number;
+  spotlight?: SpotlightConfig;
 }
 
+// Configuración por defecto del spotlight
+const DEFAULT_SPOTLIGHT: Required<Omit<SpotlightConfig, 'paddingTop' | 'paddingRight' | 'paddingBottom' | 'paddingLeft'>> = {
+  padding: 8,
+  borderRadius: 8,
+  borderWidth: 3,
+  borderColor: "#004680",
+  borderStyle: "solid",
+  glowColor: "rgba(0, 70, 128, 0.4)",
+  glowSize: 20,
+  overlayColor: "rgba(0, 0, 0, 0.5)",
+  animate: false,
+};
+
+ 
+
+// PASOS DEL TOUR - Personaliza cada uno aquí
 const DIALOG_TOUR_STEPS: DialogTourStep[] = [
   {
     target: "tour-dialog-titulo",
     title: "Título de la Reunión",
     content: 'Escribe un título descriptivo para tu reunión. Por ejemplo: "Sincronización semanal del equipo".',
     placement: "right",
-    spotlightClicks: true,
-    spotlightPadding: 9,
+    spotlight: {
+      padding: 10,
+      borderColor: "#004680",
+      glowColor: "rgba(0, 70, 128, 0.4)",
+    },
   },
   {
     target: "tour-dialog-sala",
     title: "Seleccionar Sala",
     content: "Elige entre Sala Principal (más grande) o Sala Secundaria (más compacta) según tus necesidades.",
     placement: "right",
-    //spotlightPadding: 12,
+    spotlight: {
+      padding: 12,
+      borderColor: "#004680",
+      glowColor: "rgba(59, 130, 246, 0.4)",
+    },
   },
   {
     target: "tour-dialog-horas",
     title: "Horario de la Reunión",
     content: "Selecciona la hora de inicio y la hora de fin. La duración mínima es de 1 hora.",
     placement: "right",
-    spotlightPadding: 10,
+    // PADDINGS INDIVIDUALES - Controla cada lado
+    spotlight: {
+      paddingTop: 8,      // Arriba del banner "Horario disponible"
+      paddingRight: 10,   // Derecha
+      paddingBottom: 1,   // Abajo de los selectores (reducido para no tocar Observaciones)
+      paddingLeft: 10,    // Izquierda
+      borderColor: "#004680",
+      glowColor: "rgba(0, 70, 128, 0.4)",
+    },
   },
   {
     target: "tour-dialog-fecha",
     title: "Fecha de la Reserva",
     content: "Selecciona la fecha en el calendario. No puedes seleccionar fechas pasadas.",
     placement: "left",
-    spotlightPadding: 20,
+    spotlight: {
+      padding: 8,
+      borderColor: "#10B981",
+      glowColor: "rgba(16, 185, 129, 0.4)",
+      borderRadius: 12,
+    },
   },
   {
     target: "tour-dialog-observaciones",
     title: "Observaciones (Opcional)",
     content: "Agrega detalles adicionales como participantes, materiales necesarios o la agenda de la reunión.",
     placement: "right",
-    spotlightPadding: 16,
+    spotlight: {
+      padding: 8,
+      borderColor: "#6B7280",
+      glowColor: "rgba(107, 114, 128, 0.3)",
+      borderStyle: "dashed",
+      borderWidth: 2,
+    },
   },
   {
     target: "tour-dialog-submit",
@@ -135,7 +197,13 @@ const DIALOG_TOUR_STEPS: DialogTourStep[] = [
     placement: "top",
     highlight: true,
     isLast: true,
-    spotlightPadding: 24,
+    spotlight: {
+      padding: 12,
+      borderColor: "#10B981",
+      glowColor: "rgba(16, 185, 129, 0.5)",
+      glowSize: 25,
+      animate: true,
+    },
   },
 ];
 

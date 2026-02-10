@@ -21,7 +21,7 @@ const STEPS_RESERVA_CLICK: Step[] = [
     target: ".tour-nueva-reserva",
     content: (
       <Box>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1}}>
           ¡Comencemos!
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
@@ -107,7 +107,7 @@ const STEPS_MIS_RESERVAS: Step[] = [
     content: (
       <Box>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-          ¡Tu Reserva! 🎉
+          ¡Tu Reserva!
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Esta es la reserva que acabas de crear. Cada tarjeta muestra: sala,
@@ -202,7 +202,7 @@ const STEPS_CALENDARIO: Step[] = [
     content: (
       <Box>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-          ¡Tu Reserva en el Calendario! 📅
+          ¡Tu Reserva en el Calendario!
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Aquí puedes ver tu reserva en el calendario. Haz clic en cualquier
