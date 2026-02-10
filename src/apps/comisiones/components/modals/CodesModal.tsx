@@ -53,8 +53,8 @@ const MultipleStoresWarning: React.FC<MultipleStoresWarningProps> = ({
       </Typography>
       <Typography variant="body2">
         Tienes {tiendasCount} tiendas asignadas. Para usar esta función,
-        necesitas tener asignada únicamente una tienda. Por favor, contacta al
-        administrador para resolver esta situación.
+        necesitas tener asignada únicamente una tienda. Por favor, contacta al a
+        soporte o sistemas para resolver esta situación.
       </Typography>
     </Alert>
   );
@@ -330,12 +330,12 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       if (onShowSaveLoading) {
         onShowSaveLoading(); // Sin error = guardado exitoso
       }
-      
+
       // 🔧 CORRECCIÓN: Llamar a onAssignmentComplete ANTES de cerrar para refrescar datos
       if (onAssignmentComplete) {
         onAssignmentComplete([]);
       }
-      
+
       // Cerrar el modal
       onClose();
     } catch (error) {
@@ -756,11 +756,13 @@ export const CodesModal: React.FC<CodesModalProps> = ({
                     cursor: "not-allowed",
                   },
                 }}
-                disabled={
-                  buttonConfig.disabled ||
-                  !hasPermission
+                disabled={buttonConfig.disabled || !hasPermission}
+                title={
+                  buttonConfig.reason ||
+                  (!canSave
+                    ? "Debe asignar al menos un gerente o coadministrador y 1 asesor"
+                    : "")
                 }
-                title={buttonConfig.reason || (!canSave ? "Debe asignar al menos un gerente o coadministrador y 1 asesor" : "")}
               >
                 {buttonConfig.text}
               </Box>
