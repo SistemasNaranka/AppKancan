@@ -48,6 +48,7 @@ import {
   actualizarReserva,
   cancelarReserva,
   verificarConflictoHorario,
+  actualizarReservasFinalizadas,
 } from "../services/reservas";
 import type {
   Reserva,
@@ -215,6 +216,11 @@ const ReservasViewContent: React.FC = () => {
     queryFn: () => getMisReservas(filtrosMis),
     refetchInterval: 30000,
   });
+
+  // Efecto para actualizar automáticamente las reservas finalizadas en la BD
+  useEffect(() => {
+    actualizarReservasFinalizadas();
+  }, [todasReservas]); // Se ejecuta cuando las reservas se recargan
 
   // Determinar qué reservas mostrar en el calendario durante el tour
   const reservasParaCalendario = React.useMemo(() => {

@@ -15,7 +15,8 @@ import type {
   ActualizarReserva,
   FiltrosReserva,
 } from "../types/reservas.types";
-import { calcularEstadoReserva } from "../types/reservas.types";
+import { format } from "date-fns";
+import { calcularEstadoReserva, estaFinalizado, estaCancelado } from "../types/reservas.types";
 
 // Campos a traer de cada reserva
 const RESERVATION_FIELDS = [
@@ -423,5 +424,65 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
   } catch (error) {
     console.error("❌ Error al cargar configuración de reservas:", error);
     return null;
+  }
+}
+
+/**
+ * Actualiza automáticamente las reservas que ya finalizaron a estado "Finalizado"
+ * Esta función debe llamarse al cargar las reservas para mantener la BD actualizada
+ */
+export async function actualizarReservasFinalizadas(): Promise<number> {
+  try {
+    const ahora = new Date();
+    
+    // Obtener todas las reservas que NO están canceladas ni finalizadas
+    // y cuya fecha/hora final ya pasó
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("reuniones_reservas", {
+          fields: ["id", "fecha", "hora_final", "estado"],
+          filter: {
+            _and: [
+              { estado: { _neq: "Cancelado" } },
+              { estado: { _neq: "Finalizado" } },
+              { fecha: { _lte: format(ahora, "yyyy-MM-dd") } },
+            ],
+          },
+        })
+      )
+    );
+
+    if (items.length === 0) {
+      return 0;
+    }
+
+    // Filtrar solo las que ya pasaron su hora final
+    const reservasAFinalizar = items.filter((reserva: any) => {
+      const fechaFin = new Date(`${reserva.fecha}T${reserva.hora_final}`);
+      return ahora >= fechaFin;
+    });
+
+    if (reservasAFinalizar.length === 0) {
+      return 0;
+    }
+
+    console.log(`🔄 Actualizando ${reservasAFinalizar.length} reservas a Finalizado`);
+
+    // Actualizar cada reserva a "Finalizado"
+    const actualizaciones = reservasAFinalizar.map((reserva: any) =>
+      withAutoRefresh(() =>
+        directus.request(
+          updateItem("reuniones_reservas", reserva.id, { estado: "Finalizado" })
+        )
+      )
+    );
+
+    await Promise.all(actualizaciones);
+
+    console.log(`✅ ${reservasAFinalizar.length} reservas actualizadas a Finalizado`);
+    return reservasAFinalizar.length;
+  } catch (error) {
+    console.error("❌ Error al actualizar reservas finalizadas:", error);
+    return 0;
   }
 }
