@@ -27,8 +27,8 @@ import {
   Calculate,
   Difference,
   EditCalendar,
+  GridView,
 } from "@mui/icons-material";
-
 /**
  * 🗂️ Mapa de íconos permitidos.
  * Los nombres deben coincidir con los valores en la base de datos.
@@ -62,6 +62,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
   // 🔸 Categoría: Aplicación
   DocumentScanner,
+  GridView,
 
   // 🔸 Categoría: Ventas
   ShoppingCart,

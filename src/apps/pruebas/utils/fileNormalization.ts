@@ -141,6 +141,16 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     return datos;
   }
 
+  // --- DEBUG: Mostrar primeros 5 mapeos para verificar carga de campos ---
+  console.log(`🔍 [DEBUG] Primeros 5 mapeos para ${tipoArchivo}:`,
+    mapeosRelevantes.slice(0, 5).map(m => ({
+      tienda: m.tiendaArchivo,
+      final: m.tiendaNormalizada,
+      idadquiriente: m.idadquiriente,
+      terminal: m.terminal
+    }))
+  );
+
   // Estadísticas de mapeo
   let filasMapeadas = 0;
   let filasNoMapeadas = 0;
@@ -196,41 +206,48 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
           if (esMapeoGenericoNaranka) {
             // Lógica estricta para NARANKA GENÉRICO:
 
-            if (mapeo.terminal) {
-              // Normalizar terminal del mapeo para comparación más robusta
-              const terminalMapeo = String(mapeo.terminal).trim().toLowerCase();
+            if (mapeo.idadquiriente) {
+              // Normalizar idadquiriente del mapeo para comparación más robusta
+              const idAdquirienteMapeo = String(mapeo.idadquiriente).trim().toLowerCase();
 
               // Buscar coincidencia en valores de la fila
-              const tieneTerminal = Object.values(fila).some(v => {
+              const tieneIdAdquiriente = Object.values(fila).some(v => {
+                if (v === null || v === undefined) return false;
                 const valorCelda = String(v).trim().toLowerCase();
-                // Comparación exacta o si el valor de la celda contiene el terminal
-                const match = valorCelda === terminalMapeo || (valorCelda.includes(terminalMapeo) && terminalMapeo.length > 3);
+                // Comparación exacta o si el valor de la celda contiene el ID (flexibilidad)
+                const match = valorCelda === idAdquirienteMapeo ||
+                  (valorCelda.includes(idAdquirienteMapeo) && idAdquirienteMapeo.length > 3) ||
+                  (idAdquirienteMapeo.includes(valorCelda) && valorCelda.length > 3);
+
                 // DEBUG SOLO PARA NARANKA
-                if (valorNormalizado.includes("naranka") && (valorCelda.includes(terminalMapeo) || valorCelda === terminalMapeo)) {
-                  console.log(`    🔍 Debug Naranka: Comparando celda '${valorCelda}' con terminal '${terminalMapeo}' -> Match: ${match}`);
+                if (valorNormalizado.includes("naranka") && match) {
+                  console.log(`    ✅ [MATCH IDADQUIRIENTE] Fila ${index + 1}: Celda '${valorCelda}' coincide con mapeo '${idAdquirienteMapeo}'`);
                 }
                 return match;
               });
 
-              if (!tieneTerminal) {
-                if (index < 5) console.log(`    ❌ Falló validación terminal para '${valor}'. Buscaba '${mapeo.terminal}' en fila.`);
+              if (!tieneIdAdquiriente) {
+                if (index < 5) console.log(`    ❌ Falló validación idadquiriente para '${valor}'. Buscaba '${mapeo.idadquiriente}' en fila.`);
                 continue;
               }
             } else {
-              // Es un mapeo de NARANKA SAS sin terminal definido.
-              // AL SER GENÉRICO y no tener terminal para diferenciar, LO IGNORAMOS para evitar agrupación optimista.
+              // Es un mapeo de NARANKA SAS sin idadquiriente definido.
+              // AL SER GENÉRICO y no tener idadquiriente para diferenciar, LO IGNORAMOS para evitar agrupación optimista.
               continue;
             }
-          } else if (valorNormalizado.includes("naranka") && mapeo.terminal) {
-            // Caso: Nombre específico (ej. Kan Can) pero TIENE terminal definido en el mapeo.
-            // Debemos validar el terminal si existe obligatoriamente.
-            const terminalMapeo = String(mapeo.terminal).trim().toLowerCase();
-            const tieneTerminal = Object.values(fila).some(v => {
+          } else if (valorNormalizado.includes("naranka") && mapeo.idadquiriente) {
+            // Caso: Nombre específico (ej. Kan Can) pero TIENE idadquiriente definido en el mapeo.
+            // Debemos validar el idadquiriente si existe obligatoriamente.
+            const idAdquirienteMapeo = String(mapeo.idadquiriente).trim().toLowerCase();
+            const tieneIdAdquiriente = Object.values(fila).some(v => {
+              if (v === null || v === undefined) return false;
               const valorCelda = String(v).trim().toLowerCase();
-              return valorCelda === terminalMapeo || (valorCelda.includes(terminalMapeo) && terminalMapeo.length > 3);
+              return valorCelda === idAdquirienteMapeo ||
+                (valorCelda.includes(idAdquirienteMapeo) && idAdquirienteMapeo.length > 3) ||
+                (idAdquirienteMapeo.includes(valorCelda) && valorCelda.length > 3);
             });
 
-            if (!tieneTerminal) continue;
+            if (!tieneIdAdquiriente) continue;
           }
 
           tiendaIdEncontrado = mapeo.tiendaId;
@@ -239,7 +256,7 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
           if (index < 3) {
             console.log(`  ✓ Fila ${index + 1} [Exacto en "${columna}"]: "${valor}" → "${tiendaEncontrada}"`);
-            if (mapeo.terminal) console.log(`    (Validado con Terminal: ${mapeo.terminal})`);
+            if (mapeo.idadquiriente) console.log(`    (Validado con IdAdquiriente: ${mapeo.idadquiriente})`);
           }
           break;
         }
@@ -265,25 +282,31 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
             const esMapeoGenericoNaranka = tiendaNormalizada === "naranka sas" || tiendaNormalizada === "naranka";
 
             if (esMapeoGenericoNaranka) {
-              if (mapeo.terminal) {
-                const terminalMapeo = String(mapeo.terminal).trim().toLowerCase();
-                const tieneTerminal = Object.values(fila).some(v => {
+              if (mapeo.idadquiriente) {
+                const idAdquirienteMapeo = String(mapeo.idadquiriente).trim().toLowerCase();
+                const tieneIdAdquiriente = Object.values(fila).some(v => {
+                  if (v === null || v === undefined) return false;
                   const valorCelda = String(v).trim().toLowerCase();
-                  return valorCelda === terminalMapeo || (valorCelda.includes(terminalMapeo) && terminalMapeo.length > 3);
+                  return valorCelda === idAdquirienteMapeo ||
+                    (valorCelda.includes(idAdquirienteMapeo) && idAdquirienteMapeo.length > 3) ||
+                    (idAdquirienteMapeo.includes(valorCelda) && valorCelda.length > 3);
                 });
 
-                if (!tieneTerminal) continue;
+                if (!tieneIdAdquiriente) continue;
               } else {
                 continue; // Ignorar mapeo genérico en parciales también
               }
-            } else if (valorNormalizado.includes("naranka") && mapeo.terminal) {
-              const terminalMapeo = String(mapeo.terminal).trim().toLowerCase();
-              const tieneTerminal = Object.values(fila).some(v => {
+            } else if (valorNormalizado.includes("naranka") && mapeo.idadquiriente) {
+              const idAdquirienteMapeo = String(mapeo.idadquiriente).trim().toLowerCase();
+              const tieneIdAdquiriente = Object.values(fila).some(v => {
+                if (v === null || v === undefined) return false;
                 const valorCelda = String(v).trim().toLowerCase();
-                return valorCelda === terminalMapeo || (valorCelda.includes(terminalMapeo) && terminalMapeo.length > 3);
+                return valorCelda === idAdquirienteMapeo ||
+                  (valorCelda.includes(idAdquirienteMapeo) && idAdquirienteMapeo.length > 3) ||
+                  (idAdquirienteMapeo.includes(valorCelda) && valorCelda.length > 3);
               });
 
-              if (!tieneTerminal) continue;
+              if (!tieneIdAdquiriente) continue;
             }
             // --- FIN LÓGICA DE PROTECCIÓN NARANKA ---
 

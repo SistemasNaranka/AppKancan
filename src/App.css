@@ -79,7 +79,9 @@ body {
   margin: 0;
   padding: 0;
   font-family: sans-serif;
-  transition: background-color 0.6s ease, color 0.6s ease,
+  transition:
+    background-color 0.6s ease,
+    color 0.6s ease,
     background-image 0.8s ease;
 }
 
@@ -109,7 +111,8 @@ body.dark {
    ============================================ */
 
 /* Ensure html and body allow scrolling */
-html, body {
+html,
+body {
   height: auto;
   min-height: 100vh;
   overflow-x: hidden;
@@ -143,8 +146,8 @@ html, body {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 /* Alternative: Hide only vertical scrollbar */
@@ -202,6 +205,7 @@ html, body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -211,7 +215,9 @@ html, body {
 /* Target spotlights for tour highlights */
 .joyride-spotlight {
   border-radius: 8px;
-  box-shadow: 0 0 0 2px #004680, 0 0 20px rgba(0, 70, 128, 0.3);
+  box-shadow:
+    0 0 0 2px #004680,
+    0 0 20px rgba(0, 70, 128, 0.3);
 }
 
 /* Tooltip styles */
@@ -242,7 +248,7 @@ html, body {
 }
 
 .joyride-button--primary:hover {
-  background-color: #005AA3;
+  background-color: #005aa3;
 }
 
 .joyride-button--secondary {

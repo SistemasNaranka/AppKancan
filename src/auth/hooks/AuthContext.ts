@@ -17,6 +17,7 @@ export type User = {
   rol?: string;
   tienda_id?: number;
   policies?: string[];
+  requires_password_change?: boolean;
 } | null;
 /**
  *  Tipado de los valores que otorgara el Provider a sus hijos
@@ -33,5 +34,5 @@ export type AuthContextType = {
  */
 // Creacion de contexto
 export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
+  undefined,
 );

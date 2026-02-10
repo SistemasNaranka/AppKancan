@@ -4,7 +4,7 @@
 
 ### 1.1 Organización General del Proyecto
 
-El proyecto AppKancan es una aplicación web desarrollada con React y TypeScript que gestiona el sistema de comisiones por cumplimiento de una empresa comercial. La aplicación está estructurada de forma modular, separando claramente las responsabilidades entre componentes de UI, lógica de negocio, servicios de API y definiciones de tipos.
+El proyecto AppKancan es una aplicación web desarrollada con React y TypeScript que gestiona el sistema de comisiones por cumplimiento de una empresa comercial. La aplicación está estructurada de forma modular, separando claramente las responsabilidades entre componentes de UI, lógica de negocio, servicios de API y definiciones de tipados.
 
 La aplicación de comisiones reside específicamente en el directorio `src/apps/comisiones/` y contiene todos los archivos necesarios para el cálculo, visualización y gestión de comisiones de empleados. Esta modularización permite que la aplicación de comisiones pueda ser mantenida, actualizada y probada de forma independiente del resto del sistema.
 
@@ -425,7 +425,7 @@ Todas las comisiones se calculan sobre la venta base sin IVA. Esto es importante
 ```typescript
 export const calculateBaseSale = (
   venta_total: number,
-  iva_factor: number = 1.19
+  iva_factor: number = 1.19,
 ): number => {
   return round(venta_total / iva_factor);
 };
@@ -454,7 +454,7 @@ export const calculateBudgetsWithFixedDistributive = (
     gerente: number;
     asesor: number;
     // ... otros roles
-  }
+  },
 ): { [rol: string]: number } => {
   // 1. Calcular fijos primero (restan del presupuesto total)
   // 2. Distribuir el restante entre roles distributivos
@@ -490,7 +490,7 @@ export const getNextCommission = (comisionActual: number): number | string => {
 
 export const getNextBudget = (
   proximaComision: number | string,
-  presupuestoActual: number
+  presupuestoActual: number,
 ): number | null => {
   if (proximaComision === "NN") return null;
 
@@ -532,7 +532,7 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
       filter: { id: { _in: tiendaIds } },
       sort: ["id"],
       limit: -1,
-    })
+    }),
   );
   return data as DirectusTienda[];
 }
@@ -553,7 +553,7 @@ export async function obtenerAsesores(): Promise<DirectusAsesor[]> {
       ],
       sort: ["id"],
       limit: -1,
-    })
+    }),
   );
   return data as DirectusAsesor[];
 }
@@ -563,7 +563,7 @@ export async function obtenerPresupuestosDiarios(
   tiendaId?: number,
   fechaInicio?: string,
   fechaFin?: string,
-  mesSeleccionado?: string
+  mesSeleccionado?: string,
 ): Promise<DirectusPresupuestoDiarioTienda[]> {
   // Filtra por tienda y rango de fechas
   // Para el mes actual, filtra hasta la fecha actual
@@ -572,7 +572,7 @@ export async function obtenerPresupuestosDiarios(
 // Obtener porcentajes mensuales
 export async function obtenerPorcentajesMensuales(
   tiendaId?: number,
-  mesAnio?: string
+  mesAnio?: string,
 ): Promise<DirectusPorcentajeMensual[]> {
   // Obtiene configuración de porcentajes para un mes específico
 }
@@ -581,7 +581,7 @@ export async function obtenerPorcentajesMensuales(
 export async function obtenerPresupuestosEmpleados(
   tiendaId?: number,
   fecha?: string,
-  mesSeleccionado?: string
+  mesSeleccionado?: string,
 ): Promise<DirectusPresupuestoDiarioEmpleado[]> {
   // Obtiene presupuestos diarios asignados a empleados
 }
@@ -590,7 +590,7 @@ export async function obtenerPresupuestosEmpleados(
 export async function obtenerVentasEmpleados(
   tiendaId?: number,
   fecha?: string,
-  mesSeleccionado?: string
+  mesSeleccionado?: string,
 ): Promise<DirectusVentasDiariasEmpleado[]> {
   // Obtiene ventas diarias por empleado
 }
@@ -603,7 +603,7 @@ El archivo `api/directus/create.ts` contiene todas las funciones para modificar 
 ```typescript
 // Guardar porcentajes mensuales (crear o actualizar)
 export async function guardarPorcentajesMensuales(
-  porcentajes: Omit<DirectusPorcentajeMensual, "id">
+  porcentajes: Omit<DirectusPorcentajeMensual, "id">,
 ): Promise<DirectusPorcentajeMensual> {
   // Verifica si ya existe registro para el mes
   // Si existe, actualiza; si no, crea nuevo
@@ -611,7 +611,7 @@ export async function guardarPorcentajesMensuales(
 
 // Guardar presupuestos de empleados
 export async function guardarPresupuestosEmpleados(
-  presupuestos: Omit<DirectusPresupuestoDiarioEmpleado, "id">[]
+  presupuestos: Omit<DirectusPresupuestoDiarioEmpleado, "id">[],
 ): Promise<DirectusPresupuestoDiarioEmpleado[]> {
   // Crea nuevos registros de presupuestos
 }
@@ -619,7 +619,7 @@ export async function guardarPresupuestosEmpleados(
 // Eliminar presupuestos de empleados para una fecha y tienda
 export async function eliminarPresupuestosEmpleados(
   tiendaId: number,
-  fecha: string
+  fecha: string,
 ): Promise<void> {
   // Elimina todos los presupuestos de empleados para la fecha especificada
 }
@@ -627,28 +627,28 @@ export async function eliminarPresupuestosEmpleados(
 // Actualizar presupuesto de un empleado específico
 export async function actualizarPresupuestoEmpleado(
   id: number,
-  presupuesto: number
+  presupuesto: number,
 ): Promise<DirectusPresupuestoDiarioEmpleado> {
   // Actualiza el presupuesto de un empleado
 }
 
 // Guardar ventas de empleados
 export async function guardarVentasEmpleados(
-  ventas: Omit<DirectusVentasDiariasEmpleado, "id">[]
+  ventas: Omit<DirectusVentasDiariasEmpleado, "id">[],
 ): Promise<DirectusVentasDiariasEmpleado[]> {
   // Crea o actualiza ventas de empleados
 }
 
 // Guardar ventas de tienda
 export async function guardarVentasTienda(
-  venta: Omit<DirectusVentasDiariasTienda, "id">
+  venta: Omit<DirectusVentasDiariasTienda, "id">,
 ): Promise<DirectusVentasDiariasTienda> {
   // Crea o actualiza ventas totales de tienda
 }
 
 // Guardar presupuestos de tienda desde CSV
 export async function guardarPresupuestosTienda(
-  presupuestos: Omit<DirectusPresupuestoDiarioTienda, "id">[]
+  presupuestos: Omit<DirectusPresupuestoDiarioTienda, "id">[],
 ): Promise<DirectusPresupuestoDiarioTienda[]> {
   // Crea o actualiza presupuestos de tienda
 }
@@ -856,7 +856,7 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
         gcTime: 1000 * 60 * 30,
       });
     },
-    [queryClient, user]
+    [queryClient, user],
   );
 
   return {
@@ -899,13 +899,13 @@ export const useFiltersOptimized = () => {
   const [filterTienda, setFilterTienda] = useState<string[]>([]);
   const [filterRol, setFilterRol] = useState<Role[]>([]);
   const [expandedTiendas, setExpandedTiendas] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Toggle de rol
   const toggleFilterRol = useCallback((role: Role) => {
     setFilterRol((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
     );
   }, []);
 
@@ -938,7 +938,7 @@ export const useFiltersOptimized = () => {
         setExpandedTiendas(new Set());
       }
     },
-    []
+    [],
   );
 
   // Aplicar filtros al resumen
@@ -954,7 +954,7 @@ export const useFiltersOptimized = () => {
             .map((tienda) => ({
               ...tienda,
               empleados: tienda.empleados.filter((emp) =>
-                filterRol.includes(emp.rol)
+                filterRol.includes(emp.rol),
               ),
             }))
             .filter((tienda) => tienda.empleados.length > 0),
@@ -963,7 +963,7 @@ export const useFiltersOptimized = () => {
 
       return result;
     },
-    [filterRol]
+    [filterRol],
   );
 
   // Obtener tiendas únicas
@@ -1073,7 +1073,7 @@ export const getCurrentDate = (): string => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
     2,
-    "0"
+    "0",
   )}-${String(now.getDate()).padStart(2, "0")}`;
 };
 

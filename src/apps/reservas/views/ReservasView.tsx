@@ -432,7 +432,10 @@ const ReservasViewContent: React.FC = () => {
             >
               <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 600, color: "#1a2a3a" }}
+            >
               {TITULOS_PESTANA[tabActual]}
             </Typography>
           </Box>
@@ -655,13 +658,12 @@ const ReservasViewContent: React.FC = () => {
               onClick={confirmarCancelar}
               color="error"
               variant="contained"
-              disabled={mutationCancelar.isPending}
               sx={{
-                backgroundColor: "#ef4444",
                 boxShadow: "none",
+                textTransform: "none",
+                fontWeight: "600",
                 "&:hover": {
                   boxShadow: "none",
-                  backgroundColor: "#dc2626",
                 },
               }}
             >
@@ -673,14 +675,14 @@ const ReservasViewContent: React.FC = () => {
         {/* Snackbar para notificaciones */}
         <Snackbar
           open={snackbar.open}
-          autoHideDuration={6000}
+          autoHideDuration={4000}
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
           <Alert
             onClose={handleCloseSnackbar}
             severity={snackbar.severity}
-            variant="filled"
+            sx={{ width: "100%" }}
           >
             {snackbar.message}
           </Alert>
@@ -690,7 +692,6 @@ const ReservasViewContent: React.FC = () => {
   );
 };
 
-// Componente principal que envuelve todo con el TourProvider
 const ReservasView: React.FC = () => {
   return (
     <TourProvider>

@@ -5,6 +5,18 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   base: "./",
+  server: {
+    host: true,
+    hmr: {
+      overlay: false,
+    },
+    watch: {
+      usePolling: true,
+    },
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-router-dom", "@emotion/react", "@emotion/styled"],
+  },
   build: {
     rollupOptions: {
       output: {

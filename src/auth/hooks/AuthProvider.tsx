@@ -63,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         rol: me.role?.name,
         tienda_id: me.tienda_id,
         policies: extractedPolicies,
+        requires_password_change: me.requires_password_change || false,
       });
     } catch (error) {
       console.error("❌ Error en login:", error);
@@ -166,6 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           rol: me.role?.name,
           tienda_id: me.tienda_id,
           policies: extractedPolicies,
+          requires_password_change: me.requires_password_change || false,
         });
       } catch (error: any) {
         console.error("❌ Error al inicializar autenticación:", error);
