@@ -11,7 +11,7 @@ import {
 import { Person, Search, CheckCircle } from "@mui/icons-material";
 
 interface AddEmployeeSectionProps {
-  cargoSeleccionado: number;
+  cargoSeleccionado: number | "";
   codigoEmpleado: string;
   empleadoEncontrado: any;
   cargos: any[];
@@ -101,6 +101,9 @@ export const AddEmployeeSection: React.FC<AddEmployeeSectionProps> = ({
                 },
               }}
             >
+              <MenuItem value="" disabled sx={{ display: 'none' }}>
+                <em>Seleccionar cargo</em>
+              </MenuItem>
               {cargos.map((cargo) => (
                 <MenuItem key={cargo.id} value={cargo.id}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

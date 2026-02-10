@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   obtenerEmpleadosPorFechaExacta,
   obtenerAsesores,
@@ -45,9 +45,13 @@ export const useEditStoreBudgetModalLogic = ({
   );
   const [empleadosAsignados, setEmpleadosAsignados] = useState<any[]>([]);
 
+  // 🔧 NUEVO: Estado original para dirty check
+  const [empleadosAsignadosOriginal, setEmpleadosAsignadosOriginal] = useState<any[]>([]);
+
   // Datos de catálogos
   const [todosEmpleados, setTodosEmpleados] = useState<any[]>([]);
   const [cargos, setCargos] = useState<any[]>([]);
+  const [tiendas, setTiendas] = useState<any[]>([]); // NUEVO
 
   // Estados UI
   const [loading, setLoading] = useState(false);
@@ -56,6 +60,9 @@ export const useEditStoreBudgetModalLogic = ({
 
   // Estado para días sin presupuesto
   const [diasSinPresupuesto, setDiasSinPresupuesto] = useState<string[]>([]);
+  const [diasConPresupuestoCero, setDiasConPresupuestoCero] = useState<string[]>([]); // NUEVO
+  const [diasConAsignacion, setDiasConAsignacion] = useState<string[]>([]); // NUEVO
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
 
   // Cargar catálogos al abrir modal
   useEffect(() => {
@@ -86,6 +93,8 @@ export const useEditStoreBudgetModalLogic = ({
     } else if (!isOpen) {
       setEmpleadosAsignados([]);
       setDiasSinPresupuesto([]);
+      setDiasConPresupuestoCero([]);
+      setDiasConAsignacion([]);
     }
   }, [isOpen, fecha, tiendaId]);
 
@@ -93,37 +102,52 @@ export const useEditStoreBudgetModalLogic = ({
   const loadDiasSinPresupuesto = async () => {
     if (!tiendaId || !fecha) {
       setDiasSinPresupuesto([]);
+      setDiasConPresupuestoCero([]);
       return;
     }
 
     try {
-      // Obtener el mes actual en formato "MMM YYYY"
       const fechaObj = dayjs(fecha);
       const mesSeleccionado = fechaObj.format("MMM YYYY");
+      const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
+      const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");
 
-      // Obtener todos los presupuestos del mes para esta tienda
-      const presupuestosMes = await obtenerPresupuestosEmpleados(
-        tiendaId,
-        undefined, // Sin filtro de fecha específica
-        mesSeleccionado,
-      );
+      // 1. Obtener presupuestos de empleados (para saber qué días ya tienen asesores)
+      const [presupuestosMes, presupuestosCasa] = await Promise.all([
+        obtenerPresupuestosEmpleados(tiendaId, undefined, mesSeleccionado),
+        obtenerPresupuestosDiarios(tiendaId, startOfMonth, endOfMonth)
+      ]);
 
-      // Obtener todos los días del mes
+      // 2. Calcular todos los días del mes
       const diasDelMes = [];
       const diasEnMes = fechaObj.daysInMonth();
-
       for (let i = 1; i <= diasEnMes; i++) {
         const fechaDia = fechaObj.date(i).format("YYYY-MM-DD");
         diasDelMes.push(fechaDia);
       }
 
-      // Filtrar días que NO tienen presupuesto
-      const diasConPresupuesto = new Set(presupuestosMes.map((p) => p.fecha));
+      // 3. Identificar días con presupuesto casa configurado (> 0)
+      const diasConMetaValida = new Set(
+        presupuestosCasa
+          .filter(p => (p.presupuesto || 0) > 0)
+          .map(p => p.fecha)
+      );
 
-      // Solo incluir días que son anteriores o iguales a la fecha actual (no futuros)
+      // 4. Los días RESTRICTIVOS son aquellos que NO tienen meta válida
+      const restrictedDays = diasDelMes.filter(dia => !diasConMetaValida.has(dia));
+      setDiasConPresupuestoCero(restrictedDays);
+
+      // 5. Filtrar días que NO tienen presupuesto de empleados asignado
+      const diasConAsignacionSet = new Set(presupuestosMes.map((p: any) => p.fecha));
+      setDiasConAsignacion(Array.from(diasConAsignacionSet)); // Guardar array
+
       const fechaActual = dayjs().format("YYYY-MM-DD");
+
       const diasSinPresupuestoCalculado = diasDelMes.filter(
-        (dia) => !diasConPresupuesto.has(dia) && dia <= fechaActual,
+        (dia) =>
+          !diasConAsignacionSet.has(dia) &&
+          dia <= fechaActual &&
+          diasConMetaValida.has(dia)
       );
 
       setDiasSinPresupuesto(diasSinPresupuestoCalculado);
@@ -150,20 +174,30 @@ export const useEditStoreBudgetModalLogic = ({
 
   const loadTiendaUsuario = async () => {
     try {
-      const tiendas = await obtenerTiendas();
-      if (tiendas.length === 1) {
-        setTiendaId(tiendas[0].id);
-        setTiendaNombre(tiendas[0].nombre);
-      } else if (tiendas.length > 1) {
-        setError(
-          "Tienes múltiples tiendas asignadas. Contacta al administrador.",
-        );
+      const tiendasData = await obtenerTiendas();
+      setTiendas(tiendasData);
+
+      if (tiendasData.length > 0) {
+        // Si ya hay una seleccionada (en el estado local o previo), mantenerla
+        // de lo contrario, usar la primera
+        if (!tiendaId) {
+          setTiendaId(tiendasData[0].id);
+          setTiendaNombre(tiendasData[0].nombre);
+        }
       } else {
         setError("No tienes tiendas asignadas.");
       }
     } catch (err: any) {
       console.error("Error al cargar tienda del usuario:", err);
       setError("Error al cargar tienda: " + err.message);
+    }
+  };
+
+  const handleTiendaChange = (id: number) => {
+    const tienda = tiendas.find(t => t.id === id);
+    if (tienda) {
+      setTiendaId(tienda.id);
+      setTiendaNombre(tienda.nombre);
     }
   };
 
@@ -179,6 +213,11 @@ export const useEditStoreBudgetModalLogic = ({
     setCodigoEmpleado("");
     setEmpleadoEncontrado(null);
     setEmpleadosAsignados([]);
+    // 🔧 LIMPIAR estado original para dirty check
+    setEmpleadosAsignadosOriginal([]);
+    setDiasSinPresupuesto([]);
+    setDiasConPresupuestoCero([]);
+    setDiasConAsignacion([]);
     setError("");
     setSuccess("");
   };
@@ -242,6 +281,9 @@ export const useEditStoreBudgetModalLogic = ({
       });
 
       setEmpleadosAsignados(empleadosConInfo);
+
+      // 🔧 GUARDAR estado original para dirty check
+      setEmpleadosAsignadosOriginal(empleadosConInfo);
 
       // Intentar recalcular presupuestos si es necesario (solo una vez por carga)
       const needsRecalculation = empleadosConInfo.some(
@@ -315,16 +357,19 @@ export const useEditStoreBudgetModalLogic = ({
   };
 
   // ✅ Función para recalcular presupuestos
-  const recalculateBudgets = async (empleados: any[]) => {
+  const recalculateBudgets = async (empleados: any[], targetDate?: string) => {
+    // Usar la fecha proporcionada o la fecha actual del formulario
+    const activeDate = targetDate || fecha;
+
     if (!tiendaId || empleados.length === 0)
       return { empleados, calculated: false };
 
     try {
-      // 1. Obtener presupuesto diario de la tienda
+      // 1. Obtener presupuesto diario de la tienda para la fecha específica
       const presupuestosTienda = await obtenerPresupuestosDiarios(
         tiendaId,
-        fecha,
-        fecha,
+        activeDate,
+        activeDate,
       );
 
       if (!presupuestosTienda || presupuestosTienda.length === 0) {
@@ -346,8 +391,8 @@ export const useEditStoreBudgetModalLogic = ({
       let mesAnioParaAPI = "";
       let shouldUseApi = false;
 
-      if (fecha && fecha.includes("-")) {
-        const partes = fecha.split("-"); // [YYYY, MM, DD]
+      if (activeDate && activeDate.includes("-")) {
+        const partes = activeDate.split("-"); // [YYYY, MM, DD]
         if (partes.length >= 2) {
           const anio = partes[0];
           const mesNumero = partes[1];
@@ -577,50 +622,146 @@ export const useEditStoreBudgetModalLogic = ({
       return;
     }
 
+    // Fix: Strict validation for future dates logic
+    if (dayjs(fecha).isAfter(dayjs(), 'day')) {
+      setError("No se pueden asignar presupuestos a fechas futuras.");
+      return;
+    }
+
+    // Determinar qué días vamos a guardar
+    const diasAGuardar = selectedDays.length > 0 ? selectedDays : [fecha];
+
     try {
       setLoading(true);
 
-      // 1️⃣ Eliminar asignaciones existentes para esta fecha y tienda
-      await eliminarPresupuestosEmpleados(tiendaId, fecha);
+      // 1️⃣ Eliminar asignaciones existentes y Guardar nuevas para cada día
+      for (const dia of diasAGuardar) {
+        await eliminarPresupuestosEmpleados(tiendaId, dia);
 
-      // 2️⃣ Crear nuevas asignaciones
-      const presupuestosParaGuardar = empleadosAsignados.map((emp) => ({
-        asesor: emp.id,
-        tienda_id: tiendaId,
-        cargo: emp.cargo_id,
-        fecha: fecha,
-        presupuesto: emp.presupuesto || 0, // ✅ Usar el presupuesto calculado, asegurando que no sea undefined
-      }));
+        // ✅ RECALCULAR: Obtener los presupuestos específicos para este día concreto
+        // Esto asegura que si el día X tiene una meta de $5M y el día Y tiene $10M, 
+        // los empleados reciban el monto proporcional correspondiente a ese día.
+        const resCalculo = await recalculateBudgets(empleadosAsignados, dia);
+        const empleadosParaEsteDia = resCalculo.calculated ? resCalculo.empleados : empleadosAsignados;
 
-      await guardarPresupuestosEmpleados(presupuestosParaGuardar);
+        const presupuestosParaGuardar = empleadosParaEsteDia.map((emp) => ({
+          asesor: emp.id,
+          tienda_id: tiendaId,
+          cargo: emp.cargo_id,
+          fecha: dia,
+          presupuesto: emp.presupuesto || 0,
+        }));
 
-      setSuccess("✅ Asignación actualizada correctamente");
-      setTimeout(() => setSuccess(""), 3000);
-
-      // Recargar empleados asignados en el modal
-      await loadEmpleadosAsignados();
-
-      // Actualizar la vista principal con delay para evitar interferencias
-      if (onSaveComplete) {
-        setTimeout(() => {
-          onSaveComplete();
-        }, 100);
+        await guardarPresupuestosEmpleados(presupuestosParaGuardar);
       }
 
-      return true; // Indicar que el guardado fue exitoso
+      setSuccess(`✅ Asignación actualizada correctamente para ${diasAGuardar.length} día(s)`);
+      setTimeout(() => setSuccess(""), 3000);
+
+      // Limpiar selección después de guardar exitosamente
+      setSelectedDays([]);
+
+      // Recargar empleados asignados en el modal para la fecha actual
+      await loadEmpleadosAsignados();
+      await loadDiasSinPresupuesto();
+
+      // Actualizar la vista principal
+      if (onSaveComplete) {
+        onSaveComplete();
+      }
+
+      return true;
     } catch (err: any) {
       console.error("Error al guardar:", err);
       setError("Error al guardar: " + err.message);
-      return false; // Indicar que el guardado falló
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
+  // Función para alternar selección de días
+  const toggleDaySelection = (dia: string) => {
+    // BLOQUEO: No permitir seleccionar días con presupuesto 0 o futuros
+    const isBudgetZero = diasConPresupuestoCero.includes(dia);
+    const isFuture = dayjs(dia).isAfter(dayjs(), 'day');
+
+    if (isBudgetZero || isFuture) return;
+
+    const isRemoving = selectedDays.includes(dia);
+    const newSelection = isRemoving
+      ? selectedDays.filter((d) => d !== dia)
+      : [...selectedDays, dia];
+
+    setSelectedDays(newSelection);
+
+    // Si deseleccionamos y quedan otros días, mover el foco a uno de los que quedan
+    if (isRemoving) {
+      if (newSelection.length > 0) {
+        setFecha(newSelection[newSelection.length - 1]);
+      }
+    } else {
+      // Si seleccionamos uno nuevo, el foco va a ese
+      setFecha(dia);
+    }
+  };
+
+  const selectAllPendingDays = () => {
+    // Al haber filtrado ya diasSinPresupuesto en la carga, simplemente usamos el estado
+    setSelectedDays(diasSinPresupuesto);
+  };
+
+  const clearDaySelection = () => {
+    setSelectedDays([]);
+  };
+
+  // ✅ Nueva validación de combinación de personal
+  const isValidStaffCombination = useMemo(() => {
+    if (empleadosAsignados.length === 0) return false;
+
+    const hasAsesor = empleadosAsignados.some(e =>
+      e.cargo_nombre.toLowerCase() === "asesor"
+    );
+
+    const hasSuperior = empleadosAsignados.some(e => {
+      const cargo = e.cargo_nombre.toLowerCase();
+      return cargo === "gerente" ||
+        cargo === "coadministrador" ||
+        cargo === "gerente online" ||
+        cargo.includes("online");
+    });
+
+    return hasAsesor && hasSuperior;
+  }, [empleadosAsignados]);
+
+  // 🔧 NUEVO: Dirty check - detectar si hay cambios respecto al estado original
+  const hasChanges = useMemo(() => {
+    if (empleadosAsignadosOriginal.length !== empleadosAsignados.length) {
+      return true;
+    }
+
+    // Comparar IDs de empleados
+    const originalIds = new Set(empleadosAsignadosOriginal.map(e => e.id));
+    const currentIds = new Set(empleadosAsignados.map(e => e.id));
+
+    // Verificar si hay empleados agregados o eliminados
+    const hasAdded = empleadosAsignados.some(e => !originalIds.has(e.id));
+    const hasRemoved = empleadosAsignadosOriginal.some(e => !currentIds.has(e.id));
+
+    // Verificar cambios de rol
+    const hasRoleChange = empleadosAsignados.some(current => {
+      const original = empleadosAsignadosOriginal.find(o => o.id === current.id);
+      return original && original.cargo_id !== current.cargo_id;
+    });
+
+    return hasAdded || hasRemoved || hasRoleChange;
+  }, [empleadosAsignados, empleadosAsignadosOriginal]);
+
   return {
     // Estados
     fecha,
     setFecha,
+    tiendaId,
     tiendaNombre,
     cargoSeleccionado,
     setCargoSeleccionado,
@@ -633,14 +774,26 @@ export const useEditStoreBudgetModalLogic = ({
     error,
     success,
     diasSinPresupuesto,
+    diasConPresupuestoCero, // NUEVO: Días con presupuesto casa $0
+    diasConAsignacion,
+    selectedDays,
+    tiendas, // NUEVO
     // Handlers
     handleKeyPress,
     handleAgregarEmpleado,
     handleQuitarEmpleado,
     handleLimpiar,
     handleGuardar,
+    toggleDaySelection,
+    selectAllPendingDays,
+    clearDaySelection,
+    handleTiendaChange, // NUEVO
+    // Validaciones
+    isValidStaffCombination,
+    hasChanges, // NUEVO
     // Utils
     setError,
     setSuccess,
+    setTiendaId,
   };
 };

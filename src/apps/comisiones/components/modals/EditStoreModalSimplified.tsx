@@ -32,8 +32,11 @@ import {
   CalendarToday,
   Groups,
   CheckCircle,
+  CalendarMonth,
 } from "@mui/icons-material";
 import { useEditStoreModalLogic } from "../../hooks/useEditStoreModalLogic";
+import { DaysWithoutBudgetPanel } from "./DaysWithoutBudgetPanel";
+import { useApps } from "@/apps/hooks/useApps";
 
 interface EditStoreModalSimplifiedProps {
   isOpen: boolean;
@@ -45,6 +48,7 @@ interface EditStoreModalSimplifiedProps {
 export const EditStoreModalSimplified: React.FC<
   EditStoreModalSimplifiedProps
 > = ({ isOpen, onClose, selectedMonth, onSaveComplete }) => {
+  const { area } = useApps();
   // Estado para controlar si se ha guardado correctamente
   const [, setSaveCompleted] = React.useState(false);
   const [, setSaveError] = React.useState(false);
@@ -64,6 +68,10 @@ export const EditStoreModalSimplified: React.FC<
     loading,
     error,
     success,
+    diasSinPresupuesto,
+    diasConPresupuestoCero,
+    diasConAsignacion, // NUEVO
+    selectedDays,
     // Handlers
     handleTiendaChange,
     handleKeyPress,
@@ -71,12 +79,18 @@ export const EditStoreModalSimplified: React.FC<
     handleQuitarEmpleado,
     handleLimpiar,
     handleGuardar,
+    toggleDaySelection,
+    selectAllPendingDays,
+    clearDaySelection,
     // Utils
     setError,
     setSuccess,
     setFecha,
     setCargoSeleccionado,
     setCodigoEmpleado,
+    // Validaciones
+    isValidStaffCombination, // NUEVO
+    hasChanges, // NUEVO
   } = useEditStoreModalLogic({
     isOpen,
     onClose,
@@ -85,10 +99,23 @@ export const EditStoreModalSimplified: React.FC<
     onStateChange: undefined,
   });
 
+  const isAdmin = area?.toLowerCase() !== "tienda" || tiendas.length > 1;
+
   const handleGuardarWrapper = async () => {
+    console.log("🚀 [EditStoreModalSimplified] handleGuardarWrapper INICIADO");
+    console.log("📋 [EditStoreModalSimplified] empleadosAsignados:", empleadosAsignados.length);
+    console.log("📋 [EditStoreModalSimplified] hasChanges:", hasChanges);
+    console.log("📋 [EditStoreModalSimplified] isValidStaffCombination:", isValidStaffCombination);
+    console.log("📋 [EditStoreModalSimplified] onSaveComplete exists:", !!onSaveComplete);
+    
     const success = await handleGuardar();
+    console.log("🚀 [EditStoreModalSimplified] handleGuardar resultado:", success);
+    
     if (!success) {
+      console.log("❌ [EditStoreModalSimplified] Error en guardado");
       setSaveError(true);
+    } else {
+      console.log("✅ [EditStoreModalSimplified] Guardado exitoso - onSaveComplete será llamado dentro de handleGuardar");
     }
   };
 
@@ -163,6 +190,23 @@ export const EditStoreModalSimplified: React.FC<
         </Box>
 
         <DialogContent sx={{ p: 3, bgcolor: "#fafafa" }}>
+          {/* Panel de días sin presupuesto - Solo si hay una tienda seleccionada */}
+          {Boolean(tiendaSeleccionada) && (isAdmin || diasSinPresupuesto.length > 0 || (diasConAsignacion || []).length > 0) && (
+            <Box sx={{ mb: 3 }}>
+              <DaysWithoutBudgetPanel
+                diasSinPresupuesto={diasSinPresupuesto}
+                diasConPresupuestoCero={diasConPresupuestoCero}
+                diasAsignados={diasConAsignacion} // NUEVO
+                selectedDays={selectedDays}
+                currentDate={fecha} // Fix: Pass current date to control calendar month
+                hideWhenComplete={!isAdmin} // Solo ocultar para tiendas si están al día
+                onToggleDay={toggleDaySelection}
+                onSelectAll={selectAllPendingDays}
+                onClearAll={clearDaySelection}
+              />
+            </Box>
+          )}
+
           {/* Selectores de Fecha y Tienda - REDISEÑADOS */}
           <Box
             sx={{
@@ -214,13 +258,21 @@ export const EditStoreModalSimplified: React.FC<
                   <DatePicker
                     value={dayjs(fecha)}
                     format="DD/MM/YYYY"
-                    onChange={(newValue) =>
-                      setFecha(newValue ? newValue.format("YYYY-MM-DD") : "")
-                    }
+                    maxDate={dayjs()} // Bloquear fechas futuras
+                    shouldDisableDate={(date) => {
+                      const dayjsDate = dayjs(date as any);
+                      const dateStr = dayjsDate.format("YYYY-MM-DD");
+                      return (diasConPresupuestoCero || []).includes(dateStr);
+                    }}
+                    onChange={(newValue) => {
+                      const dayjsValue = dayjs(newValue as any);
+                      setFecha(dayjsValue.isValid() ? dayjsValue.format("YYYY-MM-DD") : "");
+                    }}
                     slotProps={{
                       textField: {
                         fullWidth: true,
                         size: "medium",
+                        readOnly: true, // Fix: Prevent manual typing to bypass maxDate
                         sx: {
                           bgcolor: "white",
                           "& .MuiOutlinedInput-root": {
@@ -358,7 +410,7 @@ export const EditStoreModalSimplified: React.FC<
                 </Typography>
                 <FormControl fullWidth size="small">
                   <Select
-                    value={cargoSeleccionado}
+                    value={cargoSeleccionado === 0 ? "" : cargoSeleccionado} // Fix: Convert 0 to "" to match displayEmpty/placeholder behavior
                     onChange={(e) => {
                       console.log("📋 CARGO SELECCIONADO:", e.target.value);
                       setCargoSeleccionado(e.target.value as number);
@@ -383,6 +435,11 @@ export const EditStoreModalSimplified: React.FC<
                       },
                     }}
                   >
+                    <MenuItem value="" disabled>
+                      <Typography color="text.secondary" variant="body2">
+                        Selecciona un cargo...
+                      </Typography>
+                    </MenuItem>
                     {cargos.map((cargo) => (
                       <MenuItem key={cargo.id} value={cargo.id}>
                         <Box
@@ -445,10 +502,10 @@ export const EditStoreModalSimplified: React.FC<
                       fontWeight: 600,
                       // Hide Spinners
                       "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
-                        {
-                          WebkitAppearance: "none",
-                          margin: 0,
-                        },
+                      {
+                        WebkitAppearance: "none",
+                        margin: 0,
+                      },
                       "&[type=number]": {
                         MozAppearance: "textfield",
                       },
@@ -553,7 +610,8 @@ export const EditStoreModalSimplified: React.FC<
                     disabled={
                       !tiendaSeleccionada ||
                       !empleadoEncontrado ||
-                      !cargoSeleccionado
+                      !cargoSeleccionado ||
+                      dayjs(fecha).isAfter(dayjs(), 'day') // Fix: Disable adding if date is future
                     }
                     sx={{
                       py: 1,
@@ -630,12 +688,40 @@ export const EditStoreModalSimplified: React.FC<
                 color="text.secondary"
                 sx={{ textTransform: "capitalize" }}
               >
-                empleados del día{" "}
-                {dayjs(fecha).format("dddd D [de] MMMM [de] YYYY")}
+                {diasConPresupuestoCero.includes(fecha) ? (
+                  <Box component="span" sx={{ color: "error.main", fontWeight: "bold" }}>
+                    Día con Meta $0 (Asignación Bloqueada)
+                  </Box>
+                ) : (
+                  <>
+                    empleados del día{" "}
+                    {dayjs(fecha).format("dddd D [de] MMMM [de] YYYY")}
+                  </>
+                )}
               </Typography>
             </Box>
 
-            {empleadosAsignados.length === 0 ? (
+            {diasConPresupuestoCero.includes(fecha) ? (
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 6,
+                  color: "warning.dark",
+                  border: "2px dashed",
+                  borderColor: "warning.light",
+                  borderRadius: 2,
+                  bgcolor: "rgba(245, 124, 0, 0.05)",
+                }}
+              >
+                <CalendarMonth sx={{ fontSize: 48, opacity: 0.3, mb: 1 }} />
+                <Typography variant="h6" fontWeight="600">
+                  Meta de Presupuesto en $0
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  No se pueden asignar empleados a un día sin meta de ventas configurada.
+                </Typography>
+              </Box>
+            ) : empleadosAsignados.length === 0 ? (
               <Box
                 sx={{
                   textAlign: "center",
@@ -814,9 +900,7 @@ export const EditStoreModalSimplified: React.FC<
             variant="contained"
             startIcon={<Save />}
             onClick={handleGuardarWrapper}
-            disabled={
-              loading || !tiendaSeleccionada || empleadosAsignados.length === 0
-            }
+            disabled={loading || (empleadosAsignados.length === 0 && selectedDays.length === 0)}
             sx={{
               minWidth: 200,
               fontWeight: 600,
@@ -828,10 +912,23 @@ export const EditStoreModalSimplified: React.FC<
           >
             {loading
               ? "Guardando..."
-              : `Actualizar Asignación(${empleadosAsignados.length} empleados)`}
+              : selectedDays.length > 1
+                ? `Actualizar ${selectedDays.length} Días en Lote`
+                : `Actualizar Asignación (${empleadosAsignados.length} empleados)`}
           </Button>
+          {/* 🔧 Mensaje de estado del botón */}
+          {!loading && !hasChanges && diasSinPresupuesto.length === 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+              (Todos los días asignados)
+            </Typography>
+          )}
+          {!loading && !hasChanges && diasSinPresupuesto.length > 0 && (
+            <Typography variant="caption" color="warning.main" sx={{ ml: 1 }}>
+              (Sin cambios locales - Hay días pendientes)
+            </Typography>
+          )}
         </DialogActions>
-      </Dialog>
+      </Dialog >
     </>
   );
 };
