@@ -128,7 +128,7 @@ html, body {
 .MuiPaper-root,
 .MuiDialog-root,
 .MuiDrawer-root {
-  overflow: visible !important;
+  overflow: visible;
 }
 
 /* ============================================

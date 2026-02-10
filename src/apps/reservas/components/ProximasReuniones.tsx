@@ -22,7 +22,7 @@ const COLORES_SALA: Record<string, { bg: string; color: string }> = {
 const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
   reservas,
   onVerCalendarioCompleto,
-  maxReservas = 5,
+  maxReservas = 10,
 }) => {
   const hoy = format(new Date(), "yyyy-MM-dd");
   const horaActual = format(new Date(), "HH:mm");

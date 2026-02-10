@@ -367,7 +367,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     return puedeModificarse(estadoActual);
   };
 
-  // Manejador para clic en celda vacía
+  // Handler para click en celda vacía
   const handleClickCelda = (dia: Date, hora: string) => {
     if (onNuevaReserva) {
       const fechaStr = format(dia, "yyyy-MM-dd");
@@ -419,7 +419,8 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
             justifyContent: "space-between",
             alignItems: "center",
           }}
-        ></Box>
+        >
+        </Box>
 
         {/* Barra de filtros reorganizada */}
         <Paper
@@ -454,7 +455,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               >
                 Sala
               </Typography>
-              {/* Control Segmentado - Sala */}
+              {/* Segmented Control - Sala */}
               <Box
                 sx={{
                   display: "flex",
@@ -464,7 +465,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                   position: "relative",
                 }}
               >
-                {/* Indicador deslizante animado */}
+                {/* Slider animado */}
                 <Box
                   sx={{
                     position: "absolute",
@@ -518,7 +519,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 Vista
               </Typography>
               {onCambiarVista && (
-                /* Control Segmentado - Vista */
+                /* Segmented Control - Vista */
                 <Box
                   sx={{
                     display: "flex",
@@ -528,7 +529,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                     position: "relative",
                   }}
                 >
-                  {/* Indicador deslizante animado */}
+                  {/* Slider animado */}
                   <Box
                     sx={{
                       position: "absolute",
@@ -889,7 +890,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 overflowY: "auto",
                 overflowX: "auto",
                 width: "100%",
-                // Ocultar scrollbar - Compatible con todos los navegadores
+                // Scrollbar hide - Cross-browser compatible
                 scrollbarWidth: "none",
                 "&::-webkit-scrollbar": {
                   display: "none",
@@ -977,19 +978,17 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                             )?.toLowerCase();
                             const esEnCurso = estadoActual === "en curso";
 
-                            // Determinar radio de borde
-                            // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → radio completo
+                            // Determinar borderRadius
+                            // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → borderRadius completo
                             const alturaCompleta =
                               Math.abs(posicion.height - 60) < 1;
-                            const esReservaCorta = posicion.height < 50;
-                            const esReservaMuyCorta = posicion.height < 35;
                             const borderRadius =
                               alturaCompleta || (esInicio && esFin)
-                                ? "6px"
+                                ? "8px"
                                 : esInicio
-                                  ? "6px 6px 0 0"
+                                  ? "8px 8px 0 0"
                                   : esFin
-                                    ? "0 0 6px 6px"
+                                    ? "0 0 8px 8px"
                                     : "0";
 
                             return (
@@ -999,13 +998,14 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                 sx={{
                                   position: "absolute",
                                   top: posicion.top + 2,
-                                  left: 2,
-                                  right: 2,
+                                  left: 4,
+                                  right: 4,
                                   height: posicion.height - 4,
                                   backgroundColor: colorReserva,
                                   borderRadius: borderRadius,
-                                  p: esReservaMuyCorta ? 0.5 : 0.75,
+                                  p: 1,
                                   cursor: "pointer",
+                                  overflow: "hidden",
                                   zIndex: 1,
                                   "&:hover": {
                                     opacity: 0.9,
@@ -1014,25 +1014,28 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                   transition: "all 0.15s ease",
                                   display: "flex",
                                   flexDirection: "column",
-                                  justifyContent: "center",
-                                  gap: esReservaMuyCorta ? 0.25 : 0.5,
+                                  justifyContent: "flex-start",
                                 }}
                               >
-                                {esInicio && !esReservaCorta && (
+                                {esInicio && (
                                   <>
+                                    {/* Título con truncation */}
                                     <Typography
                                       sx={{
-                                        fontSize: "0.7rem",
+                                        fontSize: "0.75rem",
                                         fontWeight: 700,
                                         color: "#ffffff",
                                         lineHeight: 1.2,
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
                                         whiteSpace: "nowrap",
+                                        mb: 0.25,
+                                        flexShrink: 1,
                                       }}
                                     >
                                       {reserva.titulo_reunion || "Sin título"}
                                     </Typography>
+                                    {/* Chip de estado - siempre visible */}
                                     <Box
                                       sx={{
                                         display: "inline-flex",
@@ -1040,9 +1043,12 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                         gap: 0.5,
                                         backgroundColor:
                                           "rgba(255,255,255,0.2)",
-                                        borderRadius: "10px",
-                                        px: 0.5,
-                                        py: 0.125,
+                                        borderRadius: "12px",
+                                        px: 0.75,
+                                        py: 0.25,
+                                        width: "fit-content",
+                                        flexShrink: 0,
+                                        minWidth: "fit-content",
                                       }}
                                     >
                                       {esEnCurso ? (
@@ -1056,17 +1062,17 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                         <Box
                                           component="span"
                                           sx={{
-                                            width: 6,
-                                            height: 6,
+                                            width: 8,
+                                            height: 8,
                                             borderRadius: "50%",
-                                            border: "1px solid #ffffff",
+                                            border: "1.5px solid #ffffff",
                                             display: "inline-block",
                                           }}
                                         />
                                       )}
                                       <Typography
                                         sx={{
-                                          fontSize: "0.5rem",
+                                          fontSize: "0.55rem",
                                           fontWeight: 600,
                                           color: "#ffffff",
                                         }}
@@ -1075,23 +1081,6 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                       </Typography>
                                     </Box>
                                   </>
-                                )}
-                                {esInicio && esReservaCorta && (
-                                  <Typography
-                                    sx={{
-                                      fontSize: esReservaMuyCorta
-                                        ? "0.6rem"
-                                        : "0.65rem",
-                                      fontWeight: 600,
-                                      color: "#ffffff",
-                                      lineHeight: 1.2,
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                    }}
-                                  >
-                                    {reserva.titulo_reunion || "Sin título"}
-                                  </Typography>
                                 )}
                               </Box>
                             );

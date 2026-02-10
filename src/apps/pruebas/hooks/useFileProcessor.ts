@@ -13,7 +13,7 @@ import {
 } from '../utils/fileNormalization';
 import { ordenarGruposPorCodigo } from '../utils/sortingUtils';
 import { ordenarTiendasPorCodigo } from '../utils/storeSorting';
-import { formatearValor, parsearNumeroLatam } from '../utils/formatters';
+import { formatearValor } from '../utils/formatters';
 import {
     obtenerMapeosArchivos,
     procesarMapeosParaNormalizacion
@@ -300,7 +300,7 @@ export const useFileProcessor = () => {
         // Mapeo detallado para asegurar que coincidan los nombres de los archivos
         const mapeoVisual = [
             { keys: ["transactions", "addi"], label: "ADDI" },
-            { keys: ["reportediario", "ventascomercio", "redeban"], label: "REDEBAN" },
+            { keys: ["reportediario", "ventascomercio", "redebana"], label: "REDEBANA" },
             { keys: ["maria", "perez", "occidente", "transferencia", "banco"], label: "TRANSFERENCIAS" },
             { keys: ["credito", "sistecredito", "sistecrédito"], label: "SISTECREDITOS" }
         ];
@@ -328,7 +328,7 @@ export const useFileProcessor = () => {
                 const fuenteUpper = fuenteNombre.toUpperCase();
                 if (fuenteUpper.includes('TRANSFERENCIA')) fuenteNombre = 'TRANSFERENCIAS';
                 else if (fuenteUpper.includes('ADDI')) fuenteNombre = 'ADDI';
-                else if (fuenteUpper.includes('REDEBAN') || fuenteUpper.includes('REDEBAN')) fuenteNombre = 'REDEBAN';
+                else if (fuenteUpper.includes('REDEBANA') || fuenteUpper.includes('REDEBAN')) fuenteNombre = 'REDEBANA';
                 else if (fuenteUpper.includes('CREDITO') || fuenteUpper.includes('SISTECREDITO')) fuenteNombre = 'SISTECREDITOS';
             }
 
@@ -398,8 +398,8 @@ export const useFileProcessor = () => {
                     cache[fuente] = todasLasColumnas.filter(col => {
                         const colLower = col.toLowerCase();
                         if (col.startsWith('_') || col === 'tiendaId' || colLower.includes('descuento')) return false;
-                        // Regla para ocultar documento en REDEBAN (basado en el nombre nuevo o el antiguo)
-                        if ((fuente.includes('REDEBAN') || fuente.toLowerCase().includes('reportediario') || fuente.toLowerCase().includes('ventascomercio')) && colLower.includes('documento')) return false;
+                        // Regla para ocultar documento en REDEBANA (basado en el nombre nuevo o el antiguo)
+                        if ((fuente.includes('REDEBANA') || fuente.toLowerCase().includes('reportediario') || fuente.toLowerCase().includes('ventascomercio')) && colLower.includes('documento')) return false;
                         return keywords.some(key => colLower.includes(key));
                     }).sort((a, b) => {
                         const getScore = (s: string) => {
@@ -490,17 +490,16 @@ export const useFileProcessor = () => {
                         datos.forEach(fila => {
                             const dRow = worksheet.getRow(r);
                             columnasFuente.forEach((col, cIdx) => {
-                                const val = fila[col];
+                                let val = fila[col];
                                 const colL = col.toLowerCase();
                                 const cell = dRow.getCell(colStart + cIdx);
 
                                 if (colL.includes('fecha') || colL.includes('hora') || colL.includes('time') || colL.includes('creacion')) {
                                     cell.value = formatearValor(val, col);
                                 } else if (colL.includes('valor') || colL.includes('monto') || colL.includes('total') || colL.includes('neto')) {
-                                    // USAR PARSER ROBUSTO LATAM
-                                    const num = parsearNumeroLatam(val);
-                                    totalFuente += num;
-                                    cell.value = num;
+                                    const num = typeof val === 'number' ? val : Number(String(val || 0).replace(/[^0-9.-]+/g, ""));
+                                    totalFuente += isNaN(num) ? 0 : num;
+                                    cell.value = isNaN(num) ? 0 : num;
                                     cell.numFmt = '"$"#,##0';
                                 } else {
                                     cell.value = val;

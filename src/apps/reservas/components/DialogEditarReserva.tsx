@@ -380,7 +380,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
               <ScheduleIcon sx={{ fontSize: 16 }} />
               <Typography variant="body2">
                 Modifique los detalles de su reservación. Horario comercial: 7
-                AM - 5 PM.
+                AM - 4:30 PM.
               </Typography>
             </Box>
           </Box>

@@ -15,7 +15,7 @@ export interface StoredTokens {
 export function guardarTokenStorage(
   access: string,
   refresh: string,
-  expires_at: number,
+  expires_at: number
 ): void {
   // Validar que expires_at sea un timestamp válido
   if (!expires_at || isNaN(expires_at) || expires_at <= 0) {
@@ -95,22 +95,28 @@ export function normalizeTokenResponse(res: AuthenticationData): LoginResponse {
 }
 /**
  * Valida si el token expiro
- * @param expiresAt Timestamp de expiración
- * @param marginMinutes Minutos de margen antes de considerar como "casi expirado"
- * @returns true si expirado, false si aún válido
+ * @param res Respuesta de Directus (tiene expires, puede o no tener expires_at)
+ * @returns LoginResponse con expires_at siempre calculado
  */
-export const isExpired = (
-  expiresAt: number,
-  marginMinutes: number = 0,
-): boolean => {
+export const isExpired = (expiresAt: number): boolean => {
+  // Si está vacío o es NaN
   if (!expiresAt || isNaN(expiresAt)) {
+    console.warn("⚠️ expires_at inválido:", expiresAt);
     return true;
   }
 
+  // Calcular la fecha si expiro o es valido aun
   const now = Date.now();
-  const threshold = expiresAt - marginMinutes * 60 * 1000;
   const expired = now >= expiresAt;
-  const almostExpired = !expired && now >= threshold;
 
-  return almostExpired || expired;
+  // Calcular diferencia total en segundos
+  /*  const diffInSeconds = Math.abs(Math.floor((expiresAt - now) / 1000)); */
+  /*  const minutes = Math.floor(diffInSeconds / 60);
+  const seconds = diffInSeconds % 60; */
+
+  if (expired) {
+  } else {
+  }
+
+  return expired;
 };

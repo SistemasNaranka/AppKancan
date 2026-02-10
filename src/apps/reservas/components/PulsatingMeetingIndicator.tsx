@@ -73,7 +73,7 @@ const PulsatingMeetingIndicator: React.FC<PulsatingMeetingIndicatorProps> = ({
         justifyContent: "center",
       }}
     >
-      {/* Efecto de Pulsación*/}
+      {/* Pulsating effect */}
       <Box
         sx={{
           position: "absolute",
@@ -81,25 +81,25 @@ const PulsatingMeetingIndicator: React.FC<PulsatingMeetingIndicatorProps> = ({
           height: size * 3,
           borderRadius: "50%",
           backgroundColor: getColorValue(),
-          opacity: 0.1,
-          animation: "pulse 3.0s ease-in-out infinite",
+          opacity: 0.3,
+          animation: "pulse 1.5s ease-in-out infinite",
           "@keyframes pulse": {
             "0%": {
               transform: "scale(1)",
-              opacity: 0.1,
+              opacity: 0.4,
             },
             "50%": {
               transform: "scale(1.5)",
-              opacity: 0.1,
+              opacity: 0.2,
             },
             "100%": {
               transform: "scale(1)",
-              opacity: 0.1,
+              opacity: 0.4,
             },
           },
         }}
       />
-      {/* Circulo principal */}
+      {/* Main circle */}
       <Box
         sx={{
           width: size,

@@ -32,12 +32,19 @@ export default function Home() {
   } = useCommission();
 
   // 🚀 NUEVO: Hook para obtener todos los meses disponibles
-  // 🚀 NUEVO: Hook para obtener todos los meses disponibles
   const { availableMonths, currentMonth, isLoadingMonths } =
     useAvailableMonths();
 
+  // 🚀 NUEVO: Hook para validar presupuesto diario de empleados
+  const {
+    hasBudgetData,
+    validationCompleted: budgetValidationCompleted,
+
+    revalidateBudgetData,
+  } = useBudgetValidation();
+
   // Estados locales
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth || "");
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [showTabsConfigModal, setShowTabsConfigModal] = useState(false);
 
@@ -48,7 +55,7 @@ export default function Home() {
 
   // 🔄 SINCRONIZAR con el hook de meses disponibles
   useEffect(() => {
-    if (currentMonth && (currentMonth !== selectedMonth || !selectedMonth)) {
+    if (currentMonth && currentMonth !== selectedMonth) {
       setSelectedMonth(currentMonth);
     }
   }, [currentMonth]);
@@ -104,6 +111,8 @@ export default function Home() {
   const setPresupuestosEmpleados = useCallback(
     (presupuestos: any[]) => {
       updatePresupuestosEmpleados(presupuestos);
+      // 🚀 REMOVIDO: Limpieza de cache que causaba problemas
+      // calculationCacheRef.current.clear();
     },
     [updatePresupuestosEmpleados],
   );
@@ -124,16 +133,6 @@ export default function Home() {
     // 🚀 NUEVO: Función para limpiar cache de filtros
     clearFilterCache,
   } = useFiltersOptimized();
-
-  // 🚀 NUEVO: Hook para validar presupuesto diario de empleados
-  // Se pasa el nombre de la tienda si hay exactamente una seleccionada (para modo Admin)
-  const {
-    hasBudgetData,
-    todayBudgetCount,
-    missingDaysCount,
-    validationCompleted: budgetValidationCompleted,
-    revalidateBudgetData,
-  } = useBudgetValidation(filterTienda.length === 1 ? filterTienda[0] : undefined);
 
   // Cache para cálculos costosos (optimizado)
   const calculationCacheRef = useRef<Map<string, any>>(new Map());
@@ -211,12 +210,12 @@ export default function Home() {
       // ✅ AGREGAR hash de umbrales al cache key
       const thresholdHash = thresholdConfig?.cumplimiento_valores
         ? thresholdConfig.cumplimiento_valores.reduce(
-          (acc, t) =>
-            acc +
-            Math.round(t.cumplimiento_min * 1000) +
-            Math.round(t.comision_pct * 100000),
-          0,
-        )
+            (acc, t) =>
+              acc +
+              Math.round(t.cumplimiento_min * 1000) +
+              Math.round(t.comision_pct * 100000),
+            0,
+          )
         : 0;
 
       return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}_${thresholdHash}`;
@@ -470,13 +469,12 @@ export default function Home() {
       getFilteredComissionsForCards: shouldShowMainContent
         ? getFilteredComissionsForCards
         : () => ({
-          total_comisiones: 0,
-          comisiones_por_rol: {},
-        }),
+            total_comisiones: 0,
+            comisiones_por_rol: {},
+          }),
       onRoleFilterToggle: handleRoleFilterToggleWithExpansion,
       onRoleFilterClear: handleRoleFilterClear,
       hasBudgetData: hasBudgetData !== false, // Pasar información de presupuesto al header
-      missingDaysCount, // NUEVO: Cantidad de días sin asignar en el mes
     };
 
     // Solo agregar renderMobileSummaryCards si hay presupuesto

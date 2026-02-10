@@ -622,7 +622,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = ({
           </Box>
 
           {/* GRUPO 5: MOSTRAR */}
-          <Box className="tour-fines-semana" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
             <Typography
               variant="caption"
               sx={{

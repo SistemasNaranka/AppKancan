@@ -1,9 +1,14 @@
 // src/apps/reservas/views/ReservasView.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 // Importar el componente de Tour
-import { ReservasTour, TourProvider, FloatingHelpButton } from "../components";
+import {
+  ReservasTour,
+  TourProvider,
+  useTourContext,
+  FloatingHelpButton,
+} from "../components";
 import {
   Box,
   Button,
@@ -56,9 +61,9 @@ type TabReservas = "Reserva" | "mis" | "calendario";
 
 // Títulos dinámicos por pestaña
 const TITULOS_PESTANA: Record<TabReservas, string> = {
-  "Reserva": "Reservar Sala",
-  "mis": "Mis Reservas",
-  "calendario": "Calendario",
+  Reserva: "Reservar Sala",
+  mis: "Mis Reservas",
+  calendario: "Calendario",
 };
 
 // Configuracion de animaciones para el segmented control
@@ -73,11 +78,6 @@ const tabFadeIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-const containerGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 0 0 rgba(25, 118, 210, 0); }
-  50% { box-shadow: 0 0 8px 2px rgba(25, 118, 210, 0.15); }
-`;
-
 // Styled components para tabs animados
 const TabContainer = styled(Box)({
   display: "inline-flex",
@@ -90,66 +90,66 @@ const TabContainer = styled(Box)({
 });
 
 const AnimatedTab = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "isActive",
-})<{ isActive: boolean; isFirst: boolean; isLast: boolean }>(({ isActive, isFirst, isLast }) => ({
-  padding: "8px 16px",
-  cursor: "pointer",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  borderRadius: isFirst ? 10 : isLast ? 10 : 6,
-  backgroundColor: isActive ? "white" : "transparent",
-  color: isActive ? "#1976d2" : "#6b7280",
-  boxShadow: isActive 
-    ? "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)" 
-    : "none",
-  minWidth: 80,
-  border: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  position: "relative",
-  overflow: "hidden",
-  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-  transform: isActive ? "scale(1)" : "scale(0.95)",
-  animation: isActive 
-    ? `${tabPulse} 0.3s ease-out, ${tabFadeIn} 0.2s ease-out`
-    : "none",
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    inset: 0,
+  shouldForwardProp: (prop) =>
+    prop !== "isActive" && prop !== "isFirst" && prop !== "isLast",
+})<{ isActive: boolean; isFirst: boolean; isLast: boolean }>(
+  ({ isActive, isFirst, isLast }) => ({
+    padding: "8px 16px",
+    cursor: "pointer",
+    fontWeight: 600,
+    fontSize: "0.875rem",
     borderRadius: isFirst ? 10 : isLast ? 10 : 6,
-    padding: "1px",
-    background: isActive ? "none" : "transparent",
-    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-    WebkitMaskComposite: "xor",
-    maskComposite: "exclude",
-    pointerEvents: "none",
-  },
-  "&:hover": {
-    backgroundColor: isActive 
-      ? "white" 
-      : "rgba(25, 118, 210, 0.06)",
-    color: isActive ? "#1976d2" : "#374151",
-    transform: isActive ? "scale(1.02)" : "scale(1)",
-  },
-  "&:focus-visible": {
-    outline: "2px solid #1976d2",
-    outlineOffset: 2,
-  },
-  "&:active": {
-    transform: "scale(0.98)",
-  },
-}));
+    backgroundColor: isActive ? "white" : "transparent",
+    color: isActive ? "#1976d2" : "#6b7280",
+    boxShadow: isActive
+      ? "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)"
+      : "none",
+    minWidth: 80,
+    border: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    overflow: "hidden",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    transform: isActive ? "scale(1)" : "scale(0.95)",
+    animation: isActive
+      ? `${tabPulse} 0.3s ease-out, ${tabFadeIn} 0.2s ease-out`
+      : "none",
+    "&:hover": {
+      backgroundColor: isActive ? "white" : "rgba(25, 118, 210, 0.06)",
+      color: isActive ? "#1976d2" : "#374151",
+      transform: isActive ? "scale(1.02)" : "scale(1)",
+    },
+    "&:focus-visible": {
+      outline: "2px solid #1976d2",
+      outlineOffset: 2,
+    },
+    "&:active": {
+      transform: "scale(0.98)",
+    },
+  })
+);
 
-const ReservasView: React.FC = () => {
+// Componente interno que usa el contexto del tour
+const ReservasViewContent: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { area } = useApps();
 
+  // Obtener el contexto del tour
+  const {
+    setTabChangeCallback,
+    setOpenDialogCallback,
+    setCloseDialogCallback,
+    isFullTourRunning,
+    tourPhase,
+    userCreatedReservation,
+  } = useTourContext();
+
   const [tabActual, setTabActual] = useState<TabReservas>("Reserva");
   const [vistaCalendario, setVistaCalendario] = useState<"semanal" | "mes">(
-    "semanal",
+    "semanal"
   );
   const [salaInicial, setSalaInicial] = useState<string | undefined>(undefined);
   const [dialogNueva, setDialogNueva] = useState(false);
@@ -180,6 +180,28 @@ const ReservasView: React.FC = () => {
     severity: "success",
   });
 
+  // Registrar callbacks para el tour
+  useEffect(() => {
+    setTabChangeCallback((tab: TabReservas) => {
+      setTabActual(tab);
+      if (tab !== "calendario") {
+        setSalaInicial(undefined);
+      }
+    });
+  }, [setTabChangeCallback]);
+
+  useEffect(() => {
+    setOpenDialogCallback(() => {
+      setDialogNueva(true);
+    });
+  }, [setOpenDialogCallback]);
+
+  useEffect(() => {
+    setCloseDialogCallback(() => {
+      setDialogNueva(false);
+    });
+  }, [setCloseDialogCallback]);
+
   // Obtener todas las reservas
   const { data: todasReservas = [], isLoading: loadingTodas } = useQuery({
     queryKey: ["reservas", "todas"],
@@ -193,6 +215,15 @@ const ReservasView: React.FC = () => {
     queryFn: () => getMisReservas(filtrosMis),
     refetchInterval: 30000,
   });
+
+  // Determinar qué reservas mostrar en el calendario durante el tour
+  const reservasParaCalendario = React.useMemo(() => {
+    // Durante el tour en fase CALENDARIO, mostrar solo la reserva del usuario
+    if (isFullTourRunning && tourPhase === "CALENDARIO" && userCreatedReservation) {
+      return [userCreatedReservation];
+    }
+    return todasReservas;
+  }, [todasReservas, isFullTourRunning, tourPhase, userCreatedReservation]);
 
   // Mutación para crear reserva
   const mutationCrear = useMutation({
@@ -271,7 +302,7 @@ const ReservasView: React.FC = () => {
   const handleAbrirNuevaReserva = (
     fecha?: string,
     sala?: string,
-    hora?: string,
+    hora?: string
   ) => {
     setFechaInicialReserva(fecha);
     setSalaInicialReserva(sala as Sala | undefined);
@@ -288,18 +319,24 @@ const ReservasView: React.FC = () => {
   };
 
   const handleEditarReserva = (reserva: Reserva) => {
+    // No abrir diálogos durante el tour
+    if (isFullTourRunning) return;
+
     setReservaSeleccionada(reserva);
     setDialogEditar(true);
   };
 
   const handleActualizarReserva = async (
     id: number,
-    datos: ActualizarReserva,
+    datos: ActualizarReserva
   ) => {
     await mutationActualizar.mutateAsync({ id, datos });
   };
 
   const handleCancelarReserva = (reserva: Reserva) => {
+    // No abrir diálogos durante el tour
+    if (isFullTourRunning) return;
+
     setReservaSeleccionada(reserva);
     setDialogCancelar(true);
   };
@@ -315,14 +352,17 @@ const ReservasView: React.FC = () => {
     fecha: string,
     horaInicio: string,
     horaFinal: string,
-    reservaIdExcluir?: number,
+    reservaIdExcluir?: number
   ) => {
+    // Durante el tour, no verificar conflictos
+    if (isFullTourRunning) return false;
+
     return await verificarConflictoHorario(
       sala,
       fecha,
       horaInicio,
       horaFinal,
-      reservaIdExcluir,
+      reservaIdExcluir
     );
   };
 
@@ -332,6 +372,9 @@ const ReservasView: React.FC = () => {
 
   // Handler para ver cronograma de una sala
   const handleVerCronograma = (sala: string) => {
+    // No navegar durante el tour
+    if (isFullTourRunning) return;
+
     setSalaInicial(sala);
     setVistaCalendario("semanal");
     setTabActual("calendario");
@@ -339,6 +382,9 @@ const ReservasView: React.FC = () => {
 
   // Handler para reservar ahora
   const handleReservarAhora = (sala: string) => {
+    // No abrir diálogos durante el tour (excepto si es parte del tour)
+    if (isFullTourRunning) return;
+
     const hoy = format(new Date(), "yyyy-MM-dd");
     handleAbrirNuevaReserva(hoy, sala);
   };
@@ -351,10 +397,8 @@ const ReservasView: React.FC = () => {
   ];
 
   return (
-    <TourProvider initialTab={tabActual}>
-      <ReservasTour activeTab={tabActual}>
-        <FloatingHelpButton activeTab={tabActual} onTabChange={setTabActual} />
-        <Box sx={{ mt: -1 }}>
+    <ReservasTour>
+      <Box sx={{ mt: -1 }}>
         {/* Header con pestañas */}
         <Box
           sx={{
@@ -400,7 +444,7 @@ const ReservasView: React.FC = () => {
                 const isFirst = index === 0;
                 const isLast = index === tabs.length - 1;
                 const isActive = tabActual === tab.id;
-                
+
                 return (
                   <AnimatedTab
                     key={tab.id}
@@ -408,6 +452,9 @@ const ReservasView: React.FC = () => {
                     isFirst={isFirst}
                     isLast={isLast}
                     onClick={() => {
+                      // No permitir cambiar de pestaña manualmente durante el tour
+                      if (isFullTourRunning) return;
+
                       setTabActual(tab.id);
                       if (tab.id !== "calendario") {
                         setSalaInicial(undefined);
@@ -419,11 +466,16 @@ const ReservasView: React.FC = () => {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
+                        if (isFullTourRunning) return;
                         setTabActual(tab.id);
                         if (tab.id !== "calendario") {
                           setSalaInicial(undefined);
                         }
                       }
+                    }}
+                    sx={{
+                      cursor: isFullTourRunning ? "not-allowed" : "pointer",
+                      opacity: isFullTourRunning && !isActive ? 0.5 : 1,
                     }}
                   >
                     {tab.label}
@@ -433,25 +485,28 @@ const ReservasView: React.FC = () => {
             </TabContainer>
           </Box>
 
-          {/* Botón Nueva reserva - Alineado a la derecha */}
-          <Button
-            className="tour-nueva-reserva"
-            startIcon={<AddIcon />}
-            variant="contained"
-            onClick={() => handleAbrirNuevaReserva()}
-            sx={{
-              boxShadow: "none",
-              textTransform: "none",
-              fontWeight: "600",
-              backgroundColor: "#0F9568",
-              "&:hover": {
+          {/* Botones de ayuda y nueva reserva - Alineados a la derecha */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FloatingHelpButton />
+            <Button
+              className="tour-nueva-reserva"
+              startIcon={<AddIcon />}
+              variant="contained"
+              onClick={() => handleAbrirNuevaReserva()}
+              sx={{
                 boxShadow: "none",
-                backgroundColor: "#0B6B4B",
-              },
-            }}
-          >
-            Nueva reserva
-          </Button>
+                textTransform: "none",
+                fontWeight: "600",
+                backgroundColor: "#0F9568",
+                "&:hover": {
+                  boxShadow: "none",
+                  backgroundColor: "#0B6B4B",
+                },
+              }}
+            >
+              Nueva reserva
+            </Button>
+          </Box>
         </Box>
 
         {/* Contenido de Reserva */}
@@ -471,6 +526,7 @@ const ReservasView: React.FC = () => {
               <ProximasReuniones
                 reservas={todasReservas}
                 onVerCalendarioCompleto={() => {
+                  if (isFullTourRunning) return;
                   setSalaInicial(undefined);
                   setTabActual("calendario");
                 }}
@@ -495,18 +551,43 @@ const ReservasView: React.FC = () => {
         {/* Contenido de Calendario */}
         {tabActual === "calendario" && (
           <Box
-            sx={{ width: "100%", height: "calc(100vh - 180px)", minHeight: 400 }}
+            sx={{
+              width: "100%",
+              height: "calc(100vh - 180px)",
+              minHeight: 400,
+            }}
           >
+            {/* Banner durante el tour */}
+            {isFullTourRunning && tourPhase === "CALENDARIO" && userCreatedReservation && (
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 1.5,
+                  backgroundColor: "#D1FAE5",
+                  borderRadius: 2,
+                  border: "1px solid #10B981",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#065F46", fontWeight: 500, textAlign: "center" }}
+                >
+                  📅 Mostrando solo tu reserva de ejemplo: "{userCreatedReservation.titulo_reunion}" 
+                  en {userCreatedReservation.nombre_sala}
+                </Typography>
+              </Box>
+            )}
+
             {vistaCalendario === "semanal" ? (
               <VistaSemanal
-                reservas={todasReservas}
+                reservas={reservasParaCalendario}
                 onNuevaReserva={handleAbrirNuevaReserva}
                 onEditarReserva={handleEditarReserva}
                 onCancelarReserva={handleCancelarReserva}
                 usuarioActualId={user?.id}
                 vistaCalendario={vistaCalendario}
                 onCambiarVista={setVistaCalendario}
-                salaInicial={salaInicial}
+                salaInicial={salaInicial || userCreatedReservation?.nombre_sala}
               />
             ) : (
               <VistaCalendario
@@ -516,7 +597,7 @@ const ReservasView: React.FC = () => {
                 usuarioActualId={user?.id}
                 vistaCalendario={vistaCalendario}
                 onCambiarVista={setVistaCalendario}
-                salaInicial={salaInicial}
+                salaInicial={salaInicial || userCreatedReservation?.nombre_sala}
               />
             )}
           </Box>
@@ -567,7 +648,9 @@ const ReservasView: React.FC = () => {
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDialogCancelar(false)}>No, mantener</Button>
+            <Button onClick={() => setDialogCancelar(false)}>
+              No, mantener
+            </Button>
             <Button
               onClick={confirmarCancelar}
               color="error"
@@ -604,6 +687,14 @@ const ReservasView: React.FC = () => {
         </Snackbar>
       </Box>
     </ReservasTour>
+  );
+};
+
+// Componente principal que envuelve todo con el TourProvider
+const ReservasView: React.FC = () => {
+  return (
+    <TourProvider>
+      <ReservasViewContent />
     </TourProvider>
   );
 };

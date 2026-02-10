@@ -39,7 +39,7 @@ const FUENTE_COLORS = {
         bg: '#faf5ff',
         text: '#6b21a8'
     },
-    'REDEBAN': {
+    'REDEBANA': {
         border: '#f97316', // Naranja
         bg: '#fff7ed',
         text: '#9a3412'
@@ -118,7 +118,7 @@ const GroupedView: React.FC<GroupedViewProps> = ({
     };
 
     // Orden fijo de las fuentes
-    const ordenFuentes = ['SISTECREDITOS', 'TRANSFERENCIAS', 'ADDI', 'REDEBAN'];
+    const ordenFuentes = ['SISTECREDITOS', 'TRANSFERENCIAS', 'ADDI', 'REDEBANA'];
 
     return (
         <Box sx={{ width: '100%', px: 2 }}>

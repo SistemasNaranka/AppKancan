@@ -30,6 +30,7 @@ import {
   puedeModificarse,
   capitalize,
 } from "../types/reservas.types";
+import { useTourContext } from "./TourContext";
 
 interface MisReservasCardsProps {
   reservas: Reserva[];
@@ -48,34 +49,50 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
 }) => {
   const [tabValue, setTabValue] = React.useState(0);
 
+  // Obtener datos del tour context
+  const { isFullTourRunning, tourPhase, userCreatedReservation, mockReservasAdicionales } =
+    useTourContext();
+
+  // Determinar si usar mock data
+  const isTourActive = isFullTourRunning && tourPhase === "MIS_RESERVAS";
+
+  // Combinar la reserva del usuario con las mock adicionales
+  const tourReservas: Reserva[] = React.useMemo(() => {
+    if (!isTourActive) return [];
+
+    const reservas: Reserva[] = [];
+
+    // Agregar la reserva que el usuario creó durante el tour
+    if (userCreatedReservation) {
+      reservas.push(userCreatedReservation);
+    }
+
+    // Agregar las reservas mock adicionales (finalizada y cancelada)
+    reservas.push(...mockReservasAdicionales);
+
+    return reservas;
+  }, [isTourActive, userCreatedReservation, mockReservasAdicionales]);
+
+  // Usar mock data durante el tour, sino usar las reservas reales
+  const reservasToShow = isTourActive ? tourReservas : reservas;
+
   // Separar reservas por estado calculado
   const getEstado = (r: Reserva) =>
     (r.estadoCalculado || r.estado)?.toLowerCase() || "";
 
-  const reservasEnCurso = reservas.filter((r) => getEstado(r) === "en curso");
-  const reservasVigentes = reservas.filter((r) => getEstado(r) === "vigente");
-  const reservasFinalizadas = reservas.filter(
-    (r) => getEstado(r) === "finalizado" || getEstado(r) === "finalizada",
+  const reservasEnCurso = reservasToShow.filter((r) => getEstado(r) === "en curso");
+  const reservasVigentes = reservasToShow.filter((r) => getEstado(r) === "vigente");
+  const reservasFinalizadas = reservasToShow.filter(
+    (r) => getEstado(r) === "finalizado" || getEstado(r) === "finalizada"
   );
-  const reservasCanceladas = reservas.filter(
-    (r) => getEstado(r) === "cancelado" || getEstado(r) === "cancelada",
+  const reservasCanceladas = reservasToShow.filter(
+    (r) => getEstado(r) === "cancelado" || getEstado(r) === "cancelada"
   );
-
-  // Obtener reservas según la pestaña seleccionada
-  const getReservasPorTab = () => {
-    switch (tabValue) {
-      case 0:
-        return reservasVigentes;
-      case 1:
-        return reservasFinalizadas;
-      case 2:
-        return reservasCanceladas;
-      default:
-        return reservasVigentes;
-    }
-  };
 
   const puedeModificar = (reserva: Reserva): boolean => {
+    // Durante el tour, no permitir modificaciones
+    if (isTourActive) return false;
+
     if (!usuarioActualId) return false;
     if (!reserva.usuario_id) return false;
     if (reserva.usuario_id.id !== usuarioActualId) return false;
@@ -145,19 +162,28 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     return estilosCard.finalizado;
   };
 
-  const ReservaCard: React.FC<{ reserva: Reserva }> = ({ reserva }) => {
+  const ReservaCard: React.FC<{ reserva: Reserva; isFirst?: boolean }> = ({
+    reserva,
+    isFirst = false,
+  }) => {
     const canModify = puedeModificar(reserva);
     const estadoMostrar = (reserva.estadoCalculado ||
       reserva.estado) as EstadoReserva;
     const estilo = getEstiloCard(estadoMostrar);
 
+    // Verificar si es la reserva creada por el usuario en el tour
+    const isUserCreated = isTourActive && reserva.id === 99901;
+
     return (
       <Card
+        className={isFirst ? "tour-reserva-card" : undefined}
         sx={{
-          border: "1px solid",
-          borderColor: estilo.borderColor,
+          border: isUserCreated ? "2px solid" : "1px solid",
+          borderColor: isUserCreated ? "#004680" : estilo.borderColor,
           borderRadius: 2,
-          boxShadow: "none",
+          boxShadow: isUserCreated
+            ? "0 4px 12px rgba(0, 70, 128, 0.2)"
+            : "none",
           transition: "all 0.2s ease",
           "&:hover": {
             boxShadow: estilo.hoverShadow,
@@ -165,9 +191,32 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
           height: "100%",
           display: "flex",
           flexDirection: "column",
+          position: "relative",
         }}
       >
-        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 }, flex: 1 }}>
+        {/* Badge para la reserva del usuario */}
+        {isUserCreated && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: -10,
+              left: 16,
+              backgroundColor: "#004680",
+              color: "white",
+              px: 1.5,
+              py: 0.25,
+              borderRadius: 1,
+              fontSize: "0.7rem",
+              fontWeight: 600,
+            }}
+          >
+            ✨ Tu reserva
+          </Box>
+        )}
+
+        <CardContent
+          sx={{ p: 2, "&:last-child": { pb: 2 }, flex: 1, pt: isUserCreated ? 3 : 2 }}
+        >
           {/* Header con Estado y Acciones */}
           <Box
             sx={{
@@ -296,9 +345,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
             <Box
               sx={{ display: "flex", alignItems: "flex-start", gap: 1, mt: 1 }}
             >
-              <NotesIcon
-                sx={{ fontSize: 18, color: "#64748b", mt: 0.25 }}
-              />
+              <NotesIcon sx={{ fontSize: 18, color: "#64748b", mt: 0.25 }} />
               <Typography
                 variant="body2"
                 sx={{
@@ -322,7 +369,14 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     cantidad: number;
     reservas: Reserva[];
     colorIndicador: string;
-  }> = ({ titulo, cantidad, reservas: seccionReservas, colorIndicador }) => {
+    isFirstSection?: boolean;
+  }> = ({
+    titulo,
+    cantidad,
+    reservas: seccionReservas,
+    colorIndicador,
+    isFirstSection = false,
+  }) => {
     if (seccionReservas.length === 0) return null;
 
     return (
@@ -342,9 +396,9 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
         </Box>
 
         <Grid container spacing={2}>
-          {seccionReservas.map((reserva) => (
+          {seccionReservas.map((reserva, index) => (
             <Grid key={reserva.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <ReservaCard reserva={reserva} />
+              <ReservaCard reserva={reserva} isFirst={isFirstSection && index === 0} />
             </Grid>
           ))}
         </Grid>
@@ -352,7 +406,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     );
   };
 
-  if (loading) {
+  if (loading && !isTourActive) {
     return (
       <Box sx={{ p: 3, textAlign: "center" }}>
         <Typography variant="body1" color="text.secondary">
@@ -362,7 +416,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     );
   }
 
-  if (reservas.length === 0) {
+  if (reservasToShow.length === 0 && !isTourActive) {
     return (
       <Box sx={{ p: 3, textAlign: "center" }}>
         <Typography variant="body1" color="text.secondary">
@@ -372,18 +426,43 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     );
   }
 
+  // Determinar cuál es la primera sección con reservas para el tour
+  const hasEnCurso = reservasEnCurso.length > 0;
+  const hasVigentes = reservasVigentes.length > 0;
+
   return (
     <Box>
+      {/* Banner durante el tour */}
+      {isTourActive && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            backgroundColor: "#EFF6FF",
+            borderRadius: 2,
+            border: "1px solid #BFDBFE",
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{ color: "#1E40AF", fontWeight: 500, textAlign: "center" }}
+          >
+            🎯 Aquí puedes ver y gestionar todas tus reservas
+          </Typography>
+        </Box>
+      )}
+
       {/* En curso - Siempre visible */}
       <SeccionReservas
         titulo="En curso"
         cantidad={reservasEnCurso.length}
         reservas={reservasEnCurso}
         colorIndicador="#0F9568"
+        isFirstSection={hasEnCurso}
       />
 
       {/* Tabs para otras reservas */}
-      <Box sx={{ mb: 3 }} className="tour-mis-reservas-tabs">
+      <Box className="tour-mis-reservas-tabs" sx={{ mb: 3 }}>
         <Tabs
           value={tabValue}
           onChange={(_, newValue) => setTabValue(newValue)}
@@ -459,6 +538,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
           cantidad={reservasVigentes.length}
           reservas={reservasVigentes}
           colorIndicador="#004680"
+          isFirstSection={!hasEnCurso && hasVigentes}
         />
       )}
       {tabValue === 1 && (
