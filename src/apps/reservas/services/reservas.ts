@@ -114,7 +114,7 @@ export async function getReservas(
 
     // NO filtrar por estado en la BD (se hace después con estado calculado)
 
-    console.log("🔍 getReservas - Filtros aplicados a BD:", filter);
+  
 
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -126,7 +126,7 @@ export async function getReservas(
       ),
     );
 
-    console.log("✅ getReservas - Reservas de BD:", items.length);
+  
 
     // Procesar para calcular estados
     let reservas = procesarReservas(items as Reserva[]);

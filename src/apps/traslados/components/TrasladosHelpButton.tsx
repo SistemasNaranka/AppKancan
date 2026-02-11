@@ -4,7 +4,6 @@
  */
 import React from "react";
 import { Button, Tooltip, useTheme } from "@mui/material";
-import SchoolIcon from "@mui/icons-material/School";
 import HelpIcon from "@mui/icons-material/Help";
 import { useTrasladosTourContext } from "./TrasladosTourContext";
 
