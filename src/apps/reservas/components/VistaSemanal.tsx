@@ -237,13 +237,14 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     setFechaBase(setYear(fechaBase, año));
   };
 
-  // Formatear hora 12h
+  // Formatear hora 12h (maneja minutos correctamente)
   const formatearHora12h = (hora: string): string => {
-    const [h] = hora.split(":");
+    const [h, m] = hora.split(":");
     const hour = parseInt(h);
-    if (hour === 12) return "12:00 PM";
-    if (hour > 12) return `${hour - 12}:00 PM`;
-    return `${hour}:00 AM`;
+    const min = m || "00";
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const hora12 = hour % 12 || 12;
+    return `${hora12}:${min} ${ampm}`;
   };
 
   // Obtener color según estado (para chip de estado)
@@ -945,13 +946,23 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                     const reservasEnCelda = getReservasEnCelda(dia, hora);
                     const esHoy = isSameDay(dia, hoy);
 
+                    // Calcular zonas libres para permitir clics
+                    // Zona superior libre: 0-30px, Zona inferior libre: 30-60px
+                    const zonaSuperiorOcupada = reservasEnCelda.some(({ posicion }) => 
+                      posicion.top < 30 && (posicion.top + posicion.height) > 0
+                    );
+                    const zonaInferiorOcupada = reservasEnCelda.some(({ posicion }) => 
+                      posicion.top < 60 && (posicion.top + posicion.height) > 30
+                    );
+
+                    // Formatear horas para mostrar en hover
+                    const [h] = hora.split(":");
+                    const horaCompleta = formatearHora12h(hora);
+                    const horaMedia = formatearHora12h(`${h}:30`);
+
                     return (
                       <Box
                         key={`${dia.toISOString()}-${hora}`}
-                        onClick={() =>
-                          reservasEnCelda.length === 0 &&
-                          handleClickCelda(dia, hora)
-                        }
                         sx={{
                           position: "relative",
                           borderRight:
@@ -960,26 +971,141 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                           backgroundColor: esHoy ? "#FAFBFF" : "transparent",
                           height: 60,
                           boxSizing: "border-box",
-                          cursor:
-                            reservasEnCelda.length === 0
-                              ? "pointer"
-                              : "default",
-                          "&:hover":
-                            reservasEnCelda.length === 0
-                              ? { backgroundColor: "#f0f9ff" }
-                              : {},
                         }}
                       >
+                        {/* Línea punteada de media hora */}
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: "50%",
+                            left: 0,
+                            right: 0,
+                            height: "1px",
+                            borderTop: "1px dashed #d0d0d0",
+                            pointerEvents: "none",
+                            zIndex: 0,
+                          }}
+                        />
+
+                        {/* Zona clickeable superior (primera media hora) */}
+                        {!zonaSuperiorOcupada && (
+                          <Box
+                            onClick={() => handleClickCelda(dia, hora)}
+                            sx={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: 30,
+                              cursor: "pointer",
+                              zIndex: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 0.5,
+                              transition: "all 0.15s ease",
+                              "&:hover": {
+                                backgroundColor: "rgba(16, 185, 129, 0.12)",
+                                "& .hover-indicator": {
+                                  opacity: 1,
+                                },
+                              },
+                            }}
+                          >
+                            <Box
+                              className="hover-indicator"
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                                opacity: 0,
+                                transition: "opacity 0.15s ease",
+                                backgroundColor: "rgba(16, 185, 129, 0.9)",
+                                color: "#fff",
+                                borderRadius: "4px",
+                                px: 0.75,
+                                py: 0.25,
+                              }}
+                            >
+                              <AddIcon sx={{ fontSize: 12 }} />
+                              <Typography sx={{ fontSize: "0.65rem", fontWeight: 600 }}>
+                                {horaCompleta}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )}
+
+                        {/* Zona clickeable inferior (segunda media hora) */}
+                        {!zonaInferiorOcupada && (
+                          <Box
+                            onClick={() => {
+                              // Crear reserva a las :30
+                              if (onNuevaReserva) {
+                                const fechaStr = format(dia, "yyyy-MM-dd");
+                                const horaMedia30 = `${h}:30`;
+                                onNuevaReserva(fechaStr, salaSeleccionada, horaMedia30);
+                              }
+                            }}
+                            sx={{
+                              position: "absolute",
+                              top: 30,
+                              left: 0,
+                              right: 0,
+                              height: 30,
+                              cursor: "pointer",
+                              zIndex: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 0.5,
+                              transition: "all 0.15s ease",
+                              "&:hover": {
+                                backgroundColor: "rgba(16, 185, 129, 0.12)",
+                                "& .hover-indicator": {
+                                  opacity: 1,
+                                },
+                              },
+                            }}
+                          >
+                            <Box
+                              className="hover-indicator"
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                                opacity: 0,
+                                transition: "opacity 0.15s ease",
+                                backgroundColor: "rgba(16, 185, 129, 0.9)",
+                                color: "#fff",
+                                borderRadius: "4px",
+                                px: 0.75,
+                                py: 0.25,
+                              }}
+                            >
+                              <AddIcon sx={{ fontSize: 12 }} />
+                              <Typography sx={{ fontSize: "0.65rem", fontWeight: 600 }}>
+                                {horaMedia}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )}
+
                         {reservasEnCelda.map(
                           ({ reserva, esInicio, esFin, posicion }) => {
                             const colorReserva = getReservaColor(reserva.id);
                             const estadoActual = (
                               reserva.estadoCalculado || reserva.estado
                             )?.toLowerCase();
-                            const esEnCurso = estadoActual === "en curso";
+                            const esVigente = estadoActual === "vigente";
+
+                            // Detectar si tiene horas medias
+                            const [, minIni] = reserva.hora_inicio.split(":").map(Number);
+                            const [, minFin] = reserva.hora_final.split(":").map(Number);
+                            const tieneHoraMediaInicio = minIni > 0;
+                            const tieneHoraMediaFin = minFin > 0;
+                            const tieneHorasMedias = tieneHoraMediaInicio || tieneHoraMediaFin;
 
                             // Determinar borderRadius
-                            // Si ocupa toda la hora (60px) o es inicio y fin en misma hora → borderRadius completo
                             const alturaCompleta =
                               Math.abs(posicion.height - 60) < 1;
                             const borderRadius =
@@ -1003,7 +1129,8 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                   height: posicion.height - 4,
                                   backgroundColor: colorReserva,
                                   borderRadius: borderRadius,
-                                  p: 1,
+                                  px: 1,
+                                  py: 0.5,
                                   cursor: "pointer",
                                   overflow: "hidden",
                                   zIndex: 1,
@@ -1013,13 +1140,19 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                   },
                                   transition: "all 0.15s ease",
                                   display: "flex",
-                                  flexDirection: "column",
-                                  justifyContent: "flex-start",
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 0.5,
+                                  // Borde especial para horas medias
+                                  ...(tieneHorasMedias && esInicio && {
+                                    borderLeft: "3px solid rgba(255,255,255,0.6)",
+                                  }),
                                 }}
                               >
                                 {esInicio && (
                                   <>
-                                    {/* Título con truncation */}
+                                    {/* Título a la izquierda */}
                                     <Typography
                                       sx={{
                                         fontSize: "0.75rem",
@@ -1029,57 +1162,48 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
                                         whiteSpace: "nowrap",
-                                        mb: 0.25,
-                                        flexShrink: 1,
+                                        flex: 1,
+                                        minWidth: 0,
                                       }}
                                     >
                                       {reserva.titulo_reunion || "Sin título"}
                                     </Typography>
-                                    {/* Chip de estado - siempre visible */}
-                                    <Box
-                                      sx={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 0.5,
-                                        backgroundColor:
-                                          "rgba(255,255,255,0.2)",
-                                        borderRadius: "12px",
-                                        px: 0.75,
-                                        py: 0.25,
-                                        width: "fit-content",
-                                        flexShrink: 0,
-                                        minWidth: "fit-content",
-                                      }}
-                                    >
-                                      {esEnCurso ? (
-                                        <TimeIcon
-                                          sx={{
-                                            fontSize: 10,
-                                            color: "#ffffff",
-                                          }}
-                                        />
-                                      ) : (
+                                    
+                                    {/* Estado Vigente a la derecha - SOLO si es vigente */}
+                                    {esVigente && (
+                                      <Box
+                                        sx={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 0.5,
+                                          backgroundColor: "rgba(255,255,255,0.25)",
+                                          borderRadius: "12px",
+                                          px: 0.75,
+                                          py: 0.25,
+                                          flexShrink: 0,
+                                        }}
+                                      >
                                         <Box
                                           component="span"
                                           sx={{
-                                            width: 8,
-                                            height: 8,
+                                            width: 6,
+                                            height: 6,
                                             borderRadius: "50%",
                                             border: "1.5px solid #ffffff",
                                             display: "inline-block",
                                           }}
                                         />
-                                      )}
-                                      <Typography
-                                        sx={{
-                                          fontSize: "0.55rem",
-                                          fontWeight: 600,
-                                          color: "#ffffff",
-                                        }}
-                                      >
-                                        {esEnCurso ? "En curso" : "Vigente"}
-                                      </Typography>
-                                    </Box>
+                                        <Typography
+                                          sx={{
+                                            fontSize: "0.55rem",
+                                            fontWeight: 600,
+                                            color: "#ffffff",
+                                          }}
+                                        >
+                                          Vigente
+                                        </Typography>
+                                      </Box>
+                                    )}
                                   </>
                                 )}
                               </Box>
