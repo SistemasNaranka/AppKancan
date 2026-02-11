@@ -305,9 +305,6 @@ export const useFileProcessor = () => {
             { keys: ["credito", "sistecredito", "sistecrédito"], label: "SISTECREDITOS" }
         ];
 
-        console.log('\n🔄 Iniciando agrupación por tienda...');
-        console.log(`📁 Archivos normalizados a procesar: ${archivos.filter(a => a.normalizado).length}`);
-
         archivos.filter(a => a.normalizado).forEach(archivo => {
             const nombreLower = archivo.nombre.toLowerCase();
             const tipoLower = (archivo.tipoArchivo || "").toLowerCase();

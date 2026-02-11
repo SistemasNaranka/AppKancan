@@ -415,7 +415,6 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
     );
 
     if (items && items.length > 0) {
-      console.log("✅ Configuración de reservas cargada:", items[0]);
       return items[0] as ConfiguracionReserva;
     }
     

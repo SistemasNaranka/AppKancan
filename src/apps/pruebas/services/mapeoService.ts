@@ -54,13 +54,6 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
       )
     );
 
-    console.log("📦 Respuesta cruda de Directus:", data);
-    if (data && Array.isArray(data)) {
-      console.log(`ℹ️ Se obtuvieron ${data.length} mapeos de Directus.`);
-      if (data.length > 0) {
-        console.log("🔍 Ejemplo del primer mapeo:", JSON.stringify(data[0], null, 2));
-      }
-    }
     return data as MapeoNombreArchivo[];
   } catch (error) {
     console.error("❌ Error al obtener mapeos de archivos:", error);
