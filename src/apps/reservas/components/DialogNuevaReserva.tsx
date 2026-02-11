@@ -75,25 +75,6 @@ interface DialogNuevaReservaProps {
   horaInicial?: string;
 }
 
-interface SpotlightConfig {
-  // Padding uniforme (se usa si no se especifican individuales)
-  padding?: number;
-  // Paddings individuales (tienen prioridad sobre padding)
-  paddingTop?: number;
-  paddingRight?: number;
-  paddingBottom?: number;
-  paddingLeft?: number;
-  // Estilos
-  borderRadius?: number;
-  borderWidth?: number;
-  borderColor?: string;
-  borderStyle?: string;
-  glowColor?: string;
-  glowSize?: number;
-  overlayColor?: string;
-  animate?: boolean;
-}
-
 // ============================================
 // TOUR STEPS CONFIG
 // ============================================
@@ -108,104 +89,64 @@ interface DialogTourStep {
   disableScrollParentFix?: true;
   spotlightClicks?: true;
   spotlightPadding?: number;
-  spotlight?: SpotlightConfig;
 }
 
-// Configuración por defecto del spotlight
-const DEFAULT_SPOTLIGHT: Required<Omit<SpotlightConfig, 'paddingTop' | 'paddingRight' | 'paddingBottom' | 'paddingLeft'>> = {
-  padding: 8,
-  borderRadius: 8,
-  borderWidth: 3,
-  borderColor: "#004680",
-  borderStyle: "solid",
-  glowColor: "rgba(0, 70, 128, 0.4)",
-  glowSize: 20,
-  overlayColor: "rgba(0, 0, 0, 0.5)",
-  animate: false,
-};
-
- 
-
-// PASOS DEL TOUR - Personaliza cada uno aquí
 const DIALOG_TOUR_STEPS: DialogTourStep[] = [
   {
     target: "tour-dialog-titulo",
     title: "Título de la Reunión",
     content: 'Escribe un título descriptivo para tu reunión. Por ejemplo: "Sincronización semanal del equipo".',
     placement: "right",
-    spotlight: {
-      padding: 10,
-      borderColor: "#004680",
-      glowColor: "rgba(0, 70, 128, 0.4)",
-    },
+    spotlightClicks: true,
+    spotlightPadding: 9,
   },
   {
     target: "tour-dialog-sala",
     title: "Seleccionar Sala",
     content: "Elige entre Sala Principal (más grande) o Sala Secundaria (más compacta) según tus necesidades.",
     placement: "right",
-    spotlight: {
-      padding: 12,
-      borderColor: "#004680",
-      glowColor: "rgba(59, 130, 246, 0.4)",
-    },
+    //spotlightPadding: 12,
   },
   {
     target: "tour-dialog-horas",
     title: "Horario de la Reunión",
-    content: "Selecciona la hora de inicio y la hora de fin. La duración mínima es de 1 hora.",
+    content: "Selecciona la hora de inicio y la hora de fin. La duración mínima es de 30 minutos.",
     placement: "right",
-    // PADDINGS INDIVIDUALES - Controla cada lado
-    spotlight: {
-      paddingTop: 8,      // Arriba del banner "Horario disponible"
-      paddingRight: 10,   // Derecha
-      paddingBottom: 1,   // Abajo de los selectores (reducido para no tocar Observaciones)
-      paddingLeft: 10,    // Izquierda
-      borderColor: "#004680",
-      glowColor: "rgba(0, 70, 128, 0.4)",
-    },
+    spotlightPadding: 10,
   },
   {
     target: "tour-dialog-fecha",
     title: "Fecha de la Reserva",
     content: "Selecciona la fecha en el calendario. No puedes seleccionar fechas pasadas.",
     placement: "left",
-    spotlight: {
-      padding: 8,
-      borderColor: "#10B981",
-      glowColor: "rgba(16, 185, 129, 0.4)",
-      borderRadius: 12,
-    },
+    spotlightPadding: 20,
   },
   {
     target: "tour-dialog-observaciones",
     title: "Observaciones (Opcional)",
     content: "Agrega detalles adicionales como participantes, materiales necesarios o la agenda de la reunión.",
     placement: "right",
-    spotlight: {
-      padding: 8,
-      borderColor: "#6B7280",
-      glowColor: "rgba(107, 114, 128, 0.3)",
-      borderStyle: "dashed",
-      borderWidth: 2,
-    },
+    spotlightPadding: 16,
   },
   {
     target: "tour-dialog-submit",
     title: "¡Confirma tu Reserva!",
-    content: 'Cuando hayas llenado los campos, haz clic en "Confirmar Reservación" para guardar tu reserva.',
+    content: 'Haz clic en "Confirmar Reservación". Si no llenaste el formulario, se usarán datos de ejemplo automáticamente.',
     placement: "top",
     highlight: true,
     isLast: true,
-    spotlight: {
-      padding: 12,
-      borderColor: "#10B981",
-      glowColor: "rgba(16, 185, 129, 0.5)",
-      glowSize: 25,
-      animate: true,
-    },
+    spotlightPadding: 24,
   },
 ];
+
+// ============================================
+// DATOS DE EJEMPLO PARA EL TOUR
+// ============================================
+const DATOS_EJEMPLO_TOUR = {
+  titulo: "Reunión de Ejemplo - Tutorial",
+  nombre_sala: "Sala Principal" as Sala,
+  observaciones: "Esta es una reserva de ejemplo.",
+};
 
 // ============================================
 // TOUR TOOLTIP COMPONENT
@@ -317,7 +258,7 @@ const TourTooltip: React.FC<TourTooltipProps> = ({
               </Typography>
               {step.highlight && (
                 <Chip
-                  label="Llena el formulario y haz clic"
+                  label={step.isLast ? 'Haz clic en "Confirmar Reservación"' : "Llena el formulario y haz clic"}
                   size="small"
                   sx={{
                     mt: 1.5,
@@ -647,6 +588,64 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     stopTour();
   };
 
+  // Función para manejar el submit durante el tour
+  // Si el formulario está vacío, usa datos de ejemplo automáticamente
+  const handleTourSubmit = () => {
+    // Obtener valores actuales del formulario
+    const currentTitulo = watch("titulo");
+    const currentSala = watch("nombre_sala");
+    const currentFecha = watch("fecha");
+    const currentHoraInicio = watch("hora_inicio");
+    const currentHoraFinal = watch("hora_final");
+    const currentObservaciones = watch("observaciones");
+
+    // Verificar si el formulario tiene datos válidos (al menos título y sala)
+    const formularioLleno = currentTitulo && currentTitulo.trim().length >= 3 && currentSala;
+
+    if (formularioLleno) {
+      // Usuario llenó el formulario, usar sus datos
+      setDialogTourActive(false);
+      onFormSubmitted({
+        nombre_sala: currentSala,
+        fecha: currentFecha || format(new Date(), "yyyy-MM-dd"),
+        hora_inicio: currentHoraInicio || horarioConfig.horaApertura,
+        hora_final: currentHoraFinal || `${(parseInt(horarioConfig.horaApertura.split(":")[0]) + 1).toString().padStart(2, "0")}:00`,
+        titulo: currentTitulo,
+        observaciones: currentObservaciones?.trim() || "",
+      });
+    } else {
+      // Formulario vacío, usar datos de ejemplo
+      const manana = new Date();
+      manana.setDate(manana.getDate() + 1);
+      const fechaEjemplo = format(manana, "yyyy-MM-dd");
+      
+      const [h] = horarioConfig.horaApertura.split(":").map(Number);
+      const horaInicioEjemplo = `${(h + 1).toString().padStart(2, "0")}:00`;
+      const horaFinEjemplo = `${(h + 1).toString().padStart(2, "0")}:30`;
+
+      // Llenar el formulario visualmente con datos de ejemplo
+      setValue("titulo", DATOS_EJEMPLO_TOUR.titulo);
+      setValue("nombre_sala", DATOS_EJEMPLO_TOUR.nombre_sala);
+      setValue("fecha", fechaEjemplo);
+      setValue("hora_inicio", horaInicioEjemplo);
+      setValue("hora_final", horaFinEjemplo);
+      setValue("observaciones", DATOS_EJEMPLO_TOUR.observaciones);
+
+      // Enviar con datos de ejemplo
+      setTimeout(() => {
+        setDialogTourActive(false);
+        onFormSubmitted({
+          nombre_sala: DATOS_EJEMPLO_TOUR.nombre_sala,
+          fecha: fechaEjemplo,
+          hora_inicio: horaInicioEjemplo,
+          hora_final: horaFinEjemplo,
+          titulo: DATOS_EJEMPLO_TOUR.titulo,
+          observaciones: DATOS_EJEMPLO_TOUR.observaciones,
+        });
+      }, 100);
+    }
+  };
+
   // Estado para rastrear la hora de inicio seleccionada
   const [horaInicioSeleccionada, setHoraInicioSeleccionada] = useState<string>("");
 
@@ -663,14 +662,20 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     return generarOpcionesHora(horaInicioNum, horaFinNum);
   }, [horarioConfig]);
 
-  // Filtrar opciones de hora_final para mostrar solo horas >= hora_inicio + 1 hora
+  // Filtrar opciones de hora_final para mostrar solo horas >= hora_inicio + 30 minutos
   const opcionesHoraFinal = useMemo(() => {
     if (!horaInicioSeleccionada) return opcionesHora;
     
     const [h, m] = horaInicioSeleccionada.split(":").map(Number);
-    let horaMinima = h + 1;
+    // Agregar 30 minutos
+    let horaMinima = h;
+    let minutoMinimo = m + 30;
+    if (minutoMinimo >= 60) {
+      horaMinima += 1;
+      minutoMinimo -= 60;
+    }
     if (horaMinima >= 24) horaMinima = 23;
-    const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+    const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutoMinimo.toString().padStart(2, "0")}`;
     
     return opcionesHora.filter((opcion) => opcion.value >= horaMinimaStr);
   }, [opcionesHora, horaInicioSeleccionada]);
@@ -738,14 +743,20 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
           .required("Selecciona hora de fin")
           .test(
             "hora-mayor",
-            "La hora de fin debe ser al menos 1 hora después de la hora de inicio",
+            "La hora de fin debe ser al menos 30 minutos después de la hora de inicio",
             function (value) {
               const { hora_inicio } = this.parent;
               if (!value || !hora_inicio) return false;
               const [h, m] = hora_inicio.split(":").map(Number);
-              let horaMinima = h + 1;
+              // Agregar 30 minutos
+              let horaMinima = h;
+              let minutoMinimo = m + 30;
+              if (minutoMinimo >= 60) {
+                horaMinima += 1;
+                minutoMinimo -= 60;
+              }
               if (horaMinima >= 24) horaMinima = 23;
-              const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+              const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutoMinimo.toString().padStart(2, "0")}`;
               return value >= horaMinimaStr;
             }
           )
@@ -789,11 +800,45 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   // Actualizar valores cuando cambia la configuración
   useEffect(() => {
     if (!configCargando && opcionesHora.length > 0) {
-      const horaInicioDefault = horarioConfig.horaApertura;
-      const [h] = horaInicioDefault.split(":").map(Number);
-      const horaFinDefault = `${(h + 1).toString().padStart(2, "0")}:00`;
+      // Usar hora actual redondeada a los 30 minutos más cercanos
+      const ahora = new Date();
+      let horaActual = ahora.getHours();
+      let minutoActual = ahora.getMinutes();
+      
+      // Redondear a los 30 minutos hacia arriba
+      if (minutoActual > 0 && minutoActual <= 30) {
+        minutoActual = 30;
+      } else if (minutoActual > 30) {
+        minutoActual = 0;
+        horaActual += 1;
+      }
+      
+      // Formatear hora de inicio
+      let horaInicioDefault = `${horaActual.toString().padStart(2, "0")}:${minutoActual.toString().padStart(2, "0")}`;
+      
+      // Verificar que esté dentro del horario permitido
+      if (horaInicioDefault < horarioConfig.horaApertura) {
+        horaInicioDefault = horarioConfig.horaApertura;
+      } else if (horaInicioDefault >= horarioConfig.horaCierre) {
+        horaInicioDefault = horarioConfig.horaApertura;
+      }
+      
+      // Calcular hora final (+30 minutos)
+      const [h, m] = horaInicioDefault.split(":").map(Number);
+      let horaFin = h;
+      let minutoFin = m + 30;
+      if (minutoFin >= 60) {
+        horaFin += 1;
+        minutoFin -= 60;
+      }
+      const horaFinDefault = `${horaFin.toString().padStart(2, "0")}:${minutoFin.toString().padStart(2, "0")}`;
+      
       setValue("hora_inicio", horaInicioDefault);
-      setValue("hora_final", horaFinDefault);
+      if (horaFinDefault <= horarioConfig.horaCierre) {
+        setValue("hora_final", horaFinDefault);
+      } else {
+        setValue("hora_final", horarioConfig.horaCierre);
+      }
     }
   }, [configCargando, opcionesHora, horarioConfig, setValue]);
 
@@ -813,10 +858,17 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
           horaInicial < horarioConfig.horaCierre
         ) {
           setValue("hora_inicio", horaInicial);
-          const [h] = horaInicial.split(":").map(Number);
-          const horaFin = `${(h + 1).toString().padStart(2, "0")}:00`;
-          if (horaFin <= horarioConfig.horaCierre) {
-            setValue("hora_final", horaFin);
+          const [h, m] = horaInicial.split(":").map(Number);
+          // Calcular hora final (+30 minutos)
+          let horaFin = h;
+          let minutoFin = m + 30;
+          if (minutoFin >= 60) {
+            horaFin += 1;
+            minutoFin -= 60;
+          }
+          const horaFinStr = `${horaFin.toString().padStart(2, "0")}:${minutoFin.toString().padStart(2, "0")}`;
+          if (horaFinStr <= horarioConfig.horaCierre) {
+            setValue("hora_final", horaFinStr);
           } else {
             setValue("hora_final", horarioConfig.horaCierre);
           }
@@ -837,9 +889,15 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     if (horaInicioWatch) {
       setHoraInicioSeleccionada(horaInicioWatch);
       const [h, m] = horaInicioWatch.split(":").map(Number);
-      let horaMinima = h + 1;
+      // Agregar 30 minutos
+      let horaMinima = h;
+      let minutoMinimo = m + 30;
+      if (minutoMinimo >= 60) {
+        horaMinima += 1;
+        minutoMinimo -= 60;
+      }
       if (horaMinima >= 24) horaMinima = 23;
-      const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+      const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutoMinimo.toString().padStart(2, "0")}`;
       if (horaFinalWatch && horaFinalWatch < horaMinimaStr) {
         setValue("hora_final", horaMinimaStr);
       }
@@ -1248,7 +1306,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                 </Button>
                 <Button
                   ref={submitRef}
-                  type="submit"
+                  type={isTourMode ? "button" : "submit"}
+                  onClick={isTourMode ? handleTourSubmit : undefined}
                   variant="contained"
                   disabled={loading}
                   startIcon={

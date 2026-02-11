@@ -395,6 +395,13 @@ const ReservasViewContent: React.FC = () => {
     handleAbrirNuevaReserva(hoy, sala);
   };
 
+  // Handler para iniciar el tutorial - cambia a pestaña Reserva si es necesario
+  const handleStartTutorial = useCallback(() => {
+    // Siempre cambiar a la pestaña Reserva antes de iniciar el tour
+    setTabActual("Reserva");
+    setSalaInicial(undefined);
+  }, []);
+
   // Pestañas
   const tabs: { id: TabReservas; label: string }[] = [
     { id: "Reserva", label: "Reserva" },
@@ -496,7 +503,7 @@ const ReservasViewContent: React.FC = () => {
 
           {/* Botones de ayuda y nueva reserva - Alineados a la derecha */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <FloatingHelpButton />
+            <FloatingHelpButton onBeforeStart={handleStartTutorial} />
             <Button
               className="tour-nueva-reserva"
               startIcon={<AddIcon />}
@@ -579,9 +586,9 @@ const ReservasViewContent: React.FC = () => {
               >
                 <Typography
                   variant="body2"
-                  sx={{ color: "#065F46", fontWeight: 500, textAlign: "center" }}
+                  sx={{ color: "#065F46", fontWeight: "bold", textAlign: "center" }}
                 >
-                  📅 Mostrando solo tu reserva de ejemplo: "{userCreatedReservation.titulo_reunion}" 
+                  Mostrando solo tu reserva de ejemplo: "{userCreatedReservation.titulo_reunion}" 
                   en {userCreatedReservation.nombre_sala}
                 </Typography>
               </Box>

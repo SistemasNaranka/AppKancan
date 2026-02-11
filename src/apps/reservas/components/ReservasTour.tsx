@@ -211,7 +211,7 @@ const STEPS_CALENDARIO: Step[] = [
         </Typography>
       </Box>
     ),
-    placement: "top",
+    placement: "bottom",
   },
 ];
 

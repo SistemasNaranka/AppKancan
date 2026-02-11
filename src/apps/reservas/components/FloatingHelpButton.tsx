@@ -7,12 +7,26 @@ import { Button } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useTourContext } from "./TourContext";
 
-const FloatingHelpButton: React.FC = () => {
+interface FloatingHelpButtonProps {
+  /** Callback que se ejecuta ANTES de iniciar el tour (útil para cambiar de pestaña) */
+  onBeforeStart?: () => void;
+}
+
+const FloatingHelpButton: React.FC<FloatingHelpButtonProps> = ({ 
+  onBeforeStart 
+}) => {
   const { startFullTour, isFullTourRunning } = useTourContext();
 
   const handleClick = () => {
     if (!isFullTourRunning) {
-      startFullTour();
+      // Ejecutar callback antes de iniciar (ej: cambiar a pestaña Reserva)
+      if (onBeforeStart) {
+        onBeforeStart();
+      }
+      // Pequeño delay para que el cambio de pestaña se complete
+      setTimeout(() => {
+        startFullTour();
+      }, 100);
     }
   };
 
