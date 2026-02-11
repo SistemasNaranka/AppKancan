@@ -108,7 +108,7 @@ export const SidebarFooter = ({ open }: Props) => {
             }}
           >
             {getInitials(
-              `${user?.nombre ?? ""} ${user?.apellido ?? ""}`.trim()
+              `${user?.nombre ?? ""} ${user?.apellido ?? ""}`.trim(),
             )}
           </Avatar>
 

@@ -15,7 +15,13 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "react-router-dom", "@emotion/react", "@emotion/styled"],
+    include: [
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "@emotion/react",
+      "@emotion/styled",
+    ],
   },
   build: {
     rollupOptions: {

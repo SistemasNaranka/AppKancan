@@ -101,7 +101,7 @@ export const AddEmployeeSection: React.FC<AddEmployeeSectionProps> = ({
                 },
               }}
             >
-              <MenuItem value="" disabled sx={{ display: 'none' }}>
+              <MenuItem value="" disabled sx={{ display: "none" }}>
                 <em>Seleccionar cargo</em>
               </MenuItem>
               {cargos.map((cargo) => (
