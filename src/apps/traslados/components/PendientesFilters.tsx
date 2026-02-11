@@ -66,6 +66,7 @@ const PendientesFilters: React.FC<Props> = ({
         disablePortal
         options={opcionesDestino}
         freeSolo={false}
+        data-tour="filtro-bodega-destino"
         value={filtroBodegaDestino === "" ? null : filtroBodegaDestino}
         onChange={(_, newValue) => {
           if (newValue === "Todas las bodegas" || newValue === null) {
@@ -110,6 +111,7 @@ const PendientesFilters: React.FC<Props> = ({
       {/* Campo de búsqueda por nombre */}
       <TextField
         label="Filtrar por Traslado"
+        data-tour="filtro-nombre"
         size="small"
         value={filtroNombre}
         onChange={(e) => {
@@ -148,6 +150,7 @@ const PendientesFilters: React.FC<Props> = ({
             p: 1.5,
             transition: "box-shadow 0.3s ease",
           }}
+          data-tour="seleccionar-todo"
         >
           <FormGroup
             sx={{

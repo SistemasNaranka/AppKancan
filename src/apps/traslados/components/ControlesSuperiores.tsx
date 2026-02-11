@@ -1,19 +1,15 @@
-import React, { useState } from "react";
+/**
+ * ControlesSuperiores.tsx
+ * Controles superiores del panel de traslados pendientes
+ * Incluye: Botón Tutorial y Aprobar
+ */
+import React from "react";
 import {
   Box,
   Button,
   useTheme,
-  IconButton,
-  Popover,
-  Typography,
-  Divider,
-  Stack,
 } from "@mui/material";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import LockIcon from "@mui/icons-material/Lock";
-import TouchAppIcon from "@mui/icons-material/TouchApp";
-import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import TrasladosHelpButton from "./TrasladosHelpButton";
 
 type Props = {
   idsSeleccionadosLength: number;
@@ -30,27 +26,17 @@ export const ControlesSuperiores: React.FC<Props> = ({
   tienePoliticaTrasladosJefezona = false,
 }) => {
   const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-
-  const handleOpenHelp = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseHelp = () => setAnchorEl(null);
-  const open = Boolean(anchorEl);
 
   return (
     <Box
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         alignItems: "center",
         height: "100%",
         p: 2,
-        flexGrow: 1,
-        minHeight: 0,
+        gap: 9,
 
         // 📱 En pantallas pequeñas: cambia a layout horizontal
         [theme.breakpoints.down("sm")]: {
@@ -62,7 +48,7 @@ export const ControlesSuperiores: React.FC<Props> = ({
         },
       }}
     >
-      {/* 🔹 Icono de ayuda */}
+      {/* 🔹 Botón de Tutorial */}
       <Box
         sx={{
           alignSelf: "flex-end",
@@ -71,46 +57,8 @@ export const ControlesSuperiores: React.FC<Props> = ({
           },
         }}
       >
-        <IconButton
-          size="medium"
-          onClick={handleOpenHelp}
-          sx={{
-            color: "primary.main",
-            backgroundColor: theme.palette.background.paper,
-            boxShadow: 2,
-            mb: 6,
-            "&:hover": {
-              backgroundColor: theme.palette.background.paper,
-              color: theme.palette.primary.main,
-            },
-            transition: "all 0.2s",
-
-            // 📱 Reduce márgenes y tamaño en pantallas pequeñas
-            [theme.breakpoints.down("sm")]: {
-              mb: 0,
-              p: 0.6,
-            },
-          }}
-        >
-          <HelpOutlineIcon
-            fontSize="medium"
-            sx={{
-              [theme.breakpoints.down("sm")]: { fontSize: 24 },
-              fontSize: 24,
-            }}
-          />
-        </IconButton>
+        <TrasladosHelpButton compact />
       </Box>
-
-      {/* 🔹 Espaciador flexible solo en pantallas grandes */}
-      <Box
-        sx={{
-          flexGrow: 3,
-          [theme.breakpoints.down("sm")]: {
-            display: "none",
-          },
-        }}
-      />
 
       {/* 🔹 Botón APROBAR - Ocultar si tiene política TrasladosJefezona */}
       {!tienePoliticaTrasladosJefezona && (
@@ -118,6 +66,7 @@ export const ControlesSuperiores: React.FC<Props> = ({
           variant="contained"
           color="success"
           size="large"
+          data-tour="aprobar"
           onClick={onAbrirDialogoAprobacion}
           disabled={idsSeleccionadosLength === 0 || loading}
           sx={{
@@ -147,113 +96,6 @@ export const ControlesSuperiores: React.FC<Props> = ({
           APROBAR
         </Button>
       )}
-
-      {/* 🔹 Popover de ayuda */}
-      <Popover
-        open={open}
-        anchorEl={anchorEl}
-        onClose={handleCloseHelp}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              p: 2,
-              width: 320,
-              borderRadius: 3,
-              boxShadow: 6,
-              bgcolor: isDark ? "background.paper" : "#fff",
-              border: "1px solid",
-              borderColor: isDark ? "grey.700" : "grey.300",
-              [theme.breakpoints.down("sm")]: {
-                width: "90vw",
-                p: 1.5,
-              },
-            },
-          },
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <LightbulbIcon color="warning" />
-          <Typography
-            variant="h6"
-            fontWeight={700}
-            color="primary"
-            textAlign="center"
-            sx={{
-              [theme.breakpoints.down("sm")]: {
-                fontSize: "1rem",
-              },
-            }}
-          >
-            Guía rápida de aprobación
-          </Typography>
-        </Box>
-
-        <Divider sx={{ mb: 2 }} />
-
-        <Stack spacing={1.5}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <TouchAppIcon color="primary" />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                [theme.breakpoints.down("sm")]: { fontSize: "0.8rem" },
-              }}
-            >
-              Haz clic en los traslados que deseas aprobar para seleccionarlos.
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <CheckCircleIcon color="success" />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                [theme.breakpoints.down("sm")]: { fontSize: "0.8rem" },
-              }}
-            >
-              Pulsa el botón <strong>“Aprobar”</strong> para confirmar.
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <LockIcon color="primary" />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                [theme.breakpoints.down("sm")]: { fontSize: "0.8rem" },
-              }}
-            >
-              Ingresa tu contraseña de Ultra para completar la acción.
-            </Typography>
-          </Box>
-        </Stack>
-
-        <Divider sx={{ my: 1 }} />
-
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          textAlign="center"
-          sx={{
-            fontStyle: "italic",
-            [theme.breakpoints.down("sm")]: { fontSize: "0.8rem" },
-          }}
-        >
-          También puedes usar los filtros o “Seleccionar todo” para agilizar el
-          proceso.
-        </Typography>
-      </Popover>
     </Box>
   );
 };
