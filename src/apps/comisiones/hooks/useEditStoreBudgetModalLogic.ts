@@ -26,7 +26,7 @@ interface UseEditStoreBudgetModalLogicProps {
   onSaveComplete?: () => void;
   selectedMonth?: string;
 }
-
+ 
 export const useEditStoreBudgetModalLogic = ({
   isOpen,
   onSaveComplete,
