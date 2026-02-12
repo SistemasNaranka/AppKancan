@@ -122,6 +122,43 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
   mapeosTienda: TiendaMapeo[],
   tipoArchivo: string
 ): any[] => {
+  // --- FASE 0: Filtrado de filas inválidas (ej. "Prueba RBM" o filas de totales) ---
+  const datosFiltrados = datos.filter((fila) => {
+    const valores = Object.values(fila).map(v => String(v || '').trim());
+
+    // 1. Filtrar "Prueba RBM"
+    const esPruebaRBM = valores.some(v => v.toLowerCase().includes("prueba rbm"));
+
+    // 2. Filtrar filas de "TOTAL" (Suma del archivo original, no es una transacción real)
+    // Buscamos coincidencia EXACTA para evitar borrar "TOTAL SPORT" o similares
+    const esFilaTotal = valores.some(v => v.toUpperCase() === "TOTAL");
+
+    // 3. Filtrar filas "RECHAZADA" o "RECHAZADO" (Normalización básica de espacios)
+    const esRechazada = valores.some(v => {
+      const val = v.toUpperCase().trim();
+      return val === "RECHAZADA" || val === "RECHAZADO" || val.includes("RECHAZADA");
+    });
+
+    if (esPruebaRBM) {
+      console.log("  🚫 Fila ignorada (contiene 'Prueba RBM'):", fila);
+      return false;
+    }
+
+    if (esFilaTotal) {
+      console.log("  🚫 Fila ignorada (es fila de 'TOTAL'):", fila);
+      return false;
+    }
+
+    if (esRechazada) {
+      console.log("  🚫 Fila ignorada (es 'RECHAZADA/O'):", fila);
+      return false;
+    }
+
+    return true;
+  });
+
+  console.log(`ℹ️ Se filtraron ${datos.length - datosFiltrados.length} filas inválidas.`);
+
   // Filtrar solo los mapeos relevantes para este tipo de archivo
   // Intento 1: Filtrar por tipo de archivo específico
   let mapeosRelevantes = mapeosTienda.filter(m => m.archivoOrigen.toLowerCase() === tipoArchivo.toLowerCase());
@@ -138,7 +175,7 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
   if (mapeosRelevantes.length === 0) {
     console.warn(`⚠ No hay NINGÚN mapeo de tiendas configurado en el sistema.`);
-    return datos;
+    return datosFiltrados;
   }
 
   // --- DEBUG: Mostrar primeros 5 mapeos para verificar carga de campos ---
@@ -155,30 +192,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
   let filasMapeadas = 0;
   let filasNoMapeadas = 0;
   const tiendasEncontradas = new Set<string>();
-
-  // --- FASE 0: Filtrado de filas inválidas (ej. "Prueba RBM" o filas de totales) ---
-  const datosFiltrados = datos.filter((fila) => {
-    const valores = Object.values(fila).map(v => String(v || '').trim());
-
-    // 1. Filtrar "Prueba RBM"
-    const esPruebaRBM = valores.some(v => v.toLowerCase().includes("prueba rbm"));
-
-    // 2. Filtrar filas de "TOTAL" (Suma del archivo original, no es una transacción real)
-    // Buscamos coincidencia EXACTA para evitar borrar "TOTAL SPORT" o similares
-    const esFilaTotal = valores.some(v => v.toUpperCase() === "TOTAL");
-
-    if (esPruebaRBM) {
-      console.log("  🚫 Fila ignorada (contiene 'Prueba RBM'):", fila);
-      return false;
-    }
-
-    if (esFilaTotal) {
-      console.log("  🚫 Fila ignorada (es fila de 'TOTAL'):", fila);
-      return false;
-    }
-
-    return true;
-  });
 
   console.log(`ℹ️ Se filtraron ${datos.length - datosFiltrados.length} filas inválidas.`);
 
@@ -265,17 +278,23 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     }
 
     // --- FASE 2: Búsqueda de Coincidencia Parcial (Último recurso) ---
-    if (!tiendaIdEncontrado) {
+    // SOLO ejecutar si NO es un archivo externo genérico.
+    // Para archivos externos, la coincidencia parcial es demasiado arriesgada ("Bancolombia" en una descripción no significa que sea la tienda)
+    if (!tiendaIdEncontrado && tipoArchivo !== "ARCHIVO EXTERNO") {
       for (const columna of Object.keys(fila)) {
         const valor = String(fila[columna] || '').trim();
         // Ignorar celdas con números muy largos o fechas
-        if (!valor || valor.length < 4 || /^\d+$/.test(valor) || valor.includes('-') || valor.includes('/')) continue;
+        if (!valor || valor.length < 5 || /^\d+$/.test(valor) || valor.includes('-') || valor.includes('/')) continue;
+
+        // Ignorar descripciones muy largas que probablemente sean texto libre y no nombres de tienda
+        if (valor.length > 40) continue;
 
         const valorNormalizado = normalizarParaComparacion(valor);
 
         for (const mapeo of mapeosRelevantes) {
           const tiendaNormalizada = normalizarParaComparacion(mapeo.tiendaArchivo);
-          if (tiendaNormalizada.length < 4) continue;
+          // Aumentar estrictez: mínimo 5 caracteres para coincidencia parcial
+          if (tiendaNormalizada.length < 5) continue;
 
           if (valorNormalizado.includes(tiendaNormalizada)) {
             // --- INICIO LÓGICA DE PROTECCIÓN NARANKA (FASE 2) ---
