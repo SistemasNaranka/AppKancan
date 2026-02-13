@@ -222,7 +222,7 @@ export const useResolucionesLogic = () => {
 
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
-      iframe.src = `miempresa://?${params}`;
+      iframe.src = `resoluciones://?${params}`;
       document.body.appendChild(iframe);
       setTimeout(() => document.body.removeChild(iframe), 1000);
 

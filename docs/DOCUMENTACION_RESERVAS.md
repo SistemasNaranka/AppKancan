@@ -267,7 +267,7 @@ export const COLORES_ESTADO: Record<EstadoReserva, string> = {
  * Colores de texto por estado
  */
 export const COLORES_TEXTO_ESTADO: Record<EstadoReserva, string> = {
-  "Vigente": "#5CB6FF",
+  "Vigente": "#004680",
   "En curso": "#41ECB3",
   "Finalizado": "#374151",
   "Cancelado": "#DC2626",
