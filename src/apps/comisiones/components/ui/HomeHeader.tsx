@@ -1,6 +1,11 @@
 import React from "react";
 import { Button, Box } from "@mui/material";
-import { Settings, Person, Store, Assignment as AssignmentIcon } from "@mui/icons-material";
+import {
+  Settings,
+  Person,
+  Store,
+  Assignment as AssignmentIcon,
+} from "@mui/icons-material";
 import { ExportButtons } from "./ExportButtons";
 import { SimpleFilters } from "./SimpleFilters";
 import { SummaryCards } from "../SummaryCards";
@@ -64,9 +69,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
     useUserPolicies();
 
   // 🚀 LOG: Verificar valor de missingDaysCount
-  React.useEffect(() => {
-    console.log(`🏠 [HomeHeader] missingDaysCount = ${missingDaysCount}`);
-  }, [missingDaysCount]);
+  React.useEffect(() => {}, [missingDaysCount]);
 
   // Determinar qué botones están visibles
   const hasVisibleButtons = (() => {
@@ -160,14 +163,25 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                           zIndex: 10,
                           animation: "bounce 2s infinite",
                           "@keyframes bounce": {
-                            "0%, 20%, 50%, 80%, 100%": { transform: "translateX(-50%) translateY(0)" },
-                            "40%": { transform: "translateX(-50%) translateY(-6px)" },
-                            "60%": { transform: "translateX(-50%) translateY(-3px)" },
+                            "0%, 20%, 50%, 80%, 100%": {
+                              transform: "translateX(-50%) translateY(0)",
+                            },
+                            "40%": {
+                              transform: "translateX(-50%) translateY(-6px)",
+                            },
+                            "60%": {
+                              transform: "translateX(-50%) translateY(-3px)",
+                            },
                           },
                         }}
                       >
-                        <AssignmentIcon sx={{ fontSize: 16, color: "#f57c00" }} />
-                        {missingDaysCount} {missingDaysCount === 1 ? 'día pendiente' : 'días pendientes'}
+                        <AssignmentIcon
+                          sx={{ fontSize: 16, color: "#f57c00" }}
+                        />
+                        {missingDaysCount}{" "}
+                        {missingDaysCount === 1
+                          ? "día pendiente"
+                          : "días pendientes"}
                       </Box>
                     )}
 
@@ -193,7 +207,11 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                       }}
                       variant="contained"
                       startIcon={
-                        hasPolicy("readComisionesTienda") ? <Person /> : <Store />
+                        hasPolicy("readComisionesTienda") ? (
+                          <Person />
+                        ) : (
+                          <Store />
+                        )
                       }
                       size="small"
                       sx={{

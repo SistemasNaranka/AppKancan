@@ -16,7 +16,11 @@ import type {
   FiltrosReserva,
 } from "../types/reservas.types";
 import { format } from "date-fns";
-import { calcularEstadoReserva, estaFinalizado, estaCancelado } from "../types/reservas.types";
+import {
+  calcularEstadoReserva,
+  estaFinalizado,
+  estaCancelado,
+} from "../types/reservas.types";
 
 // Campos a traer de cada reserva
 const RESERVATION_FIELDS = [
@@ -114,8 +118,6 @@ export async function getReservas(
 
     // NO filtrar por estado en la BD (se hace después con estado calculado)
 
-  
-
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("reuniones_reservas", {
@@ -126,18 +128,12 @@ export async function getReservas(
       ),
     );
 
-  
-
     // Procesar para calcular estados
     let reservas = procesarReservas(items as Reserva[]);
 
     // Filtrar por estado calculado en el cliente
     if (filtros?.estado) {
       reservas = filtrarPorEstadoCalculado(reservas, filtros.estado);
-      console.log(
-        "✅ getReservas - Después de filtrar por estado:",
-        reservas.length,
-      );
     }
 
     return reservas;
@@ -395,8 +391,8 @@ export async function verificarConflictoHorario(
  */
 export interface ConfiguracionReserva {
   id: number;
-  hora_apertura: string;  // Ej: "08:00:00"
-  hora_cierre: string;    // Ej: "15:00:00"
+  hora_apertura: string; // Ej: "08:00:00"
+  hora_cierre: string; // Ej: "15:00:00"
 }
 
 /**
@@ -410,15 +406,17 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
         readItems("configuracion_reserva", {
           fields: ["id", "hora_apertura", "hora_cierre"],
           limit: 1,
-        })
-      )
+        }),
+      ),
     );
 
     if (items && items.length > 0) {
       return items[0] as ConfiguracionReserva;
     }
-    
-    console.warn("⚠️ No se encontró configuración de reservas, usando valores por defecto");
+
+    console.warn(
+      "⚠️ No se encontró configuración de reservas, usando valores por defecto",
+    );
     return null;
   } catch (error) {
     console.error("❌ Error al cargar configuración de reservas:", error);
@@ -433,7 +431,7 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
 export async function actualizarReservasFinalizadas(): Promise<number> {
   try {
     const ahora = new Date();
-    
+
     // Obtener todas las reservas que NO están canceladas ni finalizadas
     // y cuya fecha/hora final ya pasó
     const items = await withAutoRefresh(() =>
@@ -447,8 +445,8 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
               { fecha: { _lte: format(ahora, "yyyy-MM-dd") } },
             ],
           },
-        })
-      )
+        }),
+      ),
     );
 
     if (items.length === 0) {
@@ -465,20 +463,26 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
       return 0;
     }
 
-    console.log(`🔄 Actualizando ${reservasAFinalizar.length} reservas a Finalizado`);
+    console.log(
+      `🔄 Actualizando ${reservasAFinalizar.length} reservas a Finalizado`,
+    );
 
     // Actualizar cada reserva a "Finalizado"
     const actualizaciones = reservasAFinalizar.map((reserva: any) =>
       withAutoRefresh(() =>
         directus.request(
-          updateItem("reuniones_reservas", reserva.id, { estado: "Finalizado" })
-        )
-      )
+          updateItem("reuniones_reservas", reserva.id, {
+            estado: "Finalizado",
+          }),
+        ),
+      ),
     );
 
     await Promise.all(actualizaciones);
 
-    console.log(`✅ ${reservasAFinalizar.length} reservas actualizadas a Finalizado`);
+    console.log(
+      `✅ ${reservasAFinalizar.length} reservas actualizadas a Finalizado`,
+    );
     return reservasAFinalizar.length;
   } catch (error) {
     console.error("❌ Error al actualizar reservas finalizadas:", error);
