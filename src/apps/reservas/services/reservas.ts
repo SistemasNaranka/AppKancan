@@ -118,8 +118,6 @@ export async function getReservas(
 
     // NO filtrar por estado en la BD (se hace después con estado calculado)
 
-    console.log("🔍 getReservas - Filtros aplicados a BD:", filter);
-
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("reuniones_reservas", {
@@ -413,7 +411,6 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
     );
 
     if (items && items.length > 0) {
-      console.log("✅ Configuración de reservas cargada:", items[0]);
       return items[0] as ConfiguracionReserva;
     }
 

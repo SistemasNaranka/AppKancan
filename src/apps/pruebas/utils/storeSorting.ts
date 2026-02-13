@@ -20,7 +20,6 @@ export const ordenarTiendasPorCodigo = (
         tiendaIdMap.set(mapeo.tiendaNormalizada, mapeo.tiendaId);
     });
 
-    console.log('📋 Mapa de IDs de tiendas:', Object.fromEntries(tiendaIdMap));
 
     // Obtener las tiendas y ordenarlas por ID
     const tiendasOrdenadas = Object.keys(grupos).sort((a, b) => {
@@ -30,7 +29,6 @@ export const ordenarTiendasPorCodigo = (
         return idA - idB; // Orden ascendente
     });
 
-    console.log('🔢 Tiendas ordenadas por ID:');
     tiendasOrdenadas.forEach(tienda => {
         const id = tiendaIdMap.get(tienda);
         console.log(`  ${id ? `[${id}]` : '[SIN ID]'} ${tienda}`);
