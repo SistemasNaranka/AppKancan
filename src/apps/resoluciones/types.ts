@@ -8,6 +8,7 @@ export type EstadoResolucion =
 // Interfaz principal de una resolución
 export interface Resolucion {
   id: number;
+  id_ultra?: number;
   numero_formulario: string;
   razon_social: string;
   prefijo: string;
@@ -22,6 +23,6 @@ export interface Resolucion {
   tienda_nombre: string;
   ente_facturador: string;
   empresa: string;
-  facturas_disponibles: number;
-  facturas_restantes: number; // hasta_numero - ultima_factura
+  facturas_disponibles?: number;
+  facturas_restantes?: number; // hasta_numero - ultima_factura
 }

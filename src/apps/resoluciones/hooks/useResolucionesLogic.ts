@@ -193,17 +193,25 @@ export const useResolucionesLogic = () => {
       empresa = "kancanjeans";
     }
 
+    // Formatear fecha: quitar guiones para enviar solo números
+    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
+      /-/g,
+      "",
+    );
+
+    // Parámetros en el orden correcto según actualizarResolucion.exe
     const params = [
-      `resolucion=${resolucionSeleccionada.numero_formulario}`,
-      `empresa=${empresa}`,
-      `prefijo=${resolucionSeleccionada.prefijo}`,
-      `desde=${resolucionSeleccionada.desde_numero}`,
-      `hasta=${resolucionSeleccionada.hasta_numero}`,
-      `fecha=${resolucionSeleccionada.fecha_creacion}`,
-      `vigencia=${resolucionSeleccionada.vigencia}`,
-      `motivo=${resolucionSeleccionada.tipo_solicitud}`,
-      `enteFacturador=Principal`,
-    ].join("&");
+      `caja:${resolucionSeleccionada.id_ultra || 0}`,
+      `prefijo:${resolucionSeleccionada.prefijo}`,
+      `resolucion:${resolucionSeleccionada.numero_formulario}`,
+      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
+      `desde:${resolucionSeleccionada.desde_numero}`,
+      `hasta:${resolucionSeleccionada.hasta_numero}`,
+      `fecha:${fechaSoloNumeros}`,
+      `vigencia:${resolucionSeleccionada.vigencia}`,
+      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
+      `empresa:${empresa}`,
+    ].join(" ");
 
     setMostrarConfirmacion(false);
 
@@ -222,7 +230,7 @@ export const useResolucionesLogic = () => {
 
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
-      iframe.src = `miempresa://?${params}`;
+      iframe.src = `resoluciones://?${params}`;
       document.body.appendChild(iframe);
       setTimeout(() => document.body.removeChild(iframe), 1000);
 

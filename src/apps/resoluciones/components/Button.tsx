@@ -3,10 +3,11 @@ import { Button as MuiButton } from "@mui/material";
 
 interface ButtonProps {
   texto: string;
-  onClick: () => void;
+  onClick?: () => void | Promise<void>;
   variante?: "primario" | "secundario" | "peligro";
   disabled?: boolean;
   icono?: React.ReactNode;
+  href?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -15,6 +16,7 @@ const Button: React.FC<ButtonProps> = ({
   variante = "primario",
   disabled = false,
   icono,
+  href,
 }) => {
   const obtenerEstilo = () => {
     switch (variante) {
@@ -61,6 +63,7 @@ const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       startIcon={icono}
+      href={href}
       size="small"
       sx={{
         ...obtenerEstilo(),
