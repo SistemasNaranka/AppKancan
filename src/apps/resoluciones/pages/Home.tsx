@@ -232,6 +232,7 @@ const ResolucionesHome = () => {
             />
             <Button
               texto="Integrar"
+              href="resoluciones://"
               variante="primario"
               onClick={confirmarIntegracion}
             />
