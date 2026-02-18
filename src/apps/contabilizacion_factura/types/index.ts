@@ -138,14 +138,104 @@ export enum EstadoFactura {
 
 // ============ UTILIDADES ============
 
+// Lista de códigos de moneda ISO 4217 más comunes
+const CODIGOS_MONEDA_VALIDOS = [
+  "EUR",
+  "USD",
+  "COP",
+  "MXN",
+  "ARS",
+  "CLP",
+  "PEN",
+  "BRL",
+  "GBP",
+  "JPY",
+  "CAD",
+  "AUD",
+  "CHF",
+  "CNY",
+  "INR",
+  "KRW",
+  "VEF",
+  "CRC",
+  "DOP",
+  "GTQ",
+  "HNL",
+  "NIO",
+  "PAB",
+  "PYG",
+  "UYU",
+  "BOB",
+  "SVC",
+];
+
+// Mapa de nombres comunes a códigos ISO
+const MAPA_MONEDAS: Record<string, string> = {
+  pesos: "COP",
+  peso: "COP",
+  "pesos colombianos": "COP",
+  "peso colombiano": "COP",
+  dolares: "USD",
+  dolar: "USD",
+  dólares: "USD",
+  dólar: "USD",
+  euros: "EUR",
+  euro: "EUR",
+  bolivares: "VES",
+  bolívar: "VES",
+  soles: "PEN",
+  sol: "PEN",
+  "pesos mexicanos": "MXN",
+  "peso mexicano": "MXN",
+};
+
+/**
+ * Normaliza un código de moneda a un código ISO 4217 válido
+ */
+function normalizarMoneda(currency: string): string {
+  if (!currency) return "COP"; // Default para Colombia
+
+  const upperCurrency = currency.toUpperCase().trim();
+
+  // Si ya es un código ISO válido, usarlo
+  if (CODIGOS_MONEDA_VALIDOS.includes(upperCurrency)) {
+    return upperCurrency;
+  }
+
+  // Buscar en el mapa de nombres comunes
+  const lowerCurrency = currency.toLowerCase().trim();
+  if (MAPA_MONEDAS[lowerCurrency]) {
+    return MAPA_MONEDAS[lowerCurrency];
+  }
+
+  // Buscar coincidencia parcial en el mapa
+  for (const [nombre, codigo] of Object.entries(MAPA_MONEDAS)) {
+    if (lowerCurrency.includes(nombre) || nombre.includes(lowerCurrency)) {
+      return codigo;
+    }
+  }
+
+  // Default a COP si no se reconoce
+  console.warn(`Moneda no reconocida "${currency}", usando COP como default`);
+  return "COP";
+}
+
 export function formatCurrency(
   amount: number,
-  currency: string = "EUR",
+  currency: string = "COP",
 ): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: currency,
-  }).format(amount);
+  const monedaNormalizada = normalizarMoneda(currency);
+  try {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: monedaNormalizada,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    // Fallback si aún falla
+    return `${amount.toLocaleString("es-CO")} ${monedaNormalizada}`;
+  }
 }
 
 export function formatDate(dateString: string): string {

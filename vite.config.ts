@@ -21,6 +21,7 @@ export default defineConfig({
       "react-router-dom",
       "@emotion/react",
       "@emotion/styled",
+      "ollama",
     ],
   },
   build: {

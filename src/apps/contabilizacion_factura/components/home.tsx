@@ -1009,7 +1009,9 @@ function OllamaConfigPanel({
           <InputLabel id="modelo-select-label">Modelo de Visión</InputLabel>
           <Select
             labelId="modelo-select-label"
-            value={modeloActual}
+            value={
+              modelosDisponibles.includes(modeloActual) ? modeloActual : ""
+            }
             label="Modelo de Visión"
             onChange={(e) => onModeloChange(e.target.value)}
             disabled={
@@ -1023,20 +1025,21 @@ function OllamaConfigPanel({
               ) : null
             }
           >
-            {modelosDisponibles.length === 0 && !cargandoModelos && (
+            {modelosDisponibles.length === 0 && !cargandoModelos ? (
               <MenuItem disabled value="">
                 <Typography variant="body2" color="text.secondary">
                   No hay modelos disponibles
                 </Typography>
               </MenuItem>
+            ) : (
+              modelosDisponibles.map((modelo) => (
+                <MenuItem key={modelo} value={modelo}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2">{modelo}</Typography>
+                  </Box>
+                </MenuItem>
+              ))
             )}
-            {modelosDisponibles.map((modelo) => (
-              <MenuItem key={modelo} value={modelo}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Typography variant="body2">{modelo}</Typography>
-                </Box>
-              </MenuItem>
-            ))}
           </Select>
         </FormControl>
       </Box>

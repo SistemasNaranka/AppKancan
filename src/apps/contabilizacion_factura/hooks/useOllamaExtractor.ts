@@ -1,22 +1,21 @@
 /**
  * Hook para extracción de datos de facturas PDF usando Ollama IA
  * Convierte el PDF a imagen y usa un modelo de visión para extraer datos
+ * Usa la librería oficial de Ollama para JavaScript
  */
 
 import { useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
-import { Ollama } from "ollama";
+import ollama from "ollama/browser";
 import { DatosFacturaPDF, ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
 
-// Configurar worker de pdfjs-dist
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-
-// Configuración del modelo Ollama
-const MODELO_OLLAMA = "gemini-3-flash-preview:latest"; // Modelo de visión por defecto
-// Alternativas: 'llava:latest', 'bakllava:latest', 'moondream:latest'
+// Configurar worker de pdfjs-dist usando el worker del paquete
+// @ts-ignore - Vite manejará la importación del worker
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 // Prompt para extracción de datos de factura
-const PROMPT_EXTRACCION = `Analiza esta factura y extrae la siguitente información en formato JSON:
+const PROMPT_EXTRACCION = `Analiza esta factura y extrae la siguiente información en formato JSON:
 {
     "nit_proveedor": "NIT o identificación fiscal del proveedor",
     "numero_factura": "Número de factura",
@@ -25,7 +24,7 @@ const PROMPT_EXTRACCION = `Analiza esta factura y extrae la siguitente informaci
     "nombre_proveedor": "Nombre o razón social del proveedor",
     "subtotal": "Subtotal antes de impuestos (solo el número)",
     "impuestos": "Valor de impuestos (solo el número)",
-    "moneda": "Código de moneda (ej: COP, EUR, USD)"
+    "moneda": "Código de moneda ISO (ej: COP, EUR, USD)"
 }
 
 IMPORTANTE:
@@ -55,7 +54,7 @@ export function useOllamaExtractor() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<ErrorProcesamientoPDF | null>(null);
   const [progress, setProgress] = useState(0);
-  const [modeloActual, setModeloActual] = useState<string>(MODELO_OLLAMA);
+  const [modeloActual, setModeloActual] = useState<string>("");
 
   /**
    * Convierte una página del PDF a imagen (base64)
@@ -178,18 +177,21 @@ export function useOllamaExtractor() {
         }
         setProgress(10);
 
-        // Paso 3: Convertir PDF a imagen
+        // Paso 3: Verificar que hay un modelo seleccionado
+        if (!modeloActual) {
+          throw createError(
+            "error_desconocido",
+            "No hay un modelo seleccionado. Por favor, selecciona un modelo de visión de Ollama.",
+          );
+        }
         setProgress(15);
+
+        // Paso 4: Convertir PDF a imagen
+        setProgress(20);
         const { base64, numPages } = await convertPDFToImage(file);
         setProgress(40);
 
-        // Paso 4: Configurar cliente Ollama
-        const ollama = new Ollama({
-          host: "http://127.0.0.1:11434", // Host local por defecto
-        });
-        setProgress(45);
-
-        // Paso 5: Enviar a Ollama para procesamiento
+        // Paso 5: Enviar a Ollama para procesamiento usando la librería oficial
         setProgress(50);
 
         let response: string;
@@ -208,7 +210,8 @@ export function useOllamaExtractor() {
               ? ollamaError.message
               : "Error desconocido";
           if (
-            errorMsg.includes("connection") ||
+            errorMsg.includes("Failed to fetch") ||
+            errorMsg.includes("NetworkError") ||
             errorMsg.includes("ECONNREFUSED")
           ) {
             throw createError(
@@ -310,10 +313,10 @@ export function useOllamaExtractor() {
    */
   const getModelosDisponibles = useCallback(async (): Promise<string[]> => {
     try {
-      const ollama = new Ollama({ host: "http://127.0.0.1:11434" });
       const response = await ollama.list();
       return response.models.map((m) => m.name);
-    } catch {
+    } catch (error) {
+      console.warn("Error al obtener modelos de Ollama:", error);
       return [];
     }
   }, []);
