@@ -230,7 +230,7 @@ export const useResolucionesLogic = () => {
 
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
-      iframe.src = `resoluciones://?${params}`;
+      iframe.src = `empresa://?${params}`;
       document.body.appendChild(iframe);
       setTimeout(() => document.body.removeChild(iframe), 1000);
 
