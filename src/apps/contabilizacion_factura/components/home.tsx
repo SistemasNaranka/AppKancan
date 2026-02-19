@@ -42,10 +42,14 @@ import {
   Description,
   AttachMoney,
   CalendarToday,
+  EventBusy,
   Store,
   Receipt,
   PlayArrow,
   SmartToy,
+  FilePresent,
+  MonetizationOn,
+  Inventory,
 } from "@mui/icons-material";
 import { useOllamaExtractor } from "../hooks/useOllamaExtractor";
 import {
@@ -85,21 +89,45 @@ const PROTOCOLO_EMPRESA = "empresa://";
 /**
  * Ejecuta el programa corporativo usando el protocolo URI registrado
  * El protocolo llama a un VBS que ejecuta el .exe
+ * 
+ * Parámetros que se envían al programa corporativo:
+ * - numero: Número de factura
+ * - serie: Serie de la factura
+ * - fechaEmision: Fecha de emisión de la factura
+ * - fechaVencimiento: Fecha de vencimiento de la factura
+ * - proveedor: Nombre del proveedor
+ * - proveedorNif: NIF/CIF del proveedor
+ * - total: Monto total de la factura
  */
 function ejecutarActualizarResolucion(datosFactura?: DatosFacturaPDF | null) {
-  // Construir la URI (por ahora sin parámetros)
-  // Cuando contabilidad dé los parámetros, se pueden agregar así:
-  // const uri = `${PROTOCOLO_EMPRESA}${datosFactura?.numeroFactura}`;
-  const uri = PROTOCOLO_EMPRESA;
+  if (!datosFactura) {
+    alert("No hay datos de factura para actualizar");
+    return;
+  }
 
-  // Ejecutar el protocolo
-  window.location.href = "empresa://";
+  // Construir los parámetros de la factura
+  const params = new URLSearchParams({
+    numero: datosFactura.numeroFactura,
+    serie: datosFactura.serie || "",
+    fechaEmision: datosFactura.fechaEmision,
+    fechaVencimiento: datosFactura.fechaVencimiento || "",
+    proveedor: datosFactura.proveedor.nombre,
+    proveedorNif: datosFactura.proveedor.nif || "",
+    total: datosFactura.total.toString(),
+    moneda: datosFactura.moneda,
+  });
+
+  // Construir el URI del protocolo con los parámetros
+  const uri = `${PROTOCOLO_EMPRESA}actualizar?${params.toString()}`;
+  
+  console.log("Ejecutando protocolo con parámetros:", uri);
+  window.location.href = uri;
 }
 
 // ============ COMPONENTES AUXILIARES ============
 
 /**
- * Componente de área de carga de archivos con drag-and-drop
+ * Componente de área de carga de archivos con drag-and-drop - Moderno
  */
 function FileUploadArea({
   onFileSelected,
@@ -189,7 +217,7 @@ function FileUploadArea({
   }, []);
 
   return (
-    <Box>
+    <Box sx={{ backgroundColor: "transparent" }}>
       <input
         ref={fileInputRef}
         type="file"
@@ -206,18 +234,18 @@ function FileUploadArea({
         onDrop={handleDrop}
         sx={{
           border: "2px dashed",
-          borderColor: isDragOver ? "primary.main" : "grey.300",
-          backgroundColor: isDragOver ? "primary.50" : "grey.50",
-          borderRadius: 3,
-          p: { xs: 3, sm: 5, md: 6 },
+          borderColor: isDragOver ? "#004680" : "#e0e0e0",
+          backgroundColor: isDragOver ? "#f0f7ff" : "#fafafa",
+          borderRadius: 2,
+          p: { xs: 4, sm: 6, md: 8 },
           textAlign: "center",
           cursor: isProcessing ? "not-allowed" : "pointer",
-          transition: "all 0.3s ease",
+          transition: "all 0.2s ease",
           position: "relative",
           overflow: "hidden",
           "&:hover": {
-            borderColor: isProcessing ? "grey.300" : "primary.main",
-            backgroundColor: isProcessing ? "grey.50" : "primary.50",
+            borderColor: isProcessing ? "#e0e0e0" : "#004680",
+            backgroundColor: isProcessing ? "#fafafa" : "#f5f9ff",
           },
         }}
       >
@@ -236,11 +264,12 @@ function FileUploadArea({
               variant="determinate"
               value={progress}
               sx={{
-                height: 4,
+                height: 3,
                 borderRadius: 0,
                 backgroundColor: "transparent",
                 "& .MuiLinearProgress-bar": {
                   borderRadius: 0,
+                  backgroundColor: "#004680",
                 },
               }}
             />
@@ -252,31 +281,34 @@ function FileUploadArea({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 2,
-            opacity: isProcessing ? 0.7 : 1,
+            gap: 2.5,
+            opacity: isProcessing ? 0.6 : 1,
           }}
         >
-          {/* Icono principal */}
+          {/* Icono principal - Modern circular design */}
           <Box
             sx={{
-              width: { xs: 64, sm: 80 },
-              height: { xs: 64, sm: 80 },
-              borderRadius: "50%",
+              width: 88,
+              height: 88,
+              borderRadius: "16px",
               background: isDragOver
-                ? "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)"
-                : "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
+                ? "linear-gradient(135deg, #004680 0%, #0066b3 100%)"
+                : "linear-gradient(135deg, #f0f4f8 0%, #e3e8ed 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              transition: "all 0.3s ease",
-              transform: isDragOver ? "scale(1.1)" : "scale(1)",
+              transition: "all 0.2s ease",
+              transform: isDragOver ? "scale(1.05)" : "scale(1)",
+              boxShadow: isDragOver 
+                ? "0 8px 24px rgba(0, 70, 128, 0.25)" 
+                : "0 2px 8px rgba(0, 0, 0, 0.08)",
             }}
           >
             {isProcessing ? (
               <Refresh
                 sx={{
-                  fontSize: { xs: 36, sm: 44 },
-                  color: "primary.main",
+                  fontSize: 40,
+                  color: "#004680",
                   animation: "spin 1s linear infinite",
                   "@keyframes spin": {
                     "0%": { transform: "rotate(0deg)" },
@@ -287,8 +319,8 @@ function FileUploadArea({
             ) : (
               <CloudUpload
                 sx={{
-                  fontSize: { xs: 36, sm: 44 },
-                  color: "primary.main",
+                  fontSize: 40,
+                  color: "#004680",
                 }}
               />
             )}
@@ -301,7 +333,7 @@ function FileUploadArea({
               component="h2"
               sx={{
                 fontWeight: 600,
-                color: "text.primary",
+                color: "#1a1a1a",
                 mb: 1,
                 fontSize: { xs: "1.25rem", sm: "1.5rem" },
               }}
@@ -313,21 +345,20 @@ function FileUploadArea({
             <Typography
               variant="body1"
               color="text.secondary"
-              sx={{ mb: 2, fontSize: { xs: "0.9rem", sm: "1rem" } }}
+              sx={{ mb: 2, fontSize: { xs: "0.9rem", sm: "1rem" }, color: "#666" }}
             >
               Arrastra y suelta el archivo aquí o haz clic para seleccionar
             </Typography>
             <Typography
               variant="caption"
-              color="text.secondary"
               sx={{
-                display: "block",
-                backgroundColor: "grey.100",
+                display: "inline-block",
+                backgroundColor: "#f0f0f0",
                 px: 2,
-                py: 0.5,
+                py: 0.75,
                 borderRadius: 1,
-                mx: "auto",
-                maxWidth: 300,
+                fontSize: "0.75rem",
+                color: "#666",
               }}
             >
               Formato: PDF • Máximo: {MAX_FILE_SIZE_MB}MB
@@ -342,16 +373,19 @@ function FileUploadArea({
               onClick={handleButtonClick}
               startIcon={<PictureAsPdf />}
               sx={{
-                mt: 2,
-                px: 4,
-                py: 1.2,
-                borderRadius: 2,
+                mt: 1,
+                px: 5,
+                py: 1.5,
+                borderRadius: 1.5,
                 textTransform: "none",
                 fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
+                fontSize: "0.95rem",
+                backgroundColor: "#004680",
+                boxShadow: "0 4px 12px rgba(0, 70, 128, 0.25)",
                 "&:hover": {
-                  boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
-                  transform: "translateY(-2px)",
+                  backgroundColor: "#003d66",
+                  boxShadow: "0 6px 16px rgba(0, 70, 128, 0.35)",
+                  transform: "translateY(-1px)",
                 },
                 transition: "all 0.2s ease",
               }}
@@ -367,7 +401,7 @@ function FileUploadArea({
         <Fade in={!!dragError}>
           <Alert
             severity="error"
-            sx={{ mt: 2, borderRadius: 2 }}
+            sx={{ mt: 2, borderRadius: 1.5 }}
             onClose={() => setDragError(null)}
           >
             {dragError}
@@ -380,371 +414,319 @@ function FileUploadArea({
 
 /**
  * Componente para mostrar información de la factura extraída
+ * Diseño limpio tipo tarjeta según imagen de referencia
  */
 function InvoiceInfoCard({ datosFactura }: { datosFactura: DatosFacturaPDF }) {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header con información general */}
-      <Card
-        elevation={0}
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: 2,
+        border: "1px solid #e8eaed",
+        boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
+        overflow: "hidden",
+      }}
+    >
+      {/* ── Cabecera: Factura | Fecha ── PDF filename ── */}
+      <Box
         sx={{
-          borderRadius: 3,
-          border: "1px solid",
-          borderColor: "grey.200",
-          overflow: "hidden",
+          display: "flex",
+          backgroundColor: "#E8F0FE",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 3,
+          py: 1.75,
+          borderBottom: "1px solid #e8eaed",
+          flexWrap: "wrap",
+          gap: 1,
         }}
       >
-        <Box
-          sx={{
-            background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
-            p: { xs: 2, sm: 3 },
-            color: "white",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-            gap: 2,
-          }}
-        >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0 }}>
+          <CalendarToday sx={{ fontSize: 15, color: "#888", mr: 0.75 }} />
+          <Typography variant="body2" sx={{ color: "#555" }}>
+            <strong> FECHA EMISIÓN: </strong>{formatDate(datosFactura.fechaEmision)}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0 }}>
+          <EventBusy sx={{ fontSize: 15, color: "#888", mr: 0.75 }} />
+           <Typography variant="body2" sx={{ color: "#555" }}>
+            <strong> FECHA VENCIMIENTO: </strong> {formatDate(datosFactura.fechaVencimiento)}
+          </Typography>
+        </Box>
+
+        {datosFactura.archivo?.nombre && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75,}}>
+            <Description sx={{ fontSize: 15, color: "#888" }} />
+            <Typography
+              variant="body2"
+              sx={{ color: "#666", fontSize: "0.8rem", fontFamily: "monospace" }}
+            >
+              {datosFactura.archivo.nombre}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
+      {/* ── Sección proveedor ── */}
+      <Box sx={{ px: 3, py: 2.5, borderBottom: "1px solid #e8eaed" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {/* Ícono empresa */}
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: "12px",
+              backgroundColor: "#e8f0fe",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Store sx={{ fontSize: 24, color: "#004680" }} />
+          </Box>
+
           <Box>
             <Typography
               variant="overline"
-              sx={{ opacity: 0.8, fontSize: "0.75rem" }}
+              sx={{ color: "#888", fontSize: "0.65rem", letterSpacing: 1.2, lineHeight: 1.2, display: "block" }}
             >
-              Factura
+              Proveedor
             </Typography>
             <Typography
-              variant="h4"
-              component="h3"
-              sx={{
-                fontWeight: 700,
-                fontSize: { xs: "1.5rem", sm: "2rem" },
-              }}
+              variant="h6"
+              sx={{ fontWeight: 700, color: "#1a1a1a", lineHeight: 1.3, fontSize: "1.15rem" }}
             >
-              {datosFactura.numeroFactura || "Sin número"}
+              {datosFactura.proveedor.nombre}
             </Typography>
-          </Box>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 1,
-              flexWrap: "wrap",
-            }}
-          >
-            <Chip
-              icon={
-                <CalendarToday
-                  sx={{ color: "inherit !important", fontSize: 16 }}
-                />
-              }
-              label={`Emisión: ${formatDate(datosFactura.fechaEmision)}`}
-              sx={{
-                backgroundColor: "rgba(255,255,255,0.2)",
-                color: "white",
-                backdropFilter: "blur(4px)",
-              }}
-              size="small"
-            />
-            {datosFactura.fechaVencimiento && (
-              <Chip
-                icon={
-                  <CalendarToday
-                    sx={{ color: "inherit !important", fontSize: 16 }}
-                  />
-                }
-                label={`Vence: ${formatDate(datosFactura.fechaVencimiento)}`}
-                sx={{
-                  backgroundColor: "rgba(255,255,255,0.2)",
-                  color: "white",
-                  backdropFilter: "blur(4px)",
-                }}
-                size="small"
-              />
-            )}
-          </Box>
-        </Box>
-
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-              gap: 3,
-            }}
-          >
-            {/* Proveedor */}
-            <Box>
+            {/* Badges: Factura + NIF */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5, flexWrap: "wrap" }}>
+              {/* Badge Factura */}
               <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  backgroundColor: "#f0f4f8",
+                  borderRadius: "6px",
+                  px: 1.25,
+                  py: 0.35,
+                  border: "1px solid #e0e6ef",
+                }}
               >
-                <Store sx={{ fontSize: 20, color: "primary.main" }} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  Proveedor
+                <Typography variant="caption" sx={{ color: "#444", fontWeight: 600, fontSize: "0.75rem" }}>
+                  Factura&nbsp;
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#004680", fontWeight: 800, fontSize: "0.75rem" }}>
+                  {datosFactura.numeroFactura || "Sin número"}
                 </Typography>
               </Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                {datosFactura.proveedor.nombre}
-              </Typography>
+
+              {/* Badge NIF */}
               {datosFactura.proveedor.nif && (
-                <Typography variant="body2" color="text.secondary">
-                  NIF: {datosFactura.proveedor.nif}
-                </Typography>
+                <Box
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    backgroundColor: "#f0f4f8",
+                    borderRadius: "6px",
+                    px: 1.25,
+                    py: 0.35,
+                    border: "1px solid #e0e6ef",
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: "#444", fontWeight: 600, fontSize: "0.75rem" }}>
+                    NIF&nbsp;
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#1a1a1a", fontWeight: 700, fontSize: "0.75rem" }}>
+                    {datosFactura.proveedor.nif}
+                  </Typography>
+                </Box>
               )}
             </Box>
-
-            {/* Archivo */}
-            <Box>
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}
-              >
-                <PictureAsPdf sx={{ fontSize: 20, color: "error.main" }} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  Archivo origen
-                </Typography>
-              </Box>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                {datosFactura.archivo.nombre}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {formatFileSize(datosFactura.archivo.tamaño)} • Cargado:{" "}
-                {formatDate(datosFactura.archivo.fechaCarga)}
-              </Typography>
-            </Box>
           </Box>
-        </CardContent>
-      </Card>
+        </Box>
+      </Box>
 
-      {/* Tabla de conceptos */}
+      {/* ── Conceptos (si existen) ── */}
       {datosFactura.conceptos.length > 0 && (
-        <Card
-          elevation={0}
-          sx={{
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "grey.200",
-          }}
-        >
-          <Box sx={{ p: { xs: 2, sm: 3 }, pb: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Receipt sx={{ fontSize: 20, color: "primary.main" }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Conceptos
-              </Typography>
-              <Chip
-                label={`${datosFactura.conceptos.length} items`}
-                size="small"
-                sx={{ ml: "auto" }}
-              />
-            </Box>
+        <Box sx={{ borderBottom: "1px solid #e8eaed" }}>
+          <Box sx={{ px: 3, py: 1.5, borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: 1 }}>
+            <Receipt sx={{ fontSize: 16, color: "#004680" }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#1a1a1a" }}>
+              Conceptos
+            </Typography>
+            <Chip
+              label={`${datosFactura.conceptos.length} items`}
+              size="small"
+              sx={{ ml: "auto", backgroundColor: "#f0f4f8", color: "#004680", fontWeight: 600, fontSize: "0.7rem", height: 22 }}
+            />
           </Box>
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ backgroundColor: "grey.50" }}>
-                  <TableCell sx={{ fontWeight: 600 }}>Descripción</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600 }}>
-                    Cant.
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600 }}>
-                    P. Unit.
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600 }}>
-                    Importe
-                  </TableCell>
+                <TableRow sx={{ backgroundColor: "#fafafa" }}>
+                  <TableCell sx={{ fontWeight: 600, color: "#888", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, py: 1.25, borderBottom: "1px solid #eee" }}>Descripción</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, color: "#888", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, py: 1.25, borderBottom: "1px solid #eee" }}>Cant.</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, color: "#888", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, py: 1.25, borderBottom: "1px solid #eee" }}>P. Unit.</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, color: "#888", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, py: 1.25, borderBottom: "1px solid #eee" }}>Importe</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {datosFactura.conceptos.map((concepto, index) => (
-                  <TableRow
-                    key={index}
-                    sx={{
-                      "&:nth-of-type(odd)": { backgroundColor: "transparent" },
-                      "&:hover": { backgroundColor: "grey.50" },
-                    }}
-                  >
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {concepto.descripcion}
-                      </Typography>
+                  <TableRow key={index} sx={{ "&:hover": { backgroundColor: "#f8fafc" } }}>
+                    <TableCell sx={{ py: 1.25 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: "#1a1a1a" }}>{concepto.descripcion}</Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2">
-                        {concepto.cantidad.toLocaleString("es-ES")}
-                      </Typography>
+                    <TableCell align="right" sx={{ py: 1.25 }}>
+                      <Typography variant="body2" sx={{ color: "#555" }}>{concepto.cantidad.toLocaleString("es-ES")}</Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2">
-                        {formatCurrency(
-                          concepto.precioUnitario,
-                          datosFactura.moneda,
-                        )}
-                      </Typography>
+                    <TableCell align="right" sx={{ py: 1.25 }}>
+                      <Typography variant="body2" sx={{ color: "#555" }}>{formatCurrency(concepto.precioUnitario, datosFactura.moneda)}</Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatCurrency(concepto.importe, datosFactura.moneda)}
-                      </Typography>
+                    <TableCell align="right" sx={{ py: 1.25 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a1a1a" }}>{formatCurrency(concepto.importe, datosFactura.moneda)}</Typography>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
-        </Card>
+        </Box>
       )}
 
-      {/* Totales e impuestos */}
-      <Card
-        elevation={0}
+      {/* ── Impuestos + Resumen ── */}
+      <Box
         sx={{
-          borderRadius: 3,
-          border: "1px solid",
-          borderColor: "grey.200",
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
         }}
       >
+        {/* Desglose de impuestos */}
         <Box
           sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-            gap: 0,
+            p: 3,
+            borderRight: { md: "1px solid #e8eaed" },
+            borderBottom: { xs: "1px solid #e8eaed", md: "none" },
           }}
         >
-          {/* Desglose de impuestos */}
-          <Box
-            sx={{
-              p: { xs: 2, sm: 3 },
-              borderRight: { md: "1px solid" },
-              borderColor: "grey.200",
-            }}
-          >
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-              Desglose de Impuestos
-            </Typography>
-            {datosFactura.impuestos.length > 0 ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                {datosFactura.impuestos.map((impuesto, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      py: 1,
-                      borderBottom:
-                        index < datosFactura.impuestos.length - 1
-                          ? "1px solid"
-                          : "none",
-                      borderColor: "grey.100",
-                    }}
-                  >
-                    <Typography variant="body2" color="text.secondary">
-                      Base imponible ({impuesto.tipo}%)
-                    </Typography>
-                    <Typography variant="body2">
-                      {formatCurrency(impuesto.base, datosFactura.moneda)}
-                    </Typography>
-                  </Box>
-                ))}
-                {datosFactura.impuestos.map((impuesto, index) => (
-                  <Box
-                    key={`iva-${index}`}
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      py: 1,
-                    }}
-                  >
-                    <Typography variant="body2" color="text.secondary">
-                      IVA {impuesto.tipo}%
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(impuesto.importe, datosFactura.moneda)}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No se detectaron impuestos
-              </Typography>
-            )}
-          </Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#1a1a1a", mb: 2 }}>
+            Desglose de Impuestos
+          </Typography>
 
-          {/* Totales */}
-          <Box sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-              Resumen
+          {datosFactura.impuestos.length > 0 ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {datosFactura.impuestos.map((impuesto, index) => (
+                <Box
+                  key={`base-${index}`}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    py: 1.25,
+                    borderBottom: "1px solid #f0f0f0",
+                  }}
+                >
+                  <Typography variant="body2" sx={{ color: "#666" }}>
+                    Base imponible ({impuesto.tipo}%)
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a1a1a" }}>
+                    {formatCurrency(impuesto.base, datosFactura.moneda)}
+                  </Typography>
+                </Box>
+              ))}
+              {datosFactura.impuestos.map((impuesto, index) => (
+                <Box
+                  key={`iva-${index}`}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    py: 1.25,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ color: "#666" }}>
+                    IVA {impuesto.tipo}%
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a1a1a" }}>
+                    {formatCurrency(impuesto.importe, datosFactura.moneda)}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="body2" sx={{ color: "#aaa", fontStyle: "italic" }}>
+              No se detectaron impuestos
             </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  py: 1,
-                  borderBottom: "1px solid",
-                  borderColor: "grey.100",
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  Subtotal
-                </Typography>
-                <Typography variant="body2">
-                  {formatCurrency(datosFactura.subtotal, datosFactura.moneda)}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  py: 1,
-                  borderBottom: "1px solid",
-                  borderColor: "grey.100",
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  Total Impuestos
-                </Typography>
-                <Typography variant="body2">
-                  {formatCurrency(
-                    datosFactura.totalImpuestos,
-                    datosFactura.moneda,
-                  )}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  py: 2,
-                  backgroundColor: "primary.50",
-                  px: 2,
-                  mx: -2,
-                  borderRadius: 2,
-                  mt: 1,
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: "primary.main" }}
-                >
-                  TOTAL
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: "primary.main" }}
-                >
-                  {formatCurrency(datosFactura.total, datosFactura.moneda)}
-                </Typography>
-              </Box>
+          )}
+        </Box>
+
+        {/* Resumen */}
+        <Box sx={{ p: 3 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#1a1a1a", mb: 2 }}>
+            Resumen
+          </Typography>
+
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                py: 1.25,
+                borderBottom: "1px solid #f0f0f0",
+              }}
+            >
+              <Typography variant="body2" sx={{ color: "#666" }}>Subtotal</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a1a1a" }}>
+                {formatCurrency(datosFactura.subtotal, datosFactura.moneda)}
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                py: 1.25,
+                borderBottom: "1px solid #f0f0f0",
+              }}
+            >
+              <Typography variant="body2" sx={{ color: "#666" }}>Total Impuestos</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a1a1a" }}>
+                {formatCurrency(datosFactura.totalImpuestos, datosFactura.moneda)}
+              </Typography>
+            </Box>
+
+            {/* TOTAL - fondo azul claro */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                py: 1.5,
+                px: 2,
+                mt: 1.5,
+                backgroundColor: "#e8f0fe",
+                borderRadius: "10px",
+              }}
+            >
+              <Typography variant="body1" sx={{ fontWeight: 700, color: "#1a1a1a" }}>
+                TOTAL
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: "#004680", fontSize: "1.25rem" }}>
+                {formatCurrency(datosFactura.total, datosFactura.moneda)}
+              </Typography>
             </Box>
           </Box>
         </Box>
-      </Card>
-    </Box>
+      </Box>
+    </Card>
   );
 }
 
 /**
- * Componente de feedback visual durante el procesamiento
+ * Componente de feedback visual durante el procesamiento - Moderno
  */
 function ProcessingFeedback({
   message,
@@ -759,16 +741,16 @@ function ProcessingFeedback({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 2,
-        py: 4,
+        gap: 3,
+        py: 5,
       }}
     >
       <Box
         sx={{
-          width: 80,
-          height: 80,
+          width: 88,
+          height: 88,
           borderRadius: "50%",
-          backgroundColor: "primary.50",
+          backgroundColor: "#f0f4f8",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -778,22 +760,20 @@ function ProcessingFeedback({
         <Box
           sx={{
             position: "absolute",
-            width: 64,
-            height: 64,
+            width: 72,
+            height: 72,
             borderRadius: "50%",
-            border: "3px solid",
-            borderColor: "grey.200",
+            border: "3px solid #e0e0e0",
           }}
         />
         <Box
           sx={{
             position: "absolute",
-            width: 64,
-            height: 64,
+            width: 72,
+            height: 72,
             borderRadius: "50%",
-            border: "3px solid",
-            borderColor: "primary.main",
-            borderTopColor: "transparent",
+            border: "3px solid #004680",
+            borderTopColor: "#fff",
             animation: "spin 1s linear infinite",
             "@keyframes spin": {
               "0%": { transform: "rotate(0deg)" },
@@ -802,24 +782,30 @@ function ProcessingFeedback({
           }}
         />
       </Box>
-      <Typography variant="h6" color="text.secondary">
-        {message}
-      </Typography>
-      <Box sx={{ width: "100%", maxWidth: 300 }}>
+      <Box sx={{ textAlign: "center" }}>
+        <Typography variant="h6" sx={{ color: "#1a1a1a", fontWeight: 600, mb: 0.5 }}>
+          {message}
+        </Typography>
+        <Typography variant="body2" sx={{ color: "#666" }}>
+          Por favor espera mientras procesamos tu documento
+        </Typography>
+      </Box>
+      <Box sx={{ width: "100%", maxWidth: 320 }}>
         <LinearProgress
           variant="determinate"
           value={progress}
           sx={{
             height: 6,
             borderRadius: 3,
-            backgroundColor: "grey.200",
+            backgroundColor: "#e0e0e0",
             "& .MuiLinearProgress-bar": {
               borderRadius: 3,
+              backgroundColor: "#004680",
             },
           }}
         />
       </Box>
-      <Typography variant="caption" color="text.secondary">
+      <Typography variant="caption" sx={{ color: "#888" }}>
         {progress}% completado
       </Typography>
     </Box>
@@ -827,7 +813,7 @@ function ProcessingFeedback({
 }
 
 /**
- * Componente de mensaje de error
+ * Componente de mensaje de error - Moderno
  */
 function ErrorDisplay({
   error,
@@ -885,33 +871,35 @@ function ErrorDisplay({
   return (
     <Alert
       severity="error"
-      icon={<ErrorIcon />}
+      icon={<ErrorIcon sx={{ fontSize: 24 }} />}
       sx={{
-        borderRadius: 3,
+        borderRadius: 2,
         "& .MuiAlert-message": {
           width: "100%",
         },
+        border: "1px solid #ffcdd2",
+        backgroundColor: "#fff5f5",
       }}
       action={
         <Box sx={{ display: "flex", gap: 1 }}>
           <Tooltip title="Reintentar">
-            <IconButton color="inherit" size="small" onClick={onRetry}>
+            <IconButton color="inherit" size="small" onClick={onRetry} sx={{ "&:hover": { backgroundColor: "rgba(244, 67, 54, 0.1)" } }}>
               <Refresh />
             </IconButton>
           </Tooltip>
           <Tooltip title="Cerrar">
-            <IconButton color="inherit" size="small" onClick={onClear}>
+            <IconButton color="inherit" size="small" onClick={onClear} sx={{ "&:hover": { backgroundColor: "rgba(244, 67, 54, 0.1)" } }}>
               <Close />
             </IconButton>
           </Tooltip>
         </Box>
       }
     >
-      <AlertTitle sx={{ fontWeight: 600 }}>{errorInfo.title}</AlertTitle>
-      <Typography variant="body2" sx={{ mb: 1 }}>
+      <AlertTitle sx={{ fontWeight: 600, color: "#c62828" }}>{errorInfo.title}</AlertTitle>
+      <Typography variant="body2" sx={{ mb: 1, color: "#333" }}>
         {errorInfo.message}
       </Typography>
-      <Typography variant="caption" color="text.secondary">
+      <Typography variant="caption" sx={{ color: "#666" }}>
         <strong>Sugerencia:</strong> {errorInfo.suggestion}
       </Typography>
     </Alert>
@@ -919,15 +907,17 @@ function ErrorDisplay({
 }
 
 /**
- * Componente de éxito
+ * Componente de éxito - Moderno
  */
 function SuccessDisplay({ onNewFile }: { onNewFile: () => void }) {
   return (
     <Alert
       severity="success"
-      icon={<CheckCircle />}
+      icon={<CheckCircle sx={{ fontSize: 24 }} />}
       sx={{
-        borderRadius: 3,
+        borderRadius: 2,
+        border: "1px solid #c8e6c9",
+        backgroundColor: "#f1f8e9",
         "& .MuiAlert-message": {
           display: "flex",
           alignItems: "center",
@@ -945,6 +935,10 @@ function SuccessDisplay({ onNewFile }: { onNewFile: () => void }) {
           sx={{
             textTransform: "none",
             fontWeight: 600,
+            color: "#2e7d32",
+            "&:hover": {
+              backgroundColor: "rgba(46, 125, 50, 0.1)",
+            },
           }}
         >
           Nueva factura
@@ -952,22 +946,21 @@ function SuccessDisplay({ onNewFile }: { onNewFile: () => void }) {
       }
     >
       <Box>
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, color: "#2e7d32" }}>
           ¡Datos extraídos exitosamente!
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Los datos de la factura han sido procesados y están listos para
-          revisión.
+        <Typography variant="caption" sx={{ color: "#555" }}>
+          Los datos de la factura han sido procesados y están listos para revisión.
         </Typography>
       </Box>
     </Alert>
   );
 }
 
-// ============ COMPONENTE DE CONFIGURACIÓN OLLAMA ============
+// ============ COMPONENTE DE CONFIGURACIÓN OLLAMA - MODERNO ============
 
 /**
- * Componente para configurar Ollama - Solo muestra modelos instalados
+ * Componente para configurar Ollama - Moderno
  */
 function OllamaConfigPanel({
   modeloActual,
@@ -986,87 +979,110 @@ function OllamaConfigPanel({
     <Paper
       elevation={0}
       sx={{
-        borderRadius: 3,
+        borderRadius: 2,
         border: "1px solid",
-        borderColor: conexionError ? "error.main" : "grey.200",
-        p: 2,
-        mb: 2,
-        backgroundColor: conexionError ? "error.50" : "background.paper",
+        borderColor: conexionError ? "#ffcdd2" : "#e0e0e0",
+        p: 2.5,
+        backgroundColor: conexionError ? "#fff5f5" : "#fafafa",
       }}
     >
       <Box
-        sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}
+        sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", mb: 2 }}
       >
-        <SmartToy
-          sx={{ color: conexionError ? "error.main" : "primary.main" }}
-        />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Extracción con IA (Ollama)
-        </Typography>
-
-        {/* Selector de modelo - Solo modelos instalados */}
-        <FormControl size="small" sx={{ minWidth: 250 }}>
-          <InputLabel id="modelo-select-label">Modelo de Visión</InputLabel>
-          <Select
-            labelId="modelo-select-label"
-            value={
-              modelosDisponibles.includes(modeloActual) ? modeloActual : ""
-            }
-            label="Modelo de Visión"
-            onChange={(e) => onModeloChange(e.target.value)}
-            disabled={
-              cargandoModelos ||
-              conexionError ||
-              modelosDisponibles.length === 0
-            }
-            startAdornment={
-              cargandoModelos ? (
-                <CircularProgress size={16} sx={{ mr: 1 }} />
-              ) : null
-            }
-          >
-            {modelosDisponibles.length === 0 && !cargandoModelos ? (
-              <MenuItem disabled value="">
-                <Typography variant="body2" color="text.secondary">
-                  No hay modelos disponibles
-                </Typography>
-              </MenuItem>
-            ) : (
-              modelosDisponibles.map((modelo) => (
-                <MenuItem key={modelo} value={modelo}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography variant="body2">{modelo}</Typography>
-                  </Box>
-                </MenuItem>
-              ))
-            )}
-          </Select>
-        </FormControl>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: "10px",
+            backgroundColor: conexionError ? "#ffebee" : "#e3f2fd",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <SmartToy
+            sx={{ color: conexionError ? "#c62828" : "#004680", fontSize: 22 }}
+          />
+        </Box>
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>
+            Extracción con IA (Ollama)
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#666" }}>
+            Selecciona el modelo de visión para extraer datos
+          </Typography>
+        </Box>
       </Box>
+
+      {/* Selector de modelo */}
+      <FormControl size="small" sx={{ minWidth: 280, mt: 1 }}>
+        <InputLabel id="modelo-select-label" sx={{ fontSize: "0.875rem" }}>Modelo de Visión</InputLabel>
+        <Select
+          labelId="modelo-select-label"
+          value={
+            modelosDisponibles.includes(modeloActual) ? modeloActual : ""
+          }
+          label="Modelo de Visión"
+          onChange={(e) => onModeloChange(e.target.value)}
+          disabled={
+            cargandoModelos ||
+            conexionError ||
+            modelosDisponibles.length === 0
+          }
+          startAdornment={
+            cargandoModelos ? (
+              <CircularProgress size={16} sx={{ mr: 1, color: "#004680" }} />
+            ) : null
+          }
+          sx={{
+            backgroundColor: "white",
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#ddd",
+            },
+          }}
+        >
+          {modelosDisponibles.length === 0 && !cargandoModelos ? (
+            <MenuItem disabled value="">
+              <Typography variant="body2" sx={{ color: "#888" }}>
+                No hay modelos disponibles
+              </Typography>
+            </MenuItem>
+          ) : (
+            modelosDisponibles.map((modelo) => (
+              <MenuItem key={modelo} value={modelo}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Inventory sx={{ fontSize: 16, color: "#666" }} />
+                  <Typography variant="body2">{modelo}</Typography>
+                </Box>
+              </MenuItem>
+            ))
+          )}
+        </Select>
+      </FormControl>
 
       {/* Información de estado */}
       {conexionError ? (
-        <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
-          <Typography variant="caption">
+        <Alert severity="error" sx={{ mt: 2, borderRadius: 1.5, backgroundColor: "#ffebee" }}>
+          <Typography variant="caption" sx={{ color: "#c62828" }}>
             <strong>Error de conexión:</strong> No se puede conectar con Ollama.
             Asegúrate de que Ollama esté ejecutándose en{" "}
-            <code>http://127.0.0.1:11434</code>
+            <code style={{ backgroundColor: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: 4 }}>http://127.0.0.1:11434</code>
           </Typography>
         </Alert>
       ) : modelosDisponibles.length === 0 && !cargandoModelos ? (
-        <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
-          <Typography variant="caption">
+        <Alert severity="warning" sx={{ mt: 2, borderRadius: 1.5, backgroundColor: "#fff8e1" }}>
+          <Typography variant="caption" sx={{ color: "#f57c00" }}>
             <strong>Sin modelos:</strong> No se encontraron modelos de visión
             instalados. Descarga uno con:{" "}
-            <code>ollama pull llama3.2-vision</code>
+            <code style={{ backgroundColor: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: 4 }}>ollama pull llama3.2-vision</code>
           </Typography>
         </Alert>
       ) : (
-        <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
-          <Typography variant="caption">
+        <Alert severity="info" sx={{ mt: 2, borderRadius: 1.5, backgroundColor: "#e3f2fd" }}>
+          <Typography variant="caption" sx={{ color: "#1565c0" }}>
             <strong>Requisitos:</strong> Ollama debe estar ejecutándose en{" "}
-            <code>http://127.0.0.1:11434</code>. Descarga el modelo con:{" "}
-            <code>ollama pull {modeloActual}</code>
+            <code style={{ backgroundColor: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: 4 }}>http://127.0.0.1:11434</code>. Descarga el modelo con:{" "}
+            <code style={{ backgroundColor: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: 4 }}>ollama pull {modeloActual}</code>
           </Typography>
         </Alert>
       )}
@@ -1189,7 +1205,7 @@ export default function Home() {
         gap: 3,
       }}
     >
-      {/* Header */}
+      {/* Header - Modern styling */}
       <Box
         sx={{
           display: "flex",
@@ -1197,6 +1213,8 @@ export default function Home() {
           justifyContent: "space-between",
           flexWrap: "wrap",
           gap: 2,
+          pb: 2,
+          borderBottom: "1px solid #eee",
         }}
       >
         <Box>
@@ -1205,15 +1223,15 @@ export default function Home() {
             component="h1"
             sx={{
               fontWeight: 700,
-              color: "text.primary",
+              color: "#1a1a1a",
               fontSize: { xs: "1.5rem", sm: "2rem" },
+              letterSpacing: "-0.02em",
             }}
           >
             Contabilización de Facturas
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-            Sube tus facturas PDF para extraer y gestionar los datos
-            automáticamente con IA
+          <Typography variant="body1" sx={{ mt: 0.5, color: "#666" }}>
+            Sube tus facturas PDF para extraer y gestionar los datos automáticamente con IA
           </Typography>
         </Box>
 
@@ -1225,6 +1243,10 @@ export default function Home() {
             color={ESTADO_CONFIG[estado].color}
             sx={{
               fontWeight: 600,
+              px: 1,
+              "& .MuiChip-icon": {
+                fontSize: 18,
+              },
             }}
           />
         )}
@@ -1263,10 +1285,10 @@ export default function Home() {
           <Paper
             elevation={0}
             sx={{
-              borderRadius: 3,
-              border: "1px solid",
-              borderColor: "grey.200",
-              p: 4,
+              borderRadius: 2,
+              border: "1px solid #eee",
+              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
+              p: 2,
             }}
           >
             <ProcessingFeedback
@@ -1289,26 +1311,34 @@ export default function Home() {
 
         {/* Vista de éxito */}
         {datosFactura && !isProcessing && !error && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <SuccessDisplay onNewFile={handleNewFile} />
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
             <InvoiceInfoCard datosFactura={datosFactura} />
 
             {/* Botones de acción */}
             <Box
               sx={{
                 display: "flex",
-                gap: 2,
+                gap: 1.5,
                 justifyContent: "flex-end",
-                flexWrap: "wrap",
+                pt: 2.5,
+                pb: 0.5,
               }}
             >
               <Button
                 variant="outlined"
                 onClick={handleNewFile}
-                startIcon={<Close />}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 1.5,
                   textTransform: "none",
+                  borderColor: "#d0d5dd",
+                  color: "#444",
+                  px: 3,
+                  py: 1,
+                  fontWeight: 500,
+                  "&:hover": {
+                    borderColor: "#999",
+                    backgroundColor: "#f9f9f9",
+                  },
                 }}
               >
                 Cancelar
@@ -1316,15 +1346,17 @@ export default function Home() {
               <Button
                 variant="contained"
                 onClick={() => ejecutarActualizarResolucion(datosFactura)}
-                startIcon={<PlayArrow />}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 1.5,
                   textTransform: "none",
                   fontWeight: 600,
-                  px: 4,
+                  px: 3.5,
+                  py: 1,
                   backgroundColor: "#004680",
+                  boxShadow: "0 2px 8px rgba(0, 70, 128, 0.3)",
                   "&:hover": {
-                    backgroundColor: "#005AA3",
+                    backgroundColor: "#003d66",
+                    boxShadow: "0 4px 12px rgba(0, 70, 128, 0.4)",
                   },
                 }}
               >

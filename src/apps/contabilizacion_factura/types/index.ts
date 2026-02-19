@@ -238,10 +238,14 @@ export function formatCurrency(
   }
 }
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string | undefined): string {
   if (!dateString) return "-";
   try {
-    const date = new Date(dateString);
+    // Parse date components directly to avoid UTC conversion issues
+    // This prevents the timezone décalage where dates appear as one day earlier
+    const datePart = dateString.split("T")[0];
+    const [year, month, day] = datePart.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString("es-ES", {
       year: "numeric",
       month: "2-digit",

@@ -8,6 +8,7 @@ Option Explicit
 
 Dim objShell, objFSO
 Dim rutaRoaming, carpetaTrabajo, nombreExe, rutaCompletaExe
+Dim args, argString
 
 ' Crear objetos necesarios para interactuar con el sistema operativo
 Set objShell = CreateObject("WScript.Shell")
@@ -23,6 +24,15 @@ nombreExe = "actualizarResolucion.exe"
 rutaCompletaExe = carpetaTrabajo & "\" & nombreExe
 ' ------------------------
 
+' OBTENER ARGUMENTOS DESDE URL PROTOCOLO ---
+' Los argumentos se pasan desde el navegador como: empresa://actualizar?param1=valor1&param2=valor2
+' WScript.Arguments(0) contendrá la cadena de consulta después del ?
+argString = ""
+If WScript.Arguments.Count > 0 Then
+    argString = " " & WScript.Arguments(0)
+End If
+' ------------------------
+
 ' --- LÓGICA DE EJECUCIÓN ---
 
 ' 1. Verificar si el ejecutable existe antes de intentar abrirlo
@@ -35,11 +45,11 @@ End If
 ' Esto es vital para que el .exe encuentre sus propios archivos de configuración
 objShell.CurrentDirectory = carpetaTrabajo
 
-' 3. Ejecutar el programa
+' 3. Ejecutar el programa con los parámetros
 ' Sintaxis Run: objShell.Run(strCommand, [intWindowStyle], [bWaitOnReturn])
 ' intWindowStyle: 1 para mostrar ventana, 0 para ocultar
 ' bWaitOnReturn: False para que React no se quede esperando a que el .exe cierre
-objShell.Run """" & rutaCompletaExe & """", 1, False
+objShell.Run """" & rutaCompletaExe & """" & argString, 1, False
 
 ' 4. Limpiar objetos de memoria
 Set objShell = Nothing

@@ -21,10 +21,12 @@ const PROMPT_EXTRACCION = `Analiza esta factura y extrae la siguiente informaci�
     "numero_factura": "Número de factura",
     "valor_total": "Valor total de la factura (solo el número, sin símbolos de moneda)",
     "fecha_emision": "Fecha de emisión en formato YYYY-MM-DD",
+    "fecha_vencimiento": "Fecha de vencimiento de la factura",
     "nombre_proveedor": "Nombre o razón social del proveedor",
     "subtotal": "Subtotal antes de impuestos (solo el número)",
     "impuestos": "Valor de impuestos (solo el número)",
     "moneda": "Código de moneda ISO (ej: COP, EUR, USD)"
+
 }
 
 IMPORTANTE:
@@ -41,6 +43,7 @@ interface RespuestaOllama {
   numero_factura: string | null;
   valor_total: number | null;
   fecha_emision: string | null;
+  fecha_vencimiento: string | null;
   nombre_proveedor: string | null;
   subtotal: number | null;
   impuestos: number | null;
@@ -241,6 +244,7 @@ export function useOllamaExtractor() {
         const datosFactura: DatosFacturaPDF = {
           numeroFactura: datosOllama.numero_factura || "Sin número",
           fechaEmision: datosOllama.fecha_emision || new Date().toISOString(),
+          fechaVencimiento: datosOllama.fecha_vencimiento || new Date().toISOString(),
           proveedor: {
             nombre: datosOllama.nombre_proveedor || "Proveedor no identificado",
             nif: datosOllama.nit_proveedor || undefined,
