@@ -5,37 +5,47 @@ FROM node:20-bullseye-slim AS builder
 
 WORKDIR /app
 
-# Copiar solo package.json primero
+# Copiar package.json del proyecto principal
 COPY package*.json ./
 
-# ⚙️ Instalar dependencias sin usar el lockfile de Windows
+# Instalar dependencias
 RUN npm install --no-optional --force
 
 # Copiar el resto del código
 COPY . .
 
-# ⚙️ Instalar manualmente la versión nativa de rollup
+# Instalar versión nativa de rollup para Linux
 RUN npm install @rollup/rollup-linux-x64-gnu --force
 
-# 🔧 Construir el proyecto
+# Construir el proyecto frontend
 RUN npm run build
 
 # ===========================
-# Etapa 2: Producción (NGINX Alpine)
+# Etapa 2: Producción (Node.js)
 # ===========================
-FROM nginx:alpine
+FROM node:20-bullseye-slim
 
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-RUN echo 'server { \
-    listen 11000; \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Copiar archivos del frontend construido
+COPY --from=builder /app/dist ./dist
 
+# Copiar el servidor backend
+COPY server ./server
+
+# Instalar dependencias del servidor
+WORKDIR /app/server
+RUN npm install --production
+
+# Volver al directorio principal
+WORKDIR /app
+
+# Exponer puerto
 EXPOSE 11000
 
-CMD ["nginx", "-g", "daemon off;"]
+# Variables de entorno
+ENV PORT=11000
+ENV NODE_ENV=production
+
+# Iniciar el servidor unificado (frontend + API)
+CMD ["node", "server/index.js"]

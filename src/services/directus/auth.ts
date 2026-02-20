@@ -66,6 +66,7 @@ export async function refreshDirectus(
  * Obtiene los datos del usuario autenticado.
  * ✅ Ahora con refresh automático si el token está expirado
  * ✅ Consulta mejorada para obtener las políticas correctamente
+ * ✅ Incluye key_gemini para extracción de facturas con IA
  */
 export async function getCurrentUser() {
   return await withAutoRefresh(() =>
@@ -81,6 +82,7 @@ export async function getCurrentUser() {
           "tienda_id",
           "id",
           "requires_password_change",
+          "key_gemini", // API key de Gemini para extracción de facturas
           // 1. Políticas asignadas directamente al usuario
           {
             policies: [

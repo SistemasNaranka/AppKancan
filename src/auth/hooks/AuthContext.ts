@@ -18,6 +18,7 @@ export type User = {
   tienda_id?: number;
   policies?: string[];
   requires_password_change?: boolean;
+  key_gemini?: string; // API key de Gemini para extracción de facturas (encriptada en Directus)
 } | null;
 /**
  *  Tipado de los valores que otorgara el Provider a sus hijos

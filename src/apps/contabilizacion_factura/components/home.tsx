@@ -1,7 +1,8 @@
 /**
  * Componente principal para carga y visualización de facturas PDF
  * Módulo de Contabilización de Facturas
- * Integrado con Ollama IA para extracción inteligente
+ * Integrado con Google Gemini (gemma-3-27b-it) y Ollama como fallback
+ * La API key de Gemini se obtiene del usuario autenticado (campo key_gemini en Directus)
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -46,8 +47,14 @@ import {
   Receipt,
   PlayArrow,
   SmartToy,
+  CloudQueue,
+  Warning,
 } from "@mui/icons-material";
-import { useOllamaExtractor } from "../hooks/useOllamaExtractor";
+import {
+  useHybridExtractor,
+  ProveedorIA,
+  EstadoHibrido,
+} from "../hooks/useHybridExtractor";
 import {
   DatosFacturaPDF,
   EstadoProceso,
@@ -57,6 +64,7 @@ import {
   formatDate,
   formatFileSize,
 } from "../types";
+import { useAuth } from "@/auth/hooks/useAuth";
 
 // ============ CONSTANTES ============
 
@@ -964,23 +972,26 @@ function SuccessDisplay({ onNewFile }: { onNewFile: () => void }) {
   );
 }
 
-// ============ COMPONENTE DE CONFIGURACIÓN OLLAMA ============
+// ============ COMPONENTE DE CONFIGURACIÓN HÍBRIDA ============
 
 /**
- * Componente para configurar Ollama - Solo muestra modelos instalados
+ * Componente para configurar el sistema híbrido Gemini + Ollama
+ * Muestra el estado de ambos proveedores y permite seleccionar modelo Ollama para fallback
  */
-function OllamaConfigPanel({
+function HybridConfigPanel({
   modeloActual,
   onModeloChange,
   modelosDisponibles,
   cargandoModelos,
-  conexionError,
+  conexionErrorOllama,
+  geminiApiKeyConfigured,
 }: {
   modeloActual: string;
   onModeloChange: (modelo: string) => void;
   modelosDisponibles: string[];
   cargandoModelos: boolean;
-  conexionError: boolean;
+  conexionErrorOllama: boolean;
+  geminiApiKeyConfigured: boolean;
 }) {
   return (
     <Paper
@@ -988,88 +999,125 @@ function OllamaConfigPanel({
       sx={{
         borderRadius: 3,
         border: "1px solid",
-        borderColor: conexionError ? "error.main" : "grey.200",
+        borderColor: "grey.200",
         p: 2,
         mb: 2,
-        backgroundColor: conexionError ? "error.50" : "background.paper",
+        backgroundColor: "background.paper",
       }}
     >
       <Box
         sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}
       >
-        <SmartToy
-          sx={{ color: conexionError ? "error.main" : "primary.main" }}
-        />
+        <CloudQueue sx={{ color: "primary.main" }} />
         <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Extracción con IA (Ollama)
+          Extracción con IA (Gemini + Ollama Fallback)
         </Typography>
+      </Box>
 
-        {/* Selector de modelo - Solo modelos instalados */}
-        <FormControl size="small" sx={{ minWidth: 250 }}>
-          <InputLabel id="modelo-select-label">Modelo de Visión</InputLabel>
-          <Select
-            labelId="modelo-select-label"
-            value={
-              modelosDisponibles.includes(modeloActual) ? modeloActual : ""
-            }
-            label="Modelo de Visión"
-            onChange={(e) => onModeloChange(e.target.value)}
-            disabled={
-              cargandoModelos ||
-              conexionError ||
-              modelosDisponibles.length === 0
-            }
-            startAdornment={
-              cargandoModelos ? (
-                <CircularProgress size={16} sx={{ mr: 1 }} />
-              ) : null
-            }
-          >
-            {modelosDisponibles.length === 0 && !cargandoModelos ? (
-              <MenuItem disabled value="">
-                <Typography variant="body2" color="text.secondary">
-                  No hay modelos disponibles
-                </Typography>
-              </MenuItem>
-            ) : (
-              modelosDisponibles.map((modelo) => (
+      {/* Estado de los proveedores */}
+      <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
+        {/* Gemini Status */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            p: 1.5,
+            borderRadius: 2,
+            backgroundColor: geminiApiKeyConfigured ? "success.50" : "error.50",
+            border: "1px solid",
+            borderColor: geminiApiKeyConfigured ? "success.main" : "error.main",
+          }}
+        >
+          {geminiApiKeyConfigured ? (
+            <CheckCircle sx={{ fontSize: 20, color: "success.main" }} />
+          ) : (
+            <ErrorIcon sx={{ fontSize: 20, color: "error.main" }} />
+          )}
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              Google Gemini (gemma-3-27b-it) - Proveedor Principal
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {geminiApiKeyConfigured
+                ? "API Key configurada correctamente"
+                : "API Key no configurada - Agrega VITE_GEMINI_API_KEY al .env"}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Ollama Status */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            p: 1.5,
+            borderRadius: 2,
+            backgroundColor: conexionErrorOllama ? "warning.50" : "info.50",
+            border: "1px solid",
+            borderColor: conexionErrorOllama ? "warning.main" : "info.main",
+          }}
+        >
+          {conexionErrorOllama ? (
+            <Warning sx={{ fontSize: 20, color: "warning.main" }} />
+          ) : (
+            <SmartToy sx={{ fontSize: 20, color: "info.main" }} />
+          )}
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              Ollama - Fallback de Contingencia
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {conexionErrorOllama
+                ? "No disponible - Se usará solo Gemini"
+                : `${modelosDisponibles.length} modelo(s) disponible(s) para fallback`}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Selector de modelo Ollama para fallback */}
+      {!conexionErrorOllama && modelosDisponibles.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <FormControl size="small" sx={{ minWidth: 250 }}>
+            <InputLabel id="modelo-select-label">
+              Modelo Ollama (Fallback)
+            </InputLabel>
+            <Select
+              labelId="modelo-select-label"
+              value={
+                modelosDisponibles.includes(modeloActual) ? modeloActual : ""
+              }
+              label="Modelo Ollama (Fallback)"
+              onChange={(e) => onModeloChange(e.target.value)}
+              disabled={cargandoModelos}
+              startAdornment={
+                cargandoModelos ? (
+                  <CircularProgress size={16} sx={{ mr: 1 }} />
+                ) : null
+              }
+            >
+              {modelosDisponibles.map((modelo) => (
                 <MenuItem key={modelo} value={modelo}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography variant="body2">{modelo}</Typography>
                   </Box>
                 </MenuItem>
-              ))
-            )}
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Información de estado */}
-      {conexionError ? (
-        <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
-          <Typography variant="caption">
-            <strong>Error de conexión:</strong> No se puede conectar con Ollama.
-            Asegúrate de que Ollama esté ejecutándose en{" "}
-            <code>http://127.0.0.1:11434</code>
-          </Typography>
-        </Alert>
-      ) : modelosDisponibles.length === 0 && !cargandoModelos ? (
-        <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
-          <Typography variant="caption">
-            <strong>Sin modelos:</strong> No se encontraron modelos de visión
-            instalados. Descarga uno con:{" "}
-            <code>ollama pull llama3.2-vision</code>
-          </Typography>
-        </Alert>
-      ) : (
-        <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
-          <Typography variant="caption">
-            <strong>Requisitos:</strong> Ollama debe estar ejecutándose en{" "}
-            <code>http://127.0.0.1:11434</code>. Descarga el modelo con:{" "}
-            <code>ollama pull {modeloActual}</code>
-          </Typography>
-        </Alert>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
       )}
+
+      {/* Información de ayuda */}
+      <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+        <Typography variant="caption">
+          <strong>Flujo de extracción:</strong> Primero intenta con Google
+          Gemini. Si falla (tokens agotados, error de conexión), automáticamente
+          usa Ollama como respaldo.
+        </Typography>
+      </Alert>
     </Paper>
   );
 }
@@ -1078,7 +1126,8 @@ function OllamaConfigPanel({
 
 /**
  * Componente principal para carga y visualización de facturas PDF
- * Usa exclusivamente Ollama IA para la extracción
+ * Usa Google Gemini como proveedor principal y Ollama como fallback
+ * La API key de Gemini se obtiene del usuario autenticado (campo key_gemini en Directus)
  */
 export default function Home() {
   const [datosFactura, setDatosFactura] = useState<DatosFacturaPDF | null>(
@@ -1086,31 +1135,39 @@ export default function Home() {
   );
   const [modelosDisponibles, setModelosDisponibles] = useState<string[]>([]);
   const [cargandoModelos, setCargandoModelos] = useState(true);
-  const [conexionError, setConexionError] = useState(false);
+  const [conexionErrorOllama, setConexionErrorOllama] = useState(false);
 
-  // Hook de extracción Ollama
-  const ollamaExtractor = useOllamaExtractor();
+  // Obtener usuario autenticado para acceder a su API key de Gemini
+  const { user } = useAuth();
+  const geminiApiKey = user?.key_gemini;
 
-  // Cargar modelos disponibles al montar
+  // Hook de extracción híbrido (Gemini + Ollama fallback)
+  // Se pasa la API key del usuario autenticado
+  const hybridExtractor = useHybridExtractor(geminiApiKey);
+
+  // Verificar configuración de API keys y cargar modelos Ollama al montar
   useEffect(() => {
-    const cargarModelos = async () => {
+    const inicializar = async () => {
+      // Cargar modelos de Ollama para fallback
       setCargandoModelos(true);
-      setConexionError(false);
+      setConexionErrorOllama(false);
       try {
-        const modelos = await ollamaExtractor.getModelosDisponibles();
+        const modelos = await hybridExtractor.getModelosDisponibles();
         setModelosDisponibles(modelos);
         // Seleccionar el primer modelo disponible automáticamente
-        if (modelos.length > 0 && !ollamaExtractor.modeloActual) {
-          ollamaExtractor.setModelo(modelos[0]);
+        if (modelos.length > 0 && !hybridExtractor.modeloActual) {
+          hybridExtractor.setModelo(modelos[0]);
         }
       } catch {
-        console.log("No se pudieron cargar los modelos de Ollama");
-        setConexionError(true);
+        console.log(
+          "No se pudieron cargar los modelos de Ollama - Fallback no disponible",
+        );
+        setConexionErrorOllama(true);
       } finally {
         setCargandoModelos(false);
       }
     };
-    cargarModelos();
+    inicializar();
   }, []);
 
   const {
@@ -1120,11 +1177,13 @@ export default function Home() {
     progress,
     clearError,
     modeloActual,
-  } = ollamaExtractor;
+    estadoHibrido,
+  } = hybridExtractor;
 
   const handleFileSelected = useCallback(
     async (file: File) => {
-      if (conexionError || modelosDisponibles.length === 0) {
+      // Permitir procesamiento si Gemini está configurado o si Ollama está disponible
+      if (!geminiApiKey && conexionErrorOllama) {
         return;
       }
       try {
@@ -1134,7 +1193,7 @@ export default function Home() {
         console.error("Error procesando archivo:", err);
       }
     },
-    [extractData, conexionError, modelosDisponibles],
+    [extractData, geminiApiKey, conexionErrorOllama],
   );
 
   const handleRetry = useCallback(() => {
@@ -1153,9 +1212,9 @@ export default function Home() {
 
   const handleModeloChange = useCallback(
     (modelo: string) => {
-      ollamaExtractor.setModelo(modelo);
+      hybridExtractor.setModelo(modelo);
     },
-    [ollamaExtractor],
+    [hybridExtractor],
   );
 
   // Determinar estado basado en el hook
@@ -1173,13 +1232,48 @@ export default function Home() {
 
   const estado = getEstado();
 
-  // Mensajes de procesamiento para Ollama
+  // Mensajes de procesamiento dinámicos según el proveedor
   const getMensajeProcesamiento = () => {
-    if (progress < 30) return "Convirtiendo PDF a imagen...";
-    if (progress < 50) return "Conectando con Ollama...";
+    if (estadoHibrido.intentoOllama && !estadoHibrido.intentoGemini) {
+      // Solo Ollama (fallback ya intentado)
+      if (progress < 30) return "Convirtiendo PDF a imagen...";
+      if (progress < 50) return "Conectando con Ollama (fallback)...";
+      return "Analizando factura con Ollama...";
+    }
+    if (estadoHibrido.intentoGemini && estadoHibrido.errorGemini) {
+      // Gemini falló, intentando Ollama
+      if (progress < 50) return "Gemini falló, cambiando a Ollama...";
+      return "Analizando factura con Ollama (fallback)...";
+    }
+    // Gemini como principal
+    if (progress < 30) return "Preparando documento...";
+    if (progress < 50) return "Conectando con Google Gemini...";
     if (progress < 80) return "Analizando factura con IA...";
     return "Extrayendo datos...";
   };
+
+  // Obtener información del proveedor usado para mostrar
+  const getProveedorInfo = () => {
+    if (!datosFactura || isProcessing) return null;
+
+    if (estadoHibrido.proveedorUsado === "gemini") {
+      return {
+        label: "Google Gemini",
+        color: "primary" as const,
+        icon: <CloudQueue sx={{ fontSize: 16 }} />,
+      };
+    }
+    if (estadoHibrido.proveedorUsado === "ollama") {
+      return {
+        label: "Ollama (Fallback)",
+        color: "warning" as const,
+        icon: <SmartToy sx={{ fontSize: 16 }} />,
+      };
+    }
+    return null;
+  };
+
+  const proveedorInfo = getProveedorInfo();
 
   return (
     <Box
@@ -1220,7 +1314,7 @@ export default function Home() {
         {/* Indicador de estado */}
         {estado !== "idle" && (
           <Chip
-            icon={estado === "completado" ? <CheckCircle /> : <SmartToy />}
+            icon={estado === "completado" ? <CheckCircle /> : <CloudQueue />}
             label={ESTADO_CONFIG[estado].label}
             color={ESTADO_CONFIG[estado].color}
             sx={{
@@ -1230,14 +1324,15 @@ export default function Home() {
         )}
       </Box>
 
-      {/* Panel de configuración Ollama */}
+      {/* Panel de configuración híbrida */}
       {estado === "idle" && (
-        <OllamaConfigPanel
+        <HybridConfigPanel
           modeloActual={modeloActual}
           onModeloChange={handleModeloChange}
           modelosDisponibles={modelosDisponibles}
           cargandoModelos={cargandoModelos}
-          conexionError={conexionError}
+          conexionErrorOllama={conexionErrorOllama}
+          geminiApiKeyConfigured={!!geminiApiKey}
         />
       )}
 
@@ -1273,6 +1368,17 @@ export default function Home() {
               message={getMensajeProcesamiento()}
               progress={progress}
             />
+            {/* Mostrar si hubo fallback */}
+            {estadoHibrido.errorGemini && (
+              <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+                <Typography variant="caption">
+                  <strong>Gemini no disponible:</strong>{" "}
+                  {estadoHibrido.errorGemini}
+                  <br />
+                  Usando Ollama como fallback...
+                </Typography>
+              </Alert>
+            )}
           </Paper>
         )}
 
@@ -1291,6 +1397,29 @@ export default function Home() {
         {datosFactura && !isProcessing && !error && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <SuccessDisplay onNewFile={handleNewFile} />
+
+            {/* Indicador del proveedor usado */}
+            {proveedorInfo && (
+              <Alert
+                severity={
+                  proveedorInfo.color === "warning" ? "warning" : "info"
+                }
+                sx={{ borderRadius: 2 }}
+                icon={proveedorInfo.icon}
+              >
+                <Typography variant="body2">
+                  Datos extraídos con <strong>{proveedorInfo.label}</strong>
+                  {estadoHibrido.errorGemini && (
+                    <span>
+                      {" "}
+                      (Gemini falló:{" "}
+                      {estadoHibrido.errorGemini.substring(0, 50)}...)
+                    </span>
+                  )}
+                </Typography>
+              </Alert>
+            )}
+
             <InvoiceInfoCard datosFactura={datosFactura} />
 
             {/* Botones de acción */}
