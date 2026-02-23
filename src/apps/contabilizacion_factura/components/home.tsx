@@ -144,7 +144,7 @@ function FileUploadArea({
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
-      e.preventDefault();
+      e.preventDefault(); 
       e.stopPropagation();
       if (!isProcessing) {
         setIsDragOver(true);

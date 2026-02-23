@@ -1,7 +1,6 @@
 import {
   Box,
   Typography,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,15 +19,17 @@ import SummaryCards from "../components/SummaryCards";
 import { leerPDF } from "../pdfReader";
 import { useResolucionesLogic } from "../hooks/useResolucionesLogic";
 import { exportarAExcel } from "../utils/exportarExcel";
+import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 
 const ResolucionesHome = () => {
+  const { showSnackbar } = useGlobalSnackbar();
+
   const {
     busqueda,
     filtroRazonSocial,
     filtroEstado,
     resolucionSeleccionada,
     paginaActual,
-    snackbar,
     cargandoDatos,
     mostrarConfirmacion,
     totalResoluciones,
@@ -49,11 +50,10 @@ const ResolucionesHome = () => {
     handleSubirArchivo,
     setPaginaActual,
     setMostrarConfirmacion,
-  } = useResolucionesLogic();
+  } = useResolucionesLogic({ showSnackbar });
 
   const handleExportar = async () => {
     await exportarAExcel(resolucionesFiltradas, (mensaje, tipo) => {
-      // Aquí podrías manejar el snackbar si es necesario
       console.log(mensaje, tipo);
     });
   };
@@ -164,14 +164,8 @@ const ResolucionesHome = () => {
             overflowX: "auto",
             width: "100%",
             "&::-webkit-scrollbar": { height: "8px" },
-            "&::-webkit-scrollbar-track": {
-              background: "#f1f1f1",
-              borderRadius: "4px",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              background: "#888",
-              borderRadius: "4px",
-            },
+            "&::-webkit-scrollbar-track": { background: "#f1f1f1", borderRadius: "4px" },
+            "&::-webkit-scrollbar-thumb": { background: "#888", borderRadius: "4px" },
             "&::-webkit-scrollbar-thumb:hover": { background: "#555" },
           }}
         >
@@ -187,9 +181,7 @@ const ResolucionesHome = () => {
               }}
             >
               <CircularProgress size={50} />
-              <Typography color="text.secondary">
-                Cargando resoluciones...
-              </Typography>
+              <Typography color="text.secondary">Cargando resoluciones...</Typography>
             </Box>
           ) : (
             <ResolutionTable
@@ -212,9 +204,7 @@ const ResolucionesHome = () => {
           onClose={() => setMostrarConfirmacion(false)}
           PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
         >
-          <DialogTitle sx={{ fontWeight: "bold" }}>
-            Confirmar Integración
-          </DialogTitle>
+          <DialogTitle sx={{ fontWeight: "bold" }}>Confirmar Integración</DialogTitle>
           <DialogContent>
             <Typography>
               ¿Deseas integrar la resolución{" "}
@@ -237,37 +227,6 @@ const ResolucionesHome = () => {
             />
           </DialogActions>
         </Dialog>
-
-        {/* Snackbar */}
-        {snackbar.open && (
-          <Box
-            sx={{
-              position: "fixed",
-              bottom: 20,
-              left: 20,
-              zIndex: 9999,
-            }}
-          >
-            <Alert
-              severity={snackbar.tipo}
-              variant="filled"
-              sx={{
-                boxShadow: 3,
-                minWidth: 300,
-                ...(snackbar.tipo === "success" && {
-                  backgroundColor: "#2e7d32",
-                  color: "#ffffff",
-                }),
-                ...(snackbar.tipo === "error" && {
-                  backgroundColor: "#d32f2f",
-                  color: "#ffffff",
-                }),
-              }}
-            >
-              {snackbar.mensaje}
-            </Alert>
-          </Box>
-        )}
       </Box>
     </Box>
   );
