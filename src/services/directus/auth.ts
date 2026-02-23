@@ -1,7 +1,5 @@
 import directus from "./directus";
-import { logout, refresh, updateItem } from "@directus/sdk";
-import { type App } from "@/auth/hooks/AuthContext";
-import { hasStatusCode } from "@/shared/utils/hasStatus";
+import { logout, refresh } from "@directus/sdk";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { normalizeTokenResponse } from "@/auth/services/tokenDirectus";
 import { readMe } from "@directus/sdk";
@@ -67,6 +65,7 @@ export async function refreshDirectus(
  * ✅ Ahora con refresh automático si el token está expirado
  * ✅ Consulta mejorada para obtener las políticas correctamente
  * ✅ Incluye key_gemini para extracción de facturas con IA
+ * ✅ Incluye modelo_ia para configurar el modelo de IA a usar
  */
 export async function getCurrentUser() {
   return await withAutoRefresh(() =>
@@ -83,6 +82,7 @@ export async function getCurrentUser() {
           "id",
           "requires_password_change",
           "key_gemini", // API key de Gemini para extracción de facturas
+          "modelo_ia", // Modelo de IA a usar (ej: gemma-3-27b-it)
           // 1. Políticas asignadas directamente al usuario
           {
             policies: [

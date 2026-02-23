@@ -65,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         policies: extractedPolicies,
         requires_password_change: me.requires_password_change || false,
         key_gemini: me.key_gemini,
+        modelo_ia: me.modelo_ia,
       });
     } catch (error) {
       console.error("❌ Error en login:", error);
@@ -170,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           policies: extractedPolicies,
           requires_password_change: me.requires_password_change || false,
           key_gemini: me.key_gemini,
+          modelo_ia: me.modelo_ia,
         });
       } catch (error: any) {
         console.error("❌ Error al inicializar autenticación:", error);
