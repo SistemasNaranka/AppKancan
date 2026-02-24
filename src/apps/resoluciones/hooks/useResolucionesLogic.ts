@@ -5,46 +5,23 @@ import { crearResolucion } from "../api/create";
 import { aplanarResolucion, calcularVencimiento } from "../utils/calculos";
 import { useResponsiveItems } from "./useResponsiveItems";
 
-interface SnackbarState {
-  open: boolean;
-  mensaje: string;
-  tipo: "success" | "error";
+interface UseResolucionesLogicOptions {
+  showSnackbar: (message: string, severity: "success" | "error" | "warning" | "info") => void;
 }
 
-export const useResolucionesLogic = () => {
-  // Estado para la búsqueda
+export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptions) => {
   const [busqueda, setBusqueda] = useState("");
-
-  // Estado para el filtro RazonSocial
   const [filtroRazonSocial, setFiltroRazonSocial] = useState("Todas");
-
-  // Estado para el filtro activo
-  const [filtroEstado, setFiltroEstado] = useState<EstadoResolucion | null>(
-    null,
-  );
-
-  // Estado para la resolución seleccionada
-  const [resolucionSeleccionada, setResolucionSeleccionada] =
-    useState<Resolucion | null>(null);
-
-  // Estado para la paginación
+  const [filtroEstado, setFiltroEstado] = useState<EstadoResolucion | null>(null);
+  const [resolucionSeleccionada, setResolucionSeleccionada] = useState<Resolucion | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [snackbar, setSnackbar] = useState<SnackbarState>({
-    open: false,
-    mensaje: "",
-    tipo: "success",
-  });
   const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
-
-  // Configuración de paginación responsiva
-  const itemsPorPagina = useResponsiveItems();
-
-  // Estado de cargado
   const [, setCargando] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
 
-  // Cargar datos iniciales
+  const itemsPorPagina = useResponsiveItems();
+
   useEffect(() => {
     async function cargarDatos() {
       try {
@@ -54,11 +31,7 @@ export const useResolucionesLogic = () => {
         setResoluciones(resolucionesAplanadas);
       } catch (error) {
         console.error("Error cargando resoluciones:", error);
-        setSnackbar({
-          open: true,
-          mensaje: "Error al cargar resoluciones",
-          tipo: "error",
-        });
+        showSnackbar("Error al cargar resoluciones", "error");
       } finally {
         setCargandoDatos(false);
       }
@@ -66,17 +39,6 @@ export const useResolucionesLogic = () => {
     cargarDatos();
   }, []);
 
-  // Timer para cerrar automáticamente las alertas
-  useEffect(() => {
-    if (snackbar.open) {
-      const timer = setTimeout(() => {
-        setSnackbar((prev) => ({ ...prev, open: false }));
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [snackbar.open]);
-
-  // Función para ordenar por urgencia de estado
   const ordenarPorEstado = (registros: Resolucion[]) => {
     const ordenEstado: { [key: string]: number } = {
       Pendiente: 0,
@@ -84,14 +46,11 @@ export const useResolucionesLogic = () => {
       Vigente: 2,
       Vencido: 3,
     };
-    return [...registros].sort(
-      (a, b) => ordenEstado[a.estado] - ordenEstado[b.estado],
-    );
+    return [...registros].sort((a, b) => ordenEstado[a.estado] - ordenEstado[b.estado]);
   };
 
   const todasResoluciones = ordenarPorEstado([...resoluciones]);
 
-  // Filtrar por búsqueda
   const resolucionesBuscadas = busqueda
     ? todasResoluciones.filter(
         (r) =>
@@ -101,43 +60,28 @@ export const useResolucionesLogic = () => {
       )
     : todasResoluciones;
 
-  // Calcular totales por estado
-  const totalPendientes = todasResoluciones.filter(
-    (r) => r.estado === "Pendiente",
-  ).length;
-  const totalPorVencer = todasResoluciones.filter(
-    (r) => r.estado === "Por vencer",
-  ).length;
-  const totalVigentes = todasResoluciones.filter(
-    (r) => r.estado === "Vigente",
-  ).length;
-  const totalVencidos = todasResoluciones.filter(
-    (r) => r.estado === "Vencido",
-  ).length;
-  const totalResoluciones =
-    totalPendientes + totalPorVencer + totalVigentes + totalVencidos;
+  const totalPendientes = todasResoluciones.filter((r) => r.estado === "Pendiente").length;
+  const totalPorVencer = todasResoluciones.filter((r) => r.estado === "Por vencer").length;
+  const totalVigentes = todasResoluciones.filter((r) => r.estado === "Vigente").length;
+  const totalVencidos = todasResoluciones.filter((r) => r.estado === "Vencido").length;
+  const totalResoluciones = totalPendientes + totalPorVencer + totalVigentes + totalVencidos;
 
-  // Filtrar por razón social
   const resolucionesPorRazonSocial =
     filtroRazonSocial !== "Todas"
       ? resolucionesBuscadas.filter((r) => r.razon_social === filtroRazonSocial)
       : resolucionesBuscadas;
 
-  // Filtrar por estado
   const resolucionesFiltradas = filtroEstado
     ? resolucionesPorRazonSocial.filter((r) => r.estado === filtroEstado)
     : resolucionesPorRazonSocial;
 
-  // Configuración de paginación
   const totalPaginas = Math.ceil(resolucionesFiltradas.length / itemsPorPagina);
 
-  // Obtener resoluciones de la página actual
   const resolucionesPaginadas = resolucionesFiltradas.slice(
     (paginaActual - 1) * itemsPorPagina,
     paginaActual * itemsPorPagina,
   );
 
-  // Handlers
   const handleBusquedaChange = (valor: string) => {
     setBusqueda(valor);
     setPaginaActual(1);
@@ -168,11 +112,7 @@ export const useResolucionesLogic = () => {
     );
 
     if (yaExiste) {
-      setSnackbar({
-        open: true,
-        mensaje: "Esta resolución ya está integrada",
-        tipo: "error",
-      });
+      showSnackbar("Esta resolución ya está integrada", "error");
       return;
     }
 
@@ -185,21 +125,14 @@ export const useResolucionesLogic = () => {
     let empresa = "";
     if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
       empresa = "naranka";
-    } else if (
-      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
-    ) {
+    } else if (resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ") {
       empresa = "kancan";
     } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
       empresa = "kancanjeans";
     }
 
-    // Formatear fecha: quitar guiones para enviar solo números
-    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
-      /-/g,
-      "",
-    );
+    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(/-/g, "");
 
-    // Parámetros en el orden correcto según actualizarResolucion.exe
     const params = [
       `caja:${resolucionSeleccionada.id_ultra || 0}`,
       `prefijo:${resolucionSeleccionada.prefijo}`,
@@ -239,17 +172,9 @@ export const useResolucionesLogic = () => {
       setResoluciones(resolucionesAplanadas);
 
       setResolucionSeleccionada(null);
-      setSnackbar({
-        open: true,
-        mensaje: "Resolución integrada correctamente",
-        tipo: "success",
-      });
+      showSnackbar("Resolución integrada correctamente", "success");
     } catch (error: any) {
-      setSnackbar({
-        open: true,
-        mensaje: error.message || "Error al integrar",
-        tipo: "error",
-      });
+      showSnackbar(error.message || "Error al integrar", "error");
     }
   };
 
@@ -262,7 +187,7 @@ export const useResolucionesLogic = () => {
     const resultado = await leerPDF(archivo);
 
     if (typeof resultado === "string") {
-      setSnackbar({ open: true, mensaje: resultado, tipo: "error" });
+      showSnackbar(resultado, "error");
       setCargando(false);
       return;
     }
@@ -277,10 +202,7 @@ export const useResolucionesLogic = () => {
       vigencia: resultado.vigencia,
       tipo_solicitud: resultado.tipo_solicitud,
       fecha_creacion: resultado.fecha_creacion,
-      fecha_vencimiento: calcularVencimiento(
-        resultado.fecha_creacion,
-        resultado.vigencia,
-      ),
+      fecha_vencimiento: calcularVencimiento(resultado.fecha_creacion, resultado.vigencia),
       ultima_factura: 0,
       estado: "Pendiente",
       tienda_nombre: resultado.tienda_nombre,
@@ -292,24 +214,16 @@ export const useResolucionesLogic = () => {
     setCargando(false);
   };
 
-  const cerrarSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
   return {
-    // Estados
     busqueda,
     filtroRazonSocial,
     filtroEstado,
     resolucionSeleccionada,
     paginaActual,
-    snackbar,
     resoluciones,
     cargandoDatos,
     itemsPorPagina,
     mostrarConfirmacion,
-
-    // Datos calculados
     totalResoluciones,
     totalPendientes,
     totalPorVencer,
@@ -318,8 +232,6 @@ export const useResolucionesLogic = () => {
     resolucionesFiltradas,
     totalPaginas,
     resolucionesPaginadas,
-
-    // Handlers
     handleBusquedaChange,
     handleRazonSocialChange,
     handleFiltrar,
@@ -330,6 +242,5 @@ export const useResolucionesLogic = () => {
     handleSubirArchivo,
     setPaginaActual,
     setMostrarConfirmacion,
-    cerrarSnackbar,
   };
 };

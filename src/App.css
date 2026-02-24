@@ -37,6 +37,15 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --sileo-state-success: oklch(0.723 0.219 142.136);
+    --sileo-state-loading: oklch(0.556 0 0);
+    --sileo-state-error: oklch(0.637 0.237 25.331);
+    --sileo-state-warning: oklch(0.795 0.184 86.047);
+    --sileo-state-info: oklch(0.685 0.169 237.323);
+    --sileo-state-action: oklch(0.623 0.214 259.815);
+    --sileo-width: 350px;
+    --sileo-height: 40px;
+    --sileo-duration: 600ms;
   }
 
   .dark {
@@ -73,6 +82,35 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+}
+
+
+
+/* Título */
+[data-sileo-toast] [data-sileo-title] {
+  color: oklch(79.2% 0.209 151.711) !important;
+  font-weight: 600 !important;
+}
+
+/* Descripción */
+[data-sileo-toast] [data-sileo-description] {
+  color: oklch(79.2% 0.209 151.711) !important;
+  font-size: "bold" !important;
+}
+
+/* Badge (ícono de éxito/error) */
+[data-sileo-toast] [data-sileo-badge] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Botón de acción */
+[data-sileo-toast] [data-sileo-button] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+[data-sileo-toast] [data-sileo-button]:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 body {

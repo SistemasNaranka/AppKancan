@@ -22,6 +22,7 @@ import {
   Store,
   Description,
   Receipt,
+  CheckCircle,
 } from "@mui/icons-material";
 import { DatosFacturaPDF, formatCurrency, formatDate } from "../types";
 
@@ -198,6 +199,39 @@ export function InvoiceInfoCard({ datosFactura }: InvoiceInfoCardProps) {
                     }}
                   >
                     {datosFactura.proveedor.nif}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Badge Automático Asignado */}
+              {datosFactura.automaticoAsignado && (
+                <Box
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    backgroundColor: "#e8f5e9",
+                    borderRadius: "6px",
+                    px: 1.25,
+                    py: 0.35,
+                    border: "1px solid #a5d6a7",
+                  }}
+                >
+                  <CheckCircle sx={{ fontSize: 14, color: "#2e7d32", mr: 0.5 }} />
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#444", fontWeight: 600, fontSize: "0.75rem" }}
+                  >
+                    AUTO&nbsp;
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "#2e7d32",
+                      fontWeight: 800,
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    {datosFactura.automaticoAsignado}
                   </Typography>
                 </Box>
               )}

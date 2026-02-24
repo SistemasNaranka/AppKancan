@@ -111,6 +111,13 @@ export function FileUploadArea({
     fileInputRef.current?.click();
   }, []);
 
+  // Handle click on the entire container area
+  const handleContainerClick = useCallback(() => {
+    if (!isProcessing) {
+      fileInputRef.current?.click();
+    }
+  }, [isProcessing]);
+
   return (
     <Box sx={{ backgroundColor: "transparent" }}>
       <input
@@ -127,6 +134,7 @@ export function FileUploadArea({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={handleContainerClick}
         sx={{
           border: "2px dashed",
           borderColor: isDragOver ? "#004680" : "#e0e0e0",
@@ -165,6 +173,7 @@ export function FileUploadArea({
                 "& .MuiLinearProgress-bar": {
                   borderRadius: 0,
                   backgroundColor: "#004680",
+                  transition: "width 0.2s ease-out",
                 },
               }}
             />
@@ -269,7 +278,10 @@ export function FileUploadArea({
             <Button
               variant="contained"
               size="large"
-              onClick={handleButtonClick}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleContainerClick();
+              }}
               startIcon={<PictureAsPdf />}
               sx={{
                 mt: 1,

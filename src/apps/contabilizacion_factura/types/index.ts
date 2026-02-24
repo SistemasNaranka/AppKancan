@@ -71,6 +71,9 @@ export interface DatosFacturaPDF {
     tamaño: number;
     fechaCarga: string;
   };
+
+  // Información de automático asignado (cargado desde BD)
+  automaticoAsignado?: string;
 }
 
 // ============ ESTADOS DEL PROCESO ============

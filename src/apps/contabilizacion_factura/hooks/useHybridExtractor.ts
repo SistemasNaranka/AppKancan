@@ -7,7 +7,7 @@
  * El modelo de IA se obtiene del usuario autenticado (campo modelo_ia en Directus)
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import ollama from "ollama/browser";
 import { GoogleGenAI } from "@google/genai";
@@ -92,7 +92,26 @@ export interface EstadoHibrido {
 export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<ErrorProcesamientoPDF | null>(null);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgressRaw] = useState(0);
+  
+  // Referencia para throttling: almacenar timestamp de última actualización
+  const lastUpdateRef = useRef<number>(0);
+  const THROTTLE_INTERVAL = 100; // 100ms mínimo entre actualizaciones
+  
+  // Función segura para actualizar progreso con throttling y lógica de valor máximo
+  const setProgress = useCallback((value: number) => {
+    const now = Date.now();
+    const valueClamped = Math.min(100, Math.max(0, Math.round(value))); // Validación de bordes y redondeo
+    
+    // Solo actualizar si ha pasado el intervalo mínimo Y el valor es mayor que el actual (monotonicidad)
+    if (now - lastUpdateRef.current >= THROTTLE_INTERVAL && valueClamped > 0) {
+      lastUpdateRef.current = now;
+      setProgressRaw(valueClamped);
+    } else if (valueClamped >= 100) {
+      // Forzar actualización cuando llega a 100%
+      setProgressRaw(100);
+    }
+  }, []);
   const [modeloActual, setModeloActual] = useState<string>("");
   const [estadoHibrido, setEstadoHibrido] = useState<EstadoHibrido>({
     proveedorUsado: null,
@@ -339,7 +358,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
     async (file: File): Promise<DatosFacturaPDF> => {
       setIsProcessing(true);
       setError(null);
-      setProgress(0);
+      setProgressRaw(0);
 
       // Resetear estado híbrido
       const nuevoEstado: EstadoHibrido = {
@@ -494,7 +513,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
    */
   const clearError = useCallback(() => {
     setError(null);
-    setProgress(0);
+    setProgressRaw(0);
     setEstadoHibrido({
       proveedorUsado: null,
       modeloUsado: null,
