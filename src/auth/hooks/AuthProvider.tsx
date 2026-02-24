@@ -64,6 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         tienda_id: me.tienda_id,
         policies: extractedPolicies,
         requires_password_change: me.requires_password_change || false,
+        key_gemini: me.key_gemini,
+        modelo_ia: me.modelo_ia,
       });
     } catch (error) {
       console.error("❌ Error en login:", error);
@@ -134,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             guardarTokenStorage(
               res.access_token,
               res.refresh_token,
-              res.expires_at
+              res.expires_at,
             );
 
             await setTokenDirectus(res.access_token);
@@ -168,6 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           tienda_id: me.tienda_id,
           policies: extractedPolicies,
           requires_password_change: me.requires_password_change || false,
+          key_gemini: me.key_gemini,
+          modelo_ia: me.modelo_ia,
         });
       } catch (error: any) {
         console.error("❌ Error al inicializar autenticación:", error);

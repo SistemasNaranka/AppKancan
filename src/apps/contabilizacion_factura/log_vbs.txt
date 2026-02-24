@@ -1,4 +1,0 @@
-Iniciando VBS - 13/02/2026 11:01:37 a. m.
-Carpeta: C:\Users\PRACT. DESARROLLO\Desktop\AppKanCan\AppKancan\src\apps\contabilizacion_factura
-Ejecutando ejecutable...
-Finalizado - 13/02/2026 11:01:39 a. m.

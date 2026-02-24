@@ -71,6 +71,9 @@ export interface DatosFacturaPDF {
     tamaño: number;
     fechaCarga: string;
   };
+
+  // Información de automático asignado (cargado desde BD)
+  automaticoAsignado?: string;
 }
 
 // ============ ESTADOS DEL PROCESO ============
@@ -97,43 +100,6 @@ export interface ErrorProcesamientoPDF {
   tipo: TipoErrorPDF;
   mensaje: string;
   detalles?: string;
-}
-
-// ============ PROPS DE COMPONENTES ============
-
-export interface FileUploadProps {
-  onFileSelected: (file: File) => void;
-  isLoading: boolean;
-  accept?: string;
-  maxSizeMB?: number;
-}
-
-export interface InvoiceDisplayProps {
-  datosFactura: DatosFacturaPDF;
-  onLimpiar: () => void;
-  onGuardar?: () => void;
-}
-
-export interface LoadingOverlayProps {
-  message: string;
-  progress?: number;
-}
-
-// ============ FILTROS DE BÚSQUEDA (mantenidos para compatibilidad) ============
-
-export interface FacturaFilters {
-  estado?: EstadoFactura;
-  fecha_desde?: string;
-  fecha_hasta?: string;
-  cliente?: string;
-}
-
-// Estados posibles de una factura (mantenidos para compatibilidad)
-export enum EstadoFactura {
-  PENDIENTE = "pendiente",
-  PAGADA = "pagada",
-  VENCIDA = "vencida",
-  CANCELADA = "cancelada",
 }
 
 // ============ UTILIDADES ============
@@ -263,37 +229,3 @@ export function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
-
-// ============ CONFIGURACIÓN OLLAMA ============
-
-/**
- * Configuración para el extractor de Ollama
- */
-export interface OllamaConfig {
-  modelo: string;
-  host: string;
-}
-
-/**
- * Modelos de Ollama recomendados para visión
- */
-export const MODELOS_VISION_OLLAMA = [
-  {
-    id: "llama3.2-vision:latest",
-    nombre: "Llama 3.2 Vision",
-    recomendado: true,
-  },
-  { id: "llava:latest", nombre: "LLaVA", recomendado: false },
-  { id: "bakllava:latest", nombre: "BakLLaVA", recomendado: false },
-  { id: "moondream:latest", nombre: "Moondream", recomendado: false },
-  {
-    id: "gemini-3-flash-preview:latest",
-    nombre: "Gemini 3 Flash (Cloud)",
-    recomendado: false,
-  },
-] as const;
-
-/**
- * Tipo de método de extracción
- */
-export type MetodoExtraccion = "ollama" | "pdfjs";
