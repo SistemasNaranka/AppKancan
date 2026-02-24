@@ -83,7 +83,7 @@ export function ProcessingFeedback({
         });
       }, 2000);
 
-      // Progreso animado continuo
+      // Progreso animado continuo - solo avanza, nunca retrocede
       intervalRef.current = setInterval(() => {
         setProgresoAnimado((prev) => {
           // Incrementar gradualmente, pero mantenerse detrás del progreso real
@@ -91,11 +91,8 @@ export function ProcessingFeedback({
           if (prev < targetProgress) {
             return Math.min(prev + 2, targetProgress);
           }
-          // Oscilación suave cuando llega al target
-          return Math.max(
-            targetProgress - 3,
-            Math.min(prev + Math.sin(Date.now() / 300) * 1.5, targetProgress),
-          );
+          // Mantener el progreso en el target sin oscilar
+          return targetProgress;
         });
       }, 100);
     } else {
@@ -265,6 +262,7 @@ export function ProcessingFeedback({
               background: `linear-gradient(90deg, #004680 0%, #0066b3 50%, #004680 100%)`,
               backgroundSize: "200% 100%",
               animation: "shimmer 1.5s linear infinite",
+              transition: "width 0.2s ease-out",
               "@keyframes shimmer": {
                 "0%": { backgroundPosition: "200% 0" },
                 "100%": { backgroundPosition: "-200% 0" },

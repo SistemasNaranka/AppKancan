@@ -6,11 +6,12 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { Box, Typography, Paper, Button, Chip, Alert } from "@mui/material";
+import { Box, Typography, Paper, Button, Chip, Alert, Snackbar } from "@mui/material";
 import {
   CheckCircle,
   SmartToy,
   Description,
+  ReceiptLong,
   Cancel,
   Update,
   CloudUpload,
@@ -31,6 +32,7 @@ import {
   IAStatusBadge,
   ProveedorProcesamiento,
 } from "../components/IAStatusBadge";
+import { AutomaticoModal } from "../components/AutomaticoModal";
 
 // Utilidades y tipos
 import { DatosFacturaPDF, EstadoProceso } from "../types";
@@ -39,6 +41,9 @@ import {
   ejecutarActualizarResolucion,
 } from "../utils/resolucion";
 
+// API
+import { saveNitAutomatico, getAutomaticoByNit } from "../services/api";
+
 export default function Home() {
   const [datosFactura, setDatosFactura] = useState<DatosFacturaPDF | null>(
     null,
@@ -46,6 +51,21 @@ export default function Home() {
   const [modelosDisponibles, setModelosDisponibles] = useState<string[]>([]);
   const [cargandoModelos, setCargandoModelos] = useState(true);
   const [conexionErrorOllama, setConexionErrorOllama] = useState(false);
+  const [modalAutomaticoOpen, setModalAutomaticoOpen] = useState(false);
+  const [nitActual, setNitActual] = useState<string | null>(null);
+  const [guardandoAutomatico, setGuardandoAutomatico] = useState(false);
+  const [automaticoAsignado, setAutomaticoAsignado] = useState<string | null>(null);
+
+  // Estados para notificaciones
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "info" | "warning";
+  }>({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
   // Obtener usuario autenticado para acceder a su API key de Gemini y modelo de IA
   const { user } = useAuth();
@@ -93,7 +113,20 @@ export default function Home() {
         return;
       }
       try {
+        // Limpiar automático asignado previamente
+        setAutomaticoAsignado(null);
+        
         const datos = await extractData(file);
+        
+        // Verificar si el NIT ya tiene un automático asignado
+        if (datos.proveedor.nif) {
+          const proveedorData = await getAutomaticoByNit(datos.proveedor.nif);
+          if (proveedorData && proveedorData.automatico) {
+            datos.automaticoAsignado = proveedorData.automatico;
+            setAutomaticoAsignado(proveedorData.automatico);
+          }
+        }
+        
         setDatosFactura(datos);
       } catch (err) {
         console.error("Error procesando archivo:", err);
@@ -115,6 +148,116 @@ export default function Home() {
     setDatosFactura(null);
     clearError();
   }, [clearError]);
+
+  // Función para manejar el botón Actualizar Resolución con verificación de NIT
+  const handleActualizarResolucion = useCallback(async () => {
+    if (!datosFactura) return;
+
+    // Si no hay NIT ni nombre, NO permitir actualizar - requiere validación obligatoria
+    if (!datosFactura.proveedor.nif || !datosFactura.proveedor.nombre) {
+      setNotification({
+        open: true,
+        message: "Error: Se requiere NIT y nombre del proveedor para actualizar la resolución",
+        severity: "error",
+      });
+      return;
+    }
+
+    try {
+      // Verificar si existe un proveedor con ese NIT (el NIT es el identificador único)
+      const nitString = String(datosFactura.proveedor.nif).trim();
+
+      const proveedorExistente = await getAutomaticoByNit(nitString);
+
+      if (proveedorExistente && proveedorExistente.automatico) {
+        // El proveedor YA EXISTE - usar automático existente sin abrir modal
+        console.log("Proveedor encontrado por NIT, usando automático:", proveedorExistente.automatico);
+        datosFactura.automaticoAsignado = proveedorExistente.automatico;
+        setAutomaticoAsignado(proveedorExistente.automatico);
+
+        // Ejecutar directamente sin mostrar snackbar
+        ejecutarActualizarResolucion(datosFactura);
+      } else {
+        // El proveedor NO EXISTE - abrir modal para registrar el automático
+        setNitActual(datosFactura.proveedor.nif);
+        setModalAutomaticoOpen(true);
+      }
+    } catch (error) {
+      console.error("Error al verificar proveedor:", error);
+      // En caso de error de conexión, NO permitir continuar sin validación
+      setNotification({
+        open: true,
+        message: "Error de conexión. No se puede proceder sin validar el proveedor en la base de datos.",
+        severity: "error",
+      });
+      // NO ejecutar la actualización - requiere validación obligatoria
+    }
+  }, [datosFactura]);
+
+  // Función para guardar el número automático y ejecutar
+  const handleGuardarAutomatico = useCallback(async (automatico: string) => {
+    if (!nitActual || !datosFactura) return;
+
+    const nombreProveedor = datosFactura.proveedor.nombre;
+    const nitProveedor = nitActual;
+
+    // Debug: verificar que el nombre llega correctamente
+    console.log("Datos a guardar:", {
+      nit: nitProveedor,
+      automatico,
+      nombreProveedor,
+      numeroFactura: datosFactura.numeroFactura,
+      valorFactura: datosFactura.total
+    });
+
+    setGuardandoAutomatico(true);
+    try {
+      // Guardar con datos adicionales del proveedor
+      await saveNitAutomatico(
+        String(nitProveedor).trim(),
+        String(automatico).trim(),
+        String(nombreProveedor).trim(),
+        datosFactura.numeroFactura,
+        datosFactura.total
+      );
+      
+      // Éxito: Cerrar modal y continuar con el flujo
+      setAutomaticoAsignado(automatico);
+      setModalAutomaticoOpen(false);
+      
+      // Mostrar notificación de éxito
+      setNotification({
+        open: true,
+        message: `Proveedor registrado exitosamente con automático: ${automatico}`,
+        severity: "success",
+      });
+      
+      // Actualizar datos factura con el automático asignado
+      setDatosFactura({
+        ...datosFactura,
+        automaticoAsignado: automatico
+      });
+      
+      // Ejecutar el programa corporativo
+      ejecutarActualizarResolucion(datosFactura);
+    } catch (error) {
+      console.error("Error al guardar automático:", error);
+      // Mostrar notificación de error
+      setNotification({
+        open: true,
+        message: "Error al guardar el registro. Por favor, intenta de nuevo.",
+        severity: "error",
+      });
+      // No cerrar el modal para que el usuario pueda intentar de nuevo
+    } finally {
+      setGuardandoAutomatico(false);
+    }
+  }, [nitActual, datosFactura]);
+
+  // Función para cerrar notificaciones
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
 
   // Determinar estado basado en el hook
   const getEstado = (): EstadoProceso => {
@@ -155,7 +298,7 @@ export default function Home() {
     <Box sx={{ p: 2, width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       {/* Header compacto */}
       <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Description sx={{ fontSize: 28, color: "primary.main" }} />
+        <ReceiptLong sx={{ fontSize: 28, color: "primary.main" }} />
         <Box sx={{ flex: 1 }}>
           <Typography variant="h5" fontWeight={700}>
             Contabilización de Facturas
@@ -289,7 +432,7 @@ export default function Home() {
               </Button>
               <Button
                 variant="contained"
-                onClick={() => ejecutarActualizarResolucion(datosFactura)}
+                onClick={handleActualizarResolucion}
                 startIcon={<Update />}
                 sx={{
                   borderRadius: 2,
@@ -313,12 +456,39 @@ export default function Home() {
                   },
                 }}
               >
-                Actualizar Resolución
+                Causar factura
               </Button>
             </Box>
           </Box>
         )}
       </Box>
+
+      {/* Modal para ingresar número automático cuando el NIT es nuevo */}
+      <AutomaticoModal
+        open={modalAutomaticoOpen}
+        nit={nitActual}
+        proveedorNombre={datosFactura?.proveedor.nombre}
+        numeroFactura={datosFactura?.numeroFactura}
+        onClose={() => setModalAutomaticoOpen(false)}
+        onConfirm={handleGuardarAutomatico}
+      />
+
+      {/* Notificaciones */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          variant="filled"
+          sx={{ width: "100%", color: "#FFFFFF" }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
