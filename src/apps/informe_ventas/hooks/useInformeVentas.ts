@@ -3,7 +3,7 @@
  *
  * Maneja toda la lógica de:
  * - Carga de datos
- * - Filtros
+ * - Filtros (se aplican en el servidor)
  * - Cálculos y agregaciones
  * - Estado de la aplicación
  */
@@ -20,6 +20,7 @@ import {
   ResumenVentas,
   Agrupacion,
   TablaVentasFila,
+  LineaVenta,
 } from "../types";
 import {
   obtenerZonas,
@@ -28,6 +29,7 @@ import {
   obtenerVentas,
   obtenerAsesores,
   obtenerAgrupaciones,
+  obtenerLineasVenta,
 } from "../api/mysql/read";
 
 // ==================== INTERFAZ DEL HOOK ====================
@@ -42,6 +44,7 @@ interface UseInformeVentasReturn {
   tiendas: Tienda[];
   asesores: string[];
   agrupaciones: Agrupacion[];
+  lineasVenta: LineaVenta[];
   filtros: FiltrosVentas;
   resumen: ResumenVentas | null;
 
@@ -92,6 +95,7 @@ export function useInformeVentas(): UseInformeVentasReturn {
   const [tiendas, setTiendas] = useState<Tienda[]>([]);
   const [asesores, setAsesores] = useState<string[]>([]);
   const [agrupaciones, setAgrupaciones] = useState<Agrupacion[]>([]);
+  const [lineasVenta, setLineasVenta] = useState<LineaVenta[]>([]);
   const [filtros, setFiltros] = useState<FiltrosVentas>(filtrosIniciales);
 
   // ==================== CARGA DE DATOS ====================
@@ -101,26 +105,17 @@ export function useInformeVentas(): UseInformeVentasReturn {
     setError(null);
 
     try {
-      // Cargar datos maestros en paralelo
-      const [
-        zonasData,
-        ciudadesData,
-        tiendasData,
-        asesoresData,
-        agrupacionesData,
-      ] = await Promise.all([
-        obtenerZonas(),
-        obtenerCiudades(),
-        obtenerTiendas(),
-        obtenerAsesores(),
-        obtenerAgrupaciones(),
-      ]);
+      // Cargar datos maestros en paralelo (sin filtros de fecha inicialmente)
+      const [asesoresData, agrupacionesData, lineasVentaData] =
+        await Promise.all([
+          obtenerAsesores(),
+          obtenerAgrupaciones(),
+          obtenerLineasVenta(),
+        ]);
 
-      setZonas(zonasData);
-      setCiudades(ciudadesData);
-      setTiendas(tiendasData);
       setAsesores(asesoresData);
       setAgrupaciones(agrupacionesData);
+      setLineasVenta(lineasVentaData);
     } catch (err) {
       console.error("Error al cargar datos iniciales:", err);
       setError("Error al cargar los datos. Por favor, intente nuevamente.");
@@ -128,6 +123,26 @@ export function useInformeVentas(): UseInformeVentasReturn {
       setLoading(false);
     }
   }, []);
+
+  // Cargar filtros contextuales (zonas, ciudades, tiendas) basados en el rango de fechas
+  const cargarFiltrosContextuales = useCallback(
+    async (fechaDesde: string, fechaHasta: string) => {
+      try {
+        const [zonasData, ciudadesData, tiendasData] = await Promise.all([
+          obtenerZonas(fechaDesde, fechaHasta),
+          obtenerCiudades(fechaDesde, fechaHasta),
+          obtenerTiendas(fechaDesde, fechaHasta),
+        ]);
+
+        setZonas(zonasData);
+        setCiudades(ciudadesData);
+        setTiendas(tiendasData);
+      } catch (err) {
+        console.error("Error al cargar filtros contextuales:", err);
+      }
+    },
+    [],
+  );
 
   const cargarVentas = useCallback(async () => {
     setLoading(true);
@@ -149,12 +164,20 @@ export function useInformeVentas(): UseInformeVentasReturn {
     cargarDatosIniciales();
   }, [cargarDatosIniciales]);
 
-  // Cargar ventas cuando cambien los filtros
+  // Cargar ventas y filtros contextuales cuando cambien las fechas
   useEffect(() => {
     if (filtros.fecha_desde && filtros.fecha_hasta) {
+      // Cargar filtros contextuales basados en el rango de fechas
+      cargarFiltrosContextuales(filtros.fecha_desde, filtros.fecha_hasta);
+      // Cargar ventas
       cargarVentas();
     }
-  }, [filtros, cargarVentas]);
+  }, [
+    filtros.fecha_desde,
+    filtros.fecha_hasta,
+    cargarFiltrosContextuales,
+    cargarVentas,
+  ]);
 
   // ==================== PROCESAMIENTO DE DATOS ====================
 
@@ -166,15 +189,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
     });
     return map;
   }, [tiendas]);
-
-  // Mapa de ciudades para búsqueda rápida (por nombre)
-  const ciudadesMap = useMemo(() => {
-    const map = new Map<string, Ciudad>();
-    ciudades.forEach((c) => {
-      map.set(c.nombre, c);
-    });
-    return map;
-  }, [ciudades]);
 
   // Ventas agregadas por asesor
   const ventasPorAsesor = useMemo<VentaAsesor[]>(() => {
@@ -395,6 +409,7 @@ export function useInformeVentas(): UseInformeVentasReturn {
     tiendas,
     asesores,
     agrupaciones,
+    lineasVenta,
     filtros,
     resumen,
 

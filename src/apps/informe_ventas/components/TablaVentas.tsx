@@ -24,22 +24,10 @@ import {
   TableSortLabel,
   Typography,
   TextField,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  OutlinedInput,
   Checkbox,
-  ListItemText,
   TablePagination,
-  Button,
 } from "@mui/material";
-import {
-  Search as SearchIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-} from "@mui/icons-material";
+import { Search as SearchIcon } from "@mui/icons-material";
 import { TablaVentasFila, Agrupacion } from "../types";
 
 interface TablaVentasProps {
@@ -57,17 +45,6 @@ const AGRUPACIONES: Agrupacion[] = [
   "Complemento",
 ];
 
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-  PaperProps: {
-    style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 220,
-    },
-  },
-};
-
 export function TablaVentas({ datos, loading }: TablaVentasProps) {
   const [ordenCampo, setOrdenCampo] = useState<CampoOrden>("unidades");
   const [ordenDireccion, setOrdenDireccion] = useState<OrdenDireccion>("desc");
@@ -76,7 +53,7 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     Agrupacion[]
   >([]);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   // Filtrar datos por búsqueda
   const datosFiltrados = useMemo(() => {
@@ -128,15 +105,6 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     }
   };
 
-  const handleAgrupacionesChange = (event: any) => {
-    const value = event.target.value;
-    // Filtrar valores vacíos o undefined
-    const filteredValue = (
-      typeof value === "string" ? value.split(",") : value
-    ).filter((v: string) => v && AGRUPACIONES.includes(v as Agrupacion));
-    setAgrupacionesSeleccionadas(filteredValue as Agrupacion[]);
-  };
-
   const handleSelectAll = () => {
     if (agrupacionesSeleccionadas.length === AGRUPACIONES.length) {
       setAgrupacionesSeleccionadas([]);
@@ -174,9 +142,8 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     id: CampoOrden;
     label: string;
     align?: "left" | "center" | "right";
-    sticky?: boolean;
   }[] = [
-    { id: "asesor", label: "Asesor", align: "left", sticky: true },
+    { id: "asesor", label: "Asesor", align: "left" },
     { id: "bodega", label: "Tienda", align: "left" },
     { id: "ciudad", label: "Ciudad", align: "left" },
     { id: "zona", label: "Zona", align: "left" },
@@ -230,18 +197,27 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
   }
 
   return (
-    <Paper sx={{ width: "100%", overflow: "hidden" }}>
+    <Paper
+      sx={{
+        width: "100%",
+        maxHeight: 650,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       {/* Barra de herramientas compacta */}
       <Box
         sx={{
-          px: 1.5,
-          py: 1,
+          px: 2,
+          py: 2,
           borderBottom: "1px solid",
           borderColor: "divider",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           backgroundColor: "grey.50",
+          flexShrink: 0,
         }}
       >
         {/* Buscador a la izquierda */}
@@ -250,7 +226,7 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
             display: "flex",
             alignItems: "center",
             gap: 0.5,
-            width: 250,
+            width: 400,
           }}
         >
           <SearchIcon color="action" fontSize="small" />
@@ -264,73 +240,104 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
             size="small"
             variant="standard"
             sx={{ flex: 1 }}
-            InputProps={{ disableUnderline: true }}
+            slotProps={{
+              input: { disableUnderline: false },
+            }}
           />
         </Box>
 
-        {/* Agrupaciones a la derecha */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={
-              agrupacionesSeleccionadas.length === AGRUPACIONES.length ? (
-                <CancelIcon fontSize="small" />
-              ) : (
-                <CheckCircleIcon fontSize="small" />
-              )
-            }
+        {/* Agrupaciones a la derecha - Chips seleccionables */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            flexWrap: "wrap",
+          }}
+        >
+          <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+            Agrupaciones:
+          </Typography>
+          {AGRUPACIONES.map((agrup) => {
+            const isSelected = agrupacionesSeleccionadas.includes(agrup);
+            return (
+              <Box
+                key={agrup}
+                onClick={() => {
+                  if (isSelected) {
+                    setAgrupacionesSeleccionadas((prev) =>
+                      prev.filter((a) => a !== agrup),
+                    );
+                  } else {
+                    setAgrupacionesSeleccionadas((prev) => [...prev, agrup]);
+                  }
+                }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 1,
+                  cursor: "pointer",
+                  border: "1px solid",
+                  borderColor: isSelected ? "primary.main" : "divider",
+                  backgroundColor: isSelected
+                    ? "primary.light"
+                    : "background.paper",
+                  transition: "all 0.15s ease",
+                  "&:hover": {
+                    borderColor: "primary.main",
+                    backgroundColor: isSelected
+                      ? "primary.light"
+                      : "action.hover",
+                  },
+                }}
+              >
+                <Checkbox
+                  size="small"
+                  checked={isSelected}
+                  sx={{ p: 0, mr: 0.5 }}
+                  tabIndex={-1}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: isSelected ? 600 : 400,
+                    color: isSelected ? "primary.main" : "text.primary",
+                  }}
+                >
+                  {agrup}
+                </Typography>
+              </Box>
+            );
+          })}
+          {/* Botón seleccionar/deseleccionar todas */}
+          <Typography
+            variant="caption"
+            color="primary"
+            sx={{
+              cursor: "pointer",
+              ml: 1,
+              "&:hover": { textDecoration: "underline" },
+            }}
             onClick={handleSelectAll}
-            color={
-              agrupacionesSeleccionadas.length === AGRUPACIONES.length
-                ? "error"
-                : "primary"
-            }
-            sx={{ px: 1, minWidth: "auto" }}
           >
             {agrupacionesSeleccionadas.length === AGRUPACIONES.length
               ? "Ninguna"
               : "Todas"}
-          </Button>
-
-          <FormControl sx={{ minWidth: 140 }} size="small">
-            <InputLabel id="agrupaciones-label">Agrupaciones</InputLabel>
-            <Select
-              labelId="agrupaciones-label"
-              multiple
-              value={agrupacionesSeleccionadas}
-              onChange={handleAgrupacionesChange}
-              input={<OutlinedInput label="Agrupaciones" />}
-              renderValue={(selected) => (
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {selected.length === AGRUPACIONES.length ? (
-                    <Chip label="Todas" size="small" />
-                  ) : selected.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                      -
-                    </Typography>
-                  ) : (
-                    <Chip label={`${selected.length}`} size="small" />
-                  )}
-                </Box>
-              )}
-              MenuProps={MenuProps}
-            >
-              {AGRUPACIONES.map((agrup) => (
-                <MenuItem key={agrup} value={agrup}>
-                  <Checkbox
-                    checked={agrupacionesSeleccionadas.indexOf(agrup) > -1}
-                  />
-                  <ListItemText primary={agrup} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          </Typography>
         </Box>
       </Box>
 
       {/* Tabla */}
-      <TableContainer sx={{ maxHeight: 600, overflow: "auto" }}>
+      <TableContainer
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: "auto",
+        }}
+      >
         <Table
           stickyHeader
           size="small"
@@ -346,9 +353,8 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                     fontWeight: 600,
                     backgroundColor: "background.paper",
                     position: "sticky",
-                    left: columna.sticky ? 0 : undefined,
                     top: 0,
-                    zIndex: columna.sticky ? 3 : 2,
+                    zIndex: 2,
                     whiteSpace: "nowrap",
                     px: 1.5,
                   }}
@@ -405,17 +411,7 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                   },
                 }}
               >
-                <TableCell
-                  component="th"
-                  scope="row"
-                  sx={{
-                    position: "sticky",
-                    left: 0,
-                    backgroundColor: "background.paper",
-                    zIndex: 3,
-                    px: 1.5,
-                  }}
-                >
+                <TableCell sx={{ px: 1.5 }}>
                   <Typography variant="body2" fontWeight={500}>
                     {fila.asesor}
                   </Typography>
@@ -484,13 +480,14 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
 
       {/* Paginación */}
       <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 100]}
+        rowsPerPageOptions={[25, 50, 100, 250]}
         component="div"
         count={datosOrdenados.length}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
+        sx={{ flexShrink: 0, borderTop: "1px solid", borderColor: "divider" }}
         labelRowsPerPage="Filas por página:"
         labelDisplayedRows={({ from, to, count }) =>
           `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`

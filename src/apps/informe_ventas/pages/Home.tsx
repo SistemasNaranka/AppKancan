@@ -2,7 +2,7 @@
  * Página principal del Informe de Ventas
  *
  * Muestra:
- * - Filtros compactos
+ * - Filtros contextuales (cada filtro se aplica sobre los anteriores)
  * - Tarjetas de resumen
  * - Tabla detallada de ventas
  */
@@ -24,9 +24,11 @@ export default function Home() {
     tiendas,
     asesores,
     agrupaciones,
+    lineasVenta,
     filtros,
     resumen,
     tablaVentas,
+    // Acciones
     actualizarFiltros,
     limpiarFiltros,
   } = useInformeVentas();
@@ -58,6 +60,7 @@ export default function Home() {
         tiendas={tiendas}
         asesores={asesores}
         agrupaciones={agrupaciones}
+        lineasVenta={lineasVenta}
         onActualizarFiltros={actualizarFiltros}
         onLimpiarFiltros={limpiarFiltros}
       />

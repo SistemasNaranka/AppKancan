@@ -1,7 +1,9 @@
 /**
  * Componente de filtros para el Informe de Ventas
  *
- * Filtros en una sola fila horizontal que ocupan el espacio disponible
+ * Filtros contextuales en una sola fila horizontal:
+ * - Cada filtro muestra solo opciones válidas basadas en los filtros anteriores
+ * - Orden: Zona -> Ciudad -> Tienda -> Asesor -> Línea Venta -> Agrupación
  */
 
 import {
@@ -12,7 +14,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { Refresh as RefreshIcon } from "@mui/icons-material";
-import { FiltrosVentas, Zona, Ciudad, Agrupacion } from "../types";
+import { FiltrosVentas, Zona, Ciudad, Agrupacion, LineaVenta } from "../types";
 
 interface FiltrosVentasProps {
   filtros: FiltrosVentas;
@@ -21,6 +23,7 @@ interface FiltrosVentasProps {
   tiendas: { id: number; nombre: string }[];
   asesores: string[];
   agrupaciones: Agrupacion[];
+  lineasVenta: LineaVenta[];
   onActualizarFiltros: (filtros: Partial<FiltrosVentas>) => void;
   onLimpiarFiltros: () => void;
 }
@@ -32,6 +35,7 @@ export function FiltrosVentasComponent({
   tiendas,
   asesores,
   agrupaciones,
+  lineasVenta,
   onActualizarFiltros,
   onLimpiarFiltros,
 }: FiltrosVentasProps) {
@@ -40,6 +44,7 @@ export function FiltrosVentasComponent({
     filtros.ciudad,
     filtros.bodega,
     filtros.asesor,
+    filtros.linea_venta,
     filtros.agrupacion,
   ].filter(Boolean).length;
 
@@ -78,7 +83,7 @@ export function FiltrosVentasComponent({
         sx={{ flex: "1 1 120px", minWidth: 120 }}
       />
 
-      {/* Filtros */}
+      {/* Filtros contextuales */}
       <Autocomplete
         value={filtros.zona || null}
         onChange={(_, value) =>
@@ -130,6 +135,21 @@ export function FiltrosVentasComponent({
         noOptionsText="Sin resultados"
         sx={{ flex: "1 1 150px", minWidth: 150 }}
         renderInput={(params) => <TextField {...params} label="Asesor" />}
+      />
+      <Autocomplete
+        value={filtros.linea_venta || null}
+        onChange={(_, value) =>
+          onActualizarFiltros({
+            linea_venta: (value || undefined) as LineaVenta | undefined,
+          })
+        }
+        options={lineasVenta}
+        size="small"
+        clearOnEscape
+        autoHighlight
+        noOptionsText="Sin resultados"
+        sx={{ flex: "1 1 140px", minWidth: 140 }}
+        renderInput={(params) => <TextField {...params} label="Línea Venta" />}
       />
       <Autocomplete
         value={filtros.agrupacion || null}

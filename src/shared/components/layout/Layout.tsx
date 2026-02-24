@@ -47,8 +47,8 @@ export default function Layout() {
           marginLeft: isMobile
             ? 0
             : open
-            ? `${drawerWidth}px`
-            : `${collapsedWidth}px`,
+              ? `${drawerWidth}px`
+              : `${collapsedWidth}px`,
         }}
       >
         {/* En móvil, el AppSidebar se muestra dentro del flujo (overlay controlado) */}
