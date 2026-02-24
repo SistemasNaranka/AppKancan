@@ -18,8 +18,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Snackbar,
-  Alert,
   styled,
   keyframes,
 } from "@mui/material";
@@ -28,6 +26,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
+import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 
 import { Add as AddIcon } from "@mui/icons-material";
 
@@ -57,6 +56,7 @@ import type {
   FiltrosReserva,
   Sala,
 } from "../types/reservas.types";
+import { text } from "stream/consumers";
 
 type TabReservas = "Reserva" | "mis" | "calendario";
 
@@ -137,6 +137,7 @@ const ReservasViewContent: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { area } = useApps();
+  const { showSnackbar } = useGlobalSnackbar();
 
   // Obtener el contexto del tour
   const {
@@ -170,16 +171,6 @@ const ReservasViewContent: React.FC = () => {
 
   // Filtros para cada sección
   const [filtrosMis, setFiltrosMis] = useState<FiltrosReserva>({});
-
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error" | "info";
-  }>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
 
   // Registrar callbacks para el tour
   useEffect(() => {
@@ -236,18 +227,10 @@ const ReservasViewContent: React.FC = () => {
     mutationFn: (datos: NuevaReserva) => crearReserva(datos),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservas"] });
-      setSnackbar({
-        open: true,
-        message: "Reserva creada exitosamente",
-        severity: "success",
-      });
+      showSnackbar("Reserva creada exitosamente", "success");
     },
     onError: (error: any) => {
-      setSnackbar({
-        open: true,
-        message: error.message || "Error al crear la reserva",
-        severity: "error",
-      });
+      showSnackbar(error?.message || "Error al crear la reserva", "error");
     },
   });
 
@@ -257,18 +240,11 @@ const ReservasViewContent: React.FC = () => {
       actualizarReserva(id, datos),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservas"] });
-      setSnackbar({
-        open: true,
-        message: "Reserva actualizada exitosamente",
-        severity: "success",
-      });
+      showSnackbar("Reserva actualizada exitosamente", "success");
     },
+
     onError: (error: any) => {
-      setSnackbar({
-        open: true,
-        message: error.message || "Error al actualizar la reserva",
-        severity: "error",
-      });
+      showSnackbar(error?.message || "Error al actualizar la reserva", "error");
     },
   });
 
@@ -277,20 +253,12 @@ const ReservasViewContent: React.FC = () => {
     mutationFn: (id: number) => cancelarReserva(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservas"] });
-      setSnackbar({
-        open: true,
-        message: "Reserva cancelada exitosamente",
-        severity: "success",
-      });
       setDialogCancelar(false);
       setReservaSeleccionada(null);
+      showSnackbar("Reserva cancelada exitosamente", "success");
     },
     onError: (error: any) => {
-      setSnackbar({
-        open: true,
-        message: error.message || "Error al cancelar la reserva",
-        severity: "error",
-      });
+      showSnackbar(error?.message || "Error al cancelar la reserva", "error");
     },
   });
 
@@ -372,10 +340,6 @@ const ReservasViewContent: React.FC = () => {
     );
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
   // Handler para ver cronograma de una sala
   const handleVerCronograma = (sala: string) => {
     // No navegar durante el tour
@@ -423,6 +387,7 @@ const ReservasViewContent: React.FC = () => {
             borderBottom: "1px solid #e0e0e0",
           }}
         >
+          
           {/* Logo y título */}
           <Box
             sx={{
@@ -513,7 +478,7 @@ const ReservasViewContent: React.FC = () => {
                 boxShadow: "none",
                 textTransform: "none",
                 fontWeight: "600",
-                backgroundColor: "#0F9568",
+                backgroundColor: "rgb(15, 149, 104)",
                 "&:hover": {
                   boxShadow: "none",
                   backgroundColor: "#0B6B4B",
@@ -684,23 +649,8 @@ const ReservasViewContent: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
-
-        {/* Snackbar para notificaciones */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbar.severity}
-            sx={{ width: "100%" }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
       </Box>
+
     </ReservasTour>
   );
 };

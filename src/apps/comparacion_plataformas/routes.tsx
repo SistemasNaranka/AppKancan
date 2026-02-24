@@ -3,7 +3,7 @@ import Home from "./pages/home";
 
 const routes: RouteObject[] = [
   {
-    path: "/pruebas",
+    path: "/comparacion_plataformas",
     element: <Home />,
   },
 ];

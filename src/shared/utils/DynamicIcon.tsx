@@ -28,6 +28,8 @@ import {
   Difference,
   EditCalendar,
   GridView,
+  ReceiptLong,
+  ShoppingBag,
 } from "@mui/icons-material";
 /**
  * 🗂️ Mapa de íconos permitidos.
@@ -50,6 +52,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Summarize,
   Difference,
   Assignment,
+  ReceiptLong,
   // 🔸 Categoría: Recursos Humanos
   PeopleAlt,
   Badge,
@@ -70,6 +73,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   LocalAtm,
   CurrencyExchange,
   MonetizationOn,
+  ShoppingBag,
 
   // 🔸 Fallback por si algo no coincide
   Folder,
