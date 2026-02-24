@@ -65,7 +65,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [selected, setSelected] = useState<Set<string | number>>(
-    new Set(initialSelected)
+    new Set(initialSelected),
   );
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -116,7 +116,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
         (item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ??
-          false)
+          false),
     );
   }, [items, searchTerm, labelKey]);
 
@@ -205,7 +205,7 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
       </Card>
     ),
     (prev, next) =>
-      prev.selected === next.selected && prev.item.id === next.item.id
+      prev.selected === next.selected && prev.item.id === next.item.id,
   );
 
   if (!open) return null;
@@ -315,39 +315,41 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
                     variant="outlined"
                     size="small"
                     inputRef={searchInputRef}
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon sx={{ color: "#667eea" }} />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <>
-                          {searchTerm && (
-                            <InputAdornment position="end">
-                              <Button
-                                onClick={() => {
-                                  setSearchTerm("");
-                                  searchInputRef.current?.focus();
-                                }}
-                                size="small"
-                                sx={{
-                                  minWidth: 0,
-                                  color: "text.secondary",
-                                  p: 0.5,
-                                  "&:hover": {
-                                    color: theme.palette.error.main,
-                                  },
-                                }}
-                                aria-label="Limpiar búsqueda"
-                              >
-                                <SquareX size={16} />
-                              </Button>
-                            </InputAdornment>
-                          )}
-                        </>
-                      ),
+                    slotProps={{
+                      input: {
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon sx={{ color: "#667eea" }} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <>
+                            {searchTerm && (
+                              <InputAdornment position="end">
+                                <Button
+                                  onClick={() => {
+                                    setSearchTerm("");
+                                    searchInputRef.current?.focus();
+                                  }}
+                                  size="small"
+                                  sx={{
+                                    minWidth: 0,
+                                    color: "text.secondary",
+                                    p: 0.5,
+                                    "&:hover": {
+                                      color: theme.palette.error.main,
+                                    },
+                                  }}
+                                  aria-label="Limpiar búsqueda"
+                                >
+                                  <SquareX size={16} />
+                                </Button>
+                              </InputAdornment>
+                            )}
+                          </>
+                        ),
+                      },
                     }}
                   />
                 )}
@@ -443,8 +445,8 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
                       String(a[labelKey] ?? "").localeCompare(
                         String(b[labelKey] ?? ""),
                         "es",
-                        { sensitivity: "base" }
-                      )
+                        { sensitivity: "base" },
+                      ),
                     )
                     .map((item) => (
                       <SelectionCard

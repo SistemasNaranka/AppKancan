@@ -93,22 +93,24 @@ export const ForcePasswordChangeModal = ({
           onChange={(e) => setNewPassword(e.target.value)}
           disabled={loading || success}
           sx={{ mb: 2 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Lock />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowPassword(!showPassword)}
-                  edge="end"
-                >
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
           }}
         />
 
@@ -119,12 +121,14 @@ export const ForcePasswordChangeModal = ({
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           disabled={loading || success}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Lock />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock />
+                </InputAdornment>
+              ),
+            },
           }}
         />
 

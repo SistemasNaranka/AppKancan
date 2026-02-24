@@ -25,29 +25,31 @@ const SearchBar: React.FC<SearchBarProps> = ({
       value={valor}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon sx={{ color: "#004680", fontSize: "1.4rem" }} />
-          </InputAdornment>
-        ),
-        endAdornment: valor && (
-          <InputAdornment position="end">
-            <IconButton
-              size="small"
-              onClick={handleClear}
-              sx={{
-                color: "#004680",
-                padding: "4px",
-                "&:hover": {
-                  backgroundColor: "#e3f2fd",
-                },
-              }}
-            >
-              <ClearIcon sx={{ fontSize: "1.2rem" }} />
-            </IconButton>
-          </InputAdornment>
-        ),
+      slotProps={{
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon sx={{ color: "#004680", fontSize: "1.4rem" }} />
+            </InputAdornment>
+          ),
+          endAdornment: valor && (
+            <InputAdornment position="end">
+              <IconButton
+                size="small"
+                onClick={handleClear}
+                sx={{
+                  color: "#004680",
+                  padding: "4px",
+                  "&:hover": {
+                    backgroundColor: "#e3f2fd",
+                  },
+                }}
+              >
+                <ClearIcon sx={{ fontSize: "1.2rem" }} />
+              </IconButton>
+            </InputAdornment>
+          ),
+        },
       }}
       sx={{
         "& .MuiOutlinedInput-root": {

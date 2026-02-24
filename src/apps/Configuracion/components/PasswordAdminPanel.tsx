@@ -133,12 +133,14 @@ export const PasswordAdminPanel = () => {
         onChange={(e) => setSearchTerm(e.target.value)}
         sx={{ mb: 2 }}
         size="small"
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Search />
-            </InputAdornment>
-          ),
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search />
+              </InputAdornment>
+            ),
+          },
         }}
       />
 
