@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { Box, CircularProgress, Typography, Alert, Button } from "@mui/material";
+import WarningIcon from "@mui/icons-material/Warning";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
 // Hooks
 import { useFileProcessor } from "../hooks/useFileProcessor";
@@ -76,7 +78,7 @@ const Home: React.FC = () => {
       ""
     ];
     duplicadosParaNormalizar.forEach(nombre => {
-      mensaje.push(`📄 ${nombre}`);
+      mensaje.push(`- ${nombre}`);
     });
     mensaje.push("");
     mensaje.push("¿Está seguro de que desea normalizar estos archivos con nombres duplicados?");
@@ -175,9 +177,10 @@ const Home: React.FC = () => {
           severity="warning" 
           sx={{ mb: 2 }}
           onClose={limpiarAdvertenciaDuplicados}
+          icon={<WarningIcon />}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-            ⚠️ Archivo duplicado: No se agregó a la lista
+            Archivo duplicado: No se agregó a la lista
           </Typography>
           <Typography variant="body2">
             El siguiente archivo ya existe en los archivos subidos y no se agregó:
@@ -185,8 +188,8 @@ const Home: React.FC = () => {
           <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
             {duplicadosAdvertencia.map((nombre, index) => (
               <li key={index}>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
-                  📄 {nombre}
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <InsertDriveFileIcon fontSize="small" /> {nombre}
                 </Typography>
               </li>
             ))}
