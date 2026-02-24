@@ -11,6 +11,7 @@ import {
   CheckCircle,
   SmartToy,
   Description,
+  ReceiptLong,
   Cancel,
   Update,
   CloudUpload,
@@ -297,7 +298,7 @@ export default function Home() {
     <Box sx={{ p: 2, width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       {/* Header compacto */}
       <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Description sx={{ fontSize: 28, color: "primary.main" }} />
+        <ReceiptLong sx={{ fontSize: 28, color: "primary.main" }} />
         <Box sx={{ flex: 1 }}>
           <Typography variant="h5" fontWeight={700}>
             Contabilización de Facturas
