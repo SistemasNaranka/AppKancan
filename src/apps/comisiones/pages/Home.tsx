@@ -32,8 +32,8 @@ export default function Home() {
     updatePresupuestosEmpleados,
   } = useCommission();
 
-  // 🚀 NUEVO: Hook para obtener todos los meses disponibles
-  // 🚀 NUEVO: Hook para obtener todos los meses disponibles
+  //  NUEVO: Hook para obtener todos los meses disponibles
+  //  NUEVO: Hook para obtener todos los meses disponibles
   const { availableMonths, currentMonth, isLoadingMonths } =
     useAvailableMonths();
 
@@ -42,7 +42,7 @@ export default function Home() {
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [showTabsConfigModal, setShowTabsConfigModal] = useState(false);
 
-  // 🚀 NUEVO: Estado para pantalla de carga de guardado
+  //  NUEVO: Estado para pantalla de carga de guardado
   const [showSaveLoading, setShowSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(false);
