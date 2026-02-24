@@ -129,15 +129,18 @@ export default function Home() {
     clearFilterCache,
   } = useFiltersOptimized();
 
+  // 🚀 NUEVO: Determinar si hay exactamente una tienda seleccionada
+  const hasSingleStoreSelected = filterTienda.length === 1;
+
   // 🚀 NUEVO: Hook para validar presupuesto diario de empleados
-  // Se pasa el nombre de la tienda si hay exactamente una seleccionada (para modo Admin)
+  // Solo se pasa el nombre de la tienda si hay exactamente una seleccionada
   const {
     hasBudgetData,
     todayBudgetCount,
     missingDaysCount,
     validationCompleted: budgetValidationCompleted,
     revalidateBudgetData,
-  } = useBudgetValidation(filterTienda.length === 1 ? filterTienda[0] : undefined);
+  } = useBudgetValidation(hasSingleStoreSelected ? filterTienda[0] : undefined);
 
   // Cache para cálculos costosos (optimizado)
   const calculationCacheRef = useRef<Map<string, any>>(new Map());
@@ -471,11 +474,12 @@ export default function Home() {
     };
   }, [isError, error, dataLoadAttempted, hasData, isLoading, commissionData]);
 
-  // 🚀 NUEVO: Determinar si mostrar contenido principal o aviso de presupuesto
+  // 🚀 NUEVO: Determinar si mostrar contenido principal (siempre true, excepto cuando está cargando)
   const shouldShowMainContent = useMemo(() => {
-    // Solo mostrar contenido si hay presupuesto diario asignado
-    return hasBudgetData !== false;
-  }, [hasBudgetData]);
+    // Siempre mostrar contenido excepto cuando los datos de presupuesto están cargando
+    // Mostramos los datos filtrados incluso si la tienda no tiene presupuesto asignado
+    return budgetValidationCompleted;
+  }, [budgetValidationCompleted]);
 
   // 🚀 NUEVO: Determinar si hay una sola tienda (para gráficos)
 
@@ -506,7 +510,7 @@ export default function Home() {
       onRoleFilterToggle: handleRoleFilterToggleWithExpansion,
       onRoleFilterClear: handleRoleFilterClear,
       hasBudgetData: hasBudgetData !== false, // Pasar información de presupuesto al header
-      missingDaysCount, // NUEVO: Cantidad de días sin asignar en el mes
+      missingDaysCount: hasSingleStoreSelected ? missingDaysCount : 0, // Solo mostrar días pendientes cuando hay una tienda seleccionada
     };
 
     // Solo agregar renderMobileSummaryCards si hay presupuesto
@@ -608,98 +612,8 @@ export default function Home() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
               <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-                {/* 🚀 NUEVO: Aviso de presupuesto diario o contenido principal */}
-                {budgetValidationCompleted && hasBudgetData === false ? (
-                  /* Aviso de presupuesto diario no asignado */
-                  <section className="space-y-6">
-                    <div className="text-center py-12">
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 3,
-                        }}
-                      >
-                        <AssignmentIcon
-                          sx={{
-                            fontSize: 64,
-                            color: "error.main",
-                            opacity: 0.6,
-                          }}
-                        />
-                        <Box sx={{ textAlign: "center", maxWidth: 500 }}>
-                          <Typography
-                            variant="h5"
-                            component="h2"
-                            sx={{
-                              fontWeight: 600,
-                              mb: 3,
-                              color: "#c62828",
-                            }}
-                          >
-                            Presupuesto Diario No Asignado
-                          </Typography>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              color: "text.secondary",
-                              mb: 1,
-                              fontSize: "1.1rem",
-                            }}
-                          >
-                            No tiene presupuesto del día{" "}
-                            <strong>{getCurrentFormattedDate()}</strong>{" "}
-                            asignado.
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "text.secondary",
-                              fontSize: "1rem",
-                              mb: 4,
-                            }}
-                          >
-                            Para continuar debe asignar el presupuesto diario de
-                            empleados.
-                          </Typography>
-
-                          <Button
-                            variant="contained"
-                            size="large"
-                            startIcon={<AssignmentIcon />}
-                            onClick={() => setShowCodesModal(true)}
-                            sx={{
-                              px: 4,
-                              py: 1.5,
-                              borderRadius: 2,
-                              background:
-                                "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
-                              color: "white",
-                              textTransform: "none",
-                              fontWeight: 600,
-                              fontSize: "1.1rem",
-                              boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
-                              "&:hover": {
-                                background:
-                                  "linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)",
-                                boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
-                                transform: "translateY(-1px)",
-                              },
-                              "&:active": {
-                                transform: "translateY(0)",
-                              },
-                            }}
-                          >
-                            Asignar Presupuesto Diario
-                          </Button>
-                        </Box>
-                      </Box>
-                    </div>
-                  </section>
-                ) : (
-                  /* Contenido principal cuando hay presupuesto asignado */
-                  <section className="space-y-4 sm:space-y-6 lg:space-y-8">
+                {/* Contenido principal - Siempre mostrar la tabla normal */}
+                <section className="space-y-4 sm:space-y-6 lg:space-y-8">
                     {/* Tabla de Datos */}
                     <section className="space-y-3 sm:space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -781,11 +695,10 @@ export default function Home() {
                       </section>
                     )}
                   </section>
-                )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
         {/* Modales */}
         <HomeModals

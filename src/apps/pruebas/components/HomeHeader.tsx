@@ -42,8 +42,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     tiendasDisponibles,
     procesarArchivosRaw
 }) => {
-    const [dragging, setDragging] = React.useState(false);
-
     // Estado local para debounce de búsqueda
     const [busquedaLocal, setBusquedaLocal] = React.useState(busqueda);
 
@@ -61,28 +59,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         setBusquedaLocal(busqueda);
     }, [busqueda]);
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragging(false);
-    };
-
-    const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragging(false);
-
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-            await procesarArchivosRaw(files);
-        }
-    };
     return (
         <>
             <Box sx={{ mb: 3 }}>
@@ -91,11 +67,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 </Typography>
             </Box>
 
-            {/* Barra de Acciones Sticky */}
+            {/* Barra de Acciones Sticky - Sin drag/drop ya que se maneja en la página principal */}
             <Box
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
                 sx={{
                     display: "flex",
                     gap: 2,
@@ -104,16 +77,15 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                     position: 'sticky',
                     top: 0,
                     zIndex: 1100,
-                    backgroundColor: dragging ? 'rgba(1, 124, 225, 0.15)' : 'rgba(240, 244, 248, 0.9)',
+                    backgroundColor: 'rgba(240, 244, 248, 0.9)',
                     backdropFilter: 'blur(10px)',
                     py: 2,
                     px: 3,
                     mx: -3,  // Compensa el padding del padre (Home)
                     mb: 3,
-                    borderBottom: dragging ? '2px dashed #017ce1' : '1px solid rgba(0,0,0,0.08)',
-                    boxShadow: dragging ? '0 8px 12px -1px rgba(1, 124, 225, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                    transition: 'all 0.2s ease',
-                    cursor: dragging ? 'copy' : 'default'
+                    borderBottom: '1px solid rgba(0,0,0,0.08)',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                    transition: 'all 0.2s ease'
                 }}>
                 <input
                     type="file"
