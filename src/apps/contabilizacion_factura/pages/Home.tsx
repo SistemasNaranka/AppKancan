@@ -174,12 +174,7 @@ export default function Home() {
         datosFactura.automaticoAsignado = proveedorExistente.automatico;
         setAutomaticoAsignado(proveedorExistente.automatico);
 
-        setNotification({
-          open: true,
-          message: `Proveedor reconocido (NIT: ${nitString}), usando automático existente: ${proveedorExistente.automatico}`,
-          severity: "success",
-        });
-
+        // Ejecutar directamente sin mostrar snackbar
         ejecutarActualizarResolucion(datosFactura);
       } else {
         // El proveedor NO EXISTE - abrir modal para registrar el automático
@@ -460,7 +455,7 @@ export default function Home() {
                   },
                 }}
               >
-                Actualizar Resolución
+                Causar factura
               </Button>
             </Box>
           </Box>
@@ -488,7 +483,7 @@ export default function Home() {
           onClose={handleCloseNotification}
           severity={notification.severity}
           variant="filled"
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", color: "#FFFFFF" }}
         >
           {notification.message}
         </Alert>

@@ -115,7 +115,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
       tipo_calculo: "Fijo",
       porcentaje: "",
     }),
-    []
+    [],
   );
 
   const [roleConfigs, setRoleConfigs] = useState<RoleConfigRow[]>([]);
@@ -173,7 +173,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
         "Ene";
       const data = await obtenerPorcentajesMensuales(
         undefined,
-        `${mesNombre} ${selectedYear}`
+        `${mesNombre} ${selectedYear}`,
       );
 
       if (data && data.length > 0) {
@@ -191,7 +191,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
               tipo_calculo:
                 c.tipo_calculo === "Distributivo" ? "Distributivo" : "Fijo",
               porcentaje: c.porcentaje?.toString() || "",
-            })
+            }),
           );
           setRoleConfigs(configs);
         } else {
@@ -226,7 +226,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
   const handleRowChange = (
     id: string,
     field: keyof RoleConfigRow,
-    value: any
+    value: any,
   ) => {
     setRoleConfigs((prev) =>
       prev.map((row) => {
@@ -238,7 +238,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
           return updated;
         }
         return row;
-      })
+      }),
     );
   };
 
@@ -268,7 +268,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
         const p = parseFloat(config.porcentaje);
         if (isNaN(p) || p < 0 || p > 100) {
           setError(
-            `El porcentaje para ${config.rol} debe estar entre 0 y 100.`
+            `El porcentaje para ${config.rol} debe estar entre 0 y 100.`,
           );
           return;
         }
@@ -391,13 +391,15 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
               type="number"
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              InputProps={{
-                sx: { fontSize: "1rem" },
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Event fontSize="small" />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  sx: { fontSize: "1rem" },
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Event fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
           </Grid>
@@ -494,13 +496,15 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                       handleRowChange(row.id, "porcentaje", e.target.value)
                     }
                     disabled={row.tipo_calculo === "Distributivo"}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <Percent sx={{ fontSize: 16 }} />
-                        </InputAdornment>
-                      ),
-                      sx: { fontWeight: "600", fontSize: "1rem" },
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Percent sx={{ fontSize: 16 }} />
+                          </InputAdornment>
+                        ),
+                        sx: { fontWeight: "600", fontSize: "1rem" },
+                      },
                     }}
                   />
                 </Grid>

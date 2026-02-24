@@ -621,13 +621,15 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
               SelectProps={{ native: true }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarMonth fontSize="small" />
-                  </InputAdornment>
-                ),
-                sx: { fontSize: "1rem" },
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarMonth fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  sx: { fontSize: "1rem" },
+                },
               }}
             >
               {MESES.map((m) => (
@@ -645,13 +647,15 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
               type="number"
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              InputProps={{
-                sx: { fontSize: "1rem" },
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarMonth fontSize="small" />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  sx: { fontSize: "1rem" },
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarMonth fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
           </Grid>
@@ -771,13 +775,15 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                           )
                         }
                         disabled={row.tipo_calculo === "Distributivo"}
-                        InputProps={{
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Percent sx={{ fontSize: 16 }} />
-                            </InputAdornment>
-                          ),
-                          sx: { fontWeight: "600", fontSize: "1rem" },
+                        slotProps={{
+                          input: {
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <Percent sx={{ fontSize: 16 }} />
+                              </InputAdornment>
+                            ),
+                            sx: { fontWeight: "600", fontSize: "1rem" },
+                          },
                         }}
                       />
                     </Grid>
@@ -902,8 +908,10 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                               e.target.value,
                             )
                           }
-                          InputProps={{
-                            sx: { fontWeight: "600", fontSize: "1rem" },
+                          slotProps={{
+                            input: {
+                              sx: { fontWeight: "600", fontSize: "1rem" },
+                            },
                           }}
                         />
                       </Grid>
@@ -921,13 +929,15 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                               e.target.value,
                             )
                           }
-                          InputProps={{
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <Percent sx={{ fontSize: 16 }} />
-                              </InputAdornment>
-                            ),
-                            sx: { fontWeight: "600", fontSize: "1rem" },
+                          slotProps={{
+                            input: {
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <Percent sx={{ fontSize: 16 }} />
+                                </InputAdornment>
+                              ),
+                              sx: { fontWeight: "600", fontSize: "1rem" },
+                            },
                           }}
                         />
                       </Grid>
@@ -1032,8 +1042,10 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                             )
                           }
                           placeholder="Ej: Muy Regular, Regular, Buena..."
-                          InputProps={{
-                            sx: { fontSize: "1rem" },
+                          slotProps={{
+                            input: {
+                              sx: { fontSize: "1rem" },
+                            },
                           }}
                         />
                       </Grid>
