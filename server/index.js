@@ -55,10 +55,8 @@ app.get("*", (req, res) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
-  console.log(`📊 Frontend disponible en http://localhost:${PORT}`);
-  console.log(`🔌 API disponible en http://localhost:${PORT}/api`);
-  console.log(`💾 Conectando a MySQL: ${dbConfig.host}`);
+  console.log(`Servidor iniciado en puerto ${PORT}`);
+  console.log(`Conectando a MySQL: ${dbConfig.host}`);
 });
 
 module.exports = app;
