@@ -315,7 +315,7 @@ export default function Home() {
             label={ESTADO_CONFIG[estado].label}
             color={ESTADO_CONFIG[estado].color}
             size="small"
-            sx={{ fontWeight: 600 }}
+            sx={{ fontWeight: 600 }} 
           />
         )}
       </Box>
