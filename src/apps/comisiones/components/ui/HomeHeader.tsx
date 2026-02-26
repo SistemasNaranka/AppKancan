@@ -140,22 +140,28 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {canAssignEmployees() && (
                   <Box sx={{ position: "relative" }}>
                     {/* Aviso de días pendientes - Para Tiendas y Admins cuando hay filtro */}
-                    {missingDaysCount > 0 && (
+                    {/* Mostrar aviso cuando NO hay presupuesto del día de hoy O cuando hay días pendientes */}
+                    {(missingDaysCount > 0 || hasBudgetData === false) && (
                       <Box
                         sx={{
                           position: "absolute",
                           top: -30,
                           left: "50%",
                           transform: "translateX(-50%)",
-                          bgcolor: "#fff4e5",
-                          color: "#663000",
+                          bgcolor:
+                            hasBudgetData === false ? "#ffebee" : "#fff4e5",
+                          color:
+                            hasBudgetData === false ? "#c62828" : "#663000",
                           px: 1.75,
                           py: 0.4,
                           borderRadius: 1.5,
                           fontSize: "0.8rem",
                           fontWeight: "bold",
                           whiteSpace: "nowrap",
-                          border: "1.5px solid #ffb74d",
+                          border:
+                            hasBudgetData === false
+                              ? "1.5px solid #ef5350"
+                              : "1.5px solid #ffb74d",
                           boxShadow: "0 4px 8px rgba(0,0,0,0.12)",
                           display: "flex",
                           alignItems: "center",
@@ -176,12 +182,17 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                         }}
                       >
                         <AssignmentIcon
-                          sx={{ fontSize: 16, color: "#f57c00" }}
+                          sx={{
+                            fontSize: 16,
+                            color:
+                              hasBudgetData === false ? "#d32f2f" : "#f57c00",
+                          }}
                         />
-                        {missingDaysCount}{" "}
-                        {missingDaysCount === 1
-                          ? "día pendiente"
-                          : "días pendientes"}
+                        {hasBudgetData === false
+                          ? "Sin presupuesto hoy"
+                          : missingDaysCount === 1
+                            ? "1 día pendiente"
+                            : `${missingDaysCount} días pendientes`}
                       </Box>
                     )}
 
