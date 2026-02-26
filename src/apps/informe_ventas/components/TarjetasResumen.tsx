@@ -33,10 +33,11 @@ function StatCard({ title, value, icon, color, loading }: StatCardProps) {
     <Paper
       elevation={0}
       sx={{
-        p: 1.5,
+        px: 1.5,
+        py: 0.75,
         display: "flex",
         alignItems: "center",
-        gap: 1.5,
+        gap: 1,
         border: "1px solid",
         borderColor: "divider",
         borderRadius: 1,
@@ -47,7 +48,7 @@ function StatCard({ title, value, icon, color, loading }: StatCardProps) {
     >
       <Box
         sx={{
-          p: 0.75,
+          p: 0.5,
           borderRadius: 1,
           backgroundColor: `${color}15`,
           color,

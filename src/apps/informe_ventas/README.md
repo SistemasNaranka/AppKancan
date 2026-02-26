@@ -9,30 +9,49 @@ Esta aplicación muestra información de ventas incluyendo:
 - Nombre del asesor y su venta en unidades
 - Valor de la venta
 - Tienda/bodega a la que pertenece
-- Zona de ubicación
-- Línea de venta (colección, básicos, promoción, liquidación, segunda)
-- Agrupación (Indigo/Liviano)
+- Ciudad y zona de ubicación
+- Línea de venta (Colección, Básicos, Promoción)
+- Agrupación (Indigo, Tela Liviana, Calzado, Complemento)
 
 ## Arquitectura
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  Docker Container                        │
-│                    Puerto: 11000                         │
-│  ┌─────────────────┐    ┌──────────────────────────┐   │
-│  │   Frontend      │    │   API Backend            │   │
-│  │   (React)       │───▶│   (Express)              │   │
-│  │   /dist         │    │   /api/*                 │   │
-│  └─────────────────┘    └──────────────────────────┘   │
-│                                  │                       │
-│                                  ▼                       │
-│                         ┌─────────────────┐             │
-│                         │   MySQL DB      │             │
-│                         │ 192.168.19.250  │             │
-│                         │ kancan/naranka  │             │
-│                         └─────────────────┘             │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    Docker Container                              │
+│                      Puerto: 11000                               │
+│  ┌─────────────────┐    ┌──────────────────────────────────┐     │
+│  │   Frontend      │    │   API Backend                    │     │
+│  │   (React)       │───▶│   (Express)                      │    │
+│  │   /dist         │    │   /api/*                         │   │
+│  └─────────────────┘    └──────────────────────────────────┘   │
+│                                  │                               │
+│                                  ▼                               │
+│                         ┌─────────────────┐                     │
+│                         │   MySQL DB      │                     │
+│                         │ 192.168.19.250  │                     │
+│                         │ kancan/naranka  │                     │
+│                         └─────────────────┘                     │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+## Seguridad
+
+### Variables de Entorno Protegidas
+
+- El archivo `.env` está excluido de Git (incluido en `.gitignore`)
+- Las credenciales de BD se configuran directamente en Coolify
+- **Nunca** se exponen credenciales en el navegador
+
+### Lo que NO es visible en el navegador:
+
+- Credenciales de base de datos (`DB_USER`, `DB_PASSWORD`, `DB_HOST`)
+- Conexión directa a MySQL
+- Queries SQL
+
+### Lo que SÍ es visible en el navegador:
+
+- Llamadas a endpoints `/api/*`
+- Respuestas JSON con datos procesados
 
 ## Despliegue en Coolify
 
@@ -52,7 +71,8 @@ Configura estas variables en el panel de Coolify:
 1. Sube los cambios a GitHub
 2. Coolify detectará los cambios automáticamente
 3. Se construirá el contenedor Docker
-4. La aplicación estará disponible en el puerto 11000
+4. Las variables de entorno se inyectan en tiempo de ejecución
+5. La aplicación estará disponible en el puerto 11000
 
 ## Desarrollo Local
 
@@ -83,8 +103,8 @@ src/apps/informe_ventas/
 │   └── mysql/
 │       └── read.ts          # API para conectar con backend
 ├── components/
-│   ├── FiltrosVentas.tsx    # Componente de filtros
-│   ├── TablaVentas.tsx      # Tabla de datos
+│   ├── FiltrosVentas.tsx    # Componente de filtros contextuales
+│   ├── TablaVentas.tsx      # Tabla de datos con checkboxes de agrupación
 │   └── TarjetasResumen.tsx  # Tarjetas de resumen
 ├── hooks/
 │   └── useInformeVentas.ts  # Hook principal de lógica
@@ -101,25 +121,66 @@ server/
 
 ## Endpoints de la API
 
-| Endpoint                                    | Descripción                   |
-| ------------------------------------------- | ----------------------------- |
-| `GET /api/health`                           | Verificar estado del servidor |
-| `GET /api/zonas`                            | Obtener zonas/procesos        |
-| `GET /api/ciudades`                         | Obtener ciudades              |
-| `GET /api/tiendas`                          | Obtener tiendas/bodegas       |
-| `GET /api/grupos-homogeneos`                | Obtener grupos homogéneos     |
-| `GET /api/ventas?fecha_desde=&fecha_hasta=` | Obtener ventas con filtros    |
-| `GET /api/asesores`                         | Obtener lista de asesores     |
+| Endpoint                                      | Descripción                          |
+| --------------------------------------------- | ------------------------------------ |
+| `GET /api/health`                             | Verificar estado del servidor        |
+| `GET /api/zonas?fecha_desde=&fecha_hasta=`    | Zonas filtradas por fecha            |
+| `GET /api/ciudades?fecha_desde=&fecha_hasta=` | Ciudades filtradas por fecha         |
+| `GET /api/tiendas?fecha_desde=&fecha_hasta=`  | Tiendas filtradas por fecha          |
+| `GET /api/grupos-homogeneos`                  | Obtener grupos homogéneos            |
+| `GET /api/grupos`                             | Obtener grupos con agrupación        |
+| `GET /api/agrupaciones`                       | Agrupaciones mapeadas (4 valores)    |
+| `GET /api/lineas-venta`                       | Líneas de venta mapeadas (3 valores) |
+| `GET /api/asesores`                           | Obtener lista de asesores            |
+| `GET /api/ventas?fecha_desde=&fecha_hasta=`   | Ventas con filtros completos         |
 
-## Filtros Disponibles
+### Filtros del endpoint `/api/ventas`
 
-- **Fecha Desde/Hasta**: Rango de fechas para la consulta
-- **Zona**: Filtrar por zona/proceso
-- **Ciudad**: Filtrar por ciudad
-- **Tienda/Bodega**: Filtrar por tienda específica
-- **Asesor**: Filtrar por nombre de asesor
-- **Línea de Venta**: Colección, Básicos, Promoción, Liquidación, Segunda
-- **Agrupación**: Indigo, Liviano
+| Parámetro     | Descripción                                |
+| ------------- | ------------------------------------------ |
+| `fecha_desde` | Fecha inicial (YYYY-MM-DD)                 |
+| `fecha_hasta` | Fecha final (YYYY-MM-DD)                   |
+| `bodega`      | Nombre de la tienda                        |
+| `asesor`      | Nombre del vendedor                        |
+| `zona`        | Zona geográfica                            |
+| `ciudad`      | Ciudad                                     |
+| `linea_venta` | Colección, Básicos, Promoción              |
+| `agrupacion`  | Indigo, Tela Liviana, Calzado, Complemento |
+
+## Filtros Contextuales
+
+La aplicación implementa **filtros contextuales**: cada filtro muestra solo opciones válidas basadas en los filtros anteriores.
+
+**Orden de aplicación:**
+
+1. Fechas (obligatorias)
+2. Zona → se carga según el rango de fechas
+3. Ciudad → se filtra por zona seleccionada
+4. Tienda → se filtra por ciudad seleccionada
+5. Asesor → disponible según los filtros anteriores
+6. Línea de Venta → Colección, Básicos, Promoción
+7. Agrupación → Indigo, Tela Liviana, Calzado, Complemento
+
+## Mapeo de Valores
+
+### Líneas de Venta (BD → Usuario)
+
+| Valor en BD   | Valor mostrado |
+| ------------- | -------------- |
+| `colección`   | Colección      |
+| `basic`       | Básicos        |
+| `promocion`   | Promoción      |
+| `liquidacion` | Promoción      |
+| `segundas`    | Promoción      |
+
+### Agrupaciones (BD → Usuario)
+
+| Valor en BD                             | Valor mostrado |
+| --------------------------------------- | -------------- |
+| `indigo`, `jeans`                       | Indigo         |
+| `nacional`, `importado`, `tela liviana` | Tela Liviana   |
+| `calzado`                               | Calzado        |
+| `accesorios`                            | Complemento    |
 
 ## Base de Datos
 
@@ -127,17 +188,36 @@ Las consultas se realizan sobre las siguientes tablas:
 
 ### Base de datos `kancan`
 
-- `procesos` - Zonas
-- `ciudades` - Ciudades
-- `bodegas` - Tiendas
+- `bodegas` - Tiendas con ciudad y zona
 - `ventas_YYYY` - Ventas por año
 - `devoluciones_YYYY` - Devoluciones por año
 
 ### Base de datos `naranka`
 
-- `grupos_homogeneos` - Agrupaciones y líneas de venta
+- `referencias` - Referencias de productos
+- `grupos_homogeneos` - Líneas de venta
+- `grupos` - Agrupaciones (Indigo/Liviano)
 - `ventas_YYYY` - Ventas por año
 - `devoluciones_YYYY` - Devoluciones por año
+
+## Características de la Interfaz
+
+### Tabla de Ventas
+
+- **Búsqueda**: Filtra por asesor, tienda, ciudad o zona
+- **Ordenamiento**: Por cualquier columna
+- **Paginación**: 25, 50 o 100 filas por página
+- **Agrupaciones**: Checkboxes para seleccionar qué columnas mostrar
+  - Indigo (unidades y valor)
+  - Tela Liviano (unidades y valor)
+  - Calzado (unidades y valor)
+  - Complemento (unidades y valor)
+
+### Tarjetas de Resumen
+
+- Total Unidades
+- Total Valor
+- Promedio por Asesor
 
 ## Notas Importantes
 
@@ -145,3 +225,5 @@ Las consultas se realizan sobre las siguientes tablas:
 2. Las credenciales de MySQL se configuran como variables de entorno en Coolify
 3. El puerto por defecto es 11000
 4. La API está disponible en `/api/*` y el frontend en todas las demás rutas
+5. Los filtros contextuales se cargan dinámicamente según el rango de fechas
+6. Las consultas SQL usan parámetros preparados para prevenir inyección SQL

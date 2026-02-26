@@ -50,13 +50,9 @@ export function ejecutarActualizarResolucion(
   // Construir los parámetros de la factura
   const params = new URLSearchParams({
     numero: datosFactura.numeroFactura,
-    serie: datosFactura.serie || "",
+    automatico: datosFactura.automatico,
     fechaEmision: datosFactura.fechaEmision,
     fechaVencimiento: datosFactura.fechaVencimiento || "",
-    proveedor: datosFactura.proveedor.nombre,
-    proveedorNif: datosFactura.proveedor.nif || "",
-    total: datosFactura.total.toString(),
-    moneda: datosFactura.moneda,
   });
 
   // Construir el URI del protocolo con los parámetros

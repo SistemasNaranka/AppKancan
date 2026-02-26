@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
@@ -33,6 +33,9 @@ export const useFileProcessor = () => {
     const [cargandoMapeos, setCargandoMapeos] = useState(true);
     const [errorMapeos, setErrorMapeos] = useState<string | null>(null);
     const [validacionesArchivos, setValidacionesArchivos] = useState<Record<string, ResultadoValidacion>>({});
+    const [duplicadosAdvertencia, setDuplicadosAdvertencia] = useState<string[]>([]);
+    const [mostrarConfirmacionDuplicados, setMostrarConfirmacionDuplicados] = useState(false);
+    const [duplicadosParaNormalizar, setDuplicadosParaNormalizar] = useState<string[]>([]);
 
     useEffect(() => {
         cargarDatosMapeo();
@@ -115,6 +118,8 @@ export const useFileProcessor = () => {
     const procesarArchivosRaw = async (files: FileList | File[]) => {
         if (!files || files.length === 0) return;
         setCargando(true);
+        // Limpiar advertencia de duplicados anterior
+        setDuplicadosAdvertencia([]);
 
         const fileArray = Array.from(files);
 
@@ -143,8 +148,28 @@ export const useFileProcessor = () => {
             const archivosValidos = nuevosArchivos.filter((a): a is ArchivoSubido => a !== null);
 
             if (archivosValidos.length > 0) {
-                setArchivos(prev => [...prev, ...archivosValidos]);
-                setArchivoSeleccionado(prev => prev ? prev : archivosValidos[0]);
+                // Detectar archivos duplicados por nombre
+                const nombresExistentes = new Set(archivos.map(a => a.nombre));
+                const duplicadosDetectados: string[] = [];
+                const archivosSinDuplicar: ArchivoSubido[] = [];
+
+                archivosValidos.forEach(archivo => {
+                    if (nombresExistentes.has(archivo.nombre)) {
+                        duplicadosDetectados.push(archivo.nombre);
+                    } else {
+                        archivosSinDuplicar.push(archivo);
+                    }
+                });
+
+                // Si hay duplicados, mostrar advertencia y agregar solo los no duplicados
+                if (duplicadosDetectados.length > 0) {
+                    setDuplicadosAdvertencia(duplicadosDetectados);
+                }
+
+                if (archivosSinDuplicar.length > 0) {
+                    setArchivos(prev => [...prev, ...archivosSinDuplicar]);
+                    setArchivoSeleccionado(prev => prev ? prev : archivosSinDuplicar[0]);
+                }
             }
         } catch (error) {
             console.error("Error general al procesar archivos:", error);
@@ -274,6 +299,27 @@ export const useFileProcessor = () => {
     const normalizarTodosArchivos = async () => {
         const archivosSinNormalizar = archivos.filter(a => !a.normalizado && a.tipoArchivo);
         if (archivosSinNormalizar.length === 0) return;
+
+        // Detectar archivos con nombres duplicados
+        const nombresArchivos = archivosSinNormalizar.map(a => a.nombre);
+        const nombresDuplicados = nombresArchivos.filter((nombre, index) => 
+            nombresArchivos.indexOf(nombre) !== index
+        );
+        const duplicadosUnicos = [...new Set(nombresDuplicados)];
+
+        // Si hay duplicados, mostrar confirmación
+        if (duplicadosUnicos.length > 0) {
+            setDuplicadosParaNormalizar(duplicadosUnicos);
+            setMostrarConfirmacionDuplicados(true);
+            return;
+        }
+
+        // Continuar con la normalización sin duplicados
+        await ejecutarNormalizacion();
+    };
+
+    // Función que ejecuta la normalización real
+    const ejecutarNormalizacion = async () => {
         setCargando(true);
         try {
             const nuevosArchivos = archivos.map(archivo => {
@@ -289,8 +335,28 @@ export const useFileProcessor = () => {
             }
         } catch (error) {
             console.error("Error en normalización masiva:", error);
-        } finally { setCargando(false); }
+        } finally { 
+            setCargando(false);
+            setMostrarConfirmacionDuplicados(false);
+            setDuplicadosParaNormalizar([]);
+        }
     };
+
+    // Función para confirmar normalización con duplicados
+    const confirmarNormalizacionConDuplicados = async () => {
+        await ejecutarNormalizacion();
+    };
+
+    // Función para cancelar normalización con duplicados
+    const cancelarNormalizacionConDuplicados = () => {
+        setMostrarConfirmacionDuplicados(false);
+        setDuplicadosParaNormalizar([]);
+    };
+
+    // Función para limpiar la advertencia de duplicados
+    const limpiarAdvertenciaDuplicados = useCallback(() => {
+        setDuplicadosAdvertencia([]);
+    }, []);
 
     const gruposPorTienda = useMemo(() => {
         const grupos: Record<string, Record<string, any[]>> = {};
@@ -554,10 +620,16 @@ export const useFileProcessor = () => {
         cargandoMapeos,
         errorMapeos,
         validacionesArchivos,
+        duplicadosAdvertencia,
+        mostrarConfirmacionDuplicados,
+        duplicadosParaNormalizar,
         setArchivoSeleccionado,
         handleSubirArchivos,
         handleEliminarArchivo,
         normalizarTodosArchivos,
+        confirmarNormalizacionConDuplicados,
+        cancelarNormalizacionConDuplicados,
+        limpiarAdvertenciaDuplicados,
         exportarArchivosNormalizados,
         procesarArchivosRaw,
         gruposPorTienda,
