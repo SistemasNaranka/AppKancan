@@ -13,6 +13,7 @@ import { calculateMesResumenAgrupado } from "../lib/calculations.summary";
 import { useOptimizedCommissionData } from "../hooks/useOptimizedCommissionData";
 import { useAvailableMonths } from "../hooks/useAvailableMonths";
 import { useBudgetValidation } from "../hooks/useBudgetValidation";
+import { useUserPolicies } from "../hooks/useUserPolicies";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import GroupsIcon from "@mui/icons-material/Groups";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -142,6 +143,9 @@ export default function Home() {
     revalidateBudgetData,
   } = useBudgetValidation(hasSingleStoreSelected ? filterTienda[0] : undefined);
 
+  // 🚀 NUEVO: Hook para verificar políticas de usuario
+  const { hasPolicy } = useUserPolicies();
+
   // Cache para cálculos costosos (optimizado)
   const calculationCacheRef = useRef<Map<string, any>>(new Map());
 
@@ -218,12 +222,12 @@ export default function Home() {
       // ✅ AGREGAR hash de umbrales al cache key
       const thresholdHash = thresholdConfig?.cumplimiento_valores
         ? thresholdConfig.cumplimiento_valores.reduce(
-          (acc, t) =>
-            acc +
-            Math.round(t.cumplimiento_min * 1000) +
-            Math.round(t.comision_pct * 100000),
-          0,
-        )
+            (acc, t) =>
+              acc +
+              Math.round(t.cumplimiento_min * 1000) +
+              Math.round(t.comision_pct * 100000),
+            0,
+          )
         : 0;
 
       return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}_${thresholdHash}`;
@@ -308,11 +312,14 @@ export default function Home() {
     console.log(`🔄 [Home] refetch completado`);
 
     // Pequeño delay adicional para asegurar que el contexto se actualice
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     // 🚀 FORZAR re-render del HomeHeader para asegurar que se actualice el mensaje
-    setHeaderKey(prev => prev + 1);
-    
+    setHeaderKey((prev) => prev + 1);
+
+    // 🚀 Cerrar el CodesModal después de asignar presupuesto
+    setShowCodesModal(false);
+
     console.log(`🔄 [Home] handleAssignmentComplete FINALIZADO`);
   };
 
@@ -323,7 +330,10 @@ export default function Home() {
 
   // 🚀 NUEVO: Manejar guardado desde el modal
   const handleCodesModalSave = async (originalError?: any) => {
-    console.log("🔔 [Home] handleCodesModalSave INICIADO - Error:", originalError);
+    console.log(
+      "🔔 [Home] handleCodesModalSave INICIADO - Error:",
+      originalError,
+    );
     setShowSaveLoading(true);
     setSaveSuccess(false);
     setSaveError(false);
@@ -343,7 +353,9 @@ export default function Home() {
       }
 
       // Si no hay error, actualizar datos en segundo plano
-      console.log("🔔 [Home] handleCodesModalSave - Calling handleAssignmentComplete");
+      console.log(
+        "🔔 [Home] handleCodesModalSave - Calling handleAssignmentComplete",
+      );
       await handleAssignmentComplete();
 
       // Una vez completada la operación real, mostrar éxito
@@ -504,12 +516,12 @@ export default function Home() {
       getFilteredComissionsForCards: shouldShowMainContent
         ? getFilteredComissionsForCards
         : () => ({
-          total_comisiones: 0,
-          comisiones_por_rol: {},
-        }),
+            total_comisiones: 0,
+            comisiones_por_rol: {},
+          }),
       onRoleFilterToggle: handleRoleFilterToggleWithExpansion,
       onRoleFilterClear: handleRoleFilterClear,
-      hasBudgetData: hasBudgetData !== false, // Pasar información de presupuesto al header
+      hasBudgetData: hasBudgetData ?? undefined, // Pasar información de presupuesto al header
       missingDaysCount: hasSingleStoreSelected ? missingDaysCount : 0, // Solo mostrar días pendientes cuando hay una tienda seleccionada
     };
 
@@ -558,19 +570,23 @@ export default function Home() {
 
     // Mostrar solo un indicador sutil sin pantalla oscura completa
     return (
-      <div 
+      <div
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: 20,
           right: 20,
           zIndex: 9999,
-          backgroundColor: saveSuccess ? '#4caf50' : saveError ? '#f44336' : '#2196f3',
-          color: 'white',
-          padding: '8px 16px',
+          backgroundColor: saveSuccess
+            ? "#4caf50"
+            : saveError
+              ? "#f44336"
+              : "#2196f3",
+          color: "white",
+          padding: "8px 16px",
           borderRadius: 4,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          display: 'flex',
-          alignItems: 'center',
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          display: "flex",
+          alignItems: "center",
           gap: 8,
           fontSize: 14,
           fontWeight: 500,
@@ -578,17 +594,22 @@ export default function Home() {
       >
         {saveSuccess ? (
           <>
-            <span style={{fontSize: 16}}>✓</span>
+            <span style={{ fontSize: 16 }}>✓</span>
             Guardado correctamente
           </>
         ) : saveError ? (
           <>
-            <span style={{fontSize: 16}}>✕</span>
+            <span style={{ fontSize: 16 }}>✕</span>
             Error al guardar
           </>
         ) : (
           <>
-            <span className="animate-spin" style={{display: 'inline-block', fontSize: 16}}>⟳</span>
+            <span
+              className="animate-spin"
+              style={{ display: "inline-block", fontSize: 16 }}
+            >
+              ⟳
+            </span>
             Guardando...
           </>
         )}
@@ -612,8 +633,99 @@ export default function Home() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
               <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-                {/* Contenido principal - Siempre mostrar la tabla normal */}
-                <section className="space-y-4 sm:space-y-6 lg:space-y-8">
+                {/* 🚀 NUEVO: Aviso de presupuesto diario o contenido principal */}
+                {budgetValidationCompleted &&
+                hasBudgetData === false &&
+                hasPolicy("readComisionesTienda") ? (
+                  /* Aviso de presupuesto diario no asignado */
+                  <section className="space-y-6">
+                    <div className="text-center py-12">
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 3,
+                        }}
+                      >
+                        <AssignmentIcon
+                          sx={{
+                            fontSize: 64,
+                            color: "error.main",
+                            opacity: 0.6,
+                          }}
+                        />
+                        <Box sx={{ textAlign: "center", maxWidth: 500 }}>
+                          <Typography
+                            variant="h5"
+                            component="h2"
+                            sx={{
+                              fontWeight: 600,
+                              mb: 3,
+                              color: "#c62828",
+                            }}
+                          >
+                            Presupuesto Diario No Asignado
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontSize: "1.1rem",
+                            }}
+                          >
+                            No tiene presupuesto del día{" "}
+                            <strong>{getCurrentFormattedDate()}</strong>{" "}
+                            asignado.
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: "1rem",
+                              mb: 4,
+                            }}
+                          >
+                            Para continuar debe asignar el presupuesto diario de
+                            empleados.
+                          </Typography>
+
+                          <Button
+                            variant="contained"
+                            size="large"
+                            startIcon={<AssignmentIcon />}
+                            onClick={() => setShowCodesModal(true)}
+                            sx={{
+                              px: 4,
+                              py: 1.5,
+                              borderRadius: 2,
+                              background:
+                                "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
+                              color: "white",
+                              textTransform: "none",
+                              fontWeight: 600,
+                              fontSize: "1.1rem",
+                              boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
+                              "&:hover": {
+                                background:
+                                  "linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)",
+                                boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
+                                transform: "translateY(-1px)",
+                              },
+                              "&:active": {
+                                transform: "translateY(0)",
+                              },
+                            }}
+                          >
+                            Asignar Presupuesto Diario
+                          </Button>
+                        </Box>
+                      </Box>
+                    </div>
+                  </section>
+                ) : (
+                  <section className="space-y-4 sm:space-y-6 lg:space-y-8">
                     {/* Tabla de Datos */}
                     <section className="space-y-3 sm:space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -695,10 +807,11 @@ export default function Home() {
                       </section>
                     )}
                   </section>
-                </div>
+                )}
               </div>
             </div>
           </div>
+        </div>
 
         {/* Modales */}
         <HomeModals
