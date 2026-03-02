@@ -32,6 +32,7 @@ import {
   ShoppingBag,
   SettingsSuggest,
   DataObject,
+  Warehouse,
 } from "@mui/icons-material";
 /**
  * 🗂️ Mapa de íconos permitidos.
@@ -76,6 +77,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   CurrencyExchange,
   MonetizationOn,
   ShoppingBag,
+
+  // 🔸 Logistica
+  Warehouse,
 
   // 🔸 Sistemas
   SettingsSuggest,

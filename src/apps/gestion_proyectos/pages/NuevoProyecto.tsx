@@ -283,13 +283,22 @@ export default function NuevoProyecto() {
         <Box
           sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2 }}
         >
-          <Button
+          <Button sx={{ backgroundColor: "#fff", boxShadow: "none", border: "none", 
+            "&:hover": { bgcolor: "#ebe4e4", border: "none",
+            },
+          }}
             variant="outlined"
             onClick={() => navigate("/gestion_proyectos")}
           >
             Cancelar
           </Button>
-          <Button
+          <Button sx={{ boxShadow: "none", 
+
+            "&:hover": { bgcolor: "#005aa3",
+              boxShadow: "none",
+              borderColor: "#ff0000", 
+            },
+          }}
             type="submit"
             variant="contained"
             disabled={loading}

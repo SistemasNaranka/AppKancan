@@ -19,6 +19,8 @@ import {
   AutoAwesomeMosaic as AutoAwesomeMosaicICon,
   CalendarMonth as CalendarIcon,
   TrendingUp as TrendingUpIcon,
+  SettingsSuggest as SettingsSuggestIcon,
+  Check as CheckIcon
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { formatTiempo, calcularMetricasProyecto } from "../lib/calculos";
@@ -34,6 +36,7 @@ import type {
   MetricasProyecto,
   EstadoProyecto,
 } from "../types";
+import { ProjectStatusIcon } from "../components/ProjectStatusIcon";
 
 interface MetricasTotales {
   totalAhorroMensual: number;
@@ -61,6 +64,16 @@ const TabContainer = styled(Box)({
   gap: 4,
   position: "relative",
   overflow: "hidden",
+});
+
+// Header container con margen y border-radius
+const HeaderContainer = styled(Box)({
+  margin: '24px 0',
+  marginTop: '5px',
+  padding: '20px 24px',
+  borderRadius: 12,
+  backgroundColor: 'white',
+  boxShadow: "none",
 });
 
 const AnimatedTab = styled(Box, {
@@ -194,21 +207,23 @@ const Home: React.FC = () => {
       }}
     >
       {/* Header */}
-      <Box
+      <HeaderContainer
         sx={{
-          mb: 3,
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: "center",
           justifyContent: "space-between",
         }}
       >
         <Box>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: "bold", color: "#1a2a3ae0", fontSize: 20 }}
-          >
-            Gestión de Proyectos - Área de Sistemas
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <SettingsSuggestIcon sx={{ color: '#004680', fontSize: 28 }} />
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: "bold", color: "#1a2a3ae0", fontSize: 20 }}
+            >
+              Gestión de Proyectos - Área de Sistemas
+            </Typography>
+          </Box>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
             Registro y seguimiento de proyectos desarrollados por el área de
             sistemas
@@ -218,6 +233,7 @@ const Home: React.FC = () => {
           sx={{
             backgroundColor: "#004680",
             boxShadow: "none",
+            my: 1,
             "&:hover": {
               backgroundColor: "#005AA3",
               boxShadow: "none",
@@ -230,7 +246,7 @@ const Home: React.FC = () => {
         >
           Nuevo Proyecto
         </Button>
-      </Box>
+      </HeaderContainer>
 
       {/* Tarjetas de Resumen */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -279,7 +295,7 @@ const Home: React.FC = () => {
                   En Seguimiento
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "warning.main", lineHeight: 1.2 }}>
-                  {proyectosFiltrados.filter((p: Proyecto) => p.estado === "en_proceso").length}
+                  {proyectosFiltrados.filter((p: Proyecto) => p.estado === "en_seguimiento").length}
                 </Typography>
               </Box>
             </Box>
@@ -311,35 +327,35 @@ const Home: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Ahorro Mensual */}
+        {/* Entregados */}
         <Grid size={{ xs: 12, sm: 6, md: "auto" }}>
-          <Paper elevation={0} sx={{ p: 2, border: "1px solid #e8eaed", borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ p: 2, border: "1px solid #e8eaed", borderRadius: 2, height: "100%", width: "auto" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Box sx={{
-                backgroundColor: "#e6f4ea",
+                backgroundColor: "#e8f5e9",
                 borderRadius: 2,
                 p: 1.25,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}>
-                <TrendingUpIcon sx={{ color: "#34a853", fontSize: 28 }} />
+                <CheckIcon sx={{ color: "#2e7d32", fontSize: 28 }} />
               </Box>
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Ahorro Mensual
+                  Entregados
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.main", lineHeight: 1.2 }}>
-                  {formatTiempo(metricasTotales.totalAhorroMensual)}
+                <Typography variant="h5" sx={{ fontWeight: "bold", color: "#2e7d32", lineHeight: 1.2 }}>
+                  {proyectosFiltrados.filter((p: Proyecto) => p.estado === "entregado").length}
                 </Typography>
               </Box>
             </Box>
           </Paper>
         </Grid>
 
-        {/* ── Quinta tarjeta: llena el espacio restante en la misma fila ── */}
-        <Grid size={{ xs: 12, sm: 6, md: "auto", }}>
-          <Paper elevation={0} sx={{ p: 2, border: "1px solid #e8eaed", borderRadius: 2, height: "100%", width: "auto",}}>
+        {/* Ahorro Mensual */}
+        <Grid size={{ xs: 12, sm: 6, md: "auto" }}>
+          <Paper elevation={0} sx={{ p: 2, border: "1px solid #e8eaed", borderRadius: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Box sx={{
                 backgroundColor: "#e6f4ea",
@@ -469,11 +485,10 @@ const Home: React.FC = () => {
                       justifyContent: "center",
                     }}
                   >
-                    <AutoAwesomeMosaicICon 
-                      sx={{ 
-                        fontSize: 36, 
-                        color: estadoColor.text,
-                      }} 
+                    <ProjectStatusIcon 
+                      status={proyecto.estado}
+                      size={36}
+                      color={estadoColor.text}
                     />
                   </Box>
 

@@ -34,6 +34,15 @@ const VolverButton = styled(Button)({
   },
 });
 
+// Header container con margen y border-radius
+const HeaderContainer = styled(Box)({
+  margin: '24px 0',
+  padding: '20px 24px',
+  borderRadius: 12,
+  backgroundColor: 'white',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+});
+
 export default function DetalleProyecto() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -92,28 +101,54 @@ export default function DetalleProyecto() {
 
   return (
     <Container maxWidth="lg" sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <VolverButton
-          startIcon={<ArrowBack />}
-          onClick={() => navigate("/gestion_proyectos")}
-          sx={{ mb: 1 }}
-        >
-          Volver a proyectos
-        </VolverButton>
-
+      {/* Header — 3 zonas: botón izq | info centro | botón der */}
+      <HeaderContainer>
         <Box
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
+            display: "grid",
+            gridTemplateColumns: "auto 1fr auto",
+            alignItems: "center",
+            gap: 3,
+            minHeight: 80,
           }}
         >
-          <Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-                {proyecto.nombre}
-              </Typography>
+          {/* Zona izquierda: botón Volver */}
+          <Box sx={{ flexShrink: 0 }}>
+            <VolverButton
+              startIcon={<ArrowBack />}
+              onClick={() => navigate("/gestion_proyectos")}
+            >
+              Volver a proyectos
+            </VolverButton>
+          </Box>
+
+          {/* Zona central: nombre, descripción, estado */}
+          <Box sx={{ textAlign: "center", overflow: "hidden" }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: "bold",
+                color: "#1a2b45",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {proyecto.nombre}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                mt: 0.5,
+                color: "text.secondary",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {proyecto.descripcion}
+            </Typography>
+            <Box sx={{ mt: 1, display: "flex", justifyContent: "center" }}>
               <Chip
                 label={getEstadoLabel(proyecto.estado)}
                 size="small"
@@ -124,27 +159,25 @@ export default function DetalleProyecto() {
                 }}
               />
             </Box>
-            <Typography variant="body1" sx={{ mt: 0.5, color: "text.secondary" }}>
-              {proyecto.descripcion}
-            </Typography>
           </Box>
 
-          <Button sx={{
-            backgroundColor: "#004680",
-            boxShadow: "none",
-            "&:hover":{
-              boxShadow: "none",
-              backgroundColor: "#005AA3",
-            }
-          }}
-            variant="contained"
-            startIcon={<PostAdd />}
-            onClick={() => navigate(`/gestion_proyectos/${id}/postlanzamiento`)}
-          >
-            Post-Lanzamiento
-          </Button>
+          {/* Zona derecha: botón Post-Lanzamiento */}
+          <Box sx={{ flexShrink: 0 }}>
+            <Button
+              sx={{
+                backgroundColor: "#004680",
+                boxShadow: "none",
+                "&:hover": { boxShadow: "none", backgroundColor: "#005AA3" },
+              }}
+              variant="contained"
+              startIcon={<PostAdd />}
+              onClick={() => navigate(`/gestion_proyectos/${id}/postlanzamiento`)}
+            >
+              Post-Lanzamiento
+            </Button>
+          </Box>
         </Box>
-      </Box>
+      </HeaderContainer>
 
       {/* Información General */}
       <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
