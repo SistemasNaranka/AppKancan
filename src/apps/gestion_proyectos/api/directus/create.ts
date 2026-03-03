@@ -7,9 +7,6 @@ import type {
   CreateBeneficioInput,
 } from "../../types";
 
-/**
- * Crea un nuevo proyecto
- */
 export async function createProyecto(
   data: CreateProyectoInput,
 ): Promise<string | null> {
@@ -24,16 +21,12 @@ export async function createProyecto(
       estado: data.estado,
       tipo_proyecto: data.tipo_proyecto,
     };
-
-    // Solo agregar encargados si tiene datos
     if (data.encargados && data.encargados.length > 0) {
       payload.encargados = data.encargados;
     }
-
     const result = await withAutoRefresh(() =>
       directus.request(createItem("gp_proyectos", payload)),
     );
-
     return result.id;
   } catch (error) {
     console.error("❌ Error al crear proyecto:", error);
@@ -41,31 +34,24 @@ export async function createProyecto(
   }
 }
 
-/**
- * Actualiza un proyecto
- */
 export async function updateProyecto(
   id: string,
   data: Partial<CreateProyectoInput>,
 ): Promise<boolean> {
   try {
     const payload: any = {};
-
     if (data.nombre) payload.nombre = data.nombre;
     if (data.area_beneficiada) payload.area_beneficiada = data.area_beneficiada;
     if (data.descripcion) payload.descripcion = data.descripcion;
     if (data.fecha_inicio) payload.fecha_inicio = data.fecha_inicio;
     if (data.fecha_estimada) payload.fecha_estimada = data.fecha_estimada;
-    if (data.fecha_entrega !== undefined)
-      payload.fecha_entrega = data.fecha_entrega;
+    if (data.fecha_entrega !== undefined) payload.fecha_entrega = data.fecha_entrega;
     if (data.estado) payload.estado = data.estado;
     if (data.tipo_proyecto) payload.tipo_proyecto = data.tipo_proyecto;
     if (data.encargados) payload.encargados = data.encargados;
-
     await withAutoRefresh(() =>
       directus.request(updateItem("gp_proyectos", id, payload)),
     );
-
     return true;
   } catch (error) {
     console.error("❌ Error al actualizar proyecto:", error);
@@ -73,15 +59,11 @@ export async function updateProyecto(
   }
 }
 
-/**
- * Elimina un proyecto
- */
 export async function deleteProyecto(id: string): Promise<boolean> {
   try {
     await withAutoRefresh(() =>
       directus.request(deleteItem("gp_proyectos", id)),
     );
-
     return true;
   } catch (error) {
     console.error("❌ Error al eliminar proyecto:", error);
@@ -89,15 +71,13 @@ export async function deleteProyecto(id: string): Promise<boolean> {
   }
 }
 
-/**
- * Crea múltiples procesos para un proyecto
- */
+// ✅ FIX: inserciones individuales + Number(proyecto_id)
 export async function createProcesos(
   procesos: CreateProcesoInput[],
 ): Promise<boolean> {
-  try {
-    const payload = procesos.map((p) => ({
-      proyecto_id: p.proyecto_id,
+  for (const p of procesos) {
+    const payload = {
+      proyecto_id: Number(p.proyecto_id), // ← FIX CLAVE
       nombre: p.nombre,
       tiempo_antes: p.tiempo_antes,
       tiempo_despues: p.tiempo_despues,
@@ -105,28 +85,20 @@ export async function createProcesos(
       frecuencia_cantidad: p.frecuencia_cantidad,
       dias_semana: p.dias_semana,
       orden: p.orden,
-    }));
-
+    };
     await withAutoRefresh(() =>
-      directus.request(createItems("gp_proceso", payload)),
+      directus.request(createItem("gp_proceso", payload)),
     );
-
-    return true;
-  } catch (error) {
-    console.error("❌ Error al crear procesos:", error);
-    return false;
   }
+  return true;
 }
 
-/**
- * Crea un solo proceso
- */
 export async function createProceso(
   data: CreateProcesoInput,
 ): Promise<string | null> {
   try {
     const payload = {
-      proyecto_id: data.proyecto_id,
+      proyecto_id: Number(data.proyecto_id), // ← FIX
       nombre: data.nombre,
       tiempo_antes: data.tiempo_antes,
       tiempo_despues: data.tiempo_despues,
@@ -135,11 +107,9 @@ export async function createProceso(
       dias_semana: data.dias_semana,
       orden: data.orden,
     };
-
     const result = await withAutoRefresh(() =>
       directus.request(createItem("gp_proceso", payload)),
     );
-
     return result.id;
   } catch (error) {
     console.error("❌ Error al crear proceso:", error);
@@ -147,31 +117,22 @@ export async function createProceso(
   }
 }
 
-/**
- * Actualiza un proceso
- */
 export async function updateProceso(
   id: string,
   data: Partial<CreateProcesoInput>,
 ): Promise<boolean> {
   try {
     const payload: any = {};
-
     if (data.nombre) payload.nombre = data.nombre;
-    if (data.tiempo_antes !== undefined)
-      payload.tiempo_antes = data.tiempo_antes;
-    if (data.tiempo_despues !== undefined)
-      payload.tiempo_despues = data.tiempo_despues;
+    if (data.tiempo_antes !== undefined) payload.tiempo_antes = data.tiempo_antes;
+    if (data.tiempo_despues !== undefined) payload.tiempo_despues = data.tiempo_despues;
     if (data.frecuencia_tipo) payload.frecuencia_tipo = data.frecuencia_tipo;
-    if (data.frecuencia_cantidad !== undefined)
-      payload.frecuencia_cantidad = data.frecuencia_cantidad;
+    if (data.frecuencia_cantidad !== undefined) payload.frecuencia_cantidad = data.frecuencia_cantidad;
     if (data.dias_semana !== undefined) payload.dias_semana = data.dias_semana;
     if (data.orden !== undefined) payload.orden = data.orden;
-
     await withAutoRefresh(() =>
       directus.request(updateItem("gp_proceso", id, payload)),
     );
-
     return true;
   } catch (error) {
     console.error("❌ Error al actualizar proceso:", error);
@@ -179,13 +140,9 @@ export async function updateProceso(
   }
 }
 
-/**
- * Elimina un proceso
- */
 export async function deleteProceso(id: string): Promise<boolean> {
   try {
     await withAutoRefresh(() => directus.request(deleteItem("gp_proceso", id)));
-
     return true;
   } catch (error) {
     console.error("❌ Error al eliminar proceso:", error);
@@ -193,9 +150,6 @@ export async function deleteProceso(id: string): Promise<boolean> {
   }
 }
 
-/**
- * Crea un beneficio
- */
 export async function createBeneficio(
   data: CreateBeneficioInput,
 ): Promise<string | null> {
@@ -204,11 +158,9 @@ export async function createBeneficio(
       proyecto_id: data.proyecto_id,
       descripcion: data.descripcion,
     };
-
     const result = await withAutoRefresh(() =>
       directus.request(createItem("gp_beneficios", payload)),
     );
-
     return result.id;
   } catch (error) {
     console.error("❌ Error al crear beneficio:", error);
@@ -216,9 +168,6 @@ export async function createBeneficio(
   }
 }
 
-/**
- * Crea múltiples beneficios para un proyecto
- */
 export async function createBeneficios(
   beneficios: CreateBeneficioInput[],
 ): Promise<boolean> {
@@ -227,11 +176,9 @@ export async function createBeneficios(
       proyecto_id: b.proyecto_id,
       descripcion: b.descripcion,
     }));
-
     await withAutoRefresh(() =>
       directus.request(createItems("gp_beneficios", payload)),
     );
-
     return true;
   } catch (error) {
     console.error("❌ Error al crear beneficios:", error);
@@ -239,22 +186,16 @@ export async function createBeneficios(
   }
 }
 
-/**
- * Actualiza un beneficio
- */
 export async function updateBeneficio(
   id: string,
   data: Partial<CreateBeneficioInput>,
 ): Promise<boolean> {
   try {
     const payload: any = {};
-
     if (data.descripcion) payload.descripcion = data.descripcion;
-
     await withAutoRefresh(() =>
       directus.request(updateItem("gp_beneficios", id, payload)),
     );
-
     return true;
   } catch (error) {
     console.error("❌ Error al actualizar beneficio:", error);
@@ -262,15 +203,11 @@ export async function updateBeneficio(
   }
 }
 
-/**
- * Elimina un beneficio
- */
 export async function deleteBeneficio(id: string): Promise<boolean> {
   try {
     await withAutoRefresh(() =>
       directus.request(deleteItem("gp_beneficios", id)),
     );
-
     return true;
   } catch (error) {
     console.error("❌ Error al eliminar beneficio:", error);

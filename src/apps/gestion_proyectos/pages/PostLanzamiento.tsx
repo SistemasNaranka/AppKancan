@@ -300,7 +300,7 @@ export default function PostLanzamiento() {
           <Button onClick={handleCloseModal} color="primary">
             Cancelar
           </Button>
-          <Button onClick={handleEliminar} sx={{ backgroundColor: '#ff0000', '&:hover': { backgroundColor: '#cc0000' } }} variant="contained">
+          <Button onClick={handleEliminar} color="error" variant="contained">
             Eliminar
           </Button>
         </DialogActions>

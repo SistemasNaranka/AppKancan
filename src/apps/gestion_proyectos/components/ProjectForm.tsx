@@ -188,7 +188,7 @@ export function ProjectForm({
             />
 
             <DatePicker
-              label="Fecha de Entrega Real"
+              label="Fecha Entrega "
               value={data.fechaEntrega ? dayjs(data.fechaEntrega) : null}
               onChange={(newValue) =>
                 onChange(
