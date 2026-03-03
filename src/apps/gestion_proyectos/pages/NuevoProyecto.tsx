@@ -14,8 +14,16 @@ import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
 } from "@mui/icons-material";
-import { createProyecto, createProcesos } from "../api/directus/create";
-import type { CreateProyectoInput, CreateProcesoInput } from "../types";
+import {
+  createProyecto,
+  createProcesos,
+  createBeneficios,
+} from "../api/directus/create";
+import type {
+  CreateProyectoInput,
+  CreateProcesoInput,
+  CreateBeneficioInput,
+} from "../types";
 import { ProjectForm } from "../components/ProjectForm";
 import { ProcessList } from "../components/ProcessList";
 import { BenefitList } from "../components/BenefitList";
@@ -97,26 +105,27 @@ export default function NuevoProyecto() {
   const handleDiasPorSemanaChange = (value: string) => {
     setDiasPorSemana(value);
     setProcesos((prev) =>
-      prev.map((p) => ({ ...p, dias_semana: Number(value) || 5 }))
+      prev.map((p) => ({ ...p, dias_semana: Number(value) || 5 })),
     );
   };
 
   const handleFrecuenciaTipoChange = (value: string) => {
     setFrecuenciaTipo(value);
-    setProcesos((prev) =>
-      prev.map((p) => ({ ...p, frecuencia_tipo: value }))
-    );
+    setProcesos((prev) => prev.map((p) => ({ ...p, frecuencia_tipo: value })));
   };
 
   const handleFrecuenciaCantidadChange = (value: string) => {
     setFrecuenciaCantidad(value);
     setProcesos((prev) =>
-      prev.map((p) => ({ ...p, frecuencia_cantidad: Number(value) }))
+      prev.map((p) => ({ ...p, frecuencia_cantidad: Number(value) })),
     );
   };
 
   const agregarBeneficio = () => {
-    setBeneficios([...beneficios, { id: Date.now().toString(), descripcion: "" }]);
+    setBeneficios([
+      ...beneficios,
+      { id: Date.now().toString(), descripcion: "" },
+    ]);
   };
 
   const eliminarBeneficio = (id: string) => {
@@ -124,7 +133,9 @@ export default function NuevoProyecto() {
   };
 
   const actualizarBeneficio = (id: string, descripcion: string) => {
-    setBeneficios(beneficios.map((b) => (b.id === id ? { ...b, descripcion } : b)));
+    setBeneficios(
+      beneficios.map((b) => (b.id === id ? { ...b, descripcion } : b)),
+    );
   };
 
   // ✅ FIX: Inicializar proceso nuevo con los valores globales actuales
@@ -148,7 +159,9 @@ export default function NuevoProyecto() {
   };
 
   const actualizarProceso = (id: string, campo: string, valor: any) => {
-    setProcesos(procesos.map((p) => (p.id === id ? { ...p, [campo]: valor } : p)));
+    setProcesos(
+      procesos.map((p) => (p.id === id ? { ...p, [campo]: valor } : p)),
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,6 +198,14 @@ export default function NuevoProyecto() {
       const proyectoId = await createProyecto(proyectoData);
       if (!proyectoId) throw new Error("Error al crear el proyecto");
 
+      // 🔍 DEBUG: Verificar que el ID del proyecto es correcto
+      console.log(
+        "✅ Proyecto creado con ID:",
+        proyectoId,
+        "Tipo:",
+        typeof proyectoId,
+      );
+
       if (procesos.length > 0) {
         // ✅ FIX: Usar valores del proceso con fallback a los globales
         const procesosData: CreateProcesoInput[] = procesos.map((p, index) => ({
@@ -193,11 +214,24 @@ export default function NuevoProyecto() {
           tiempo_antes: Number(p.tiempo_antes),
           tiempo_despues: Number(p.tiempo_despues),
           frecuencia_tipo: (p.frecuencia_tipo || frecuenciaTipo) as any,
-          frecuencia_cantidad: Number(p.frecuencia_cantidad) || Number(frecuenciaCantidad),
+          frecuencia_cantidad:
+            Number(p.frecuencia_cantidad) || Number(frecuenciaCantidad),
           dias_semana: Number(p.dias_semana) || Number(diasPorSemana) || 5,
           orden: index + 1,
         }));
+
+        // 🔍 DEBUG: Verificar datos de procesos antes de enviar
+        console.log("📤 Enviando procesos a Directus:", procesosData);
         await createProcesos(procesosData);
+      }
+
+      // ✅ NUEVO: Crear beneficios si es tipo "nuevo"
+      if (beneficios.length > 0 && projectData.tipoProyecto === "nuevo") {
+        const beneficiosData: CreateBeneficioInput[] = beneficios.map((b) => ({
+          proyecto_id: proyectoId,
+          descripcion: b.descripcion,
+        }));
+        await createBeneficios(beneficiosData);
       }
 
       navigate(`/gestion_proyectos/${proyectoId}`);
@@ -219,7 +253,15 @@ export default function NuevoProyecto() {
         >
           Volver a proyectos
         </VolverButton>
-        <Paper sx={{ p: 2, borderLeft: 4, borderColor: "#fff", boxShadow: "none", borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 2,
+            borderLeft: 4,
+            borderColor: "#fff",
+            boxShadow: "none",
+            borderRadius: 3,
+          }}
+        >
           <Typography variant="h5" fontWeight="bold">
             Crear Nuevo Proyecto
           </Typography>
@@ -235,7 +277,11 @@ export default function NuevoProyecto() {
         </Box>
       )}
 
-      <Box sx={{ maxWidth: "90%", mx: "auto" }} component="form" onSubmit={handleSubmit}>
+      <Box
+        sx={{ maxWidth: "90%", mx: "auto" }}
+        component="form"
+        onSubmit={handleSubmit}
+      >
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, lg: 6 }}>
             <ProjectForm
@@ -271,7 +317,9 @@ export default function NuevoProyecto() {
           </Grid>
         </Grid>
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2 }}>
+        <Box
+          sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2 }}
+        >
           <Button
             sx={{
               backgroundColor: "#fff",
@@ -287,13 +335,21 @@ export default function NuevoProyecto() {
           <Button
             sx={{
               boxShadow: "none",
-              "&:hover": { bgcolor: "#005aa3", boxShadow: "none", borderColor: "#ff0000" },
+              "&:hover": {
+                bgcolor: "#005aa3",
+                boxShadow: "none",
+                borderColor: "#ff0000",
+              },
             }}
             type="submit"
             variant="contained"
             disabled={loading}
             startIcon={
-              loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />
+              loading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <SaveIcon />
+              )
             }
           >
             {loading ? "Guardando..." : "Crear Proyecto"}
