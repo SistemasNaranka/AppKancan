@@ -19,7 +19,34 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from "@mui/material";
-import { ArrowBack, PostAdd, AccessTimeFilled, Description, Stars, Edit, Close, Save, ExpandMore, TrendingUp, Speed } from "@mui/icons-material";
+import { Line, Doughnut } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from "chart.js";
+import {
+  ArrowBack,
+  PostAdd,
+  AccessTimeFilled,
+  Description,
+  Stars,
+  Edit,
+  Close,
+  Save,
+  ExpandMore,
+  TrendingUp,
+  Speed,
+  ShowChart,
+  PieChart,
+} from "@mui/icons-material";
 import {
   useProyectoById,
   getEstadoColor,
@@ -33,6 +60,19 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import "dayjs/locale/es";
+
+// Registrar componentes de Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+);
 
 /**
  * Página de detalle de un proyecto
@@ -154,6 +194,7 @@ export default function DetalleProyecto() {
   const [editLoading, setEditLoading] = useState(false);
   const [procesosExpanded, setProcesosExpanded] = useState(true);
   const [metricasExpanded, setMetricasExpanded] = useState(true);
+  const [graficosExpanded, setGraficosExpanded] = useState(true);
 
   if (loading) {
     return (
@@ -551,6 +592,145 @@ export default function DetalleProyecto() {
                     <Box sx={{ textAlign: "center", py: 4 }}>
                       <Typography variant="body1" sx={{ color: "text.secondary" }}>
                         No hay procesos registrados para este proyecto
+                      </Typography>
+                    </Box>
+                  )}
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Tercer Accordion: Gráficos Comparativos */}
+              <Accordion
+                expanded={graficosExpanded}
+                onChange={() => setGraficosExpanded(!graficosExpanded)}
+                sx={{
+                  boxShadow: "none",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: "12px !important",
+                  mt: 2,
+                  "&:before": { display: "none" },
+                  "&.Mui-expanded": { margin: "8px 0 0 0" },
+                }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMore />}
+                  sx={{
+                    borderRadius: graficosExpanded ? "12px 12px 0 0" : "12px",
+                    backgroundColor: "#f8f9fa",
+                    "&:hover": { backgroundColor: "#f1f3f4" },
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <ShowChart sx={{ color: "#004680", fontSize: 20 }} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1a2b45" }}>
+                      Gráficos Comparativos
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 2 }}>
+                  {proyecto.procesos && proyecto.procesos.length > 0 ? (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                      {/* Gráfico de Líneas: Comparación Antes vs Después */}
+                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: "#1a2b45" }}>
+                          Comparación de Tiempos: Antes vs Después
+                        </Typography>
+                        <Box sx={{ height: 250 }}>
+                          <Line
+                            data={{
+                              labels: proyecto.procesos.map((p, i) => `${i + 1}. ${p.nombre.substring(0, 15)}${p.nombre.length > 15 ? '...' : ''}`),
+                              datasets: [
+                                {
+                                  label: 'Tiempo Original (seg)',
+                                  data: proyecto.procesos.map(p => p.tiempo_antes),
+                                  borderColor: '#ef4444',
+                                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                  tension: 0.3,
+                                  fill: true,
+                                },
+                                {
+                                  label: 'Tiempo Optimizado (seg)',
+                                  data: proyecto.procesos.map(p => p.tiempo_despues),
+                                  borderColor: '#22c55e',
+                                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                  tension: 0.3,
+                                  fill: true,
+                                },
+                              ],
+                            }}
+                            options={{
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              plugins: {
+                                legend: {
+                                  position: 'top',
+                                },
+                                tooltip: {
+                                  callbacks: {
+                                    label: (context) => `${context.dataset.label}: ${context.parsed.y} segundos`,
+                                  },
+                                },
+                              },
+                              scales: {
+                                y: {
+                                  beginAtZero: true,
+                                  title: {
+                                    display: true,
+                                    text: 'Segundos',
+                                  },
+                                },
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Paper>
+
+                      {/* Gráfico de Pastel: Tiempo Total */}
+                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: "#1a2b45" }}>
+                          Distribución del Tiempo Total
+                        </Typography>
+                        <Box sx={{ height: 280, display: 'flex', justifyContent: 'center' }}>
+                          {(() => {
+                            const totalAntes = proyecto.procesos.reduce((sum, p) => sum + p.tiempo_antes, 0);
+                            const totalDespues = proyecto.procesos.reduce((sum, p) => sum + p.tiempo_despues, 0);
+                            const data = {
+                              labels: ['Tiempo Original', 'Tiempo Optimizado'],
+                              datasets: [{
+                                data: [totalAntes, totalDespues],
+                                backgroundColor: ['#ef4444', '#22c55e'],
+                                borderColor: ['#dc2626', '#16a34a'],
+                                borderWidth: 2,
+                              }],
+                            };
+                            const options = {
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              plugins: {
+                                legend: {
+                                  position: 'bottom',
+                                },
+                                tooltip: {
+                                  callbacks: {
+                                    label: (context) => {
+                                      const total = totalAntes + totalDespues;
+                                      const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                      return `${context.label}: ${context.parsed} segundos (${percentage}%)`;
+                                    },
+                                  },
+                                },
+                              },
+                              cutout: '50%',
+                            };
+                            return <Doughnut data={data} options={options} />;
+                          })()}
+                        </Box>
+                      </Paper>
+                    </Box>
+                  ) : (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                        No hay procesos suficientes para mostrar gráficos comparativos
                       </Typography>
                     </Box>
                   )}
