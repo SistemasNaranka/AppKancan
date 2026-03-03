@@ -26,12 +26,14 @@ interface FileUploadAreaProps {
   onFileSelected: (file: File) => void;
   isProcessing: boolean;
   progress: number;
+  className?: string; // Para tours interactivos
 }
 
 export function FileUploadArea({
   onFileSelected,
   isProcessing,
   progress,
+  className,
 }: FileUploadAreaProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [dragError, setDragError] = useState<string | null>(null);
@@ -130,6 +132,7 @@ export function FileUploadArea({
       />
 
       <Paper
+        className={className}
         elevation={0}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

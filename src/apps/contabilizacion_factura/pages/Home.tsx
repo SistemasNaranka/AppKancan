@@ -2,7 +2,6 @@
  * Página principal para carga y visualización de facturas PDF
  * Módulo de Contabilización de Facturas
  * Integrado con Google Gemini y Ollama como fallback
- * La API key y modelo de IA se obtienen del usuario autenticado (campos key_gemini y modelo_ia en Directus)
  */
 
 import { useState, useCallback, useEffect } from "react";
@@ -14,7 +13,6 @@ import {
   ReceiptLong,
   Cancel,
   Update,
-  CloudUpload,
 } from "@mui/icons-material";
 
 // Hooks
@@ -34,6 +32,11 @@ import {
 } from "../components/IAStatusBadge";
 import { AutomaticoModal } from "../components/AutomaticoModal";
 
+// Tours interactivos
+import { TourProvider, useTourContext } from "../components/TourContext";
+import { FacturasTour } from "../components/FacturasTour";
+import { FloatingHelpButton } from "../components/FloatingHelpButton";
+
 // Utilidades y tipos
 import { DatosFacturaPDF, EstadoProceso } from "../types";
 import {
@@ -44,10 +47,42 @@ import {
 // API
 import { saveNitAutomatico, getAutomaticoByNit } from "../services/api";
 
-export default function Home() {
-  const [datosFactura, setDatosFactura] = useState<DatosFacturaPDF | null>(
-    null,
-  );
+// Datos de ejemplo para el tour
+const MOCK_DATOS_FACTURA = {
+  numeroFactura: "FAC-2024-001234",
+  fechaEmision: new Date().toISOString().split('T')[0],
+  fechaVencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  proveedor: {
+    nombre: "Proveedor Demo S.A.S.",
+    nif: "900123456-7",
+  },
+  moneda: "COP",
+  subtotal: 1500000,
+  total: 1815000,
+  impuestos: [
+    { tipo: 19, base: 1500000, importe: 285000 },
+  ],
+  conceptos: [
+    { descripcion: "Servicios de consultoría mensual", cantidad: 1, precioUnitario: 1500000, importe: 1500000 },
+  ],
+  archivo: { nombre: "factura_ejemplo.pdf", tamaño: 0, fechaCarga: new Date().toISOString() },
+} as DatosFacturaPDF;
+
+// Componente interno que usa el contexto del tour
+function HomeContent() {
+  const {
+    tourPhase,
+    setShowInvoiceDataCallback,
+    setShowCauseButtonCallback,
+    setOnTourStartCallback,
+    setOpenAutomaticoModalCallback,
+    setOnFileSelectedCallback,
+    onFileSelected,
+    hasUploadedFile,
+    isTourRunning,
+  } = useTourContext();
+  
+  const [datosFactura, setDatosFactura] = useState<DatosFacturaPDF | null>(null);
   const [modelosDisponibles, setModelosDisponibles] = useState<string[]>([]);
   const [cargandoModelos, setCargandoModelos] = useState(true);
   const [conexionErrorOllama, setConexionErrorOllama] = useState(false);
@@ -62,20 +97,20 @@ export default function Home() {
     message: string;
     severity: "success" | "error" | "info" | "warning";
   }>({
-    open: false,
+    open: false,    
     message: "",
     severity: "info",
   });
 
-  // Obtener usuario autenticado para acceder a su API key de Gemini y modelo de IA
+  // Obtener usuario autenticado
   const { user } = useAuth();
   const geminiApiKey = user?.key_gemini;
   const modeloIA = user?.modelo_ia;
 
-  // Hook de extracción híbrido (Gemini + Ollama fallback)
+  // Hook de extracción híbrido
   const hybridExtractor = useHybridExtractor(geminiApiKey, modeloIA);
 
-  // Verificar configuración de API keys y cargar modelos Ollama al montar
+  // Inicializar modelos al montar
   useEffect(() => {
     const inicializar = async () => {
       setCargandoModelos(true);
@@ -87,9 +122,7 @@ export default function Home() {
           hybridExtractor.setModelo(modelos[0]);
         }
       } catch {
-        console.log(
-          "No se pudieron cargar los modelos de Ollama - Fallback no disponible",
-        );
+        console.log("No se pudieron cargar los modelos de Ollama");
         setConexionErrorOllama(true);
       } finally {
         setCargandoModelos(false);
@@ -97,6 +130,19 @@ export default function Home() {
     };
     inicializar();
   }, []);
+
+  // Registrar callback para mostrar datos de factura durante el tour
+  useEffect(() => {
+    setShowInvoiceDataCallback(() => {
+      // El tour avanzará a la fase INVOICE_DATA
+    });
+  }, [setShowInvoiceDataCallback]);
+
+  useEffect(() => {
+    setShowCauseButtonCallback(() => {
+      // El botón ya está visible cuando showInvoiceView es true
+    });
+  }, [setShowCauseButtonCallback]);
 
   const {
     extractData,
@@ -107,18 +153,55 @@ export default function Home() {
     estadoHibrido,
   } = hybridExtractor;
 
+  // Registrar callback de reset: limpia datosFactura para que el tour empiece desde cero
+  // Debe ir DESPUÉS de que clearError esté declarado
+  useEffect(() => {
+    setOnTourStartCallback(() => {
+      setDatosFactura(null);
+      clearError();
+    });
+  }, [setOnTourStartCallback, clearError]);
+
+  // Cerrar el modal automático cuando el tour termina (por cualquier motivo)
+  useEffect(() => {
+    if (!isTourRunning) {
+      setModalAutomaticoOpen(false);
+      setNitActual(null);
+    }
+  }, [isTourRunning]);
+
+  // Registrar callback para abrir el AutomaticoModal durante el tour con datos mock
+  useEffect(() => {
+    setOpenAutomaticoModalCallback(() => {
+      setNitActual("900123456-7");
+      setModalAutomaticoOpen(true);
+    });
+  }, [setOpenAutomaticoModalCallback]);
+
+  // Registrar callback para avanzar el tour cuando se selecciona un archivo
+  useEffect(() => {
+    setOnFileSelectedCallback(() => {
+      // El tour avanzará a la siguiente fase cuando se seleccione un archivo
+      // La lógica de avance está en el TourContext
+    });
+  }, [setOnFileSelectedCallback]);
+
   const handleFileSelected = useCallback(
     async (file: File) => {
       if (!geminiApiKey && conexionErrorOllama) {
         return;
       }
+
+      // Si el tour está activo, marcar que se subió archivo y avanzar el tour después de procesar
+      if (isTourRunning && tourPhase === "UPLOAD") {
+        // Llamar onFileSelected para avanzar el tour (esto cierra el step actual y avanza a la siguiente fase)
+        onFileSelected();
+      }
+
       try {
-        // Limpiar automático asignado previamente
         setAutomaticoAsignado(null);
-        
         const datos = await extractData(file);
         
-        // Verificar si el NIT ya tiene un automático asignado
         if (datos.proveedor.nif) {
           const proveedorData = await getAutomaticoByNit(datos.proveedor.nif);
           if (proveedorData && proveedorData.automatico) {
@@ -132,7 +215,7 @@ export default function Home() {
         console.error("Error procesando archivo:", err);
       }
     },
-    [extractData, geminiApiKey, conexionErrorOllama],
+    [extractData, geminiApiKey, conexionErrorOllama]
   );
 
   const handleRetry = useCallback(() => {
@@ -149,12 +232,12 @@ export default function Home() {
     clearError();
   }, [clearError]);
 
-  // Función para manejar el botón Actualizar Resolución con verificación de NIT
   const handleActualizarResolucion = useCallback(async () => {
-    if (!datosFactura) return;
+    // Durante el tour usar datos mock, fuera del tour usar datosFactura
+    const facturaActual = (isTourRunning && !hasUploadedFile) ? MOCK_DATOS_FACTURA : datosFactura;
+    if (!facturaActual) return;
 
-    // Si no hay NIT ni nombre, NO permitir actualizar - requiere validación obligatoria
-    if (!datosFactura.proveedor.nif || !datosFactura.proveedor.nombre) {
+    if (!facturaActual.proveedor.nif || !facturaActual.proveedor.nombre) {
       setNotification({
         open: true,
         message: "Error: Se requiere NIT y nombre del proveedor para actualizar la resolución",
@@ -164,44 +247,33 @@ export default function Home() {
     }
 
     try {
-      // Verificar si existe un proveedor con ese NIT (el NIT es el identificador único)
-      const nitString = String(datosFactura.proveedor.nif).trim();
-
+      const nitString = String(facturaActual.proveedor.nif).trim();
       const proveedorExistente = await getAutomaticoByNit(nitString);
 
       if (proveedorExistente && proveedorExistente.automatico) {
-        // El proveedor YA EXISTE - usar automático existente sin abrir modal
-        console.log("Proveedor encontrado por NIT, usando automático:", proveedorExistente.automatico);
-        datosFactura.automaticoAsignado = proveedorExistente.automatico;
+        facturaActual.automaticoAsignado = proveedorExistente.automatico;
         setAutomaticoAsignado(proveedorExistente.automatico);
-
-        // Ejecutar directamente sin mostrar snackbar
-        ejecutarActualizarResolucion(datosFactura);
+        ejecutarActualizarResolucion(facturaActual);
       } else {
-        // El proveedor NO EXISTE - abrir modal para registrar el automático
-        setNitActual(datosFactura.proveedor.nif);
+        setNitActual(facturaActual.proveedor.nif);
         setModalAutomaticoOpen(true);
       }
     } catch (error) {
       console.error("Error al verificar proveedor:", error);
-      // En caso de error de conexión, NO permitir continuar sin validación
       setNotification({
         open: true,
         message: "Error de conexión. No se puede proceder sin validar el proveedor en la base de datos.",
         severity: "error",
       });
-      // NO ejecutar la actualización - requiere validación obligatoria
     }
-  }, [datosFactura]);
+  }, [datosFactura, isTourRunning, hasUploadedFile]);
 
-  // Función para guardar el número automático y ejecutar
   const handleGuardarAutomatico = useCallback(async (automatico: string) => {
     if (!nitActual || !datosFactura) return;
 
     const nombreProveedor = datosFactura.proveedor.nombre;
     const nitProveedor = nitActual;
 
-    // Debug: verificar que el nombre llega correctamente
     console.log("Datos a guardar:", {
       nit: nitProveedor,
       automatico,
@@ -212,7 +284,6 @@ export default function Home() {
 
     setGuardandoAutomatico(true);
     try {
-      // Guardar con datos adicionales del proveedor
       await saveNitAutomatico(
         String(nitProveedor).trim(),
         String(automatico).trim(),
@@ -221,45 +292,37 @@ export default function Home() {
         datosFactura.total
       );
       
-      // Éxito: Cerrar modal y continuar con el flujo
       setAutomaticoAsignado(automatico);
       setModalAutomaticoOpen(false);
       
-      // Mostrar notificación de éxito
       setNotification({
         open: true,
         message: `Proveedor registrado exitosamente con automático: ${automatico}`,
         severity: "success",
       });
       
-      // Actualizar datos factura con el automático asignado
       setDatosFactura({
         ...datosFactura,
         automaticoAsignado: automatico
       });
       
-      // Ejecutar el programa corporativo
       ejecutarActualizarResolucion(datosFactura);
     } catch (error) {
       console.error("Error al guardar automático:", error);
-      // Mostrar notificación de error
       setNotification({
         open: true,
         message: "Error al guardar el registro. Por favor, intenta de nuevo.",
         severity: "error",
       });
-      // No cerrar el modal para que el usuario pueda intentar de nuevo
     } finally {
       setGuardandoAutomatico(false);
     }
   }, [nitActual, datosFactura]);
 
-  // Función para cerrar notificaciones
   const handleCloseNotification = () => {
     setNotification(prev => ({ ...prev, open: false }));
   };
 
-  // Determinar estado basado en el hook
   const getEstado = (): EstadoProceso => {
     if (isProcessing) {
       if (progress < 30) return "cargando";
@@ -274,7 +337,6 @@ export default function Home() {
 
   const estado = getEstado();
 
-  // Mensajes de procesamiento dinámicos según el proveedor y progreso
   const getMensajeProcesamiento = () => {
     if (estadoHibrido.errorGemini && estadoHibrido.intentoOllama) {
       if (progress < 40) return "Gemini no disponible, cambiando a Ollama...";
@@ -294,6 +356,17 @@ export default function Home() {
     return "¡Extracción completada!";
   };
 
+  // Fases del tour que necesitan mostrar la vista de factura
+  const tourInvoicePhases = ["INVOICE_DATA", "CAUSE_BUTTON", "AUTOMATICO_MODAL"];
+
+  // Determinar si debemos mostrar la vista de datos de factura
+  const showInvoiceView = datosFactura !== null || (isTourRunning && tourInvoicePhases.includes(tourPhase));
+
+  // Usar datos mock o reales según corresponda
+  const invoiceData = (isTourRunning && tourInvoicePhases.includes(tourPhase) && !hasUploadedFile)
+    ? MOCK_DATOS_FACTURA
+    : datosFactura;
+
   return (
     <Box sx={{ p: 2, width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       {/* Header compacto */}
@@ -312,17 +385,18 @@ export default function Home() {
         {estado !== "idle" && (
           <Chip
             icon={estado === "completado" ? <CheckCircle /> : <SmartToy />}
-            label={ESTADO_CONFIG[estado].label}
-            color={ESTADO_CONFIG[estado].color}
+            //label={ESTADO_CONFIG[estado].label}
+            //color={ESTADO_CONFIG[estado].color}
             size="small"
-            sx={{ fontWeight: 600 }}
+            sx={{ fontWeight: 600 }} 
           />
         )}
       </Box>
 
       {/* Estado de IA discreto */}
-      {estado === "idle" && (
+      {estado === "idle" && !showInvoiceView && (
         <IAStatusBadge
+          className="tour-factura-ia-status"
           geminiApiKeyConfigured={!!geminiApiKey}
           conexionErrorOllama={conexionErrorOllama}
           modelosDisponibles={modelosDisponibles}
@@ -332,9 +406,10 @@ export default function Home() {
 
       {/* Contenido principal */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {/* Vista de carga/selección */}
-        {estado === "idle" && (
+        {/* Vista de carga/selección — ocultar durante el tour cuando hay datos de factura */}
+        {estado === "idle" && !showInvoiceView && (
           <FileUploadArea
+            className="tour-factura-upload"
             onFileSelected={handleFileSelected}
             isProcessing={isProcessing}
             progress={progress}
@@ -379,10 +454,13 @@ export default function Home() {
           />
         )}
 
-        {/* Vista de éxito */}
-        {datosFactura && !isProcessing && !error && (
+        {/* Vista de éxito / Tour: datos de factura */}
+        {showInvoiceView && invoiceData && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            <InvoiceInfoCard datosFactura={datosFactura} />
+            <InvoiceInfoCard 
+              className="tour-factura-info"
+              datosFactura={invoiceData} 
+            />
 
             {estadoHibrido.proveedorUsado && (
               <ProveedorProcesamiento
@@ -390,80 +468,80 @@ export default function Home() {
                 modelo={estadoHibrido.modeloUsado}
               />
             )}
+          </Box>
+        )}
 
-            {/* Botones de acción */}
-            <Box
+        {/* Botones de acción — visibles siempre que haya vista de factura,
+            independientemente de si invoiceData está disponible en ese instante */}
+        {showInvoiceView && (
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              justifyContent: "flex-end",
+              pt: 2.5,
+              pb: 0.5,
+            }}
+          >
+            <Button
+              variant="contained"
+              onClick={handleNewFile}
+              startIcon={<Cancel />}
               sx={{
-                display: "flex",
-                gap: 2,
-                justifyContent: "flex-end",
-                pt: 2.5,
-                pb: 0.5,
+                borderRadius: 2,
+                textTransform: "none",
+                color: "#fff",
+                px: 3,
+                py: 1.2,
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                background:
+                  "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                boxShadow: "0 4px 14px rgba(239, 68, 68, 0.35)",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  background:
+                    "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+                  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.45)",
+                  transform: "translateY(-1px)",
+                },
+                "&:active": { transform: "translateY(0)" },
               }}
             >
-              <Button
-                variant="contained"
-                onClick={handleNewFile}
-                startIcon={<Cancel />}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                  color: "#fff",
-                  px: 3,
-                  py: 1.2,
-                  fontWeight: 600,
-                  fontSize: "0.95rem",
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleActualizarResolucion}
+              startIcon={<Update />}
+              className="tour-factura-cause"
+              sx={{
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                px: 3.5,
+                py: 1.2,
+                background:
+                  "linear-gradient(135deg, #004680 0%, #0066cc 100%)",
+                boxShadow: "0 4px 14px rgba(0, 70, 128, 0.35)",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
                   background:
-                    "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-                  boxShadow: "0 4px 14px rgba(239, 68, 68, 0.35)",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    background:
-                      "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
-                    boxShadow: "0 6px 20px rgba(239, 68, 68, 0.45)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:active": {
-                    transform: "translateY(0)",
-                  },
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleActualizarResolucion}
-                startIcon={<Update />}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "0.95rem",
-                  px: 3.5,
-                  py: 1.2,
-                  background:
-                    "linear-gradient(135deg, #004680 0%, #0066cc 100%)",
-                  boxShadow: "0 4px 14px rgba(0, 70, 128, 0.35)",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    background:
-                      "linear-gradient(135deg, #003d66 0%, #0052a3 100%)",
-                    boxShadow: "0 6px 20px rgba(0, 70, 128, 0.45)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:active": {
-                    transform: "translateY(0)",
-                  },
-                }}
-              >
-                Causar factura
-              </Button>
-            </Box>
+                    "linear-gradient(135deg, #003d66 0%, #0052a3 100%)",
+                  boxShadow: "0 6px 20px rgba(0, 70, 128, 0.45)",
+                  transform: "translateY(-1px)",
+                },
+                "&:active": { transform: "translateY(0)" },
+              }}
+            >
+              Causar factura
+            </Button>
           </Box>
         )}
       </Box>
 
-      {/* Modal para ingresar número automático cuando el NIT es nuevo */}
+      {/* Modal para ingresar número automático */}
       <AutomaticoModal
         open={modalAutomaticoOpen}
         nit={nitActual}
@@ -489,6 +567,19 @@ export default function Home() {
           {notification.message}
         </Alert>
       </Snackbar>
+
+      {/* Botón flotante de ayuda - se oculta cuando hay notificaciones */}
+      <FloatingHelpButton hideWhenNotification notificationOpen={notification.open} />
     </Box>
+  );
+}
+
+export default function Home() {
+  return (
+    <TourProvider>
+      <FacturasTour>
+        <HomeContent />
+      </FacturasTour>
+    </TourProvider>
   );
 }

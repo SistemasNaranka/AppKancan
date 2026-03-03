@@ -82,8 +82,8 @@ export function ProjectForm({
         }}
       >
         {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-          <DescriptionIcon sx={{ color: "primary.main", fontSize: 24 }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3, boxShadow: "none", }}>
+          <DescriptionIcon sx={{ color: "#004680", fontSize: 24 }} />
           <Typography variant="h6" fontWeight="600">
             Datos del Proyecto
           </Typography>
@@ -188,7 +188,7 @@ export function ProjectForm({
             />
 
             <DatePicker
-              label="Fecha de Entrega Real"
+              label="Fecha Entrega "
               value={data.fechaEntrega ? dayjs(data.fechaEntrega) : null}
               onChange={(newValue) =>
                 onChange(

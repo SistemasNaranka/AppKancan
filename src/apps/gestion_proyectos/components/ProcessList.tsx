@@ -75,13 +75,18 @@ export function ProcessList({
           mb: 2,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, boxShadow: "none", }}>
           <TimerIcon sx={{ color: "success.main" }} />
           <Typography variant="h6" fontWeight="bold">
             Procesos
           </Typography>
         </Box>
-        <Button
+        <Button sx={{ boxShadow: "none", 
+            "&:hover": {
+            boxShadow: "none",
+            backgroundColor: "#38993D",
+          },
+        }}
           variant="contained"
           color="success"
           size="small"
