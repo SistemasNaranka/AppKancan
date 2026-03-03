@@ -15,8 +15,11 @@ import {
   FormControl,
   InputLabel,
   IconButton,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
-import { ArrowBack, PostAdd, AccessTimeFilled, Description, Stars, Edit, Close, Save } from "@mui/icons-material";
+import { ArrowBack, PostAdd, AccessTimeFilled, Description, Stars, Edit, Close, Save, ExpandMore, TrendingUp, Speed } from "@mui/icons-material";
 import {
   useProyectoById,
   getEstadoColor,
@@ -149,6 +152,8 @@ export default function DetalleProyecto() {
   const [activeTab, setActiveTab] = useState<TabId>("info");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
+  const [procesosExpanded, setProcesosExpanded] = useState(true);
+  const [metricasExpanded, setMetricasExpanded] = useState(true);
 
   if (loading) {
     return (
@@ -410,86 +415,147 @@ export default function DetalleProyecto() {
                 <AccessTimeFilled />
                 Impacto en Tiempos
               </Typography> */}
-              <Box
+              {/* Primer Accordion: Métricas de Ahorro */}
+              <Accordion
+                expanded={metricasExpanded}
+                onChange={() => setMetricasExpanded(!metricasExpanded)}
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
-                  gap: 2,
-                  mb: 3,
+                  boxShadow: "none",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: "12px !important",
+                  "&:before": { display: "none" },
+                  "&.Mui-expanded": { margin: 0 },
                 }}
               >
-                <Paper sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
-                  <Typography variant="body2" sx={{ color: "success.dark" }}>Ahorro Mensual</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
-                    {formatTiempo(metricas.ahorro_total_mensual)}
-                  </Typography>
-                </Paper>
-                <Paper sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
-                  <Typography variant="body2" sx={{ color: "success.dark" }}>Ahorro Anual</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
-                    {formatTiempo(metricas.ahorro_total_anual)}
-                  </Typography>
-                </Paper>
-                <Paper sx={{ p: 2, bgcolor: "#E6F4FF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
-                  <Typography variant="body2" sx={{ color: "info.dark" }}>Total Procesos</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: "bold", color: "info.dark" }}>
-                    {metricas.total_procesos}
-                  </Typography>
-                </Paper>
-              </Box>
+                <AccordionSummary
+                  expandIcon={<ExpandMore />}
+                  sx={{
+                    borderRadius: metricasExpanded ? "12px 12px 0 0" : "12px",
+                    backgroundColor: "#f8f9fa",
+                    "&:hover": { backgroundColor: "#f1f3f4" },
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TrendingUp sx={{ color: "#004680", fontSize: 20 }} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1a2b45" }}>
+                      Métricas de Ahorro
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 2 }}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
+                      gap: 2,
+                    }}
+                  >
+                    <Paper sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
+                      <Typography variant="body2" sx={{ color: "success.dark" }}>Ahorro Mensual</Typography>
+                      <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
+                        {formatTiempo(metricas.ahorro_total_mensual)}
+                      </Typography>
+                    </Paper>
+                    <Paper sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
+                      <Typography variant="body2" sx={{ color: "success.dark" }}>Ahorro Anual</Typography>
+                      <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
+                        {formatTiempo(metricas.ahorro_total_anual)}
+                      </Typography>
+                    </Paper>
+                    <Paper sx={{ p: 2, bgcolor: "#E6F4FF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
+                      <Typography variant="body2" sx={{ color: "info.dark" }}>Total Procesos</Typography>
+                      <Typography variant="h5" sx={{ fontWeight: "bold", color: "info.dark" }}>
+                        {metricas.total_procesos}
+                      </Typography>
+                    </Paper>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
 
-              {proyecto.procesos && proyecto.procesos.length > 0 ? (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>Detalle de Procesos</Typography>
-                  {proyecto.procesos.map((proceso, index) => {
-                    const mProceso = metricas.procesos[index] || {
-                      ahorro_por_ejecucion: 0,
-                      ahorro_mensual: 0,
-                      ahorro_anual: 0,
-                    };
-                    return (
-                      <Paper key={proceso.id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <Box>
-                            <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
-                              {index + 1}. {proceso.nombre}
-                            </Typography>
-                            <Typography variant="body2" sx={{ mt: 0.5, color: "text.secondary" }}>
-                              Frecuencia:{" "}
-                              {getTextoFrecuencia(proceso.frecuencia_tipo as any, proceso.frecuencia_cantidad)}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ textAlign: "right" }}>
-                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                              Ahorro por ejecución
-                            </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: "medium", color: "success.main" }}>
-                              {proceso.tiempo_antes}s → {proceso.tiempo_despues}s
-                              <Typography component="span" variant="body2" sx={{ ml: 1, color: "success.dark" }}>
-                                (-{proceso.tiempo_antes - proceso.tiempo_despues}s)
-                              </Typography>
-                            </Typography>
-                          </Box>
-                        </Box>
-                        {mProceso.ahorro_mensual > 0 && (
-                          <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
-                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                              Ahorra {formatTiempo(mProceso.ahorro_mensual)}/mes (
-                              {formatTiempo(mProceso.ahorro_anual)}/año)
-                            </Typography>
-                          </Box>
-                        )}
-                      </Paper>
-                    );
-                  })}
-                </Box>
-              ) : (
-                <Box sx={{ textAlign: "center", py: 4 }}>
-                  <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                    No hay procesos registrados para este proyecto
-                  </Typography>
-                </Box>
-              )}
+              {/* Segundo Accordion: Detalle de Procesos */}
+              <Accordion
+                expanded={procesosExpanded}
+                onChange={() => setProcesosExpanded(!procesosExpanded)}
+                sx={{
+                  boxShadow: "none",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: "12px !important",
+                  mt: 2,
+                  "&:before": { display: "none" },
+                  "&.Mui-expanded": { margin: "8px 0 0 0" },
+                }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMore />}
+                  sx={{
+                    borderRadius: procesosExpanded ? "12px 12px 0 0" : "12px",
+                    backgroundColor: "#f8f9fa",
+                    "&:hover": { backgroundColor: "#f1f3f4" },
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Speed sx={{ color: "#004680", fontSize: 20 }} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1a2b45" }}>
+                      Detalle de Procesos
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 2 }}>
+                  {proyecto.procesos && proyecto.procesos.length > 0 ? (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      {proyecto.procesos.map((proceso, index) => {
+                        const mProceso = metricas.procesos[index] || {
+                          ahorro_por_ejecucion: 0,
+                          ahorro_mensual: 0,
+                          ahorro_anual: 0,
+                        };
+                        return (
+                          <Paper key={proceso.id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <Box>
+                                <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+                                  {index + 1}. {proceso.nombre}
+                                </Typography>
+                                <Typography variant="body2" sx={{ mt: 0.5, color: "text.secondary" }}>
+                                  Frecuencia:{" "}
+                                  {getTextoFrecuencia(proceso.frecuencia_tipo as any, proceso.frecuencia_cantidad)}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ textAlign: "right" }}>
+                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                  Ahorro por ejecución
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: "medium", color: "success.main" }}>
+                                  {proceso.tiempo_antes}s → {proceso.tiempo_despues}s
+                                  <Typography component="span" variant="body2" sx={{ ml: 1, color: "success.dark" }}>
+                                    (-{proceso.tiempo_antes - proceso.tiempo_despues}s)
+                                  </Typography>
+                                </Typography>
+                              </Box>
+                            </Box>
+                            {mProceso.ahorro_mensual > 0 && (
+                              <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
+                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                  Ahorra {formatTiempo(mProceso.ahorro_mensual)}/mes (
+                                  {formatTiempo(mProceso.ahorro_anual)}/año)
+                                </Typography>
+                              </Box>
+                            )}
+                          </Paper>
+                        );
+                      })}
+                    </Box>
+                  ) : (
+                    <Box sx={{ textAlign: "center", py: 4 }}>
+                      <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                        No hay procesos registrados para este proyecto
+                      </Typography>
+                    </Box>
+                  )}
+                </AccordionDetails>
+              </Accordion>
             </>
           )}
 
