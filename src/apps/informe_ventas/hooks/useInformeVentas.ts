@@ -295,19 +295,23 @@ export function useInformeVentas(): UseInformeVentasReturn {
       zona: v.zona,
       unidades: v.total_unidades,
       valor: v.total_valor,
-      // Líneas de venta - unidades (columnas fijas)
       unidades_coleccion: v.unidades_coleccion,
       unidades_basicos: v.unidades_basicos,
       unidades_promocion: v.unidades_promocion,
-      // Líneas de venta - valores (columnas fijas)
       valor_coleccion: v.valor_coleccion,
       valor_basicos: v.valor_basicos,
       valor_promocion: v.valor_promocion,
-      // Agrupaciones (columnas seleccionables)
       unidades_indigo: v.unidades_indigo,
       unidades_tela_liviana: v.unidades_tela_liviana,
       unidades_calzado: v.unidades_calzado,
       unidades_complemento: v.unidades_complemento,
+      // Nuevas columnas: Presupuesto y Comisión (por ahora en 0)
+      presupuesto_coleccion: 0,
+      comision_coleccion: 0,
+      presupuesto_basicos: 0,
+      comision_basicos: 0,
+      presupuesto_promocion: 0,
+      comision_promocion: 0,
     }));
   }, [ventasPorAsesor]);
 
