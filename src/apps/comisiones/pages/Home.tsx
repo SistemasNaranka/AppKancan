@@ -486,12 +486,20 @@ export default function Home() {
     };
   }, [isError, error, dataLoadAttempted, hasData, isLoading, commissionData]);
 
-  // 🚀 NUEVO: Determinar si mostrar contenido principal (siempre true, excepto cuando está cargando)
+  // 🚀 NUEVO: Determinar si mostrar contenido principal
   const shouldShowMainContent = useMemo(() => {
-    // Siempre mostrar contenido excepto cuando los datos de presupuesto están cargando
-    // Mostramos los datos filtrados incluso si la tienda no tiene presupuesto asignado
-    return budgetValidationCompleted;
-  }, [budgetValidationCompleted]);
+    // No mostrar contenido si la validación no está completa
+    if (!budgetValidationCompleted) {
+      return true; // Mostrar mientras carga
+    }
+    // Para usuarios con rol tienda, solo mostrar si tiene presupuesto
+    if (hasPolicy("readComisionesTienda")) {
+      // Si no tiene presupuesto (false), no mostrar; si tiene (true) o está cargando (null), mostrar
+      return hasBudgetData !== false;
+    }
+    // Para otros usuarios, siempre mostrar
+    return true;
+  }, [budgetValidationCompleted, hasBudgetData]);
 
   // 🚀 NUEVO: Determinar si hay una sola tienda (para gráficos)
 
@@ -522,7 +530,7 @@ export default function Home() {
       onRoleFilterToggle: handleRoleFilterToggleWithExpansion,
       onRoleFilterClear: handleRoleFilterClear,
       hasBudgetData: hasBudgetData ?? undefined, // Pasar información de presupuesto al header
-      missingDaysCount: hasSingleStoreSelected ? missingDaysCount : 0, // Solo mostrar días pendientes cuando hay una tienda seleccionada
+      missingDaysCount: missingDaysCount, // Siempre pasar el valor real para mostrar el aviso de días pendientes
     };
 
     // Solo agregar renderMobileSummaryCards si hay presupuesto
