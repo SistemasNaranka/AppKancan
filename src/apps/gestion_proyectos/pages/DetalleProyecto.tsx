@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -9,20 +9,46 @@ import {
   Chip,
   CircularProgress,
   styled,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  IconButton,
 } from "@mui/material";
-import { ArrowBack, PostAdd, AccessTimeFilled, Description, Stars } from "@mui/icons-material";
+import { ArrowBack, PostAdd, AccessTimeFilled, Description, Stars, Edit, Close, Save } from "@mui/icons-material";
 import {
   useProyectoById,
   getEstadoColor,
   getEstadoLabel,
 } from "../hooks/useProyectos";
+import { updateProyecto } from "../api/directus/create";
 import { formatTiempo, getTextoFrecuencia } from "../lib/calculos";
+import type { CreateProyectoInput } from "../types";
+import dayjs from "dayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import "dayjs/locale/es";
 
 /**
  * Página de detalle de un proyecto
  */
 
 type TabId = "info" | "tiempos" | "beneficios";
+
+// Tipo para datos del formulario de edición
+interface EditProjectFormData {
+  nombre: string;
+  areaBeneficiada: string;
+  descripcion: string;
+  encargado: string;
+  fechaInicio: string;
+  fechaEstimada: string;
+  fechaEntrega: string;
+  estado: string;
+  tipoProyecto: string;
+}
 
 // Styled component para botón Volver
 const VolverButton = styled(Button)({
@@ -44,6 +70,43 @@ const HeaderContainer = styled(Box)({
   borderRadius: 12,
   backgroundColor: "white",
   boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+  position: "relative",
+});
+
+// Estilos para el botón de editar
+const EditButton = styled(Button)({
+  backgroundColor: "#f5f5f5",
+  color: "#5A6A7E",
+  borderRadius: 8,
+  padding: "8px 16px",
+  fontWeight: 500,
+  textTransform: "none",
+  "&:hover": {
+    backgroundColor: "#e8e8e8",
+  },
+});
+
+// Modal de edición
+const EditModalOverlay = styled(Box)({
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 1300,
+});
+
+const EditModalContent = styled(Paper)({
+  padding: 24,
+  borderRadius: 12,
+  maxWidth: 600,
+  width: "90%",
+  maxHeight: "90vh",
+  overflow: "auto",
 });
 
 // Tab container con estilo segmented control - fondo gris y tabs integradas
@@ -82,8 +145,10 @@ const TabButton = styled(Button, {
 export default function DetalleProyecto() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { proyecto, metricas, loading, error } = useProyectoById(id || "");
+  const { proyecto, metricas, loading, error, recargar } = useProyectoById(id || "");
   const [activeTab, setActiveTab] = useState<TabId>("info");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
 
   if (loading) {
     return (
@@ -144,7 +209,7 @@ export default function DetalleProyecto() {
 
   return (
     <Container maxWidth="lg" sx={{ p: 3 }}>
-      {/* Header — 3 zonas: botón izq | info centro | botón der */}
+      {/* Header — 3 zonas: botón izq | info centro | botones der */}
       <HeaderContainer>
         <Box
           sx={{
@@ -204,13 +269,33 @@ export default function DetalleProyecto() {
             </Box>
           </Box>
 
-          {/* Zona derecha: botón Post-Lanzamiento */}
-          <Box sx={{ flexShrink: 0 }}>
+          {/* Zona derecha: botones Editar y Post-Lanzamiento alineados verticalmente */}
+          <Box
+            sx={{
+              flexShrink: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+              alignItems: "flex-end",
+              justifyContent: "center",
+            }}
+          >
+            <EditButton
+              startIcon={<Edit sx={{ fontSize: 18 }} />}
+              onClick={() => setEditModalOpen(true)}
+              aria-label="Editar proyecto"
+            >
+              Editar
+            </EditButton>
             <Button
               sx={{
                 backgroundColor: "#004680",
                 boxShadow: "none",
                 "&:hover": { boxShadow: "none", backgroundColor: "#005AA3" },
+                borderRadius: 2,
+                padding: "8px 16px",
+                fontWeight: 500,
+                textTransform: "none",
               }}
               variant="contained"
               startIcon={<PostAdd />}
@@ -221,6 +306,19 @@ export default function DetalleProyecto() {
           </Box>
         </Box>
       </HeaderContainer>
+
+      {/* Modal de edición de proyecto */}
+      <EditProyectoModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        proyecto={proyecto}
+        onSuccess={() => {
+          recargar();
+          setEditModalOpen(false);
+        }}
+        loading={editLoading}
+        setLoading={setEditLoading}
+      />
 
       {/* Tabs estilo segmented control con borde gota */}
       <Box sx={{ borderRadius: "16px 16px 0 0", overflow: "visible" }}>
@@ -376,7 +474,7 @@ export default function DetalleProyecto() {
                         {mProceso.ahorro_mensual > 0 && (
                           <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
                             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                              ⏱️ Ahorra {formatTiempo(mProceso.ahorro_mensual)}/mes (
+                              Ahorra {formatTiempo(mProceso.ahorro_mensual)}/mes (
                               {formatTiempo(mProceso.ahorro_anual)}/año)
                             </Typography>
                           </Box>
@@ -428,5 +526,215 @@ export default function DetalleProyecto() {
         </Paper>
       </Box>
     </Container>
+  );
+}
+
+// ============================================
+// Componente Modal de Edición de Proyecto
+// ============================================
+
+interface EditProyectoModalProps {
+  open: boolean;
+  onClose: () => void;
+  proyecto: import("../types").Proyecto | null;
+  onSuccess: () => void;
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
+}
+
+function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoading }: EditProyectoModalProps) {
+  const [formData, setFormData] = useState<EditProjectFormData>({
+    nombre: "",
+    areaBeneficiada: "",
+    descripcion: "",
+    encargado: "",
+    fechaInicio: "",
+    fechaEstimada: "",
+    fechaEntrega: "",
+    estado: "en_proceso",
+    tipoProyecto: "mejora",
+  });
+
+  // Inicializar formulario cuando cambia el proyecto
+  useEffect(() => {
+    if (proyecto && open) {
+      setFormData({
+        nombre: proyecto.nombre,
+        areaBeneficiada: proyecto.area_beneficiada,
+        descripcion: proyecto.descripcion,
+        encargado: proyecto.encargados?.map((e) => e.nombre).join(", ") || "",
+        fechaInicio: proyecto.fecha_inicio,
+        fechaEstimada: proyecto.fecha_estimada,
+        fechaEntrega: proyecto.fecha_entrega || "",
+        estado: proyecto.estado,
+        tipoProyecto: proyecto.tipo_proyecto,
+      });
+    }
+  }, [proyecto, open]);
+
+  const handleChange = (field: keyof EditProjectFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proyecto) return;
+
+    setLoading(true);
+    try {
+      const proyectoData: Partial<CreateProyectoInput> = {
+        nombre: formData.nombre,
+        area_beneficiada: formData.areaBeneficiada,
+        descripcion: formData.descripcion,
+        fecha_inicio: formData.fechaInicio,
+        fecha_estimada: formData.fechaEstimada,
+        fecha_entrega: formData.fechaEntrega || null,
+        estado: formData.estado as any,
+        tipo_proyecto: formData.tipoProyecto as any,
+        encargados: formData.encargado
+          .split(",")
+          .map((n) => ({ nombre: n.trim() }))
+          .filter((e) => e.nombre),
+      };
+
+      const success = await updateProyecto(proyecto.id, proyectoData);
+      if (success) {
+        onSuccess();
+      } else {
+        console.error("Error al actualizar el proyecto");
+      }
+    } catch (error) {
+      console.error("Error al guardar cambios:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+      <EditModalOverlay onClick={onClose}>
+        <EditModalContent onClick={(e) => e.stopPropagation()} elevation={8}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ color: "#1a2b45" }}>
+              Editar Proyecto
+            </Typography>
+            <IconButton onClick={onClose} aria-label="Cerrar modal" size="small">
+              <Close />
+            </IconButton>
+          </Box>
+
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            <TextField
+              label="Nombre del Proyecto"
+              value={formData.nombre}
+              onChange={(e) => handleChange("nombre", e.target.value)}
+              required
+              fullWidth
+              size="medium"
+            />
+
+            <TextField
+              label="Área Beneficiada"
+              value={formData.areaBeneficiada}
+              onChange={(e) => handleChange("areaBeneficiada", e.target.value)}
+              required
+              fullWidth
+              size="medium"
+            />
+
+            <FormControl fullWidth size="medium">
+              <InputLabel>Estado</InputLabel>
+              <Select
+                value={formData.estado}
+                label="Estado"
+                onChange={(e) => handleChange("estado", e.target.value)}
+              >
+                <MenuItem value="en_proceso">En Proceso</MenuItem>
+                <MenuItem value="entregado">Entregado</MenuItem>
+                <MenuItem value="en_seguimiento">En Seguimiento</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth size="medium">
+              <InputLabel>Tipo de Proyecto</InputLabel>
+              <Select
+                value={formData.tipoProyecto}
+                label="Tipo de Proyecto"
+                onChange={(e) => handleChange("tipoProyecto", e.target.value)}
+              >
+                <MenuItem value="mejora">Mejora</MenuItem>
+                <MenuItem value="nuevo">Nueva Creación</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <DatePicker
+                label="Fecha Inicio"
+                value={formData.fechaInicio ? dayjs(formData.fechaInicio) : null}
+                onChange={(newValue) => handleChange("fechaInicio", newValue ? dayjs(newValue).format("YYYY-MM-DD") : "")}
+                slotProps={{ textField: { fullWidth: true, required: true, size: "medium" } }}
+              />
+              <DatePicker
+                label="Fecha Estimada"
+                value={formData.fechaEstimada ? dayjs(formData.fechaEstimada) : null}
+                onChange={(newValue) => handleChange("fechaEstimada", newValue ? dayjs(newValue).format("YYYY-MM-DD") : "")}
+                slotProps={{ textField: { fullWidth: true, required: true, size: "medium" } }}
+              />
+              <DatePicker
+                label="Fecha Entrega"
+                value={formData.fechaEntrega ? dayjs(formData.fechaEntrega) : null}
+                onChange={(newValue) => handleChange("fechaEntrega", newValue ? dayjs(newValue).format("YYYY-MM-DD") : "")}
+                slotProps={{ textField: { fullWidth: true, size: "medium" } }}
+              />
+            </Box>
+
+            <TextField
+              label="Encargados (separados por coma)"
+              value={formData.encargado}
+              onChange={(e) => handleChange("encargado", e.target.value)}
+              fullWidth
+              size="medium"
+              placeholder="Nombre1, Nombre2, ..."
+            />
+
+            <TextField
+              label="Descripción"
+              value={formData.descripcion}
+              onChange={(e) => handleChange("descripcion", e.target.value)}
+              fullWidth
+              size="medium"
+              multiline
+              rows={3}
+            />
+
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={onClose}
+                disabled={loading}
+                startIcon={<Close />}
+                sx={{ borderColor: "#ddd", color: "#5A6A7E" }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={loading}
+                startIcon={loading ? undefined : <Save />}
+                sx={{
+                  backgroundColor: "#004680",
+                  "&:hover": { backgroundColor: "#005AA3" },
+                }}
+              >
+                {loading ? "Guardando..." : "Guardar Cambios"}
+              </Button>
+            </Box>
+          </Box>
+        </EditModalContent>
+      </EditModalOverlay>
+    </LocalizationProvider>
   );
 }

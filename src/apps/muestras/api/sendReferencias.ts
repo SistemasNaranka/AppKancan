@@ -56,8 +56,6 @@ export async function enviarMuestras(
     factory: "Naranka",
     printer: printer.toString(),
   };
-
-  console.log("📤 Enviando muestras:", payload);
   //colocar un tiempo de espera en lo que se envia los datos
   // await new Promise((resolve) => setTimeout(resolve, 1000));
 

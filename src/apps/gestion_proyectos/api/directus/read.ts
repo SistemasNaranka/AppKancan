@@ -50,7 +50,6 @@ export async function getProyectos(): Promise<Proyecto[]> {
 }
 
 export async function getProyectoById(id: string): Promise<Proyecto | null> {
-  console.log("🚀 getProyectoById llamado con id:", id);
 
   try {
     const proyecto = await withAutoRefresh(() =>
@@ -72,10 +71,6 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
       ),
     );
 
-    // 🔍 DEBUG
-    console.log("📦 Procesos con filtro proyecto_id =", id, "→", procesos);
-    console.log("🔑 Tipo del id:", typeof id);
-
     const todosProcesos = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proceso", {
@@ -84,7 +79,6 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
         }),
       ),
     );
-    console.log("🗂️ Muestra de gp_proceso sin filtro (máx 5):", todosProcesos);
 
     const beneficios = await withAutoRefresh(() =>
       directus.request(
