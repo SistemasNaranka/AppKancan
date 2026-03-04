@@ -18,7 +18,7 @@ const routesCache: Record<string, RouteObject[]> = {};
 
 export default function AppRoutes() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const { apps, area, loading: appsLoading } = useApps();
+  const { apps, area, loading: appsLoading, loadingStatus } = useApps();
 
   const [modulosComplejosFiltrados, setModulosComplejosFiltrados] = useState<
     RouteObject[]
@@ -26,6 +26,42 @@ export default function AppRoutes() {
   const [errorEnRutas, setErrorEnRutas] = useState<unknown>(null);
 
   const isLoading = isAuthenticated && (apps === null || appsLoading);
+
+  // Función para obtener el mensaje de carga según el estado
+  const getLoadingMessage = (): string => {
+    // Si está cargando autenticación
+    if (authLoading) {
+      return "Verificando autenticación...";
+    }
+
+    // Si no tiene apps asignadas - mostrar el mensaje específico
+    if (loadingStatus.status === "no_apps") {
+      return loadingStatus.message;
+    }
+
+    // Si no tiene área definida - mostrar el mensaje específico
+    if (loadingStatus.status === "no_area") {
+      return loadingStatus.message;
+    }
+
+    // Si está cargando apps (estado inicial)
+    if (loadingStatus.status === "loading") {
+      return "Cargando aplicación...";
+    }
+
+    // Si el área está definida pero no se encontró el componente Home
+    // (esto indica un problema de configuración del sistema)
+    if (!homeRoute && area) {
+      return `El área "${area}" no tiene una página de inicio configurada.`;
+    }
+
+    // Si las rutas de módulos aún no están cargadas (estado transitorio)
+    if (modulosComplejosFiltrados.length === 0) {
+      return "Cargando módulos...";
+    }
+
+    return "Cargando aplicación...";
+  };
 
   // ----------------------------
   // Home por área
@@ -156,16 +192,18 @@ export default function AppRoutes() {
     ];
   } else if (
     isLoading ||
+    loadingStatus.status === "no_apps" ||
+    loadingStatus.status === "no_area" ||
     modulosComplejosFiltrados.length === 0 ||
     !homeRoute
   ) {
-    // Cargando datos de la app o rutas no cargadas - mostrar spinner
+    // Cargando datos de la app o rutas no cargadas - mostrar spinner con mensaje específico
     routesToUse = [
       {
         path: "*",
         element: (
           <LoadingSpinner
-            message="Cargando aplicación..."
+            message={getLoadingMessage()}
             size="large"
             fullScreen
           />

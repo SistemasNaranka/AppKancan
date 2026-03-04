@@ -174,6 +174,10 @@ const TrasladosPanel: React.FC = () => {
   const tienePoliticaTrasladosJefezona =
     user?.policies?.includes("TrasladosJefezona") ?? false;
 
+  // ✅ Verificar si el usuario tiene la política TrasladosTiendas (solo ver, no aprobar)
+  const tienePoliticaTrasladosTiendas =
+    user?.policies?.includes("TrasladosTiendas") ?? false;
+
   return (
     <Box
       sx={{
@@ -211,6 +215,7 @@ const TrasladosPanel: React.FC = () => {
             onEliminarTrasladosAprobados={handleEliminarTrasladosAprobados}
             onRetry={handleRetry}
             tienePoliticaTrasladosJefezona={tienePoliticaTrasladosJefezona}
+            tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
           />
 
           {/* Snackbar de éxito */}
