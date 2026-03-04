@@ -220,9 +220,6 @@ export default function NuevoProyecto() {
           orden: index + 1,
         }));
 
-        // 🔍 DEBUG: Verificar datos de procesos antes de enviar
-        console.log("📤 Enviando procesos a Directus:", procesosData);
-        await createProcesos(procesosData);
       }
 
       // ✅ NUEVO: Crear beneficios si es tipo "nuevo"
