@@ -31,6 +31,9 @@ import {
   Tooltip,
   Legend,
   Filler,
+  type TooltipItem,
+  type ChartOptions,
+  type LegendOptions,
 } from "chart.js";
 import {
   ArrowBack,
@@ -46,6 +49,8 @@ import {
   Speed,
   ShowChart,
   PieChart,
+  Add,
+  Delete,
 } from "@mui/icons-material";
 import {
   useProyectoById,
@@ -53,6 +58,7 @@ import {
   getEstadoLabel,
 } from "../hooks/useProyectos";
 import { updateProyecto } from "../api/directus/create";
+import { updateProceso, deleteProceso, createProceso } from "../api/directus/create";
 import { formatTiempo, getTextoFrecuencia } from "../lib/calculos";
 import type { CreateProyectoInput } from "../types";
 import dayjs from "dayjs";
@@ -703,24 +709,25 @@ export default function DetalleProyecto() {
                                 borderWidth: 2,
                               }],
                             };
-                            const options = {
+                            const options: ChartOptions<"doughnut"> = {
                               responsive: true,
                               maintainAspectRatio: false,
                               plugins: {
                                 legend: {
-                                  position: 'bottom',
+                                  position: "bottom" as const,
                                 },
                                 tooltip: {
                                   callbacks: {
-                                    label: (context) => {
+                                    label: (context: TooltipItem<"doughnut">) => {
                                       const total = totalAntes + totalDespues;
-                                      const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                      return `${context.label}: ${context.parsed} segundos (${percentage}%)`;
+                                      const value = context.raw as number;
+                                      const percentage = ((value / total) * 100).toFixed(1);
+                                      return `${context.label}: ${value} segundos (${percentage}%)`;
                                     },
                                   },
                                 },
                               },
-                              cutout: '50%',
+                              cutout: "50%",
                             };
                             return <Doughnut data={data} options={options} />;
                           })()}
@@ -822,12 +829,103 @@ function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoa
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Estado para gestionar procesos en el modal
+  const [procesosEdit, setProcesosEdit] = useState<Array<{
+    id: string;
+    nombre: string;
+    tiempo_antes: number;
+    tiempo_despues: number;
+    frecuencia_tipo: string;
+    frecuencia_cantidad: number;
+    dias_semana: number;
+    isNew?: boolean;
+  }>>([]);
+
+  // Inicializar procesos cuando cambia el proyecto
+  useEffect(() => {
+    if (proyecto && open) {
+      setProcesosEdit(
+        (proyecto.procesos || []).map((p) => ({
+          id: p.id,
+          nombre: p.nombre,
+          tiempo_antes: p.tiempo_antes,
+          tiempo_despues: p.tiempo_despues,
+          frecuencia_tipo: p.frecuencia_tipo,
+          frecuencia_cantidad: p.frecuencia_cantidad,
+          dias_semana: p.dias_semana,
+        }))
+      );
+    }
+  }, [proyecto, open]);
+
+  // Agregar nuevo proceso
+  const handleAgregarProceso = () => {
+    setProcesosEdit([
+      ...procesosEdit,
+      {
+        id: `new_${Date.now()}`,
+        nombre: "",
+        tiempo_antes: 0,
+        tiempo_despues: 0,
+        frecuencia_tipo: "diaria",
+        frecuencia_cantidad: 1,
+        dias_semana: 5,
+        isNew: true,
+      },
+    ]);
+  };
+
+  // Eliminar proceso
+  const handleEliminarProceso = async (index: number) => {
+    const proceso = procesosEdit[index];
+    if (!proceso.isNew && proceso.id) {
+      // Eliminar de la base de datos si no es nuevo
+      await deleteProceso(proceso.id);
+    }
+    setProcesosEdit(procesosEdit.filter((_, i) => i !== index));
+  };
+
+  // Actualizar proceso
+  const handleActualizarProceso = (index: number, field: string, value: any) => {
+    setProcesosEdit(
+      procesosEdit.map((p, i) =>
+        i === index ? { ...p, [field]: value } : p
+      )
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!proyecto) return;
 
     setLoading(true);
     try {
+      // Lógica bidireccional: cambio de estado basado en fecha de entrega
+      // 1. Si el proyecto está "entregado" y la fecha de entrega es FUTURA (> hoy), cambiar a "en proceso"
+      // 2. Si el proyecto está "en proceso" y la fecha de entrega es <= hoy (actual o pasada), cambiar a "entregado"
+      let nuevoEstado = formData.estado;
+      
+      if (formData.fechaEntrega) {
+        const fechaEntrega = dayjs(formData.fechaEntrega);
+        const hoy = dayjs();
+        const esFechaPasadaOActual = fechaEntrega.isBefore(hoy) || fechaEntrega.isSame(hoy, "day");
+        const esFechaFutura = fechaEntrega.isAfter(hoy, "day");
+        
+        // Caso 1: Proyecto está entregado pero fecha de entrega es futura -> cambiar a "en proceso"
+        if (formData.estado === "entregado" && esFechaFutura) {
+          nuevoEstado = "en_proceso";
+        }
+        // Caso 2: Proyecto está en proceso pero fecha de entrega es actual o pasada -> cambiar a "entregado"
+        else if (formData.estado === "en_proceso" && esFechaPasadaOActual) {
+          nuevoEstado = "entregado";
+        }
+      } else {
+        // Si no hay fecha de entrega y el proyecto está entregado, mantener en proceso
+        if (formData.estado === "entregado") {
+          nuevoEstado = "en_proceso";
+        }
+      }
+
       const proyectoData: Partial<CreateProyectoInput> = {
         nombre: formData.nombre,
         area_beneficiada: formData.areaBeneficiada,
@@ -835,7 +933,7 @@ function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoa
         fecha_inicio: formData.fechaInicio,
         fecha_estimada: formData.fechaEstimada,
         fecha_entrega: formData.fechaEntrega || null,
-        estado: formData.estado as any,
+        estado: nuevoEstado as any,
         tipo_proyecto: formData.tipoProyecto as any,
         encargados: formData.encargado
           .split(",")
@@ -845,6 +943,33 @@ function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoa
 
       const success = await updateProyecto(proyecto.id, proyectoData);
       if (success) {
+        // Guardar procesos
+        for (const proceso of procesosEdit) {
+          if (proceso.isNew) {
+            // Crear nuevo proceso
+            await createProceso({
+              proyecto_id: proyecto.id,
+              nombre: proceso.nombre,
+              tiempo_antes: proceso.tiempo_antes,
+              tiempo_despues: proceso.tiempo_despues,
+              frecuencia_tipo: proceso.frecuencia_tipo as any,
+              frecuencia_cantidad: proceso.frecuencia_cantidad,
+              dias_semana: proceso.dias_semana,
+              orden: procesosEdit.indexOf(proceso) + 1,
+            });
+          } else {
+            // Actualizar proceso existente
+            await updateProceso(proceso.id, {
+              nombre: proceso.nombre,
+              tiempo_antes: proceso.tiempo_antes,
+              tiempo_despues: proceso.tiempo_despues,
+              frecuencia_tipo: proceso.frecuencia_tipo as any,
+              frecuencia_cantidad: proceso.frecuencia_cantidad,
+              dias_semana: proceso.dias_semana,
+              orden: procesosEdit.indexOf(proceso) + 1,
+            });
+          }
+        }
         onSuccess();
       } else {
         console.error("Error al actualizar el proyecto");
@@ -919,14 +1044,12 @@ function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoa
               <DatePicker
                 label="Fecha Inicio"
                 value={formData.fechaInicio ? dayjs(formData.fechaInicio) : null}
-                onChange={(newValue) => handleChange("fechaInicio", newValue ? dayjs(newValue).format("YYYY-MM-DD") : "")}
-                slotProps={{ textField: { fullWidth: true, required: true, size: "medium" } }}
+                slotProps={{ textField: { fullWidth: true, required: true, size: "medium", disabled: true } }}
               />
               <DatePicker
                 label="Fecha Estimada"
                 value={formData.fechaEstimada ? dayjs(formData.fechaEstimada) : null}
-                onChange={(newValue) => handleChange("fechaEstimada", newValue ? dayjs(newValue).format("YYYY-MM-DD") : "")}
-                slotProps={{ textField: { fullWidth: true, required: true, size: "medium" } }}
+                slotProps={{ textField: { fullWidth: true, required: true, size: "medium", disabled: true } }}
               />
               <DatePicker
                 label="Fecha Entrega"
@@ -954,6 +1077,90 @@ function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoa
               multiline
               rows={3}
             />
+
+            {/* Sección de Procesos */}
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1a2b45" }}>
+                  Procesos del Proyecto
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Add />}
+                  onClick={handleAgregarProceso}
+                  sx={{ textTransform: "none" }}
+                >
+                  Agregar Proceso
+                </Button>
+              </Box>
+
+              {procesosEdit.length > 0 ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 300, overflow: "auto" }}>
+                  {procesosEdit.map((proceso, index) => (
+                    <Paper
+                      key={proceso.id}
+                      variant="outlined"
+                      sx={{ p: 2, borderRadius: 2 }}
+                    >
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                          Proceso {index + 1}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEliminarProceso(index)}
+                          sx={{ color: "error.main" }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Box>
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        <TextField
+                          label="Nombre"
+                          value={proceso.nombre}
+                          onChange={(e) => handleActualizarProceso(index, "nombre", e.target.value)}
+                          size="small"
+                          sx={{ flex: 1, minWidth: 150 }}
+                        />
+                        <TextField
+                          label="Tiempo antes (seg)"
+                          type="number"
+                          value={proceso.tiempo_antes}
+                          onChange={(e) => handleActualizarProceso(index, "tiempo_antes", Number(e.target.value))}
+                          size="small"
+                          sx={{ width: 120 }}
+                        />
+                        <TextField
+                          label="Tiempo después (seg)"
+                          type="number"
+                          value={proceso.tiempo_despues}
+                          onChange={(e) => handleActualizarProceso(index, "tiempo_despues", Number(e.target.value))}
+                          size="small"
+                          sx={{ width: 120 }}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 100 }}>
+                          <InputLabel>Frecuencia</InputLabel>
+                          <Select
+                            value={proceso.frecuencia_tipo}
+                            label="Frecuencia"
+                            onChange={(e) => handleActualizarProceso(index, "frecuencia_tipo", e.target.value)}
+                          >
+                            <MenuItem value="diaria">Diaria</MenuItem>
+                            <MenuItem value="semanal">Semanal</MenuItem>
+                            <MenuItem value="mensual">Mensual</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
+                  No hay procesos. Agrega uno nuevo.
+                </Typography>
+              )}
+            </Box>
 
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1 }}>
               <Button
