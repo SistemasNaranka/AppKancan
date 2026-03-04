@@ -28,14 +28,34 @@ import {
   SettingsSuggest as SettingsSuggestIcon,
   Check as CheckIcon,
   ExpandMore as ExpandMoreIcon,
+  Speed as SpeedIcon,
+  ShowChart as ShowChartIcon,
   Close as CloseIcon,
+  AutoMode as AutoModeIcon,
   CalendarToday as CalendarTodayIcon,
   DateRange as DateRangeIcon,
-  ShowChart as ShowChartIcon,
-  Speed as SpeedIcon,
-  List as ListIcon,
 } from "@mui/icons-material";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
 import { useNavigate } from "react-router-dom";
+
+// Registrar componentes de Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 import { formatTiempo, calcularMetricasProyecto } from "../lib/calculos";
 import {
   useProyectos,
@@ -139,6 +159,78 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos }: AhorroPanelProps
   const sinAhorro  = desglose.filter((d) => d.ahorro === 0);
   const promedio   = conAhorro.length > 0 ? Math.round(total / conAhorro.length) : 0;
   const maxAhorro  = conAhorro[0]?.ahorro ?? 0;
+
+  // Preparar datos para el gráfico de comparación Manual vs Sistema
+  const datosGraficoProcesos = proyectos.flatMap((p) =>
+    (p.procesos ?? []).map((proceso) => ({
+      proyecto: p.nombre,
+      nombre: proceso.nombre,
+      tiempoAntes: proceso.tiempo_antes,
+      tiempoDespues: proceso.tiempo_despues,
+    }))
+  ).slice(0, 10); // Limitar a 10 procesos para mejor visualización
+
+  const chartData = {
+    labels: datosGraficoProcesos.map((d) => d.nombre.length > 15 ? d.nombre.substring(0, 15) + "..." : d.nombre),
+    datasets: [
+      {
+        label: "Manual (Antes)",
+        data: datosGraficoProcesos.map((d) => d.tiempoAntes),
+        backgroundColor: "#e53935", // Rojo
+        borderColor: "#c62828",
+        borderWidth: 1,
+      },
+      {
+        label: "Sistema (Ahora)",
+        data: datosGraficoProcesos.map((d) => d.tiempoDespues),
+        backgroundColor: "#43a047", // Verde
+        borderColor: "#2e7d32",
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top" as const,
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: {
+            size: 12,
+          },
+        },
+      },
+      title: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            return `${context.dataset.label}: ${context.raw} seg`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          maxRotation: 45,
+          minRotation: 0,
+        },
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "Tiempo (segundos)",
+        },
+      },
+    },
+  };
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -286,7 +378,21 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos }: AhorroPanelProps
                   No hay datos para mostrar
                 </Typography>
               ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  {/* Gráfico de comparación Manual vs Sistema */}
+                  {datosGraficoProcesos.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, mb: 1.5, display: "block" }}>
+                        Reducción de Tiempo por Tarea (segundos)
+                      </Typography>
+                      <Paper sx={{ p: 2, borderRadius: 2, border: "1px solid #e0e0e0" }}>
+                        <Box sx={{ height: 300 }}>
+                          <Bar data={chartData} options={chartOptions} />
+                        </Box>
+                      </Paper>
+                    </Box>
+                  )}
+
                   {/* Comparativo Mensual vs Anual */}
                   <Box>
                     <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, mb: 1.5, display: "block" }}>
