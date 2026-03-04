@@ -116,6 +116,10 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos }: AhorroPanelProps
   const color     = "#34a853";
   const bgColor   = "#e6f4ea";
 
+  // Estados para los accordions
+  const [metricasExpanded, setMetricasExpanded] = useState(true);
+  const [graficosExpanded, setGraficosExpanded] = useState(false);
+
   // Desglose por proyecto
   const desglose = proyectos
     .map((p) => {
@@ -176,9 +180,6 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos }: AhorroPanelProps
               <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1 }}>
                 {label}
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.3 }}>
-                {formatTiempo(total)}
-              </Typography>
             </Box>
           </Box>
           <IconButton onClick={onClose} sx={{ color: "white", "&:hover": { bgcolor: "rgba(255,255,255,0.15)" } }}>
@@ -187,61 +188,99 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos }: AhorroPanelProps
         </Paper>
 
         {/* ── Cuerpo ── */}
-        <Paper elevation={3} sx={{ borderRadius: "0 0 12px 12px", overflow: "hidden" }}>
+        <Paper elevation={3} sx={{ 
+              borderRadius: "12px 12px 0px 0px", 
+              p: 2.5, 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: 1.5, 
+              bgcolor: "#fff" }}>
 
           {/* ── Accordion 1: Métricas de Ahorro ── */}
-          <Accordion defaultExpanded disableGutters elevation={0} sx={{ "&:before": { display: "none" } }}>
+          <Accordion 
+            expanded={metricasExpanded}
+            onChange={() => setMetricasExpanded(!metricasExpanded)} 
+            elevation={0} 
+            sx={{ 
+              borderRadius: "12px !important",
+              border: "1px solid",
+              borderColor: "divider",
+              boxShadow: "none",
+              overflow: "hidden",
+              bgcolor: "white",
+              mt: 2,
+              "&:before": { display: "none" },
+              "&.Mui-expanded": { margin: "8px 0 0 0" },
+            }}
+          >
             <AccordionSummary
-              expandIcon={<ExpandMoreIcon sx={{ color: color }} />}
-              sx={{ px: 3, py: 1.5, borderBottom: "1px solid #f0f0f0", "&:hover": { bgcolor: bgColor } }}
+              expandIcon={<ExpandMoreIcon sx={{ color: "#1a2a3a" }} />}
+              sx={{ 
+                bgcolor: "#f1f3f4", 
+                "&:hover": { 
+                  bgcolor: "#f8f9fa" 
+                } }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                <SpeedIcon sx={{ color, fontSize: 20 }} />
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <SpeedIcon sx={{ color: "#004680", fontSize: 20 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1a2b45" }}>
                   Métricas de Ahorro
                 </Typography>
               </Box>
             </AccordionSummary>
-            <AccordionDetails sx={{ p: 3 }}>
+            <AccordionDetails sx={{ p: 2 }}>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
                 {[
-                  { label: "Total",             value: formatTiempo(total),       sub: esMensual ? "este mes" : "este año" },
+                  { label: esMensual ? "Ahorro Mensual" : "Ahorro Anual", value: formatTiempo(total), sub: esMensual ? "este mes" : "este año" },
                   { label: "Promedio",           value: formatTiempo(promedio),    sub: "por proyecto" },
                   { label: "Proyectos con ahorro", value: conAhorro.length,        sub: `de ${desglose.length} totales` },
                   { label: "Mayor ahorro",       value: formatTiempo(maxAhorro),   sub: conAhorro[0]?.nombre ?? "—" },
                 ].map((item, i) => (
-                  <Box key={i} sx={{ p: 2, bgcolor: bgColor, borderRadius: 2, textAlign: "center" }}>
-                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  <Paper key={i} sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
+                    <Typography variant="body2" sx={{ color: "success.dark" }}>
                       {item.label}
                     </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.2, my: 0.5 }}>
+                    <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
                       {item.value}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: "text.disabled" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
                       {item.sub}
                     </Typography>
-                  </Box>
+                  </Paper>
                 ))}
               </Box>
             </AccordionDetails>
           </Accordion>
 
-          <Divider />
-
-          {/* ── Accordion 3: Gráficos Comparativos ── */}
-          <Accordion disableGutters elevation={0} sx={{ "&:before": { display: "none" } }}>
+          {/* ── Accordion 2: Gráficos Comparativos ── */}
+          <Accordion 
+            expanded={graficosExpanded}
+            onChange={() => setGraficosExpanded(!graficosExpanded)}
+            disableGutters 
+            elevation={0} 
+            sx={{ 
+              "&:before": { display: "none" },
+              borderRadius: "12px !important",
+              border: "1px solid #cecece",
+              overflow: "hidden",
+              bgcolor: "white",
+            }}
+          >
             <AccordionSummary
-              expandIcon={<ExpandMoreIcon sx={{ color: color }} />}
-              sx={{ px: 3, py: 1.5, "&:hover": { bgcolor: bgColor } }}
+              expandIcon={<ExpandMoreIcon sx={{ color: "#1a2a3a" }} />}
+              sx={{ 
+                 bgcolor: "#f1f3f4", 
+                 "&:hover": { bgcolor: "#f8f9fa" 
+                 } }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                <ShowChartIcon sx={{ color, fontSize: 20 }} />
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#1a2a3a" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <ShowChartIcon sx={{ color: "#004680", fontSize: 20 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1a2b45" }}>
                   Gráficos Comparativos
                 </Typography>
               </Box>
             </AccordionSummary>
-            <AccordionDetails sx={{ p: 3 }}>
+            <AccordionDetails sx={{ p: 2 }}>
               {conAhorro.length === 0 ? (
                 <Typography variant="body2" sx={{ color: "text.disabled", textAlign: "center", py: 2 }}>
                   No hay datos para mostrar
@@ -361,7 +400,20 @@ const Home: React.FC = () => {
     <Box sx={{ paddingX: 3, paddingY: 3, minHeight: "100vh", backgroundColor: "transparent", width: "100%" }}>
 
       {/* Header */}
-      <Box sx={{ mb: 3, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          mb: 3,
+          px: 3,
+          py: 2,
+          borderRadius: 3,
+          backgroundColor: "white",
+          border: "1px solid #e8eaed",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <SettingsSuggestIcon sx={{ color: "#004680", fontSize: 28 }} />
@@ -381,7 +433,7 @@ const Home: React.FC = () => {
         >
           Nuevo Proyecto
         </Button>
-      </Box>
+      </Paper>
 
       {/* Tarjetas de Resumen */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
