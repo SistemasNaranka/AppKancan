@@ -41,11 +41,12 @@ export function segundosAHours(segundos: number): number {
  */
 export function calcularMetricasProceso(proceso: Proceso): MetricasProceso {
   // Casteo seguro: Directus puede enviar strings en lugar de numbers
-  const tiempoAntes        = Number(proceso.tiempo_antes)        || 0;
-  const tiempoDespues      = Number(proceso.tiempo_despues)      || 0;
+  const tiempoAntes = Number(proceso.tiempo_antes) || 0;
+  const tiempoDespues = Number(proceso.tiempo_despues) || 0;
   const frecuenciaCantidad = Number(proceso.frecuencia_cantidad) || 1;
   // dias_semana: cuántos días a la semana se realiza el proceso (default 5 laborales)
-  const diasSemana = Number(proceso.dias_semana) > 0 ? Number(proceso.dias_semana) : 5;
+  const diasSemana =
+    Number(proceso.dias_semana) > 0 ? Number(proceso.dias_semana) : 5;
 
   const ahorroPorEjecucion = tiempoAntes - tiempoDespues;
 
@@ -53,52 +54,52 @@ export function calcularMetricasProceso(proceso: Proceso): MetricasProceso {
   if (ahorroPorEjecucion <= 0) {
     return {
       ahorro_por_ejecucion: 0,
-      ahorro_diario:        0,
-      ahorro_semanal:       0,
-      ahorro_mensual:       0,
-      ahorro_anual:         0,
+      ahorro_diario: 0,
+      ahorro_semanal: 0,
+      ahorro_mensual: 0,
+      ahorro_anual: 0,
     };
   }
 
-  let vecesPorDia:   number;
+  let vecesPorDia: number;
   let vecesPorSemana: number;
-  let vecesPorMes:   number;
-  let vecesPorAnio:  number;
+  let vecesPorMes: number;
+  let vecesPorAnio: number;
 
   switch (proceso.frecuencia_tipo) {
     case "diaria":
       // frecuencia_cantidad = veces POR DÍA que se ejecuta el proceso
       // diasSemana = días laborales a la semana que aplica (ej: 5)
-      vecesPorDia    = frecuenciaCantidad;
+      vecesPorDia = frecuenciaCantidad;
       vecesPorSemana = frecuenciaCantidad * diasSemana;
-      vecesPorMes    = frecuenciaCantidad * diasSemana * 4.33;  // semanas promedio al mes
-      vecesPorAnio   = frecuenciaCantidad * diasSemana * 52;    // semanas al año
+      vecesPorMes = frecuenciaCantidad * diasSemana * 4.33; // semanas promedio al mes
+      vecesPorAnio = frecuenciaCantidad * diasSemana * 52; // semanas al año
       break;
 
     case "semanal":
       // frecuencia_cantidad = veces POR SEMANA
-      vecesPorDia    = frecuenciaCantidad / diasSemana;
+      vecesPorDia = frecuenciaCantidad / diasSemana;
       vecesPorSemana = frecuenciaCantidad;
-      vecesPorMes    = frecuenciaCantidad * 4.33;
-      vecesPorAnio   = frecuenciaCantidad * 52;
+      vecesPorMes = frecuenciaCantidad * 4.33;
+      vecesPorAnio = frecuenciaCantidad * 52;
       break;
 
     case "mensual":
     default:
       // frecuencia_cantidad = veces POR MES
-      vecesPorDia    = frecuenciaCantidad / (diasSemana * 4.33);
+      vecesPorDia = frecuenciaCantidad / (diasSemana * 4.33);
       vecesPorSemana = frecuenciaCantidad / 4.33;
-      vecesPorMes    = frecuenciaCantidad;
-      vecesPorAnio   = frecuenciaCantidad * 12;
+      vecesPorMes = frecuenciaCantidad;
+      vecesPorAnio = frecuenciaCantidad * 12;
       break;
   }
 
   return {
     ahorro_por_ejecucion: ahorroPorEjecucion,
-    ahorro_diario:        Math.round(ahorroPorEjecucion * vecesPorDia),
-    ahorro_semanal:       Math.round(ahorroPorEjecucion * vecesPorSemana),
-    ahorro_mensual:       Math.round(ahorroPorEjecucion * vecesPorMes),
-    ahorro_anual:         Math.round(ahorroPorEjecucion * vecesPorAnio),
+    ahorro_diario: Math.round(ahorroPorEjecucion * vecesPorDia),
+    ahorro_semanal: Math.round(ahorroPorEjecucion * vecesPorSemana),
+    ahorro_mensual: Math.round(ahorroPorEjecucion * vecesPorMes),
+    ahorro_anual: Math.round(ahorroPorEjecucion * vecesPorAnio),
   };
 }
 

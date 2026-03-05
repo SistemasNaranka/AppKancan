@@ -5,52 +5,84 @@ import type { Proyecto, Proceso, Beneficio } from "../../types";
 
 export async function getProyectos(): Promise<Proyecto[]> {
   try {
+    // Primero obtenemos todos los proyectos
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proyectos", {
           fields: [
-            "id", "nombre", "area_beneficiada", "descripcion", "encargados",
-            "fecha_inicio", "fecha_estimada", "fecha_entrega", "estado", "tipo_proyecto",
-            "procesos.id", "procesos.nombre", "procesos.tiempo_antes",
-            "procesos.tiempo_despues", "procesos.frecuencia_tipo",
-            "procesos.frecuencia_cantidad", "procesos.dias_semana", "procesos.orden",
+            "id",
+            "nombre",
+            "area_beneficiada",
+            "descripcion",
+            "encargados",
+            "fecha_inicio",
+            "fecha_estimada",
+            "fecha_entrega",
+            "estado",
+            "tipo_proyecto",
           ],
           sort: ["-fecha_inicio"],
         }),
       ),
     );
 
-    return items.map((item: any) => ({
-      id: item.id,
-      nombre: item.nombre,
-      area_beneficiada: item.area_beneficiada,
-      descripcion: item.descripcion || "",
-      encargados: item.encargados || [],
-      fecha_inicio: item.fecha_inicio,
-      fecha_estimada: item.fecha_estimada,
-      fecha_entrega: item.fecha_entrega,
-      estado: item.estado,
-      tipo_proyecto: item.tipo_proyecto,
-      procesos: (item.procesos || []).map((p: any) => ({
-        id: p.id,
-        proyecto_id: item.id,
-        nombre: p.nombre,
-        tiempo_antes: Number(p.tiempo_antes) || 0,
-        tiempo_despues: Number(p.tiempo_despues) || 0,
-        frecuencia_tipo: p.frecuencia_tipo,
-        frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
-        dias_semana: Number(p.dias_semana) || 5,
-        orden: p.orden,
-      })),
-    }));
+    // Ahora obtenemos todos los procesos
+    const todosProcesos = await withAutoRefresh(() =>
+      directus.request(
+        readItems("gp_proceso", {
+          fields: [
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
+          ],
+          sort: ["orden"],
+        }),
+      ),
+    );
+
+    // Mapeamos los proyectos y relacionamos los procesos
+    return items.map((item: any) => {
+      const procesosDelProyecto = (todosProcesos as any[])
+        .filter((p: any) => p.proyecto_id === item.id)
+        .map((p: any) => ({
+          id: p.id,
+          proyecto_id: p.proyecto_id,
+          nombre: p.nombre,
+          tiempo_antes: Number(p.tiempo_antes) || 0,
+          tiempo_despues: Number(p.tiempo_despues) || 0,
+          frecuencia_tipo: p.frecuencia_tipo,
+          frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
+          dias_semana: Number(p.dias_semana) || 5,
+          orden: p.orden,
+        }));
+
+      return {
+        id: item.id,
+        nombre: item.nombre,
+        area_beneficiada: item.area_beneficiada,
+        descripcion: item.descripcion || "",
+        encargados: item.encargados || [],
+        fecha_inicio: item.fecha_inicio,
+        fecha_estimada: item.fecha_estimada,
+        fecha_entrega: item.fecha_entrega,
+        estado: item.estado,
+        tipo_proyecto: item.tipo_proyecto,
+        procesos: procesosDelProyecto,
+      };
+    });
   } catch (error) {
-    console.error("❌ Error al cargar proyectos:", error);
+    console.error("Error al cargar proyectos:", error);
     return [];
   }
 }
 
 export async function getProyectoById(id: string): Promise<Proyecto | null> {
-
   try {
     const proyecto = await withAutoRefresh(() =>
       directus.request(readItem("gp_proyectos", id)),
@@ -62,8 +94,15 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
       directus.request(
         readItems("gp_proceso", {
           fields: [
-            "id", "proyecto_id", "nombre", "tiempo_antes", "tiempo_despues",
-            "frecuencia_tipo", "frecuencia_cantidad", "dias_semana", "orden",
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
           ],
           filter: { proyecto_id: { _eq: id } },
           sort: ["orden"],
@@ -129,19 +168,28 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
       })),
     };
   } catch (error) {
-    console.error("❌ Error al cargar proyecto:", error);
+    console.error("Error al cargar proyecto:", error);
     return null;
   }
 }
 
-export async function getProcesosByProyecto(proyectoId: string): Promise<Proceso[]> {
+export async function getProcesosByProyecto(
+  proyectoId: string,
+): Promise<Proceso[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proceso", {
           fields: [
-            "id", "proyecto_id", "nombre", "tiempo_antes", "tiempo_despues",
-            "frecuencia_tipo", "frecuencia_cantidad", "dias_semana", "orden",
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
           ],
           filter: { proyecto_id: { _eq: proyectoId } },
           sort: ["orden"],
@@ -161,12 +209,14 @@ export async function getProcesosByProyecto(proyectoId: string): Promise<Proceso
       orden: item.orden,
     }));
   } catch (error) {
-    console.error("❌ Error al cargar procesos:", error);
+    console.error("Error al cargar procesos:", error);
     return [];
   }
 }
 
-export async function getBeneficiosByProyecto(proyectoId: string): Promise<Beneficio[]> {
+export async function getBeneficiosByProyecto(
+  proyectoId: string,
+): Promise<Beneficio[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -183,7 +233,7 @@ export async function getBeneficiosByProyecto(proyectoId: string): Promise<Benef
       descripcion: item.descripcion,
     }));
   } catch (error) {
-    console.error("❌ Error al cargar beneficios:", error);
+    console.error("Error al cargar beneficios:", error);
     return [];
   }
 }

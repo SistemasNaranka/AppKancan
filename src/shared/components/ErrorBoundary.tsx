@@ -233,8 +233,8 @@ function ErrorFallback({
           color="text.secondary"
           sx={{ mb: 3, maxWidth: 450, mx: "auto" }}
         >
-          Ha ocurrido un error inesperado. Puedes intentar nuevamente o recargar
-          la página.
+          Ha ocurrido un error inesperado. Revisa la consola para obtener más
+          detalles.
         </Typography>
 
         {/* Accordion con detalles del error (solo en desarrollo) */}
