@@ -40,6 +40,7 @@ type PanelPendientesProps = {
   ) => Promise<void>;
   onRetry?: () => void;
   tienePoliticaTrasladosJefezona?: boolean;
+  tienePoliticaTrasladosTiendas?: boolean;
 };
 
 // Componente interno que usa el contexto del tour
@@ -59,6 +60,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
   onEliminarTrasladosAprobados,
   onRetry,
   tienePoliticaTrasladosJefezona = false,
+  tienePoliticaTrasladosTiendas = false,
 }) => {
   const [dialogoAprobacionAbierto, setDialogoAprobacionAbierto] =
     useState(false);
@@ -146,110 +148,113 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
         />
 
         {/* ===== MODAL DE CARGA/PROCESAMIENTO ===== */}
-        <Dialog
-          open={modalCargando}
-          disableEscapeKeyDown
-          slotProps={{
-            paper: {
-              sx: {
-                borderRadius: 4,
-                p: 0,
-                background: "rgba(255,255,255,0.98)",
-                boxShadow: "0 10px 40px 0 rgba(0,0,0,0.18)",
-                minWidth: 340,
+        {!tienePoliticaTrasladosTiendas && (
+          <Dialog
+            open={modalCargando}
+            disableEscapeKeyDown
+            slotProps={{
+              paper: {
+                sx: {
+                  borderRadius: 4,
+                  p: 0,
+                  background: "rgba(255,255,255,0.98)",
+                  boxShadow: "0 10px 40px 0 rgba(0,0,0,0.18)",
+                  minWidth: 340,
+                },
               },
-            },
-            backdrop: {
-              sx: {
-                background: "rgba(33, 150, 243, 0.18)",
-                backdropFilter: "blur(2px)",
+              backdrop: {
+                sx: {
+                  background: "rgba(33, 150, 243, 0.18)",
+                  backdropFilter: "blur(2px)",
+                },
               },
-            },
-          }}
-        >
-          <DialogContent
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: 200,
-              py: 4,
-              px: 3,
-              gap: 2,
             }}
           >
-            {errorAprobacion ? (
-              <>
-                <ErrorOutlineIcon
-                  sx={{
-                    fontSize: 54,
-                    color: "error.main",
-                    mb: 2,
-                  }}
-                />
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: "error.main", mb: 1 }}
-                >
-                  Error al aprobar
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textAlign: "center", mb: 1 }}
-                >
-                  {errorAprobacion}
-                </Typography>
-              </>
-            ) : !aprobado ? (
-              <>
-                <CircularProgress
-                  size={54}
-                  sx={{
-                    color: "primary.main",
-                    mb: 2,
-                  }}
-                />
-                <Typography
-                  variant="h6"
-                  sx={{
-                    mt: 1,
-                    fontWeight: 700,
-                    color: "primary.main",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Procesando traslados...
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.5, textAlign: "center" }}
-                >
-                  Por favor espera unos segundos mientras procesamos tu solicitud.
-                </Typography>
-              </>
-            ) : (
-              <>
-                <CheckCircleIcon
-                  sx={{
-                    fontSize: 60,
-                    color: "success.main",
-                    mb: 1,
-                    animation: "pop 0.5s",
-                  }}
-                />
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: "success.main" }}
-                >
-                  ¡Traslados aprobados!
-                </Typography>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
+            <DialogContent
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: 200,
+                py: 4,
+                px: 3,
+                gap: 2,
+              }}
+            >
+              {errorAprobacion ? (
+                <>
+                  <ErrorOutlineIcon
+                    sx={{
+                      fontSize: 54,
+                      color: "error.main",
+                      mb: 2,
+                    }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "error.main", mb: 1 }}
+                  >
+                    Error al aprobar
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ textAlign: "center", mb: 1 }}
+                  >
+                    {errorAprobacion}
+                  </Typography>
+                </>
+              ) : !aprobado ? (
+                <>
+                  <CircularProgress
+                    size={54}
+                    sx={{
+                      color: "primary.main",
+                      mb: 2,
+                    }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      mt: 1,
+                      fontWeight: 700,
+                      color: "primary.main",
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    Procesando traslados...
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5, textAlign: "center" }}
+                  >
+                    Por favor espera unos segundos mientras procesamos tu
+                    solicitud.
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <CheckCircleIcon
+                    sx={{
+                      fontSize: 60,
+                      color: "success.main",
+                      mb: 1,
+                      animation: "pop 0.5s",
+                    }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "success.main" }}
+                  >
+                    ¡Traslados aprobados!
+                  </Typography>
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* ===== CONTENIDO PRINCIPAL ===== */}
         {!loading && (
@@ -296,6 +301,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                   todosSeleccionados={todosSeleccionados}
                   algunSeleccionado={algunSeleccionado}
                   onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+                  tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
                 />
               </Box>
 
@@ -318,7 +324,10 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                   onAbrirDialogoAprobacion={() =>
                     setDialogoAprobacionAbierto(true)
                   }
-                  tienePoliticaTrasladosJefezona={tienePoliticaTrasladosJefezona}
+                  tienePoliticaTrasladosJefezona={
+                    tienePoliticaTrasladosJefezona
+                  }
+                  tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
                 />
               </Box>
             </Box>
@@ -328,7 +337,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
         )}
 
         {/* ===== LISTA DE TRASLADOS ===== */}
-        <Box 
+        <Box
           sx={{ flex: 1, overflowY: "auto", pr: 1 }}
           data-tour="lista-traslados"
         >
@@ -340,16 +349,19 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
             isError={isError}
             totalPendientes={totalPendientes}
             onRetry={onRetry}
+            tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
           />
         </Box>
 
         {/* ===== MODAL DE CONFIRMACIÓN ===== */}
-        <ConfirmacionAprobacion
-          open={dialogoAprobacionAbierto}
-          onClose={() => setDialogoAprobacionAbierto(false)}
-          onConfirm={iniciarAprobacion}
-          cantidadTraslados={idsSeleccionados.length}
-        />
+        {!tienePoliticaTrasladosTiendas && (
+          <ConfirmacionAprobacion
+            open={dialogoAprobacionAbierto}
+            onClose={() => setDialogoAprobacionAbierto(false)}
+            onConfirm={iniciarAprobacion}
+            cantidadTraslados={idsSeleccionados.length}
+          />
+        )}
       </Paper>
     </TrasladosTour>
   );

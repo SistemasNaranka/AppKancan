@@ -84,7 +84,6 @@ export async function aprobarTraslados(
 
   console.log("informacion", payload);
 
-  console.log("📤 Enviando traslados para aprobación:", payload);
 
   // ✅ Hacer la petición al endpoint
   try {

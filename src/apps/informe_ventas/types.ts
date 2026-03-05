@@ -261,6 +261,16 @@ export interface TablaVentasFila {
   unidades_tela_liviana: number;
   unidades_calzado: number;
   unidades_complemento: number;
+  // Nuevas columnas: Presupuesto y Comisión por línea de venta (siempre visibles)
+  // Colección
+  presupuesto_coleccion: number;
+  comision_coleccion: number;
+  // Básicos
+  presupuesto_basicos: number;
+  comision_basicos: number;
+  // Promoción
+  presupuesto_promocion: number;
+  comision_promocion: number;
 }
 
 /**
@@ -273,4 +283,19 @@ export interface ColumnaTabla {
   sortable: boolean;
   width?: string;
   align?: "left" | "center" | "right";
+  /** Indica si la columna es obligatoria (siempre visible) */
+  required?: boolean;
+}
+
+/**
+ * Definición de columnas disponibles para la tabla
+ */
+export interface ColumnaDef {
+  id: string;
+  label: string;
+  visible: boolean;
+  sortable: boolean;
+  required: boolean; // Las columnas obligatorias no pueden ocultarse
+  width?: string;
+  align: "left" | "center" | "right";
 }

@@ -8,16 +8,35 @@ import {
   Alert,
   Grid,
   CircularProgress,
+  styled,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
 } from "@mui/icons-material";
-import { createProyecto, createProcesos } from "../api/directus/create";
-import type { CreateProyectoInput, CreateProcesoInput } from "../types";
+import {
+  createProyecto,
+  createProcesos,
+  createBeneficios,
+} from "../api/directus/create";
+import type {
+  CreateProyectoInput,
+  CreateProcesoInput,
+  CreateBeneficioInput,
+} from "../types";
 import { ProjectForm } from "../components/ProjectForm";
 import { ProcessList } from "../components/ProcessList";
 import { BenefitList } from "../components/BenefitList";
+
+const VolverButton = styled(Button)({
+  backgroundColor: "#004680",
+  color: "white",
+  borderRadius: 8,
+  padding: "8px 16px",
+  fontWeight: 500,
+  textTransform: "none",
+  "&:hover": { backgroundColor: "#005AA3" },
+});
 
 interface ProcesoForm {
   id: string;
@@ -46,9 +65,6 @@ interface ProjectFormData {
   tipoProyecto: string;
 }
 
-/**
- * Página para crear un nuevo proyecto - Versión 90% ancho
- */
 export default function NuevoProyecto() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -73,7 +89,6 @@ export default function NuevoProyecto() {
   const [beneficios, setBeneficios] = useState<BeneficioForm[]>([]);
   const [encargadosList, setEncargadosList] = useState<string[]>([]);
 
-  // Handlers para encargados (chips)
   const handleAddEncargado = (nombre: string) => {
     setEncargadosList([...encargadosList, nombre]);
   };
@@ -86,19 +101,26 @@ export default function NuevoProyecto() {
     setProjectData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // ✅ FIX: Al cambiar valores globales, sincronizarlos en todos los procesos
   const handleDiasPorSemanaChange = (value: string) => {
     setDiasPorSemana(value);
+    setProcesos((prev) =>
+      prev.map((p) => ({ ...p, dias_semana: Number(value) || 5 })),
+    );
   };
 
   const handleFrecuenciaTipoChange = (value: string) => {
     setFrecuenciaTipo(value);
+    setProcesos((prev) => prev.map((p) => ({ ...p, frecuencia_tipo: value })));
   };
 
   const handleFrecuenciaCantidadChange = (value: string) => {
     setFrecuenciaCantidad(value);
+    setProcesos((prev) =>
+      prev.map((p) => ({ ...p, frecuencia_cantidad: Number(value) })),
+    );
   };
 
-  // Handlers para beneficios
   const agregarBeneficio = () => {
     setBeneficios([
       ...beneficios,
@@ -116,6 +138,7 @@ export default function NuevoProyecto() {
     );
   };
 
+  // ✅ FIX: Inicializar proceso nuevo con los valores globales actuales
   const agregarProceso = () => {
     setProcesos([
       ...procesos,
@@ -124,9 +147,9 @@ export default function NuevoProyecto() {
         nombre: "",
         tiempo_antes: 0,
         tiempo_despues: 0,
-        frecuencia_tipo: "diaria",
-        frecuencia_cantidad: 1,
-        dias_semana: 5,
+        frecuencia_tipo: frecuenciaTipo,
+        frecuencia_cantidad: Number(frecuenciaCantidad),
+        dias_semana: Number(diasPorSemana) || 5,
       },
     ]);
   };
@@ -175,18 +198,37 @@ export default function NuevoProyecto() {
       const proyectoId = await createProyecto(proyectoData);
       if (!proyectoId) throw new Error("Error al crear el proyecto");
 
+      // 🔍 DEBUG: Verificar que el ID del proyecto es correcto
+      console.log(
+        "✅ Proyecto creado con ID:",
+        proyectoId,
+        "Tipo:",
+        typeof proyectoId,
+      );
+
       if (procesos.length > 0) {
+        // ✅ FIX: Usar valores del proceso con fallback a los globales
         const procesosData: CreateProcesoInput[] = procesos.map((p, index) => ({
           proyecto_id: proyectoId,
           nombre: p.nombre,
           tiempo_antes: Number(p.tiempo_antes),
           tiempo_despues: Number(p.tiempo_despues),
-          frecuencia_tipo: p.frecuencia_tipo as any,
-          frecuencia_cantidad: Number(p.frecuencia_cantidad),
-          dias_semana: Number(p.dias_semana) || 5,
+          frecuencia_tipo: (p.frecuencia_tipo || frecuenciaTipo) as any,
+          frecuencia_cantidad:
+            Number(p.frecuencia_cantidad) || Number(frecuenciaCantidad),
+          dias_semana: Number(p.dias_semana) || Number(diasPorSemana) || 5,
           orden: index + 1,
         }));
-        await createProcesos(procesosData);
+
+      }
+
+      // ✅ NUEVO: Crear beneficios si es tipo "nuevo"
+      if (beneficios.length > 0 && projectData.tipoProyecto === "nuevo") {
+        const beneficiosData: CreateBeneficioInput[] = beneficios.map((b) => ({
+          proyecto_id: proyectoId,
+          descripcion: b.descripcion,
+        }));
+        await createBeneficios(beneficiosData);
       }
 
       navigate(`/gestion_proyectos/${proyectoId}`);
@@ -200,16 +242,23 @@ export default function NuevoProyecto() {
 
   return (
     <Box sx={{ minHeight: "100vh", p: 3 }}>
-      {/* Header - 90% ancho */}
       <Box sx={{ maxWidth: "90%", mx: "auto", mb: 2 }}>
-        <Button
+        <VolverButton
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate("/gestion_proyectos")}
-          sx={{ mb: 1, color: "primary.main" }}
+          sx={{ mb: 1 }}
         >
           Volver a proyectos
-        </Button>
-        <Paper sx={{ p: 2, borderLeft: 4, borderColor: "primary.main" }}>
+        </VolverButton>
+        <Paper
+          sx={{
+            p: 2,
+            borderLeft: 4,
+            borderColor: "#fff",
+            boxShadow: "none",
+            borderRadius: 3,
+          }}
+        >
           <Typography variant="h5" fontWeight="bold">
             Crear Nuevo Proyecto
           </Typography>
@@ -265,17 +314,30 @@ export default function NuevoProyecto() {
           </Grid>
         </Grid>
 
-        {/* Botones */}
         <Box
           sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2 }}
         >
           <Button
+            sx={{
+              backgroundColor: "#fff",
+              boxShadow: "none",
+              border: "none",
+              "&:hover": { bgcolor: "#ebe4e4", border: "none" },
+            }}
             variant="outlined"
             onClick={() => navigate("/gestion_proyectos")}
           >
             Cancelar
           </Button>
           <Button
+            sx={{
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: "#005aa3",
+                boxShadow: "none",
+                borderColor: "#ff0000",
+              },
+            }}
             type="submit"
             variant="contained"
             disabled={loading}

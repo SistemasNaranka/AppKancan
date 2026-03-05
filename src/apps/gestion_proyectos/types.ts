@@ -10,6 +10,7 @@ export type FrecuenciaTipo = "diaria" | "semanal" | "mensual";
 // Encargado (estructura como en Directus)
 export interface Encargado {
   nombre: string;
+  id?: number;
 }
 
 // Proceso (paso) del proyecto

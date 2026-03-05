@@ -22,6 +22,7 @@ type Props = {
   isError?: boolean;
   totalPendientes?: number;
   onRetry?: () => void;
+  tienePoliticaTrasladosTiendas?: boolean;
 };
 
 /**
@@ -39,6 +40,7 @@ export const ListaTraslados: React.FC<Props> = ({
   isError = false,
   totalPendientes = 0,
   onRetry,
+  tienePoliticaTrasladosTiendas = false,
 }) => {
   // Estado 1: CARGANDO - Mostrar skeletons
   if (loading) {
@@ -197,13 +199,17 @@ export const ListaTraslados: React.FC<Props> = ({
         {filtrados.map((t) => {
           const isSelected =
             t.traslado !== undefined && idsSeleccionados.includes(t.traslado);
+          // Si tiene política TrasladosTiendas, forzar isSelected a false
+          const canSelect = !tienePoliticaTrasladosTiendas;
           return (
             <TrasladoListItem
               key={t.traslado ?? `traslado-${Math.random()}`}
               traslado={t}
-              isSelected={isSelected}
+              isSelected={canSelect && isSelected}
               onTrasladoClick={() =>
-                t.traslado !== undefined && onToggleSeleccion(t.traslado)
+                canSelect && t.traslado !== undefined
+                  ? onToggleSeleccion(t.traslado)
+                  : undefined
               }
               compact
             />

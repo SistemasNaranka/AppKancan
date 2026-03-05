@@ -10,11 +10,20 @@ import {
   Box,
   Chip,
   IconButton,
+  Autocomplete,
 } from "@mui/material";
 import {
   Description as DescriptionIcon,
   Business as BusinessIcon,
   Add as AddIcon,
+  AccountBalance as ContabilidadIcon,
+  People as RRHHIcon,
+  LocalShipping as LogisticaIcon,
+  DesignServices as DisenoIcon,
+  Computer as SistemasIcon,
+  Campaign as MercadeoIcon,
+  MoreHoriz as OtraIcon,
+  Store as StoreIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -22,6 +31,28 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { opcionesEstadoProyecto } from "../lib/calculos";
+
+// Opciones predefinidas para área beneficiada
+const AREAS_PREDEFINIDAS = [
+  "Contabilidad",
+  "Recursos Humanos",
+  "Logística",
+  "Diseño",
+  "Sistemas",
+  "Mercadeo",
+  "Comercial",
+];
+
+// Mapeo de iconos por área
+const ICONOS_AREA: Record<string, React.ElementType> = {
+  "Contabilidad": ContabilidadIcon,
+  "Recursos Humanos": RRHHIcon,
+  "Logística": LogisticaIcon,
+  "Diseño": DisenoIcon,
+  "Sistemas": SistemasIcon,
+  "Mercadeo": MercadeoIcon,
+  "Comercial": StoreIcon
+};
 
 interface ProjectFormData {
   nombre: string;
@@ -56,6 +87,11 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const [nuevoEncargado, setNuevoEncargado] = useState("");
 
+  const handleAreaChange = (_event: React.SyntheticEvent, value: string | null) => {
+    const newValue = value || "";
+    onChange("areaBeneficiada", newValue);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && nuevoEncargado.trim()) {
       e.preventDefault();
@@ -82,8 +118,8 @@ export function ProjectForm({
         }}
       >
         {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-          <DescriptionIcon sx={{ color: "primary.main", fontSize: 24 }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3, boxShadow: "none", }}>
+          <DescriptionIcon sx={{ color: "#004680", fontSize: 24 }} />
           <Typography variant="h6" fontWeight="600">
             Datos del Proyecto
           </Typography>
@@ -101,21 +137,47 @@ export function ProjectForm({
             placeholder="Ej: Comparación de Archivos"
           />
 
-          {/* Área Beneficiada */}
-          <TextField
-            label="Área Beneficiada"
-            value={data.areaBeneficiada}
-            onChange={(e) => onChange("areaBeneficiada", e.target.value)}
-            required
-            fullWidth
-            size="medium"
-            placeholder="Contabilidad, Ventas..."
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <BusinessIcon sx={{ mr: 1, color: "text.secondary" }} />
-                ),
-              },
+          {/* Área Beneficiada con Autocomplete */}
+          <Autocomplete
+            freeSolo
+            options={AREAS_PREDEFINIDAS}
+            value={data.areaBeneficiada || ""}
+            onChange={handleAreaChange}
+            onInputChange={(_event, value, reason) => {
+              if (reason === "input") {
+                onChange("areaBeneficiada", value);
+              }
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Área Beneficiada"
+                required
+                fullWidth
+                size="medium"
+                placeholder="Selecciona o escribe un área"
+                slotProps={{
+                  input: {
+                    ...params.InputProps,
+                    startAdornment: (
+                      <>
+                        <BusinessIcon sx={{ mr: 1, color: "text.secondary" }} />
+                        {params.InputProps.startAdornment}
+                      </>
+                    ),
+                  },
+                }}
+              />
+            )}
+            renderOption={(props, option) => {
+              const { key, ...restProps } = props;
+              const Icono = ICONOS_AREA[option] || BusinessIcon;
+              return (
+                <Box component="li" key={key} {...restProps} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Icono sx={{ fontSize: 18, color: "text.secondary" }} />
+                  {option}
+                </Box>
+              );
             }}
           />
 
@@ -188,7 +250,7 @@ export function ProjectForm({
             />
 
             <DatePicker
-              label="Fecha de Entrega Real"
+              label="Fecha Entrega "
               value={data.fechaEntrega ? dayjs(data.fechaEntrega) : null}
               onChange={(newValue) =>
                 onChange(

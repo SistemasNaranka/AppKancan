@@ -3,11 +3,9 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, readItem } from "@directus/sdk";
 import type { Proyecto, Proceso, Beneficio } from "../../types";
 
-/**
- * Obtiene todos los proyectos
- */
 export async function getProyectos(): Promise<Proyecto[]> {
   try {
+    // Primero obtenemos todos los proyectos
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proyectos", {
@@ -28,27 +26,62 @@ export async function getProyectos(): Promise<Proyecto[]> {
       ),
     );
 
-    return items.map((item: any) => ({
-      id: item.id,
-      nombre: item.nombre,
-      area_beneficiada: item.area_beneficiada,
-      descripcion: item.descripcion || "",
-      encargados: item.encargados || [],
-      fecha_inicio: item.fecha_inicio,
-      fecha_estimada: item.fecha_estimada,
-      fecha_entrega: item.fecha_entrega,
-      estado: item.estado,
-      tipo_proyecto: item.tipo_proyecto,
-    }));
+    // Ahora obtenemos todos los procesos
+    const todosProcesos = await withAutoRefresh(() =>
+      directus.request(
+        readItems("gp_proceso", {
+          fields: [
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
+          ],
+          sort: ["orden"],
+        }),
+      ),
+    );
+
+    // Mapeamos los proyectos y relacionamos los procesos
+    return items.map((item: any) => {
+      const procesosDelProyecto = (todosProcesos as any[])
+        .filter((p: any) => p.proyecto_id === item.id)
+        .map((p: any) => ({
+          id: p.id,
+          proyecto_id: p.proyecto_id,
+          nombre: p.nombre,
+          tiempo_antes: Number(p.tiempo_antes) || 0,
+          tiempo_despues: Number(p.tiempo_despues) || 0,
+          frecuencia_tipo: p.frecuencia_tipo,
+          frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
+          dias_semana: Number(p.dias_semana) || 5,
+          orden: p.orden,
+        }));
+
+      return {
+        id: item.id,
+        nombre: item.nombre,
+        area_beneficiada: item.area_beneficiada,
+        descripcion: item.descripcion || "",
+        encargados: item.encargados || [],
+        fecha_inicio: item.fecha_inicio,
+        fecha_estimada: item.fecha_estimada,
+        fecha_entrega: item.fecha_entrega,
+        estado: item.estado,
+        tipo_proyecto: item.tipo_proyecto,
+        procesos: procesosDelProyecto,
+      };
+    });
   } catch (error) {
-    console.error("❌ Error al cargar proyectos:", error);
+    console.error("Error al cargar proyectos:", error);
     return [];
   }
 }
 
-/**
- * Obtiene un proyecto por ID con sus procesos y beneficios
- */
 export async function getProyectoById(id: string): Promise<Proyecto | null> {
   try {
     const proyecto = await withAutoRefresh(() =>
@@ -57,25 +90,40 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
 
     if (!proyecto) return null;
 
-    // Cargar procesos relacionados
     const procesos = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proceso", {
-          filter: {
-            proyecto_id: { _eq: id },
-          },
+          fields: [
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
+          ],
+          filter: { proyecto_id: { _eq: id } },
           sort: ["orden"],
         }),
       ),
     );
 
-    // Cargar beneficios relacionados
+    const todosProcesos = await withAutoRefresh(() =>
+      directus.request(
+        readItems("gp_proceso", {
+          fields: ["id", "proyecto_id"],
+          limit: 5,
+        }),
+      ),
+    );
+
     const beneficios = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_beneficios", {
-          filter: {
-            proyecto_id: { _eq: id },
-          },
+          fields: ["id", "proyecto_id", "descripcion"],
+          filter: { proyecto_id: { _eq: id } },
         }),
       ),
     );
@@ -97,11 +145,11 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
         id: p.id,
         proyecto_id: p.proyecto_id,
         nombre: p.nombre,
-        tiempo_antes: p.tiempo_antes,
-        tiempo_despues: p.tiempo_despues,
+        tiempo_antes: Number(p.tiempo_antes) || 0,
+        tiempo_despues: Number(p.tiempo_despues) || 0,
         frecuencia_tipo: p.frecuencia_tipo,
-        frecuencia_cantidad: p.frecuencia_cantidad,
-        dias_semana: p.dias_semana,
+        frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
+        dias_semana: Number(p.dias_semana) || 5,
         orden: p.orden,
       })),
       beneficios: beneficios.map((b: any) => ({
@@ -109,11 +157,10 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
         proyecto_id: b.proyecto_id,
         descripcion: b.descripcion,
       })),
-      // Alias para compatibilidad con PostLanzamiento
       mejoras: beneficios.map((b: any) => ({
         id: b.id,
         proyecto_id: b.proyecto_id,
-        titulo: b.descripcion.substring(0, 50), // Usar primeros 50 chars como título
+        titulo: b.descripcion.substring(0, 50),
         descripcion: b.descripcion,
         tipo: "mejora_rendimiento",
         prioridad: "media",
@@ -121,14 +168,11 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
       })),
     };
   } catch (error) {
-    console.error("❌ Error al cargar proyecto:", error);
+    console.error("Error al cargar proyecto:", error);
     return null;
   }
 }
 
-/**
- * Obtiene los procesos de un proyecto
- */
 export async function getProcesosByProyecto(
   proyectoId: string,
 ): Promise<Proceso[]> {
@@ -136,9 +180,18 @@ export async function getProcesosByProyecto(
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proceso", {
-          filter: {
-            proyecto_id: { _eq: proyectoId },
-          },
+          fields: [
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
+          ],
+          filter: { proyecto_id: { _eq: proyectoId } },
           sort: ["orden"],
         }),
       ),
@@ -148,22 +201,19 @@ export async function getProcesosByProyecto(
       id: item.id,
       proyecto_id: item.proyecto_id,
       nombre: item.nombre,
-      tiempo_antes: item.tiempo_antes,
-      tiempo_despues: item.tiempo_despues,
+      tiempo_antes: Number(item.tiempo_antes) || 0,
+      tiempo_despues: Number(item.tiempo_despues) || 0,
       frecuencia_tipo: item.frecuencia_tipo,
-      frecuencia_cantidad: item.frecuencia_cantidad,
-      dias_semana: item.dias_semana,
+      frecuencia_cantidad: Number(item.frecuencia_cantidad) || 1,
+      dias_semana: Number(item.dias_semana) || 5,
       orden: item.orden,
     }));
   } catch (error) {
-    console.error("❌ Error al cargar procesos:", error);
+    console.error("Error al cargar procesos:", error);
     return [];
   }
 }
 
-/**
- * Obtiene los beneficios de un proyecto
- */
 export async function getBeneficiosByProyecto(
   proyectoId: string,
 ): Promise<Beneficio[]> {
@@ -171,9 +221,8 @@ export async function getBeneficiosByProyecto(
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_beneficios", {
-          filter: {
-            proyecto_id: { _eq: proyectoId },
-          },
+          fields: ["id", "proyecto_id", "descripcion"],
+          filter: { proyecto_id: { _eq: proyectoId } },
         }),
       ),
     );
@@ -184,7 +233,7 @@ export async function getBeneficiosByProyecto(
       descripcion: item.descripcion,
     }));
   } catch (error) {
-    console.error("❌ Error al cargar beneficios:", error);
+    console.error("Error al cargar beneficios:", error);
     return [];
   }
 }

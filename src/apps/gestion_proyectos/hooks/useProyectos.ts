@@ -97,12 +97,12 @@ export function useProyectoById(id: string): UseProyectoByIdReturn {
  */
 export function getEstadoLabel(estado: string): string {
   switch (estado) {
-    case "planning":
-      return "Planning";
-    case "en_progreso":
-      return "En Progreso";
-    case "completado":
-      return "Completado";
+    case "en_proceso":
+      return "En Proceso";
+    case "entregado":
+      return "Entregado";
+    case "en_seguimiento":
+      return "En Seguimiento";
     default:
       return estado;
   }
@@ -110,16 +110,17 @@ export function getEstadoLabel(estado: string): string {
 
 /**
  * Obtiene el color del badge según el estado
+ * Retorna un objeto con backgroundColor y color para el Chip
  */
-export function getEstadoColor(estado: string): string {
+export function getEstadoColor(estado: string): { bg: string; text: string } {
   switch (estado) {
-    case "planning":
-      return "bg-yellow-100 text-yellow-800";
-    case "en_progreso":
-      return "bg-blue-100 text-blue-800";
-    case "completado":
-      return "bg-green-100 text-green-800";
+    case "en_proceso":
+      return { bg: "#dbeafe", text: "#1d4ed8" };
+    case "entregado":
+      return { bg: "#d1fae5", text: "#34a853" };
+    case "en_seguimiento":
+      return { bg: "#fef3c7", text: "#d97706" };
     default:
-      return "bg-gray-100 text-gray-800";
+      return { bg: "#f3f4f6", text: "#6b7280" };
   }
 }

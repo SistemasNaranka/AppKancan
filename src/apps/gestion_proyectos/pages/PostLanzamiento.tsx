@@ -12,6 +12,12 @@ import {
   ListItemText,
   Alert,
   CircularProgress,
+  styled,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -26,6 +32,15 @@ import {
   deleteBeneficio,
 } from "../api/directus/create";
 import type { Beneficio, CreateBeneficioInput } from "../types";
+
+// Header container con margen y border-radius
+const HeaderContainer = styled(Box)({
+  margin: '24px 0',
+  padding: '20px 24px',
+  borderRadius: 12,
+  backgroundColor: 'white',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+});
 
 interface BeneficioForm {
   id?: string;
@@ -46,6 +61,8 @@ export default function PostLanzamiento() {
     tipo: "success" | "error";
     texto: string;
   } | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [beneficioToDelete, setBeneficioToDelete] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,18 +106,31 @@ export default function PostLanzamiento() {
     setEditandoId(beneficio.id);
   };
 
-  const handleEliminar = async (beneficioId: string) => {
-    if (!confirm("¿Eliminar este beneficio?")) return;
+  const handleEliminar = async () => {
+    if (!beneficioToDelete) return;
 
     try {
-      const ok = await deleteBeneficio(beneficioId);
+      const ok = await deleteBeneficio(beneficioToDelete);
       if (!ok) throw new Error("No se pudo eliminar");
       setMensaje({ tipo: "success", texto: "Eliminado exitosamente" });
       recargar();
     } catch (err) {
       console.error("Error:", err);
       setMensaje({ tipo: "error", texto: "Error al eliminar" });
+    } finally {
+      setModalOpen(false);
+      setBeneficioToDelete(null);
     }
+  };
+
+  const handleOpenDeleteModal = (beneficioId: string) => {
+    setBeneficioToDelete(beneficioId);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setBeneficioToDelete(null);
   };
 
   const handleCancelar = () => {
@@ -132,10 +162,15 @@ export default function PostLanzamiento() {
   return (
     <Box p={3} maxWidth="900px" mx="auto">
       {/* Header */}
-      <Box display="flex" alignItems="center" mb={3}>
+      <HeaderContainer
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+        }}
+      >
         <IconButton
           onClick={() => navigate(`/gestion_proyectos/${id}`)}
-          sx={{ mr: 2 }}
         >
           <ArrowBackIcon />
         </IconButton>
@@ -147,7 +182,7 @@ export default function PostLanzamiento() {
             {proyecto.nombre}
           </Typography>
         </Box>
-      </Box>
+      </HeaderContainer>
 
       {/* Mensaje */}
       {mensaje && (
@@ -161,7 +196,7 @@ export default function PostLanzamiento() {
       )}
 
       {/* Formulario */}
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ p: 3, mb: 3, }}>
         <Typography variant="h6" gutterBottom>
           {editandoId
             ? "Editar Beneficio/Feedback"
@@ -205,12 +240,12 @@ export default function PostLanzamiento() {
       {/* Lista de beneficios - usando secondaryAction prop */}
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
-          💡 Beneficios y Feedback ({proyecto.beneficios?.length || 0})
+        Beneficios y Feedback ({proyecto.beneficios?.length || 0})
         </Typography>
         {proyecto.beneficios && proyecto.beneficios.length > 0 ? (
           <List>
             {proyecto.beneficios.map((beneficio, index) => (
-              <ListItem
+              <ListItem sx={{ backgroundColor: "#f3f4f6", boxShadow: "none", borderRadius: 2, }}
                 key={beneficio.id}
                 divider
                 secondaryAction={
@@ -224,7 +259,7 @@ export default function PostLanzamiento() {
                     </IconButton>
                     <IconButton
                       edge="end"
-                      onClick={() => handleEliminar(beneficio.id)}
+                      onClick={() => handleOpenDeleteModal(beneficio.id)}
                       color="error"
                     >
                       <DeleteIcon />
@@ -245,6 +280,31 @@ export default function PostLanzamiento() {
           </Typography>
         )}
       </Paper>
+
+      {/* Modal de confirmación de eliminación */}
+      <Dialog
+        open={modalOpen}
+        onClose={handleCloseModal}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          ¿Eliminar beneficio?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            ¿Estás seguro de que deseas eliminar este beneficio? Esta acción no se puede deshacer.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModal} color="primary">
+            Cancelar
+          </Button>
+          <Button onClick={handleEliminar} color="error" variant="contained">
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
