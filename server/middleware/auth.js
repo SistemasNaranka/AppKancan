@@ -1,17 +1,8 @@
-/**
- * Middleware de autenticación para verificar tokens de Directus
- * Protege los endpoints de la API verificando que el usuario esté autenticado
- */
-
 const fetch = require("node-fetch").default || require("node-fetch");
 
 // URL de Directus para verificación de tokens
 const DIRECTUS_URL = process.env.DIRECTUS_URL || "http://localhost:8055";
 
-/**
- * Middleware para verificar el token de Directus
- * Protege los endpoints de la API verificando que el usuario esté autenticado
- */
 async function verifyDirectusToken(req, res, next) {
   try {
     const authHeader = req.headers.authorization;

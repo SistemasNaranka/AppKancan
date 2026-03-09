@@ -4,14 +4,6 @@ const { getConnection, queryDB } = require("../utils/db");
 const { isValidDateFormat, isValidYear } = require("../utils/validators");
 const { verifyDirectusToken } = require("../middleware/auth");
 
-// ==================== ENDPOINTS DE FILTROS ====================
-
-/**
- * GET /api/zonas
- * Obtener zonas únicas desde las ventas (JOIN con kancan.bodegas)
- * Acepta parámetros de fecha: fecha_desde, fecha_hasta
- * 🔒 PROTEGIDO: Requiere autenticación
- */
 router.get("/zonas", verifyDirectusToken, async (req, res) => {
   try {
     const { fecha_desde, fecha_hasta } = req.query;
@@ -52,7 +44,7 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
       const safeYear = Math.floor(year);
       if (!isValidYear(safeYear)) return;
 
-      let whereClause = `v.bodega BETWEEN 3 AND 20 AND bod.zona IS NOT NULL AND bod.zona != ''`;
+      let whereClause = `v.bodega BETWEEN 3 AND 40 AND bod.zona IS NOT NULL AND bod.zona != ''`;
       if (fecha_desde && fecha_hasta) {
         whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
         params.push(fecha_desde, fecha_hasta);
@@ -60,7 +52,8 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
       sqlParts.push(`
         SELECT DISTINCT bod.zona AS nombre 
         FROM kcn_db.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         WHERE ${whereClause}
       `);
     });
@@ -78,7 +71,8 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
       sqlParts.push(`
         SELECT DISTINCT bod.zona AS nombre 
         FROM naranka.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         WHERE ${whereClause}
       `);
     });
@@ -112,7 +106,7 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
  * GET /api/ciudades
  * Obtener ciudades únicas desde las ventas (JOIN con kancan.bodegas)
  * Acepta parámetros de fecha: fecha_desde, fecha_hasta
- * 🔒 PROTEGIDO: Requiere autenticación
+ * PROTEGIDO: Requiere autenticación
  */
 router.get("/ciudades", verifyDirectusToken, async (req, res) => {
   try {
@@ -153,7 +147,7 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
       const safeYear = Math.floor(year);
       if (!isValidYear(safeYear)) return;
 
-      let whereClause = `v.bodega BETWEEN 3 AND 20 AND bod.ciudad IS NOT NULL AND bod.ciudad != ''`;
+      let whereClause = `v.bodega BETWEEN 3 AND 40 AND bod.ciudad IS NOT NULL AND bod.ciudad != ''`;
       if (fecha_desde && fecha_hasta) {
         whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
         params.push(fecha_desde, fecha_hasta);
@@ -161,7 +155,8 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
       sqlParts.push(`
         SELECT DISTINCT bod.ciudad AS nombre 
         FROM kcn_db.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         WHERE ${whereClause}
       `);
     });
@@ -179,7 +174,8 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
       sqlParts.push(`
         SELECT DISTINCT bod.ciudad AS nombre 
         FROM naranka.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         WHERE ${whereClause}
       `);
     });
@@ -214,7 +210,7 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
  * Obtener tiendas/bodegas desde las ventas (no desde tabla bodegas)
  * Obtiene nombre_bodega de las tablas de ventas y hace JOIN con kancan.bodegas para ciudad y zona
  * Acepta parámetros de fecha: fecha_desde, fecha_hasta
- * 🔒 PROTEGIDO: Requiere autenticación
+ * PROTEGIDO: Requiere autenticación
  */
 router.get("/tiendas", verifyDirectusToken, async (req, res) => {
   try {
@@ -250,12 +246,12 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
     const sqlParts = [];
     const params = [];
 
-    // kcn_db.ventas (bodega BETWEEN 3 AND 20)
+    // kcn_db.ventas (bodega BETWEEN 3 AND 40)
     years.forEach((year) => {
       const safeYear = Math.floor(year);
       if (!isValidYear(safeYear)) return;
 
-      let whereClause = `v.bodega BETWEEN 3 AND 20`;
+      let whereClause = `v.bodega BETWEEN 3 AND 40`;
       if (fecha_desde && fecha_hasta) {
         whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
         params.push(fecha_desde, fecha_hasta);
@@ -267,7 +263,8 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
           bod.ciudad, 
           bod.zona
         FROM kcn_db.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         WHERE ${whereClause}
       `);
     });
@@ -289,7 +286,8 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
           bod.ciudad, 
           bod.zona
         FROM naranka.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         WHERE ${whereClause}
       `);
     });
@@ -325,7 +323,7 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
 /**
  * GET /api/grupos-homogeneos
  * Obtener grupos homogéneos (líneas de venta) con agrupación desde grupos
- * 🔒 PROTEGIDO: Requiere autenticación
+ * PROTEGIDO: Requiere autenticación
  */
 router.get("/grupos-homogeneos", verifyDirectusToken, async (req, res) => {
   try {
@@ -351,7 +349,7 @@ router.get("/grupos-homogeneos", verifyDirectusToken, async (req, res) => {
 /**
  * GET /api/grupos
  * Obtener grupos con agrupación (Indigo/Liviano)
- * 🔒 PROTEGIDO: Requiere autenticación
+ * PROTEGIDO: Requiere autenticación
  */
 router.get("/grupos", verifyDirectusToken, async (req, res) => {
   try {
@@ -376,7 +374,7 @@ router.get("/grupos", verifyDirectusToken, async (req, res) => {
  * - Tela Liviana: nacional, importado, tela liviana
  * - Calzado: calzado
  * - Complemento: complemento
- * 🔒 PROTEGIDO: Requiere autenticación
+ * PROTEGIDO: Requiere autenticación
  */
 router.get("/agrupaciones", verifyDirectusToken, async (req, res) => {
   try {
@@ -405,7 +403,7 @@ router.get("/agrupaciones", verifyDirectusToken, async (req, res) => {
  * - Colección: colección
  * - Básicos: basic
  * - Promoción: promocion, liquidacion, segundas
- * 🔒 PROTEGIDO: Requiere autenticación
+ * PROTEGIDO: Requiere autenticación
  */
 router.get("/lineas-venta", verifyDirectusToken, async (req, res) => {
   try {
@@ -429,7 +427,7 @@ router.get("/lineas-venta", verifyDirectusToken, async (req, res) => {
 /**
  * GET /api/asesores
  * Obtener lista única de asesores
- * 🔒 PROTEGIDO: Requiere autenticación
+ * PROTEGIDO: Requiere autenticación
  */
 router.get("/asesores", verifyDirectusToken, async (req, res) => {
   try {
@@ -477,14 +475,11 @@ router.get("/asesores", verifyDirectusToken, async (req, res) => {
     res.status(500).json({ error: "Error al obtener asesores" });
   }
 });
-
-// ==================== ENDPOINT PRINCIPAL DE VENTAS ====================
-
 /**
  * GET /api/ventas
  * Obtener ventas con filtros, incluyendo línea de venta, agrupación, ciudad y zona
  * La zona y ciudad vienen directamente de la tabla bodegas
- * 🔒 PROTEGIDO: Requiere autenticación con token de Directus
+ * PROTEGIDO: Requiere autenticación con token de Directus
  */
 router.get("/ventas", verifyDirectusToken, async (req, res) => {
   try {
@@ -499,19 +494,24 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       agrupacion,
     } = req.query;
 
-    if (!fecha_desde || !fecha_hasta) {
-      return res.status(400).json({ error: "Las fechas son requeridas" });
-    }
+    // Si no hay fechas, usar un rango muy amplio para obtener todos los datos
+    let fechaDesde = fecha_desde || "2025-10-01";
+    let fechaHasta = fecha_hasta || "2026-12-31";
 
-    // Validar formato de fechas
-    if (!isValidDateFormat(fecha_desde) || !isValidDateFormat(fecha_hasta)) {
+    // Validar formato de fechas solo si se proporcionan
+    if (fecha_desde && !isValidDateFormat(fecha_desde)) {
+      return res
+        .status(400)
+        .json({ error: "Formato de fecha inválido. Use YYYY-MM-DD" });
+    }
+    if (fecha_hasta && !isValidDateFormat(fecha_hasta)) {
       return res
         .status(400)
         .json({ error: "Formato de fecha inválido. Use YYYY-MM-DD" });
     }
 
-    const yearDesde = new Date(fecha_desde).getFullYear();
-    const yearHasta = new Date(fecha_hasta).getFullYear();
+    const yearDesde = new Date(fechaDesde).getFullYear();
+    const yearHasta = new Date(fechaHasta).getFullYear();
 
     // Validar años
     if (!isValidYear(yearDesde) || !isValidYear(yearHasta)) {
@@ -658,14 +658,15 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       if (!isValidYear(safeYear)) return;
 
       sqlParts.push(`
-        SELECT v.codigo_referencia, v.documentos, v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
+        SELECT v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
                ROUND(v.cantidad_venta, 0) AS venta, ROUND(v.total_factura, 0) AS valor,
                ${lineaVentaCase},
                ${agrupacionCase},
                COALESCE(bod.ciudad, 'Sin ciudad') AS ciudad,
                COALESCE(bod.zona, 'Sin zona') AS zona
         FROM kcn_db.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         LEFT JOIN naranka.referencias r ON v.codigo_referencia = r.referencia
         LEFT JOIN naranka.grupos_homogeneos gh ON r.codigo_homogeneo = gh.id
         LEFT JOIN naranka.grupos gr ON gh.id_grupo = gr.id
@@ -674,14 +675,15 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       params.push(...getQueryParams());
 
       sqlParts.push(`
-        SELECT v.codigo_referencia, v.documentos, v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
+        SELECT v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
                -ROUND(v.cantidad, 0) AS venta, -ROUND(v.total_factura, 0) AS valor,
                ${lineaVentaCase},
                ${agrupacionCase},
                COALESCE(bod.ciudad, 'Sin ciudad') AS ciudad,
                COALESCE(bod.zona, 'Sin zona') AS zona
         FROM kcn_db.devoluciones_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         LEFT JOIN naranka.referencias r ON v.codigo_referencia = r.referencia
         LEFT JOIN naranka.grupos_homogeneos gh ON r.codigo_homogeneo = gh.id
         LEFT JOIN naranka.grupos gr ON gh.id_grupo = gr.id
@@ -696,14 +698,15 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       if (!isValidYear(safeYear)) return;
 
       sqlParts.push(`
-        SELECT v.codigo_referencia, v.documentos, v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
+        SELECT v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
                ROUND(v.cantidad_venta, 0) AS venta, ROUND(v.total_factura, 0) AS valor,
                ${lineaVentaCase},
                ${agrupacionCase},
                COALESCE(bod.ciudad, 'Sin ciudad') AS ciudad,
                COALESCE(bod.zona, 'Sin zona') AS zona
         FROM naranka.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         LEFT JOIN naranka.referencias r ON v.codigo_referencia = r.referencia
         LEFT JOIN naranka.grupos_homogeneos gh ON r.codigo_homogeneo = gh.id
         LEFT JOIN naranka.grupos gr ON gh.id_grupo = gr.id
@@ -712,14 +715,15 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       params.push(...getQueryParams());
 
       sqlParts.push(`
-        SELECT v.codigo_referencia, v.documentos, v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
+        SELECT v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
                -ROUND(v.cantidad, 0) AS venta, -ROUND(v.total_factura, 0) AS valor,
                ${lineaVentaCase},
                ${agrupacionCase},
                COALESCE(bod.ciudad, 'Sin ciudad') AS ciudad,
                COALESCE(bod.zona, 'Sin zona') AS zona
         FROM naranka.devoluciones_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON v.bodega = bod.id
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+          
         LEFT JOIN naranka.referencias r ON v.codigo_referencia = r.referencia
         LEFT JOIN naranka.grupos_homogeneos gh ON r.codigo_homogeneo = gh.id
         LEFT JOIN naranka.grupos gr ON gh.id_grupo = gr.id
@@ -743,31 +747,5 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
   }
 });
 
-// ==================== ENDPOINTS DE DEBUG ====================
-
-/**
- * GET /api/debug/agrupaciones-reales
- * Endpoint de debug para ver qué valores de agrupación existen en la BD
- * 🔒 PROTEGIDO: Requiere autenticación (solo para desarrollo/debug)
- */
-router.get(
-  "/debug/agrupaciones-reales",
-  verifyDirectusToken,
-  async (req, res) => {
-    try {
-      const sql = `
-      SELECT DISTINCT gr.agrupacion, COUNT(*) as total
-      FROM naranka.grupos gr
-      GROUP BY gr.agrupacion
-      ORDER BY total DESC
-    `;
-      const rows = await queryDB("naranka", sql);
-      res.json(rows);
-    } catch (error) {
-      console.error("Error al obtener agrupaciones reales:", error);
-      res.status(500).json({ error: "Error al obtener agrupaciones reales" });
-    }
-  },
-);
-
+// Exportar el router
 module.exports = router;
