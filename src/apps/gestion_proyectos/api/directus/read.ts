@@ -11,9 +11,10 @@ export async function getProyectos(): Promise<Proyecto[]> {
           fields: [
             "id", "nombre", "area_beneficiada", "descripcion", "encargados",
             "fecha_inicio", "fecha_estimada", "fecha_entrega", "estado", "tipo_proyecto",
-            "procesos.id", "procesos.nombre", "procesos.tiempo_antes",
+            "procesos.id", "procesos.proyecto_id", "procesos.nombre", "procesos.tiempo_antes",
             "procesos.tiempo_despues", "procesos.frecuencia_tipo",
             "procesos.frecuencia_cantidad", "procesos.dias_semana", "procesos.orden",
+            "beneficios.id", "beneficios.proyecto_id", "beneficios.descripcion",
           ],
           sort: ["-fecha_inicio"],
         }),
@@ -33,7 +34,7 @@ export async function getProyectos(): Promise<Proyecto[]> {
       tipo_proyecto: item.tipo_proyecto,
       procesos: (item.procesos || []).map((p: any) => ({
         id: p.id,
-        proyecto_id: item.id,
+        proyecto_id: p.proyecto_id || item.id,
         nombre: p.nombre,
         tiempo_antes: Number(p.tiempo_antes) || 0,
         tiempo_despues: Number(p.tiempo_despues) || 0,
@@ -41,6 +42,11 @@ export async function getProyectos(): Promise<Proyecto[]> {
         frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
         dias_semana: Number(p.dias_semana) || 5,
         orden: p.orden,
+      })),
+      beneficios: (item.beneficios || []).map((b: any) => ({
+        id: b.id,
+        proyecto_id: b.proyecto_id || item.id,
+        descripcion: b.descripcion,
       })),
     }));
   } catch (error) {

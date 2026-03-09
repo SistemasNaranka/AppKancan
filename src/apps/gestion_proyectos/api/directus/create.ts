@@ -214,3 +214,63 @@ export async function deleteBeneficio(id: string): Promise<boolean> {
     return false;
   }
 }
+
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+
+export interface CreateFeedbackInput {
+  proyecto_id: string;
+  autor: string;
+  descripcion: string;
+  tipo?: string;
+}
+
+export async function createFeedback(
+  data: CreateFeedbackInput,
+): Promise<string | null> {
+  try {
+    const payload: any = {
+      proyecto_id: data.proyecto_id,
+      autor: data.autor,
+      descripcion: data.descripcion,
+    };
+    if (data.tipo) payload.tipo = data.tipo;
+    const result = await withAutoRefresh(() =>
+      directus.request(createItem("gp_feedback", payload)),
+    );
+    return result.id;
+  } catch (error) {
+    console.error("❌ Error al crear feedback:", error);
+    return null;
+  }
+}
+
+export async function updateFeedback(
+  id: string,
+  data: Partial<CreateFeedbackInput>,
+): Promise<boolean> {
+  try {
+    const payload: any = {};
+    if (data.autor)       payload.autor       = data.autor;
+    if (data.descripcion) payload.descripcion = data.descripcion;
+    if (data.tipo)        payload.tipo        = data.tipo;
+    await withAutoRefresh(() =>
+      directus.request(updateItem("gp_feedback", id, payload)),
+    );
+    return true;
+  } catch (error) {
+    console.error("❌ Error al actualizar feedback:", error);
+    return false;
+  }
+}
+
+export async function deleteFeedback(id: string): Promise<boolean> {
+  try {
+    await withAutoRefresh(() =>
+      directus.request(deleteItem("gp_feedback", id)),
+    );
+    return true;
+  } catch (error) {
+    console.error("❌ Error al eliminar feedback:", error);
+    return false;
+  }
+}

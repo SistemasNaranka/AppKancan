@@ -1,3 +1,11 @@
+//Querido programador:
+//Cuando escribí este codigo, solo Dios y yo sabiamos como funcionaba.
+// ¡Ahora, solo Dios lo sabe!
+//Por lo tanto, si estas intentando optimizarlo y falla (Lo mas probable)
+//por favor incrementa este contador como una advertencia para la siguiente persona:
+
+//total_horas_desperdiciadas_aqui = 176
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -18,7 +26,17 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Autocomplete,
 } from "@mui/material";
+import {
+  Business as BusinessIcon,
+  AccountBalance as ContabilidadIcon,
+  People as RRHHIcon,
+  LocalShipping as LogisticaIcon,
+  DesignServices as DisenoIcon,
+  Computer as SistemasIcon,
+  Campaign as MercadeoIcon,
+} from "@mui/icons-material";
 import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -80,6 +98,59 @@ ChartJS.register(
   Filler,
 );
 
+// Opciones predefinidas para área beneficiada
+const AREAS_PREDEFINIDAS = [
+  "Contabilidad",
+  "Recursos Humanos",
+  "Logística",
+  "Diseño",
+  "Sistemas",
+  "Mercadeo",
+];
+
+// Mapeo de iconos por área
+const ICONOS_AREA: Record<string, React.ElementType> = {
+  "Contabilidad": ContabilidadIcon,
+  "Recursos Humanos": RRHHIcon,
+  "Logística": LogisticaIcon,
+  "Diseño": DisenoIcon,
+  "Sistemas": SistemasIcon,
+  "Mercadeo": MercadeoIcon,
+};
+
+/**
+ * Transforma el tipo de proyecto a formato legible en español
+ * Maneja diferentes variantes de entrada (minúsculas, mayúsculas, combinadas)
+ */
+function getTipoProyectoLabel(tipo: string | undefined): string {
+  if (!tipo) return "No especificado";
+  
+  // Normalizar a minúsculas para comparación
+  const tipoLower = tipo.toLowerCase();
+  
+  // Mapeo de valores conocidos
+  const mapeo: Record<string, string> = {
+    "proyecto_nuevo": "Proyecto Nuevo",
+    "proyectonuevo": "Proyecto Nuevo",
+    "actualizacion": "Actualización",
+    "actualizacion_de_sistema": "Actualización de Sistema",
+    "nuevo_proyecto": "Proyecto Nuevo",
+  };
+  
+  // Si es un valor conocido, retornar la versión formateada
+  if (mapeo[tipoLower]) {
+    return mapeo[tipoLower];
+  }
+  
+  // Para cualquier otro valor, convertir a formato título
+  // (primera letra mayúscula, resto minúscula)
+  return tipoLower
+    .replace(/_/g, " ")  // Reemplazar guiones bajos con espacios
+    .split(" ")          // Dividir por palabras
+    .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase())
+    .join(" ");
+}
+
 /**
  * Página de detalle de un proyecto
  */
@@ -114,12 +185,16 @@ const VolverButton = styled(Button)({
 
 // Header container con margen y border-radius
 const HeaderContainer = styled(Box)({
-  margin: "24px 0",
   padding: "20px 24px",
   borderRadius: 12,
   backgroundColor: "white",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-  position: "relative",
+  position: "sticky",
+  top: 12,
+  zIndex: 100,
+  // Sombra inferior que actúa como separador visual al hacer scroll
+  boxShadow: "0 4px 12px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06)",
+  // Margen inferior para crear espacio entre header y contenido
+  marginBottom: 24,
 });
 
 // Estilos para el botón de editar
@@ -359,6 +434,7 @@ export default function DetalleProyecto() {
         </Box>
       </HeaderContainer>
 
+
       {/* Modal de edición de proyecto */}
       <EditProyectoModal
         open={editModalOpen}
@@ -416,36 +492,37 @@ export default function DetalleProyecto() {
           {/* Información General */}
           {activeTab === "info" && (
             <>
-              {/* <Typography
-                variant="h6"
-                sx={{ mb: 2, fontWeight: "semibold", display: "flex", alignItems: "center", gap: 1, color: "#004680" }}
-              >
-                <Description />
-                Información General
-              </Typography> */}
               <Box
                 sx={{
-                  display: "grid",
+                  display: "flex",
                   gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
-                  gap: 2,
+                  gap: 10,
                 }}
               >
                 <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>Área Beneficiada</Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold",}}>Área Beneficiada</Typography>
                   <Typography variant="body1" sx={{ fontWeight: "medium" }}>{proyecto.area_beneficiada}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>Encargados</Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold",}}>Tipo de proyecto</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: "medium" }}>{getTipoProyectoLabel(proyecto.tipo_proyecto)}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold",}}>Encargados</Typography>
                   <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                     {proyecto.encargados?.map((e) => e.nombre).join(", ") || "Sin asignar"}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>Fecha de Inicio</Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold",}}>Fecha de Inicio</Typography>
                   <Typography variant="body1" sx={{ fontWeight: "medium" }}>{proyecto.fecha_inicio}</Typography>
                 </Box>
+                  <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold",}}>Fecha Estimada</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: "medium" }}>{proyecto.fecha_estimada}</Typography>
+                </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>Fecha de Entrega</Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold",}}>Fecha de Entrega</Typography>
                   <Typography variant="body1" sx={{ fontWeight: "medium" }}>{proyecto.fecha_entrega}</Typography>
                 </Box>
               </Box>
@@ -455,14 +532,6 @@ export default function DetalleProyecto() {
           {/* Impacto en Tiempos */}
           {activeTab === "tiempos" && (
             <>
-              {/* <Typography
-                variant="h6"
-                sx={{ mb: 2, fontWeight: "semibold", display: "flex", alignItems: "center", gap: 1, color: "#004680" }}
-              >
-                <AccessTimeFilled />
-                Impacto en Tiempos
-              </Typography> */}
-              {/* Primer Accordion: Métricas de Ahorro */}
               <Accordion
                 expanded={metricasExpanded}
                 onChange={() => setMetricasExpanded(!metricasExpanded)}
@@ -650,7 +719,7 @@ export default function DetalleProyecto() {
                                   label: 'Tiempo Original (seg)',
                                   data: proyecto.procesos.map(p => p.tiempo_antes),
                                   borderColor: '#ef4444',
-                                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                  backgroundColor: 'rgba(255, 255, 255, 0)',
                                   tension: 0.3,
                                   fill: true,
                                 },
@@ -658,7 +727,7 @@ export default function DetalleProyecto() {
                                   label: 'Tiempo Optimizado (seg)',
                                   data: proyecto.procesos.map(p => p.tiempo_despues),
                                   borderColor: '#22c55e',
-                                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                  backgroundColor: 'rgba(255, 255, 255, 0)',
                                   tension: 0.3,
                                   fill: true,
                                 },
@@ -1006,13 +1075,36 @@ function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoa
               size="medium"
             />
 
+            <Autocomplete
+              freeSolo
+              options={AREAS_PREDEFINIDAS}
+              value={formData.areaBeneficiada || ""}
+              onChange={(_event, value) => handleChange("areaBeneficiada", value || "")}
+              onInputChange={(_event, value, reason) => {
+                if (reason === "input") {
+                  handleChange("areaBeneficiada", value);
+                }
+              }}
+              renderInput={(params) => (
             <TextField
+                  {...params}
               label="Área Beneficiada"
-              value={formData.areaBeneficiada}
-              onChange={(e) => handleChange("areaBeneficiada", e.target.value)}
               required
               fullWidth
               size="medium"
+                  placeholder="Selecciona o escribe un área"
+                />
+              )}
+              renderOption={(props, option) => {
+                const { key, ...restProps } = props;
+                const Icono = ICONOS_AREA[option] || BusinessIcon;
+                return (
+                  <Box component="li" key={key} {...restProps} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Icono sx={{ fontSize: 18, color: "text.secondary" }} />
+                    {option}
+                  </Box>
+                );
+              }}
             />
 
             <FormControl fullWidth size="medium">
@@ -1035,8 +1127,8 @@ function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoa
                 label="Tipo de Proyecto"
                 onChange={(e) => handleChange("tipoProyecto", e.target.value)}
               >
-                <MenuItem value="mejora">Mejora</MenuItem>
-                <MenuItem value="nuevo">Nueva Creación</MenuItem>
+                <MenuItem value="actualizacion">Actualizacón</MenuItem>
+                <MenuItem value="proyecto_nuevo">Proyecto Nuevo</MenuItem>
               </Select>
             </FormControl>
 

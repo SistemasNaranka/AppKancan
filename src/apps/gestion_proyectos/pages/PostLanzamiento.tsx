@@ -27,11 +27,11 @@ import {
 } from "@mui/icons-material";
 import { useProyectoById } from "../hooks/useProyectos";
 import {
-  createBeneficio,
-  updateBeneficio,
-  deleteBeneficio,
+  createFeedback,
+  updateFeedback,
+  deleteFeedback,
 } from "../api/directus/create";
-import type { Beneficio, CreateBeneficioInput } from "../types";
+import type { Feedback, CreateFeedbackInput } from "../types";
 
 // Header container con margen y border-radius
 const HeaderContainer = styled(Box)({
@@ -42,8 +42,9 @@ const HeaderContainer = styled(Box)({
   boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
 });
 
-interface BeneficioForm {
+interface FeedbackForm {
   id?: string;
+  autor: string;
   descripcion: string;
 }
 
@@ -52,10 +53,16 @@ export default function PostLanzamiento() {
   const navigate = useNavigate();
   const { proyecto, loading, error, recargar } = useProyectoById(id!);
 
-  const [formData, setFormData] = useState<BeneficioForm>({
+  const [formData, setFormData] = useState<FeedbackForm>({
+    autor: "",
     descripcion: "",
   });
   const [editandoId, setEditandoId] = useState<string | null>(null);
+
+  // Función helper para actualizar el formData manteniendo los valores existentes
+  const updateFormField = <K extends keyof FeedbackForm>(field: K, value: FeedbackForm[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<{
     tipo: "success" | "error";
@@ -73,21 +80,23 @@ export default function PostLanzamiento() {
 
     try {
       if (editandoId) {
-        const ok = await updateBeneficio(editandoId, {
+        const ok = await updateFeedback(editandoId, {
+          autor: formData.autor,
           descripcion: formData.descripcion,
         });
         if (!ok) throw new Error("No se pudo actualizar");
       } else {
-        const data: CreateBeneficioInput = {
+        const data: CreateFeedbackInput = {
           proyecto_id: id,
+          autor: formData.autor,
           descripcion: formData.descripcion,
         };
-        const result = await createBeneficio(data);
+        const result = await createFeedback(data);
         if (!result) throw new Error("No se pudo crear");
       }
 
       setMensaje({ tipo: "success", texto: "¡Guardado exitosamente!" });
-      setFormData({ descripcion: "" });
+      setFormData({ autor: "", descripcion: "" });
       setEditandoId(null);
       recargar();
     } catch (err) {
@@ -98,19 +107,20 @@ export default function PostLanzamiento() {
     }
   };
 
-  const handleEditar = (beneficio: Beneficio) => {
+  const handleEditar = (feedback: Feedback) => {
     setFormData({
-      id: beneficio.id,
-      descripcion: beneficio.descripcion,
+      id: feedback.id,
+      autor: feedback.autor,
+      descripcion: feedback.descripcion,
     });
-    setEditandoId(beneficio.id);
+    setEditandoId(feedback.id);
   };
 
   const handleEliminar = async () => {
     if (!beneficioToDelete) return;
 
     try {
-      const ok = await deleteBeneficio(beneficioToDelete);
+      const ok = await deleteFeedback(beneficioToDelete);
       if (!ok) throw new Error("No se pudo eliminar");
       setMensaje({ tipo: "success", texto: "Eliminado exitosamente" });
       recargar();
@@ -134,7 +144,7 @@ export default function PostLanzamiento() {
   };
 
   const handleCancelar = () => {
-    setFormData({ descripcion: "" });
+    setFormData({ autor: "", descripcion: "" });
     setEditandoId(null);
   };
 
@@ -199,17 +209,25 @@ export default function PostLanzamiento() {
       <Paper sx={{ p: 3, mb: 3, }}>
         <Typography variant="h6" gutterBottom>
           {editandoId
-            ? "Editar Beneficio/Feedback"
-            : "Agregar Beneficio/Feedback"}
+            ? "Editar Feedback"
+            : "Agregar Feedback"}
         </Typography>
         <form onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="Descripción del beneficio o feedback"
+            label="Autor"
+            value={formData.autor}
+            onChange={(e) => updateFormField('autor', e.target.value)}
+            sx={{ mb: 2 }}
+            required
+          />
+          <TextField
+            fullWidth
+            label="Descripción del feedback"
             multiline
             rows={3}
             value={formData.descripcion}
-            onChange={(e) => setFormData({ descripcion: e.target.value })}
+            onChange={(e) => updateFormField('descripcion', e.target.value)}
             sx={{ mb: 2 }}
             required
           />
@@ -224,7 +242,7 @@ export default function PostLanzamiento() {
                   <AddIcon />
                 )
               }
-              disabled={guardando || !formData.descripcion.trim()}
+              disabled={guardando || !formData.autor.trim() || !formData.descripcion.trim()}
             >
               {editandoId ? "Actualizar" : "Agregar"}
             </Button>
@@ -237,29 +255,29 @@ export default function PostLanzamiento() {
         </form>
       </Paper>
 
-      {/* Lista de beneficios - usando secondaryAction prop */}
+      {/* Lista de feedbacks */}
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
-        Beneficios y Feedback ({proyecto.beneficios?.length || 0})
+        Feedback ({proyecto.feedbacks?.length || 0})
         </Typography>
-        {proyecto.beneficios && proyecto.beneficios.length > 0 ? (
+        {proyecto.feedbacks && proyecto.feedbacks.length > 0 ? (
           <List>
-            {proyecto.beneficios.map((beneficio, index) => (
+            {proyecto.feedbacks.map((feedback, index) => (
               <ListItem sx={{ backgroundColor: "#f3f4f6", boxShadow: "none", borderRadius: 2, }}
-                key={beneficio.id}
+                key={feedback.id}
                 divider
                 secondaryAction={
                   <Box>
                     <IconButton
                       edge="end"
-                      onClick={() => handleEditar(beneficio)}
+                      onClick={() => handleEditar(feedback)}
                       sx={{ mr: 1 }}
                     >
                       <EditIcon />
                     </IconButton>
                     <IconButton
                       edge="end"
-                      onClick={() => handleOpenDeleteModal(beneficio.id)}
+                      onClick={() => handleOpenDeleteModal(feedback.id)}
                       color="error"
                     >
                       <DeleteIcon />
@@ -268,15 +286,15 @@ export default function PostLanzamiento() {
                 }
               >
                 <ListItemText
-                  primary={beneficio.descripcion}
-                  secondary={`Beneficio #${index + 1}`}
+                  primary={feedback.descripcion}
+                  secondary={`Por: ${feedback.autor}`}
                 />
               </ListItem>
             ))}
           </List>
         ) : (
           <Typography color="text.secondary" sx={{ mt: 2 }}>
-            No hay beneficios registrados aún.
+            No hay feedback registrado aún.
           </Typography>
         )}
       </Paper>
@@ -289,11 +307,11 @@ export default function PostLanzamiento() {
         aria-describedby="delete-dialog-description"
       >
         <DialogTitle id="delete-dialog-title">
-          ¿Eliminar beneficio?
+          ¿Eliminar feedback?
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            ¿Estás seguro de que deseas eliminar este beneficio? Esta acción no se puede deshacer.
+            ¿Estás seguro de que deseas eliminar este feedback? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

@@ -2,7 +2,7 @@
 export type EstadoProyecto = "en_proceso" | "entregado" | "en_seguimiento";
 
 // Tipo de proyecto
-export type TipoProyecto = "mejora" | "nuevo";
+export type TipoProyecto = "actualizacion" | "proyecto_nuevo";
 
 // Tipo de frecuencia
 export type FrecuenciaTipo = "diaria" | "semanal" | "mensual";
@@ -50,6 +50,7 @@ export interface Proyecto {
   // Campos relacionados (opcionales, se cargan por separado)
   procesos?: Proceso[];
   beneficios?: Beneficio[];
+  feedbacks?: Feedback[];
   // Alias para compatibilidad con PostLanzamiento (mapeado desde beneficios)
   mejoras?: Array<{
     id: string;
@@ -93,6 +94,22 @@ export interface CreateBeneficioInput {
   descripcion: string;
 }
 
+// Feedback del proyecto (post-lanzamiento)
+export interface Feedback {
+  id: string;
+  proyecto_id: string;
+  autor: string;
+  descripcion: string;
+  fecha_creacion?: string;
+}
+
+// Datos para crear un feedback
+export interface CreateFeedbackInput {
+  proyecto_id: string;
+  autor: string;
+  descripcion: string;
+}
+
 // Métricas calculadas de un proceso
 export interface MetricasProceso {
   ahorro_por_ejecucion: number; // segundos
@@ -119,8 +136,8 @@ export const OPCIONES_ESTADO: { value: EstadoProyecto; label: string }[] = [
 
 export const OPCIONES_TIPO_PROYECTO: { value: TipoProyecto; label: string }[] =
   [
-    { value: "mejora", label: "Mejora" },
-    { value: "nuevo", label: "Nuevo" },
+    { value: "actualizacion", label: "Actualización" },
+    { value: "proyecto_nuevo", label: "Proyecto Nuevo" },
   ];
 
 export const OPCIONES_FRECUENCIA: { value: FrecuenciaTipo; label: string }[] = [

@@ -9,14 +9,12 @@ import {
   Box,
   IconButton,
   Button,
-  Chip,
   InputAdornment,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Timer as TimerIcon,
-  Speed as SpeedIcon,
 } from "@mui/icons-material";
 
 interface ProcesoForm {
@@ -42,9 +40,6 @@ interface ProcessListProps {
   onFrecuenciaCantidadChange?: (value: string) => void;
 }
 
-/**
- * Componente: Lista de Procesos
- */
 export function ProcessList({
   procesos,
   onAgregar,
@@ -57,48 +52,31 @@ export function ProcessList({
   frecuenciaCantidad,
   onFrecuenciaCantidadChange,
 }: ProcessListProps) {
-  const calcularAhorroTotal = () => {
-    return procesos.reduce((acc, p) => {
-      const ahorro =
-        (p.tiempo_antes - p.tiempo_despues) * p.frecuencia_cantidad;
-      return acc + ahorro;
-    }, 0);
-  };
-
   return (
-    <Paper elevation={3} sx={{ p: 2, borderRadius: 2 }}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          mb: 2,
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, boxShadow: "none", }}>
+    <Paper elevation={3} sx={{ p: 2.5, borderRadius: 2 }}>
+
+      {/* ── Header ── */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <TimerIcon sx={{ color: "success.main" }} />
           <Typography variant="h6" fontWeight="bold">
             Procesos
           </Typography>
         </Box>
-        <Button sx={{ boxShadow: "none", 
-            "&:hover": {
-            boxShadow: "none",
-            backgroundColor: "#38993D",
-          },
-        }}
+        <Button
           variant="contained"
           color="success"
           size="small"
           startIcon={<AddIcon />}
           onClick={onAgregar}
+          sx={{ boxShadow: "none", "&:hover": { boxShadow: "none", backgroundColor: "#38993D" } }}
         >
           Agregar
         </Button>
       </Box>
 
-      {/* Frecuencia y Días por semana */}
-      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+      {/* ── Controles de frecuencia ── */}
+      <Box sx={{ display: "flex", gap: 2, mb: 2.5 }}>
         <FormControl fullWidth size="small">
           <InputLabel>Frecuencia</InputLabel>
           <Select
@@ -119,45 +97,30 @@ export function ProcessList({
           onChange={(e) => onFrecuenciaCantidadChange?.(e.target.value)}
           fullWidth
           size="small"
-          placeholder="1"
           helperText="Veces que se repite"
+          inputProps={{ min: 1 }}
         />
 
-        {onDiasPorSemanaChange && frecuenciaTipo === "diaria" && (
+        {frecuenciaTipo === "diaria" && (
           <TextField
             label="Días por semana"
             type="number"
-            value={diasPorSemana || ""}
-            onChange={(e) => onDiasPorSemanaChange(e.target.value)}
+            value={diasPorSemana || "5"}
+            onChange={(e) => onDiasPorSemanaChange?.(e.target.value)}
             fullWidth
             size="small"
-            placeholder="5"
             helperText="Días que se realiza"
+            inputProps={{ min: 1, max: 7 }}
           />
         )}
       </Box>
 
-      {procesos.length > 0 && (
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-          <Chip
-            icon={<SpeedIcon />}
-            label={`Ahorro: ${calcularAhorroTotal()} seg`}
-            size="small"
-            sx={{
-              bgcolor: "#38993D",
-              color: "white",
-              fontSize: 14,
-              "& .MuiChip-icon": { color: "white" },
-            }}
-          />
-        </Box>
-      )}
-
-      <Box sx={{ maxHeight: 400, overflowY: "auto", pr: 1 }}>
+      {/* ── Lista de procesos ── */}
+      <Box sx={{ maxHeight: 420, overflowY: "auto", pr: 0.5 }}>
         {procesos.length === 0 ? (
-          <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-            <Typography variant="body2">No hay procesos</Typography>
-            <Typography variant="caption">Click en "Agregar"</Typography>
+          <Box sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
+            <Typography variant="body2">No hay procesos agregados.</Typography>
+            <Typography variant="caption">Haz clic en "Agregar" para comenzar.</Typography>
           </Box>
         ) : (
           procesos.map((proceso, index) => (
@@ -175,9 +138,7 @@ export function ProcessList({
   );
 }
 
-/**
- * Tarjeta de Proceso - Nombre más pequeño, tiempos más grandes
- */
+// ─── Tarjeta de proceso ───────────────────────────────────────────────────────
 function ProcesoCard({
   proceso,
   index,
@@ -192,107 +153,109 @@ function ProcesoCard({
   const ahorro = proceso.tiempo_antes - proceso.tiempo_despues;
 
   return (
-    <Paper
-      elevation={1}
-      sx={{ p: 1, mb: 1, borderRadius: 1, bgcolor: "grey.50" }}
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        mb: 1.5,
+        p: 1.5,
+        bgcolor: "#f1f3f4",
+        borderRadius: 2,
+        border: "1px solid #dcdcdc",
+      }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {/* Número */}
-        <Chip
-          label={`#${index + 1}`}
-          size="small"
-          color="primary"
-          sx={{ minWidth: 32 }}
-        />
+      <Box
+        sx={{
+          minWidth: 28,
+          height: 28,
+          borderRadius: "50%",
+          bgcolor: "#004680",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "0.78rem",
+          fontWeight: "bold",
+          flexShrink: 0,
+        }}
+      >
+        {index + 1}
+      </Box>
 
-        {/* Nombre del paso - más pequeño pero más alto (2 filas) */}
+      {/* Nombre del paso */}
         <TextField
           size="small"
           value={proceso.nombre}
           onChange={(e) => onActualizar(proceso.id, "nombre", e.target.value)}
           placeholder="Nombre del paso"
-          multiline
-          rows={2}
           sx={{ flexGrow: 1, minWidth: 80 }}
+        slotProps={{ input: { sx: { bgcolor: "white", borderRadius: 1 } } }}
         />
 
-        {/* Tiempo antes - acepta 0 y vacío */}
+      {/* Antes */}
         <TextField
           label="Antes"
           size="small"
+        type="number"
           value={proceso.tiempo_antes === 0 ? "" : proceso.tiempo_antes}
-          onChange={(e) => {
-            const val = e.target.value;
+        onChange={(e) =>
             onActualizar(
               proceso.id,
               "tiempo_antes",
-              val === "" ? 0 : Number(val),
-            );
-          }}
+            e.target.value === "" ? 0 : Number(e.target.value)
+          )
+        }
           placeholder="0"
-          sx={{ width: 100 }}
+        sx={{ width: 110 }}
           slotProps={{
             input: {
+            sx: { bgcolor: "white", borderRadius: 1 },
               endAdornment: (
                 <InputAdornment position="end">
-                  <Typography variant="caption" color="text.secondary">
-                    seg
-                  </Typography>
+                <Typography variant="caption" color="text.secondary">seg</Typography>
                 </InputAdornment>
               ),
             },
           }}
         />
 
-        {/* Tiempo después - acepta 0 y vacío */}
+      {/* Después */}
         <TextField
           label="Después"
           size="small"
+        type="number"
           value={proceso.tiempo_despues === 0 ? "" : proceso.tiempo_despues}
-          onChange={(e) => {
-            const val = e.target.value;
+        onChange={(e) =>
             onActualizar(
               proceso.id,
               "tiempo_despues",
-              val === "" ? 0 : Number(val),
-            );
-          }}
+            e.target.value === "" ? 0 : Number(e.target.value)
+          )
+        }
           placeholder="0"
           sx={{ width: 120 }}
           slotProps={{
             input: {
+            sx: { bgcolor: "white", borderRadius: 1 },
               endAdornment: (
                 <InputAdornment position="end">
-                  <Typography variant="caption" color="text.secondary">
-                    seg
-                  </Typography>
+                <Typography variant="caption" color="text.secondary">seg</Typography>
                 </InputAdornment>
               ),
             },
           }}
         />
 
-        {/* Botón eliminar */}
+      {/* Eliminar */}
         <IconButton
           size="small"
-          color="error"
           onClick={() => onEliminar(proceso.id)}
+        sx={{ color: "#ff3838", flexShrink: 0 }}
         >
           <DeleteIcon fontSize="small" />
         </IconButton>
       </Box>
-
-      {/* Ahorro */}
-      {proceso.tiempo_antes > 0 && proceso.tiempo_despues >= 0 && (
-        <Typography variant="caption" color="success.main" sx={{ ml: 5 }}>
-          Ahorro: {ahorro} seg/ejecución
-        </Typography>
-      )}
-      {proceso.tiempo_antes === 0 && proceso.tiempo_despues > 0 && (
-        <Typography variant="caption" color="warning.main" sx={{ ml: 5 }}>
-          Nuevo proceso: {proceso.tiempo_despues} seg/ejecución
-        </Typography>
-      )}
-    </Paper>
   );
 }
