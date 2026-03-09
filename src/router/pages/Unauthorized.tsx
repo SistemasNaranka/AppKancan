@@ -7,7 +7,7 @@ import { useAuth } from "@/auth/hooks/useAuth";
  */
 export default function Unauthorized() {
   const navigate = useNavigate();
-  const { user,isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const handleGoHome = () => {
     navigate("/");

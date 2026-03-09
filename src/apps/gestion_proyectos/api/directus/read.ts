@@ -5,6 +5,7 @@ import type { Proyecto, Proceso, Beneficio } from "../../types";
 
 export async function getProyectos(): Promise<Proyecto[]> {
   try {
+    // Primero obtenemos todos los proyectos
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proyectos", {
@@ -50,13 +51,12 @@ export async function getProyectos(): Promise<Proyecto[]> {
       })),
     }));
   } catch (error) {
-    console.error("❌ Error al cargar proyectos:", error);
+    console.error("Error al cargar proyectos:", error);
     return [];
   }
 }
 
 export async function getProyectoById(id: string): Promise<Proyecto | null> {
-
   try {
     const proyecto = await withAutoRefresh(() =>
       directus.request(readItem("gp_proyectos", id)),
@@ -68,8 +68,15 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
       directus.request(
         readItems("gp_proceso", {
           fields: [
-            "id", "proyecto_id", "nombre", "tiempo_antes", "tiempo_despues",
-            "frecuencia_tipo", "frecuencia_cantidad", "dias_semana", "orden",
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
           ],
           filter: { proyecto_id: { _eq: id } },
           sort: ["orden"],
@@ -135,19 +142,28 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
       })),
     };
   } catch (error) {
-    console.error("❌ Error al cargar proyecto:", error);
+    console.error("Error al cargar proyecto:", error);
     return null;
   }
 }
 
-export async function getProcesosByProyecto(proyectoId: string): Promise<Proceso[]> {
+export async function getProcesosByProyecto(
+  proyectoId: string,
+): Promise<Proceso[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proceso", {
           fields: [
-            "id", "proyecto_id", "nombre", "tiempo_antes", "tiempo_despues",
-            "frecuencia_tipo", "frecuencia_cantidad", "dias_semana", "orden",
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
           ],
           filter: { proyecto_id: { _eq: proyectoId } },
           sort: ["orden"],
@@ -167,12 +183,14 @@ export async function getProcesosByProyecto(proyectoId: string): Promise<Proceso
       orden: item.orden,
     }));
   } catch (error) {
-    console.error("❌ Error al cargar procesos:", error);
+    console.error("Error al cargar procesos:", error);
     return [];
   }
 }
 
-export async function getBeneficiosByProyecto(proyectoId: string): Promise<Beneficio[]> {
+export async function getBeneficiosByProyecto(
+  proyectoId: string,
+): Promise<Beneficio[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -189,7 +207,7 @@ export async function getBeneficiosByProyecto(proyectoId: string): Promise<Benef
       descripcion: item.descripcion,
     }));
   } catch (error) {
-    console.error("❌ Error al cargar beneficios:", error);
+    console.error("Error al cargar beneficios:", error);
     return [];
   }
 }

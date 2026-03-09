@@ -23,6 +23,7 @@ type Props = {
   todosSeleccionados: boolean;
   algunSeleccionado: boolean;
   onToggleSeleccionarTodos: (seleccionar: boolean) => void;
+  tienePoliticaTrasladosTiendas?: boolean;
 };
 
 const PendientesFilters: React.FC<Props> = ({
@@ -35,6 +36,7 @@ const PendientesFilters: React.FC<Props> = ({
   todosSeleccionados,
   algunSeleccionado,
   onToggleSeleccionarTodos,
+  tienePoliticaTrasladosTiendas = false,
 }) => {
   const opcionesDestino = ["Todas las bodegas", ...bodegasDestino];
   const theme = useTheme();
@@ -137,8 +139,8 @@ const PendientesFilters: React.FC<Props> = ({
         }}
       />
 
-      {/* Checkbox de Seleccionar Todo */}
-      {filtradosLength > 0 && (
+      {/* Checkbox de Seleccionar Todo - Ocultar si tiene política TrasladosTiendas */}
+      {!tienePoliticaTrasladosTiendas && filtradosLength > 0 && (
         <Box
           sx={{
             minWidth: { xs: "100%", sm: 230 },
