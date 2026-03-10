@@ -4,14 +4,37 @@ const { getConnection, queryDB } = require("../utils/db");
 const { isValidDateFormat, isValidYear } = require("../utils/validators");
 const { verifyDirectusToken } = require("../middleware/auth");
 
+/**
+ * GET /api/zonas
+ * Obtener zonas únicas desde las ventas (JOIN con kancan.bodegas)
+ * PROTEGIDO: Requiere autenticación
+ * OPTIMIZACIÓN: Sin parámetros de fecha para cache, consulta simplificada
+ */
+
+let zonasCache = null;
+let zonasCacheTime = 0;
+const ZONAS_CACHE_TTL = 30 * 60 * 1000; // 30 minutos
+
 router.get("/zonas", verifyDirectusToken, async (req, res) => {
   try {
     const { fecha_desde, fecha_hasta } = req.query;
 
+    // Cache key basado en fechas
+    const cacheKey = `${fecha_desde || "default"}-${fecha_hasta || "default"}`;
+    const now = Date.now();
+
+    if (
+      !fecha_desde &&
+      !fecha_hasta &&
+      zonasCache &&
+      now - zonasCacheTime < ZONAS_CACHE_TTL
+    ) {
+      return res.json(zonasCache);
+    }
+
     // Validar fechas si se proporcionan
     let years;
     if (fecha_desde && fecha_hasta) {
-      // Validar formato de fechas
       if (!isValidDateFormat(fecha_desde) || !isValidDateFormat(fecha_hasta)) {
         return res
           .status(400)
@@ -20,7 +43,6 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
       const yearDesde = new Date(fecha_desde).getFullYear();
       const yearHasta = new Date(fecha_hasta).getFullYear();
 
-      // Validar años
       if (!isValidYear(yearDesde) || !isValidYear(yearHasta)) {
         return res.status(400).json({ error: "Año fuera del rango válido" });
       }
@@ -34,46 +56,35 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
       years = [currentYear];
     }
 
-    // Construir consulta UNION con parámetros preparados
     const sqlParts = [];
     const params = [];
 
-    // kcn_db.ventas
-    years.forEach((year) => {
-      // Validar que el año sea un número entero seguro
+    const yearsToQuery = years.slice(-2);
+
+    yearsToQuery.forEach((year) => {
       const safeYear = Math.floor(year);
       if (!isValidYear(safeYear)) return;
 
-      let whereClause = `v.bodega BETWEEN 3 AND 40 AND bod.zona IS NOT NULL AND bod.zona != ''`;
+      let whereClause = `v.bodega BETWEEN 3 AND 40`;
       if (fecha_desde && fecha_hasta) {
         whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
         params.push(fecha_desde, fecha_hasta);
       }
+
+      // kcn_db.ventas
       sqlParts.push(`
         SELECT DISTINCT bod.zona AS nombre 
         FROM kcn_db.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
-          
-        WHERE ${whereClause}
+        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
+        WHERE ${whereClause} AND bod.zona IS NOT NULL AND bod.zona != ''
       `);
-    });
 
-    // naranka.ventas
-    years.forEach((year) => {
-      const safeYear = Math.floor(year);
-      if (!isValidYear(safeYear)) return;
-
-      let whereClause = `v.bodega BETWEEN 3 AND 40 AND bod.zona IS NOT NULL AND bod.zona != ''`;
-      if (fecha_desde && fecha_hasta) {
-        whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
-        params.push(fecha_desde, fecha_hasta);
-      }
+      // naranka.ventas
       sqlParts.push(`
         SELECT DISTINCT bod.zona AS nombre 
         FROM naranka.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
-          
-        WHERE ${whereClause}
+        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
+        WHERE ${whereClause} AND bod.zona IS NOT NULL AND bod.zona != ''
       `);
     });
 
@@ -83,7 +94,6 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
     try {
       const [rows] = await connection.execute(sqlFinal, params);
 
-      // Eliminar duplicados
       const zonasMap = new Map();
       rows.forEach((row) => {
         if (row.nombre) {
@@ -92,7 +102,15 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
       });
 
       const zonas = Array.from(zonasMap.values()).sort();
-      res.json(zonas.map((nombre) => ({ nombre })));
+      const result = zonas.map((nombre) => ({ nombre }));
+
+      // Guardar en cache solo si es consulta sin fechas
+      if (!fecha_desde && !fecha_hasta) {
+        zonasCache = result;
+        zonasCacheTime = now;
+      }
+
+      res.json(result);
     } finally {
       connection.release();
     }
@@ -105,17 +123,30 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
 /**
  * GET /api/ciudades
  * Obtener ciudades únicas desde las ventas (JOIN con kancan.bodegas)
- * Acepta parámetros de fecha: fecha_desde, fecha_hasta
  * PROTEGIDO: Requiere autenticación
+ * OPTIMIZACIÓN: Cache en memoria + consulta optimizada
  */
+
+let ciudadesCache = null;
+let ciudadesCacheTime = 0;
+
 router.get("/ciudades", verifyDirectusToken, async (req, res) => {
   try {
     const { fecha_desde, fecha_hasta } = req.query;
+    const now = Date.now();
 
-    // Validar fechas si se proporcionan
+    // Cache solo para consultas sin fecha
+    if (
+      !fecha_desde &&
+      !fecha_hasta &&
+      ciudadesCache &&
+      now - ciudadesCacheTime < ZONAS_CACHE_TTL
+    ) {
+      return res.json(ciudadesCache);
+    }
+
     let years;
     if (fecha_desde && fecha_hasta) {
-      // Validar formato de fechas
       if (!isValidDateFormat(fecha_desde) || !isValidDateFormat(fecha_hasta)) {
         return res
           .status(400)
@@ -124,7 +155,6 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
       const yearDesde = new Date(fecha_desde).getFullYear();
       const yearHasta = new Date(fecha_hasta).getFullYear();
 
-      // Validar años
       if (!isValidYear(yearDesde) || !isValidYear(yearHasta)) {
         return res.status(400).json({ error: "Año fuera del rango válido" });
       }
@@ -138,45 +168,34 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
       years = [currentYear];
     }
 
-    // Construir consulta UNION con parámetros preparados
     const sqlParts = [];
     const params = [];
+    const yearsToQuery = years.slice(-2); // Máximo 2 años
 
-    // kcn_db.ventas
-    years.forEach((year) => {
+    yearsToQuery.forEach((year) => {
       const safeYear = Math.floor(year);
       if (!isValidYear(safeYear)) return;
 
-      let whereClause = `v.bodega BETWEEN 3 AND 40 AND bod.ciudad IS NOT NULL AND bod.ciudad != ''`;
+      let whereClause = `v.bodega BETWEEN 3 AND 40`;
       if (fecha_desde && fecha_hasta) {
         whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
         params.push(fecha_desde, fecha_hasta);
       }
+
+      // kcn_db.ventas - usando INNER JOIN más eficiente
       sqlParts.push(`
         SELECT DISTINCT bod.ciudad AS nombre 
         FROM kcn_db.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
-          
-        WHERE ${whereClause}
+        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
+        WHERE ${whereClause} AND bod.ciudad IS NOT NULL AND bod.ciudad != ''
       `);
-    });
 
-    // naranka.ventas
-    years.forEach((year) => {
-      const safeYear = Math.floor(year);
-      if (!isValidYear(safeYear)) return;
-
-      let whereClause = `v.bodega BETWEEN 3 AND 40 AND bod.ciudad IS NOT NULL AND bod.ciudad != ''`;
-      if (fecha_desde && fecha_hasta) {
-        whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
-        params.push(fecha_desde, fecha_hasta);
-      }
+      // naranka.ventas
       sqlParts.push(`
         SELECT DISTINCT bod.ciudad AS nombre 
         FROM naranka.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
-          
-        WHERE ${whereClause}
+        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
+        WHERE ${whereClause} AND bod.ciudad IS NOT NULL AND bod.ciudad != ''
       `);
     });
 
@@ -186,7 +205,6 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
     try {
       const [rows] = await connection.execute(sqlFinal, params);
 
-      // Eliminar duplicados
       const ciudadesMap = new Map();
       rows.forEach((row) => {
         if (row.nombre) {
@@ -195,7 +213,15 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
       });
 
       const ciudades = Array.from(ciudadesMap.values()).sort();
-      res.json(ciudades.map((nombre) => ({ nombre })));
+      const result = ciudades.map((nombre) => ({ nombre }));
+
+      // Cache solo sin fechas
+      if (!fecha_desde && !fecha_hasta) {
+        ciudadesCache = result;
+        ciudadesCacheTime = now;
+      }
+
+      res.json(result);
     } finally {
       connection.release();
     }
@@ -207,19 +233,31 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
 
 /**
  * GET /api/tiendas
- * Obtener tiendas/bodegas desde las ventas (no desde tabla bodegas)
- * Obtiene nombre_bodega de las tablas de ventas y hace JOIN con kancan.bodegas para ciudad y zona
- * Acepta parámetros de fecha: fecha_desde, fecha_hasta
+ * Obtener tiendas/bodegas desde las ventas
  * PROTEGIDO: Requiere autenticación
+ * OPTIMIZACIÓN: Cache + consulta optimizada
  */
+
+let tiendasCache = null;
+let tiendasCacheTime = 0;
+
 router.get("/tiendas", verifyDirectusToken, async (req, res) => {
   try {
     const { fecha_desde, fecha_hasta } = req.query;
+    const now = Date.now();
 
-    // Validar fechas si se proporcionan
+    // Cache solo para consultas sin fecha
+    if (
+      !fecha_desde &&
+      !fecha_hasta &&
+      tiendasCache &&
+      now - tiendasCacheTime < ZONAS_CACHE_TTL
+    ) {
+      return res.json(tiendasCache);
+    }
+
     let years;
     if (fecha_desde && fecha_hasta) {
-      // Validar formato de fechas
       if (!isValidDateFormat(fecha_desde) || !isValidDateFormat(fecha_hasta)) {
         return res
           .status(400)
@@ -228,7 +266,6 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
       const yearDesde = new Date(fecha_desde).getFullYear();
       const yearHasta = new Date(fecha_hasta).getFullYear();
 
-      // Validar años
       if (!isValidYear(yearDesde) || !isValidYear(yearHasta)) {
         return res.status(400).json({ error: "Año fuera del rango válido" });
       }
@@ -242,12 +279,11 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
       years = [currentYear];
     }
 
-    // Construir consulta UNION con parámetros preparados
     const sqlParts = [];
     const params = [];
+    const yearsToQuery = years.slice(-2); // Máximo 2 años
 
-    // kcn_db.ventas (bodega BETWEEN 3 AND 40)
-    years.forEach((year) => {
+    yearsToQuery.forEach((year) => {
       const safeYear = Math.floor(year);
       if (!isValidYear(safeYear)) return;
 
@@ -256,6 +292,8 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
         whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
         params.push(fecha_desde, fecha_hasta);
       }
+
+      // kcn_db.ventas - INNER JOIN más eficiente
       sqlParts.push(`
         SELECT DISTINCT 
           v.bodega AS id, 
@@ -263,22 +301,11 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
           bod.ciudad, 
           bod.zona
         FROM kcn_db.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
-          
+        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
         WHERE ${whereClause}
       `);
-    });
 
-    // naranka.ventas (bodega BETWEEN 3 AND 40)
-    years.forEach((year) => {
-      const safeYear = Math.floor(year);
-      if (!isValidYear(safeYear)) return;
-
-      let whereClause = `v.bodega BETWEEN 3 AND 40`;
-      if (fecha_desde && fecha_hasta) {
-        whereClause += ` AND v.fecdoc BETWEEN ? AND ?`;
-        params.push(fecha_desde, fecha_hasta);
-      }
+      // naranka.ventas
       sqlParts.push(`
         SELECT DISTINCT 
           v.bodega AS id, 
@@ -286,8 +313,7 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
           bod.ciudad, 
           bod.zona
         FROM naranka.ventas_${safeYear} v
-        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
-          
+        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
         WHERE ${whereClause}
       `);
     });
@@ -298,7 +324,6 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
     try {
       const [rows] = await connection.execute(sqlFinal, params);
 
-      // Eliminar duplicados por nombre
       const tiendasMap = new Map();
       rows.forEach((tienda) => {
         if (!tiendasMap.has(tienda.nombre)) {
@@ -309,6 +334,11 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
       const tiendas = Array.from(tiendasMap.values()).sort((a, b) =>
         a.nombre.localeCompare(b.nombre),
       );
+
+      if (!fecha_desde && !fecha_hasta) {
+        tiendasCache = tiendas;
+        tiendasCacheTime = now;
+      }
 
       res.json(tiendas);
     } finally {
@@ -369,16 +399,23 @@ router.get("/grupos", verifyDirectusToken, async (req, res) => {
 /**
  * GET /api/agrupaciones
  * Obtener agrupaciones mapeadas para el usuario
- * Los 7 valores de BD se mapean a 4 grupos:
- * - Indigo: indigo, jeans
- * - Tela Liviana: nacional, importado, tela liviana
- * - Calzado: calzado
- * - Complemento: complemento
  * PROTEGIDO: Requiere autenticación
+ * OPTIMIZACIÓN: Datos estáticos, cacheados en memoria del servidor
  */
+let agrupacionesCache = null;
+let agrupacionesCacheTime = 0;
+const AGRUPACIONES_CACHE_TTL = 60 * 60 * 1000; // 1 hora
+
 router.get("/agrupaciones", verifyDirectusToken, async (req, res) => {
   try {
-    // Devolver las 4 agrupaciones mapeadas para el usuario
+    const now = Date.now();
+    if (
+      agrupacionesCache &&
+      now - agrupacionesCacheTime < AGRUPACIONES_CACHE_TTL
+    ) {
+      return res.json(agrupacionesCache);
+    }
+
     const agrupaciones = [
       { id: "Indigo", nombre: "Indigo", valores_bd: ["indigo", "jeans"] },
       {
@@ -389,6 +426,10 @@ router.get("/agrupaciones", verifyDirectusToken, async (req, res) => {
       { id: "Calzado", nombre: "Calzado", valores_bd: ["calzado"] },
       { id: "Complemento", nombre: "Complemento", valores_bd: ["complemento"] },
     ];
+
+    agrupacionesCache = agrupaciones;
+    agrupacionesCacheTime = now;
+
     res.json(agrupaciones);
   } catch (error) {
     console.error("Error al obtener agrupaciones:", error);
@@ -399,15 +440,23 @@ router.get("/agrupaciones", verifyDirectusToken, async (req, res) => {
 /**
  * GET /api/lineas-venta
  * Obtener líneas de venta mapeadas para el usuario
- * Los valores de BD se mapean a 3 grupos:
- * - Colección: colección
- * - Básicos: basic
- * - Promoción: promocion, liquidacion, segundas
  * PROTEGIDO: Requiere autenticación
+ * OPTIMIZACIÓN: Datos estáticos cacheados en memoria
  */
+
+let lineasVentaCache = null;
+let lineasVentaCacheTime = 0;
+
 router.get("/lineas-venta", verifyDirectusToken, async (req, res) => {
   try {
-    // Devolver las 3 líneas de venta mapeadas para el usuario
+    const now = Date.now();
+    if (
+      lineasVentaCache &&
+      now - lineasVentaCacheTime < AGRUPACIONES_CACHE_TTL
+    ) {
+      return res.json(lineasVentaCache);
+    }
+
     const lineas = [
       { id: "Colección", nombre: "Colección", valores_bd: ["colección"] },
       { id: "Básicos", nombre: "Básicos", valores_bd: ["basic"] },
@@ -417,6 +466,10 @@ router.get("/lineas-venta", verifyDirectusToken, async (req, res) => {
         valores_bd: ["promocion", "liquidacion", "segundas"],
       },
     ];
+
+    lineasVentaCache = lineas;
+    lineasVentaCacheTime = now;
+
     res.json(lineas);
   } catch (error) {
     console.error("Error al obtener líneas de venta:", error);
@@ -428,44 +481,56 @@ router.get("/lineas-venta", verifyDirectusToken, async (req, res) => {
  * GET /api/asesores
  * Obtener lista única de asesores
  * PROTEGIDO: Requiere autenticación
+ * OPTIMIZACIÓN: Cache + query optimizada
  */
+
+let asesoresCache = null;
+let asesoresCacheTime = 0;
+
 router.get("/asesores", verifyDirectusToken, async (req, res) => {
   try {
-    const currentYear = new Date().getFullYear();
-    const years = [currentYear - 1, currentYear];
+    const now = Date.now();
 
-    // Validar años
-    const safeYears = years.filter((y) => isValidYear(y));
-    if (safeYears.length === 0) {
+    if (asesoresCache && now - asesoresCacheTime < ZONAS_CACHE_TTL) {
+      return res.json(asesoresCache);
+    }
+
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear - 1, currentYear].filter((y) => isValidYear(y));
+
+    if (years.length === 0) {
       return res.status(400).json({ error: "Años inválidos" });
     }
 
-    const sqlKcn = safeYears
-      .map(
-        (year) => `
-      SELECT DISTINCT nombre_vendedor 
-      FROM kcn_db.ventas_${year}
-      WHERE nombre_vendedor IS NOT NULL AND nombre_vendedor != ''
-    `,
-      )
-      .join(" UNION ");
+    const sqlParts = [];
+    const params = [];
 
-    const sqlNaranka = safeYears
-      .map(
-        (year) => `
-      SELECT DISTINCT nombre_vendedor 
-      FROM naranka.ventas_${year}
-      WHERE nombre_vendedor IS NOT NULL AND nombre_vendedor != ''
-    `,
-      )
-      .join(" UNION ");
+    years.forEach((year) => {
+      // kcn_db - solo año más reciente para velocidad
+      if (year === currentYear) {
+        sqlParts.push(`
+          SELECT DISTINCT nombre_vendedor 
+          FROM kcn_db.ventas_${year}
+          WHERE nombre_vendedor IS NOT NULL AND nombre_vendedor != ''
+        `);
 
-    const sqlFinal = `${sqlKcn} UNION ${sqlNaranka}`;
+        sqlParts.push(`
+          SELECT DISTINCT nombre_vendedor 
+          FROM naranka.ventas_${year}
+          WHERE nombre_vendedor IS NOT NULL AND nombre_vendedor != ''
+        `);
+      }
+    });
+    const sqlFinal = sqlParts.join(" UNION ") + " LIMIT 5000";
 
     const connection = await getConnection();
     try {
       const [rows] = await connection.execute(sqlFinal);
-      const asesores = rows.map((r) => r.nombre_vendedor).sort();
+      const asesores = [...new Set(rows.map((r) => r.nombre_vendedor))].sort();
+
+      asesoresCache = asesores;
+      asesoresCacheTime = now;
+
       res.json(asesores);
     } finally {
       connection.release();
@@ -475,14 +540,11 @@ router.get("/asesores", verifyDirectusToken, async (req, res) => {
     res.status(500).json({ error: "Error al obtener asesores" });
   }
 });
-/**
- * GET /api/ventas
- * Obtener ventas con filtros, incluyendo línea de venta, agrupación, ciudad y zona
- * La zona y ciudad vienen directamente de la tabla bodegas
- * PROTEGIDO: Requiere autenticación con token de Directus
- */
 router.get("/ventas", verifyDirectusToken, async (req, res) => {
   try {
+    const ventasCache = new Map();
+    const VENTAS_CACHE_TTL = 5 * 60 * 1000;
+
     const {
       fecha_desde,
       fecha_hasta,
@@ -492,9 +554,10 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       ciudad,
       linea_venta,
       agrupacion,
+      page = 0,
+      limit = 10000,
     } = req.query;
 
-    // Si no hay fechas, usar un rango muy amplio para obtener todos los datos
     let fechaDesde = fecha_desde || "2025-10-01";
     let fechaHasta = fecha_hasta || "2026-12-31";
 
@@ -513,17 +576,25 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
     const yearDesde = new Date(fechaDesde).getFullYear();
     const yearHasta = new Date(fechaHasta).getFullYear();
 
-    // Validar años
     if (!isValidYear(yearDesde) || !isValidYear(yearHasta)) {
       return res.status(400).json({ error: "Año fuera del rango válido" });
     }
 
-    const years = [];
-    for (let y = yearDesde; y <= yearHasta; y++) {
-      years.push(y);
+    let years = [];
+    if (yearHasta - yearDesde > 1) {
+      years = [yearHasta - 1, yearHasta];
+    } else {
+      for (let y = yearDesde; y <= yearHasta; y++) {
+        years.push(y);
+      }
     }
 
-    // Construir condiciones WHERE (sin parámetros, se agregarán por cada consulta)
+    const cacheKey = `${fechaDesde}-${fechaHasta}-${bodega || ""}-${asesor || ""}-${zona || ""}-${ciudad || ""}-${linea_venta || ""}-${agrupacion || ""}-${page}-${limit}`;
+    const now = Date.now();
+    const cached = ventasCache.get(cacheKey);
+    if (cached && now - cached.time < VENTAS_CACHE_TTL) {
+      return res.json(cached.data);
+    }
     let whereBase = `WHERE v.fecdoc BETWEEN ? AND ?`;
 
     if (bodega) {
@@ -534,12 +605,9 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       whereBase += ` AND v.nombre_vendedor = ?`;
     }
 
-    // Filtro por ciudad (directamente de bodegas)
     if (ciudad) {
       whereBase += ` AND bod.ciudad = ?`;
     }
-
-    // Filtro por zona (directamente de bodegas)
     if (zona) {
       whereBase += ` AND bod.zona = ?`;
     }
@@ -557,7 +625,6 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       } else if (lineaLower === "promoción" || lineaLower === "promocion") {
         whereBase += ` AND LOWER(gh.linea_venta) IN ('promocion', 'liquidacion', 'segundas')`;
       } else {
-        // Filtro directo si no es uno de los mapeados
         whereBase += ` AND gh.linea_venta = ?`;
       }
     }
@@ -617,8 +684,6 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       return queryParams;
     };
 
-    // Consultas para cada año con JOIN a bodegas, referencias, grupos_homogeneos y grupos
-    // Mapeo de líneas de venta y agrupaciones según reglas de negocio
     const sqlParts = [];
     const params = [];
 
@@ -736,7 +801,20 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
 
     const connection = await getConnection();
     try {
-      const [rows] = await connection.execute(sqlFinal, params);
+      const pageNum = parseInt(String(page)) || 0;
+      const limitNum = parseInt(String(limit)) || 10000;
+      const offset = pageNum * limitNum;
+
+      const paginatedSql = `${sqlFinal} LIMIT ${limitNum} OFFSET ${offset}`;
+      const [rows] = await connection.execute(paginatedSql, params);
+
+      ventasCache.set(cacheKey, { time: now, data: rows });
+
+      if (ventasCache.size > 100) {
+        const oldestKey = ventasCache.keys().next().value;
+        ventasCache.delete(oldestKey);
+      }
+
       res.json(rows);
     } finally {
       connection.release();
@@ -747,5 +825,4 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
   }
 });
 
-// Exportar el router
 module.exports = router;

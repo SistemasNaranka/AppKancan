@@ -110,15 +110,6 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
       ),
     );
 
-    const todosProcesos = await withAutoRefresh(() =>
-      directus.request(
-        readItems("gp_proceso", {
-          fields: ["id", "proyecto_id"],
-          limit: 5,
-        }),
-      ),
-    );
-
     const beneficios = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_beneficios", {

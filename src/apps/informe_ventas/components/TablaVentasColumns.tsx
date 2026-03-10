@@ -208,8 +208,10 @@ export function TableToolbar({
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={onCloseMenu}
-          PaperProps={{
-            sx: { maxHeight: 300, width: 200 },
+          slotProps={{
+            paper: {
+              sx: { maxHeight: 300, width: 200 },
+            },
           }}
         >
           {columnasOpcionales.map((columna) => (
@@ -322,6 +324,7 @@ export const AGRUPACIONES: Agrupacion[] = [
 
 /**
  * Columnas opcionales por defecto (todas ocultas)
+ * Incluye columnas de comisión que el usuario puede mostrar si desea
  */
 export const COLUMNAS_POR_DEFECTO: ColumnaOpcional[] = [
   { id: "ciudad", label: "Ciudad", visible: false, align: "left" },
@@ -358,6 +361,25 @@ export const COLUMNAS_POR_DEFECTO: ColumnaOpcional[] = [
     visible: false,
     align: "right",
   },
+  // Comisiones (opcionales - el usuario decide si verlas)
+  {
+    id: "comision_coleccion",
+    label: "Comisión Colección",
+    visible: false,
+    align: "right",
+  },
+  {
+    id: "comision_basicos",
+    label: "Comisión Básicos",
+    visible: false,
+    align: "right",
+  },
+  {
+    id: "comision_promocion",
+    label: "Comisión Promoción",
+    visible: false,
+    align: "right",
+  },
 ];
 
 /**
@@ -374,7 +396,8 @@ export const COLUMNAS_OBLIGATORIAS: {
 ];
 
 /**
- * Columnas de presupuesto y comisión (obligatorias)
+ * Columnas de presupuesto y cumplimiento (obligatorias)
+ * Las columnas de comisión son opcionales
  */
 export const COLUMNAS_PRESUPUESTO_COMISION: {
   id: keyof TablaVentasFila;
@@ -384,15 +407,15 @@ export const COLUMNAS_PRESUPUESTO_COMISION: {
   // Colección
   { id: "presupuesto_coleccion", label: "Presup. Colección", align: "right" },
   { id: "valor_coleccion", label: "Venta Colección", align: "right" },
-  { id: "comision_coleccion", label: "Comisión Colección", align: "right" },
+  { id: "cumplimiento_coleccion", label: "% Cumpl. Colección", align: "right" },
   // Básicos
   { id: "presupuesto_basicos", label: "Presup. Básicos", align: "right" },
   { id: "valor_basicos", label: "Venta Básicos", align: "right" },
-  { id: "comision_basicos", label: "Comisión Básicos", align: "right" },
+  { id: "cumplimiento_basicos", label: "% Cumpl. Básicos", align: "right" },
   // Promoción
   { id: "presupuesto_promocion", label: "Presup. Promoción", align: "right" },
   { id: "valor_promocion", label: "Venta Promoción", align: "right" },
-  { id: "comision_promocion", label: "Comisión Promoción", align: "right" },
+  { id: "cumplimiento_promocion", label: "% Cumpl. Promoción", align: "right" },
 ];
 
 /**
@@ -430,4 +453,26 @@ export function formatCurrency(value: number): string {
  */
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("es-CO").format(value);
+}
+
+/**
+ * Formatea un valor como porcentaje de cumplimiento
+ * Muestra el símbolo % y usa color según el valor
+ */
+export function formatPercentage(value: number): string {
+  return `${Math.round(value)}%`;
+}
+
+/**
+ * Obtiene el color según el cumplimiento
+ * - Verde oscuro: >= 100%
+ * - Amarillo: > 95% y < 100%
+ * - Rojo: <= 95%
+ */
+export function getCumplimientoColor(
+  cumplimiento: number,
+): "success.dark" | "warning.main" | "error.main" {
+  if (cumplimiento >= 100) return "success.dark";
+  if (cumplimiento > 95) return "warning.main";
+  return "error.main";
 }

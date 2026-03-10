@@ -1,17 +1,4 @@
-/**
- * Componente de tabla de ventas para el Informe de Ventas
- *
- * Muestra:
- * - Nombre del asesor
- * - Tienda/Bodega
- * - Ciudad/Zona
- * - Unidades vendidas (total)
- * - Valor de ventas
- * - Líneas de venta como columnas fijas (Colección, Básicos, Promoción)
- * - Agrupaciones como columnas seleccionables (Indigo, Tela Liviana, Calzado, Complemento)
- */
-
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Paper,
   Table,
@@ -24,7 +11,7 @@ import {
   Typography,
   TablePagination,
 } from "@mui/material";
-import { TablaVentasFila, Agrupacion } from "../types";
+import { TablaVentasFila, FiltrosVentas, Agrupacion } from "../types";
 import {
   AGRUPACIONES,
   COLUMNAS_POR_DEFECTO,
@@ -34,20 +21,31 @@ import {
   ColumnaOpcional,
   formatCurrency,
   formatNumber,
+  formatPercentage,
+  getCumplimientoColor,
   TableToolbar,
-  TableHeaderCell,
-  TableDataCell,
 } from "./TablaVentasColumns";
 
 interface TablaVentasProps {
   datos: TablaVentasFila[];
   loading?: boolean;
+  // Indica si ya se han cargado datos al menos una vez - evita parpadeo
+  hasLoadedAtLeastOnce?: boolean;
+  // Filtros actuales para detectar si el usuario ha filtrado
+  filtros?: FiltrosVentas;
+  getVisibleColumnsRef?: React.MutableRefObject<(() => string[]) | null>;
 }
 
 type OrdenDireccion = "asc" | "desc";
 type CampoOrden = keyof TablaVentasFila;
 
-export function TablaVentas({ datos, loading }: TablaVentasProps) {
+export function TablaVentas({
+  datos,
+  loading,
+  hasLoadedAtLeastOnce,
+  filtros,
+  getVisibleColumnsRef,
+}: TablaVentasProps) {
   const [ordenCampo, setOrdenCampo] = useState<CampoOrden>("valor");
   const [ordenDireccion, setOrdenDireccion] = useState<OrdenDireccion>("desc");
   const [busqueda, setBusqueda] = useState("");
@@ -110,26 +108,11 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     }
   };
 
-  const handleSelectAll = () => {
-    if (agrupacionesSeleccionadas.length === AGRUPACIONES.length) {
-      setAgrupacionesSeleccionadas([]);
-    } else {
-      setAgrupacionesSeleccionadas([...AGRUPACIONES]);
-    }
-  };
-
   const handleToggleColumna = (columnaId: CampoOrden) => {
     setColumnasOpcionales((prev) =>
       prev.map((col) =>
         col.id === columnaId ? { ...col, visible: !col.visible } : col,
       ),
-    );
-  };
-
-  const handleSelectAllColumnas = () => {
-    const todasVisibles = columnasOpcionales.every((col) => col.visible);
-    setColumnasOpcionales((prev) =>
-      prev.map((col) => ({ ...col, visible: !todasVisibles })),
     );
   };
 
@@ -160,6 +143,42 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     agrupacionesSeleccionadas,
   );
 
+  // Columnas visibles computadas (memoized para rendimiento)
+  const columnasVisibles = useMemo(() => {
+    return [
+      ...COLUMNAS_OBLIGATORIAS.map((c) => c.id),
+      ...COLUMNAS_PRESUPUESTO_COMISION.map((c) => c.id),
+      ...columnasOpcionales.filter((col) => col.visible).map((c) => c.id),
+      ...columnasAgrupaciones.map((c) => c.id),
+    ];
+  }, [columnasOpcionales, columnasAgrupaciones]);
+
+  useEffect(() => {
+    if (getVisibleColumnsRef) {
+      getVisibleColumnsRef.current = () => columnasVisibles;
+    }
+  }, [getVisibleColumnsRef, columnasVisibles]);
+
+  // Función para verificar si el usuario ha aplicado filtros
+  const usuarioHaFiltrado = Boolean(
+    filtros?.zona ||
+    filtros?.ciudad ||
+    filtros?.bodega ||
+    filtros?.asesor ||
+    filtros?.linea_venta ||
+    filtros?.agrupacion,
+  );
+
+  // Determinar si mostrar mensaje de "no hay datos"
+  // Solo mostrar cuando: NO hay datos Y el usuario ha filtrado
+  const noHayDatosYFiltrado =
+    !loading &&
+    hasLoadedAtLeastOnce &&
+    datos &&
+    Array.isArray(datos) &&
+    datos.length === 0 &&
+    usuarioHaFiltrado;
+
   if (loading) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }}>
@@ -168,7 +187,8 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     );
   }
 
-  if (datos.length === 0) {
+  // Mostrar mensaje si no hay resultados Y el usuario ha filtrado
+  if (noHayDatosYFiltrado) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }}>
         <Typography color="text.secondary">
@@ -236,7 +256,6 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
         >
           <TableHead>
             <TableRow>
-              {/* Columnas obligatorias: Asesor, Tienda, Valor Total */}
               {columnasObligatorias.map((columna) => (
                 <TableCell
                   key={columna.id}
@@ -263,7 +282,6 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                   </TableSortLabel>
                 </TableCell>
               ))}
-              {/* Columnas de Presupuesto y Comisión (obligatorias) */}
               {columnasPresupuestoComision.map((columna) => (
                 <TableCell
                   key={columna.id}
@@ -383,8 +401,12 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ px: 1.5 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatCurrency(fila.comision_coleccion)}
+                  <Typography
+                    variant="body2"
+                    color={getCumplimientoColor(fila.cumplimiento_coleccion)}
+                    fontWeight={600}
+                  >
+                    {formatPercentage(fila.cumplimiento_coleccion)}
                   </Typography>
                 </TableCell>
                 {/* Básicos */}
@@ -399,8 +421,12 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ px: 1.5 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatCurrency(fila.comision_basicos)}
+                  <Typography
+                    variant="body2"
+                    color={getCumplimientoColor(fila.cumplimiento_basicos)}
+                    fontWeight={600}
+                  >
+                    {formatPercentage(fila.cumplimiento_basicos)}
                   </Typography>
                 </TableCell>
                 {/* Promoción */}
@@ -415,8 +441,12 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ px: 1.5 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatCurrency(fila.comision_promocion)}
+                  <Typography
+                    variant="body2"
+                    color={getCumplimientoColor(fila.cumplimiento_promocion)}
+                    fontWeight={600}
+                  >
+                    {formatPercentage(fila.cumplimiento_promocion)}
                   </Typography>
                 </TableCell>
                 {/* Columnas opcionales */}

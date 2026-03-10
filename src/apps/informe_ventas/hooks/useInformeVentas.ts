@@ -1,14 +1,6 @@
-/**
- * Hook principal para el Informe de Ventas
- *
- * Maneja toda la lógica de:
- * - Carga de datos
- * - Filtros (se aplican en el servidor)
- * - Cálculos y agregaciones
- * - Estado de la aplicación
- */
-
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import queryClient from "@/services/tankstack/QueryClient";
 import {
   VentaRegistro,
   VentaAsesor,
@@ -31,12 +23,18 @@ import {
   obtenerAgrupaciones,
   obtenerLineasVenta,
 } from "../api/mysql/read";
-
-// ==================== INTERFAZ DEL HOOK ====================
-
+import {
+  obtenerPresupuestosEmpleados,
+  distribuirPresupuesto,
+  obtenerUmbralesComisiones,
+  calculateLineCommission,
+  CommissionThreshold,
+} from "../api/directus/read";
 interface UseInformeVentasReturn {
   // Estado
   loading: boolean;
+  isFetching: boolean;
+  hasLoadedAtLeastOnce: boolean;
   error: string | null;
   ventas: VentaRegistro[];
   zonas: Zona[];
@@ -47,6 +45,10 @@ interface UseInformeVentasReturn {
   lineasVenta: LineaVenta[];
   filtros: FiltrosVentas;
   resumen: ResumenVentas | null;
+
+  ciudadesFiltradas: string[];
+  tiendasFiltradas: { id: number; nombre: string }[];
+  asesoresFiltrados: string[];
 
   // Datos procesados
   ventasPorAsesor: VentaAsesor[];
@@ -59,10 +61,8 @@ interface UseInformeVentasReturn {
   recargarDatos: () => Promise<void>;
 }
 
-// ==================== VALORES POR DEFECTO ====================
-
 const filtrosIniciales: FiltrosVentas = {
-  fecha_desde: new Date(new Date().setDate(1)).toISOString().split("T")[0], // Primer día del mes actual
+  fecha_desde: new Date(new Date().setDate(1)).toISOString().split("T")[0],
   fecha_hasta: new Date().toISOString().split("T")[0], // Hoy
 };
 
@@ -83,12 +83,9 @@ const resumenVacio: ResumenVentas = {
   top_tiendas_valor: [],
 };
 
-// ==================== HOOK PRINCIPAL ====================
-
 export function useInformeVentas(): UseInformeVentasReturn {
   // Estados principales
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
   const [ventas, setVentas] = useState<VentaRegistro[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
@@ -98,88 +95,171 @@ export function useInformeVentas(): UseInformeVentasReturn {
   const [lineasVenta, setLineasVenta] = useState<LineaVenta[]>([]);
   const [filtros, setFiltros] = useState<FiltrosVentas>(filtrosIniciales);
 
-  // ==================== CARGA DE DATOS ====================
+  const [presupuestosEmpleados, setPresupuestosEmpleados] = useState<
+    Map<number, number>
+  >(new Map());
 
-  const cargarDatosIniciales = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  // Estado para umbrales de comisión
+  const [umbralesComision, setUmbralesComision] = useState<
+    CommissionThreshold[]
+  >([]);
+  const CACHE_TIME = 5 * 60 * 1000; // 5 minutos - datos más frescos
 
-    try {
-      // Cargar datos maestros en paralelo (sin filtros de fecha inicialmente)
-      const [asesoresData, agrupacionesData, lineasVentaData] =
-        await Promise.all([
-          obtenerAsesores(),
-          obtenerAgrupaciones(),
-          obtenerLineasVenta(),
-        ]);
+  const { data: zonasData } = useQuery({
+    queryKey: ["zonas"],
+    queryFn: () => obtenerZonas("", ""),
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+  });
 
-      setAsesores(asesoresData);
-      setAgrupaciones(agrupacionesData);
-      setLineasVenta(lineasVentaData);
-    } catch (err) {
-      console.error("Error al cargar datos iniciales:", err);
-      setError("Error al cargar los datos. Por favor, intente nuevamente.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: ciudadesData } = useQuery({
+    queryKey: ["ciudades"],
+    queryFn: () => obtenerCiudades("", ""),
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+  });
 
-  // Cargar filtros contextuales (zonas, ciudades, tiendas) basados en el rango de fechas
-  const cargarFiltrosContextuales = useCallback(
-    async (fechaDesde: string, fechaHasta: string) => {
-      try {
-        const [zonasData, ciudadesData, tiendasData] = await Promise.all([
-          obtenerZonas(fechaDesde, fechaHasta),
-          obtenerCiudades(fechaDesde, fechaHasta),
-          obtenerTiendas(fechaDesde, fechaHasta),
-        ]);
+  const { data: tiendasData } = useQuery({
+    queryKey: ["tiendas"],
+    queryFn: () => obtenerTiendas("", ""),
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+  });
 
-        setZonas(zonasData);
-        setCiudades(ciudadesData);
-        setTiendas(tiendasData);
-      } catch (err) {
-        console.error("Error al cargar filtros contextuales:", err);
-      }
+  const { data: asesoresData } = useQuery({
+    queryKey: ["asesores"],
+    queryFn: () => obtenerAsesores(),
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+  });
+
+  const { data: agrupacionesData } = useQuery({
+    queryKey: ["agrupaciones"],
+    queryFn: () => obtenerAgrupaciones(),
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+  });
+
+  const { data: lineasVentaData } = useQuery({
+    queryKey: ["lineasVenta"],
+    queryFn: () => obtenerLineasVenta(),
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+  });
+
+  const { data: umbralesComisionData } = useQuery({
+    queryKey: ["umbralesComision"],
+    queryFn: async () => {
+      const fecha = new Date();
+      const meses = [
+        "Ene",
+        "Feb",
+        "Mar",
+        "Abr",
+        "May",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dic",
+      ];
+      const mesActual = `${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
+      const umbralesData = await obtenerUmbralesComisiones(mesActual);
+      return umbralesData?.cumplimiento_valores || [];
     },
-    [],
-  );
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+  });
 
-  const cargarVentas = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const dataReady = true;
 
-    try {
-      const ventasData = await obtenerVentas(filtros);
-      setVentas(ventasData);
-    } catch (err) {
-      console.error("Error al cargar ventas:", err);
-      setError("Error al cargar las ventas. Por favor, intente nuevamente.");
-    } finally {
-      setLoading(false);
-    }
-  }, [filtros]);
+  const {
+    data: ventasData,
+    isLoading: loadingVentas,
+    isFetching: fetchingVentas,
+  } = useQuery({
+    queryKey: ["ventas", filtros.fecha_desde, filtros.fecha_hasta],
+    queryFn: () =>
+      obtenerVentas({
+        fecha_desde: filtros.fecha_desde,
+        fecha_hasta: filtros.fecha_hasta,
+      }),
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    enabled: dataReady,
+  });
 
-  // Cargar datos iniciales al montar el componente
+  const { data: presupuestosData } = useQuery({
+    queryKey: ["presupuestos", filtros.fecha_desde, filtros.fecha_hasta],
+    queryFn: () =>
+      obtenerPresupuestosEmpleados(filtros.fecha_desde, filtros.fecha_hasta),
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    enabled: dataReady,
+  });
   useEffect(() => {
-    cargarDatosIniciales();
-  }, [cargarDatosIniciales]);
+    if (zonasData) setZonas(zonasData);
+  }, [zonasData]);
 
-  // Cargar ventas y filtros contextuales cuando cambien las fechas
   useEffect(() => {
-    if (filtros.fecha_desde && filtros.fecha_hasta) {
-      // Cargar filtros contextuales basados en el rango de fechas
-      cargarFiltrosContextuales(filtros.fecha_desde, filtros.fecha_hasta);
-      // Cargar ventas
-      cargarVentas();
-    }
-  }, [
-    filtros.fecha_desde,
-    filtros.fecha_hasta,
-    cargarFiltrosContextuales,
-    cargarVentas,
-  ]);
+    if (ciudadesData) setCiudades(ciudadesData);
+  }, [ciudadesData]);
 
-  // ==================== PROCESAMIENTO DE DATOS ====================
+  useEffect(() => {
+    if (tiendasData) setTiendas(tiendasData);
+  }, [tiendasData]);
+
+  useEffect(() => {
+    if (ventasData) setVentas(ventasData);
+  }, [ventasData]);
+
+  useEffect(() => {
+    if (asesoresData) setAsesores(asesoresData);
+  }, [asesoresData]);
+
+  useEffect(() => {
+    if (agrupacionesData) setAgrupaciones(agrupacionesData);
+  }, [agrupacionesData]);
+
+  useEffect(() => {
+    if (lineasVentaData) setLineasVenta(lineasVentaData);
+  }, [lineasVentaData]);
+
+  // Procesar presupuestos cuando cambian los datos
+  useEffect(() => {
+    if (presupuestosData && presupuestosData.length > 0) {
+      const presupuestosMap = new Map<number, number>();
+      presupuestosData.forEach((p) => {
+        const codigoAsesor = Number(p.asesor);
+        const presupuesto = Number(p.presupuesto);
+        const presupuestoActual = presupuestosMap.get(codigoAsesor) || 0;
+        presupuestosMap.set(codigoAsesor, presupuestoActual + presupuesto);
+      });
+      setPresupuestosEmpleados(presupuestosMap);
+    }
+  }, [presupuestosData]);
+  useEffect(() => {
+    if (umbralesComisionData) {
+      setUmbralesComision(umbralesComisionData);
+    }
+  }, [umbralesComisionData]);
+  const hasLoadedAtLeastOnce =
+    ventasData !== undefined &&
+    Array.isArray(ventasData) &&
+    ventasData.length > 0;
+
+  // Loading permanece activo hasta que haya datos
+  const loading = loadingVentas || fetchingVentas || !hasLoadedAtLeastOnce;
+
+  useEffect(() => {}, []);
+
+  const extraerCodigoAsesor = (asesorCompleto: string): number | null => {
+    const primeraParte = asesorCompleto.trim().split(/\s+/)[0];
+    const codigo = parseInt(primeraParte, 10);
+    return isNaN(codigo) ? null : codigo;
+  };
 
   // Mapa de tiendas para búsqueda rápida
   const tiendasMap = useMemo(() => {
@@ -190,11 +270,54 @@ export function useInformeVentas(): UseInformeVentasReturn {
     return map;
   }, [tiendas]);
 
-  // Ventas agregadas por asesor
+  const ventasFiltradas = useMemo(() => {
+    let resultado = ventas;
+
+    // Filtrar por fecha
+    if (filtros.fecha_desde) {
+      resultado = resultado.filter(
+        (v) => v.fecha_factura >= filtros.fecha_desde,
+      );
+    }
+    if (filtros.fecha_hasta) {
+      resultado = resultado.filter(
+        (v) => v.fecha_factura <= filtros.fecha_hasta,
+      );
+    }
+
+    if (filtros.zona) {
+      resultado = resultado.filter((v) => v.zona === filtros.zona);
+    }
+
+    if (filtros.ciudad) {
+      resultado = resultado.filter((v) => v.ciudad === filtros.ciudad);
+    }
+
+    if (filtros.bodega) {
+      resultado = resultado.filter((v) => v.bodega === filtros.bodega);
+    }
+
+    if (filtros.asesor) {
+      resultado = resultado.filter((v) => v.asesor === filtros.asesor);
+    }
+
+    if (filtros.linea_venta) {
+      resultado = resultado.filter(
+        (v) => v.linea_venta === filtros.linea_venta,
+      );
+    }
+
+    if (filtros.agrupacion) {
+      resultado = resultado.filter((v) => v.agrupacion === filtros.agrupacion);
+    }
+
+    return resultado;
+  }, [ventas, filtros]);
+
   const ventasPorAsesor = useMemo<VentaAsesor[]>(() => {
     const agrupado = new Map<string, VentaAsesor>();
 
-    ventas.forEach((venta) => {
+    ventasFiltradas.forEach((venta) => {
       const key = `${venta.asesor}|${venta.bodega}`;
 
       if (!agrupado.has(key)) {
@@ -253,7 +376,7 @@ export function useInformeVentas(): UseInformeVentasReturn {
     return Array.from(agrupado.values()).sort(
       (a, b) => b.total_unidades - a.total_unidades,
     );
-  }, [ventas, tiendasMap]);
+  }, [ventasFiltradas, tiendasMap]);
 
   // Ventas agregadas por tienda
   const ventasPorTienda = useMemo<VentaTienda[]>(() => {
@@ -283,79 +406,96 @@ export function useInformeVentas(): UseInformeVentasReturn {
     return Array.from(agrupado.values()).sort(
       (a, b) => b.total_unidades - a.total_unidades,
     );
-  }, [ventasPorAsesor]);
+  }, [ventasFiltradas, tiendasMap]);
 
   // Datos para la tabla
   const tablaVentas = useMemo<TablaVentasFila[]>(() => {
-    return ventasPorAsesor.map((v, index) => ({
-      id: `${index}`,
-      asesor: v.asesor,
-      bodega: v.bodega,
-      ciudad: v.ciudad,
-      zona: v.zona,
-      unidades: v.total_unidades,
-      valor: v.total_valor,
-      unidades_coleccion: v.unidades_coleccion,
-      unidades_basicos: v.unidades_basicos,
-      unidades_promocion: v.unidades_promocion,
-      valor_coleccion: v.valor_coleccion,
-      valor_basicos: v.valor_basicos,
-      valor_promocion: v.valor_promocion,
-      unidades_indigo: v.unidades_indigo,
-      unidades_tela_liviana: v.unidades_tela_liviana,
-      unidades_calzado: v.unidades_calzado,
-      unidades_complemento: v.unidades_complemento,
-      // Nuevas columnas: Presupuesto y Comisión (por ahora en 0)
-      presupuesto_coleccion: 0,
-      comision_coleccion: 0,
-      presupuesto_basicos: 0,
-      comision_basicos: 0,
-      presupuesto_promocion: 0,
-      comision_promocion: 0,
-    }));
-  }, [ventasPorAsesor]);
+    return ventasPorAsesor.map((v, index) => {
+      const codigoAsesor = extraerCodigoAsesor(v.asesor);
 
-  // Resumen general
+      const presupuestoTotal = codigoAsesor
+        ? presupuestosEmpleados.get(codigoAsesor) || 0
+        : 0;
+      const presupuestoDistribuido = distribuirPresupuesto(presupuestoTotal);
+      const comisionColeccion = calculateLineCommission(
+        v.valor_coleccion,
+        presupuestoDistribuido.presupuesto_coleccion,
+        umbralesComision,
+      );
+      const comisionBasicos = calculateLineCommission(
+        v.valor_basicos,
+        presupuestoDistribuido.presupuesto_basicos,
+        umbralesComision,
+      );
+      const comisionPromocion = calculateLineCommission(
+        v.valor_promocion,
+        presupuestoDistribuido.presupuesto_promocion,
+        umbralesComision,
+      );
+
+      return {
+        id: `${index}`,
+        asesor: v.asesor,
+        bodega: v.bodega,
+        ciudad: v.ciudad,
+        zona: v.zona,
+        unidades: v.total_unidades,
+        valor: v.total_valor,
+        unidades_coleccion: v.unidades_coleccion,
+        unidades_basicos: v.unidades_basicos,
+        unidades_promocion: v.unidades_promocion,
+        valor_coleccion: v.valor_coleccion,
+        valor_basicos: v.valor_basicos,
+        valor_promocion: v.valor_promocion,
+        unidades_indigo: v.unidades_indigo,
+        unidades_tela_liviana: v.unidades_tela_liviana,
+        unidades_calzado: v.unidades_calzado,
+        unidades_complemento: v.unidades_complemento,
+        // Presupuestos distribuidos por línea de venta
+        presupuesto_coleccion: presupuestoDistribuido.presupuesto_coleccion,
+        cumplimiento_coleccion: comisionColeccion.cumplimiento,
+        comision_coleccion: comisionColeccion.comision,
+        presupuesto_basicos: presupuestoDistribuido.presupuesto_basicos,
+        cumplimiento_basicos: comisionBasicos.cumplimiento,
+        comision_basicos: comisionBasicos.comision,
+        presupuesto_promocion: presupuestoDistribuido.presupuesto_promocion,
+        cumplimiento_promocion: comisionPromocion.cumplimiento,
+        comision_promocion: comisionPromocion.comision,
+      };
+    });
+  }, [ventasPorAsesor, presupuestosEmpleados, umbralesComision]);
+
   const resumen = useMemo<ResumenVentas>(() => {
-    if (ventas.length === 0) {
+    if (ventasFiltradas.length === 0) {
       return resumenVacio;
     }
 
-    const totalUnidades = ventas.reduce((sum, v) => sum + v.venta, 0);
-    const totalValor = ventas.reduce((sum, v) => sum + v.valor, 0);
-    const totalAsesores = new Set(ventas.map((v) => v.asesor)).size;
-    const totalTiendas = new Set(ventas.map((v) => v.bodega)).size;
+    const totalUnidades = ventasFiltradas.reduce((sum, v) => sum + v.venta, 0);
+    const totalValor = ventasFiltradas.reduce((sum, v) => sum + v.valor, 0);
+    const totalAsesores = new Set(ventasFiltradas.map((v) => v.asesor)).size;
+    const totalTiendas = new Set(ventasFiltradas.map((v) => v.bodega)).size;
 
-    // Totales por agrupación (mapeadas: Indigo, Tela Liviana, Calzado, Complemento)
-    const totalUnidadesIndigo = ventas
+    const totalUnidadesIndigo = ventasFiltradas
       .filter((v) => v.agrupacion === "Indigo")
       .reduce((sum, v) => sum + v.venta, 0);
-    const totalUnidadesLiviano = ventas
+    const totalUnidadesLiviano = ventasFiltradas
       .filter((v) => v.agrupacion === "Tela Liviana")
       .reduce((sum, v) => sum + v.venta, 0);
-    const totalValorIndigo = ventas
+    const totalValorIndigo = ventasFiltradas
       .filter((v) => v.agrupacion === "Indigo")
       .reduce((sum, v) => sum + v.valor, 0);
-    const totalValorLiviano = ventas
+    const totalValorLiviano = ventasFiltradas
       .filter((v) => v.agrupacion === "Tela Liviana")
       .reduce((sum, v) => sum + v.valor, 0);
-
-    // Top 5 asesores por unidades
     const topAsesoresUnidades = [...ventasPorAsesor]
       .sort((a, b) => b.total_unidades - a.total_unidades)
       .slice(0, 5);
-
-    // Top 5 asesores por valor
     const topAsesoresValor = [...ventasPorAsesor]
       .sort((a, b) => b.total_valor - a.total_valor)
       .slice(0, 5);
-
-    // Top 5 tiendas por unidades
     const topTiendasUnidades = [...ventasPorTienda]
       .sort((a, b) => b.total_unidades - a.total_unidades)
       .slice(0, 5);
-
-    // Top 5 tiendas por valor
     const topTiendasValor = [...ventasPorTienda]
       .sort((a, b) => b.total_valor - a.total_valor)
       .slice(0, 5);
@@ -378,9 +518,7 @@ export function useInformeVentas(): UseInformeVentasReturn {
       top_tiendas_unidades: topTiendasUnidades,
       top_tiendas_valor: topTiendasValor,
     };
-  }, [ventas, ventasPorAsesor, ventasPorTienda]);
-
-  // ==================== ACCIONES ====================
+  }, [ventasFiltradas, ventasPorAsesor, ventasPorTienda]);
 
   const actualizarFiltros = useCallback(
     (nuevosFiltros: Partial<FiltrosVentas>) => {
@@ -395,19 +533,61 @@ export function useInformeVentas(): UseInformeVentasReturn {
   const limpiarFiltros = useCallback(() => {
     setFiltros(filtrosIniciales);
   }, []);
-
   const recargarDatos = useCallback(async () => {
-    await cargarDatosIniciales();
-    await cargarVentas();
-  }, [cargarDatosIniciales, cargarVentas]);
+    await queryClient.invalidateQueries();
+  }, []);
+  const ciudadesFiltradas = useMemo(() => {
+    if (!filtros.zona) return ciudades.map((c) => c.nombre);
+    const tiendasDeZona = tiendas.filter((t) => t.zona === filtros.zona);
+    const ciudadesDeZona = new Set(tiendasDeZona.map((t) => t.ciudad));
+    return ciudades
+      .filter((c) => ciudadesDeZona.has(c.nombre))
+      .map((c) => c.nombre);
+  }, [ciudades, tiendas, filtros.zona]);
 
-  // ==================== RETORNO ====================
+  const tiendasFiltradas = useMemo(() => {
+    let resultado = tiendas;
+    if (filtros.zona) {
+      resultado = resultado.filter((t) => t.zona === filtros.zona);
+    }
+    if (filtros.ciudad) {
+      resultado = resultado.filter((t) => t.ciudad === filtros.ciudad);
+    }
+    return resultado.map((t) => ({ id: t.id, nombre: t.nombre }));
+  }, [tiendas, filtros.zona, filtros.ciudad]);
+  const asesoresFiltrados = useMemo(() => {
+    if (!ventasFiltradas.length) return asesores;
+
+    let asesoresDisponibles = new Set<string>();
+
+    ventasFiltradas.forEach((v) => {
+      let incluir = true;
+      if (filtros.zona && v.zona !== filtros.zona) {
+        incluir = false;
+      }
+      if (filtros.ciudad && v.ciudad !== filtros.ciudad) {
+        incluir = false;
+      }
+      if (filtros.bodega && v.bodega !== filtros.bodega) {
+        incluir = false;
+      }
+
+      if (incluir) {
+        asesoresDisponibles.add(v.asesor);
+      }
+    });
+    if (filtros.zona || filtros.ciudad || filtros.bodega) {
+      return Array.from(asesoresDisponibles).sort();
+    }
+    return asesores;
+  }, [ventasFiltradas, asesores, filtros.zona, filtros.ciudad, filtros.bodega]);
 
   return {
-    // Estado
     loading,
+    isFetching: fetchingVentas,
     error,
-    ventas,
+    ventas: ventasFiltradas,
+    hasLoadedAtLeastOnce,
     zonas,
     ciudades,
     tiendas,
@@ -416,13 +596,12 @@ export function useInformeVentas(): UseInformeVentasReturn {
     lineasVenta,
     filtros,
     resumen,
-
-    // Datos procesados
+    ciudadesFiltradas,
+    tiendasFiltradas,
+    asesoresFiltrados,
     ventasPorAsesor,
     ventasPorTienda,
     tablaVentas,
-
-    // Acciones
     actualizarFiltros,
     limpiarFiltros,
     recargarDatos,

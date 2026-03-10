@@ -1,11 +1,3 @@
-/**
- * API para leer datos del Informe de Ventas
- *
- * Conecta con el servidor backend que se comunica con MySQL
- * - Servidor: 192.168.19.250
- * - Bases de datos: kancan, naranka
- */
-
 import {
   VentaRegistro,
   Zona,
@@ -18,12 +10,7 @@ import {
 } from "../../types";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 
-// URL del servidor backend
-// En producción, la API está en el mismo servidor que el frontend
-// En desarrollo, se puede configurar via variable de entorno
 const API_URL = import.meta.env.VITE_VENTAS_API_URL || "/api";
-
-// ==================== FUNCIONES AUXILIARES ====================
 
 /**
  * Obtiene los headers de autenticación con el token de Directus
@@ -61,8 +48,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
   return response.json();
 }
-
-// ==================== FUNCIONES DE LECTURA ====================
 
 /**
  * Obtener zonas/procesos
@@ -163,22 +148,20 @@ export async function obtenerGruposHomogeneos(): Promise<GrupoHomogeneo[]> {
 }
 
 /**
- * Obtener ventas con filtros
+ * Obtener ventas con filtros de fecha (solo fechas son pasadas al servidor)
+ * Los demás filtros (bodega, asesor, zona, etc.) se aplican en memoria
  */
 export async function obtenerVentas(
   filtros: FiltrosVentas,
 ): Promise<VentaRegistro[]> {
   try {
     const params = new URLSearchParams();
-    params.append("fecha_desde", filtros.fecha_desde);
-    params.append("fecha_hasta", filtros.fecha_hasta);
+    // Solo pasamos las fechas al servidor
+    params.append("fecha_desde", filtros.fecha_desde || "");
+    params.append("fecha_hasta", filtros.fecha_hasta || "");
 
-    if (filtros.bodega) params.append("bodega", filtros.bodega);
-    if (filtros.asesor) params.append("asesor", filtros.asesor);
-    if (filtros.zona) params.append("zona", filtros.zona);
-    if (filtros.ciudad) params.append("ciudad", filtros.ciudad);
-    if (filtros.linea_venta) params.append("linea_venta", filtros.linea_venta);
-    if (filtros.agrupacion) params.append("agrupacion", filtros.agrupacion);
+    // Los demás filtros ya NO se envían al servidor
+    // Se aplican en memoria (client-side) en el hook
 
     const response = await fetch(`${API_URL}/ventas?${params.toString()}`, {
       headers: getAuthHeaders(),
@@ -187,8 +170,7 @@ export async function obtenerVentas(
 
     // Transformar datos al formato esperado
     return data.map((item: any) => ({
-      id_referencia: item.codigo_referencia || "",
-      id_factura: item.documentos || "",
+      // Campos necesarios para cálculos y filtros
       fecha_factura: item.fecdoc || "",
       asesor: item.nombre_vendedor || "",
       bodega: item.nombre_bodega || "",
@@ -253,8 +235,6 @@ export async function obtenerAgrupaciones(): Promise<Agrupacion[]> {
     return ["Indigo", "Tela Liviana", "Calzado", "Complemento"];
   }
 }
-
-// ==================== FUNCIONES DE RESUMEN ====================
 
 /**
  * Obtener resumen de ventas por asesor

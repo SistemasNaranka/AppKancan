@@ -11,65 +11,290 @@ Esta guía establece las convenciones y estándares que todo el equipo debe segu
 **TODOS los nombres de tablas, campos, y código SQL deben estar en INGLÉS.**
 El resto de la documentación (explicaciones, ejemplos verbales) puede estar en español.
 
-Esto asegura consistencia con nuestro código y facilita el trabajo en equipo internacional.
+---
+
+## Sistema de Prefijos por Áreas de Negocio
+
+### La Pregunta Clave
+
+**¿La información de esta tabla le importa a otra ÁREA?**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ¿Los datos de esta tabla son relevantes para               │
+│ otras áreas del negocio diferentes a la propia?             │
+└─────────────────────────────────────────────────────────────┘
+                           │
+           ┌───────────────┴───────────────┐
+           ▼                               ▼
+        SÍ ════════►                     NO ════════►
+           │                               │
+           ▼                               ▼
+┌─────────────────────┐          ┌─────────────────────────┐
+│       CORE_         │          │   PREFIJO DE ÁREA       │
+│   (Universales)     │          │    (Específico)        │
+└─────────────────────┘          └─────────────────────────┘
+```
 
 ---
 
-## 1. Convenciones de Nomenclatura
+## Nivel 1: `core_` - Universal
 
-### Nombres de Tablas
+**Criterio**: Tablas cuya información le importa a **MÚLTIPLES ÁREAS** del negocio.
 
-- Usar **snake_case** en minúsculas
-- Preferiblemente en plural o términos colectivos
-- **Distinguir entre tablas universales y específicas de proyecto**:
+Si los datos de esta tabla son relevantes para 2 o más áreas diferentes, debe ser `core_`.
 
-#### Tablas Universales (con prefijo `core_`)
+| Tabla             | Descripción              | ¿Por qué es core?                                      |
+| ----------------- | ------------------------ | ------------------------------------------------------ |
+| `core_users`      | Usuarios del sistema     | Le importa a: auth, todas las apps                     |
+| `core_roles`      | Roles de usuario         | Le importa a: auth, todas las apps                     |
+| `core_stores`     | Catálogo de tiendas      | Le importa a: ventas, comisiones, proyectos, logística |
+| `core_companies`  | Compañías/Empresas       | Le importa a: todas las áreas                          |
+| `core_employees`  | Empleados                | Le importa a: RRHH, comisiones, proyectos              |
+| `core_positions`  | Cargos/Puestos           | Le importa a: RRHH, comisiones                         |
+| `core_apps`       | Aplicaciones disponibles | Le importa a: auth, navegación                         |
+| `core_warehouses` | Bodegas                  | Le importa a: logística, inventario                    |
+| `core_categories` | Categorías               | Le importa a: ventas, productos, proyectos             |
 
-Son aquellas que se usan en **múltiples módulos** del sistema y son compartidas por toda la aplicación. Usamos el prefijo `core_` para identificarlas claramente:
+---
 
-| Tabla             | Descripción                      |
-| ----------------- | -------------------------------- |
-| `core_users`      | Usuarios del sistema             |
-| `core_roles`      | Roles de usuario                 |
-| `core_stores`     | Catálogo de tiendas              |
-| `core_categories` | Categorías generales             |
-| `core_companies`  | Compañías                        |
-| `core_employees`  | Empleados                        |
-| `core_positions`  | Cargos/Puestos                   |
-| `core_apps`       | Aplicaciones/Módulos disponibles |
+## Nivel 2: Prefijos por ÁREA (en INGLÉS)
 
-#### Tablas Específicas de Proyecto (con prefijo)
+**Criterio**: Tablas específicas de un área del negocio. Su información solo le importa a esa área.
 
-Son aquellas que pertenecen a un **módulo específico** y no se comparten:
+| Prefijo | Área (Español)   | Área (English)  | Apps que incluye                |
+| ------- | ---------------- | --------------- | ------------------------------- |
+| `prj_`  | Proyectos        | Projects        | Gestión de Proyectos            |
+| `com_`  | Comercio         | Commerce        | Comisiones, Promociones, Ventas |
+| `log_`  | Logística        | Logistics       | Traslados, Muestras             |
+| `hr_`   | Recursos Humanos | Human Resources | Gestión de Personal             |
+| `acc_`  | Contabilidad     | Accounting      | Facturación, Contabilización    |
+| `res_`  | Reservas         | Reservations    | Reservas de Salas/Recursos      |
+| `sal_`  | Ventas           | Sales           | Informes de Ventas              |
+| `mkt_`  | Mercadeo         | Marketing       | Campañas, Publicidad            |
+| `des_`  | Diseño           | Design          | Diseño gráfico, branding        |
+| `prod_` | Producción       | Production      | Manufacturing, operaciones      |
+| `sys_`  | Sistemas         | Systems         | TI, infraestructura             |
+| `adm_`  | Administración   | Administration  | Gestión administrativa          |
+| `mgt_`  | Gerencia         | Management      | Dirección, reportes ejecutivos  |
 
-| Prefijo          | Módulo               | Ejemplo                         |
-| ---------------- | -------------------- | ------------------------------- |
-| `gp_`            | Gestión de Proyectos | `gp_projects`, `gp_processes`   |
-| `util_`          | Utilidades/Catálogos | `util_stores`, `util_config`    |
-| `promo_`         | Promociones          | `promo_types`, `promo_stores`   |
-| `inv_`           | Inventario           | `inv_movements`, `inv_products` |
-| `hr_`            | Recursos Humanos     | `hr_employees`, `hr_contracts`  |
-| `acc_`           | Contabilidad         | `acc_invoices`, `acc_reports`   |
-| `comm_` o `com_` | Comisiones           | `comm_monthly`, `comm_settings` |
+---
 
-**Ejemplos:**
+## Tabla Completa de Áreas
+
+| Prefijo | Área Español     | Área English    | Descripción                                |
+| ------- | ---------------- | --------------- | ------------------------------------------ |
+| `core_` | Universal        | Universal       | Datos compartidos por todas las áreas      |
+| `prj_`  | Proyectos        | Projects        | Gestión de proyectos y procesos            |
+| `com_`  | Comercio         | Commerce        | Ventas, comisiones, promociones            |
+| `sal_`  | Ventas           | Sales           | Información de ventas                      |
+| `mkt_`  | Mercadeo         | Marketing       | Campañas, publicidad, análisis de mercado  |
+| `des_`  | Diseño           | Design          | Diseño gráfico, branding, identidad visual |
+| `prod_` | Producción       | Production      | Manufacturing, producción, operaciones     |
+| `log_`  | Logística        | Logistics       | Traslados, muestras, distribución          |
+| `inv_`  | Inventario       | Inventory       | Control de inventario, stock               |
+| `hr_`   | Recursos Humanos | Human Resources | Empleados, nóminas, contratos              |
+| `acc_`  | Contabilidad     | Accounting      | Facturación, libros contables              |
+| `res_`  | Reservas         | Reservations    | Reservas de salas, recursos                |
+| `sys_`  | Sistemas         | Systems         | TI, infraestructura, configuración         |
+| `adm_`  | Administración   | Administration  | Gestión administrativa, documentos         |
+| `mgt_`  | Gerencia         | Management      | Dirección, KPIs, reportes ejecutivos       |
+
+### Ejemplos por Área
 
 ```sql
--- Tablas universales (se usan en varios módulos)
-users
-roles
-stores
-categories
-companies
+-- ============================================
+-- AREA: PROJECTS (prj_)
+-- ============================================
+prj_projects      -- Projects
+prj_processes     -- Project processes
+prj_benefits     -- Benefits/Improvements
 
--- Tablas específicas de un proyecto (con prefijo)
-gp_projects (gestión de proyectos)
-gp_processes (procesos de proyectos)
-promo_types (tipos de promociones)
-comm_settings (configuración de comisiones)
+-- ============================================
+-- AREA: COMMERCE (com_)
+-- ============================================
+com_budgets   -- Store budgets
+com_settings     -- Commission settings
+com_sales       -- Daily sales
+com_promos      -- Promotions
+
+-- ============================================
+-- AREA: LOGISTICS (log_)
+-- ============================================
+log_transfers    -- Transfer requests
+log_samples     -- Sample requests
+
+-- ============================================
+-- AREA: ACCOUNTING (acc_)
+-- ============================================
+acc_resolutions  -- Invoice resolutions
+acc_invoices    -- Invoices
+
+-- ============================================
+-- AREA: HUMAN RESOURCES (hr_)
+-- ============================================
+hr_contracts     -- Contracts
+hr_attendance   -- Attendance
 ```
 
-### Nombres de Campos
+---
+
+## Cómo Determinar el Prefijo
+
+### Paso 1: Identifica las áreas relacionadas
+
+Pregúntate: ¿Qué áreas del negocio necesitan esta información?
+
+| Si le importa a...  | Debe ser...                                        |
+| ------------------- | -------------------------------------------------- |
+| 3+ áreas diferentes | `core_`                                            |
+| 2 áreas diferentes  | Evaluar si es `core_` o poner en el área principal |
+| 1 sola área         | Prefijo del área                                   |
+
+### Paso 2: Identifica el área principal
+
+Si la tabla es de una sola área, ¿cuál es?
+
+| Tabla                 | Área Principal | Prefijo |
+| --------------------- | -------------- | ------- |
+| Presupuesto de tienda | Commerce       | `com_`  |
+| Proceso de proyecto   | Projects       | `prj_`  |
+| Solicitud de traslado | Logistics      | `log_`  |
+| Resolución de factura | Accounting     | `acc_`  |
+| Campaña mercadeo      | Marketing      | `mkt_`  |
+| Diseño de marca       | Design         | `des_`  |
+| Orden de producción   | Production     | `prod_` |
+
+### Paso 3: Ejemplos de decisión
+
+| Tabla propuesta          | Áreas que le importan       | ¿Core o Área? | Prefijo             |
+| ------------------------ | --------------------------- | ------------- | ------------------- |
+| Presupuesto diario       | Comercio, Diseño, Marketing | Múltiples     | `core_budgets`      |
+| Línea de trazo diseño    | Diseño, Sistemas            | Múltiples     | `core_design_lines` |
+| Configuración comisiones | Solo Comercio               | Área          | `com_settings`      |
+| Detalle proyecto         | Solo Proyectos              | Área          | `prj_details`       |
+
+---
+
+## Diagrama de Decisión para Nuevas Tablas
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    NUEVA TABLA: ¿qué es?                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │ ¿Es una entidad del negocio? │
+              │ (tienda, usuario, empleado,  │
+              │  bodega, compañía, cargo)   │
+              └───────────────────────────────┘
+                        │             │
+                       SÍ             NO
+                        │             │
+                        ▼             ▼
+            ┌───────────────┐   ┌───────────────────────────────┐
+            │    CORE_      │   │ ¿Para qué sirve esta tabla?  │
+            │ (Entidad del │   └───────────────────────────────┘
+            │   negocio)   │               │
+            └───────────────┘               ▼
+                                  ┌───────────────────────────┐
+                                  │ ¿Le importa a más de      │
+                                  │ un área del negocio?      │
+                                  └───────────────────────────┘
+                                              │
+                                  ┌───────────┴───────────┐
+                                 SÍ                     NO
+                                  │                     │
+                                  ▼                     ▼
+                        ┌───────────────┐    ┌─────────────────────┐
+                        │    CORE_      │    │ ¿Qué área del       │
+                        │ (múltiples   │    │ negocio usa esta    │
+                        │   áreas)      │    │ tabla principalmente?│
+                        └───────────────┘    └─────────────────────┘
+                                                     │
+                           ┌─────────┬─────────┬─────┴─────┬─────────┐
+                          prj_     com_     log_       rh_      con_      res_
+                       (Proyectos)(Comercio)(Logística)(RRHH)  (Contab.)(Reservas)
+```
+
+---
+
+## Serie de Preguntas para Definir una Tabla
+
+### Pregunta 1: Identidad
+
+```
+¿Esta tabla representa una entidad fundamental del negocio?
+- Usuarios, Tiendas, Empleados, Cargos, Bodegas, Compañías
+
+→ SÍ: Es CORE (core_users, core_stores, core_employees, etc.)
+→ NO: Continúa a Pregunta 2
+```
+
+### Pregunta 2: Áreas
+
+```
+¿Esta tabla le importa a más de un área del negocio?
+
+Áreas disponibles:
+- prj_ = Proyectos
+- com_ = Comercio (ventas, comisiones, promociones)
+- log_ = Logística (traslados, muestras)
+- rh_ = Recursos Humanos
+- con_ = Contabilidad
+- res_ = Reservas
+
+→ SÍ (2+ áreas): Es CORE
+→ NO: Continúa a Pregunta 3
+```
+
+### Pregunta 3: Área Principal
+
+```
+¿Cuál es el área principal que usa esta tabla?
+
+Selecciona el prefijo correspondiente:
+- prj_: Gestión de Proyectos
+- com_: Comercio (ventas, comisiones, promociones)
+- log_: Logística (traslados, muestras)
+- rh_: Recursos Humanos
+- con_: Contabilidad
+- res_: Reservas
+- ven_: Ventas
+```
+
+### Pregunta 4: Nombre de la Tabla
+
+```
+¿Cómo debe llamarse la tabla?
+
+Reglas:
+- snake_case en minúsculas
+- Plural o término colectivo
+- El nombre debe ser claro y descriptivo
+
+Ejemplos:
+- prj_projects (proyectos)
+- com_presupuesto (presupuestos comerciales)
+- log_solicitudes (solicitudes de logística)
+```
+
+---
+
+## Checklist de Validación
+
+Antes de finalizar una tabla, verifica:
+
+- [ ] ¿Respondí las preguntas 1-4?
+- [ ] ¿El prefijo corresponde al área correcta?
+- [ ] ¿El nombre está en snake_case?
+- [ ] ¿Está en plural o término colectivo?
+- [ ] ¿El orden de columnas sigue la plantilla estándar?
+
+---
+
+## Nombres de Campos
 
 - Siempre **snake_case** en minúsculas
 - Nunca usar: mayúsculas, espacios, guiones, camelCase o kebab-case
@@ -83,80 +308,139 @@ comm_settings (configuración de comisiones)
 
 ---
 
-## 2. ¿Qué Tipo de Tabla Crear?
+## Foreign Keys (FK)
 
-Antes de crear una nueva tabla, responde estas preguntas para determinar su tipo:
+**Regla**: `{tabla_referenciada}_id`
 
-### Flujo de Decisión
+| ❌ Incorrecto | ✅ Correcto   |
+| ------------- | ------------- |
+| `id_user`     | `user_id`     |
+| `id_employee` | `employee_id` |
+| `id_store`    | `store_id`    |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ ¿La tabla almacenará datos que se usarán en múltiples apps  │
-│ o módulos diferentes del sistema?                           │
-└─────────────────────────────────────────────────────────────┘
-                           │
-           ┌───────────────┴───────────────┐
-           ▼                               ▼
-        SÍ ════════►                     NO ════════►
-           │                               │
-           ▼                               ▼
-┌─────────────────────┐          ┌─────────────────────────┐
-│   TABLA UNIVERSAL   │          │ ¿Pertenece a un módulo  │
-│   (prefijo core_)   │          │ específico del sistema? │
-└─────────────────────┘          └─────────────────────────┘
-                                          │
-                          ┌───────────────┴───────────────┐
-                          ▼                               ▼
-                       SÍ ════════►                     NO ════════►
-                          │                               │
-                          ▼                               ▼
-               ┌──────────────────┐            ┌──────────────────┐
-               │ TABLA DE MÓDULO  │            │   TABLA DE       │
-               │ (prefijo propio) │            │   UTILIDAD       │
-               └──────────────────┘            │ (prefijo util_)  │
-                                                └──────────────────┘
-```
-
-### Preguntas Clave
-
-| Pregunta                             | Respuesta → Tipo de Tabla           |
-| ------------------------------------ | ----------------------------------- |
-| ¿Se usará en más de una app?         | SÍ → `core_` / NO → ver siguiente   |
-| ¿Es un catálogo general del sistema? | SÍ → `core_` / NO → ver siguiente   |
-| ¿Pertenece a un módulo específico?   | SÍ → `gp_`, `promo_`, `comm_`, etc. |
-| ¿Es una tabla de ayuda/utilidad?     | SÍ → `util_`                        |
-
-### Ejemplos de Decisión
-
-| Escenario                               | Tipo      | Nombre          |
-| --------------------------------------- | --------- | --------------- |
-| Catálogo de tiendas para todas las apps | Universal | `core_stores`   |
-| Roles de usuario del sistema            | Universal | `core_roles`    |
-| Proyectos de gestión de proyectos       | Módulo    | `gp_projects`   |
-| Configuración de comisiones             | Módulo    | `comm_settings` |
-| Tipos de promociones                    | Módulo    | `promo_types`   |
-| Catálogo de ciudades (uso general)      | Utilidad  | `util_cities`   |
-| Configuración global de la app          | Utilidad  | `util_config`   |
-
-### Sufijos Estándar
-
-| Sufijo      | Uso                                 |
-| ----------- | ----------------------------------- |
-| `_id`       | Foreign keys (project_id, store_id) |
-| `_date`     | Campos de fecha                     |
-| `_time`     | Campos de hora                      |
-| `_quantity` | Cantidades                          |
-| `_total`    | Totales                             |
-| `_status`   | Estados                             |
-| `_notes`    | Observaciones                       |
+**Por qué**: Es más legible y sigue el patrón "referenced_table_id".
 
 ---
 
-## 2. Orden de Columnas en las Tablas
+## Tablas Pivote (Many-to-Many)
 
-Cuando crees o modifiques una tabla, sigue este orden específico. Es nuestra **regla de oro** para mantener la consistencia:
+**Regla**: `{tabla_1}_{tabla_2}` (AMBOS en singular)
 
-### Jerarquía de Columnas
+| ❌ Incorrecto         | ✅ Correcto        |
+| --------------------- | ------------------ |
+| `app_users`           | `user_app`         |
+| `roles_users`         | `user_role`        |
+| `products_categories` | `category_product` |
+
+**Orden**: La tabla principal primero (la que tiene más sentido en el contexto del negocio).
+
+### Plural o Singular
+
+| Tipo            | Forma               | Ejemplo                    |
+| --------------- | ------------------- | -------------------------- |
+| Tablas de datos | Plural              | `users`, `stores`          |
+| Tablas pivote   | Singular + Singular | `user_role`, `project_tag` |
+| Foreign keys    | Singular + `_id`    | `user_id`                  |
+
+---
+
+## Ejemplo Completo con FK y Pivote
+
+```sql
+-- Tabla principal (Projects)
+CREATE TABLE prj_projects (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    status VARCHAR(30) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla con FK
+CREATE TABLE prj_tasks (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL,    -- FK: referencia a prj_projects
+    employee_id INTEGER NOT NULL,    -- FK: referencia a core_employees
+    store_id INTEGER,                -- FK: referencia a core_stores
+    title VARCHAR(255) NOT NULL,
+    status VARCHAR(30) DEFAULT 'pending',
+    start_date DATE,
+    end_date DATE
+);
+
+-- Tabla pivote (Many-to-Many): Usuarios con Roles
+CREATE TABLE user_role (
+    user_id INTEGER NOT NULL,       -- FK: referencia a core_users
+    role_id INTEGER NOT NULL,        -- FK: referencia a core_roles
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, role_id)
+);
+
+-- Tabla pivote (Many-to-Many): Proyectos con Tags
+CREATE TABLE project_tag (
+    project_id INTEGER NOT NULL,    -- FK: referencia a prj_projects
+    tag_id INTEGER NOT NULL,        -- FK: referencia a core_tags
+    PRIMARY KEY (project_id, tag_id)
+);
+```
+
+---
+
+## Resumen: Reglas de Nomenclatura
+
+### 1. Prefijos de Tablas (Áreas)
+
+| Tipo           | Prefijo | Ejemplo                       |
+| -------------- | ------- | ----------------------------- |
+| Universal      | `core_` | `core_users`, `core_stores`   |
+| Projects       | `prj_`  | `prj_projects`, `prj_tasks`   |
+| Commerce       | `com_`  | `com_settings`, `com_budgets` |
+| Sales          | `sal_`  | `sal_reports`                 |
+| Marketing      | `mkt_`  | `mkt_campaigns`               |
+| Design         | `des_`  | `des_brand`                   |
+| Production     | `prod_` | `prod_orders`                 |
+| Logistics      | `log_`  | `log_transfers`               |
+| Inventory      | `inv_`  | `inv_stock`                   |
+| HR             | `hr_`   | `hr_contracts`                |
+| Accounting     | `acc_`  | `acc_invoices`                |
+| Reservations   | `res_`  | `res_bookings`                |
+| Systems        | `sys_`  | `sys_config`                  |
+| Administration | `adm_`  | `adm_docs`                    |
+| Management     | `mgt_`  | `mgt_reports`                 |
+
+### 2. Nombres de Tablas
+
+| Tipo            | Forma               | Ejemplo                    |
+| --------------- | ------------------- | -------------------------- |
+| Tablas de datos | Plural              | `users`, `stores`          |
+| Tablas pivote   | Singular + Singular | `user_role`, `project_tag` |
+
+### 3. Nombres de Campos
+
+- snake_case en minúsculas
+- Ejemplo: `start_date`, `full_name`, `total_amount`
+
+### 4. Foreign Keys
+
+- Forma: `{tabla}_id`
+- Ejemplo: `user_id`, `employee_id`, `store_id`
+
+### 5. Orden de Columnas
+
+1. ID principal (`id`)
+2. Foreign Keys
+3. Códigos naturales (`code_ultra`, `sku`)
+4. Campos principales (`name`, `status`)
+5. Booleanos
+6. Fechas de negocio
+7. Auditoría (`date_created`, `date_updated`)
+8. Campos opcionales
+9. Campos grandes (`description`, `JSONB`)
+
+---
+
+## Orden de Columnas en las Tablas
+
+Cuando crees o modifiques una tabla, sigue este orden específico:
 
 1. **ID principal** (siempre primero)
 2. **Foreign Keys** (todas agrupadas)
@@ -170,7 +454,7 @@ Cuando crees o modifiques una tabla, sigue este orden específico. Es nuestra **
 
 ---
 
-## 3. Tipos de Datos Recomendados
+## Tipos de Datos Recomendados
 
 | Campo                | Tipo                               | Ejemplo                                                           |
 | -------------------- | ---------------------------------- | ----------------------------------------------------------------- |
@@ -187,170 +471,11 @@ Cuando crees o modifiques una tabla, sigue este orden específico. Es nuestra **
 
 ---
 
-## 4. Plantilla Estándar
+## Notas Importantes
 
-Usa esta plantilla al crear nuevas tablas:
+1. **Las áreas pueden crecer** - Si creas una nueva app, evalúa si pertenece a un área existente o si necesitas una nueva
 
-```sql
-CREATE TABLE table_name (
-    -- 1. Primary Key
-    id SERIAL PRIMARY KEY,
-
-    -- 2. Foreign Keys (agrupadas)
-    project_id INTEGER NOT NULL,
-    store_id INTEGER NOT NULL,
-
-    -- 3-4. Campos principales de negocio
-    name VARCHAR(255) NOT NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'active',
-    order_index INTEGER NOT NULL,
-
-    -- 5. Booleanos y estados
-    is_active BOOLEAN DEFAULT true,
-
-    -- 6. Fechas y horas de negocio
-    start_date DATE NOT NULL,
-    end_date DATE,
-    start_time TIME NOT NULL,
-    end_time TIME,
-
-    -- 7. Auditoría
-    date_created TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    date_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-
-    -- 8-9. Opcionales y campos grandes (siempre al final)
-    description TEXT,
-    notes TEXT,
-    managers JSONB
-);
-```
-
----
-
-## 5. Ejemplos Reales del Proyecto
-
-### gp_projects (Gestión de Proyectos)
-
-```sql
-CREATE TABLE gp_projects (
-    id SERIAL PRIMARY KEY,
-
-    -- Campos de negocio
-    project_type VARCHAR(50) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'in_progress',
-
-    -- Fechas
-    start_date DATE NOT NULL,
-    estimated_date DATE,
-    delivery_date DATE,
-
-    -- Opcionales
-    benefit_area VARCHAR(255),
-    description TEXT,
-    managers JSONB,
-
-    -- Auditoría
-    date_created TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    date_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### gp_processes (Procesos de Proyecto)
-
-```sql
-CREATE TABLE gp_processes (
-    id SERIAL PRIMARY KEY,
-
-    -- Foreign Key
-    project_id INTEGER NOT NULL,
-
-    -- Campos principales
-    name VARCHAR(255) NOT NULL,
-    order_index INTEGER NOT NULL,
-
-    -- Tiempos
-    time_before INTERVAL,
-    time_after INTERVAL,
-    frequency_type VARCHAR(20) NOT NULL,
-    frequency_quantity INTEGER NOT NULL,
-    days_of_week JSONB,
-
-    -- Auditoría
-    date_created TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    date_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### util_stores (Catálogo de Tiendas)
-
-```sql
-CREATE TABLE util_stores (
-    id SERIAL PRIMARY KEY,
-    code_ultra INTEGER NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    company VARCHAR(255) NOT NULL
-);
-```
-
-### promos (Promociones)
-
-```sql
-CREATE TABLE promos (
-    id SERIAL PRIMARY KEY,
-
-    -- Foreign Key
-    type_id INTEGER NOT NULL,
-
-    -- Datos principales
-    name VARCHAR(255) NOT NULL,
-
-    -- Fechas y horas
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-
-    -- Valores
-    discount DECIMAL(5,2) NOT NULL,
-
-    -- Opcionales
-    notes TEXT,
-
-    -- Auditoría
-    date_created TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    date_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-## 6. Buenas Prácticas
-
-### Al Crear una Nueva Tabla
-
-1. **Sigue la plantilla** - Usa el orden establecido
-2. **Nombra correctamente** - snake_case, plural para tablas
-3. **Define tipos adecuados** - No usar VARCHAR para todo
-4. **Agrega auditoría** - date_created y date_updated
-5. **Documenta** - Agrega comentarios si es necesario
-
-### Al Modificar una Tabla Existente
-
-1. **Mantén el orden** - No mezcles las columnas
-2. **No inventar campos** - Solo reordena si es necesario
-3. **Respeta los tipos** - No cambies tipos sin razón
-
----
-
-## Resumen Rápido
-
-| Regla  | Descripción                                                               |
-| ------ | ------------------------------------------------------------------------- |
-| Tablas | snake_case, plural o colectivo                                            |
-| Campos | snake_case, minúsculas                                                    |
-| Orden  | id → fk → códigos → negocio → booleanos → fechas → auditoría → opcionales |
-| Tipos  | SERIAL, INTEGER, VARCHAR, TEXT, JSONB, DATE, TIME, INTERVAL               |
+2. **Migración futura** - Si una tabla `core_` termina siendo solo de un área, puedes moverla. Si una tabla de área termina siendo relevante para otras, migrarla a `core_`
 
 ---
 
