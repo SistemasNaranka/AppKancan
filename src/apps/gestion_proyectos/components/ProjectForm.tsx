@@ -205,8 +205,8 @@ export function ProjectForm({
                 label="Tipo de Proyecto"
                 onChange={(e) => onChange("tipoProyecto", e.target.value)}
               >
-                <MenuItem value="mejora">Mejora</MenuItem>
-                <MenuItem value="nuevo">Nueva Creación</MenuItem>
+                <MenuItem value="mejora">Actualización</MenuItem>
+                <MenuItem value="nuevo">Proyecto Nuevo</MenuItem>
               </Select>
             </FormControl>
           </Box>

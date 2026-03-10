@@ -10,72 +10,46 @@ export async function getProyectos(): Promise<Proyecto[]> {
       directus.request(
         readItems("gp_proyectos", {
           fields: [
-            "id",
-            "nombre",
-            "area_beneficiada",
-            "descripcion",
-            "encargados",
-            "fecha_inicio",
-            "fecha_estimada",
-            "fecha_entrega",
-            "estado",
-            "tipo_proyecto",
+            "id", "nombre", "area_beneficiada", "descripcion", "encargados",
+            "fecha_inicio", "fecha_estimada", "fecha_entrega", "estado", "tipo_proyecto",
+            "procesos.id", "procesos.proyecto_id", "procesos.nombre", "procesos.tiempo_antes",
+            "procesos.tiempo_despues", "procesos.frecuencia_tipo",
+            "procesos.frecuencia_cantidad", "procesos.dias_semana", "procesos.orden",
+            "beneficios.id", "beneficios.proyecto_id", "beneficios.descripcion",
           ],
           sort: ["-fecha_inicio"],
         }),
       ),
     );
 
-    // Ahora obtenemos todos los procesos
-    const todosProcesos = await withAutoRefresh(() =>
-      directus.request(
-        readItems("gp_proceso", {
-          fields: [
-            "id",
-            "proyecto_id",
-            "nombre",
-            "tiempo_antes",
-            "tiempo_despues",
-            "frecuencia_tipo",
-            "frecuencia_cantidad",
-            "dias_semana",
-            "orden",
-          ],
-          sort: ["orden"],
-        }),
-      ),
-    );
-
-    // Mapeamos los proyectos y relacionamos los procesos
-    return items.map((item: any) => {
-      const procesosDelProyecto = (todosProcesos as any[])
-        .filter((p: any) => p.proyecto_id === item.id)
-        .map((p: any) => ({
-          id: p.id,
-          proyecto_id: p.proyecto_id,
-          nombre: p.nombre,
-          tiempo_antes: Number(p.tiempo_antes) || 0,
-          tiempo_despues: Number(p.tiempo_despues) || 0,
-          frecuencia_tipo: p.frecuencia_tipo,
-          frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
-          dias_semana: Number(p.dias_semana) || 5,
-          orden: p.orden,
-        }));
-
-      return {
-        id: item.id,
-        nombre: item.nombre,
-        area_beneficiada: item.area_beneficiada,
-        descripcion: item.descripcion || "",
-        encargados: item.encargados || [],
-        fecha_inicio: item.fecha_inicio,
-        fecha_estimada: item.fecha_estimada,
-        fecha_entrega: item.fecha_entrega,
-        estado: item.estado,
-        tipo_proyecto: item.tipo_proyecto,
-        procesos: procesosDelProyecto,
-      };
-    });
+    return items.map((item: any) => ({
+      id: item.id,
+      nombre: item.nombre,
+      area_beneficiada: item.area_beneficiada,
+      descripcion: item.descripcion || "",
+      encargados: item.encargados || [],
+      fecha_inicio: item.fecha_inicio,
+      fecha_estimada: item.fecha_estimada,
+      fecha_entrega: item.fecha_entrega,
+      estado: item.estado,
+      tipo_proyecto: item.tipo_proyecto,
+      procesos: (item.procesos || []).map((p: any) => ({
+        id: p.id,
+        proyecto_id: p.proyecto_id || item.id,
+        nombre: p.nombre,
+        tiempo_antes: Number(p.tiempo_antes) || 0,
+        tiempo_despues: Number(p.tiempo_despues) || 0,
+        frecuencia_tipo: p.frecuencia_tipo,
+        frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
+        dias_semana: Number(p.dias_semana) || 5,
+        orden: p.orden,
+      })),
+      beneficios: (item.beneficios || []).map((b: any) => ({
+        id: b.id,
+        proyecto_id: b.proyecto_id || item.id,
+        descripcion: b.descripcion,
+      })),
+    }));
   } catch (error) {
     console.error("Error al cargar proyectos:", error);
     return [];

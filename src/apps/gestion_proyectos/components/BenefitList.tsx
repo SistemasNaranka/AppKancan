@@ -24,9 +24,6 @@ interface BenefitListProps {
   onActualizar: (id: string, descripcion: string) => void;
 }
 
-/**
- * Componente: Lista de Beneficios para proyectos de nueva creación
- */
 export function BenefitList({
   beneficios,
   onAgregar,
@@ -34,105 +31,100 @@ export function BenefitList({
   onActualizar,
 }: BenefitListProps) {
   return (
-    <Paper elevation={3} sx={{ p: 2, borderRadius: 2 }}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          mb: 2,
-        }}
-      >
+    <Paper elevation={3} sx={{ p: 2.5, borderRadius: 2 }}>
+
+      {/* ── Header ── */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <StarIcon sx={{ color: "warning.main" }} />
-          <Typography variant="h6" fontWeight="bold">
+          <StarIcon sx={{ color: "#005aa3" }} />
+          <Typography variant="h6" fontWeight="bold" color="#333">
             Beneficios
           </Typography>
         </Box>
         <Button
           variant="contained"
-          color="warning"
           size="small"
           startIcon={<AddIcon />}
           onClick={onAgregar}
+          sx={{
+            backgroundColor: "#005aa3",
+            boxShadow: "none",
+            "&:hover": { bgcolor: "#004680", boxShadow: "none" },
+          }}
         >
           Agregar Beneficio
         </Button>
       </Box>
 
+      {/* ── Lista ── */}
       {beneficios.length === 0 ? (
-        <Box
-          sx={{
-            textAlign: "center",
-            py: 4,
-            color: "text.secondary",
-          }}
-        >
-          <Typography variant="body2">
-            No hay beneficios agregados. Haz clic en "Agregar Beneficio" para
-            comenzar.
-          </Typography>
+        <Box sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
+          <Typography variant="body2">No hay beneficios agregados.</Typography>
+          <Typography variant="caption">Haz clic en "Agregar Beneficio" para comenzar.</Typography>
         </Box>
       ) : (
-        <Box sx={{ maxHeight: 500, overflowY: "auto", pr: 1 }}>
+        <Box sx={{ maxHeight: 500, overflowY: "auto", pr: 0.5 }}>
           {beneficios.map((beneficio, index) => (
             <Box
               key={beneficio.id}
               sx={{
                 display: "flex",
-                alignItems: "flex-start",
-                gap: 1,
+                alignItems: "center",
+                gap: 1.5,
+                mb: 1.5,
                 p: 1.5,
-                bgcolor: "grey.50",
-                borderRadius: 1,
-                border: "1px solid",
-                borderColor: "grey.200",
+                bgcolor: "#f1f3f4",
+                borderRadius: 2,
+                border: "1px solid #dcdcdc",
               }}
             >
-              <Typography
+              {/* Número */}
+              <Box
                 sx={{
-                  minWidth: 24,
-                  height: 24,
+                  minWidth: 28,
+                  height: 28,
                   borderRadius: "50%",
-                  bgcolor: "warning.main",
+                  bgcolor: "#005aa3",
                   color: "white",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "0.75rem",
+                  fontSize: "0.78rem",
                   fontWeight: "bold",
+                  flexShrink: 0,
                 }}
               >
                 {index + 1}
-              </Typography>
+              </Box>
+
+              {/* Campo de texto */}
               <TextField
-                label={`Beneficio ${index + 1}`}
                 value={beneficio.descripcion}
                 onChange={(e) => onActualizar(beneficio.id, e.target.value)}
+                placeholder={`Beneficio ${index + 1}`}
                 fullWidth
                 size="small"
-                placeholder="Ej: Reducción de tiempo en proceso de..."
-                multiline
-                rows={2}
+                slotProps={{ input: { sx: { bgcolor: "white", borderRadius: 1 } } }}
               />
+
+              {/* Eliminar */}
               <IconButton
-                color="error"
                 size="small"
                 onClick={() => onEliminar(beneficio.id)}
-                sx={{ mt: 0.5 }}
+                sx={{ color: "#ff3838", flexShrink: 0 }}
               >
-                <DeleteIcon />
+                <DeleteIcon fontSize="small" />
               </IconButton>
             </Box>
           ))}
         </Box>
       )}
 
+      {/* ── Footer total ── */}
       {beneficios.length > 0 && (
-        <Box sx={{ mt: 2, p: 1.5, bgcolor: "info.light", borderRadius: 1 }}>
-          <Typography variant="body2" color="info.contrastText">
-            <strong>Total:</strong> {beneficios.length} beneficio(s)
-            registrado(s)
+        <Box sx={{ mt: 2, p: 1.5, bgcolor: "#005aa3", borderRadius: 1 }}>
+          <Typography variant="body2" color="white">
+            <strong>Total:</strong> {beneficios.length} beneficio(s) registrado(s)
           </Typography>
         </Box>
       )}
