@@ -5,51 +5,117 @@ import type { Proyecto, Proceso, Beneficio } from "../../types";
 
 export async function getProyectos(): Promise<Proyecto[]> {
   try {
-    // Primero obtenemos todos los proyectos
+    // Primero obtenemos todos los proyectos (sin procesos relacionados para evitar problemas de relación)
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("gp_proyectos", {
           fields: [
-            "id", "nombre", "area_beneficiada", "descripcion", "encargados",
-            "fecha_inicio", "fecha_estimada", "fecha_entrega", "estado", "tipo_proyecto",
-            "procesos.id", "procesos.proyecto_id", "procesos.nombre", "procesos.tiempo_antes",
-            "procesos.tiempo_despues", "procesos.frecuencia_tipo",
-            "procesos.frecuencia_cantidad", "procesos.dias_semana", "procesos.orden",
-            "beneficios.id", "beneficios.proyecto_id", "beneficios.descripcion",
+            "id",
+            "nombre",
+            "area_beneficiada",
+            "descripcion",
+            "encargados",
+            "fecha_inicio",
+            "fecha_estimada",
+            "fecha_entrega",
+            "estado",
+            "tipo_proyecto",
           ],
           sort: ["-fecha_inicio"],
         }),
       ),
     );
+    // Si no hay proyectos, retornar array vacío
+    if (!items || items.length === 0) {
+      return [];
+    }
 
-    return items.map((item: any) => ({
-      id: item.id,
-      nombre: item.nombre,
-      area_beneficiada: item.area_beneficiada,
-      descripcion: item.descripcion || "",
-      encargados: item.encargados || [],
-      fecha_inicio: item.fecha_inicio,
-      fecha_estimada: item.fecha_estimada,
-      fecha_entrega: item.fecha_entrega,
-      estado: item.estado,
-      tipo_proyecto: item.tipo_proyecto,
-      procesos: (item.procesos || []).map((p: any) => ({
-        id: p.id,
-        proyecto_id: p.proyecto_id || item.id,
-        nombre: p.nombre,
-        tiempo_antes: Number(p.tiempo_antes) || 0,
-        tiempo_despues: Number(p.tiempo_despues) || 0,
-        frecuencia_tipo: p.frecuencia_tipo,
-        frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
-        dias_semana: Number(p.dias_semana) || 5,
-        orden: p.orden,
-      })),
-      beneficios: (item.beneficios || []).map((b: any) => ({
-        id: b.id,
-        proyecto_id: b.proyecto_id || item.id,
-        descripcion: b.descripcion,
-      })),
-    }));
+    // Obtener TODOS los procesos de una vez
+    const todosProcesos = await withAutoRefresh(() =>
+      directus.request(
+        readItems("gp_proceso", {
+          fields: [
+            "id",
+            "proyecto_id",
+            "nombre",
+            "tiempo_antes",
+            "tiempo_despues",
+            "frecuencia_tipo",
+            "frecuencia_cantidad",
+            "dias_semana",
+            "orden",
+          ],
+          sort: ["orden"],
+        }),
+      ),
+    );
+
+    // Obtener TODOS los beneficios de una vez
+    const todosBeneficios = await withAutoRefresh(() =>
+      directus.request(
+        readItems("gp_beneficios", {
+          fields: ["id", "proyecto_id", "descripcion"],
+        }),
+      ),
+    );
+
+    // Crear mapas para asociar procesos y beneficios a proyectos
+    const procesosPorProyecto = new Map<number | string, any[]>();
+    const beneficiosPorProyecto = new Map<number | string, any[]>();
+
+    // Agrupar procesos por proyecto
+    todosProcesos.forEach((p: any) => {
+      const proyectoId = p.proyecto_id;
+      if (!procesosPorProyecto.has(proyectoId)) {
+        procesosPorProyecto.set(proyectoId, []);
+      }
+      procesosPorProyecto.get(proyectoId)!.push(p);
+    });
+
+    // Agrupar beneficios por proyecto
+    todosBeneficios.forEach((b: any) => {
+      const proyectoId = b.proyecto_id;
+      if (!beneficiosPorProyecto.has(proyectoId)) {
+        beneficiosPorProyecto.set(proyectoId, []);
+      }
+      beneficiosPorProyecto.get(proyectoId)!.push(b);
+    });
+
+    // Ahora mapear cada proyecto con sus procesos y beneficios
+    return items.map((item: any) => {
+      const proyectoId = item.id;
+      const procesos = procesosPorProyecto.get(proyectoId) || [];
+      const beneficios = beneficiosPorProyecto.get(proyectoId) || [];
+
+      return {
+        id: item.id,
+        nombre: item.nombre,
+        area_beneficiada: item.area_beneficiada,
+        descripcion: item.descripcion || "",
+        encargados: item.encargados || [],
+        fecha_inicio: item.fecha_inicio,
+        fecha_estimada: item.fecha_estimada,
+        fecha_entrega: item.fecha_entrega,
+        estado: item.estado,
+        tipo_proyecto: item.tipo_proyecto,
+        procesos: procesos.map((p: any) => ({
+          id: p.id,
+          proyecto_id: p.proyecto_id,
+          nombre: p.nombre,
+          tiempo_antes: Number(p.tiempo_antes) || 0,
+          tiempo_despues: Number(p.tiempo_despues) || 0,
+          frecuencia_tipo: p.frecuencia_tipo,
+          frecuencia_cantidad: Number(p.frecuencia_cantidad) || 1,
+          dias_semana: Number(p.dias_semana) || 5,
+          orden: p.orden,
+        })),
+        beneficios: beneficios.map((b: any) => ({
+          id: b.id,
+          proyecto_id: b.proyecto_id,
+          descripcion: b.descripcion,
+        })),
+      };
+    });
   } catch (error) {
     console.error("Error al cargar proyectos:", error);
     return [];
