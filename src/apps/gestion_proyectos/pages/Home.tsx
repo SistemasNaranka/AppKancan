@@ -259,7 +259,8 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: Ah
       "Diseño",
       "Sistemas",
       "Mercadeo",
-      "Comercial"
+      "Comercial",
+      "Administrativa"
     ];
 
     // Inicializar mapa con todas las áreas predefinidas con valores en cero
@@ -695,16 +696,19 @@ function ProyectosAreaPanel({ open, onClose, proyectos }: ProyectosAreaPanelProp
 
   // Lista de colores para cada área del gráfico
 
-  const COLORES_AREA = [
-    "#4285f4",
-    "#ea4335",
-    "#fbbc04",
-    "#34a853",
-    "#9c27b0",
-    "#ff5722",
-    "#00acc1",
-    "#795548",
-    "#607d8b",
+const COLORES_AREA = [
+    "#E91E63",
+    "#FF9800",
+    "#009688",
+    "#3F51B5",
+    "#8BC34A",
+    "#CDDC39",
+    "#673AB7",
+    "#03A9F4",
+    "#FFC107",
+    "#9E9E9E",
+    "#7B1FA2",
+    "#004D40",
   ];
 
   // Áreas predefinidas
@@ -715,7 +719,8 @@ function ProyectosAreaPanel({ open, onClose, proyectos }: ProyectosAreaPanelProp
     "Diseño",
     "Sistemas",
     "Mercadeo",
-    "Comercial"
+    "Comercial",
+    "Administrativa"
   ];
 
   // Calcular proyectos por área

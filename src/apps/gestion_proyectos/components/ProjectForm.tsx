@@ -24,6 +24,7 @@ import {
   Campaign as MercadeoIcon,
   MoreHoriz as OtraIcon,
   Store as StoreIcon,
+  AdminPanelSettings as AdministrativaIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -41,6 +42,7 @@ const AREAS_PREDEFINIDAS = [
   "Sistemas",
   "Mercadeo",
   "Comercial",
+  "Administrativa",
 ];
 
 // Mapeo de iconos por área
@@ -51,7 +53,8 @@ const ICONOS_AREA: Record<string, React.ElementType> = {
   "Diseño": DisenoIcon,
   "Sistemas": SistemasIcon,
   "Mercadeo": MercadeoIcon,
-  "Comercial": StoreIcon
+  "Comercial": StoreIcon,
+  "Administrativa": AdministrativaIcon,
 };
 
 interface ProjectFormData {
