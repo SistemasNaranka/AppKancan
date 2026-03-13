@@ -22,6 +22,13 @@ const TrasladosPanel: React.FC = () => {
   const [idsSeleccionados, setIdsSeleccionados] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filtroNombre, setFiltroNombre] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<
+    "todos" | "enviados" | "recibidos"
+  >("todos");
+
+  // ✅ Verificar si el usuario tiene la política TrasladosTiendas
+  const tienePoliticaTrasladosTiendas =
+    user?.policies?.includes("TrasladosTiendas") ?? false;
 
   // ✅ Query para cargar traslados con cache automático
   const {
@@ -39,7 +46,12 @@ const TrasladosPanel: React.FC = () => {
         throw new Error("Usuario no autenticado o datos incompletos");
       }
 
-      return await obtenerTraslados(codigo, empresa);
+      // ✅ Usar URL diferente si el usuario tiene política de tienda
+      return await obtenerTraslados(
+        codigo,
+        empresa,
+        tienePoliticaTrasladosTiendas,
+      );
     },
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 2,
@@ -68,9 +80,19 @@ const TrasladosPanel: React.FC = () => {
     return Array.from(bodegas.values()).sort();
   }, [pendientes]);
 
-  // ✅ Filtrado por bodega destino y nombre
+  // ✅ Filtrado por tipo (enviados/recibidos), bodega destino y nombre
   const filtrados = useMemo(() => {
+    const codigoUltra = user?.codigo_ultra ?? "";
+
     return pendientes.filter((t) => {
+      // ✅ Filtrar por tipo: enviados (bodega_origen == codigo_ultra) o recibidos (bodega_destino == codigo_ultra)
+      let coincideTipo = true;
+      if (filtroTipo === "enviados") {
+        coincideTipo = t.bodega_origen === codigoUltra;
+      } else if (filtroTipo === "recibidos") {
+        coincideTipo = t.bodega_destino === codigoUltra;
+      }
+
       const coincideBodega =
         !filtroBodegaDestino ||
         filtroBodegaDestino === "" ||
@@ -84,9 +106,29 @@ const TrasladosPanel: React.FC = () => {
         t.nombre_origen?.toLowerCase().includes(filtroNombre.toLowerCase()) ||
         t.nombre_destino?.toLowerCase().includes(filtroNombre.toLowerCase());
 
-      return coincideBodega && coincideNombre;
+      return coincideTipo && coincideBodega && coincideNombre;
     });
-  }, [pendientes, filtroBodegaDestino, filtroNombre]);
+  }, [
+    pendientes,
+    filtroBodegaDestino,
+    filtroNombre,
+    filtroTipo,
+    user?.codigo_ultra,
+  ]);
+
+  // ✅ Obtener conteos de enviados y recibidos
+  const conteos = useMemo(() => {
+    const codigoUltra = user?.codigo_ultra ?? "";
+    const enviados = pendientes.filter((t) => t.bodega_origen === codigoUltra);
+    const recibidos = pendientes.filter(
+      (t) => t.bodega_destino === codigoUltra,
+    );
+    return {
+      total: pendientes.length,
+      enviados: enviados.length,
+      recibidos: recibidos.length,
+    };
+  }, [pendientes, user?.codigo_ultra]);
 
   // ✅ Selección de traslados
   const handleToggleSeleccion = (id: number) => {
@@ -174,10 +216,6 @@ const TrasladosPanel: React.FC = () => {
   const tienePoliticaTrasladosJefezona =
     user?.policies?.includes("TrasladosJefezona") ?? false;
 
-  // ✅ Verificar si el usuario tiene la política TrasladosTiendas (solo ver, no aprobar)
-  const tienePoliticaTrasladosTiendas =
-    user?.policies?.includes("TrasladosTiendas") ?? false;
-
   return (
     <Box
       sx={{
@@ -205,6 +243,9 @@ const TrasladosPanel: React.FC = () => {
             setFiltroBodegaDestino={setFiltroBodegaDestino}
             filtroNombre={filtroNombre}
             setFiltroNombre={setFiltroNombre}
+            filtroTipo={filtroTipo}
+            setFiltroTipo={setFiltroTipo}
+            conteos={conteos}
             filtrados={filtrados}
             bodegasDestino={bodegasDestino}
             loading={loading}
