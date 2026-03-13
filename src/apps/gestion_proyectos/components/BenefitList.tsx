@@ -47,9 +47,9 @@ export function BenefitList({
           startIcon={<AddIcon />}
           onClick={onAgregar}
           sx={{
-            backgroundColor: "#005aa3",
+            backgroundColor: "#004680",
             boxShadow: "none",
-            "&:hover": { bgcolor: "#004680", boxShadow: "none" },
+            "&:hover": { bgcolor: "#005AA3", boxShadow: "none" },
           }}
         >
           Agregar Beneficio

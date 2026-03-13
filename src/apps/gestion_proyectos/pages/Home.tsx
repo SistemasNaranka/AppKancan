@@ -692,12 +692,9 @@ interface ProyectosAreaPanelProps {
 }
 
 function ProyectosAreaPanel({ open, onClose, proyectos }: ProyectosAreaPanelProps) {
-  // ============================================
-  // COLORES DEL GRÁFICO - Modificar aquí
-  // ============================================
+
   // Lista de colores para cada área del gráfico
-  // Cada color corresponde a un área en orden:
-  // Contabilidad, Recursos Humanos, Logística, Diseño, Sistemas, Mercadeo, Comercial, etc.
+
   const COLORES_AREA = [
     "#4285f4",
     "#ea4335",
@@ -826,7 +823,7 @@ function ProyectosAreaPanel({ open, onClose, proyectos }: ProyectosAreaPanelProp
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: { xs: "95vw", sm: "85vw", md: 900 },
+          width: { xs: "95vw", sm: "85vw", md: 1200 },
           maxHeight: "88vh",
           overflowY: "auto",
           bgcolor: "transparent",

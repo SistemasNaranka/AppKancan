@@ -32,6 +32,7 @@ import {
   deleteFeedback,
 } from "../api/directus/create";
 import type { Feedback, CreateFeedbackInput } from "../types";
+import { useGlobalSnackbar } from "../../../shared/components/SnackbarsPosition/SnackbarContext";
 
 // Header container con margen y border-radius
 const HeaderContainer = styled(Box)({
@@ -52,6 +53,7 @@ export default function PostLanzamiento() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { proyecto, loading, error, recargar } = useProyectoById(id!);
+  const { showSnackbar } = useGlobalSnackbar();
 
   const [formData, setFormData] = useState<FeedbackForm>({
     autor: "",
@@ -64,10 +66,6 @@ export default function PostLanzamiento() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
   const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState<{
-    tipo: "success" | "error";
-    texto: string;
-  } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [beneficioToDelete, setBeneficioToDelete] = useState<string | null>(null);
 
@@ -76,7 +74,6 @@ export default function PostLanzamiento() {
     if (!id || !formData.descripcion.trim()) return;
 
     setGuardando(true);
-    setMensaje(null);
 
     try {
       if (editandoId) {
@@ -85,6 +82,7 @@ export default function PostLanzamiento() {
           descripcion: formData.descripcion,
         });
         if (!ok) throw new Error("No se pudo actualizar");
+        showSnackbar("¡Feedback actualizado exitosamente!", "success");
       } else {
         const data: CreateFeedbackInput = {
           proyecto_id: id,
@@ -93,15 +91,15 @@ export default function PostLanzamiento() {
         };
         const result = await createFeedback(data);
         if (!result) throw new Error("No se pudo crear");
+        showSnackbar("¡Feedback agregado exitosamente!", "success");
       }
 
-      setMensaje({ tipo: "success", texto: "¡Guardado exitosamente!" });
       setFormData({ autor: "", descripcion: "" });
       setEditandoId(null);
       recargar();
     } catch (err) {
       console.error("Error:", err);
-      setMensaje({ tipo: "error", texto: "Error al guardar" });
+      showSnackbar("Error al guardar el feedback", "error");
     } finally {
       setGuardando(false);
     }
@@ -122,11 +120,11 @@ export default function PostLanzamiento() {
     try {
       const ok = await deleteFeedback(beneficioToDelete);
       if (!ok) throw new Error("No se pudo eliminar");
-      setMensaje({ tipo: "success", texto: "Eliminado exitosamente" });
+      showSnackbar("Feedback eliminado exitosamente", "success");
       recargar();
     } catch (err) {
       console.error("Error:", err);
-      setMensaje({ tipo: "error", texto: "Error al eliminar" });
+      showSnackbar("Error al eliminar el feedback", "error");
     } finally {
       setModalOpen(false);
       setBeneficioToDelete(null);
@@ -193,17 +191,6 @@ export default function PostLanzamiento() {
           </Typography>
         </Box>
       </HeaderContainer>
-
-      {/* Mensaje */}
-      {mensaje && (
-        <Alert
-          severity={mensaje.tipo}
-          sx={{ mb: 2 }}
-          onClose={() => setMensaje(null)}
-        >
-          {mensaje.texto}
-        </Alert>
-      )}
 
       {/* Formulario */}
       <Paper sx={{ p: 3, mb: 3, }}>
