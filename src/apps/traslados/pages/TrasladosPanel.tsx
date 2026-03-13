@@ -25,6 +25,7 @@ const TrasladosPanel: React.FC = () => {
   const [filtroTipo, setFiltroTipo] = useState<
     "todos" | "enviados" | "recibidos"
   >("todos");
+  const [filtroFecha, setFiltroFecha] = useState<string | null>(null);
 
   // ✅ Verificar si el usuario tiene la política TrasladosTiendas
   const tienePoliticaTrasladosTiendas =
@@ -80,7 +81,7 @@ const TrasladosPanel: React.FC = () => {
     return Array.from(bodegas.values()).sort();
   }, [pendientes]);
 
-  // ✅ Filtrado por tipo (enviados/recibidos), bodega destino y nombre
+  // ✅ Filtrado por tipo (enviados/recibidos), bodega destino, nombre y fecha
   const filtrados = useMemo(() => {
     const codigoUltra = user?.codigo_ultra ?? "";
 
@@ -106,13 +107,19 @@ const TrasladosPanel: React.FC = () => {
         t.nombre_origen?.toLowerCase().includes(filtroNombre.toLowerCase()) ||
         t.nombre_destino?.toLowerCase().includes(filtroNombre.toLowerCase());
 
-      return coincideTipo && coincideBodega && coincideNombre;
+      // ✅ Filtrar por fecha (comparar solo YYYY-MM-DD)
+      const coincideFecha =
+        !filtroFecha ||
+        t.fecha === filtroFecha;
+
+      return coincideTipo && coincideBodega && coincideNombre && coincideFecha;
     });
   }, [
     pendientes,
     filtroBodegaDestino,
     filtroNombre,
     filtroTipo,
+    filtroFecha,
     user?.codigo_ultra,
   ]);
 
@@ -245,6 +252,8 @@ const TrasladosPanel: React.FC = () => {
             setFiltroNombre={setFiltroNombre}
             filtroTipo={filtroTipo}
             setFiltroTipo={setFiltroTipo}
+            filtroFecha={filtroFecha}
+            setFiltroFecha={setFiltroFecha}
             conteos={conteos}
             filtrados={filtrados}
             bodegasDestino={bodegasDestino}

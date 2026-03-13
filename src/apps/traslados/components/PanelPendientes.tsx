@@ -28,6 +28,8 @@ type PanelPendientesProps = {
   setFiltroNombre: (v: string) => void;
   filtroTipo: "todos" | "enviados" | "recibidos";
   setFiltroTipo: (v: "todos" | "enviados" | "recibidos") => void;
+  filtroFecha: string | null;
+  setFiltroFecha: (v: string | null) => void;
   conteos: {
     total: number;
     enviados: number;
@@ -58,6 +60,8 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
   setFiltroNombre,
   filtroTipo,
   setFiltroTipo,
+  filtroFecha,
+  setFiltroFecha,
   conteos,
   filtrados,
   bodegasDestino,
@@ -289,7 +293,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                   display: "flex",
                   flexDirection: "column",
                   flex: 1,
-                  maxWidth: 830,
+                  minWidth: 0,
                   gap: 2,
                 }}
               >
@@ -308,6 +312,8 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                   setFiltroNombre={setFiltroNombre}
                   filtroTipo={filtroTipo}
                   setFiltroTipo={setFiltroTipo}
+                  filtroFecha={filtroFecha}
+                  setFiltroFecha={setFiltroFecha}
                   conteos={conteos}
                   bodegasDestino={bodegasDestino}
                   filtradosLength={filtrados.length}

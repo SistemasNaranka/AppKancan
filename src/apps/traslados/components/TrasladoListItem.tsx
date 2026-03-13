@@ -63,7 +63,7 @@ const TrasladoListItem: React.FC<Props> = ({
         Traslado: {traslado.traslado}
       </Typography>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 4, }}>
         {/* 👇 Mostrar el ícono solo si NO está seleccionado */}
 
         <Typography
@@ -76,7 +76,7 @@ const TrasladoListItem: React.FC<Props> = ({
       </Box>
 
       {/* Encabezado */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, }}>
         {/* 👇 Mostrar el ícono solo si NO está seleccionado */}
 
         <Typography

@@ -818,16 +818,9 @@ export default function DetalleProyecto() {
           {/* Beneficios */}
           {activeTab === "beneficios" && (
             <>
-              {/* <Typography
-                variant="h6"
-                sx={{ mb: 2, fontWeight: "semibold", display: "flex", alignItems: "center", gap: 1, color: "#004680" }}
-              >
-                <Stars />
-                Beneficios del Proyecto
-              </Typography> */}
               {proyecto.beneficios && proyecto.beneficios.length > 0 ? (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                  {proyecto.beneficios.slice(0, 3).map((beneficio) => (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                  {proyecto.beneficios.slice(0, 12).map((beneficio) => (
                     <Paper key={beneficio.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
                       <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                         {beneficio.descripcion}
