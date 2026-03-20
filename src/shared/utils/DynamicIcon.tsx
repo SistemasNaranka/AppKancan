@@ -33,6 +33,8 @@ import {
   SettingsSuggest,
   DataObject,
   Warehouse,
+  WorkspacePremium,
+  PendingActions,
 } from "@mui/icons-material";
 /**
  * 🗂️ Mapa de íconos permitidos.
@@ -62,6 +64,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Business,
   Group,
   EditCalendar,
+  PendingActions,
   // 🔸 Categoría: Aplicación
   Apps,
   Home,
@@ -77,6 +80,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   CurrencyExchange,
   MonetizationOn,
   ShoppingBag,
+  WorkspacePremium,
 
   // 🔸 Logistica
   Warehouse,
