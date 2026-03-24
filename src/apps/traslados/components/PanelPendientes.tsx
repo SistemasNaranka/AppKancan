@@ -12,6 +12,8 @@ import { Paper, Typography, Box, Divider } from "@mui/material";
 import { Global } from "@emotion/react";
 import { Traslado } from "../hooks/types";
 import PendientesFilters from "./PendientesFilters";
+import StoreTrasladosHeader from "./StoreTrasladosHeader";
+import StoreTrasladosFilters from "./StoreTrasladosFilters";
 import ConfirmacionAprobacion from "./ConfirmacionAprobacion";
 import ContadorPendientesYSeleccionados from "./ContadorPendientesYSeleccionados";
 import { ControlesSuperiores } from "./ControlesSuperiores";
@@ -28,6 +30,8 @@ type PanelPendientesProps = {
   setFiltroNombre: (v: string) => void;
   filtroTipo: "todos" | "enviados" | "recibidos";
   setFiltroTipo: (v: "todos" | "enviados" | "recibidos") => void;
+  filtroFecha: string | null;
+  setFiltroFecha: (v: string | null) => void;
   conteos: {
     total: number;
     enviados: number;
@@ -58,6 +62,8 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
   setFiltroNombre,
   filtroTipo,
   setFiltroTipo,
+  filtroFecha,
+  setFiltroFecha,
   conteos,
   filtrados,
   bodegasDestino,
@@ -135,12 +141,12 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          backgroundColor: "background.paper",
-          border: "2px solid",
-          boxShadow: "0 1px 5px 0 ",
+          backgroundColor: tienePoliticaTrasladosTiendas ? "#FFFFFF" : "background.paper",
+          border: tienePoliticaTrasladosTiendas ? "none" : "2px solid",
+          boxShadow: tienePoliticaTrasladosTiendas ? "0 4px 24px rgba(0,0,0,0.06)" : "0 1px 5px 0 ",
           borderColor: "primary.dark",
-          borderRadius: 3,
-          p: { xs: 1, sm: 2 },
+          borderRadius: tienePoliticaTrasladosTiendas ? 4 : 3,
+          p: { xs: 1, sm: 2, md: tienePoliticaTrasladosTiendas ? 4 : 2 },
           height: "100%",
           width: "100%",
           boxSizing: "border-box",
@@ -269,83 +275,106 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
         {/* ===== CONTENIDO PRINCIPAL ===== */}
         {!loading && (
           <>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                mb: 2,
-                flexWrap: "wrap",
-                gap: 3,
-                "@media (max-width: 600px)": {
-                  flexDirection: "column",
-                  alignItems: "stretch",
-                },
-              }}
-            >
-              {/* 🔹 COLUMNA IZQUIERDA: Filtros + Contadores */}
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  flex: 1,
-                  maxWidth: 830,
-                  gap: 2,
-                }}
-              >
-                {/* Contador con data-tour */}
-                <Box data-tour="contador-pendientes">
-                  <ContadorPendientesYSeleccionados
-                    pendientes={totalPendientes - idsSeleccionados.length}
-                    seleccionados={idsSeleccionados.length}
-                  />
-                </Box>
-
-                <PendientesFilters
+            {/* 🔹 VISTA DE TIENDA VS VISTA NORMAL */}
+            {tienePoliticaTrasladosTiendas ? (
+              <Box sx={{ display: "flex", flexDirection: "column", width: "100%", gap: 3, mb: 2 }}>
+                <StoreTrasladosHeader 
+                  totalPendientes={
+                    tienePoliticaTrasladosTiendas
+                      ? new Set(filtrados.map((t) => t.traslado)).size
+                      : filtrados.length
+                  } 
+                />
+                <StoreTrasladosFilters
                   filtroBodegaDestino={filtroBodegaDestino}
                   setFiltroBodegaDestino={setFiltroBodegaDestino}
                   filtroNombre={filtroNombre}
                   setFiltroNombre={setFiltroNombre}
                   filtroTipo={filtroTipo}
                   setFiltroTipo={setFiltroTipo}
+                  filtroFecha={filtroFecha}
+                  setFiltroFecha={setFiltroFecha}
                   conteos={conteos}
                   bodegasDestino={bodegasDestino}
-                  filtradosLength={filtrados.length}
-                  todosSeleccionados={todosSeleccionados}
-                  algunSeleccionado={algunSeleccionado}
-                  onToggleSeleccionarTodos={onToggleSeleccionarTodos}
-                  tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
                 />
               </Box>
-
-              {/* 🔹 COLUMNA DERECHA: Controles (Tutorial + Ayuda + Aprobar) */}
+            ) : (
               <Box
                 sx={{
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
                   justifyContent: "space-between",
-                  gap: 2,
-                  flexShrink: 0,
-                  minWidth: 220,
+                  alignItems: "flex-start",
+                  mb: 2,
+                  flexWrap: "wrap",
+                  gap: 3,
+                  "@media (max-width: 600px)": {
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                  },
                 }}
               >
-                <ControlesSuperiores
-                  idsSeleccionadosLength={idsSeleccionados.length}
-                  loading={loading}
-                  onToggleSeleccionarTodos={onToggleSeleccionarTodos}
-                  onAbrirDialogoAprobacion={() =>
-                    setDialogoAprobacionAbierto(true)
-                  }
-                  tienePoliticaTrasladosJefezona={
-                    tienePoliticaTrasladosJefezona
-                  }
-                  tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
-                />
-              </Box>
-            </Box>
+                {/* 🔹 COLUMNA IZQUIERDA: Filtros + Contadores */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    flex: 1,
+                    maxWidth: 830,
+                    gap: 2,
+                  }}
+                >
+                  {/* Contador con data-tour */}
+                  <Box data-tour="contador-pendientes">
+                    <ContadorPendientesYSeleccionados
+                      pendientes={totalPendientes - idsSeleccionados.length}
+                      seleccionados={idsSeleccionados.length}
+                    />
+                  </Box>
 
-            <Divider sx={{ mb: 2, borderColor: "primary.main" }} />
+                  <PendientesFilters
+                    filtroBodegaDestino={filtroBodegaDestino}
+                    setFiltroBodegaDestino={setFiltroBodegaDestino}
+                    filtroNombre={filtroNombre}
+                    setFiltroNombre={setFiltroNombre}
+                    bodegasDestino={bodegasDestino}
+                    filtradosLength={filtrados.length}
+                    todosSeleccionados={todosSeleccionados}
+                    algunSeleccionado={algunSeleccionado}
+                    onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+                  />
+                </Box>
+
+                {/* 🔹 COLUMNA DERECHA: Controles (Tutorial + Ayuda + Aprobar) */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexShrink: 0,
+                    minWidth: 220,
+                  }}
+                >
+                  <ControlesSuperiores
+                    idsSeleccionadosLength={idsSeleccionados.length}
+                    loading={loading}
+                    onToggleSeleccionarTodos={onToggleSeleccionarTodos}
+                    onAbrirDialogoAprobacion={() =>
+                      setDialogoAprobacionAbierto(true)
+                    }
+                    tienePoliticaTrasladosJefezona={
+                      tienePoliticaTrasladosJefezona
+                    }
+                    tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {!tienePoliticaTrasladosTiendas && (
+              <Divider sx={{ mb: 2, borderColor: "primary.main" }} />
+            )}
           </>
         )}
 
@@ -355,7 +384,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
           data-tour="lista-traslados"
         >
           <ListaTraslados
-            filtrados={filtrados}
+            traslados={filtrados}
             idsSeleccionados={idsSeleccionados}
             onToggleSeleccion={onToggleSeleccion}
             loading={loading}
@@ -363,6 +392,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
             totalPendientes={totalPendientes}
             onRetry={onRetry}
             tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
+            filtroTipo={filtroTipo}
           />
         </Box>
 

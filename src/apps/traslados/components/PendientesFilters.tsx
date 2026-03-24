@@ -9,33 +9,20 @@ import {
   FormGroup,
   Typography,
   Paper,
-  ToggleButton,
-  ToggleButtonGroup,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import Autocomplete from "@mui/material/Autocomplete";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 
 type Props = {
   filtroBodegaDestino: string;
   setFiltroBodegaDestino: (v: string) => void;
   filtroNombre: string;
   setFiltroNombre: (v: string) => void;
-  filtroTipo: "todos" | "enviados" | "recibidos";
-  setFiltroTipo: (v: "todos" | "enviados" | "recibidos") => void;
-  conteos: {
-    total: number;
-    enviados: number;
-    recibidos: number;
-  };
   bodegasDestino: string[];
   filtradosLength: number;
   todosSeleccionados: boolean;
   algunSeleccionado: boolean;
   onToggleSeleccionarTodos: (seleccionar: boolean) => void;
-  tienePoliticaTrasladosTiendas?: boolean;
 };
 
 const PendientesFilters: React.FC<Props> = ({
@@ -43,15 +30,11 @@ const PendientesFilters: React.FC<Props> = ({
   setFiltroBodegaDestino,
   filtroNombre,
   setFiltroNombre,
-  filtroTipo,
-  setFiltroTipo,
-  conteos,
   bodegasDestino,
   filtradosLength,
   todosSeleccionados,
   algunSeleccionado,
   onToggleSeleccionarTodos,
-  tienePoliticaTrasladosTiendas = false,
 }) => {
   const opcionesDestino = ["Todas las bodegas", ...bodegasDestino];
   const theme = useTheme();
@@ -78,51 +61,6 @@ const PendientesFilters: React.FC<Props> = ({
         boxShadow: `0px 1px 3px ${theme.palette.primary.main}`,
       }}
     >
-      {/* Filtro por Tipo: Enviados / Recibidos / Todos */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 0.5,
-        }}
-      >
-        <Typography
-          variant="caption"
-          sx={{ fontWeight: 600, color: theme.palette.text.secondary }}
-        >
-          Tipo de Traslado
-        </Typography>
-        <ToggleButtonGroup
-          value={filtroTipo}
-          exclusive
-          onChange={(_, newValue) => {
-            if (newValue !== null) {
-              setFiltroTipo(newValue);
-            }
-          }}
-          size="small"
-          sx={{
-            "& .MuiToggleButton-root": {
-              py: 0.5,
-              px: 1.5,
-              fontSize: "0.75rem",
-            },
-          }}
-        >
-          <ToggleButton value="todos" aria-label="todos">
-            <AllInclusiveIcon sx={{ mr: 0.5, fontSize: 16 }} />
-            Todos ({conteos.total})
-          </ToggleButton>
-          <ToggleButton value="enviados" aria-label="enviados">
-            <ArrowForwardIcon sx={{ mr: 0.5, fontSize: 16 }} />
-            Enviados ({conteos.enviados})
-          </ToggleButton>
-          <ToggleButton value="recibidos" aria-label="recibidos">
-            <ArrowBackIcon sx={{ mr: 0.5, fontSize: 16 }} />
-            Recibidos ({conteos.recibidos})
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
       {/* Filtro por Bodega Destino */}
       <Autocomplete
         disablePortal
@@ -200,7 +138,7 @@ const PendientesFilters: React.FC<Props> = ({
       />
 
       {/* Checkbox de Seleccionar Todo - Ocultar si tiene política TrasladosTiendas */}
-      {!tienePoliticaTrasladosTiendas && filtradosLength > 0 && (
+      {filtradosLength > 0 && (
         <Box
           sx={{
             minWidth: { xs: "100%", sm: 230 },
