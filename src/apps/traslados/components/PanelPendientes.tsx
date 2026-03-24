@@ -335,6 +335,18 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                     gap: 2,
                   }}
                 >
+                  {/* Título para vista normal */}
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      mb: 1,
+                    }}
+                  >
+                    Traslados Pendientes
+                  </Typography>
+
                   {/* Contador con data-tour */}
                   <Box data-tour="contador-pendientes">
                     <ContadorPendientesYSeleccionados
@@ -348,11 +360,6 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                     setFiltroBodegaDestino={setFiltroBodegaDestino}
                     filtroNombre={filtroNombre}
                     setFiltroNombre={setFiltroNombre}
-                    filtroTipo={filtroTipo}
-                    setFiltroTipo={setFiltroTipo}
-                    filtroFecha={filtroFecha}
-                    setFiltroFecha={setFiltroFecha}
-                    conteos={conteos}
                     bodegasDestino={bodegasDestino}
                     filtradosLength={filtrados.length}
                     todosSeleccionados={todosSeleccionados}
