@@ -91,7 +91,7 @@ const TrasladosPanel: React.FC = () => {
       .sort();
   }, [pendientes, tienePoliticaTrasladosTiendas, user?.codigo_ultra]);
 
-  // ✅ Filtrado por tipo (enviados/recibidos), bodega destino y nombre
+  // ✅ Filtrado por tipo (enviados/recibidos), bodega destino, nombre y fecha
   const filtrados = useMemo(() => {
     const codigoUltra = user?.codigo_ultra ?? "";
 
@@ -120,9 +120,10 @@ const TrasladosPanel: React.FC = () => {
         t.traslado?.toString().includes(filtroNombre) ||
         t.nombre_origen?.toLowerCase().includes(filtroNombre.toLowerCase()) ||
         t.nombre_destino?.toLowerCase().includes(filtroNombre.toLowerCase());
-
+      // ✅ Filtrar por fecha (comparar solo YYYY-MM-DD)
       const coincideFecha =
-        !filtroFecha || (t.fecha && t.fecha.startsWith(filtroFecha));
+        !filtroFecha ||
+        (t.fecha && t.fecha.startsWith(filtroFecha));
 
       return coincideTipo && coincideBodega && coincideNombre && coincideFecha;
     });
@@ -138,7 +139,9 @@ const TrasladosPanel: React.FC = () => {
   // ✅ Obtener conteos de enviados y recibidos
   const conteos = useMemo(() => {
     const codigoUltra = user?.codigo_ultra ?? "";
-    const enviados = pendientes.filter((t) => String(t.bodega_origen) === String(codigoUltra));
+    const enviados = pendientes.filter(
+      (t) => String(t.bodega_origen) === String(codigoUltra),
+    );
     const recibidos = pendientes.filter(
       (t) => String(t.bodega_destino) === String(codigoUltra),
     );

@@ -141,9 +141,13 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          backgroundColor: tienePoliticaTrasladosTiendas ? "#FFFFFF" : "background.paper",
+          backgroundColor: tienePoliticaTrasladosTiendas
+            ? "#FFFFFF"
+            : "background.paper",
           border: tienePoliticaTrasladosTiendas ? "none" : "2px solid",
-          boxShadow: tienePoliticaTrasladosTiendas ? "0 4px 24px rgba(0,0,0,0.06)" : "0 1px 5px 0 ",
+          boxShadow: tienePoliticaTrasladosTiendas
+            ? "0 4px 24px rgba(0,0,0,0.06)"
+            : "0 1px 5px 0 ",
           borderColor: "primary.dark",
           borderRadius: tienePoliticaTrasladosTiendas ? 4 : 3,
           p: { xs: 1, sm: 2, md: tienePoliticaTrasladosTiendas ? 4 : 2 },
@@ -277,13 +281,21 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
           <>
             {/* 🔹 VISTA DE TIENDA VS VISTA NORMAL */}
             {tienePoliticaTrasladosTiendas ? (
-              <Box sx={{ display: "flex", flexDirection: "column", width: "100%", gap: 3, mb: 2 }}>
-                <StoreTrasladosHeader 
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    width: "100%",
+                    gap: 1, // Reducido de 3
+                    mb: 1, // Reducido de 2
+                  }}
+                >
+                <StoreTrasladosHeader
                   totalPendientes={
                     tienePoliticaTrasladosTiendas
                       ? new Set(filtrados.map((t) => t.traslado)).size
                       : filtrados.length
-                  } 
+                  }
                 />
                 <StoreTrasladosFilters
                   filtroBodegaDestino={filtroBodegaDestino}
@@ -336,6 +348,11 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                     setFiltroBodegaDestino={setFiltroBodegaDestino}
                     filtroNombre={filtroNombre}
                     setFiltroNombre={setFiltroNombre}
+                    filtroTipo={filtroTipo}
+                    setFiltroTipo={setFiltroTipo}
+                    filtroFecha={filtroFecha}
+                    setFiltroFecha={setFiltroFecha}
+                    conteos={conteos}
                     bodegasDestino={bodegasDestino}
                     filtradosLength={filtrados.length}
                     todosSeleccionados={todosSeleccionados}
@@ -366,7 +383,9 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                     tienePoliticaTrasladosJefezona={
                       tienePoliticaTrasladosJefezona
                     }
-                    tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
+                    tienePoliticaTrasladosTiendas={
+                      tienePoliticaTrasladosTiendas
+                    }
                   />
                 </Box>
               </Box>

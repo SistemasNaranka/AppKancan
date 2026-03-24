@@ -21,12 +21,12 @@ export const StoreTrasladosHeader: React.FC<StoreTrasladosHeaderProps> = ({
     >
       <Box>
         <Typography
-          variant="h4"
+          variant="h5"
           sx={{
             fontWeight: 700,
             color: "#1E293B",
-            letterSpacing: "-0.02em",
-            mb: 0.5,
+            letterSpacing: "-0.01em",
+            mb: 0,
           }}
         >
           Traslados en Tránsito
@@ -37,8 +37,8 @@ export const StoreTrasladosHeader: React.FC<StoreTrasladosHeaderProps> = ({
         icon={
           <AccessTimeIcon
             sx={{
-              fontSize: "20px !important",
-              color: "primary.main !important",
+              fontSize: "20px",
+              color: "primary.main",
             }}
           />
         }
@@ -47,12 +47,12 @@ export const StoreTrasladosHeader: React.FC<StoreTrasladosHeaderProps> = ({
           backgroundColor: "#EFF6FF",
           color: "primary.main",
           fontWeight: 700,
-          borderRadius: "10px",
+          borderRadius: "8px",
           border: "1px solid #DBEAFE",
-          height: "40px",
-          fontSize: "1rem",
+          height: "32px",
+          fontSize: "0.9rem",
           "& .MuiChip-label": {
-            px: 2,
+            px: 1.5,
           },
         }}
       />
