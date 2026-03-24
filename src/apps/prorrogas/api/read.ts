@@ -33,8 +33,8 @@ function buildFilter(filters: ContratoFilters) {
     const q = filters.search.trim();
     conditions.push({
       _or: [
-        { empleado_nombre:       { _icontains: q } },
-        { empleado_cargo:        { _icontains: q } },
+        { empleado_nombre: { _icontains: q } },
+        { empleado_cargo: { _icontains: q } },
         { empleado_departamento: { _icontains: q } },
       ],
     });
@@ -53,7 +53,7 @@ function buildFilter(filters: ContratoFilters) {
  */
 export async function getContratos(
   filters: ContratoFilters = {},
-  pagination: PaginationParams = { page: 0, limit: 25 }
+  pagination: PaginationParams = { page: 0, limit: 25 },
 ): Promise<PaginatedResponse<Contrato>> {
   try {
     const filter = buildFilter(filters);
@@ -63,11 +63,7 @@ export async function getContratos(
       withAutoRefresh(() =>
         directus.request(
           readItems("contratos", {
-            fields: [
-              "*",
-              { prorrogas: ["*"] },
-              { documentos: ["*"] },
-            ],
+            fields: ["*", { prorrogas: ["*"] }, { documentos: ["*"] }],
             filter,
             limit: pagination.limit,
             offset,
@@ -76,21 +72,21 @@ export async function getContratos(
                 pagination.sort ?? "date_created"
               }`,
             ],
-          })
-        )
+          }),
+        ),
       ),
       withAutoRefresh(() =>
         directus.request(
           aggregate("contratos", {
             aggregate: { count: ["id"] },
             query: { filter },
-          })
-        )
+          }),
+        ),
       ),
     ]);
 
     const total = Number(
-      (countResult as Array<{ count: { id: string } }>)?.[0]?.count?.id ?? 0
+      (countResult as Array<{ count: { id: string } }>)?.[0]?.count?.id ?? 0,
     );
 
     return {
@@ -101,7 +97,12 @@ export async function getContratos(
     };
   } catch (error) {
     console.error("❌ Error al cargar contratos:", error);
-    return { data: [], total: 0, page: pagination.page, limit: pagination.limit };
+    return {
+      data: [],
+      total: 0,
+      page: pagination.page,
+      limit: pagination.limit,
+    };
   }
 }
 
@@ -116,8 +117,8 @@ export async function getContratoById(id: number): Promise<Contrato | null> {
           fields: ["*", { prorrogas: ["*"] }, { documentos: ["*"] }],
           filter: { id: { _eq: id } },
           limit: 1,
-        })
-      )
+        }),
+      ),
     );
 
     if (!items || (items as Contrato[]).length === 0) {
@@ -137,7 +138,7 @@ export async function getContratoById(id: number): Promise<Contrato | null> {
  * Una sola llamada con groupBy para mayor eficiencia.
  */
 export async function getContratoStats(
-  filters: ContratoFilters = {}
+  filters: ContratoFilters = {},
 ): Promise<ContratoStats> {
   try {
     const { request_status: _rs, ...filtersWithoutStatus } = filters;
@@ -151,38 +152,55 @@ export async function getContratoStats(
             filter,
             groupBy: ["request_status"],
           },
-        })
-      )
+        }),
+      ),
     );
 
     const stats: ContratoStats = {
-      total:       0,
-      pendiente:   0,
+      total: 0,
+      pendiente: 0,
       en_revision: 0,
-      aprobada:    0,
-      rechazada:   0,
-      completada:  0,
+      aprobada: 0,
+      rechazada: 0,
+      completada: 0,
     };
 
-    (result as Array<{ request_status: string; count: { id: string } }>).forEach(
-      (row) => {
-        const count = Number(row.count?.id ?? 0);
-        stats.total += count;
+    (
+      result as Array<{ request_status: string; count: { id: string } }>
+    ).forEach((row) => {
+      const count = Number(row.count?.id ?? 0);
+      stats.total += count;
 
-        switch (row.request_status) {
-          case "pendiente":   stats.pendiente   = count; break;
-          case "en_revision": stats.en_revision = count; break;
-          case "aprobada":    stats.aprobada    = count; break;
-          case "rechazada":   stats.rechazada   = count; break;
-          case "completada":  stats.completada  = count; break;
-        }
+      switch (row.request_status) {
+        case "pendiente":
+          stats.pendiente = count;
+          break;
+        case "en_revision":
+          stats.en_revision = count;
+          break;
+        case "aprobada":
+          stats.aprobada = count;
+          break;
+        case "rechazada":
+          stats.rechazada = count;
+          break;
+        case "completada":
+          stats.completada = count;
+          break;
       }
-    );
+    });
 
     return stats;
   } catch (error) {
     console.error("❌ Error al cargar estadísticas de contratos:", error);
-    return { total: 0, pendiente: 0, en_revision: 0, aprobada: 0, rechazada: 0, completada: 0 };
+    return {
+      total: 0,
+      pendiente: 0,
+      en_revision: 0,
+      aprobada: 0,
+      rechazada: 0,
+      completada: 0,
+    };
   }
 }
 
@@ -194,7 +212,7 @@ export async function getContratoStats(
  * Obtiene todas las prórrogas de un contrato, ordenadas por número ascendente.
  */
 export async function getProrrogasByContrato(
-  contratoId: number
+  contratoId: number,
 ): Promise<Prorroga[]> {
   try {
     const items = await withAutoRefresh(() =>
@@ -203,13 +221,16 @@ export async function getProrrogasByContrato(
           fields: ["*"],
           filter: { contrato_id: { _eq: contratoId } },
           sort: ["numero"],
-        })
-      )
+        }),
+      ),
     );
 
     return items as Prorroga[];
   } catch (error) {
-    console.error(`❌ Error al cargar prórrogas del contrato ${contratoId}:`, error);
+    console.error(
+      `❌ Error al cargar prórrogas del contrato ${contratoId}:`,
+      error,
+    );
     return [];
   }
 }
