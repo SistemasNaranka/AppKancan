@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useContractContext } from "../contexts/contractcontext";
+import { useContractContext } from "../contexts/ContractContext";
 import { Contrato } from "../types/types";
 import { daysUntil, getContractStatus } from "../lib/utils";
 

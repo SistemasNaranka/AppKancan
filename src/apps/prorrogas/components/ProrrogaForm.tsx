@@ -15,7 +15,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
-import { useContractContext } from "../contexts/contractcontext";
+import { useContractContext } from "../contexts/ContractContext";
 import {
   addMonths,
   formatDate,

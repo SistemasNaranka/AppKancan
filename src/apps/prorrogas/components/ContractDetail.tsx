@@ -25,7 +25,7 @@ import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { ContractStatusChip, RequestStatusChip } from "./StatusChip";
 import ContractTimeline from "./ContractTimeline";
-import { useContractContext } from "../contexts/contractcontext";
+import { useContractContext } from "../contexts/ContractContext";
 import { daysUntil, formatDate, getContractStatus } from "../lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────

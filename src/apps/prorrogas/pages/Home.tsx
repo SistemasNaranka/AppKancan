@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { theme } from "../lib/theme";
-import { ContractProvider } from "../contexts/contractcontext";
+import { ContractProvider } from "../contexts/ContractContext";
 import TopBar from "../components/TopBar";
 import TabsNav from "../components/TabsNav";
 import StatCards from "../components/StatCards";
