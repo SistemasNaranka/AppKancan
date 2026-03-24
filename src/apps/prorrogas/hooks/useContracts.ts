@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
-import { useContractContext } from '../contexts/Contractcontext';
-import { Contrato } from '../types/types';
-import { daysUntil, getContractStatus } from '../lib/utils';
+import { useMemo } from "react";
+import { useContractContext } from "../contexts/contractcontext";
+import { Contrato } from "../types/types";
+import { daysUntil, getContractStatus } from "../lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useContracts — filtra, ordena y enriquece la lista de contratos
@@ -9,7 +9,7 @@ import { daysUntil, getContractStatus } from '../lib/utils';
 
 export interface EnrichedContrato extends Contrato {
   /** Última prórroga registrada */
-  lastProrroga: Contrato['prorrogas'][number];
+  lastProrroga: Contrato["prorrogas"][number];
   /** Días restantes hasta el vencimiento */
   daysLeft: number;
   /** Estado visual del contrato */
@@ -39,12 +39,13 @@ export const useContracts = () => {
     return enriched
       .filter((c) => {
         // Filtro por tab (request_status)
-        if (filters.tab !== 'resumen' && c.request_status !== filters.tab) return false;
+        if (filters.tab !== "resumen" && c.request_status !== filters.tab)
+          return false;
         // Filtro por búsqueda
         if (q) {
           return (
-            c.empleado_nombre.toLowerCase().includes(q)       ||
-            c.empleado_cargo.toLowerCase().includes(q)        ||
+            c.empleado_nombre.toLowerCase().includes(q) ||
+            c.empleado_cargo.toLowerCase().includes(q) ||
             c.empleado_departamento.toLowerCase().includes(q) ||
             String(c.id).includes(q)
           );
@@ -52,27 +53,46 @@ export const useContracts = () => {
         return true;
       })
       .sort((a, b) => {
-        if (filters.sortBy === 'vencimiento') return a.daysLeft - b.daysLeft;
-        if (filters.sortBy === 'nombre')      return a.empleado_nombre.localeCompare(b.empleado_nombre);
-        if (filters.sortBy === 'prorroga')    return b.prorrogas.length - a.prorrogas.length;
+        if (filters.sortBy === "vencimiento") return a.daysLeft - b.daysLeft;
+        if (filters.sortBy === "nombre")
+          return a.empleado_nombre.localeCompare(b.empleado_nombre);
+        if (filters.sortBy === "prorroga")
+          return b.prorrogas.length - a.prorrogas.length;
         return 0;
       });
   }, [enriched, filters]);
 
   // Counts por estado (para badges en tabs). Usa stats de Directus si están disponibles.
-  const counts = useMemo(() => ({
-    pendiente:   stats?.pendiente   ?? enriched.filter((c) => c.request_status === 'pendiente').length,
-    en_revision: stats?.en_revision ?? enriched.filter((c) => c.request_status === 'en_revision').length,
-    aprobada:    stats?.aprobada    ?? enriched.filter((c) => c.request_status === 'aprobada').length,
-    rechazada:   stats?.rechazada   ?? enriched.filter((c) => c.request_status === 'rechazada').length,
-    completada:  stats?.completada  ?? enriched.filter((c) => c.request_status === 'completada').length,
-    alertas:     enriched.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 50).length,
-    total:       stats?.total       ?? enriched.length,
-  }), [enriched, stats]);
+  const counts = useMemo(
+    () => ({
+      pendiente:
+        stats?.pendiente ??
+        enriched.filter((c) => c.request_status === "pendiente").length,
+      en_revision:
+        stats?.en_revision ??
+        enriched.filter((c) => c.request_status === "en_revision").length,
+      aprobada:
+        stats?.aprobada ??
+        enriched.filter((c) => c.request_status === "aprobada").length,
+      rechazada:
+        stats?.rechazada ??
+        enriched.filter((c) => c.request_status === "rechazada").length,
+      completada:
+        stats?.completada ??
+        enriched.filter((c) => c.request_status === "completada").length,
+      alertas: enriched.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 50)
+        .length,
+      total: stats?.total ?? enriched.length,
+    }),
+    [enriched, stats],
+  );
 
   // Contratos para la campana de notificaciones (≤ 50 días)
   const alertContratos = useMemo(
-    () => enriched.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 50).sort((a, b) => a.daysLeft - b.daysLeft),
+    () =>
+      enriched
+        .filter((c) => c.daysLeft >= 0 && c.daysLeft <= 50)
+        .sort((a, b) => a.daysLeft - b.daysLeft),
     [enriched],
   );
 
