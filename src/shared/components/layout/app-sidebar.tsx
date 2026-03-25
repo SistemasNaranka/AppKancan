@@ -26,7 +26,7 @@ interface Props {
 
 export function AppSidebar({ open, setOpen }: Props) {
   const { isAuthenticated } = useAuth();
-  const { apps, loading } = useApps();
+  const { apps, loading, area } = useApps();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const location = useLocation();
@@ -42,14 +42,19 @@ export function AppSidebar({ open, setOpen }: Props) {
 
   // Agrupar apps por categoría
   const groupedApps = useMemo(() => {
+    // Filtrar apps si el usuario es de bodega/logística
+    const filteredApps = (area === 'logistica' || area === 'bodega')
+      ? apps.filter(app => app.nombre === 'Curvas de Distribución')
+      : apps;
+
     const groups: Record<string, any[]> = {};
-    for (const app of apps) {
+    for (const app of filteredApps) {
       const categoria = app.categoria || "Sin categoría";
       if (!groups[categoria]) groups[categoria] = [];
       groups[categoria].push(app);
     }
     return groups;
-  }, [apps]);
+  }, [apps, area]);
 
   const drawerContent = (
     <Box

@@ -215,23 +215,24 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
       {/* Backdrop */}
       <Box
         onClick={handleBackdropClick}
-        sx={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          zIndex: 1300,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          animation: "fadeIn 0.2s ease",
-          "@keyframes fadeIn": {
-            from: { opacity: 0 },
-            to: { opacity: 1 },
-          },
-        }}
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 1300,
+            display: "flex",
+            alignItems: "flex-start", // Changed from center to start
+            justifyContent: "center",
+            pt: { xs: 2, sm: 8, md: 10, lg: 12 }, // More space from top
+            animation: "fadeIn 0.2s ease",
+            "@keyframes fadeIn": {
+              from: { opacity: 0 },
+              to: { opacity: 1 },
+            },
+          }}
       >
         {/* Modal Content */}
         <Box
