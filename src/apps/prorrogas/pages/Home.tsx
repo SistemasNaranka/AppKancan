@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -10,15 +10,10 @@ import TabsNav from "../components/TabsNav";
 import StatCards from "../components/StatCards";
 import ContractTable from "../components/ContractTable";
 import ContractDetail from "../components/ContractDetail";
-import ProrrogaForm from "../components/ProrrogaForm";
-import { useContracts } from "../hooks/useContracts";
+import { useContractContext } from "../contexts/ContractContext";
 
 const Inner: React.FC = () => {
-  const { loading, selectedContrato, filters } = useContracts();
-  const [formContractId, setFormContractId] = useState<number | null>(null);
-
-  const handleOpenForm = (id: number) => setFormContractId(id);
-  const handleCloseForm = () => setFormContractId(null);
+  const { loading, selectedContrato } = useContractContext();
 
   if (loading) {
     return (
@@ -53,24 +48,14 @@ const Inner: React.FC = () => {
 
       <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 3 } }}>
         {selectedContrato ? (
-          <ContractDetail
-            onOpenForm={() => handleOpenForm(selectedContrato.id)}
-          />
+          <ContractDetail />
         ) : (
           <>
-            {filters.tab === "resumen" && <StatCards />}
-            <ContractTable onOpenForm={handleOpenForm} />
+            <StatCards />
+            <ContractTable />
           </>
         )}
       </Box>
-
-      {formContractId !== null && (
-        <ProrrogaForm
-          contractId={formContractId}
-          open={true}
-          onClose={handleCloseForm}
-        />
-      )}
     </Box>
   );
 };

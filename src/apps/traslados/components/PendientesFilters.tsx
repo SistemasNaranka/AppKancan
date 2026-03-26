@@ -73,7 +73,7 @@ const PendientesFilters: React.FC<Props> = ({
           if (newValue === "Todas las bodegas" || newValue === null) {
             setFiltroBodegaDestino("");
           } else {
-            setFiltroBodegaDestino(capitalizarPalabras(newValue));
+            setFiltroBodegaDestino(newValue);
           }
         }}
         renderInput={(params) => (
@@ -96,7 +96,7 @@ const PendientesFilters: React.FC<Props> = ({
               {...rest}
               style={{ display: "flex", alignItems: "center" }}
             >
-              {capitalizarPalabras(option)}
+              {option}
             </li>
           );
         }}
