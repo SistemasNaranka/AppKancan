@@ -85,7 +85,7 @@ export const useEditStoreBudgetModalLogic = ({
     }
   }, [isOpen]);
 
-  // Cargar empleados asignados cuando cambian fecha o tienda
+  // Cargar empleados asignados cuando cambian fecha, tienda o catálogos (para resolver nombres)
   useEffect(() => {
     if (isOpen && fecha && tiendaId) {
       loadEmpleadosAsignados();
@@ -96,7 +96,7 @@ export const useEditStoreBudgetModalLogic = ({
       setDiasConPresupuestoCero([]);
       setDiasConAsignacion([]);
     }
-  }, [isOpen, fecha, tiendaId]);
+  }, [isOpen, fecha, tiendaId, todosEmpleados, cargos]);
 
   // Función para cargar días sin presupuesto del mes actual
   const loadDiasSinPresupuesto = async () => {

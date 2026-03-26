@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
+/** @jsxImportSource react */
+import { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -25,6 +26,7 @@ import {
   InputAdornment,
   Alert,
   Badge,
+  MenuItem,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -41,7 +43,8 @@ import {
 
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 import { getEnviosAnalisis } from '../api/directus/read';
@@ -349,11 +352,19 @@ const AnalisisPage = () => {
   // ── Portal content ──────────────────────────────────────
   const portalContent = (
     <Stack direction="row" spacing={0.8} alignItems="center" sx={{ overflow: 'hidden' }}>
-      {/* KPI pills removed from here as they are above the table */}
+      {/* KPI pills */}
+      {matrixData && (
+        <Stack direction="row" spacing={0.8} sx={{ display: { xs: 'none', lg: 'flex' }, mr: 1 }}>
+          <StatPill value={matrixData.tiendasUnicas} label="Tiendas" />
+          <StatPill value={matrixData.usuariosUnicos} label="Usuarios" />
+          <StatPill value={matrixData.grandTotal} label="Total Uds" />
+        </Stack>
+      )}
+
       {/* Date picker in Spanish */}
       <DatePicker
         value={fecha}
-        onChange={v => { setFecha(v); setSelectedRef(null); }}
+        onChange={(v: any) => { setFecha(v as Dayjs | null); setSelectedRef(null); }}
         slotProps={{
           textField: {
             size: 'small',
@@ -420,7 +431,7 @@ const AnalisisPage = () => {
         value={filtroTienda}
         onChange={e => setFiltroTienda(e.target.value)}
         sx={{
-          width: { xs: 0, md: 145 }, flexShrink: 0,
+          width: { xs: 0, md: 120 }, flexShrink: 0,
           display: { xs: 'none', md: 'flex' },
           '& .MuiOutlinedInput-root': {
             color: 'white', fontSize: '0.78rem', height: 30, borderRadius: 1.5,
@@ -430,7 +441,7 @@ const AnalisisPage = () => {
           '& input::placeholder': { color: 'rgba(255,255,255,0.4)', opacity: 1, fontSize: '0.78rem' },
         }}
         InputProps={{
-          startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.45)' }} /></InputAdornment>,
+          startAdornment: <InputAdornment position="start"><StoreIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.45)' }} /></InputAdornment>,
           endAdornment: filtroTienda ? (
             <InputAdornment position="end">
               <IconButton size="small" onClick={() => setFiltroTienda('')} sx={{ color: 'rgba(255,255,255,0.5)', p: 0.2 }}>
@@ -440,6 +451,38 @@ const AnalisisPage = () => {
           ) : null,
         }}
       />
+
+      {/* User filter on md+ */}
+      <TextField
+        select
+        size="small"
+        value={filtroUsuario}
+        onChange={e => setFiltroUsuario(e.target.value)}
+        sx={{
+          width: { xs: 0, md: 140 }, flexShrink: 0,
+          display: { xs: 'none', md: 'flex' },
+          '& .MuiOutlinedInput-root': {
+            color: 'white', fontSize: '0.78rem', height: 30, borderRadius: 1.5,
+            '& fieldset': { borderColor: 'rgba(255,255,255,0.22)' },
+            '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.45)' },
+            '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.6)' },
+          },
+        }}
+        SelectProps={{
+          displayEmpty: true,
+          renderValue: (selected: any) => {
+            if (!selected) return <Typography sx={{ fontSize: '0.78rem', opacity: 0.5 }}>Usuario…</Typography>;
+            const u = uniqueUsuarios.find(u => u.id === selected);
+            return u?.nombreCompleto || selected;
+          },
+          MenuProps: { PaperProps: { sx: { maxHeight: 300 } } }
+        }}
+      >
+        <MenuItem value="" sx={{ fontSize: '0.8rem' }}>Todos los usuarios</MenuItem>
+        {uniqueUsuarios.map(u => (
+          <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.8rem' }}>{u.nombreCompleto}</MenuItem>
+        ))}
+      </TextField>
 
       {/* Refresh */}
       <Tooltip title="Actualizar">
@@ -483,6 +526,7 @@ const AnalisisPage = () => {
   // ── Render ──────────────────────────────────────────────
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+      <>
       {portalTarget && createPortal(portalContent, portalTarget)}
 
       {/* Reference selector modal */}
@@ -781,6 +825,7 @@ const AnalisisPage = () => {
       </Container>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </>
     </LocalizationProvider>
   );
 };

@@ -4,15 +4,24 @@ const WEBHOOK_USERNAME = import.meta.env.VITE_WEBHOOK_USERNAME;
 const WEBHOOK_PASSWORD = import.meta.env.VITE_WEBHOOK_PASSWORD;
 const WEBHOOK_URL_POST = import.meta.env.VITE_WEBHOOK_URL_POST_TRASLADOS;
 const WEBHOOK_URL_TRASLADOS = import.meta.env.VITE_WEBHOOK_URL_TRASLADOS;
+const WEBHOOK_URL_TRASLADOS_TIENDAS = import.meta.env
+  .VITE_WEBHOOK_URL_TRASLADOS_TIENDAS;
 
 /**
  * Obtiene los traslados pendientes desde el backend
+ * @param codigo_ultra - Código del usuario
+ * @param empresa - Empresa del usuario
+ * @param esTienda - Si es true, usa la URL de traslados de tiendas
  */
 export async function obtenerTraslados(
   codigo_ultra: string,
-  empresa: string
+  empresa: string,
+  esTienda: boolean = false,
 ): Promise<Traslado[]> {
-  const resp = await fetch(WEBHOOK_URL_TRASLADOS, {
+  // Seleccionar la URL correcta según el tipo de usuario
+  const url = esTienda ? WEBHOOK_URL_TRASLADOS_TIENDAS : WEBHOOK_URL_TRASLADOS;
+
+  const resp = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ codigo_ultra, empresa }),
@@ -41,21 +50,11 @@ export interface AprobacionTrasladosRequest {
   clave: string;
 }
 
-/**
- * Envía al backend los traslados seleccionados para su aprobación
- * Estructura específica:
- * {
- *   "traslados": [{ "traslado": 12345, "fecha": "2025-10-24T10:30:00" }],
- *   "empresa": "MI_EMPRESA_SAS",
- *   "codigo_ultra": "U123456",
- *   "clave": "mi_contraseña_segura"
- * }
- */
 export async function aprobarTraslados(
   trasladosSeleccionados: Traslado[],
   empresa: string,
   codigo_ultra: string,
-  clave: string
+  clave: string,
 ): Promise<any> {
   // ✅ Validaciones
   if (!empresa || !codigo_ultra || !clave) {
@@ -83,8 +82,6 @@ export async function aprobarTraslados(
   };
 
   console.log("informacion", payload);
-
-  console.log("📤 Enviando traslados para aprobación:", payload);
 
   // ✅ Hacer la petición al endpoint
   try {

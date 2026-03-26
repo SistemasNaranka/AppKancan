@@ -28,11 +28,13 @@ import { DatosFacturaPDF, formatCurrency, formatDate } from "../types";
 
 interface InvoiceInfoCardProps {
   datosFactura: DatosFacturaPDF;
+  className?: string; // Para tours interactivos
 }
 
-export function InvoiceInfoCard({ datosFactura }: InvoiceInfoCardProps) {
+export function InvoiceInfoCard({ datosFactura, className }: InvoiceInfoCardProps) {
   return (
     <Card
+      className={className}
       elevation={0}
       sx={{
         borderRadius: 2,

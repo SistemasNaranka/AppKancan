@@ -140,7 +140,8 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {canAssignEmployees() && (
                   <Box sx={{ position: "relative" }}>
                     {/* Aviso de días pendientes - Para Tiendas y Admins cuando hay filtro */}
-                    {missingDaysCount > 0 && (
+                    {/* Mostrar aviso cuando hay días pendientes O cuando no hay presupuesto para el día de hoy */}
+                    {(missingDaysCount > 0 || hasBudgetData === false) && (
                       <Box
                         sx={{
                           position: "absolute",
@@ -176,12 +177,16 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                         }}
                       >
                         <AssignmentIcon
-                          sx={{ fontSize: 16, color: "#f57c00" }}
+                          sx={{
+                            fontSize: 16,
+                            color: "#f57c00",
+                          }}
                         />
-                        {missingDaysCount}{" "}
                         {missingDaysCount === 1
-                          ? "día pendiente"
-                          : "días pendientes"}
+                          ? "1 día pendiente"
+                          : missingDaysCount === 0 && hasBudgetData === false
+                            ? "1 día pendiente"
+                            : `${missingDaysCount} días pendientes`}
                       </Box>
                     )}
 

@@ -87,7 +87,7 @@ export const useEditStoreModalLogic = ({
     }
   }, [isOpen, tiendaSeleccionada, tiendas]);
 
-  // Forzar carga de empleados al abrir si hay valores
+  // Forzar carga de empleados al abrir si hay valores y asegurar re-mapeo con catálogos
   useEffect(() => {
     if (
       isOpen &&
@@ -101,9 +101,9 @@ export const useEditStoreModalLogic = ({
     if (isOpen && fecha && tiendaSeleccionada) {
       loadDiasSinPresupuesto();
     }
-  }, [isOpen, fecha, tiendaSeleccionada]);
+  }, [isOpen, fecha, tiendaSeleccionada, todosEmpleados, cargos]);
 
-  // Cargar empleados asignados cuando cambian fecha o tienda
+  // Cargar empleados asignados cuando cambian fecha, tienda o catálogos
   useEffect(() => {
     if (fecha && tiendaSeleccionada) {
       loadEmpleadosAsignados();
@@ -113,7 +113,7 @@ export const useEditStoreModalLogic = ({
       setDiasSinPresupuesto([]);
       setDiasConPresupuestoCero([]);
     }
-  }, [fecha, tiendaSeleccionada]);
+  }, [fecha, tiendaSeleccionada, todosEmpleados, cargos]);
 
   // Guardar fecha en localStorage cuando cambia
   useEffect(() => {

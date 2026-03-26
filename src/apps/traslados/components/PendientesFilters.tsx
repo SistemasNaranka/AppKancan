@@ -1,17 +1,17 @@
 import React from "react";
 import {
   Box,
+  Typography,
+  Paper,
   TextField,
   InputAdornment,
   Checkbox,
-  useTheme,
   FormControlLabel,
   FormGroup,
-  Typography,
-  Paper,
+  useTheme,
+  Autocomplete,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import Autocomplete from "@mui/material/Autocomplete";
 
 type Props = {
   filtroBodegaDestino: string;
@@ -36,13 +36,14 @@ const PendientesFilters: React.FC<Props> = ({
   algunSeleccionado,
   onToggleSeleccionarTodos,
 }) => {
-  const opcionesDestino = ["Todas las bodegas", ...bodegasDestino];
   const theme = useTheme();
+  const opcionesDestino = ["Todas las bodegas", ...bodegasDestino];
+
   const capitalizarPalabras = (texto: string) =>
     texto
       .toLowerCase()
       .split(" ")
-      .map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
       .join(" ");
 
   return (
@@ -72,7 +73,7 @@ const PendientesFilters: React.FC<Props> = ({
           if (newValue === "Todas las bodegas" || newValue === null) {
             setFiltroBodegaDestino("");
           } else {
-            setFiltroBodegaDestino(capitalizarPalabras(newValue)); // 👈 transformar antes de guardar
+            setFiltroBodegaDestino(capitalizarPalabras(newValue));
           }
         }}
         renderInput={(params) => (
@@ -104,7 +105,7 @@ const PendientesFilters: React.FC<Props> = ({
           flex: 1,
           minWidth: { xs: "100%", sm: 240 },
           maxWidth: 260,
-          flexShrink: 0, // ✅ Evita que se estire o reduzca por flex
+          flexShrink: 0,
         }}
       />
 
@@ -199,3 +200,4 @@ const PendientesFilters: React.FC<Props> = ({
 };
 
 export default PendientesFilters;
+

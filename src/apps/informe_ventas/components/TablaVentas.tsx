@@ -1,19 +1,5 @@
-/**
- * Componente de tabla de ventas para el Informe de Ventas
- *
- * Muestra:
- * - Nombre del asesor
- * - Tienda/Bodega
- * - Ciudad/Zona
- * - Unidades vendidas (total)
- * - Valor de ventas
- * - Líneas de venta como columnas fijas (Colección, Básicos, Promoción)
- * - Agrupaciones como columnas seleccionables (Indigo, Tela Liviana, Calzado, Complemento)
- */
-
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
-  Box,
   Paper,
   Table,
   TableBody,
@@ -23,60 +9,54 @@ import {
   TableRow,
   TableSortLabel,
   Typography,
-  TextField,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  OutlinedInput,
-  Checkbox,
-  ListItemText,
   TablePagination,
-  Button,
 } from "@mui/material";
+import { TablaVentasFila, FiltrosVentas, Agrupacion } from "../types";
 import {
-  Search as SearchIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-} from "@mui/icons-material";
-import { TablaVentasFila, Agrupacion } from "../types";
+  AGRUPACIONES,
+  COLUMNAS_POR_DEFECTO,
+  COLUMNAS_OBLIGATORIAS,
+  COLUMNAS_PRESUPUESTO_COMISION,
+  getColumnasAgrupaciones,
+  ColumnaOpcional,
+  formatCurrency,
+  formatNumber,
+  formatPercentage,
+  getCumplimientoColor,
+  TableToolbar,
+} from "./TablaVentasColumns";
 
 interface TablaVentasProps {
   datos: TablaVentasFila[];
   loading?: boolean;
+  // Indica si ya se han cargado datos al menos una vez - evita parpadeo
+  hasLoadedAtLeastOnce?: boolean;
+  // Filtros actuales para detectar si el usuario ha filtrado
+  filtros?: FiltrosVentas;
+  getVisibleColumnsRef?: React.MutableRefObject<(() => string[]) | null>;
 }
 
 type OrdenDireccion = "asc" | "desc";
 type CampoOrden = keyof TablaVentasFila;
 
-const AGRUPACIONES: Agrupacion[] = [
-  "Indigo",
-  "Tela Liviana",
-  "Calzado",
-  "Complemento",
-];
-
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-  PaperProps: {
-    style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 220,
-    },
-  },
-};
-
-export function TablaVentas({ datos, loading }: TablaVentasProps) {
-  const [ordenCampo, setOrdenCampo] = useState<CampoOrden>("unidades");
+export function TablaVentas({
+  datos,
+  loading,
+  hasLoadedAtLeastOnce,
+  filtros,
+  getVisibleColumnsRef,
+}: TablaVentasProps) {
+  const [ordenCampo, setOrdenCampo] = useState<CampoOrden>("valor");
   const [ordenDireccion, setOrdenDireccion] = useState<OrdenDireccion>("desc");
   const [busqueda, setBusqueda] = useState("");
   const [agrupacionesSeleccionadas, setAgrupacionesSeleccionadas] = useState<
     Agrupacion[]
   >([]);
+  const [columnasOpcionales, setColumnasOpcionales] =
+    useState<ColumnaOpcional[]>(COLUMNAS_POR_DEFECTO);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   // Filtrar datos por búsqueda
   const datosFiltrados = useMemo(() => {
@@ -128,21 +108,12 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     }
   };
 
-  const handleAgrupacionesChange = (event: any) => {
-    const value = event.target.value;
-    // Filtrar valores vacíos o undefined
-    const filteredValue = (
-      typeof value === "string" ? value.split(",") : value
-    ).filter((v: string) => v && AGRUPACIONES.includes(v as Agrupacion));
-    setAgrupacionesSeleccionadas(filteredValue as Agrupacion[]);
-  };
-
-  const handleSelectAll = () => {
-    if (agrupacionesSeleccionadas.length === AGRUPACIONES.length) {
-      setAgrupacionesSeleccionadas([]);
-    } else {
-      setAgrupacionesSeleccionadas([...AGRUPACIONES]);
-    }
+  const handleToggleColumna = (columnaId: CampoOrden) => {
+    setColumnasOpcionales((prev) =>
+      prev.map((col) =>
+        col.id === columnaId ? { ...col, visible: !col.visible } : col,
+      ),
+    );
   };
 
   const handleChangePage = (_: unknown, newPage: number) => {
@@ -156,60 +127,57 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     setPage(0);
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  // Columnas obligatorias - siempre visibles
+  const columnasObligatorias = COLUMNAS_OBLIGATORIAS;
 
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat("es-CO").format(value);
-  };
+  // Columnas de presupuesto y comisión por línea de venta (obligatorias)
+  const columnasPresupuestoComision = COLUMNAS_PRESUPUESTO_COMISION;
 
-  // Columnas fijas - todas con el mismo ancho base
-  const columnasFijas: {
-    id: CampoOrden;
-    label: string;
-    align?: "left" | "center" | "right";
-    sticky?: boolean;
-  }[] = [
-    { id: "asesor", label: "Asesor", align: "left", sticky: true },
-    { id: "bodega", label: "Tienda", align: "left" },
-    { id: "ciudad", label: "Ciudad", align: "left" },
-    { id: "zona", label: "Zona", align: "left" },
-    { id: "unidades", label: "Total Und", align: "right" },
-    { id: "valor", label: "Valor", align: "right" },
-    // Líneas de venta - unidades
-    { id: "unidades_coleccion", label: "Und Colección", align: "right" },
-    { id: "unidades_basicos", label: "Und Básicos", align: "right" },
-    { id: "unidades_promocion", label: "Und Promoción", align: "right" },
-    // Líneas de venta - valores
-    { id: "valor_coleccion", label: "Val Colección", align: "right" },
-    { id: "valor_basicos", label: "Val Básicos", align: "right" },
-    { id: "valor_promocion", label: "Val Promoción", align: "right" },
-  ];
+  // Columnas opcionales (seleccionables via checkboxes)
+  const columnasOpcionalesVisibles = columnasOpcionales.filter(
+    (col) => col.visible,
+  );
 
-  // Columnas de agrupaciones según selección (filtrar valores undefined)
-  const columnasAgrupaciones: {
-    id: CampoOrden;
-    label: string;
-    align?: "left" | "center" | "right";
-  }[] = agrupacionesSeleccionadas
-    .filter(
-      (agrup): agrup is Agrupacion => !!agrup && AGRUPACIONES.includes(agrup),
-    )
-    .map((agrup) => {
-      const id =
-        `unidades_${agrup.toLowerCase().replace(/ /g, "_")}` as CampoOrden;
-      return {
-        id,
-        label: agrup,
-        align: "right" as const,
-      };
-    });
+  // Columnas de agrupaciones según selección
+  const columnasAgrupaciones = getColumnasAgrupaciones(
+    agrupacionesSeleccionadas,
+  );
+
+  // Columnas visibles computadas (memoized para rendimiento)
+  const columnasVisibles = useMemo(() => {
+    return [
+      ...COLUMNAS_OBLIGATORIAS.map((c) => c.id),
+      ...COLUMNAS_PRESUPUESTO_COMISION.map((c) => c.id),
+      ...columnasOpcionales.filter((col) => col.visible).map((c) => c.id),
+      ...columnasAgrupaciones.map((c) => c.id),
+    ];
+  }, [columnasOpcionales, columnasAgrupaciones]);
+
+  useEffect(() => {
+    if (getVisibleColumnsRef) {
+      getVisibleColumnsRef.current = () => columnasVisibles;
+    }
+  }, [getVisibleColumnsRef, columnasVisibles]);
+
+  // Función para verificar si el usuario ha aplicado filtros
+  const usuarioHaFiltrado = Boolean(
+    filtros?.zona ||
+    filtros?.ciudad ||
+    filtros?.bodega ||
+    filtros?.asesor ||
+    filtros?.linea_venta ||
+    filtros?.agrupacion,
+  );
+
+  // Determinar si mostrar mensaje de "no hay datos"
+  // Solo mostrar cuando: NO hay datos Y el usuario ha filtrado
+  const noHayDatosYFiltrado =
+    !loading &&
+    hasLoadedAtLeastOnce &&
+    datos &&
+    Array.isArray(datos) &&
+    datos.length === 0 &&
+    usuarioHaFiltrado;
 
   if (loading) {
     return (
@@ -219,7 +187,8 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
     );
   }
 
-  if (datos.length === 0) {
+  // Mostrar mensaje si no hay resultados Y el usuario ha filtrado
+  if (noHayDatosYFiltrado) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }}>
         <Typography color="text.secondary">
@@ -230,107 +199,56 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
   }
 
   return (
-    <Paper sx={{ width: "100%", overflow: "hidden" }}>
-      {/* Barra de herramientas compacta */}
-      <Box
-        sx={{
-          px: 1.5,
-          py: 1,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          backgroundColor: "grey.50",
+    <Paper
+      sx={{
+        width: "100%",
+        maxHeight: 650,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      {/* Barra de herramientas */}
+      <TableToolbar
+        busqueda={busqueda}
+        onBusquedaChange={(value) => {
+          setBusqueda(value);
+          setPage(0);
         }}
-      >
-        {/* Buscador a la izquierda */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            width: 250,
-          }}
-        >
-          <SearchIcon color="action" fontSize="small" />
-          <TextField
-            placeholder="Asesor, tienda, ciudad, zona..."
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
-              setPage(0);
-            }}
-            size="small"
-            variant="standard"
-            sx={{ flex: 1 }}
-            InputProps={{ disableUnderline: true }}
-          />
-        </Box>
-
-        {/* Agrupaciones a la derecha */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={
-              agrupacionesSeleccionadas.length === AGRUPACIONES.length ? (
-                <CancelIcon fontSize="small" />
-              ) : (
-                <CheckCircleIcon fontSize="small" />
-              )
-            }
-            onClick={handleSelectAll}
-            color={
-              agrupacionesSeleccionadas.length === AGRUPACIONES.length
-                ? "error"
-                : "primary"
-            }
-            sx={{ px: 1, minWidth: "auto" }}
-          >
-            {agrupacionesSeleccionadas.length === AGRUPACIONES.length
-              ? "Ninguna"
-              : "Todas"}
-          </Button>
-
-          <FormControl sx={{ minWidth: 140 }} size="small">
-            <InputLabel id="agrupaciones-label">Agrupaciones</InputLabel>
-            <Select
-              labelId="agrupaciones-label"
-              multiple
-              value={agrupacionesSeleccionadas}
-              onChange={handleAgrupacionesChange}
-              input={<OutlinedInput label="Agrupaciones" />}
-              renderValue={(selected) => (
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {selected.length === AGRUPACIONES.length ? (
-                    <Chip label="Todas" size="small" />
-                  ) : selected.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                      -
-                    </Typography>
-                  ) : (
-                    <Chip label={`${selected.length}`} size="small" />
-                  )}
-                </Box>
-              )}
-              MenuProps={MenuProps}
-            >
-              {AGRUPACIONES.map((agrup) => (
-                <MenuItem key={agrup} value={agrup}>
-                  <Checkbox
-                    checked={agrupacionesSeleccionadas.indexOf(agrup) > -1}
-                  />
-                  <ListItemText primary={agrup} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-      </Box>
+        anchorEl={anchorEl}
+        onOpenMenu={(element) => setAnchorEl(element)}
+        onCloseMenu={() => setAnchorEl(null)}
+        columnasOpcionales={columnasOpcionales}
+        onToggleColumna={(columnaId) =>
+          handleToggleColumna(columnaId as CampoOrden)
+        }
+        agrupacionesSeleccionadas={agrupacionesSeleccionadas}
+        onToggleAgrupacion={(agrup) => {
+          if (agrupacionesSeleccionadas.includes(agrup)) {
+            setAgrupacionesSeleccionadas((prev) =>
+              prev.filter((a) => a !== agrup),
+            );
+          } else {
+            setAgrupacionesSeleccionadas((prev) => [...prev, agrup]);
+          }
+        }}
+        onSelectAllAgrupaciones={(selectAll) => {
+          if (selectAll) {
+            setAgrupacionesSeleccionadas([]);
+          } else {
+            setAgrupacionesSeleccionadas([...AGRUPACIONES]);
+          }
+        }}
+      />
 
       {/* Tabla */}
-      <TableContainer sx={{ maxHeight: 600, overflow: "auto" }}>
+      <TableContainer
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: "auto",
+        }}
+      >
         <Table
           stickyHeader
           size="small"
@@ -338,7 +256,7 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
         >
           <TableHead>
             <TableRow>
-              {columnasFijas.map((columna) => (
+              {columnasObligatorias.map((columna) => (
                 <TableCell
                   key={columna.id}
                   align={columna.align || "left"}
@@ -346,9 +264,8 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                     fontWeight: 600,
                     backgroundColor: "background.paper",
                     position: "sticky",
-                    left: columna.sticky ? 0 : undefined,
                     top: 0,
-                    zIndex: columna.sticky ? 3 : 2,
+                    zIndex: 2,
                     whiteSpace: "nowrap",
                     px: 1.5,
                   }}
@@ -365,6 +282,60 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                   </TableSortLabel>
                 </TableCell>
               ))}
+              {columnasPresupuestoComision.map((columna) => (
+                <TableCell
+                  key={columna.id}
+                  align={columna.align || "left"}
+                  sx={{
+                    fontWeight: 600,
+                    backgroundColor: "background.paper",
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 2,
+                    whiteSpace: "nowrap",
+                    px: 1.5,
+                  }}
+                >
+                  <TableSortLabel
+                    active={ordenCampo === columna.id}
+                    direction={
+                      ordenCampo === columna.id ? ordenDireccion : "desc"
+                    }
+                    onClick={() => handleOrdenar(columna.id)}
+                    hideSortIcon={ordenCampo !== columna.id}
+                  >
+                    {columna.label}
+                  </TableSortLabel>
+                </TableCell>
+              ))}
+              {/* Columnas opcionales */}
+              {columnasOpcionalesVisibles.map((columna) => (
+                <TableCell
+                  key={columna.id}
+                  align={columna.align || "left"}
+                  sx={{
+                    fontWeight: 600,
+                    backgroundColor: "background.paper",
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 2,
+                    whiteSpace: "nowrap",
+                    px: 1.5,
+                  }}
+                >
+                  <TableSortLabel
+                    active={ordenCampo === columna.id}
+                    direction={
+                      ordenCampo === columna.id ? ordenDireccion : "desc"
+                    }
+                    onClick={() => handleOrdenar(columna.id)}
+                    hideSortIcon={ordenCampo !== columna.id}
+                  >
+                    {columna.label}
+                  </TableSortLabel>
+                </TableCell>
+              ))}
+              {/* Columnas de Agrupaciones */}
               {columnasAgrupaciones.map((columna) => (
                 <TableCell
                   key={columna.id}
@@ -405,54 +376,43 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                   },
                 }}
               >
-                <TableCell
-                  component="th"
-                  scope="row"
-                  sx={{
-                    position: "sticky",
-                    left: 0,
-                    backgroundColor: "background.paper",
-                    zIndex: 3,
-                    px: 1.5,
-                  }}
-                >
+                {/* Columnas obligatorias */}
+                <TableCell sx={{ px: 1.5 }}>
                   <Typography variant="body2" fontWeight={500}>
                     {fila.asesor}
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ px: 1.5 }}>{fila.bodega}</TableCell>
-                <TableCell sx={{ px: 1.5 }}>{fila.ciudad}</TableCell>
-                <TableCell sx={{ px: 1.5 }}>{fila.zona}</TableCell>
-                <TableCell align="right" sx={{ px: 1.5 }}>
-                  <Typography variant="body2" fontWeight={600}>
-                    {formatNumber(fila.unidades)}
-                  </Typography>
-                </TableCell>
                 <TableCell align="right" sx={{ px: 1.5 }}>
                   <Typography variant="body2" fontWeight={600}>
                     {formatCurrency(fila.valor)}
                   </Typography>
                 </TableCell>
-                {/* Líneas de venta - unidades */}
+                {/* Columnas de Presupuesto y Comisión */}
+                {/* Colección */}
                 <TableCell align="right" sx={{ px: 1.5 }}>
-                  <Typography variant="body2">
-                    {formatNumber(fila.unidades_coleccion)}
+                  <Typography variant="body2" color="text.secondary">
+                    {formatCurrency(fila.presupuesto_coleccion)}
                   </Typography>
                 </TableCell>
-                <TableCell align="right" sx={{ px: 1.5 }}>
-                  <Typography variant="body2">
-                    {formatNumber(fila.unidades_basicos)}
-                  </Typography>
-                </TableCell>
-                <TableCell align="right" sx={{ px: 1.5 }}>
-                  <Typography variant="body2">
-                    {formatNumber(fila.unidades_promocion)}
-                  </Typography>
-                </TableCell>
-                {/* Líneas de venta - valores */}
                 <TableCell align="right" sx={{ px: 1.5 }}>
                   <Typography variant="body2">
                     {formatCurrency(fila.valor_coleccion)}
+                  </Typography>
+                </TableCell>
+                <TableCell align="right" sx={{ px: 1.5 }}>
+                  <Typography
+                    variant="body2"
+                    color={getCumplimientoColor(fila.cumplimiento_coleccion)}
+                    fontWeight={600}
+                  >
+                    {formatPercentage(fila.cumplimiento_coleccion)}
+                  </Typography>
+                </TableCell>
+                {/* Básicos */}
+                <TableCell align="right" sx={{ px: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatCurrency(fila.presupuesto_basicos)}
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ px: 1.5 }}>
@@ -461,11 +421,51 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ px: 1.5 }}>
+                  <Typography
+                    variant="body2"
+                    color={getCumplimientoColor(fila.cumplimiento_basicos)}
+                    fontWeight={600}
+                  >
+                    {formatPercentage(fila.cumplimiento_basicos)}
+                  </Typography>
+                </TableCell>
+                {/* Promoción */}
+                <TableCell align="right" sx={{ px: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatCurrency(fila.presupuesto_promocion)}
+                  </Typography>
+                </TableCell>
+                <TableCell align="right" sx={{ px: 1.5 }}>
                   <Typography variant="body2">
                     {formatCurrency(fila.valor_promocion)}
                   </Typography>
                 </TableCell>
-                {/* Agrupaciones seleccionadas - sin colores */}
+                <TableCell align="right" sx={{ px: 1.5 }}>
+                  <Typography
+                    variant="body2"
+                    color={getCumplimientoColor(fila.cumplimiento_promocion)}
+                    fontWeight={600}
+                  >
+                    {formatPercentage(fila.cumplimiento_promocion)}
+                  </Typography>
+                </TableCell>
+                {/* Columnas opcionales */}
+                {columnasOpcionalesVisibles.map((columna) => {
+                  const valor = fila[columna.id];
+                  const esTexto = typeof valor === "string";
+                  return (
+                    <TableCell
+                      key={columna.id}
+                      align={esTexto ? "left" : "right"}
+                      sx={{ px: 1.5 }}
+                    >
+                      <Typography variant="body2">
+                        {esTexto ? valor : formatNumber(valor as number)}
+                      </Typography>
+                    </TableCell>
+                  );
+                })}
+                {/* Columnas de Agrupaciones */}
                 {columnasAgrupaciones.map((columna) => {
                   const valor = fila[columna.id] as number;
                   return (
@@ -484,13 +484,14 @@ export function TablaVentas({ datos, loading }: TablaVentasProps) {
 
       {/* Paginación */}
       <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 100]}
+        rowsPerPageOptions={[25, 50, 100, 250]}
         component="div"
         count={datosOrdenados.length}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
+        sx={{ flexShrink: 0, borderTop: "1px solid", borderColor: "divider" }}
         labelRowsPerPage="Filas por página:"
         labelDisplayedRows={({ from, to, count }) =>
           `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`

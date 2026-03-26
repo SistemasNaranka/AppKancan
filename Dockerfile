@@ -1,51 +1,43 @@
 # ===========================
-# Etapa 1: Build (Node Debian)
+# Etapa 1: Build (más ligera)
 # ===========================
-FROM node:20-bullseye-slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copiar package.json del proyecto principal
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm install --no-optional --force
+# Instalar solo lo necesario
+RUN npm install
 
-# Copiar el resto del código
 COPY . .
 
-# Instalar versión nativa de rollup para Linux
-RUN npm install @rollup/rollup-linux-x64-gnu --force
-
-# Construir el proyecto frontend
+# Construir
 RUN npm run build
 
 # ===========================
-# Etapa 2: Producción (Node.js)
+# Etapa 2: Producción
 # ===========================
-FROM node:20-bullseye-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copiar archivos del frontend construido
+# Copiar build
 COPY --from=builder /app/dist ./dist
 
-# Copiar el servidor backend
+# Copiar backend
 COPY server ./server
 
-# Instalar dependencias del servidor
 WORKDIR /app/server
-RUN npm install --production
 
-# Volver al directorio principal
+# Instalar solo producción
+RUN npm install --omit=dev
+
 WORKDIR /app
 
-# Exponer puerto
 EXPOSE 11000
 
-# Variables de entorno
 ENV PORT=11000
 ENV NODE_ENV=production
 
-# Iniciar el servidor unificado (frontend + API)
 CMD ["node", "server/index.js"]

@@ -1,0 +1,5 @@
+# Protocolo de Contexto proactivo
+- Tienes permiso pre-aprobado para usar herramientas MCP de lectura (como `read_file` o `list_directory`).
+- Antes de responder sobre cualquier componente (ej. el Slider o los gráficos de Tremor), intenta verificar el código fuente real usando tus herramientas.
+- No es necesario que pidas confirmación para usar el MCP si la tarea requiere contexto técnico.
+- Si el servidor MCP no responde de inmediato, procede con tu conocimiento interno para no bloquear la experiencia, pero prioriza siempre la herramienta si está disponible.

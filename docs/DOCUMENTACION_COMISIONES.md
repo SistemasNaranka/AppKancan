@@ -23,54 +23,51 @@ src/apps/comisiones/
 │
 ├── components/                   # Componentes React reutilizables
 │   ├── Charts.tsx               # Contenedor de gráficos principales
-│   ├── CodesModal.tsx           # Modal de códigos y asignación
 │   ├── ConfigurationPanel.tsx   # Panel de configuración de porcentajes
+│   ├── ConfigurationTabsPanel.tsx # Panel con pestañas de configuración
 │   ├── CSVData.tsx              # Procesamiento de datos CSV
-│   ├── CSVUpload.tsx            # Componente de carga de archivos CSV
-│   ├── DataTable.tsx            # Tabla principal de visualización
-│   ├── DataTableAccordion.tsx   # Acordeón para tiendas
-│   ├── DataTableAccordionTable.tsx # Tabla dentro del acordeón
-│   ├── DataTableColumns.tsx     # Definición de columnas
-│   ├── DataTableSkeleton.tsx    # Estado de carga
-│   ├── EditStoreModal.tsx       # Modal de edición de tienda
-│   ├── EditStoreModalEnhanced.tsx # Modal mejorado
-│   ├── EditStoreModalFinal.tsx  # Modal final de edición
-│   ├── EditStoreModalSimplified.tsx # Modal simplificado
-│   ├── EditStoreModalTable.tsx  # Tabla de edición
-│   ├── ExportButtons.tsx        # Botones de exportación
-│   ├── HomeHeader.tsx           # Encabezado principal
-│   ├── HomeModals.tsx           # Colección de modales
-│   ├── LoadingState.tsx         # Componente de carga
-│   ├── NoDataModal.tsx          # Modal de sin datos
-│   ├── RoleChip.tsx             # Chip de rol de empleado
-│   ├── SimpleFilters.tsx        # Filtros simples
-│   ├── StoreFilterModal.tsx     # Modal de filtro de tiendas
 │   ├── SummaryCards.tsx         # Tarjetas de resumen
+│   │
 │   ├── charts/                  # Componentes de gráficos
-│   │   ├── CommissionByStoreChart.tsx
 │   │   ├── CommissionDistributionChart.tsx
-│   │   ├── TopSellersByRoleChart.tsx
-│   │   └── index.ts
-│   ├── DataTableAccordion/      # Subcomponentes del acordeón
-│   │   └── PerformanceMessage.tsx
-│   └── modal/                   # Componentes de modales
-│       ├── AssignedEmployeesList.tsx
-│       ├── CodesModalHeader.tsx
-│       ├── EmployeeInfoCard.tsx
-│       ├── EmployeeSearchPreview.tsx
-│       ├── EmployeeSelector.tsx
-│       ├── InlineMessage.tsx
-│       ├── MultipleStoresWarning.tsx
-│       ├── NotificationSnackbar.tsx
-│       ├── StatusMessages.tsx
-│       └── index.ts
+│   │   ├── NoDataChartMessage.tsx
+│   │   └── TopSellersByRoleChart.tsx
+│   │
+│   ├── dataTable/               # Componentes de tabla de datos
+│   │   ├── DataTable.tsx        # Tabla principal de visualización
+│   │   ├── DataTableAccordion.tsx # Acordeón para tiendas
+│   │   ├── DataTableAccordionTable.tsx # Tabla dentro del acordeón
+│   │   └── PerformanceMessage.tsx # Mensaje de rendimiento
+│   │
+│   ├── modals/                  # Componentes de modales
+│   │   ├── AddEmployeeSection.tsx
+│   │   ├── AssignedEmployeesList.tsx
+│   │   ├── AssignedEmployeesSection.tsx
+│   │   ├── CodesModal.tsx       # Modal de códigos y asignación
+│   │   ├── DaysWithoutBudgetPanel.tsx
+│   │   ├── EditStoreBudgetModal.tsx
+│   │   ├── EditStoreModalSimplified.tsx
+│   │   ├── EmployeeInfoCard.tsx
+│   │   ├── EmployeeSelector.tsx
+│   │   ├── HomeModals.tsx       # Colección de modales
+│   │   ├── InlineMessage.tsx
+│   │   ├── NoDataModal.tsx
+│   │   └── StoreFilterModal.tsx
+│   │
+│   └── ui/                      # Componentes de UI generales
+│       ├── ExportButtons.tsx    # Botones de exportación
+│       ├── HomeHeader.tsx       # Encabezado principal
+│       ├── LoadingState.tsx     # Componente de carga
+│       └── SimpleFilters.tsx    # Filtros simples
 │
 ├── contexts/                    # Contextos de React
 │   └── CommissionContext.tsx    # Estado global de comisiones
 │
 ├── hooks/                       # Custom Hooks
-│   ├── useAvailableMonths.ts   # Gestión de meses disponibles
+│   ├── useAvailableMonths.ts    # Gestión de meses disponibles
 │   ├── useBudgetValidation.ts   # Validación de presupuestos
+│   ├── useEditStoreBudgetModalLogic.ts # Lógica del modal de edición de presupuesto
+│   ├── useEditStoreModalLogic.ts # Lógica del modal de edición de tienda
 │   ├── useEmployeeData.ts       # Datos de empleados
 │   ├── useEmployeeManagement.ts # Gestión de empleados
 │   ├── useEmployeeOperations.ts # Operaciones sobre empleados
@@ -78,19 +75,13 @@ src/apps/comisiones/
 │   ├── useOptimizedCommissionData.ts # Datos de comisiones optimizados
 │   ├── usePermissionsValidation.ts # Validación de permisos
 │   ├── useStoreManagement.ts    # Gestión de tiendas
-│   ├── useStoreManagementEnhanced.ts # Gestión mejorada
-│   ├── useUnifiedCommissionData.ts # Datos unificados
 │   └── useUserPolicies.ts       # Políticas de usuario
 │
 ├── lib/                         # Lógica de negocio
-│   ├── calculations.basic.ts    # Funciones básicas de utilidad
 │   ├── calculations.budgets.ts  # Cálculos de presupuestos
 │   ├── calculations.commissions.ts # Cálculos de comisiones
-│   ├── calculations.data.ts     # Obtención y filtrado de datos
-│   ├── calculations.index.ts    # Re-exportaciones
-│   ├── calculations.next-commission.ts # Próximas comisiones
 │   ├── calculations.summary.ts  # Resúmenes y totales
-│   ├── calculations.ts          # Entry point
+│   ├── calculations.utils.ts    # Utilidades de cálculos (combina basic, data, next-commission)
 │   ├── modalHelpers.ts          # Utilidades de modales
 │   ├── utils.ts                 # Utilidades generales
 │   └── validation.ts            # Validaciones
@@ -175,6 +166,29 @@ export type Role =
 ```
 
 Cada rol tiene implicaciones específicas en el cálculo de comisiones, como se detalla en las secciones de lógica de negocio. El sistema está diseñado para que agregar nuevos roles sea relativamente sencillo: solo es necesario agregar el nuevo rol al tipo `Role` y crear las funciones de cálculo correspondientes.
+
+### 3.1.1 Configuración de Umbrales de Comisión (Nuevo)
+
+El sistema ahora soporta configuración dinámica de umbrales de comisión desde la base de datos:
+
+```typescript
+// Un umbral individual de comisión
+export interface CommissionThreshold {
+  cumplimiento_min: number; // Porcentaje mínimo (90, 95, 100, 110...)
+  comision_pct: number; // Porcentaje en decimal (0.0035 = 0.35%)
+  nombre: string; // Etiqueta para UI ("Muy Regular", "Regular"...)
+  color?: string; // Color hexadecimal opcional
+}
+
+// Configuración de umbrales por mes
+export interface CommissionThresholdConfig {
+  mes: string; // "MMM YYYY"
+  anio: string; // "YYYY"
+  cumplimiento_valores: CommissionThreshold[];
+}
+```
+
+Esta configuración permite modificar los porcentajes de comisión sin cambiar el código, directamente desde Directus.
 
 ### 3.2 Estructuras de Datos Principales
 
@@ -319,6 +333,7 @@ export interface AppState {
   ventas: VentasData[]; // Datos de ventas
   ventasMensuales: VentasMensualesData[];
   presupuestosEmpleados: any[]; // Presupuestos de empleados
+  thresholdConfig: CommissionThresholdConfig | null; // Configuración de umbrales
 }
 ```
 
@@ -349,7 +364,7 @@ Por ejemplo, si un empleado tiene un presupuesto de 10,000,000 y realiza ventas 
 
 ### 4.2 Escala de Porcentajes de Comisión
 
-El sistema implementa una escala de cinco niveles de comisión basada en el cumplimiento:
+El sistema implementa una escala de cinco niveles de comisión basada en el cumplimiento. **Esta escala ahora es configurable dinámicamente desde la base de datos** a través de la tabla `commission_thresholds_config`:
 
 | Rango de Cumplimiento | Porcentaje de Comisión | Categoría    |
 | --------------------- | ---------------------- | ------------ |
@@ -359,16 +374,37 @@ El sistema implementa una escala de cinco niveles de comisión basada en el cump
 | 90% a 94.99%          | 0.35%                  | Muy Regular  |
 | Menor a 90%           | 0%                     | Sin Comisión |
 
-Esta escala está implementada en la función `getCommissionPercentage` del archivo `calculations.commissions.ts`:
+Esta escala está implementada en la función `getCommissionPercentage` del archivo `calculations.commissions.ts`, que ahora soporta configuración dinámica:
 
 ```typescript
-export const getCommissionPercentage = (compliance: number): number => {
-  if (compliance >= 110.0) return 0.01; // 1.00%
-  if (compliance >= 100.0) return 0.007; // 0.70%
-  if (compliance >= 95.0) return 0.005; // 0.50%
-  if (compliance >= 90.0) return 0.0035; // 0.35%
-  return 0; // Sin comisión
+export const getCommissionPercentage = (
+  compliance: number,
+  thresholdConfig?: CommissionThreshold[],
+): number => {
+  // Usar configuración proporcionada o valores por defecto
+  const umbrales =
+    thresholdConfig && thresholdConfig.length > 0
+      ? thresholdConfig
+      : DEFAULT_THRESHOLDS;
+
+  // Ordenar por cumplimiento_min descendente para encontrar el umbral correcto
+  const umbral = umbrales
+    .sort((a, b) => b.cumplimiento_min - a.cumplimiento_min)
+    .find((u) => compliance >= u.cumplimiento_min);
+
+  return umbral?.comision_pct || 0;
 };
+```
+
+Los valores por defecto (hardcodeados) se usan cuando no hay configuración en la base de datos:
+
+```typescript
+const DEFAULT_THRESHOLDS = [
+  { cumplimiento_min: 90, comision_pct: 0.0035, nombre: "Muy Regular" },
+  { cumplimiento_min: 95, comision_pct: 0.005, nombre: "Regular" },
+  { cumplimiento_min: 100, comision_pct: 0.007, nombre: "Buena" },
+  { cumplimiento_min: 110, comision_pct: 0.01, nombre: "Excelente" },
+];
 ```
 
 ### 4.3 Cálculo de Comisión por Rol
@@ -766,17 +802,21 @@ El acordeón de tienda muestra el resumen de una tienda y sus empleados cuando s
 
 El componente `Charts` contiene los gráficos de análisis visual. Los gráficos disponibles son:
 
-- **CommissionByStoreChart**: Barras horizontales mostrando comisiones por tienda
 - **CommissionDistributionChart**: Gráfico de torta mostrando distribución de comisiones por rol
 - **TopSellersByRoleChart**: Gráfico de barras verticales con los mejores vendedores por rol
+- **NoDataChartMessage**: Componente para mostrar mensaje cuando no hay datos
 
 ### 6.6 Componentes de Modales
 
 La aplicación utiliza múltiples modales para funcionalidades específicas:
 
-#### 6.6.1 ConfigurationPanel
+#### 6.6.1 ConfigurationPanel y ConfigurationTabsPanel
 
-Permite configurar el porcentaje del gerente y gestionar presupuestos y personal manualmente.
+Permite configurar los umbrales de comisión y gestionar presupuestos y personal manualmente. El `ConfigurationTabsPanel` organiza la configuración en pestañas:
+
+- **Pestaña de empleados**: Gestión de empleados asignados
+- **Pestaña de presupuestos**: Configuración de presupuestos por tienda
+- **Pestaña de umbrales**: Configuración de umbrales de comisión (nuevo)
 
 #### 6.6.2 CodesModal
 
@@ -788,9 +828,12 @@ Modal principal para asignar empleados y presupuestos diarios. Incluye:
 - Lista de empleados asignados
 - Carga de CSV para presupuestos
 
-#### 6.6.3 EditStoreModal
+#### 6.6.3 EditStoreModalSimplified y EditStoreBudgetModal
 
-Modal para administradores que permite editar presupuestos de tiendas de forma masiva.
+Modales para administradores que permiten editar presupuestos de tiendas:
+
+- `EditStoreModalSimplified`: Edición simplificada de tienda
+- `EditStoreBudgetModal`: Edición de presupuestos
 
 #### 6.6.4 ExportButtons
 
@@ -1040,7 +1083,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
 
 ### 7.5 Funciones Utilitarias
 
-El archivo `lib/utils.ts` y `lib/calculations.basic.ts` contienen funciones utilitarias:
+El archivo `lib/utils.ts` y `lib/calculations.utils.ts` contienen funciones utilitarias. **Nota: `calculations.utils.ts` ahora combina las funciones que antes estaban en `calculations.basic.ts`, `calculations.data.ts` y `calculations.next-commission.ts`**:
 
 ```typescript
 // Redondeo a 2 decimales
@@ -1068,13 +1111,10 @@ export const getMonthYear = (dateStr: string): string => {
   return `${months[date.getMonth()]} ${date.getFullYear()}`;
 };
 
-// Obtener fecha actual
+// Obtener fecha actual (hora local de Colombia)
 export const getCurrentDate = (): string => {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-    2,
-    "0",
-  )}-${String(now.getDate()).padStart(2, "0")}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 };
 
 // Verificar si es mes actual
@@ -1099,6 +1139,24 @@ export const isCurrentMonth = (mes: string): boolean => {
     ahora.getFullYear() === parseInt(anioStr) &&
     ahora.getMonth() === mesesMap[mesNombre]
   );
+};
+
+// Calcular próxima comisión (desde calculations.utils.ts)
+export const getNextCommission = (
+  currentCompliance: number,
+  currentCommissionPct: number,
+  thresholds: CommissionThreshold[],
+): number | string => {
+  // Encuentra el siguiente umbral y retorna la comisión correspondiente
+  // Retorna 'NN' si ya está en el máximo
+};
+
+// Calcular próximo presupuesto necesario
+export const getNextBudget = (
+  currentSales: number,
+  nextThreshold: number,
+): number => {
+  // Calcula el presupuesto necesario para alcanzar el siguiente umbral
 };
 ```
 
@@ -1132,7 +1190,18 @@ La funcionalidad de asignación permite agregar empleados a tiendas y asignarles
 4. Hacer clic en "Asignar"
 5. Los cambios se guardan en Directus y se actualiza la vista
 
-### 8.3 Configuración de Porcentajes
+### 8.3 Configuración de Umbrales de Comisión (Nuevo)
+
+El panel de configuración ahora permite ajustar los umbrales de comisión de forma dinámica:
+
+1. **Umbrales de cumplimiento**: Define los porcentajes mínimos para cada nivel de comisión
+2. **Porcentajes de comisión**: Define el porcentaje de comisión para cada umbral
+3. **Nombres de categorías**: Etiquetas personalizadas para cada nivel (Excelente, Buena, Regular, etc.)
+4. **Colores**: Colores opcionales para la visualización
+
+Esta configuración se guarda en la tabla `commission_thresholds_config` de Directus y permite modificar los parámetros sin cambiar el código.
+
+### 8.4 Configuración de Porcentajes de Gerente
 
 El panel de configuración permite ajustar los parámetros del sistema:
 
@@ -1140,7 +1209,7 @@ El panel de configuración permite ajustar los parámetros del sistema:
 2. **Gestión de presupuestos**: Agregar/modificar presupuestos diarios de tienda
 3. **Gestión de personal**: Agregar/eliminar personal del mes
 
-### 8.4 Importación de CSV
+### 8.5 Importación de CSV
 
 La aplicación permite cargar presupuestos desde archivos CSV:
 
@@ -1319,3 +1388,5 @@ La aplicación considera aspectos de accesibilidad:
 
 _Documentación generada para la Aplicación de Comisiones - AppKancan_
 _Esta documentación está diseñada para ser autosuficiente y permitir a nuevos desarrolladores comprender completamente el sistema._
+
+_Última actualización: Febrero 2026 - Incluye soporte para configuración dinámica de umbrales de comisión_

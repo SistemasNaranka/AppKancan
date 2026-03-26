@@ -4,11 +4,7 @@
  * Incluye: Botón Tutorial y Aprobar
  */
 import React from "react";
-import {
-  Box,
-  Button,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, useTheme } from "@mui/material";
 import TrasladosHelpButton from "./TrasladosHelpButton";
 
 type Props = {
@@ -17,6 +13,7 @@ type Props = {
   onToggleSeleccionarTodos: (seleccionar: boolean) => void;
   onAbrirDialogoAprobacion: () => void;
   tienePoliticaTrasladosJefezona?: boolean;
+  tienePoliticaTrasladosTiendas?: boolean;
 };
 
 export const ControlesSuperiores: React.FC<Props> = ({
@@ -24,6 +21,7 @@ export const ControlesSuperiores: React.FC<Props> = ({
   loading,
   onAbrirDialogoAprobacion,
   tienePoliticaTrasladosJefezona = false,
+  tienePoliticaTrasladosTiendas = false,
 }) => {
   const theme = useTheme();
 
@@ -48,20 +46,22 @@ export const ControlesSuperiores: React.FC<Props> = ({
         },
       }}
     >
-      {/* 🔹 Botón de Tutorial */}
-      <Box
-        sx={{
-          alignSelf: "flex-end",
-          [theme.breakpoints.down("sm")]: {
-            alignSelf: "center",
-          },
-        }}
-      >
-        <TrasladosHelpButton compact />
-      </Box>
+      {/* 🔹 Botón de Tutorial - Ocultar si tiene política TrasladosTiendas */}
+      {!tienePoliticaTrasladosTiendas && (
+        <Box
+          sx={{
+            alignSelf: "flex-end",
+            [theme.breakpoints.down("sm")]: {
+              alignSelf: "center",
+            },
+          }}
+        >
+          <TrasladosHelpButton compact />
+        </Box>
+      )}
 
-      {/* 🔹 Botón APROBAR - Ocultar si tiene política TrasladosJefezona */}
-      {!tienePoliticaTrasladosJefezona && (
+      {/* 🔹 Botón APROBAR - Ocultar si tiene política TrasladosJefezona o TrasladosTiendas */}
+      {!tienePoliticaTrasladosJefezona && !tienePoliticaTrasladosTiendas && (
         <Button
           variant="contained"
           color="success"

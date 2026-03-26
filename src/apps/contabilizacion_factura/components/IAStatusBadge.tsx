@@ -14,6 +14,7 @@ interface IAStatusBadgeProps {
   conexionErrorOllama: boolean;
   modelosDisponibles: string[];
   modeloIA?: string; // Modelo de IA configurado en Directus
+  className?: string; // Para tours interactivos
 }
 
 /**
@@ -25,6 +26,7 @@ export function IAStatusBadge({
   conexionErrorOllama,
   modelosDisponibles,
   modeloIA,
+  className,
 }: IAStatusBadgeProps) {
   const geminiStatus = geminiApiKeyConfigured ? "connected" : "error";
   const ollamaStatus =
@@ -34,6 +36,7 @@ export function IAStatusBadge({
 
   return (
     <Box
+      className={className}
       sx={{
         display: "flex",
         alignItems: "center",

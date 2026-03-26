@@ -30,16 +30,17 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
         display: "flex",
         flexDirection: "row",
         gap: isSmallScreen ? 1.5 : 2,
-        mb: isSmallScreen ? 1.5 : 2,
+        mb: isSmallScreen ? 1.5 : 0,
         flexWrap: "wrap",
         justifyContent: "flex-start",
       }}
     >
-      {/* —— CARD: DOCUMENTOS PENDIENTES —— */}
+
+      {/* —— CARD: TRASLADOS PENDIENTES —— */}
       <Card
         variant="outlined"
         sx={{
-          borderBottom: `4px solid ${theme.palette.info.main}`,
+          borderBottom: `4px solid ${theme.palette.primary.main}`,
           borderRadius: isSmallScreen ? 1.5 : 2,
           boxShadow: 1,
           backgroundColor: isDark ? theme.palette.background.paper : "#fff",
@@ -58,7 +59,7 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <PendingActions
               sx={{
-                color: theme.palette.info.main,
+                color: theme.palette.primary.main,
                 fontSize: isSmallScreen ? 20 : 24,
                 mr: isSmallScreen ? 0.7 : 1,
               }}
@@ -76,7 +77,7 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
             sx={{
               ml: isSmallScreen ? 0.5 : 1,
               fontWeight: "bold",
-              color: theme.palette.info.main,
+              color: theme.palette.primary.main,
               fontSize: isSmallScreen ? "1.3rem" : "1.5rem",
             }}
           >

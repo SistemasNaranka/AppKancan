@@ -29,7 +29,7 @@ export interface ImpuestosDetalle {
 export interface DatosFacturaPDF {
   // Información general
   numeroFactura: string;
-  serie?: string;
+  automatico: string;
   fechaEmision: string;
   fechaVencimiento?: string;
 

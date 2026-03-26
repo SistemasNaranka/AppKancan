@@ -71,10 +71,13 @@ export interface GrupoHomogeneo {
 
 /**
  * Registro de venta individual
+ * (id_factura e id_referencia son solo para display, no se usan en cálculos)
  */
 export interface VentaRegistro {
-  id_referencia: string;
-  id_factura: string;
+  // Campos para display en tabla (no necesarios para cálculos)
+  id_factura?: string;
+  id_referencia?: string;
+  // Campos necesarios para filtros y cálculos
   fecha_factura: string; // YYYY-MM-DD
   asesor: string;
   bodega: string;
@@ -261,6 +264,19 @@ export interface TablaVentasFila {
   unidades_tela_liviana: number;
   unidades_calzado: number;
   unidades_complemento: number;
+  // Nuevas columnas: Presupuesto y Comisión por línea de venta (siempre visibles)
+  // Colección
+  presupuesto_coleccion: number;
+  cumplimiento_coleccion: number;
+  comision_coleccion: number;
+  // Básicos
+  presupuesto_basicos: number;
+  cumplimiento_basicos: number;
+  comision_basicos: number;
+  // Promoción
+  presupuesto_promocion: number;
+  cumplimiento_promocion: number;
+  comision_promocion: number;
 }
 
 /**
@@ -273,4 +289,19 @@ export interface ColumnaTabla {
   sortable: boolean;
   width?: string;
   align?: "left" | "center" | "right";
+  /** Indica si la columna es obligatoria (siempre visible) */
+  required?: boolean;
+}
+
+/**
+ * Definición de columnas disponibles para la tabla
+ */
+export interface ColumnaDef {
+  id: string;
+  label: string;
+  visible: boolean;
+  sortable: boolean;
+  required: boolean; // Las columnas obligatorias no pueden ocultarse
+  width?: string;
+  align: "left" | "center" | "right";
 }

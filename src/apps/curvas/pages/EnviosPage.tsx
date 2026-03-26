@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -79,7 +80,7 @@ type SheetCategory = 'general' | 'producto_a' | 'producto_b';
 interface ConfirmedEntry {
   category: SheetCategory;
   label: string;
-  icon: React.ReactNode;
+  icon: React.ReactElement;
   accent: string;
   sheet: MatrizGeneralCurvas | DetalleProducto;
   // normalised field names so the rest of the UI is generic
@@ -1166,12 +1167,12 @@ const EnviosPage = () => {
                 }}
               >
                 {confirmedEntries.map((entry, i) => (
-                  <Tab key={i} icon={entry.icon as React.ReactElement} iconPosition="start" label={getTabLabel(entry, i)} />
+                  <Tab key={i} icon={entry.icon} iconPosition="start" label={getTabLabel(entry, i)} />
                 ))}
               </Tabs>
             ) : (
               <Chip
-                icon={current?.icon as React.ReactElement}
+                icon={current?.icon}
                 label={current ? getTabLabel(current, confirmedEntries.indexOf(current)) : ''}
                 size="small"
                 sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: '#eef2ff', color: '#4338ca', height: 26 }}
