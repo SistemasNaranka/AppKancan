@@ -5,21 +5,13 @@ import React, {
   useEffect,
   useMemo,
   useReducer,
-} from 'react';
-import {
-  Contrato,
-  ContratoStats,
-  UIFilters,
-  TabValue,
-  CreateProrrogaPayload,
-  Prorroga,
-} from '../types/types';
-import { getContratos, getContratoStats } from '../api';
-import { crearProrroga, cambiarRequestStatus } from '../api';
-import { getNextProrrogaNumber } from '../lib/utils';
+} from "react";
+import { Contrato, ContratoStats, UIFilters, TabValue } from "../types/types";
+import { getContratos, getContratoStats } from "../api";
+import { useAuth } from "@/auth/hooks/useAuth";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 import { setTokenDirectus } from "@/services/directus/auth";
-import { useAuth } from "@/auth/hooks/useAuth";
+import { daysUntil, getContractStatus } from "../lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STATE
@@ -40,7 +32,7 @@ const initialState: State = {
   contratos: [],
   stats: null,
   selectedId: null,
-  filters: { search: '', tab: 'resumen', sortBy: 'vencimiento' },
+  filters: { search: "", tab: "resumen", sortBy: "vencimiento" },
   loading: false,
   saving: false,
   error: null,
@@ -52,50 +44,52 @@ const initialState: State = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Action =
-  | { type: 'SET_LOADING';    payload: boolean }
-  | { type: 'SET_SAVING';     payload: boolean }
-  | { type: 'SET_CONTRATOS';  payload: Contrato[] }
-  | { type: 'SET_STATS';      payload: ContratoStats }
-  | { type: 'SELECT';         payload: number | null }
-  | { type: 'SET_FILTER';     payload: Partial<UIFilters> }
-  | { type: 'SET_TAB';        payload: TabValue }
-  | { type: 'ADD_PRORROGA';   payload: { contratoId: number; prorroga: Prorroga } }
-  | { type: 'SET_ERROR';      payload: string | null }
-  | { type: 'SET_SUCCESS';    payload: string | null };
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "SET_SAVING"; payload: boolean }
+  | { type: "SET_CONTRATOS"; payload: Contrato[] }
+  | { type: "SET_STATS"; payload: ContratoStats }
+  | { type: "SELECT"; payload: number | null }
+  | { type: "SET_FILTER"; payload: Partial<UIFilters> }
+  | { type: "SET_TAB"; payload: TabValue }
+  | { type: "SET_ERROR"; payload: string | null }
+  | { type: "SET_SUCCESS"; payload: string | null };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'SET_LOADING':
+    case "SET_LOADING":
       return { ...state, loading: action.payload };
-    case 'SET_SAVING':
+    case "SET_SAVING":
       return { ...state, saving: action.payload };
-    case 'SET_CONTRATOS':
+    case "SET_CONTRATOS":
       return { ...state, contratos: action.payload, loading: false };
-    case 'SET_STATS':
+    case "SET_STATS":
       return { ...state, stats: action.payload };
-    case 'SELECT':
+    case "SELECT":
       return { ...state, selectedId: action.payload };
-    case 'SET_FILTER':
+    case "SET_FILTER":
       return { ...state, filters: { ...state.filters, ...action.payload } };
-    case 'SET_TAB':
-      return { ...state, filters: { ...state.filters, tab: action.payload }, selectedId: null };
-    case 'ADD_PRORROGA':
+    case "SET_TAB":
       return {
         ...state,
-        saving: false,
-        contratos: state.contratos.map((c) =>
-          c.id === action.payload.contratoId
-            ? { ...c, prorrogas: [...c.prorrogas, action.payload.prorroga] }
-            : c,
-        ),
+        filters: { ...state.filters, tab: action.payload },
+        selectedId: null,
       };
-    case 'SET_ERROR':
+    case "SET_ERROR":
       return { ...state, error: action.payload, saving: false };
-    case 'SET_SUCCESS':
+    case "SET_SUCCESS":
       return { ...state, successMsg: action.payload };
     default:
       return state;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENRICHED CONTRATO
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface EnrichedContrato extends Contrato {
+  daysLeft: number;
+  contractStatus: ReturnType<typeof getContractStatus>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,11 +98,11 @@ function reducer(state: State, action: Action): State {
 
 interface ContextValue extends State {
   selectedContrato: Contrato | null;
+  filteredContratos: EnrichedContrato[];
   loadContratos: () => Promise<void>;
   select: (id: number | null) => void;
   setTab: (tab: TabValue) => void;
   setFilter: (f: Partial<UIFilters>) => void;
-  addProrroga: (payload: CreateProrrogaPayload) => Promise<void>;
   clearMessages: () => void;
 }
 
@@ -118,7 +112,9 @@ const ContractContext = createContext<ContextValue | null>(null);
 // PROVIDER
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { loading: authLoading } = useAuth();
 
@@ -127,61 +123,75 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [state.contratos, state.selectedId],
   );
 
+  const filteredContratos = useMemo<EnrichedContrato[]>(() => {
+    const q = state.filters.search.toLowerCase().trim();
+
+    return state.contratos
+      .map((c) => ({
+        ...c,
+        daysLeft: daysUntil(c.fecha_final),
+        contractStatus: getContractStatus(c.fecha_final),
+      }))
+      .filter((c) => {
+        if (q) {
+          return (
+            c.nombre.toLowerCase().includes(q) ||
+            c.apellido.toLowerCase().includes(q) ||
+            c.cargo.toLowerCase().includes(q) ||
+            c.documento.toLowerCase().includes(q) ||
+            String(c.id).includes(q)
+          );
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (state.filters.sortBy === "vencimiento")
+          return a.daysLeft - b.daysLeft;
+        if (state.filters.sortBy === "nombre")
+          return `${a.nombre} ${a.apellido}`.localeCompare(
+            `${b.nombre} ${b.apellido}`,
+          );
+        if (state.filters.sortBy === "fecha_ingreso")
+          return (
+            new Date(a.fecha_ingreso).getTime() -
+            new Date(b.fecha_ingreso).getTime()
+          );
+        return 0;
+      });
+  }, [state.contratos, state.filters.search, state.filters.sortBy]);
+
   const loadContratos = useCallback(async () => {
-    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: "SET_LOADING", payload: true });
     try {
       const [response, stats] = await Promise.all([
         getContratos(),
         getContratoStats(),
       ]);
-      dispatch({ type: 'SET_CONTRATOS', payload: response.data });
-      dispatch({ type: 'SET_STATS',     payload: stats });
+      dispatch({ type: "SET_CONTRATOS", payload: response.data });
+      dispatch({ type: "SET_STATS", payload: stats });
     } catch {
-      dispatch({ type: 'SET_ERROR', payload: 'Error al cargar los contratos.' });
+      dispatch({
+        type: "SET_ERROR",
+        payload: "Error al cargar los contratos.",
+      });
     }
   }, []);
 
   const select = useCallback((id: number | null) => {
-    dispatch({ type: 'SELECT', payload: id });
+    dispatch({ type: "SELECT", payload: id });
   }, []);
 
   const setTab = useCallback((tab: TabValue) => {
-    dispatch({ type: 'SET_TAB', payload: tab });
+    dispatch({ type: "SET_TAB", payload: tab });
   }, []);
 
   const setFilter = useCallback((f: Partial<UIFilters>) => {
-    dispatch({ type: 'SET_FILTER', payload: f });
+    dispatch({ type: "SET_FILTER", payload: f });
   }, []);
 
-  const addProrroga = useCallback(async (payload: CreateProrrogaPayload) => {
-    dispatch({ type: 'SET_SAVING', payload: true });
-    try {
-      const contrato = state.contratos.find((c) => c.id === payload.contractId);
-      if (!contrato) throw new Error('Contrato no encontrado.');
-
-      const numero = getNextProrrogaNumber(contrato.prorrogas);
-
-      const prorroga = await crearProrroga({
-        contrato_id:  payload.contractId,
-        numero,
-        fecha_inicio: payload.fechaInicio,
-        descripcion:  payload.descripcion,
-      });
-
-      dispatch({
-        type: 'ADD_PRORROGA',
-        payload: { contratoId: payload.contractId, prorroga },
-      });
-      dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga registrada exitosamente.' });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al guardar la prórroga.';
-      dispatch({ type: 'SET_ERROR', payload: msg });
-    }
-  }, [state.contratos]);
-
   const clearMessages = useCallback(() => {
-    dispatch({ type: 'SET_ERROR',   payload: null });
-    dispatch({ type: 'SET_SUCCESS', payload: null });
+    dispatch({ type: "SET_ERROR", payload: null });
+    dispatch({ type: "SET_SUCCESS", payload: null });
   }, []);
 
   // ─── Esperar a que AuthProvider termine antes de disparar queries ─────────
@@ -201,8 +211,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await loadContratos();
       } catch {
         dispatch({
-          type: 'SET_ERROR',
-          payload: 'Sesión inválida. Por favor cierra sesión y vuelve a entrar.',
+          type: "SET_ERROR",
+          payload:
+            "Sesión inválida. Por favor cierra sesión y vuelve a entrar.",
         });
       }
     };
@@ -213,17 +224,30 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     () => ({
       ...state,
       selectedContrato,
+      filteredContratos,
       loadContratos,
       select,
       setTab,
       setFilter,
-      addProrroga,
       clearMessages,
     }),
-    [state, selectedContrato, loadContratos, select, setTab, setFilter, addProrroga, clearMessages],
+    [
+      state,
+      selectedContrato,
+      filteredContratos,
+      loadContratos,
+      select,
+      setTab,
+      setFilter,
+      clearMessages,
+    ],
   );
 
-  return <ContractContext.Provider value={value}>{children}</ContractContext.Provider>;
+  return (
+    <ContractContext.Provider value={value}>
+      {children}
+    </ContractContext.Provider>
+  );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -232,6 +256,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 export const useContractContext = (): ContextValue => {
   const ctx = useContext(ContractContext);
-  if (!ctx) throw new Error('useContractContext must be used within <ContractProvider>');
-  return ctx;
+  if (!ctx)
+    throw new Error(
+      "useContractContext must be used within <ContractProvider>",
+    );
+  return {
+    ...ctx,
+    contratos: ctx.contratos || [],
+    filteredContratos: ctx.filteredContratos || [],
+  };
 };

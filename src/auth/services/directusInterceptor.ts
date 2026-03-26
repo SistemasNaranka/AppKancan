@@ -32,7 +32,7 @@ export async function ensureValidToken(): Promise<void> {
       );
 
       // Actualizar el token en el cliente de Directus
-      console.log("Estableciendo token en el cliente");
+      console.log("Estableciendo token refrescado en el cliente");
       await setTokenDirectus(newTokens.access_token);
     } catch (error) {
       borrarTokenStorage();
@@ -40,6 +40,9 @@ export async function ensureValidToken(): Promise<void> {
       console.error("❌ Error al refrescar token:", error);
       // Manejar sesión expirada (cierra sesión y redirige)
     }
+  } else {
+    // Si no está expirado, igual nos aseguramos que el cliente de Directus lo tenga (evita 403 en reloads)
+    await setTokenDirectus(tokens.access);
   }
 }
 

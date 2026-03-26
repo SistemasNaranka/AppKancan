@@ -35,9 +35,11 @@ import {
   Warehouse,
   WorkspacePremium,
   PendingActions,
+  Diversity1,
+  BackupTable,
 } from "@mui/icons-material";
 /**
- * 🗂️ Mapa de íconos permitidos.
+ * Mapa de íconos permitidos.
  * Los nombres deben coincidir con los valores en la base de datos.
  * Ejemplo: icono_app = "LocalShipping", icono_categoria = "Inventory2"
  */
@@ -65,6 +67,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Group,
   EditCalendar,
   PendingActions,
+  Diversity1,
   // 🔸 Categoría: Aplicación
   Apps,
   Home,
@@ -84,6 +87,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
   // 🔸 Logistica
   Warehouse,
+  BackupTable,
 
   // 🔸 Sistemas
   SettingsSuggest,

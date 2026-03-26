@@ -33,12 +33,24 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom"],
-          router: ["react-router-dom"],
-          ui: ["@mui/material", "@mui/icons-material"],
-          query: ["@tanstack/react-query"],
-          utils: ["dayjs", "clsx"],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("@directus/sdk")) return "directus";
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-router-dom") ||
+              id.includes("@mui") ||
+              id.includes("@emotion") ||
+              id.includes("@tanstack") ||
+              id.includes("dayjs") ||
+              id.includes("clsx") ||
+              id.includes("pdfjs-dist") ||
+              id.includes("file-saver")
+            ) {
+              return "vendor";
+            }
+          }
         },
       },
     },

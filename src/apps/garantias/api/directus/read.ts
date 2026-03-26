@@ -69,62 +69,94 @@ export async function getGarantias(
   filters: GarantiaFilters = {},
   pagination: PaginationParams = { page: 0, limit: 10 }
 ): Promise<PaginatedResponse<Garantia>> {
-  const filter = buildFilter(filters);
-  const offset = pagination.page * pagination.limit;
+  try {
+    const filter = buildFilter(filters);
+    const offset = pagination.page * pagination.limit;
 
-  const [items, countResult] = await Promise.all([
-    withAutoRefresh(() =>
-      directus.request(
-        readItems("garantias", {
-          fields: ["*"],
-          filter,
-          limit: pagination.limit,
-          offset,
-          sort: [
-            `${pagination.order === "asc" ? "" : "-"}${pagination.sort ?? "date_created"}`,
-          ],
-        })
-      )
-    ),
-    withAutoRefresh(() =>
-      directus.request(
-        aggregate("garantias", {
-          aggregate: { count: ["id"] },
-          query: { filter },
-        })
-      )
-    ),
-  ]);
+    const [items, countResult] = await Promise.all([
+      withAutoRefresh(() =>
+        directus.request(
+          readItems("garantias", {
+            fields: ["*"],
+            filter,
+            limit: pagination.limit,
+            offset,
+            sort: [
+              `${pagination.order === "asc" ? "" : "-"}${pagination.sort ?? "date_created"}`,
+            ],
+          })
+        )
+      ),
+      withAutoRefresh(() =>
+        directus.request(
+          aggregate("garantias", {
+            aggregate: { count: ["id"] },
+            query: { filter },
+          })
+        )
+      ),
+    ]);
 
-  const total = Number((countResult as any)?.[0]?.count?.id ?? 0);
+    const total = Number((countResult as any)?.[0]?.count?.id ?? 0);
 
-  return {
-    data: items as Garantia[],
-    total,
-    page: pagination.page,
-    limit: pagination.limit,
-  };
+    return {
+      data: items as Garantia[],
+      total,
+      page: pagination.page,
+      limit: pagination.limit,
+    };
+  } catch (error: any) {
+    if (error?.response?.status === 403) {
+      console.error("❌ Error 403 al cargar garantías (Permisos):", {
+        message: error.message,
+        errors: error.errors,
+        collection: "garantias"
+      });
+    } else {
+      console.error("❌ Error al cargar garantías:", error);
+    }
+    return {
+      data: [],
+      total: 0,
+      page: pagination.page,
+      limit: pagination.limit,
+    };
+  }
 }
 
 /**
  * Obtiene una garantía por su ID.
  */
 export async function getGarantiaById(id: number): Promise<Garantia> {
-  const items = await withAutoRefresh(() =>
-    directus.request(
-      readItems("garantias", {
-        fields: ["*"],
-        filter: { id: { _eq: id } },
-        limit: 1,
-      })
-    )
-  );
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("garantias", {
+          fields: ["*"],
+          filter: { id: { _eq: id } },
+          limit: 1,
+        })
+      )
+    );
 
-  if (!items || (items as Garantia[]).length === 0) {
-    throw new Error(`Garantía con ID ${id} no encontrada`);
+    if (!items || (items as Garantia[]).length === 0) {
+      throw new Error(`Garantía con ID ${id} no encontrada`);
+    }
+
+    return (items as Garantia[])[0];
+  } catch (error: any) {
+    if (error?.response?.status === 403) {
+      console.error(`❌ Error 403 al cargar garantía ${id} (Permisos):`, {
+        message: error.message,
+        errors: error.errors,
+        collection: "garantias",
+        id,
+      });
+    } else {
+      console.error(`❌ Error al cargar garantía ${id}:`, error);
+    }
+    throw error;
   }
-
-  return (items as Garantia[])[0];
 }
 
 /**
@@ -134,48 +166,67 @@ export async function getGarantiaById(id: number): Promise<Garantia> {
 export async function getGarantiaStats(
   filters: GarantiaFilters = {}
 ): Promise<GarantiaStats> {
-  // Filtros base sin filtro de estado (queremos conteos de TODOS los estados)
-  const { estado: _estado, ...filtersWithoutEstado } = filters;
-  const filter = buildFilter(filtersWithoutEstado);
+  try {
+    // Filtros base sin filtro de estado (queremos conteos de TODOS los estados)
+    const { estado: _estado, ...filtersWithoutEstado } = filters;
+    const filter = buildFilter(filtersWithoutEstado);
 
-  const result = await withAutoRefresh(() =>
-    directus.request(
-      aggregate("garantias", {
-        aggregate: { count: ["id"] },
-        query: {
-          filter,
-          groupBy: ["estado"],
-        },
-      })
-    )
-  );
+    const result = await withAutoRefresh(() =>
+      directus.request(
+        aggregate("garantias", {
+          aggregate: { count: ["id"] },
+          query: {
+            filter,
+            groupBy: ["estado"],
+          },
+        })
+      )
+    );
 
-  // Construir el objeto de stats a partir del resultado agrupado
-  const stats: GarantiaStats = {
-    total: 0,
-    pendiente: 0,
-    en_revision: 0,
-    aprobada: 0,
-    rechazada: 0,
-    completada: 0,
-  };
+    // Construir el objeto de stats a partir del resultado agrupado
+    const stats: GarantiaStats = {
+      total: 0,
+      pendiente: 0,
+      en_revision: 0,
+      aprobada: 0,
+      rechazada: 0,
+      completada: 0,
+    };
 
-  (result as Array<{ estado: string; count: { id: string } }>).forEach(
-    (row) => {
-      const count = Number(row.count?.id ?? 0);
-      stats.total += count;
+    (result as Array<{ estado: string; count: { id: string } }>).forEach(
+      (row) => {
+        const count = Number(row.count?.id ?? 0);
+        stats.total += count;
 
-      switch (row.estado) {
-        case "pendiente":    stats.pendiente   = count; break;
-        case "en_revision":  stats.en_revision = count; break;
-        case "aprobada":     stats.aprobada    = count; break;
-        case "rechazada":    stats.rechazada   = count; break;
-        case "completada":   stats.completada  = count; break;
+        switch (row.estado) {
+          case "pendiente":    stats.pendiente   = count; break;
+          case "en_revision":  stats.en_revision = count; break;
+          case "aprobada":     stats.aprobada    = count; break;
+          case "rechazada":    stats.rechazada   = count; break;
+          case "completada":   stats.completada  = count; break;
+        }
       }
-    }
-  );
+    );
 
-  return stats;
+    return stats;
+  } catch (error: any) {
+    if (error?.response?.status === 403) {
+      console.error("❌ Error 403 al cargar estadísticas de garantías:", {
+        message: error.message,
+        errors: error.errors
+      });
+    } else {
+      console.error("❌ Error al cargar estadísticas de garantías:", error);
+    }
+    return {
+      total: 0,
+      pendiente: 0,
+      en_revision: 0,
+      aprobada: 0,
+      rechazada: 0,
+      completada: 0,
+    };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -188,21 +239,26 @@ export async function getGarantiaStats(
 export async function searchClientes(query: string): Promise<Cliente[]> {
   if (!query || query.trim().length < 2) return [];
 
-  const items = await withAutoRefresh(() =>
-    directus.request(
-      readItems("clientes", {
-        fields: ["id", "nombre", "documento", "telefono", "email", "direccion"],
-        filter: {
-          _or: [
-            { nombre:    { _icontains: query } },
-            { documento: { _icontains: query } },
-          ],
-        },
-        limit: 10,
-        sort: ["nombre"],
-      })
-    )
-  );
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("clientes", {
+          fields: ["id", "nombre", "documento", "telefono", "email", "direccion"],
+          filter: {
+            _or: [
+              { nombre:    { _icontains: query } },
+              { documento: { _icontains: query } },
+            ],
+          },
+          limit: 10,
+          sort: ["nombre"],
+        })
+      )
+    );
 
-  return items as Cliente[];
+    return items as Cliente[];
+  } catch (error: any) {
+    console.error("❌ Error al buscar clientes:", error);
+    return [];
+  }
 }

@@ -134,6 +134,8 @@ const TrasladosPanel: React.FC = () => {
     filtroTipo,
     filtroFecha,
     user?.codigo_ultra,
+    user?.policies,
+    tienePoliticaTrasladosTiendas,
   ]);
 
   // ✅ Obtener conteos de enviados y recibidos
