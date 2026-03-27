@@ -15,10 +15,15 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
 import SortOutlinedIcon from '@mui/icons-material/SortOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import { ContractStatusChip, RequestStatusChip, AlertChip } from './StatusChip';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
+import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
+import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
 
@@ -26,13 +31,185 @@ import { formatDate } from '../lib/utils';
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const initials = (name: string) =>
-  name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+const initials = (name: string | undefined | null) => {
+  if (!name) return '??';
+  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+};
 
 const avatarColor = (id: number | string) => {
   const colors = ['#004680', '#0070c0', '#1a7a4a', '#7b3f00', '#37474f'];
   const idx = String(id).charCodeAt(String(id).length - 1) % colors.length;
   return colors[idx];
+};
+
+const safeFormatDate = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '—';
+  return formatDate(dateStr);
+};
+
+const getDaysLabel = (daysLeft: number): { text: string; color: string } => {
+  if (!isFinite(daysLeft) || isNaN(daysLeft)) return { text: '—', color: 'text.disabled' };
+  if (daysLeft < 0) return { text: `Hace ${Math.abs(daysLeft)} días`, color: '#6b7280' };
+  if (daysLeft === 0) return { text: 'Vence hoy', color: '#dc2626' };
+  return { text: `En ${daysLeft} días`, color: daysLeft <= 7 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#6b7280' };
+};
+
+// Status chip para la nueva tabla
+const StatusBadge: React.FC<{ daysLeft: number; contractStatus: string }> = ({ daysLeft, contractStatus }) => {
+  if (contractStatus === 'vencido' || daysLeft < 0) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#9ca3af' }} />
+        <Typography variant="caption" sx={{ fontWeight: 600, color: '#6b7280', fontSize: '0.75rem' }}>Vencido</Typography>
+      </Box>
+    );
+  }
+  if (daysLeft <= 7) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#dc2626' }} />
+        <Typography variant="caption" sx={{ fontWeight: 600, color: '#dc2626', fontSize: '0.75rem' }}>Crítico</Typography>
+      </Box>
+    );
+  }
+  if (daysLeft <= 30) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#d97706' }} />
+        <Typography variant="caption" sx={{ fontWeight: 600, color: '#d97706', fontSize: '0.75rem' }}>Por vencer</Typography>
+      </Box>
+    );
+  }
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#16a34a' }} />
+      <Typography variant="caption" sx={{ fontWeight: 600, color: '#16a34a', fontSize: '0.75rem' }}>Activo</Typography>
+    </Box>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SidebarProps {
+  onNewProrroga: () => void;
+}
+
+const ResumenSidebar: React.FC<SidebarProps> = ({ onNewProrroga }) => {
+  const { allEnriched, counts } = useContracts();
+
+  const activos  = allEnriched.filter((c) => c.contractStatus === 'vigente').length;
+  const porVencer = allEnriched.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 30).length;
+  const criticos  = allEnriched.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 7).length;
+  const vencidos  = allEnriched.filter((c) => c.contractStatus === 'vencido').length;
+  const total = counts.total || 1;
+
+  const distItems = [
+    { label: 'Activos',     value: activos,   pct: Math.round((activos / total) * 100),   color: '#16a34a' },
+    { label: 'Por vencer',  value: porVencer, pct: Math.round((porVencer / total) * 100), color: '#d97706' },
+    { label: 'Críticos',    value: criticos,  pct: Math.round((criticos / total) * 100),  color: '#dc2626' },
+    { label: 'Vencidos',    value: vencidos,  pct: Math.round((vencidos / total) * 100),  color: '#9ca3af' },
+  ];
+
+  const quickActions = [
+    { icon: <AssignmentOutlinedIcon sx={{ fontSize: 18, color: '#004680' }} />, label: 'Nuevo Contrato',     sub: 'Crear contrato nuevo',       bg: '#e8f0fa' },
+    { icon: <AccessTimeOutlinedIcon sx={{ fontSize: 18, color: '#d97706' }} />, label: 'Solicitar Prórroga', sub: 'Extender un contrato',       bg: '#fef3c7', onClick: onNewProrroga },
+    { icon: <PersonAddOutlinedIcon  sx={{ fontSize: 18, color: '#16a34a' }} />, label: 'Agregar Empleado',   sub: 'Registrar nuevo empleado',   bg: '#dcfce7' },
+    { icon: <BarChartOutlinedIcon   sx={{ fontSize: 18, color: '#7c3aed' }} />, label: 'Ver Reportes',       sub: 'Análisis y estadísticas',    bg: '#ede9fe' },
+  ];
+
+  return (
+    <Stack spacing={2} sx={{ width: 270, flexShrink: 0 }}>
+      {/* Accesos Rápidos */}
+      <Card sx={{ borderRadius: 2.5, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+        <Box sx={{ px: 2.5, pt: 2.5, pb: 1 }}>
+          <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={1.5}>
+            Accesos Rápidos
+          </Typography>
+          <Stack spacing={0.5}>
+            {quickActions.map((action) => (
+              <Box
+                key={action.label}
+                onClick={action.onClick}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 1.5,
+                    bgcolor: action.bg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {action.icon}
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" fontWeight={600} fontSize="0.8rem" noWrap>{action.label}</Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap>{action.sub}</Typography>
+                </Box>
+                <ChevronRightIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+        <Box sx={{ pb: 1.5 }} />
+      </Card>
+
+      {/* Distribución de Estados */}
+      <Card sx={{ borderRadius: 2.5, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+        <Box sx={{ p: 2.5 }}>
+          <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={2}>
+            Distribución de Estados
+          </Typography>
+          <Stack spacing={1.5}>
+            {distItems.map((item) => (
+              <Box key={item.label}>
+                <Stack direction="row" justifyContent="space-between" mb={0.5}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={500}>{item.label}</Typography>
+                  <Typography variant="caption" fontWeight={700} color="text.primary">
+                    {item.value} <Typography component="span" variant="caption" color="text.disabled">({item.pct}%)</Typography>
+                  </Typography>
+                </Stack>
+                <Box sx={{ height: 6, bgcolor: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
+                  <Box
+                    sx={{
+                      height: '100%',
+                      width: `${item.pct}%`,
+                      bgcolor: item.color,
+                      borderRadius: 10,
+                      transition: 'width 0.4s ease',
+                    }}
+                  />
+                </Box>
+              </Box>
+            ))}
+          </Stack>
+          <Divider sx={{ my: 2 }} />
+          <Stack direction="row" justifyContent="space-between">
+            <Typography variant="caption" color="text.secondary">Total contratos</Typography>
+            <Typography variant="subtitle2" fontWeight={800}>{counts.total}</Typography>
+          </Stack>
+        </Box>
+      </Card>
+    </Stack>
+  );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,176 +221,207 @@ interface Props {
 }
 
 const ContractTable: React.FC<Props> = ({ onOpenForm }) => {
-  const { filteredContratos, filters, setFilter, select, filters: { tab } } = useContracts();
+  const { filteredContratos, allEnriched, filters, setFilter, select } = useContracts();
+
+  const isResumen = filters.tab === 'resumen';
+
+  // En resumen mostramos solo los últimos 10; en otras tabs, todos los filtrados
+  const rows = isResumen
+    ? [...allEnriched].slice(0, 10)
+    : filteredContratos;
+
+  const tableTitle = isResumen
+    ? 'Contratos Recientes'
+    : `Solicitudes — ${filters.tab.charAt(0).toUpperCase() + filters.tab.slice(1).replace('_', ' ')}`;
+
+  const tableSubtitle = isResumen
+    ? 'Últimos 10 contratos actualizados'
+    : `${filteredContratos.length} registros`;
 
   return (
-    <Card>
-      {/* Toolbar */}
-      <Box
-        sx={{
-          px: 2.5,
-          py: 1.8,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 1.5,
-        }}
-      >
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-          {tab === 'resumen' ? 'Todos los Contratos' : `Solicitudes — ${tab.charAt(0).toUpperCase() + tab.slice(1).replace('_', ' ')}`}
-          <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
-            ({filteredContratos.length} registros)
-          </Typography>
-        </Typography>
+    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+      {/* ── Tabla principal ── */}
+      <Card sx={{ flex: 1, borderRadius: 2.5, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', minWidth: 0 }}>
+        {/* Toolbar */}
+        <Box
+          sx={{
+            px: 2.5,
+            py: 1.8,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1.5,
+          }}
+        >
+          <Box>
+            <Typography variant="subtitle1" fontWeight={700} color="text.primary">
+              {tableTitle}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {tableSubtitle}
+            </Typography>
+          </Box>
 
-        <Stack direction="row" spacing={1} alignItems="center">
-          <SortOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <Select
-              value={filters.sortBy}
-              onChange={(e) => setFilter({ sortBy: e.target.value as typeof filters.sortBy })}
-              sx={{ fontSize: '0.82rem', bgcolor: 'background.default' }}
-            >
-              <MenuItem value="vencimiento">Por vencimiento</MenuItem>
-              <MenuItem value="nombre">Por nombre</MenuItem>
-              <MenuItem value="prorroga">Por prórroga</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-      </Box>
-
-      {/* Table */}
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Empleado</TableCell>
-              <TableCell>Cargo / Depto.</TableCell>
-              <TableCell align="center">Prórroga</TableCell>
-              <TableCell>Vencimiento</TableCell>
-              <TableCell>Estado Contrato</TableCell>
-              <TableCell>Estado Solicitud</TableCell>
-              <TableCell align="right">Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {filteredContratos.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary', fontSize: '0.85rem' }}>
-                  No se encontraron contratos con los filtros actuales.
-                </TableCell>
-              </TableRow>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <SortOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select
+                value={filters.sortBy}
+                onChange={(e) => setFilter({ sortBy: e.target.value as typeof filters.sortBy })}
+                sx={{ fontSize: '0.82rem', bgcolor: 'background.default' }}
+              >
+                <MenuItem value="vencimiento">Por vencimiento</MenuItem>
+                <MenuItem value="nombre">Por nombre</MenuItem>
+                <MenuItem value="prorroga">Por prórroga</MenuItem>
+              </Select>
+            </FormControl>
+            {isResumen && (
+              <Button
+                size="small"
+                variant="text"
+                sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600, whiteSpace: 'nowrap' }}
+                onClick={() => setFilter({ tab: 'todos' as any })}
+              >
+                Ver todos →
+              </Button>
             )}
+          </Stack>
+        </Box>
 
-            {filteredContratos.map((c) => (
-              <TableRow key={c.id} onClick={() => select(c.id)}>
-                {/* Empleado */}
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        bgcolor: avatarColor(c.id),
-                        fontSize: '0.75rem',
-                        fontWeight: 800,
-                        borderRadius: 2,
-                      }}
-                    >
-                      {initials(c.empleado_nombre)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="body2" fontWeight={700} color="text.primary">
-                        {c.empleado_nombre}
-                      </Typography>
-                      <Typography variant="caption" color="text.disabled">
-                        #{c.id}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </TableCell>
+        {/* Table */}
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ '& .MuiTableCell-head': { fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' } }}>
+                <TableCell>Contrato</TableCell>
+                <TableCell>Área</TableCell>
+                <TableCell>Vencimiento</TableCell>
+                <TableCell>Estado</TableCell>
+                <TableCell align="right" sx={{ pr: 2 }}></TableCell>
+              </TableRow>
+            </TableHead>
 
-                {/* Cargo */}
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.4 }}>
-                    {c.empleado_cargo}
-                  </Typography>
-                  <Typography variant="caption" color="text.disabled">
-                    {c.empleado_departamento}
-                  </Typography>
-                </TableCell>
+            <TableBody>
+              {rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary', fontSize: '0.85rem' }}>
+                    No se encontraron contratos con los filtros actuales.
+                  </TableCell>
+                </TableRow>
+              )}
 
-                {/* Prórroga */}
-                <TableCell align="center">
-                  <Chip
-                    label={`Prórroga ${c.lastProrroga.numero}`}
-                    size="small"
-                    sx={{ bgcolor: '#e8f0fa', color: 'primary.main', fontWeight: 700, fontSize: '0.7rem' }}
-                  />
-                </TableCell>
+              {rows.map((c) => {
+                const { text: daysText, color: daysColor } = getDaysLabel(c.daysLeft);
+                const fechaVence = c.lastProrroga?.fecha_final ?? c.fecha_final;
+                const venceDate = safeFormatDate(fechaVence);
+                const isUrgent = isFinite(c.daysLeft) && c.daysLeft >= 0 && c.daysLeft <= 30;
 
-                {/* Vencimiento */}
-                <TableCell>
-                  <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: '0.82rem' }}>
-                    {formatDate(c.lastProrroga.fecha_fin)}
-                  </Typography>
-                  <Typography
-                    variant="caption"
+                return (
+                  <TableRow
+                    key={c.id}
+                    onClick={() => select(c.id)}
                     sx={{
-                      color: c.daysLeft < 0 ? 'error.main' : c.daysLeft <= 20 ? 'error.main' : c.daysLeft <= 50 ? 'warning.main' : 'text.secondary',
-                      fontWeight: c.daysLeft <= 50 ? 700 : 400,
+                      cursor: 'pointer',
+                      borderLeft: isUrgent ? `3px solid ${c.daysLeft <= 7 ? '#dc2626' : '#d97706'}` : '3px solid transparent',
+                      '&:hover': { bgcolor: 'action.hover' },
+                      '& .MuiTableCell-root': { py: 1.4 },
                     }}
                   >
-                    {c.daysLeft < 0 ? 'Vencido' : `${c.daysLeft} días restantes`}
-                  </Typography>
-                </TableCell>
+                    {/* Contrato */}
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            bgcolor: avatarColor(c.id),
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            borderRadius: 1.5,
+                          }}
+                        >
+                          {initials(c.nombre)}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight={700} color="text.primary" fontSize="0.82rem">
+                            {c.nombre ?? `#${c.id}`}
+                          </Typography>
+                          <Typography variant="caption" color="text.disabled">
+                            {c.cargo ?? `ID: ${c.id}`}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
 
-                {/* Estado contrato */}
-                <TableCell>
-                  <Stack spacing={0.5} alignItems="flex-start">
-                    <ContractStatusChip status={c.contractStatus} />
-                    <AlertChip daysLeft={c.daysLeft} />
-                  </Stack>
-                </TableCell>
+                    {/* Empresa / Área */}
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary" fontSize="0.8rem">
+                        {c.empleado_area ?? '—'}
+                      </Typography>
+                    </TableCell>
 
-                {/* Estado solicitud */}
-                <TableCell>
-                  <RequestStatusChip status={c.request_status} />
-                </TableCell>
+                    {/* Vencimiento */}
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        fontWeight={isUrgent || c.daysLeft < 0 ? 700 : 500}
+                        fontSize="0.82rem"
+                        sx={{ color: (isUrgent || c.daysLeft < 0) ? daysColor : 'text.primary' }}
+                      >
+                      {venceDate}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: daysColor, fontWeight: isUrgent ? 700 : 400 }}>
+                        {daysText}
+                      </Typography>
+                    </TableCell>
 
-                {/* Acciones */}
-                <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<VisibilityOutlinedIcon sx={{ fontSize: '14px !important' }} />}
-                      onClick={() => select(c.id)}
-                      sx={{ fontSize: '0.72rem', px: 1.2, py: 0.5, borderColor: 'divider', color: 'text.secondary' }}
-                    >
-                      Ver
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={<AddOutlinedIcon sx={{ fontSize: '14px !important' }} />}
-                      onClick={() => onOpenForm(c.id)}
-                      sx={{ fontSize: '0.72rem', px: 1.2, py: 0.5 }}
-                    >
-                      Prórroga
-                    </Button>
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Card>
+                    {/* Estado */}
+                    <TableCell>
+                      <StatusBadge daysLeft={c.daysLeft} contractStatus={c.contractStatus} />
+                    </TableCell>
+
+                    {/* Acciones */}
+                    <TableCell align="right" onClick={(e) => e.stopPropagation()} sx={{ pr: 1.5 }}>
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        <Button
+                          size="small"
+                          variant="text"
+                          startIcon={<VisibilityOutlinedIcon sx={{ fontSize: '13px !important' }} />}
+                          onClick={() => select(c.id)}
+                          sx={{ fontSize: '0.71rem', px: 1, py: 0.4, color: 'text.secondary', minWidth: 0 }}
+                        >
+                          Ver
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<AddOutlinedIcon sx={{ fontSize: '13px !important' }} />}
+                          onClick={() => onOpenForm(c.id)}
+                          sx={{ fontSize: '0.71rem', px: 1.2, py: 0.4, minWidth: 0, backgroundColor: "#004680", boxShadow: "none",
+                            '&:hover': {
+                              boxShadow: "none",
+                              backgroundColor: "#005aa3",
+                             },
+                           }}
+                        >
+                          Prórroga
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Card>
+
+      {/* ── Sidebar (solo en resumen) ── */}
+      {isResumen && <ResumenSidebar onNewProrroga={() => {}} />}
+    </Box>
   );
 };
 

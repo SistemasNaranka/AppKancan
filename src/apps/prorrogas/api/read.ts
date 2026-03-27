@@ -14,10 +14,6 @@ import type {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Construye el array de filtros para Directus a partir de ContratoFilters.
- * Directus espera: { filter: { _and: [...condiciones] } }
- */
 function buildFilter(filters: ContratoFilters) {
   const conditions: object[] = [];
 
@@ -25,32 +21,62 @@ function buildFilter(filters: ContratoFilters) {
     conditions.push({ request_status: { _in: filters.request_status } });
   }
 
-  if (filters.departamento) {
-    conditions.push({ empleado_departamento: { _eq: filters.departamento } });
+  if (filters.area) {
+    conditions.push({ empleado_area: { _eq: filters.area } });
   }
 
   if (filters.search && filters.search.trim() !== "") {
     const q = filters.search.trim();
     conditions.push({
       _or: [
-        { empleado_nombre:       { _icontains: q } },
-        { empleado_cargo:        { _icontains: q } },
-        { empleado_departamento: { _icontains: q } },
+        { nombre: { _icontains: q } },
+        { empleado_area:   { _icontains: q } },
       ],
     });
   }
 
-  return conditions.length > 0 ? { _and: conditions } : {};
+  return conditions.length > 0 ? { _and: conditions } : undefined;
+}
+
+/**
+ * Directus devuelve el campo `cargo` como un objeto { id, nombre } cuando se
+ * expande la relación con util_cargo. Aquí normalizamos para que el resto de
+ * la app siempre reciba un string con el nombre del cargo.
+ */
+function normalizeCargo(raw: unknown): string {
+  if (!raw) return '';
+  if (typeof raw === 'object' && raw !== null && 'nombre' in raw) {
+    return (raw as { nombre: string }).nombre ?? '';
+  }
+  // Fallback: ya era string (p.ej. en pruebas locales)
+  if (typeof raw === 'string') return raw;
+  return '';
+}
+
+function normalizeContrato(item: any): Contrato {
+  return {
+    ...item,
+    cargo: normalizeCargo(item.cargo),
+    prorrogas:  item.prorrogas  ?? [],
+    documentos: item.documentos ?? [],
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Contratos
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Obtiene contratos paginados con filtros opcionales.
- * Incluye las relaciones prorrogas y documentos en la misma petición.
- */
+// Fields comunes — expandimos cargo → util_cargo para obtener el nombre
+const CONTRATO_FIELDS = [
+  "*",
+  "cargo.id",
+  "cargo.nombre",
+  "tipo_contrato",
+  "fecha_final",
+  "prorrogas.*",
+  "documentos.*",
+];
+
 export async function getContratos(
   filters: ContratoFilters = {},
   pagination: PaginationParams = { page: 0, limit: 25 }
@@ -59,31 +85,26 @@ export async function getContratos(
     const filter = buildFilter(filters);
     const offset = pagination.page * pagination.limit;
 
+    const sortField = pagination.sort ?? "date_created";
+    const sortDir   = pagination.order === "asc" ? sortField : `-${sortField}`;
+
+    const readOptions: any = {
+      fields: CONTRATO_FIELDS,
+      limit:  pagination.limit,
+      sort:   [sortDir],
+    };
+    if (filter)     readOptions.filter = filter;
+    if (offset > 0) readOptions.offset = offset;
+
     const [items, countResult] = await Promise.all([
       withAutoRefresh(() =>
-        directus.request(
-          readItems("contratos", {
-            fields: [
-              "*",
-              { prorrogas: ["*"] },
-              { documentos: ["*"] },
-            ],
-            filter,
-            limit: pagination.limit,
-            offset,
-            sort: [
-              `${pagination.order === "asc" ? "" : "-"}${
-                pagination.sort ?? "date_created"
-              }`,
-            ],
-          })
-        )
+        directus.request(readItems("contratos", readOptions))
       ),
       withAutoRefresh(() =>
         directus.request(
           aggregate("contratos", {
             aggregate: { count: ["id"] },
-            query: { filter },
+            ...(filter ? { query: { filter } } : {}),
           })
         )
       ),
@@ -94,9 +115,9 @@ export async function getContratos(
     );
 
     return {
-      data: items as Contrato[],
+      data:  (items as any[]).map(normalizeContrato),
       total,
-      page: pagination.page,
+      page:  pagination.page,
       limit: pagination.limit,
     };
   } catch (error) {
@@ -105,37 +126,30 @@ export async function getContratos(
   }
 }
 
-/**
- * Obtiene un contrato por su ID incluyendo prórrogas y documentos.
- */
 export async function getContratoById(id: number): Promise<Contrato | null> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("contratos", {
-          fields: ["*", { prorrogas: ["*"] }, { documentos: ["*"] }],
+          fields: CONTRATO_FIELDS,
           filter: { id: { _eq: id } },
           limit: 1,
         })
       )
     );
 
-    if (!items || (items as Contrato[]).length === 0) {
+    if (!items || (items as any[]).length === 0) {
       console.warn(`⚠️ Contrato con ID ${id} no encontrado`);
       return null;
     }
 
-    return (items as Contrato[])[0];
+    return normalizeContrato((items as any[])[0]);
   } catch (error) {
     console.error(`❌ Error al cargar contrato ${id}:`, error);
     return null;
   }
 }
 
-/**
- * Obtiene los conteos por request_status para las tarjetas del dashboard.
- * Una sola llamada con groupBy para mayor eficiencia.
- */
 export async function getContratoStats(
   filters: ContratoFilters = {}
 ): Promise<ContratoStats> {
@@ -190,9 +204,6 @@ export async function getContratoStats(
 // Prórrogas
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Obtiene todas las prórrogas de un contrato, ordenadas por número ascendente.
- */
 export async function getProrrogasByContrato(
   contratoId: number
 ): Promise<Prorroga[]> {
@@ -202,7 +213,7 @@ export async function getProrrogasByContrato(
         readItems("prorrogas", {
           fields: ["*"],
           filter: { contrato_id: { _eq: contratoId } },
-          sort: ["numero"],
+          sort:   ["numero"],
         })
       )
     );

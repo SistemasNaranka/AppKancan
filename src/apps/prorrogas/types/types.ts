@@ -1,14 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES — Gestión de Prórrogas
-// Tipos compatibles con Directus SDK (snake_case en campos de colección)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Enums ─────────────────────────────────────────────────────────────────
-
-/** Estado visual del contrato basado en días restantes */
 export type ContractStatus = 'vigente' | 'proximo' | 'vencido';
 
-/** Estado de la solicitud de prórroga */
 export type RequestStatus =
   | 'pendiente'
   | 'en_revision'
@@ -16,21 +11,19 @@ export type RequestStatus =
   | 'rechazada'
   | 'completada';
 
-/** Valor de la pestaña activa en la UI */
-export type TabValue = 'resumen' | RequestStatus;
+export type TabValue = 'resumen' | 'contratos' | 'empleados' | 'prorrogas' | RequestStatus;
 
 // ── Colección: prorrogas ──────────────────────────────────────────────────
 
-/** Registro de una prórroga en Directus */
 export interface Prorroga {
   id: number;
   contrato_id: number;
-  numero: number;         // 0 = Contrato Inicial · 1-3 = 4 meses · ≥4 = 12 meses
+  numero: number;
   label: string;
   descripcion: string;
-  fecha_inicio: string;   // YYYY-MM-DD
-  fecha_fin: string;      // YYYY-MM-DD
-  duracion_meses: number; // calculado por la API según regla de negocio
+  fecha_ingreso: string;
+  fecha_final: string;
+  duracion: number;
   date_created?: string;
   date_updated?: string;
 }
@@ -42,13 +35,12 @@ export type UpdateProrroga = Partial<
 
 // ── Colección: documentos ─────────────────────────────────────────────────
 
-/** Documento adjunto a un contrato */
 export interface Documento {
   id: number;
   contrato_id: number;
   nombre: string;
   tipo: 'contrato' | 'evaluacion' | 'otrosi' | 'otro';
-  fecha: string;          // YYYY-MM-DD
+  fecha: string;
   firmado: boolean;
   date_created?: string;
 }
@@ -57,16 +49,21 @@ export type CreateDocumento = Omit<Documento, 'id' | 'date_created'>;
 
 // ── Colección: contratos ──────────────────────────────────────────────────
 
-/** Registro principal de un contrato en Directus */
 export interface Contrato {
   id: number;
-  empleado_nombre: string;
-  empleado_cargo: string;
-  empleado_departamento: string;
+  numero_contrato?: string;
+  empleado_id?: number;
+  nombre: string;
+  cargo: string;
+  tipo_contrato?: string;
+  /** Fecha de inicio del contrato original */
+  fecha_ingreso?: string;
+  /** Fecha de vencimiento del contrato (campo directo en BD) */
+  fecha_final?: string;
+  empleado_area: string;
+  empresa?: string;
   request_status: RequestStatus;
-  /** Relación 1-M: prórrogas del contrato */
   prorrogas: Prorroga[];
-  /** Relación 1-M: documentos del contrato */
   documentos: Documento[];
   date_created?: string;
   date_updated?: string;
@@ -81,7 +78,6 @@ export type UpdateContrato = Partial<CreateContrato>;
 
 // ── Estadísticas ──────────────────────────────────────────────────────────
 
-/** Conteos por estado para las tarjetas del dashboard */
 export interface ContratoStats {
   total: number;
   pendiente: number;
@@ -91,23 +87,28 @@ export interface ContratoStats {
   completada: number;
 }
 
-// ── Filtros ───────────────────────────────────────────────────────────────
-
-/** Filtros para la query a Directus */
-export interface ContratoFilters {
-  /** Búsqueda libre por nombre, cargo, departamento */
-  search?: string;
-  /** Uno o más estados de solicitud */
-  request_status?: RequestStatus[];
-  /** Departamento exacto */
-  departamento?: string;
+export interface DashboardStats {
+  total: number;
+  activos: number;
+  por_vencer: number;
+  criticos: number;
+  vencidos: number;
+  nuevos_este_mes: number;
 }
 
-/** Filtros activos en la UI (tab + orden + búsqueda) */
+// ── Filtros ───────────────────────────────────────────────────────────────
+
+export interface ContratoFilters {
+  search?: string;
+  request_status?: RequestStatus[];
+  area?: string;
+}
+
 export interface UIFilters {
   search: string;
   tab: TabValue;
   sortBy: 'vencimiento' | 'nombre' | 'prorroga';
+  contractStatus?: ContractStatus | 'todos';
 }
 
 // ── Paginación ────────────────────────────────────────────────────────────
@@ -126,11 +127,21 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-// ── Payload del formulario ────────────────────────────────────────────────
+// ── Payloads ──────────────────────────────────────────────────────────────
 
-/** Lo que emite ProrrogaForm. La API calcula fecha_fin y duracion_meses. */
 export interface CreateProrrogaPayload {
   contractId: number;
-  fechaInicio: string;    // YYYY-MM-DD
+  fechaInicio: string;
   descripcion?: string;
+}
+
+// ── Empleados ─────────────────────────────────────────────────────────────
+
+export interface Employee {
+  id: number;
+  nombre: string;
+  cargo: string;
+  area: string;
+  foto?: string;
+  empresa?: string;
 }

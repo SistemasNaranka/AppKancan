@@ -104,7 +104,7 @@ export async function crearProrroga(
 ): Promise<Prorroga | null> {
   try {
     const duracion_meses = getProrrogaDuration(data.numero);
-    const fecha_fin      = addMonths(data.fecha_inicio, duracion_meses);
+    const fecha_final      = addMonths(data.fecha_inicio, duracion_meses);
 
     const payload: CreateProrroga = {
       contrato_id:    data.contrato_id,
@@ -113,9 +113,9 @@ export async function crearProrroga(
       descripcion:    data.descripcion ?? (data.numero >= 4
                         ? "Renovación anual — planta."
                         : "Nueva extensión contractual."),
-      fecha_inicio:   data.fecha_inicio,
-      fecha_fin,
-      duracion_meses,
+      fecha_ingreso:   data.fecha_inicio,
+      fecha_final,
+      duracion: duracion_meses,
     };
 
     const result = await withAutoRefresh(() =>
@@ -124,14 +124,15 @@ export async function crearProrroga(
 
     return result as Prorroga;
   } catch (error) {
-    console.error("❌ Error al crear prórroga:", error);
+    console.error("❌ Error al crear prórga:", error);
     return null;
   }
 }
 
 /**
- * Actualiza los campos editables de una prórroga existente.
- * Si se actualiza fecha_inicio, recalcula fecha_fin y duracion_meses.
+ * Actualiza los campos editables de una prorrogga existente.
+ * Si se actualiza fecha_ingreso, recalcula fecha_final y duracion_meses.
+ * También actualiza la fecha_final del contrato asociado.
  */
 export async function actualizarProrroga(
   id: number,
@@ -140,12 +141,12 @@ export async function actualizarProrroga(
   try {
     let payload: UpdateProrroga = { ...updates };
 
-    if (updates.fecha_inicio && updates.numero !== undefined) {
+    if (updates.fecha_ingreso && updates.numero !== undefined) {
       const duracion_meses = getProrrogaDuration(updates.numero);
       payload = {
         ...payload,
-        duracion_meses,
-        fecha_fin: addMonths(updates.fecha_inicio, duracion_meses),
+        duracion: duracion_meses,
+        fecha_final: addMonths(updates.fecha_ingreso, duracion_meses),
       };
     }
 
@@ -153,15 +154,25 @@ export async function actualizarProrroga(
       directus.request(updateItem("prorrogas", id, payload))
     );
 
+    // Si se actualizó la fecha_final, actualizar la fecha_final del contrato
+    if (payload.fecha_final) {
+      const prorroga = result as Prorroga;
+      if (prorroga && prorroga.contrato_id) {
+        await withAutoRefresh(() =>
+          directus.request(updateItem("contratos", prorroga.contrato_id, { fecha_final: payload.fecha_final }))
+        );
+      }
+    }
+
     return result as Prorroga;
   } catch (error) {
-    console.error(`❌ Error al actualizar prórroga ${id}:`, error);
+    console.error(`❌ Error al actualizar prorrogga ${id}:`, error);
     return null;
   }
 }
 
 /**
- * Elimina una prórroga por su ID.
+ * Elimina una prorrogga por su ID.
  */
 export async function eliminarProrroga(id: number): Promise<boolean> {
   try {
@@ -170,7 +181,7 @@ export async function eliminarProrroga(id: number): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    console.error(`❌ Error al eliminar prórroga ${id}:`, error);
+    console.error(`❌ Error al eliminar prorrogga ${id}:`, error);
     return false;
   }
 }

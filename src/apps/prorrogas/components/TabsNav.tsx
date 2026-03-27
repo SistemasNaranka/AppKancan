@@ -2,13 +2,10 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
-import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined';
-import FindInPageOutlinedIcon from '@mui/icons-material/FindInPageOutlined';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
-import GroupsIcon from '@mui/icons-material/Groups';
+import DashboardOutlinedIcon    from '@mui/icons-material/DashboardOutlined';
+import ArticleOutlinedIcon      from '@mui/icons-material/ArticleOutlined';
+import GroupsOutlinedIcon       from '@mui/icons-material/GroupsOutlined';
+import AutorenewOutlinedIcon    from '@mui/icons-material/AutorenewOutlined';
 import { TabValue } from '../types/types';
 import { useContracts } from '../hooks/useContracts';
 
@@ -23,10 +20,10 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  { value: 'resumen',     label: 'Resumen',     Icon: DashboardOutlinedIcon },
-  { value: 'pendiente',   label: 'Contratos',  Icon: PendingActionsOutlinedIcon },
-  { value: 'en_revision', label: 'Empleados', Icon: GroupsIcon },
-  //{ value: 'aprobada',    label: 'Aprobadas',   Icon: CheckCircleOutlineIcon },
+  { value: 'resumen',    label: 'Resumen',    Icon: DashboardOutlinedIcon  },
+  { value: 'contratos',  label: 'Contratos',  Icon: ArticleOutlinedIcon    },
+  { value: 'empleados',  label: 'Empleados',  Icon: GroupsOutlinedIcon     },
+  { value: 'prorrogas',  label: 'Prórrogas',  Icon: AutorenewOutlinedIcon  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,10 +33,18 @@ const TABS: TabConfig[] = [
 const TabsNav: React.FC = () => {
   const { filters, setTab, counts } = useContracts();
 
+  /** Badge numérico por pestaña (solo muestra cuando hay alertas relevantes) */
   const badgeFor = (value: TabValue): number | undefined => {
-    if (value === 'pendiente')   return counts.pendiente   || undefined;
-    if (value === 'en_revision') return counts.en_revision || undefined;
-    if (value === 'rechazada')   return counts.rechazada   || undefined;
+    if (value === 'contratos') {
+      // Muestra el total de contratos críticos + por vencer
+      const urgent = (counts.criticos ?? 0) + (counts.por_vencer ?? 0);
+      return urgent > 0 ? urgent : undefined;
+    }
+    if (value === 'prorrogas') {
+      // Muestra contratos con request_status pendiente o en revisión
+      const pending = (counts.pendiente ?? 0) + (counts.en_revision ?? 0);
+      return pending > 0 ? pending : undefined;
+    }
     return undefined;
   };
 
@@ -64,7 +69,7 @@ const TabsNav: React.FC = () => {
         }}
       >
         {TABS.map(({ value, label, Icon }) => {
-          const badge = badgeFor(value);
+          const badge    = badgeFor(value);
           const isActive = filters.tab === value;
 
           return (
@@ -88,7 +93,7 @@ const TabsNav: React.FC = () => {
                         py: 0.3,
                         borderRadius: 10,
                         bgcolor: isActive ? 'rgba(255,255,255,0.25)' : 'warning.main',
-                        color: isActive ? '#fff' : '#fff',
+                        color: '#fff',
                       }}
                     >
                       {badge}
@@ -115,9 +120,7 @@ const TabsNav: React.FC = () => {
                   color: isActive ? 'rgba(255,255,255,0.85)' : 'text.disabled',
                   mr: 0.5,
                 },
-                '&.Mui-selected': {
-                  color: '#fff',
-                },
+                '&.Mui-selected': { color: '#fff' },
               }}
             />
           );

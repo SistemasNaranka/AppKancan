@@ -72,7 +72,7 @@ const NotificationBell: React.FC = () => {
           sx={{
             px: 2.5,
             py: 1.8,
-            background: 'linear-gradient(135deg, #004680, #002d54)',
+            background: '#004680',
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
@@ -139,17 +139,17 @@ const NotificationBell: React.FC = () => {
                     <ListItemText
                       primary={
                         <Typography variant="body2" fontWeight={700} color="text.primary">
-                          {c.empleado_nombre}
+                          {c.nombre}
                         </Typography>
                       }
                       secondary={
                         <>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                            El contrato de <strong>{c.empleado_nombre}</strong> vence en{' '}
+                            El contrato de <strong>{c.nombre}</strong> vence en{' '}
                             <strong style={{ color: urgent ? '#c62828' : '#e65100' }}>{c.daysLeft} días</strong>
                           </Typography>
                           <Typography variant="caption" color="text.disabled">
-                            {formatDate(c.lastProrroga.fecha_fin)} · {c.id}
+                            {c.lastProrroga && c.lastProrroga.fecha_final ? formatDate(c.lastProrroga.fecha_final) : 'Sin prórga'} · {c.id}
                           </Typography>
                         </>
                       }

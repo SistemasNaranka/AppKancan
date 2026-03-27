@@ -119,6 +119,23 @@ interface RequestStatusChipProps extends Omit<ChipProps, 'color'> {
 
 export const RequestStatusChip: React.FC<RequestStatusChipProps> = ({ status, ...props }) => {
   const cfg = requestStatusMap[status];
+  if (!cfg) {
+    return (
+      <Chip
+        label="Desconocido"
+        size="small"
+        {...props}
+        sx={{
+          backgroundColor: '#eceff1',
+          color: '#37474f',
+          border: '1px solid #b0bec5',
+          fontWeight: 700,
+          fontSize: '0.7rem',
+          ...props.sx,
+        }}
+      />
+    );
+  }
   return (
     <Chip
       label={cfg.label}

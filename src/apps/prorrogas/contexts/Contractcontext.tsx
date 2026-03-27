@@ -12,10 +12,13 @@ import {
   UIFilters,
   TabValue,
   CreateProrrogaPayload,
+  CreateContrato,
+  UpdateContrato,
   Prorroga,
+  UpdateProrroga,
 } from '../types/types';
 import { getContratos, getContratoStats } from '../api';
-import { crearProrroga, cambiarRequestStatus } from '../api';
+import { crearProrroga, crearContrato, cambiarRequestStatus, actualizarProrroga, eliminarProrroga, actualizarContrato, eliminarContrato } from '../api';
 import { getNextProrrogaNumber } from '../lib/utils';
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 import { setTokenDirectus } from "@/services/directus/auth";
@@ -60,6 +63,7 @@ type Action =
   | { type: 'SET_FILTER';     payload: Partial<UIFilters> }
   | { type: 'SET_TAB';        payload: TabValue }
   | { type: 'ADD_PRORROGA';   payload: { contratoId: number; prorroga: Prorroga } }
+  | { type: 'ADD_CONTRATO';   payload: Contrato }
   | { type: 'SET_ERROR';      payload: string | null }
   | { type: 'SET_SUCCESS';    payload: string | null };
 
@@ -89,6 +93,12 @@ function reducer(state: State, action: Action): State {
             : c,
         ),
       };
+    case 'ADD_CONTRATO':
+      return {
+        ...state,
+        saving: false,
+        contratos: [action.payload, ...state.contratos],
+      };
     case 'SET_ERROR':
       return { ...state, error: action.payload, saving: false };
     case 'SET_SUCCESS':
@@ -109,6 +119,11 @@ interface ContextValue extends State {
   setTab: (tab: TabValue) => void;
   setFilter: (f: Partial<UIFilters>) => void;
   addProrroga: (payload: CreateProrrogaPayload) => Promise<void>;
+  updateProrroga: (id: number, updates: UpdateProrroga) => Promise<void>;
+  deleteProrroga: (id: number) => Promise<boolean>;
+  addContrato: (payload: CreateContrato) => Promise<void>;
+  updateContrato: (id: number, updates: UpdateContrato) => Promise<void>;
+  deleteContrato: (id: number) => Promise<boolean>;
   clearMessages: () => void;
 }
 
@@ -168,6 +183,11 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         descripcion:  payload.descripcion,
       });
 
+      if (!prorroga) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al crear la prórroga.' });
+        return;
+      }
+
       dispatch({
         type: 'ADD_PRORROGA',
         payload: { contratoId: payload.contractId, prorroga },
@@ -179,10 +199,119 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [state.contratos]);
 
+  const addContrato = useCallback(async (payload: CreateContrato) => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const nuevoContrato = await crearContrato(payload);
+
+      if (!nuevoContrato) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al crear el contrato.' });
+        return;
+      }
+
+      // Inicializar el contrato con arrays vacíos para prorrogas y documentos
+      const contratoCompleto: Contrato = {
+        ...nuevoContrato,
+        prorrogas: [],
+        documentos: [],
+      };
+
+      dispatch({
+        type: 'ADD_CONTRATO',
+        payload: contratoCompleto,
+      });
+      dispatch({ type: 'SET_SUCCESS', payload: 'Contrato registrado exitosamente.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar el contrato.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }, []);
+
   const clearMessages = useCallback(() => {
     dispatch({ type: 'SET_ERROR',   payload: null });
     dispatch({ type: 'SET_SUCCESS', payload: null });
   }, []);
+
+  // Funciones CRUD para Prórrogas
+  const updateProrroga = useCallback(async (id: number, updates: UpdateProrroga) => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const updated = await actualizarProrroga(id, updates);
+      if (!updated) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al actualizar la prórroga.' });
+        return;
+      }
+      // Actualizar la prórga en el contrato correspondiente
+      dispatch({ type: 'SET_SAVING', payload: false });
+      dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga actualizada exitosamente.' });
+      // Recargar contratos para obtener datos actualizados
+      await loadContratos();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al actualizar la prórga.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }, [loadContratos]);
+
+  const deleteProrroga = useCallback(async (id: number): Promise<boolean> => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const success = await eliminarProrroga(id);
+      if (!success) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al eliminar la prórga.' });
+        dispatch({ type: 'SET_SAVING', payload: false });
+        return false;
+      }
+      // Recargar contratos para actualizar la lista
+      await loadContratos();
+      dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga eliminada exitosamente.' });
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar la prórga.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+      dispatch({ type: 'SET_SAVING', payload: false });
+      return false;
+    }
+  }, [loadContratos]);
+
+  // Funciones CRUD para Contratos
+  const updateContrato = useCallback(async (id: number, updates: UpdateContrato) => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const updated = await actualizarContrato(id, updates);
+      if (!updated) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al actualizar el contrato.' });
+        return;
+      }
+      dispatch({ type: 'SET_SAVING', payload: false });
+      dispatch({ type: 'SET_SUCCESS', payload: 'Contrato actualizado exitosamente.' });
+      // Recargar contratos para obtener datos actualizados
+      await loadContratos();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al actualizar el contrato.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }, [loadContratos]);
+
+  const deleteContrato = useCallback(async (id: number): Promise<boolean> => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const success = await eliminarContrato(id);
+      if (!success) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al eliminar el contrato.' });
+        dispatch({ type: 'SET_SAVING', payload: false });
+        return false;
+      }
+      // Recargar contratos para actualizar la lista
+      await loadContratos();
+      dispatch({ type: 'SET_SUCCESS', payload: 'Contrato eliminado exitosamente.' });
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar el contrato.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+      dispatch({ type: 'SET_SAVING', payload: false });
+      return false;
+    }
+  }, [loadContratos]);
 
   // ─── Esperar a que AuthProvider termine antes de disparar queries ─────────
   // AuthProvider inicializa el token de forma asíncrona. Si disparamos
@@ -218,9 +347,14 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setTab,
       setFilter,
       addProrroga,
+      updateProrroga,
+      deleteProrroga,
+      addContrato,
+      updateContrato,
+      deleteContrato,
       clearMessages,
     }),
-    [state, selectedContrato, loadContratos, select, setTab, setFilter, addProrroga, clearMessages],
+    [state, selectedContrato, loadContratos, select, setTab, setFilter, addProrroga, updateProrroga, deleteProrroga, addContrato, updateContrato, deleteContrato, clearMessages],
   );
 
   return <ContractContext.Provider value={value}>{children}</ContractContext.Provider>;

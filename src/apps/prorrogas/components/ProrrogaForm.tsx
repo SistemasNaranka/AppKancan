@@ -37,7 +37,7 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
   const [descripcion, setDescripcion] = useState('');
 
   const nextNum = useMemo(
-    () => (contract ? getNextProrrogaNumber(contract.prorrogas) : 0),
+    () => (contract ? getNextProrrogaNumber(contract.prorrogas ?? []) : 0),
     [contract],
   );
 
@@ -45,8 +45,14 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
 
   const defaultStart = useMemo(() => {
     if (!contract) return '';
-    const last = contract.prorrogas[contract.prorrogas.length - 1];
-    const d = new Date(last.fecha_fin);
+    const prorrogas = contract.prorrogas ?? [];
+    if (prorrogas.length === 0) return '';
+    const last = prorrogas[prorrogas.length - 1];
+    // Manejar ambos nombres de campo: fecha_final o fecha_fin
+    const fechaFin = last?.fecha_final ?? last?.fecha_final;
+    if (!fechaFin) return '';
+    const d = new Date(fechaFin);
+    if (isNaN(d.getTime())) return '';
     d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   }, [contract]);
@@ -72,14 +78,14 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
   if (!contract) return null;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth TransitionProps={{ onEntered: handleOpen }}>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth TransitionProps={{ onEntered: handleOpen }}>
       <Box sx={{ display: 'flex', minHeight: 480 }}>
 
         {/* Sidebar */}
         <Box
           sx={{
-            width: 190,
-            background: 'linear-gradient(160deg, #004680, #002d54)',
+            width: 220,
+            background: '#004680',
             p: 3,
             display: 'flex',
             flexDirection: 'column',
@@ -91,18 +97,15 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
           <Box>
             <AssignmentOutlinedIcon sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 30, mb: 2 }} />
             <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1.3, mb: 0.5 }}>
-              {contract.empleado_nombre}
+              {contract.nombre}
             </Typography>
             <Typography variant="caption" sx={{ color: '#7fb8e8', display: 'block', mb: 2 }}>
               {contract.id}
             </Typography>
             <Typography variant="caption" sx={{ color: '#a0c8e8', lineHeight: 1.7, display: 'block' }}>
-              Registro de nueva extensión contractual bajo normativa vigente v1.0.
+              Registro de nueva extensión contractual bajo normativa vigente
             </Typography>
           </Box>
-          <Typography variant="caption" sx={{ color: '#4a7fa8' }}>
-            EL ARCHIVERO DIGITAL
-          </Typography>
         </Box>
 
         {/* Form */}
@@ -202,7 +205,7 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
                     Duración: {duracion} meses
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {nextNum >= 4 ? 'Prórroga 4 o superior' : `Prórroga ${nextNum} (≤ 3)`}
+                    {nextNum >= 4 ? 'Prórroga 4 o superior' : `Prórroga ${nextNum}`}
                   </Typography>
                 </Box>
                 <Box textAlign="right">

@@ -76,26 +76,6 @@ const TopBar: React.FC = () => {
             <NotificationBell />
           </span>
         </Tooltip>
-
-        {/* Avatar */}
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #004680, #0070c0)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: '0.75rem',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          AD
-        </Box>
       </Toolbar>
     </AppBar>
   );

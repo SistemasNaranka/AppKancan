@@ -45,7 +45,7 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
           top: 16,
           width: 2,
           bottom: 0,
-          background: 'linear-gradient(180deg, #004680 60%, #e8edf5 100%)',
+          background: '#004680',
           borderRadius: 1,
         }}
       />
@@ -53,7 +53,7 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
       {/* Prorroga entries */}
       {prorrogas.map((p, idx) => {
         const isActive    = idx === lastIdx;
-        const isFinalizado = !isActive && daysUntil(p.fecha_fin) < 0;
+        const isFinalizado = !isActive && daysUntil(p.fecha_final) < 0;
         const progress    = isActive ? getProrrogaProgress(p) : 0;
 
         return (
@@ -108,7 +108,7 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
                     />
                   )}
                   <Chip
-                    label={`${p.duracion_meses} meses`}
+                    label={`${p.duracion} meses`}
                     size="small"
                     sx={{
                       bgcolor: isActive ? 'primary.main' : '#f0f4f8',
@@ -129,13 +129,13 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
                 <Box>
                   <Typography variant="overline" sx={{ display: 'block', lineHeight: 1.2 }}>Inicio</Typography>
                   <Typography variant="caption" fontWeight={600} color="text.primary">
-                    {formatDate(p.fecha_inicio)}
+                    {formatDate(p.fecha_ingreso)}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="overline" sx={{ display: 'block', lineHeight: 1.2 }}>Fin</Typography>
                   <Typography variant="caption" fontWeight={600} color="text.primary">
-                    {formatDate(p.fecha_fin)}
+                    {formatDate(p.fecha_final)}
                   </Typography>
                 </Box>
                 {isActive && (
@@ -144,9 +144,9 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
                     <Typography
                       variant="caption"
                       fontWeight={700}
-                      sx={{ color: daysUntil(p.fecha_fin) <= 50 ? 'warning.main' : 'success.main' }}
+                      sx={{ color: daysUntil(p.fecha_final) <= 50 ? 'warning.main' : 'success.main' }}
                     >
-                      {daysUntil(p.fecha_fin)} días
+                      {daysUntil(p.fecha_final)} días
                     </Typography>
                   </Box>
                 )}
@@ -166,7 +166,7 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
                       borderRadius: 3,
                       bgcolor: '#dde8f5',
                       '& .MuiLinearProgress-bar': {
-                        background: 'linear-gradient(90deg, #004680, #0070c0)',
+                        background: '#004680',
                         borderRadius: 3,
                       },
                     }}
