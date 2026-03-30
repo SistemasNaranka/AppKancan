@@ -166,7 +166,6 @@ export const useEmployeeOperations = (
 
     // Comparar cantidades
     if (empleadosOriginal.length !== empleadosAsignados.length) {
-      console.log(`🔍 [useEmployeeOperations] hasChanges=true (cantidad diferente: ${empleadosOriginal.length} vs ${empleadosAsignados.length})`);
       return true;
     }
 
@@ -186,7 +185,6 @@ export const useEmployeeOperations = (
 
     const changesDetected = hasAdded || hasRemoved || hasRoleChange;
     if (changesDetected) {
-      console.log(`🔍 [useEmployeeOperations] hasChanges=true (added: ${hasAdded}, removed: ${hasRemoved}, roleChange: ${hasRoleChange})`);
     }
 
     return changesDetected;
@@ -286,7 +284,6 @@ export const useEmployeeOperations = (
         setEmpleadosAsignados(empleadosExistentes);
         // 🔧 GUARDAR estado original para dirty check
         setEmpleadosOriginal(empleadosExistentes);
-        console.log(`📋 [useEmployeeOperations] Estado original guardado: ${empleadosExistentes.length} empleados`);
         setHasExistingData(true);
         setIsUpdateMode(true);
 

@@ -204,8 +204,6 @@ export const saveEnviosBatch = async (
   if (!enviosData || enviosData.length === 0) return true;
 
   try {
-    console.log(`=== SAVE ENVIOS BATCH (${enviosData.length} REGISTROS) ===`);
-    
     const items = enviosData.map(envio => ({
       tienda_id: envio.tienda_id,
       plantilla: envio.plantilla,
@@ -219,7 +217,6 @@ export const saveEnviosBatch = async (
       directus.request(createItems('envios_curvas', items))
     );
 
-    console.log('Batch de envíos a despacho guardado exitosamente');
     return true;
   } catch (error) {
     console.error('Error saving envios batch:', error);

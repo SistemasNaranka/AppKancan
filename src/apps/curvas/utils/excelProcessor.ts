@@ -28,7 +28,6 @@ const generateUUID = () => {
 // ============================================
 
 export const leerWorkbook = async (file: File): Promise<XLSX.WorkBook> => {
-  console.log('📁 Leyendo archivo:', file.name);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -52,10 +51,7 @@ export const hojaAMatriz = (worksheet: XLSX.WorkSheet, sheetName: string): unkno
     raw: true,
   });
 
-  // LOGGING PARA VERIFICACION COMO SOLICITÓ EL USUARIO
-  console.group(`📊 DATOS CRUDOS EXTRAIDOS: ${sheetName}`);
-  data.forEach((row, i) => console.log(`Fila ${i}:`, JSON.stringify(row)));
-  console.groupEnd();
+
 
   return data;
 };
@@ -93,7 +89,6 @@ const encontrarFilaEncabezados = (matriz: unknown[][], keywords: string[]): numb
     });
 
     if (hasTienda && (hasNumbers || rowStr.includes('total'))) {
-      console.log(`✅ Cabecera identificada en fila ${i}`);
       return i;
     }
   }

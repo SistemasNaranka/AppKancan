@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
     Box,
     Paper,
@@ -12,11 +12,8 @@ import {
     TextField,
     Button,
     IconButton,
-    Tooltip,
-    Stack,
     Autocomplete,
     alpha,
-    Divider,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -25,12 +22,8 @@ import {
     CircularProgress,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import ContentPasteGoIcon from '@mui/icons-material/ContentPasteGo';
-import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BusinessIcon from '@mui/icons-material/Business';
 
 // API
@@ -55,12 +48,242 @@ interface DynamicLoadMatrixProps {
     type: 'general' | 'producto_a' | 'producto_b';
 }
 
+const stickyActionColumnStyle = {
+    position: 'sticky',
+    right: 0,
+    bgcolor: 'rgba(248, 250, 252, 0.8)',
+    zIndex: 20, // Raised to stay above cell highlights
+    boxShadow: '-4px 0 8px rgba(0,0,0,0.03)',
+    borderLeft: '1px solid #e2e8f0'
+};
+
+const headerCellStyle = {
+    bgcolor: '#1e293b',
+    color: 'white',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    fontSize: '0.75rem',
+    letterSpacing: '0.05em',
+    py: 1.5,
+    border: '1px solid rgba(255,255,255,0.1)'
+};
+
+const MemoizedMatrixRow = React.memo(({
+    row,
+    rowIndex,
+    columns,
+    activeCell,
+    selection,
+    tiendasLista,
+    loadingTiendas,
+    getRowTotal,
+    handleValueChange,
+    handleKeyDown,
+    handleMouseDown,
+    handleMouseEnter,
+    setActiveCell,
+    removeRow,
+    setRows,
+    inputRefs
+}: any) => {
+    const minR = selection ? Math.min(selection.startR, selection.endR) : -1;
+    const maxR = selection ? Math.max(selection.startR, selection.endR) : -1;
+    const isRowActive = activeCell?.r === rowIndex || (rowIndex >= minR && rowIndex <= maxR);
+    const rowTotal = getRowTotal(row.values);
+
+    // Helpers to detect selection boundaries
+    const isCellInSelection = (r: number, cIdx: number) => {
+        if (!selection) return false;
+        const minC = Math.min(selection.startCIdx, selection.endCIdx);
+        const maxC = Math.max(selection.startCIdx, selection.endCIdx);
+        return r >= minR && r <= maxR && cIdx >= minC && cIdx <= maxC;
+    };
+
+    return (
+        <TableRow hover sx={{ '&:nth-of-type(even)': { bgcolor: '#fbfcfd' } }}>
+            <TableCell sx={{
+                p: 0,
+                borderRight: '1px solid #f1f5f9',
+                bgcolor: isRowActive ? alpha('#10b981', 0.04) : '#ffffff', // Solid white to hide background bleed
+                borderLeft: isRowActive ? '4px solid #10b981' : 'none',
+                transition: 'background-color 0.15s ease',
+                position: 'sticky',
+                left: 0,
+                zIndex: 20 // Stay above scrolling cells horizontally
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                    <IconButton size="small" onClick={() => removeRow(row.id)} sx={{ ml: 1, opacity: 0.2, '&:hover': { opacity: 1, color: '#ef4444' } }}>
+                        <DeleteIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                    <Autocomplete
+                        fullWidth
+                        options={tiendasLista}
+                        getOptionLabel={(option) => typeof option === 'string' ? option : option.nombre}
+                        value={tiendasLista.find((t: any) => t.nombre === row.name) || null}
+                        onChange={(_, newValue) => {
+                            setRows((prev: any[]) => {
+                                if (newValue) {
+                                    const updatedRow = { ...row, name: newValue.nombre, tiendaData: newValue };
+                                    const nr = prev.filter((_, idx) => idx !== rowIndex);
+                                    let insertIndex = nr.length;
+                                    for (let i = 0; i < nr.length; i++) {
+                                        if (nr[i].name && nr[i].name > newValue.nombre) {
+                                            insertIndex = i;
+                                            break;
+                                        }
+                                        if (!nr[i].name && insertIndex === nr.length) {
+                                            insertIndex = i;
+                                        }
+                                    }
+                                    nr.splice(insertIndex, 0, updatedRow);
+                                    return nr;
+                                } else {
+                                    const nr = [...prev];
+                                    nr[rowIndex] = { ...nr[rowIndex], name: '', tiendaData: null };
+                                    return nr;
+                                }
+                            });
+                        }}
+                        onFocus={() => setActiveCell(null)}
+                        loading={loadingTiendas}
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                variant="standard"
+                                placeholder="Buscar tienda..."
+                                InputProps={{
+                                    ...params.InputProps,
+                                    disableUnderline: true,
+                                    startAdornment: (
+                                        <BusinessIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 1, ml: 1 }} />
+                                    ),
+                                    endAdornment: (
+                                        <>
+                                            {loadingTiendas ? <CircularProgress color="inherit" size={16} /> : null}
+                                            {params.InputProps.endAdornment}
+                                        </>
+                                    ),
+                                    sx: {
+                                        fontSize: '0.75rem',
+                                        fontWeight: isRowActive ? 800 : 500,
+                                        color: isRowActive ? '#059669' : '#475569',
+                                        fontFamily: "'Inter', sans-serif"
+                                    }
+                                }}
+                            />
+                        )}
+                        sx={{
+                            '& .MuiAutocomplete-inputRoot': { p: '4px 0' },
+                            '& .MuiAutocomplete-endAdornment': { top: 'calc(50% - 11px)' }
+                        }}
+                    />
+                </Box>
+            </TableCell>
+            {columns.map((col: string, colIndex: number) => {
+                const isCellActive = activeCell?.r === rowIndex && activeCell?.c === col;
+                const isInRange = isCellInSelection(rowIndex, colIndex);
+
+                const minC = selection ? Math.min(selection.startCIdx, selection.endCIdx) : -1;
+                const maxC = selection ? Math.max(selection.startCIdx, selection.endCIdx) : -1;
+
+                const isTop = rowIndex === minR && isInRange;
+                const isBottom = rowIndex === maxR && isInRange;
+                const isLeft = colIndex === minC && isInRange;
+                const isRight = colIndex === maxC && isInRange;
+
+                return (
+                    <TableCell
+                        key={`${row.id}-${col}`}
+                        align="center"
+                        onMouseDown={() => {
+                            handleMouseDown(rowIndex, col);
+                        }}
+                        onMouseEnter={() => handleMouseEnter(rowIndex, col)}
+                        sx={{
+                            p: 0,
+                            position: 'relative',
+                            userSelect: 'none',
+                            bgcolor: isCellActive ? '#ffffff' : (isInRange ? alpha('#10b981', 0.1) : 'transparent'),
+                            borderTop: isTop ? '2px solid #059669 !important' : undefined,
+                            borderBottom: isBottom ? '2px solid #059669 !important' : undefined,
+                            borderLeft: isLeft ? '2px solid #059669 !important' : undefined,
+                            borderRight: isRight ? '2px solid #059669 !important' : '1px solid #f1f5f9',
+                            boxShadow: isCellActive
+                                ? '0 0 0 2px #059669, 0 4px 12px rgba(16, 185, 129, 0.2)'
+                                : 'none',
+                            zIndex: isCellActive ? 10 : (isInRange ? 5 : 1),
+                            transition: 'background-color 0.1s ease, box-shadow 0.1s ease',
+                        }}
+                    >
+                        <input
+                            ref={el => inputRefs.current[`${rowIndex}-${col}`] = el}
+                            type="text"
+                            value={row.values[col] || ''}
+                            placeholder="0"
+                            onChange={(e) => handleValueChange(rowIndex, col, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, rowIndex, col)}
+                            onFocus={() => {
+                                if (activeCell?.r !== rowIndex || activeCell?.c !== col) {
+                                    setActiveCell({ r: rowIndex, c: col });
+                                }
+                            }}
+                            onMouseDown={(e) => {
+                                e.stopPropagation();
+                                handleMouseDown(rowIndex, col);
+                            }}
+                            style={{
+                                width: '100%', height: '44px', border: 'none', background: 'transparent',
+                                textAlign: 'center', fontWeight: (row.values[col] || 0) > 0 ? 800 : 400,
+                                outline: 'none', fontSize: '0.9rem',
+                                color: isCellActive || (row.values[col] || 0) > 0 ? '#065f46' : '#94a3b8',
+                                transition: 'color 0.1s ease',
+                                cursor: 'cell',
+                                fontFamily: "'Inter', sans-serif",
+                                position: 'relative',
+                                zIndex: 2
+                            }}
+                        />
+                    </TableCell>
+                );
+            })}
+            <TableCell align="center" sx={{
+                fontWeight: 800,
+                color: rowTotal > 0 ? '#1e293b' : alpha('#000', 0.2),
+                fontSize: '0.85rem',
+                ...stickyActionColumnStyle
+            }}>
+                {rowTotal > 0 ? rowTotal.toLocaleString() : '0'}
+            </TableCell>
+        </TableRow>
+    );
+}, (prev, next) => {
+    // Custom comparator to prevent row re-renders if selection/active cell didn't touch it
+    if (prev.row !== next.row) return false;
+    
+    // Check if row changed bounds in selection or activeCell
+    const isRowInSelection = (r: number, sel: any) => {
+        if (!sel) return false;
+        return r >= Math.min(sel.startR, sel.endR) && r <= Math.max(sel.startR, sel.endR);
+    };
+
+    const wasTouched = isRowInSelection(prev.rowIndex, prev.selection) || (prev.activeCell?.r === prev.rowIndex);
+    const isTouched = isRowInSelection(next.rowIndex, next.selection) || (next.activeCell?.r === next.rowIndex);
+
+    if (wasTouched || isTouched) return false;
+
+    // Check if total changed (but rows values change triggers row change, so it's already caught)
+    // Same format columns
+    if (prev.columns.length !== next.columns.length) return false;
+
+    return true; // Skip render!
+});
+
 /**
  * Plantilla de Carga Dinámica Profesional
  * Implementa "Paste Intelligence" y cálculos en tiempo real.
  * Ahora optimizada para ser la vista principal.
  */
-const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixProps>(({ onCancel, onChange, type }, ref) => {
+const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixProps>(({ onChange, type }, ref) => {
     // ── ESTADO ──────────────────────────────────────────
 
     // Lista de tiendas desde DB
@@ -256,19 +479,20 @@ const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixP
     };
 
     const handleMouseEnter = (r: number, cName: string) => {
-        if (selection?.isSelecting) {
-            setSelection(prev => prev ? ({
-                ...prev,
-                endR: r,
-                endCIdx: columns.indexOf(cName)
-            }) : null);
-        }
+        setSelection(prev => {
+            if (prev?.isSelecting) {
+                return {
+                    ...prev,
+                    endR: r,
+                    endCIdx: columns.indexOf(cName)
+                };
+            }
+            return prev;
+        });
     };
 
     const handleMouseUp = () => {
-        if (selection?.isSelecting) {
-            setSelection(prev => prev ? ({ ...prev, isSelecting: false }) : null);
-        }
+        setSelection(prev => prev?.isSelecting ? ({ ...prev, isSelecting: false }) : prev);
     };
 
     // Limpiar selección al hacer click fuera
@@ -278,15 +502,6 @@ const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixP
         return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
     }, [selection]);
 
-    const isCellInSelection = (r: number, cName: string) => {
-        if (!selection) return false;
-        const cIdx = columns.indexOf(cName);
-        const minR = Math.min(selection.startR, selection.endR);
-        const maxR = Math.max(selection.startR, selection.endR);
-        const minC = Math.min(selection.startCIdx, selection.endCIdx);
-        const maxC = Math.max(selection.startCIdx, selection.endCIdx);
-        return r >= minR && r <= maxR && cIdx >= minC && cIdx <= maxC;
-    };
 
     // ── NAVEGACIÓN TIPO EXCEL ──────────────────────────
 
@@ -561,27 +776,7 @@ const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixP
         type,
     }), [addRow, addColumn, clearMatrix, referencia, color, grandTotal, type]);
 
-    // ── UI COMPONENTS ───────────────────────────────────
 
-    const headerCellStyle = {
-        bgcolor: '#1e293b',
-        color: 'white',
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        fontSize: '0.75rem',
-        letterSpacing: '0.05em',
-        py: 1.5,
-        border: '1px solid rgba(255,255,255,0.1)'
-    };
-
-    const stickyActionColumnStyle = {
-        position: 'sticky',
-        right: 0,
-        bgcolor: 'rgba(248, 250, 252, 0.8)',
-        zIndex: 2,
-        boxShadow: '-4px 0 8px rgba(0,0,0,0.03)',
-        borderLeft: '1px solid #e2e8f0'
-    };
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 2.5 }}>
@@ -604,13 +799,14 @@ const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixP
                     bgcolor: 'rgba(255, 255, 255, 0.6)',
                     backdropFilter: 'blur(8px)',
                     overflow: 'auto',
+                    position: 'relative',
                     transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                     '&:focus-within': {
                         borderColor: '#4f46e5',
                         boxShadow: '0 0 0 4px rgba(79, 70, 229, 0.08)'
                     },
                     '&::-webkit-scrollbar': { width: 8, height: 8 },
-                    '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 4, '&:hover': { bgcolor: '#94a3b8' } }
+                    '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 4, '&:hover': { bgcolor: '#94a3b8' } },
                 }}
             >
                 <Table stickyHeader size="small">
@@ -619,9 +815,11 @@ const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixP
                             <TableCell sx={{
                                 ...headerCellStyle,
                                 minWidth: 220,
-                                zIndex: 10,
+                                zIndex: 40,
                                 bgcolor: '#111827',
-                                transition: 'all 0.3s'
+                                transition: 'all 0.3s',
+                                position: 'sticky',
+                                left: 0
                             }}>
                                 ESTABLECIMIENTO / TIENDA
                             </TableCell>
@@ -642,7 +840,8 @@ const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixP
                                             transition: 'background-color 0.15s ease, box-shadow 0.15s ease',
                                             fontWeight: isColActive ? 900 : 600,
                                             fontSize: '0.75rem',
-                                            letterSpacing: '0.05em'
+                                            letterSpacing: '0.05em',
+                                            zIndex: 35
                                         }}
                                     >
                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
@@ -659,196 +858,37 @@ const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixP
                                 minWidth: 100,
                                 position: 'sticky',
                                 right: 0,
-                                zIndex: 5,
+                                zIndex: 40,
                                 bgcolor: '#0f172a'
                             }}>TOTAL FILA</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {rows.map((row, rowIndex) => {
-                            const minR = selection ? Math.min(selection.startR, selection.endR) : -1;
-                            const maxR = selection ? Math.max(selection.startR, selection.endR) : -1;
-                            const isRowActive = activeCell?.r === rowIndex || (rowIndex >= minR && rowIndex <= maxR);
-                            const rowTotal = getRowTotal(row.values);
-                            return (
-                                <TableRow key={row.id} hover sx={{ '&:nth-of-type(even)': { bgcolor: '#fbfcfd' } }}>
-                                    <TableCell sx={{
-                                        p: 0,
-                                        borderRight: '1px solid #f1f5f9',
-                                        bgcolor: isRowActive ? alpha('#10b981', 0.04) : 'transparent',
-                                        borderLeft: isRowActive ? '4px solid #10b981' : 'none',
-                                        transition: 'background-color 0.15s ease'
-                                    }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                            <IconButton size="small" onClick={() => removeRow(row.id)} sx={{ ml: 1, opacity: 0.2, '&:hover': { opacity: 1, color: '#ef4444' } }}>
-                                                <DeleteIcon sx={{ fontSize: 16 }} />
-                                            </IconButton>
-                                            <Autocomplete
-                                                fullWidth
-                                                options={tiendasLista}
-                                                getOptionLabel={(option) => typeof option === 'string' ? option : option.nombre}
-                                                value={tiendasLista.find(t => t.nombre === row.name) || null}
-                                                onChange={(_, newValue) => {
-                                                    if (newValue) {
-                                                        // Crear la nueva fila con la tienda seleccionada
-                                                        const updatedRow = {
-                                                            ...row,
-                                                            name: newValue.nombre,
-                                                            tiendaData: newValue
-                                                        };
-                                                        
-                                                        // Remover la fila actual de la lista
-                                                        const nr = rows.filter((_, idx) => idx !== rowIndex);
-                                                        
-                                                        // Encontrar la posición correcta para insertar manteniendo el orden alfabético
-                                                        let insertIndex = nr.length;
-                                                        for (let i = 0; i < nr.length; i++) {
-                                                            // Si la fila tiene nombre y es mayor alfabéticamente, insertar antes
-                                                            if (nr[i].name && nr[i].name > newValue.nombre) {
-                                                                insertIndex = i;
-                                                                break;
-                                                            }
-                                                            // Si la fila está vacía, insertar antes de las vacías
-                                                            if (!nr[i].name && insertIndex === nr.length) {
-                                                                insertIndex = i;
-                                                            }
-                                                        }
-                                                        
-                                                        // Insertar en la posición encontrada
-                                                        nr.splice(insertIndex, 0, updatedRow);
-                                                        setRows(nr);
-                                                    } else {
-                                                        // Si se limpia la selección, mantener la fila en su posición
-                                                        const nr = [...rows];
-                                                        nr[rowIndex].name = '';
-                                                        nr[rowIndex].tiendaData = null;
-                                                        setRows(nr);
-                                                    }
-                                                }}
-                                                onFocus={() => setActiveCell(null)}
-                                                loading={loadingTiendas}
-                                                renderInput={(params) => (
-                                                    <TextField
-                                                        {...params}
-                                                        variant="standard"
-                                                        placeholder="Buscar tienda..."
-                                                        InputProps={{
-                                                            ...params.InputProps,
-                                                            disableUnderline: true,
-                                                            startAdornment: (
-                                                                <BusinessIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 1, ml: 1 }} />
-                                                            ),
-                                                            endAdornment: (
-                                                                <>
-                                                                    {loadingTiendas ? <CircularProgress color="inherit" size={16} /> : null}
-                                                                    {params.InputProps.endAdornment}
-                                                                </>
-                                                            ),
-                                                            sx: {
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: isRowActive ? 800 : 500,
-                                                                color: isRowActive ? '#059669' : '#475569',
-                                                                fontFamily: "'Inter', sans-serif"
-                                                            }
-                                                        }}
-                                                    />
-                                                )}
-                                                sx={{
-                                                    '& .MuiAutocomplete-inputRoot': { p: '4px 0' },
-                                                    '& .MuiAutocomplete-endAdornment': { top: 'calc(50% - 11px)' }
-                                                }}
-                                            />
-                                        </Box>
-                                    </TableCell>
-                                    {columns.map((col, colIndex) => {
-                                        const isCellActive = activeCell?.r === rowIndex && activeCell?.c === col;
-                                        const isInRange = isCellInSelection(rowIndex, col);
-
-                                        // Estilo de borde de rango (solo en los perímetros del rango)
-                                        const minR = selection ? Math.min(selection.startR, selection.endR) : -1;
-                                        const maxR = selection ? Math.max(selection.startR, selection.endR) : -1;
-                                        const minC = selection ? Math.min(selection.startCIdx, selection.endCIdx) : -1;
-                                        const maxC = selection ? Math.max(selection.startCIdx, selection.endCIdx) : -1;
-
-                                        const isTop = rowIndex === minR && isInRange;
-                                        const isBottom = rowIndex === maxR && isInRange;
-                                        const isLeft = colIndex === minC && isInRange;
-                                        const isRight = colIndex === maxC && isInRange;
-
-                                        return (
-                                            <TableCell
-                                                key={`${row.id}-${col}`}
-                                                align="center"
-                                                onMouseDown={() => {
-                                                    handleMouseDown(rowIndex, col);
-                                                }}
-                                                onMouseEnter={() => handleMouseEnter(rowIndex, col)}
-                                                sx={{
-                                                    p: 0,
-                                                    position: 'relative',
-                                                    userSelect: 'none',
-                                                    // Fondo Emerald suave para el rango
-                                                    bgcolor: isCellActive ? '#ffffff' : (isInRange ? alpha('#10b981', 0.1) : 'transparent'),
-                                                    // Bordes verdes del rango (Emerald 600)
-                                                    borderTop: isTop ? '2px solid #059669 !important' : undefined,
-                                                    borderBottom: isBottom ? '2px solid #059669 !important' : undefined,
-                                                    borderLeft: isLeft ? '2px solid #059669 !important' : undefined,
-                                                    borderRight: isRight ? '2px solid #059669 !important' : '1px solid #f1f5f9',
-                                                    // Sombra elegante para la celda activa - Estilo Profesional
-                                                    boxShadow: isCellActive
-                                                        ? '0 0 0 2px #059669, 0 4px 12px rgba(16, 185, 129, 0.2)'
-                                                        : 'none',
-                                                    zIndex: isCellActive ? 10 : (isInRange ? 5 : 1),
-                                                    transition: 'background-color 0.1s ease, box-shadow 0.1s ease',
-                                                }}
-                                            >
-                                                <input
-                                                    ref={el => inputRefs.current[`${rowIndex}-${col}`] = el}
-                                                    type="text"
-                                                    value={row.values[col] || ''}
-                                                    placeholder="0"
-                                                    onChange={(e) => handleValueChange(rowIndex, col, e.target.value)}
-                                                    onKeyDown={(e) => handleKeyDown(e, rowIndex, col)}
-                                                    onFocus={() => {
-                                                        if (activeCell?.r !== rowIndex || activeCell?.c !== col) {
-                                                            setActiveCell({ r: rowIndex, c: col });
-                                                        }
-                                                    }}
-                                                    onMouseDown={(e) => {
-                                                        // Detener propagación para evitar dobles llamadas a handleMouseDown
-                                                        e.stopPropagation();
-                                                        handleMouseDown(rowIndex, col);
-                                                    }}
-                                                    style={{
-                                                        width: '100%', height: '44px', border: 'none', background: 'transparent',
-                                                        textAlign: 'center', fontWeight: (row.values[col] || 0) > 0 ? 800 : 400,
-                                                        outline: 'none', fontSize: '0.9rem',
-                                                        color: isCellActive || (row.values[col] || 0) > 0 ? '#065f46' : '#94a3b8',
-                                                        transition: 'color 0.1s ease',
-                                                        cursor: 'cell',
-                                                        fontFamily: "'Inter', sans-serif",
-                                                        position: 'relative',
-                                                        zIndex: 2
-                                                    }}
-                                                />
-                                            </TableCell>
-                                        );
-                                    })}
-                                    <TableCell align="center" sx={{
-                                        fontWeight: 800,
-                                        color: rowTotal > 0 ? '#1e293b' : alpha('#000', 0.2),
-                                        fontSize: '0.85rem',
-                                        ...stickyActionColumnStyle
-                                    }}>
-                                        {rowTotal > 0 ? rowTotal.toLocaleString() : '0'}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
+                        {rows.map((row, rowIndex) => (
+                            <MemoizedMatrixRow
+                                key={row.id}
+                                row={row}
+                                rowIndex={rowIndex}
+                                columns={columns}
+                                activeCell={activeCell}
+                                selection={selection}
+                                tiendasLista={tiendasLista}
+                                loadingTiendas={loadingTiendas}
+                                getRowTotal={getRowTotal}
+                                handleValueChange={handleValueChange}
+                                handleKeyDown={handleKeyDown}
+                                handleMouseDown={handleMouseDown}
+                                handleMouseEnter={handleMouseEnter}
+                                setActiveCell={setActiveCell}
+                                removeRow={removeRow}
+                                setRows={setRows}
+                                inputRefs={inputRefs}
+                            />
+                        ))}
 
                         {/* Totals Footer Row */}
-                        <TableRow sx={{ position: 'sticky', bottom: 0, zIndex: 10 }}>
-                            <TableCell sx={{ bgcolor: '#f1f5f9', color: '#475569', fontWeight: 900, py: 1.5 }}>
+                        <TableRow sx={{ position: 'sticky', bottom: 0, zIndex: 30 }}>
+                            <TableCell sx={{ bgcolor: '#f1f5f9', color: '#475569', fontWeight: 900, py: 1.5, position: 'sticky', left: 0, zIndex: 40 }}>
                                 TOTALES POR {type === 'general' ? 'CURVA' : 'TALLA'}
                             </TableCell>
                             {columns.map(col => (
@@ -863,7 +903,8 @@ const DynamicLoadMatrix = forwardRef<DynamicLoadMatrixHandle, DynamicLoadMatrixP
                                 py: 1.5,
                                 fontSize: '1rem',
                                 position: 'sticky',
-                                right: 0
+                                right: 0,
+                                zIndex: 40
                             }}>
                                 {grandTotal.toLocaleString()}
                             </TableCell>

@@ -8,6 +8,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import SearchBar from "../components/SearchBar";
 import StatusFilters from "../components/StatusFilters";
 import RazonSocialFilter from "../components/RazonSocialFilter";
@@ -32,6 +33,8 @@ const ResolucionesHome = () => {
     paginaActual,
     cargandoDatos,
     mostrarConfirmacion,
+    mostrarDialogoYaIntegrada,
+    mostrarDialogoOpcionesIntegracion,
     totalResoluciones,
     totalPendientes,
     totalPorVencer,
@@ -47,15 +50,18 @@ const ResolucionesHome = () => {
     handleLimpiar,
     handleIntegrar,
     confirmarIntegracion,
+    ejecutarAppUltra,
     handleSubirArchivo,
+    integrarSoloGuardar,
+    integrarGuardarYSubirUltra,
     setPaginaActual,
     setMostrarConfirmacion,
+    setMostrarDialogoYaIntegrada,
+    setMostrarDialogoOpcionesIntegracion,
   } = useResolucionesLogic({ showSnackbar });
 
   const handleExportar = async () => {
-    await exportarAExcel(resolucionesFiltradas, (mensaje, tipo) => {
-      console.log(mensaje, tipo);
-    });
+    await exportarAExcel(resolucionesFiltradas, (mensaje, tipo) => {});
   };
 
   const handleSubirArchivoWrapper = (archivo: File) => {
@@ -164,8 +170,14 @@ const ResolucionesHome = () => {
             overflowX: "auto",
             width: "100%",
             "&::-webkit-scrollbar": { height: "8px" },
-            "&::-webkit-scrollbar-track": { background: "#f1f1f1", borderRadius: "4px" },
-            "&::-webkit-scrollbar-thumb": { background: "#888", borderRadius: "4px" },
+            "&::-webkit-scrollbar-track": {
+              background: "#f1f1f1",
+              borderRadius: "4px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              background: "#888",
+              borderRadius: "4px",
+            },
             "&::-webkit-scrollbar-thumb:hover": { background: "#555" },
           }}
         >
@@ -181,7 +193,9 @@ const ResolucionesHome = () => {
               }}
             >
               <CircularProgress size={50} />
-              <Typography color="text.secondary">Cargando resoluciones...</Typography>
+              <Typography color="text.secondary">
+                Cargando resoluciones...
+              </Typography>
             </Box>
           ) : (
             <ResolutionTable
@@ -204,7 +218,9 @@ const ResolucionesHome = () => {
           onClose={() => setMostrarConfirmacion(false)}
           PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
         >
-          <DialogTitle sx={{ fontWeight: "bold" }}>Confirmar Integración</DialogTitle>
+          <DialogTitle sx={{ fontWeight: "bold" }}>
+            Confirmar Integración
+          </DialogTitle>
           <DialogContent>
             <Typography>
               ¿Deseas integrar la resolución{" "}
@@ -224,6 +240,85 @@ const ResolucionesHome = () => {
               texto="Integrar"
               variante="primario"
               onClick={confirmarIntegracion}
+            />
+          </DialogActions>
+        </Dialog>
+
+        {/* Diálogo - Resolución ya integrada */}
+        <Dialog
+          open={mostrarDialogoYaIntegrada}
+          onClose={() => setMostrarDialogoYaIntegrada(false)}
+          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+        >
+          <DialogTitle
+            sx={{
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <WarningAmberIcon color="warning" />
+            Resolución ya integrada
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              Esta resolución ya está integrada en la base de datos.
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+              ¿Deseas ejecutar la aplicación Ultra de todas formas?
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, gap: 1 }}>
+            <Button
+              texto="Cancelar"
+              variante="secundario"
+              onClick={() => setMostrarDialogoYaIntegrada(false)}
+            />
+            <Button
+              texto="Ejecutar en Ultra"
+              variante="primario"
+              onClick={ejecutarAppUltra}
+            />
+          </DialogActions>
+        </Dialog>
+
+        {/* Diálogo - Opciones de integración */}
+        <Dialog
+          open={mostrarDialogoOpcionesIntegracion}
+          onClose={() => setMostrarDialogoOpcionesIntegracion(false)}
+          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+        >
+          <DialogTitle
+            sx={{
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <DownloadIcon />
+            Opciones de integración
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              ¿Qué deseas hacer con la resolución{" "}
+              <strong>{resolucionSeleccionada?.numero_formulario}</strong>?
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+              Selecciona una de las siguientes opciones:
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, gap: 1 }}>
+            <Button
+              texto="Solo guardar"
+              variante="secundario"
+              onClick={integrarSoloGuardar}
+            />
+            <Button
+              texto="Guardar y subir a Ultra"
+              variante="primario"
+              onClick={integrarGuardarYSubirUltra}
             />
           </DialogActions>
         </Dialog>

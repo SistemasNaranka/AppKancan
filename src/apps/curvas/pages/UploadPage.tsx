@@ -1,5 +1,13 @@
-import { useState, useCallback, useRef, useEffect, useMemo, memo, useLayoutEffect } from 'react';
-import { createPortal } from 'react-dom';
+import {
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+  memo,
+  useLayoutEffect,
+  useEffect,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   Box,
   Container,
@@ -10,56 +18,80 @@ import {
   Stack,
   Chip,
   LinearProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   ToggleButton,
   ToggleButtonGroup,
   Divider,
-  Collapse,
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   Zoom,
   IconButton,
   Tooltip,
   Snackbar,
-} from '@mui/material';
-import TextField from '@mui/material/TextField';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import DeleteIcon from '@mui/icons-material/Delete';
-import ShieldIcon from '@mui/icons-material/Shield';
-import HistoryIcon from '@mui/icons-material/History';
-import GridOnIcon from '@mui/icons-material/GridOn';
-import BusinessIcon from '@mui/icons-material/Business';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import CloseIcon from '@mui/icons-material/Close';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import SaveIcon from '@mui/icons-material/Save';
-import SendIcon from '@mui/icons-material/Send';
-import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
-import DoNotStepIcon from '@mui/icons-material/DoNotStep';
-import AnalyticsIcon from '@mui/icons-material/Analytics';
-import { useCurvas } from '../contexts/CurvasContext';
-import DynamicLoadMatrix from '../components/DynamicLoadMatrix';
-import type { DynamicLoadMatrixHandle } from '../components/DynamicLoadMatrix';
-import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import '@fontsource/inter/400.css';
-import '@fontsource/inter/700.css';
-import '@fontsource/inter/800.css';
-import '@fontsource/inter/900.css';
-import '@fontsource/roboto-mono/400.css';
-import '@fontsource/roboto-mono/700.css';
+} from "@mui/material";
+import TextField from "@mui/material/TextField";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DeleteIcon from "@mui/icons-material/Delete";
+import HistoryIcon from "@mui/icons-material/History";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import CloseIcon from "@mui/icons-material/Close";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import SaveIcon from "@mui/icons-material/Save";
+import SendIcon from "@mui/icons-material/Send";
+import { useCurvas } from "../contexts/CurvasContext";
+import DynamicLoadMatrix from "../components/DynamicLoadMatrix";
+import type { DynamicLoadMatrixHandle } from "../components/DynamicLoadMatrix";
+import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/inter/800.css";
+import "@fontsource/inter/900.css";
+import "@fontsource/roboto-mono/400.css";
+import "@fontsource/roboto-mono/700.css";
 
-import { useNavigate } from 'react-router-dom';
-import { alpha, useTheme } from '@mui/material/styles';
+import { useNavigate } from "react-router-dom";
 
 const MAIN_FONT = "'Inter', sans-serif";
-const MONO_FONT = "'Roboto Mono', 'Consolas', monospace";
+
+// ─────────────────────────────────────────────
+// Custom Components for Performance
+// ─────────────────────────────────────────────
+const LocalControlledInput = ({
+  value,
+  onChange,
+  placeholder,
+  sx
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  sx?: any;
+}) => {
+  const [localValue, setLocalValue] = useState(value || "");
+
+  // Sync prop changes that come from outside
+  useEffect(() => {
+    setLocalValue(value || "");
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalValue(val);
+    onChange(val);
+  };
+
+  return (
+    <TextField
+      variant="outlined"
+      size="small"
+      value={localValue}
+      onChange={handleChange}
+      placeholder={placeholder}
+      sx={sx}
+    />
+  );
+};
 
 /**
  * Página de Carga de Datos - Versión de Matriz Directa
@@ -68,30 +100,34 @@ const MONO_FONT = "'Roboto Mono', 'Consolas', monospace";
 const UploadPage = () => {
   const {
     datosCurvas,
-    archivos,
     cargarDatosManuales,
-    limpiarDatos,
-    permissions,
-    userRole,
-    setUserRole,
     guardarCambios,
     confirmarLote,
     hasChanges,
     setHasChanges,
     celdasEditadas,
-    extractRef,
   } = useCurvas();
 
   // Tipo de carga seleccionado (Default: Matriz General)
-  const [loadType, setLoadType] = useState<'general' | 'producto_a' | 'producto_b'>('general');
+  const [loadType, setLoadType] = useState<
+    "general" | "producto_a" | "producto_b"
+  >("general");
   const [showSuccess, setShowSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState({ open: false, action: 'save' });
-  const [pendingMatrixData, setPendingMatrixData] = useState<any>(null);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'warning' | 'info' | 'error' }>({
-    open: false, message: '', severity: 'info',
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    action: "save",
   });
-  const theme = useTheme();
+  const [pendingMatrixData, setPendingMatrixData] = useState<any>(null);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "warning" | "info" | "error";
+  }>({
+    open: false,
+    message: "",
+    severity: "info",
+  });
   const navigate = useNavigate();
   const matrixRef = useRef<DynamicLoadMatrixHandle>(null);
 
@@ -99,7 +135,7 @@ const UploadPage = () => {
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
-    const el = document.getElementById('upload-page-header-portal');
+    const el = document.getElementById("upload-page-header-portal");
     if (el) {
       setPortalTarget(el);
     }
@@ -108,47 +144,35 @@ const UploadPage = () => {
   // Determinar si hay datos cargados para la vista actual
   const currentSheetId = useMemo(() => {
     if (!datosCurvas) return null;
-    if (loadType === 'general') return datosCurvas.matrizGeneral[0]?.id;
+    if (loadType === "general") return datosCurvas.matrizGeneral[0]?.id;
     return datosCurvas.productos[0]?.id;
   }, [datosCurvas, loadType]);
 
   const isConfirmed = useMemo(() => {
     if (!datosCurvas || !currentSheetId) return false;
-    const sheet = [...datosCurvas.matrizGeneral, ...datosCurvas.productos]
-      .find(s => s.id === currentSheetId);
-    return (sheet as any)?.estado === 'confirmado';
+    const sheet = [...datosCurvas.matrizGeneral, ...datosCurvas.productos].find(
+      (s) => s.id === currentSheetId,
+    );
+    return (sheet as any)?.estado === "confirmado";
   }, [datosCurvas, currentSheetId]);
 
   const currentData = useMemo(() => {
     if (!datosCurvas) return null;
-    if (loadType === 'general') return datosCurvas.matrizGeneral[0] || null;
+    if (loadType === "general") return datosCurvas.matrizGeneral[0] || null;
     return datosCurvas.productos[0] || null;
   }, [datosCurvas, loadType]);
-
-  const metadatos = useMemo(() => {
-    if (loadType === 'general') return null;
-    return (currentData as any)?.metadatos || null;
-  }, [currentData, loadType]);
 
   const summaryStats = useMemo(() => {
     if (!currentData) return { tiendas: 0, totalUnidades: 0, columnas: 0 };
     return {
       tiendas: currentData.filas.length,
       totalUnidades: currentData.filas.reduce((acc, f) => acc + f.total, 0),
-      columnas: (currentData as any).curvas?.length || (currentData as any).tallas?.length || 0,
+      columnas:
+        (currentData as any).curvas?.length ||
+        (currentData as any).tallas?.length ||
+        0,
     };
   }, [currentData]);
-
-  const handleManualData = (data: any) => {
-    // Mapear de tipo interno a tipo de archivo esperado por el contexto
-    const tipoArchivo = loadType === 'general' ? 'matriz_general' : 'detalle_producto_a'; // Usar producto_a como default para productos unificados
-
-    cargarDatosManuales(data, tipoArchivo);
-
-    // Al cargar manual, simulamos que hay cambios para que el usuario pueda "Guardar"
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
 
   const handleSave = async (silent: boolean | any = false) => {
     const isSilent = silent === true;
@@ -158,19 +182,25 @@ const UploadPage = () => {
 
     try {
       if (!pendingMatrixData) {
-
         setSaving(false);
-        if (!isSilent) setConfirmDialog({ open: false, action: 'save' });
+        if (!isSilent) setConfirmDialog({ open: false, action: "save" });
         return false;
       }
 
       // Validación de Referencia para TODOS los tipos (Bug Fix: Era solo para productos)
-      const refActual = pendingMatrixData.referencia?.trim() || pendingMatrixData.referenciaBase?.trim() || pendingMatrixData.metadatos?.referencia?.trim();
+      const refActual =
+        pendingMatrixData.referencia?.trim() ||
+        pendingMatrixData.referenciaBase?.trim() ||
+        pendingMatrixData.metadatos?.referencia?.trim();
 
-      if (!refActual || refActual === 'SIN REF') {
-        setSnackbar({ open: true, message: 'La REFERENCIA PRINCIPAL es obligatoria para guardar', severity: 'warning' });
+      if (!refActual || refActual === "SIN REF") {
+        setSnackbar({
+          open: true,
+          message: "La REFERENCIA PRINCIPAL es obligatoria para guardar",
+          severity: "warning",
+        });
         setSaving(false);
-        if (!isSilent) setConfirmDialog({ open: false, action: 'save' });
+        if (!isSilent) setConfirmDialog({ open: false, action: "save" });
         return false;
       }
 
@@ -178,20 +208,28 @@ const UploadPage = () => {
       let refFinal = refActual;
 
       // Asegurar que si hay color, se incluya en la referencia del log para que sea recuperable (Bug 2 Fix para Borradores)
-      const colorInput = pendingMatrixData.color || (pendingMatrixData.metadatos?.color);
-      if (colorInput && colorInput !== '—' && !refFinal.includes('|') && refFinal !== 'SIN REF') {
+      const colorInput =
+        pendingMatrixData.color || pendingMatrixData.metadatos?.color;
+      if (
+        colorInput &&
+        colorInput !== "—" &&
+        !refFinal.includes("|") &&
+        refFinal !== "SIN REF"
+      ) {
         refFinal = `${refFinal} | ${colorInput}`;
       }
-
-
 
       // Preparar datos de log para cada tienda ANTES de cargar los datos
       let datosLog: any[] = [];
 
       if (pendingMatrixData.filas && pendingMatrixData.filas.length > 0) {
-        const plantilla: 'matriz_general' | 'productos' = loadType === 'general' ? 'matriz_general' : 'productos';
-        const dataKey = loadType === 'general' ? 'curvas' : 'tallas';
-        const columnas = loadType === 'general' ? (pendingMatrixData.curvas || []) : (pendingMatrixData.tallas || []);
+        const plantilla: "matriz_general" | "productos" =
+          loadType === "general" ? "matriz_general" : "productos";
+        const dataKey = loadType === "general" ? "curvas" : "tallas";
+        const columnas =
+          loadType === "general"
+            ? pendingMatrixData.curvas || []
+            : pendingMatrixData.tallas || [];
 
         const now = Date.now();
         datosLog = pendingMatrixData.filas
@@ -203,7 +241,10 @@ const UploadPage = () => {
             columnas.forEach((col: string) => {
               const celda = datosTienda[col];
               if (celda && celda.valor > 0) {
-                cantidadTalla.push({ talla: parseFloat(col), cantidad: celda.valor });
+                cantidadTalla.push({
+                  talla: parseFloat(col),
+                  cantidad: celda.valor,
+                });
               }
             });
 
@@ -213,7 +254,7 @@ const UploadPage = () => {
               plantilla,
               cantidadTalla,
               referencia: refFinal, // EL LOG DEBE TENER LA REFERENCIA REAL
-              fecha: new Date(now + index).toISOString()
+              fecha: new Date(now + index).toISOString(),
             };
           });
       }
@@ -223,15 +264,17 @@ const UploadPage = () => {
         ...pendingMatrixData,
         referencia: refFinal,
         referenciaBase: refFinal,
-        nombreHoja: refFinal
+        nombreHoja: refFinal,
       };
 
-      if (loadType !== 'general') {
-        if (!dataToSave.metadatos) dataToSave.metadatos = { referencia: refFinal };
+      if (loadType !== "general") {
+        if (!dataToSave.metadatos)
+          dataToSave.metadatos = { referencia: refFinal };
         else dataToSave.metadatos.referencia = refFinal;
       }
 
-      const tipoArchivo = loadType === 'general' ? 'matriz_general' : 'detalle_producto_a';
+      const tipoArchivo =
+        loadType === "general" ? "matriz_general" : "detalle_producto_a";
 
       cargarDatosManuales(dataToSave, tipoArchivo);
       setPendingMatrixData(null);
@@ -241,24 +284,36 @@ const UploadPage = () => {
 
       if (ok) {
         if (!isSilent) {
-          setConfirmDialog({ open: false, action: 'save' }); // Cerrar SOLO tras éxito para que se vea la animación
+          setConfirmDialog({ open: false, action: "save" }); // Cerrar SOLO tras éxito para que se vea la animación
           setShowSuccess(true);
-          setSnackbar({ open: true, message: 'Datos guardados correctamente como Borrador', severity: 'success' });
+          setSnackbar({
+            open: true,
+            message: "Datos guardados correctamente como Borrador",
+            severity: "success",
+          });
         }
         setHasChanges(false); // Limpiar cambios tras guardar con éxito
       } else {
         if (!isSilent) {
-          setConfirmDialog({ open: false, action: 'save' });
-          setSnackbar({ open: true, message: 'ERROR CRÍTICO: No se pudo guardar en la base de datos', severity: 'error' });
+          setConfirmDialog({ open: false, action: "save" });
+          setSnackbar({
+            open: true,
+            message: "ERROR CRÍTICO: No se pudo guardar en la base de datos",
+            severity: "error",
+          });
         }
       }
 
       return ok ? dataToSave.id : false;
     } catch (err) {
-      console.error('Error en handleSave:', err);
+      console.error("Error en handleSave:", err);
       if (!isSilent) {
-        setConfirmDialog(prev => ({ ...prev, open: false }));
-        setSnackbar({ open: true, message: `Error inesperado: ${err instanceof Error ? err.message : 'Consulte la consola'}`, severity: 'error' });
+        setConfirmDialog((prev) => ({ ...prev, open: false }));
+        setSnackbar({
+          open: true,
+          message: `Error inesperado: ${err instanceof Error ? err.message : "Consulte la consola"}`,
+          severity: "error",
+        });
       }
       return false;
     } finally {
@@ -276,43 +331,50 @@ const UploadPage = () => {
 
       let targetId = currentSheetId;
 
-      // Si hay cambios pendientes o es una matriz nueva (pendingMatrixData), 
+      // Si hay cambios pendientes o es una matriz nueva (pendingMatrixData),
       // DEBEMOS guardar los logs antes de confirmar para que aparezcan en Despacho
       if (hasChanges || pendingMatrixData) {
-
         const successSaveId = await handleSave(true); // Modo silencioso para no cerrar el diálogo prematuramente
         if (!successSaveId) {
           // Si el guardado falló, handleSave ya habrá hecho setSaving(false) en su finally
           return; // Detener si el guardado falló
         }
         // Usar el ID dinámico fresco para evitar el race condition del context! (Bug Fix)
-        targetId = typeof successSaveId === 'string' ? successSaveId : `sheet-${pendingMatrixData?.referenciaBase || pendingMatrixData?.referencia || pendingMatrixData?.metadatos?.referencia || 'NUEVA'}`;
+        targetId =
+          typeof successSaveId === "string"
+            ? successSaveId
+            : `sheet-${pendingMatrixData?.referenciaBase || pendingMatrixData?.referencia || pendingMatrixData?.metadatos?.referencia || "NUEVA"}`;
 
         // NO desactivamos saving aquí, permitimos que handleSendToDispatch continúe
         // La animación debe persistir hasta el final del flujo de envío
         setSaving(true);
       } else {
-        targetId = currentSheetId || `sheet-${pendingMatrixData?.referenciaBase || pendingMatrixData?.referencia || pendingMatrixData?.metadatos?.referencia || 'NUEVA'}`;
+        targetId =
+          currentSheetId ||
+          `sheet-${pendingMatrixData?.referenciaBase || pendingMatrixData?.referencia || pendingMatrixData?.metadatos?.referencia || "NUEVA"}`;
       }
 
       if (!targetId) {
-        setSnackbar({ open: true, message: 'No se pudo generar el Lote de Despacho', severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: "No se pudo generar el Lote de Despacho",
+          severity: "error",
+        });
         return;
       }
 
-
       ok = await confirmarLote(loadType, targetId);
 
-      setConfirmDialog({ open: false, action: 'confirm_dispatch' });
+      setConfirmDialog({ open: false, action: "confirm_dispatch" });
 
       if (ok) {
         setShowSuccess(true);
         // Redirigir a envíos después de éxito
-        setTimeout(() => navigate('/curvas/envios'), 2000);
+        setTimeout(() => navigate("/curvas/envios"), 2000);
       }
     } catch (err) {
-      console.error('Error en handleSendToDispatch:', err);
-      setConfirmDialog({ open: false, action: 'confirm_dispatch' });
+      console.error("Error en handleSendToDispatch:", err);
+      setConfirmDialog({ open: false, action: "confirm_dispatch" });
     } finally {
       setSaving(false);
     }
@@ -320,15 +382,13 @@ const UploadPage = () => {
 
   const handleTypeChange = (
     _event: React.MouseEvent<HTMLElement>,
-    nextType: 'general' | 'producto_a' | 'producto_b' | null,
+    nextType: "general" | "producto_a" | "producto_b" | null,
   ) => {
     if (nextType !== null) {
       setLoadType(nextType);
       setShowSuccess(false);
     }
   };
-
-  const archivosCargados = archivos.filter(a => a.estado === 'exito').length;
 
   const handleMatrixChange = useCallback((data: any) => {
     setPendingMatrixData(data);
@@ -338,208 +398,403 @@ const UploadPage = () => {
   }, []);
 
   // Lógica de habilitación de botones: referencia presente + datos con valores
-  const hasValidRef = !!(pendingMatrixData?.referenciaBase?.trim() || pendingMatrixData?.referencia?.trim() || pendingMatrixData?.metadatos?.referencia?.trim() || currentSheetId);
-  const hasDataInTable = (pendingMatrixData?.totalGeneral || 0) > 0 || (currentData && (currentData as any).totalGeneral > 0);
+  const hasValidRef = !!(
+    pendingMatrixData?.referenciaBase?.trim() ||
+    pendingMatrixData?.referencia?.trim() ||
+    pendingMatrixData?.metadatos?.referencia?.trim() ||
+    currentSheetId
+  );
+  const hasDataInTable =
+    (pendingMatrixData?.totalGeneral || 0) > 0 ||
+    (currentData && (currentData as any).totalGeneral > 0);
   const canEnableButtons = hasValidRef && hasDataInTable;
 
-  // Contenido que será insertado en el Header Global
+  // Contenido insertado en el Header Global (fondo principal #004680)
   const headerContent = (
-    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ height: '100%' }}>
-      {/* 1. Divisor Vertical Sutil */}
-      <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 0.5, my: 1 }} />
+    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ height: "100%" }}>
 
-      {/* 2. Controles de Matriz (Añadir / Vaciar) */}
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Divider orientation="vertical" flexItem sx={{ bgcolor: "rgba(255,255,255,0.15)", my: 1 }} />
+
+      {/* ── Controles de Matriz ── */}
+      <Button
+        variant="text"
+        size="small"
+        startIcon={<PlaylistAddIcon sx={{ color: '#6ee7b7' }} />}
+        onClick={() => matrixRef.current?.addRow()}
+        sx={{
+          borderRadius: 2,
+          fontWeight: 700,
+          textTransform: "none",
+          px: 1.75,
+          color: "white",
+          height: 32,
+          fontSize: "0.75rem",
+          bgcolor: "rgba(255,255,255,0.1)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          "&:hover": { bgcolor: "rgba(255,255,255,0.18)", borderColor: "rgba(255,255,255,0.3)" },
+        }}
+      >
+        + Tienda
+      </Button>
+
+      <Button
+        variant="text"
+        size="small"
+        startIcon={<AddCircleOutlineIcon sx={{ color: '#93c5fd' }} />}
+        onClick={() => matrixRef.current?.addColumn()}
+        sx={{
+          borderRadius: 2,
+          fontWeight: 700,
+          textTransform: "none",
+          px: 1.75,
+          color: "white",
+          height: 32,
+          fontSize: "0.75rem",
+          bgcolor: "rgba(255,255,255,0.1)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          "&:hover": { bgcolor: "rgba(255,255,255,0.18)", borderColor: "rgba(255,255,255,0.3)" },
+        }}
+      >
+        + {loadType === "general" ? "Curva" : "Talla"}
+      </Button>
+
+      <Tooltip title="Vacía todos los valores numéricos">
         <Button
-          variant="outlined"
+          variant="text"
           size="small"
-          startIcon={<PlaylistAddIcon />}
-          onClick={() => matrixRef.current?.addRow()}
-          sx={{ 
-            borderRadius: 1.5, fontWeight: 700, textTransform: 'none', px: 2, 
-            bgcolor: 'white', borderColor: '#cbd5e1', color: '#334155', 
-            height: 30, fontSize: '0.75rem',
-            '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' }, 
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)' 
-          }}
-        >
-          Añadir Tienda
-        </Button>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<AddCircleOutlineIcon />}
-          onClick={() => matrixRef.current?.addColumn()}
-          sx={{ 
-            borderRadius: 1.5, fontWeight: 700, textTransform: 'none', px: 2, 
-            bgcolor: 'white', borderColor: '#cbd5e1', color: '#334155', 
-            height: 30, fontSize: '0.75rem',
-            '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' }, 
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)' 
-          }}
-        >
-          Añadir {loadType === 'general' ? 'Curva' : 'Talla'}
-        </Button>
-
-        <Box sx={{ flexGrow: 1 }} />
-
-        <Tooltip title="Limpia todos los valores numéricos">
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<DeleteIcon />}
-            onClick={() => matrixRef.current?.clearMatrix()}
-            sx={{ 
-              borderRadius: 1.5, fontWeight: 700, textTransform: 'none', px: 1.5, 
-              color: '#ef4444', borderColor: '#ef4444', height: 30, fontSize: '0.75rem',
-              '&:hover': { borderColor: '#dc2626', color: '#dc2626', bgcolor: 'rgba(239,68,68,0.08)' } 
-            }}
-          >
-            Vaciar
-          </Button>
-        </Tooltip>
-      </Stack>
-
-      <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 0.5, my: 1 }} />
-
-      {/* 3. Acciones Finales (Guardar / Enviar) */}
-      <Stack direction="row" spacing={1} alignItems="center">
-        {/* Chips Integrados */}
-        {(matrixRef.current?.grandTotal || 0) > 0 ? (
-          <Chip
-            label={`${(matrixRef.current?.grandTotal || 0).toLocaleString()} uds`}
-            size="small"
-            sx={{ fontWeight: 800, fontSize: '0.7rem', height: 24, bgcolor: '#10b981', color: 'white', border: 'none' }}
-          />
-        ) : null}
-
-        {isConfirmed ? (
-          <Chip label="CONFIRMADO" size="small" icon={<CheckCircleIcon />} sx={{ height: 24, fontSize: '0.65rem', bgcolor: 'rgba(74,222,128,0.3)', color: '#4ade80', fontWeight: 800, '& .MuiChip-icon': { color: '#4ade80' } }} />
-        ) : (
-          <Chip label={hasChanges ? 'PENDIENTE' : 'BORRADOR'} size="small" icon={hasChanges ? <WarningAmberIcon /> : undefined} sx={{ height: 24, fontSize: '0.65rem', bgcolor: hasChanges ? '#f59e0b' : 'rgba(255,255,255,0.15)', color: 'white', fontWeight: 800, '& .MuiChip-icon': { color: 'white', fontSize: '1rem' } }} />
-        )}
-
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={saving ? <HistoryIcon sx={{ animation: 'spin 1s linear infinite' }} /> : <SaveIcon />}
-          onClick={() => setConfirmDialog({ open: true, action: 'save' })}
-          disabled={saving || !canEnableButtons || isConfirmed}
+          startIcon={<DeleteIcon sx={{ color: '#fca5a5' }} />}
+          onClick={() => matrixRef.current?.clearMatrix()}
           sx={{
-            fontWeight: 800, borderRadius: 1.5, textTransform: 'none', px: 1.5, minWidth: 0, height: 30, fontSize: '0.75rem',
-            bgcolor: '#f59e0b', color: '#1c1917',
-            '&:hover': { bgcolor: '#d97706' }, '&.Mui-disabled': { bgcolor: 'rgba(245,158,11,0.3)', color: 'rgba(255,255,255,0.3)' }
+            borderRadius: 2,
+            fontWeight: 700,
+            textTransform: "none",
+            px: 1.75,
+            color: "rgba(255,255,255,0.8)",
+            height: 32,
+            fontSize: "0.75rem",
+            bgcolor: "rgba(255,255,255,0.07)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            "&:hover": { bgcolor: "rgba(239,68,68,0.2)", borderColor: "rgba(252,165,165,0.4)", color: "white" },
           }}
         >
-          Guardar
+          Vaciar
         </Button>
-        <Button
-          variant="contained"
+      </Tooltip>
+
+      <Divider orientation="vertical" flexItem sx={{ bgcolor: "rgba(255,255,255,0.15)", my: 1 }} />
+
+      {/* ── Estado + Acciones finales ── */}
+      {(matrixRef.current?.grandTotal || 0) > 0 && (
+        <Chip
+          label={`${(matrixRef.current?.grandTotal || 0).toLocaleString()} uds`}
           size="small"
-          startIcon={saving ? <HistoryIcon sx={{ animation: 'spin 1s linear infinite' }} /> : <SendIcon />}
-          onClick={() => setConfirmDialog({ open: true, action: 'confirm_dispatch' })}
-          disabled={saving || !canEnableButtons || isConfirmed}
           sx={{
-            fontWeight: 800, borderRadius: 1.5, textTransform: 'none', px: 1.5, minWidth: 0, height: 30, fontSize: '0.75rem',
-            bgcolor: 'white', color: '#006ACC',
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.3)', color: 'rgba(0,106,204,0.4)' }
+            fontWeight: 800,
+            fontSize: "0.68rem",
+            height: 24,
+            bgcolor: "rgba(110,231,183,0.2)",
+            color: "#6ee7b7",
+            border: "1px solid rgba(110,231,183,0.35)",
           }}
-        >
-          Enviar
-        </Button>
-      </Stack>
+        />
+      )}
+
+      {isConfirmed ? (
+        <Chip
+          label="CONFIRMADO"
+          size="small"
+          icon={<CheckCircleIcon />}
+          sx={{
+            height: 24,
+            fontSize: "0.65rem",
+            bgcolor: "rgba(74,222,128,0.15)",
+            color: "#4ade80",
+            fontWeight: 800,
+            border: "1px solid rgba(74,222,128,0.3)",
+            "& .MuiChip-icon": { color: "#4ade80", fontSize: "0.9rem" },
+          }}
+        />
+      ) : (
+        <Chip
+          label={hasChanges ? "PENDIENTE" : "BORRADOR"}
+          size="small"
+          icon={hasChanges ? <WarningAmberIcon /> : undefined}
+          sx={{
+            height: 24,
+            fontSize: "0.65rem",
+            bgcolor: hasChanges ? "rgba(251,191,36,0.2)" : "rgba(255,255,255,0.08)",
+            color: hasChanges ? "#fbbf24" : "rgba(255,255,255,0.6)",
+            fontWeight: 800,
+            border: `1px solid ${hasChanges ? "rgba(251,191,36,0.35)" : "rgba(255,255,255,0.15)"}`,
+            "& .MuiChip-icon": { color: "#fbbf24", fontSize: "0.85rem" },
+          }}
+        />
+      )}
+
+      {/* Guardar — outlined fantasma */}
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={
+          saving
+            ? <HistoryIcon sx={{ animation: "spin 1s linear infinite", color: '#fbbf24' }} />
+            : <SaveIcon sx={{ color: '#fbbf24' }} />
+        }
+        onClick={() => setConfirmDialog({ open: true, action: "save" })}
+        disabled={saving || !canEnableButtons || isConfirmed}
+        sx={{
+          fontWeight: 700,
+          borderRadius: 2,
+          textTransform: "none",
+          px: 2,
+          height: 32,
+          fontSize: "0.75rem",
+          color: "white",
+          borderColor: "rgba(255,255,255,0.3)",
+          bgcolor: "rgba(255,255,255,0.08)",
+          "&:hover": {
+            borderColor: "rgba(255,255,255,0.6)",
+            bgcolor: "rgba(255,255,255,0.16)",
+            color: "white",
+          },
+          "&.Mui-disabled": {
+            color: "rgba(255,255,255,0.25)",
+            borderColor: "rgba(255,255,255,0.12)",
+            bgcolor: "transparent",
+          },
+        }}
+      >
+        Guardar
+      </Button>
+
+      {/* Enviar — CTA principal (blanco sólido = máxima jerarquía) */}
+      <Button
+        variant="contained"
+        size="small"
+        startIcon={
+          saving
+            ? <HistoryIcon sx={{ animation: "spin 1s linear infinite", color: '#004680' }} />
+            : <SendIcon sx={{ color: '#004680' }} />
+        }
+        onClick={() => setConfirmDialog({ open: true, action: "confirm_dispatch" })}
+        disabled={saving || !canEnableButtons || isConfirmed}
+        sx={{
+          fontWeight: 800,
+          borderRadius: 2,
+          textTransform: "none",
+          px: 2.5,
+          height: 32,
+          fontSize: "0.75rem",
+          bgcolor: "white",
+          color: "#004680",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+          "&:hover": {
+            bgcolor: "#e6f4ff",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.28)",
+          },
+          "&.Mui-disabled": {
+            bgcolor: "rgba(255,255,255,0.18)",
+            color: "rgba(255,255,255,0.35)",
+          },
+        }}
+      >
+        Enviar a Despacho
+      </Button>
+
     </Stack>
   );
 
   return (
-    <Box sx={{ pb: 4, fontFamily: MAIN_FONT }}>
-      {/* Renderiza los controles en el layout global si existe */}
-      {portalTarget ? createPortal(headerContent, portalTarget) : null}
-      
-      <Container maxWidth="xl" sx={{ py: 3 }}>
+    <>
+      {portalTarget && createPortal(headerContent, portalTarget)}
+      <Box sx={{ pb: 4, fontFamily: MAIN_FONT }}>
+        <Container maxWidth="xl" sx={{ py: 2 }}>
         <Stack spacing={2.5}>
           {/* Renderiza local si no existe el portal */}
-          {(!portalTarget) ? (
-            <Paper elevation={3} sx={{
-              borderRadius: 3, p: 1, background: 'linear-gradient(135deg, #017ce1 0%, #0262b0 100%)',
-              position: 'sticky', top: 0, zIndex: 1100,
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '1px solid rgba(255,255,255,0.1)', overflowX: 'auto'
-            }}>
+          {!portalTarget && (
+            <Paper
+              elevation={3}
+              sx={{
+                borderRadius: 3,
+                p: 1,
+                background: "linear-gradient(135deg, #017ce1 0%, #0262b0 100%)",
+                position: "sticky",
+                top: 0,
+                zIndex: 1100,
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid rgba(255,255,255,0.1)",
+                overflowX: "auto",
+              }}
+            >
               {headerContent}
             </Paper>
-          ) : null}
+          )}
 
-          <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box
+            sx={{
+              flexGrow: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1.5,
+            }}
+          >
             {/* Controles de Tipo de Carga y Referencia */}
-            <Paper elevation={0} sx={{
-              py: 1, px: 2, display: 'flex', alignItems: 'center', gap: 2,
-              bgcolor: 'transparent',
-              border: 'none',
-              borderRadius: 2,
-            }}>
+            <Paper
+              elevation={0}
+              sx={{
+                py: 1.5,
+                px: 2.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 2.5,
+                bgcolor: "white",
+                border: "1px solid rgba(0,106,204,0.15)",
+                borderRadius: 3,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
+                mb: 1
+              }}
+            >
               <ToggleButtonGroup
                 value={loadType}
                 exclusive
                 onChange={handleTypeChange}
                 size="small"
                 sx={{
-                  bgcolor: 'rgba(0,106,204,0.08)', p: 0.25, borderRadius: 2,
-                  '& .MuiToggleButton-root': {
-                    px: 2, py: 0.4, fontWeight: 800, fontSize: '0.725rem',
-                    border: 'none', borderRadius: 1.25, color: '#006ACC',
-                    '&.Mui-selected': { bgcolor: '#006ACC', color: 'white', boxShadow: '0 2px 8px rgba(0,106,204,0.3)' },
-                    '&:hover': { bgcolor: '#005a9e' }
-                  }
+                  bgcolor: "rgba(0,106,204,0.06)",
+                  p: 0.5,
+                  borderRadius: 2.5,
+                  "& .MuiToggleButton-root": {
+                    px: 3,
+                    py: 0.75,
+                    fontWeight: 800,
+                    fontSize: "0.75rem",
+                    border: "none",
+                    borderRadius: 2,
+                    color: "#006ACC",
+                    transition: "all 0.2s ease-in-out",
+                    "&.Mui-selected": {
+                      bgcolor: "white",
+                      color: "#006ACC",
+                      boxShadow: "0 2px 8px rgba(0,106,204,0.15)",
+                    },
+                    "&:hover:not(.Mui-selected)": { bgcolor: "rgba(0,106,204,0.1)" },
+                  },
                 }}
               >
                 <ToggleButton value="general">GENERAL</ToggleButton>
                 <ToggleButton value="producto_a">PRODUCTOS</ToggleButton>
               </ToggleButtonGroup>
 
-              <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(0,106,204,0.2)', mx: 0.5, height: 28, alignSelf: 'center' }} />
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{
+                  bgcolor: "rgba(0,106,204,0.1)",
+                  mx: 0.5,
+                  height: 32,
+                  alignSelf: "center",
+                }}
+              />
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Typography variant="caption" fontWeight={900} sx={{ color: '#006ACC', textTransform: 'uppercase', fontSize: '0.7rem' }}>REF:</Typography>
-                <TextField
-                  variant="outlined"
-                  size="small"
-                  value={matrixRef.current?.referencia || ''}
-                  onChange={(e) => matrixRef.current?.setReferencia(e.target.value.toUpperCase())}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography
+                  variant="caption"
+                  fontWeight={900}
+                  sx={{
+                    color: "#006ACC",
+                    textTransform: "uppercase",
+                    fontSize: "0.75rem",
+                    letterSpacing: "0.05em"
+                  }}
+                >
+                  REF:
+                </Typography>
+                <LocalControlledInput
+                  value={matrixRef.current?.referencia || ""}
+                  onChange={(val) =>
+                    matrixRef.current?.setReferencia(val.toUpperCase())
+                  }
                   placeholder="EJ: REF-78124"
                   sx={{
-                    width: 150,
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2, bgcolor: 'white', height: 34,
-                      '& fieldset': { borderColor: '#006ACC', borderWidth: 2 },
-                      '&:hover fieldset': { borderColor: '#005a9e', borderWidth: 2 },
-                      '&.Mui-focused fieldset': { borderColor: '#004a8a', borderWidth: 2 },
+                    width: 180,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      bgcolor: "#ffffff",
+                      height: 38,
+                      transition: "all 0.2s ease",
+                      "& fieldset": { borderColor: "#94a3b8", borderWidth: 1.5 },
+                      "&:hover": { bgcolor: "#ffffff" },
+                      "&:hover fieldset": {
+                        borderColor: "#64748b",
+                        borderWidth: 1.5,
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#006ACC",
+                        borderWidth: 2,
+                      },
+                      "&.Mui-focused": { bgcolor: "#ffffff", boxShadow: "0 2px 8px rgba(0,106,204,0.15)" }
                     },
-                    '& .MuiOutlinedInput-input': { fontSize: '0.775rem', fontWeight: 700, padding: '6px 12px', color: '#1e293b', '&::placeholder': { color: '#94a3b8' } },
+                    "& .MuiOutlinedInput-input": {
+                      fontSize: "0.85rem",
+                      fontWeight: 700,
+                      padding: "8px 14px",
+                      color: "#1e293b",
+                      "&::placeholder": { color: "#94a3b8", fontWeight: 500, opacity: 1 },
+                    },
                   }}
                 />
               </Box>
 
-              {loadType !== 'general' ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Typography variant="caption" fontWeight={900} sx={{ color: '#006ACC', textTransform: 'uppercase', fontSize: '0.7rem' }}>COLOR:</Typography>
-                  <TextField
-                    variant="outlined"
-                    size="small"
-                    value={matrixRef.current?.color || ''}
-                    onChange={(e) => matrixRef.current?.setColor(e.target.value)}
+              {loadType !== "general" ? (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography
+                    variant="caption"
+                    fontWeight={900}
+                    sx={{
+                      color: "#006ACC",
+                      textTransform: "uppercase",
+                      fontSize: "0.75rem",
+                      letterSpacing: "0.05em"
+                    }}
+                  >
+                    COLOR:
+                  </Typography>
+                  <LocalControlledInput
+                    value={matrixRef.current?.color || ""}
+                    onChange={(val) =>
+                      matrixRef.current?.setColor(val)
+                    }
                     placeholder="NEGRO MATE"
                     sx={{
-                      width: 140,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2, bgcolor: 'white', height: 34,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                        '& fieldset': { borderColor: 'transparent' },
-                        '&:hover fieldset': { borderColor: '#cbd5e1' },
-                        '&.Mui-focused fieldset': { borderColor: '#006ACC', borderWidth: 2 },
+                      width: 160,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        bgcolor: "#ffffff",
+                        height: 38,
+                        transition: "all 0.2s ease",
+                        "& fieldset": { borderColor: "#94a3b8", borderWidth: 1.5 },
+                        "&:hover": { bgcolor: "#ffffff" },
+                        "&:hover fieldset": {
+                          borderColor: "#64748b",
+                          borderWidth: 1.5,
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#006ACC",
+                          borderWidth: 2,
+                        },
+                        "&.Mui-focused": { bgcolor: "#ffffff", boxShadow: "0 2px 8px rgba(0,106,204,0.15)" }
                       },
-                      '& .MuiOutlinedInput-input': { fontSize: '0.775rem', fontWeight: 700, padding: '6px 12px', color: '#1e293b', '&::placeholder': { color: '#94a3b8' } },
+                      "& .MuiOutlinedInput-input": {
+                        fontSize: "0.85rem",
+                        fontWeight: 700,
+                        padding: "8px 14px",
+                        color: "#1e293b",
+                        "&::placeholder": { color: "#94a3b8", fontWeight: 500, opacity: 1 },
+                      },
                     }}
                   />
                 </Box>
@@ -550,132 +805,253 @@ const UploadPage = () => {
               ref={matrixRef}
               type={loadType}
               onChange={handleMatrixChange}
-              onCancel={() => { }}
+              onCancel={() => {}}
             />
           </Box>
-      </Stack>
+        </Stack>
 
-      {/* ── SNACKBAR Y DIALOGS ── */}
-      <Snackbar
-        open={showSuccess}
-        autoHideDuration={4000}
-        onClose={() => setShowSuccess(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
+        {/* ── SNACKBAR Y DIALOGS ── */}
+        <Snackbar
+          open={showSuccess}
+          autoHideDuration={4000}
           onClose={() => setShowSuccess(false)}
-          severity="success"
-          variant="filled"
-          icon={<CheckCircleIcon fontSize="inherit" />}
-          sx={{ borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', minWidth: 400 }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <strong>OPERACIÓN EXITOSA:</strong> Los datos se han sincronizado correctamente.
-        </Alert>
-      </Snackbar>
-
-      {/* DIÁLOGO DE CONFIRMACIÓN AVANZADO (Dashboard Migration) */}
-      <Dialog
-        open={confirmDialog.open}
-        onClose={() => !saving && setConfirmDialog({ ...confirmDialog, open: false })}
-        maxWidth="sm"
-        fullWidth
-        TransitionComponent={Zoom}
-        PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}
-      >
-        <Box sx={{
-          p: 3,
-          background: confirmDialog.action === 'confirm_dispatch' ? 'linear-gradient(135deg, #065f46, #059669)' : 'linear-gradient(135deg, #1e3a8a, #2563eb)',
-          color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-        }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            {confirmDialog.action === 'confirm_dispatch' ? <LocalShippingIcon sx={{ fontSize: 28 }} /> : <SaveIcon sx={{ fontSize: 28 }} />}
-            <Typography variant="h6" fontWeight={900}>
-              {confirmDialog.action === 'confirm_dispatch' ? 'CONFIRMAR ENVÍO A DESPACHO' : 'APLICAR CAMBIOS'}
-            </Typography>
-          </Stack>
-          {!saving ? (
-            <IconButton onClick={() => setConfirmDialog({ ...confirmDialog, open: false })} sx={{ color: 'white' }}>
-              <CloseIcon />
-            </IconButton>
-          ) : null}
-        </Box>
-
-        <DialogContent sx={{ py: 3 }}>
-          {confirmDialog.action === 'confirm_dispatch' ? (
-            <Stack spacing={3}>
-              <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                Estás a punto de enviar estos datos al Sistema de Despacho. Verifica el resumen:
-              </Typography>
-              <Stack direction="row" spacing={2}>
-                <Paper elevation={0} sx={{ flex: 1, p: 2, borderRadius: 3, bgcolor: '#f0fdf4', border: '1px solid #bbf7d0', textAlign: 'center' }}>
-                  <Typography variant="h4" fontWeight={900} color="#15803d">{summaryStats.tiendas}</Typography>
-                  <Typography variant="caption" color="#166534" fontWeight={800}>TIENDAS</Typography>
-                </Paper>
-                <Paper elevation={0} sx={{ flex: 1, p: 2, borderRadius: 3, bgcolor: '#eff6ff', border: '1px solid #bfdbfe', textAlign: 'center' }}>
-                  <Typography variant="h4" fontWeight={900} color="#1d4ed8">{summaryStats.totalUnidades.toLocaleString()}</Typography>
-                  <Typography variant="caption" color="#1e40af" fontWeight={800}>UNIDADES</Typography>
-                </Paper>
-                <Paper elevation={0} sx={{ flex: 1, p: 2, borderRadius: 3, bgcolor: '#faf5ff', border: '1px solid #e9d5ff', textAlign: 'center' }}>
-                  <Typography variant="h4" fontWeight={900} color="#7c3aed">{summaryStats.columnas}</Typography>
-                  <Typography variant="caption" color="#6d28d9" fontWeight={800}>TALLAS</Typography>
-                </Paper>
-              </Stack>
-              <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ borderRadius: 2 }}>
-                Esta acción informará al equipo de despacho y no se puede deshacer.
-              </Alert>
-            </Stack>
-          ) : (
-            <Typography variant="body1" fontWeight={600} sx={{ textAlign: 'center' }}>
-              {celdasEditadas.length > 0
-                ? `¿Deseas guardar los ${celdasEditadas.length} cambios realizados en la matriz?`
-                : '¿Deseas confirmar y guardar la información ingresada en la matriz?'}
-            </Typography>
-          )}
-        </DialogContent>
-
-        {saving && <LinearProgress />}
-
-        <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setConfirmDialog({ ...confirmDialog, open: false })} disabled={saving} sx={{ fontWeight: 800 }}>Cancelar</Button>
-          <Button
-            variant="contained"
-            onClick={confirmDialog.action === 'confirm_dispatch' ? handleSendToDispatch : handleSave}
-            disabled={saving}
-            startIcon={saving ? <HistoryIcon sx={{ animation: 'spin 1s linear infinite' }} /> : (confirmDialog.action === 'confirm_dispatch' ? <SendIcon /> : <CheckCircleIcon />)}
+          <Alert
+            onClose={() => setShowSuccess(false)}
+            severity="success"
+            variant="filled"
+            icon={<CheckCircleIcon fontSize="inherit" />}
             sx={{
-              borderRadius: 1.5, px: 4, fontWeight: 900, textTransform: 'none',
-              bgcolor: confirmDialog.action === 'confirm_dispatch' ? '#059669' : '#2563eb'
+              borderRadius: 3,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+              minWidth: 400,
             }}
           >
-            {saving ? 'PROCESANDO...' : 'CONFIRMAR'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <style>
-        {`
+            <strong>OPERACIÓN EXITOSA:</strong> Los datos se han sincronizado
+            correctamente.
+          </Alert>
+        </Snackbar>
+
+        {/* DIÁLOGO DE CONFIRMACIÓN AVANZADO (Dashboard Migration) */}
+        <Dialog
+          open={confirmDialog.open}
+          onClose={() =>
+            !saving && setConfirmDialog({ ...confirmDialog, open: false })
+          }
+          maxWidth="sm"
+          fullWidth
+          TransitionComponent={Zoom}
+          PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}
+        >
+          <Box
+            sx={{
+              p: 3,
+              background:
+                confirmDialog.action === "confirm_dispatch"
+                  ? "linear-gradient(135deg, #065f46, #059669)"
+                  : "linear-gradient(135deg, #1e3a8a, #2563eb)",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              {confirmDialog.action === "confirm_dispatch" ? (
+                <LocalShippingIcon sx={{ fontSize: 28 }} />
+              ) : (
+                <SaveIcon sx={{ fontSize: 28 }} />
+              )}
+              <Typography variant="h6" fontWeight={900}>
+                {confirmDialog.action === "confirm_dispatch"
+                  ? "CONFIRMAR ENVÍO A DESPACHO"
+                  : "APLICAR CAMBIOS"}
+              </Typography>
+            </Stack>
+            {!saving ? (
+              <IconButton
+                onClick={() =>
+                  setConfirmDialog({ ...confirmDialog, open: false })
+                }
+                sx={{ color: "white" }}
+              >
+                <CloseIcon />
+              </IconButton>
+            ) : null}
+          </Box>
+
+          <DialogContent sx={{ py: 3 }}>
+            {confirmDialog.action === "confirm_dispatch" ? (
+              <Stack spacing={3}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  fontWeight={600}
+                >
+                  Estás a punto de enviar estos datos al Sistema de Despacho.
+                  Verifica el resumen:
+                </Typography>
+                <Stack direction="row" spacing={2}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      flex: 1,
+                      p: 2,
+                      borderRadius: 3,
+                      bgcolor: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography variant="h4" fontWeight={900} color="#15803d">
+                      {summaryStats.tiendas}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="#166534"
+                      fontWeight={800}
+                    >
+                      TIENDAS
+                    </Typography>
+                  </Paper>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      flex: 1,
+                      p: 2,
+                      borderRadius: 3,
+                      bgcolor: "#eff6ff",
+                      border: "1px solid #bfdbfe",
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography variant="h4" fontWeight={900} color="#1d4ed8">
+                      {summaryStats.totalUnidades.toLocaleString()}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="#1e40af"
+                      fontWeight={800}
+                    >
+                      UNIDADES
+                    </Typography>
+                  </Paper>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      flex: 1,
+                      p: 2,
+                      borderRadius: 3,
+                      bgcolor: "#faf5ff",
+                      border: "1px solid #e9d5ff",
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography variant="h4" fontWeight={900} color="#7c3aed">
+                      {summaryStats.columnas}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="#6d28d9"
+                      fontWeight={800}
+                    >
+                      TALLAS
+                    </Typography>
+                  </Paper>
+                </Stack>
+                <Alert
+                  severity="warning"
+                  icon={<WarningAmberIcon />}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Esta acción informará al equipo de despacho y no se puede
+                  deshacer.
+                </Alert>
+              </Stack>
+            ) : (
+              <Typography
+                variant="body1"
+                fontWeight={600}
+                sx={{ textAlign: "center" }}
+              >
+                {celdasEditadas.length > 0
+                  ? `¿Deseas guardar los ${celdasEditadas.length} cambios realizados en la matriz?`
+                  : "¿Deseas confirmar y guardar la información ingresada en la matriz?"}
+              </Typography>
+            )}
+          </DialogContent>
+
+          {saving && <LinearProgress />}
+
+          <DialogActions sx={{ p: 3, pt: 0 }}>
+            <Button
+              onClick={() =>
+                setConfirmDialog({ ...confirmDialog, open: false })
+              }
+              disabled={saving}
+              sx={{ fontWeight: 800 }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={
+                confirmDialog.action === "confirm_dispatch"
+                  ? handleSendToDispatch
+                  : handleSave
+              }
+              disabled={saving}
+              startIcon={
+                saving ? (
+                  <HistoryIcon sx={{ animation: "spin 1s linear infinite" }} />
+                ) : confirmDialog.action === "confirm_dispatch" ? (
+                  <SendIcon />
+                ) : (
+                  <CheckCircleIcon />
+                )
+              }
+              sx={{
+                borderRadius: 1.5,
+                px: 4,
+                fontWeight: 900,
+                textTransform: "none",
+                bgcolor:
+                  confirmDialog.action === "confirm_dispatch"
+                    ? "#059669"
+                    : "#2563eb",
+              }}
+            >
+              {saving ? "PROCESANDO..." : "CONFIRMAR"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <style>
+          {`
           @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
           }
         `}
-      </style>
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
+        </style>
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
           onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%', borderRadius: 2, fontWeight: 700 }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            variant="filled"
+            sx={{ width: "100%", borderRadius: 2, fontWeight: 700 }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Container>
     </Box>
+    </>
   );
 };
 

@@ -81,7 +81,6 @@ export async function aprobarTraslados(
     clave,
   };
 
-  console.log("informacion", payload);
 
   // ✅ Hacer la petición al endpoint
   try {

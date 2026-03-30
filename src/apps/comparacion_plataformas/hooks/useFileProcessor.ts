@@ -284,14 +284,12 @@ export const useFileProcessor = () => {
         }));
 
         // Mostrar resumen de validación en consola
-        console.log(`\n🔍 Validación de "${archivo.nombre}":`);
         if (validacion.errores.length > 0) {
             console.error('❌ Errores:', validacion.errores);
         }
         if (validacion.advertencias.length > 0) {
             console.warn('⚠️ Advertencias:', validacion.advertencias);
         }
-        console.log('📊 Estadísticas:', validacion.estadisticas);
 
         return { ...archivo, datos: datosNormalizados, columnas: columnasFinales, normalizado: true };
     };
@@ -375,8 +373,6 @@ export const useFileProcessor = () => {
             const nombreLower = archivo.nombre.toLowerCase();
             const tipoLower = (archivo.tipoArchivo || "").toLowerCase();
 
-            console.log(`\n📄 Procesando archivo: "${archivo.nombre}"`);
-            console.log(`   Tipo detectado: "${archivo.tipoArchivo}"`);
 
             // Buscamos coincidencia parcial en el nombre del archivo o en el tipo detectado
             const match = mapeoVisual.find(m =>
@@ -395,8 +391,6 @@ export const useFileProcessor = () => {
                 else if (fuenteUpper.includes('CREDITO') || fuenteUpper.includes('SISTECREDITO')) fuenteNombre = 'SISTECREDITOS';
             }
 
-            console.log(`   ✓ Etiqueta asignada: "${fuenteNombre}"`);
-            console.log(`   📊 Filas en archivo: ${archivo.datos.length}`);
 
             let filasAgrupadasEnArchivo = 0;
             let tiendasVistasEnEsteArchivo = new Set<string>();
@@ -419,22 +413,14 @@ export const useFileProcessor = () => {
                 filasAgrupadasEnArchivo++;
             });
 
-            console.log(`   ✓ Filas agrupadas: ${filasAgrupadasEnArchivo}`);
-            console.log(`   🏬 Tiendas identificadas en este archivo:`, Array.from(tiendasVistasEnEsteArchivo));
         });
 
         // Logging de estadísticas de agrupación
         if (totalFilasProcesadas > 0) {
-            console.log(`\n🏪 Estadísticas de Agrupación por Tienda:`);
-            console.log(`  📊 Total de filas procesadas: ${totalFilasProcesadas}`);
-            console.log(`  🏬 Tiendas únicas encontradas: ${Object.keys(grupos).length}`);
-            console.log(`  📋 Tiendas:`, Object.keys(grupos).sort());
 
             // Mostrar detalle de fuentes por tienda
             Object.entries(grupos).forEach(([tienda, fuentes]) => {
-                console.log(`\n  🏪 ${tienda}:`);
                 Object.entries(fuentes).forEach(([fuente, datos]) => {
-                    console.log(`     - ${fuente}: ${datos.length} registros`);
                 });
             });
 

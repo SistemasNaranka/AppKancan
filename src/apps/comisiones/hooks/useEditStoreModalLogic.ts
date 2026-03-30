@@ -279,7 +279,6 @@ export const useEditStoreModalLogic = ({
       
       // 🔧 GUARDAR estado original para dirty check
       setEmpleadosAsignadosOriginal(empleadosConInfo);
-      console.log(`📋 [useEditStoreModalLogic] Estado original guardado: ${empleadosConInfo.length} empleados`);
 
       // Intentar recalcular presupuestos si es necesario (solo una vez por carga)
       const needsRecalculation = empleadosConInfo.some(
@@ -615,31 +614,25 @@ export const useEditStoreModalLogic = ({
   };
 
   const handleGuardar = async () => {
-    console.log("🚀 [handleGuardar] INICIADO");
     
     if (!tiendaSeleccionada) {
-      console.log("❌ [handleGuardar] Error: No hay tienda seleccionada");
       setError("Debe seleccionar una tienda");
       return;
     }
 
     if (empleadosAsignados.length === 0) {
-      console.log("❌ [handleGuardar] Error: No hay empleados asignados");
       setError("Debe asignar al menos un empleado");
       return;
     }
 
     // Determinar qué días vamos a guardar
     const diasAGuardar = selectedDays.length > 0 ? selectedDays : [fecha];
-    console.log(`📅 [handleGuardar] Días a guardar: ${JSON.stringify(diasAGuardar)}`);
 
     try {
       setLoading(true);
-      console.log("💾 [handleGuardar] Guardando...");
 
       // 1️⃣ Eliminar asignaciones existentes y Guardar nuevas para cada día
       for (const dia of diasAGuardar) {
-        console.log(`📅 [handleGuardar] Procesando día: ${dia}`);
         await eliminarPresupuestosEmpleados(tiendaSeleccionada as number, dia);
 
         // ✅ RECALCULAR: Obtener los presupuestos específicos para este día concreto
@@ -655,7 +648,6 @@ export const useEditStoreModalLogic = ({
         }));
 
         await guardarPresupuestosEmpleados(presupuestosParaGuardar);
-        console.log(`✅ [handleGuardar] Día ${dia} guardado correctamente`);
       }
 
       setSuccess(`✅ Asignación actualizada correctamente para ${diasAGuardar.length} día(s)`);
@@ -665,21 +657,15 @@ export const useEditStoreModalLogic = ({
       setSelectedDays([]);
 
       // 🔧 MEJORA: Recargar empleados y días ANTES de cerrar el modal
-      console.log("🔄 [handleGuardar] Recargando datos locales...");
       await loadEmpleadosAsignados();
       await loadDiasSinPresupuesto();
-      console.log("🔄 [handleGuardar] Datos locales recargados");
 
       // 🔧 MEJORA: Esperar a que el callback complete ANTES de retornar
       if (onSaveComplete) {
-        console.log("🔔 [handleGuardar] Ejecutando onSaveComplete callback...");
         await onSaveComplete();
-        console.log("🔔 [handleGuardar] onSaveComplete completado");
       } else {
-        console.log("⚠️ [handleGuardar] onSaveComplete es undefined!");
       }
 
-      console.log("✅ [handleGuardar] FINALIZADO CON ÉXITO");
       return true;
     } catch (err: any) {
       console.error("Error al guardar:", err);
@@ -752,7 +738,6 @@ export const useEditStoreModalLogic = ({
   // 🔧 NUEVO: Dirty check - detectar si hay cambios respecto al estado original
   const hasChanges = useMemo(() => {
     if (empleadosAsignadosOriginal.length !== empleadosAsignados.length) {
-      console.log(`🔍 [useEditStoreModalLogic] hasChanges=true (cantidad diferente: ${empleadosAsignadosOriginal.length} vs ${empleadosAsignados.length})`);
       return true;
     }
 
@@ -772,7 +757,6 @@ export const useEditStoreModalLogic = ({
 
     const changesDetected = hasAdded || hasRemoved || hasRoleChange;
     if (changesDetected) {
-      console.log(`🔍 [useEditStoreModalLogic] hasChanges=true (added: ${hasAdded}, removed: ${hasRemoved}, roleChange: ${hasRoleChange})`);
     }
 
     return changesDetected;

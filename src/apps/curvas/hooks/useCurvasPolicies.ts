@@ -9,12 +9,7 @@ export const useCurvasPolicies = () => {
     const { user } = useAuth();
     const { area } = useApps();
 
-    // Debug: mostrar información del usuario
-    console.log('=== USE CURVAS POLICIES ===');
-    console.log('user:', user);
-    console.log('user.rol:', user?.rol);
-    console.log('user.policies:', user?.policies);
-    console.log('area:', area);
+
 
     /**
      * Verifica si el usuario tiene una política específica
@@ -57,12 +52,7 @@ export const useCurvasPolicies = () => {
         // 'sistemas' is admin ONLY if they don't have the restricted 'CurvasBodega' policy
         const esSistemasAdmin = (rolName === 'sistemas' && !hasPolicy('CurvasBodega'));
 
-        console.log('--- ADMIN CHECK DETAILS ---');
-        console.log('rolName:', rolName);
-        console.log('esRolPuro:', esRolPuro);
-        console.log('esSistemasAdmin:', esSistemasAdmin);
-        console.log('tienePoliticaAdmin:', tienePoliticaAdmin);
-        console.log('---------------------------');
+
 
         return esRolPuro || esSistemasAdmin;
     };
@@ -74,10 +64,7 @@ export const useCurvasPolicies = () => {
         const isAdmin = esAdmin();
         const restricted = !isAdmin;
         
-        console.log('--- POLICY DIAGNOSTIC ---');
-        console.log('isAdmin:', isAdmin);
-        console.log('restricted:', restricted);
-        console.log('-------------------------');
+
         
         return restricted;
     };

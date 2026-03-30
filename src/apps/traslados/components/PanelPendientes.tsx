@@ -281,15 +281,15 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
           <>
             {/* 🔹 VISTA DE TIENDA VS VISTA NORMAL */}
             {tienePoliticaTrasladosTiendas ? (
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    width: "100%",
-                    gap: 1, // Reducido de 3
-                    mb: 1, // Reducido de 2
-                  }}
-                >
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
+                  gap: 1, // Reducido de 3
+                  mb: 1, // Reducido de 2
+                }}
+              >
                 <StoreTrasladosHeader
                   totalPendientes={
                     tienePoliticaTrasladosTiendas

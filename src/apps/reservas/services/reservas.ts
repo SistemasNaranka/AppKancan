@@ -463,10 +463,6 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
       return 0;
     }
 
-    console.log(
-      `🔄 Actualizando ${reservasAFinalizar.length} reservas a Finalizado`,
-    );
-
     // Actualizar cada reserva a "Finalizado"
     const actualizaciones = reservasAFinalizar.map((reserva: any) =>
       withAutoRefresh(() =>
@@ -480,9 +476,6 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
 
     await Promise.all(actualizaciones);
 
-    console.log(
-      `✅ ${reservasAFinalizar.length} reservas actualizadas a Finalizado`,
-    );
     return reservasAFinalizar.length;
   } catch (error) {
     console.error("❌ Error al actualizar reservas finalizadas:", error);

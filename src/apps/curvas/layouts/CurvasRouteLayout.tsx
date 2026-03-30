@@ -67,14 +67,15 @@ export const CurvasRouteLayout = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* AppBar */}
       <AppBar
         position="sticky"
         elevation={0}
         sx={{
-          background: 'linear-gradient(135deg, #017ce1 0%, #0262b0 100%)', // Fondo azul brillante
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          background: '#004680',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.25)',
           top: 0,
           zIndex: theme.zIndex.appBar + 100,
         }}
@@ -211,7 +212,10 @@ export const CurvasRouteLayout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          py: 3,
+          py: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          minHeight: 0,
         }}
       >
         <Outlet />
@@ -232,16 +236,15 @@ const tabStyles = (selected: boolean) => ({
   fontSize: { xs: '0.7rem', md: '0.78rem' },
   px: { xs: 1.5, sm: 2, md: 2.2 },
   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-  color: selected ? '#006ACC' : 'rgba(255,255,255,0.85)',
+  color: selected ? '#004680' : 'rgba(255,255,255,0.85)',
   bgcolor: selected ? 'white' : 'transparent',
-  boxShadow: selected ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none',
+  boxShadow: selected ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
   '&:hover': {
-    bgcolor: selected ? 'white' : 'rgba(255,255,255,0.15)',
-    color: selected ? '#006ACC' : 'white',
-    transform: 'translateY(-1px)',
+    bgcolor: selected ? 'white' : 'rgba(255,255,255,0.12)',
+    color: selected ? '#004680' : 'white',
   },
   '&.Mui-selected': {
-    color: '#006ACC',
+    color: '#004680',
   },
   '& .MuiTab-iconWrapper': {
     marginRight: '5px !important',

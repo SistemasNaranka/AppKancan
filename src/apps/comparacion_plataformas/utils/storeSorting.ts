@@ -31,7 +31,6 @@ export const ordenarTiendasPorCodigo = (
 
     tiendasOrdenadas.forEach(tienda => {
         const id = tiendaIdMap.get(tienda);
-        console.log(`  ${id ? `[${id}]` : '[SIN ID]'} ${tienda}`);
     });
 
     // Crear nuevo objeto con las tiendas ordenadas

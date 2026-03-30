@@ -6,19 +6,33 @@ import { aplanarResolucion, calcularVencimiento } from "../utils/calculos";
 import { useResponsiveItems } from "./useResponsiveItems";
 
 interface UseResolucionesLogicOptions {
-  showSnackbar: (message: string, severity: "success" | "error" | "warning" | "info") => void;
+  showSnackbar: (
+    message: string,
+    severity: "success" | "error" | "warning" | "info",
+  ) => void;
 }
 
-export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptions) => {
+export const useResolucionesLogic = ({
+  showSnackbar,
+}: UseResolucionesLogicOptions) => {
   const [busqueda, setBusqueda] = useState("");
   const [filtroRazonSocial, setFiltroRazonSocial] = useState("Todas");
-  const [filtroEstado, setFiltroEstado] = useState<EstadoResolucion | null>(null);
-  const [resolucionSeleccionada, setResolucionSeleccionada] = useState<Resolucion | null>(null);
+  const [filtroEstado, setFiltroEstado] = useState<EstadoResolucion | null>(
+    null,
+  );
+  const [resolucionSeleccionada, setResolucionSeleccionada] =
+    useState<Resolucion | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
   const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
   const [, setCargando] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+  const [mostrarDialogoYaIntegrada, setMostrarDialogoYaIntegrada] =
+    useState(false);
+  const [
+    mostrarDialogoOpcionesIntegracion,
+    setMostrarDialogoOpcionesIntegracion,
+  ] = useState(false);
 
   const itemsPorPagina = useResponsiveItems();
 
@@ -39,17 +53,26 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
     cargarDatos();
   }, []);
 
-  const ordenarPorEstado = (registros: Resolucion[]) => {
+  const ordenarPorEstadoYVencimiento = (registros: Resolucion[]) => {
     const ordenEstado: { [key: string]: number } = {
       Pendiente: 0,
       "Por vencer": 1,
       Vigente: 2,
       Vencido: 3,
     };
-    return [...registros].sort((a, b) => ordenEstado[a.estado] - ordenEstado[b.estado]);
+    return [...registros].sort((a, b) => {
+      // Primero ordenar por estado
+      const diferenciaEstado = ordenEstado[a.estado] - ordenEstado[b.estado];
+      if (diferenciaEstado !== 0) return diferenciaEstado;
+
+      // Dentro del mismo estado, ordenar por fecha de vencimiento (más cercana primero)
+      const fechaA = new Date(a.fecha_vencimiento).getTime();
+      const fechaB = new Date(b.fecha_vencimiento).getTime();
+      return fechaA - fechaB;
+    });
   };
 
-  const todasResoluciones = ordenarPorEstado([...resoluciones]);
+  const todasResoluciones = ordenarPorEstadoYVencimiento([...resoluciones]);
 
   const resolucionesBuscadas = busqueda
     ? todasResoluciones.filter(
@@ -60,11 +83,20 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
       )
     : todasResoluciones;
 
-  const totalPendientes = todasResoluciones.filter((r) => r.estado === "Pendiente").length;
-  const totalPorVencer = todasResoluciones.filter((r) => r.estado === "Por vencer").length;
-  const totalVigentes = todasResoluciones.filter((r) => r.estado === "Vigente").length;
-  const totalVencidos = todasResoluciones.filter((r) => r.estado === "Vencido").length;
-  const totalResoluciones = totalPendientes + totalPorVencer + totalVigentes + totalVencidos;
+  const totalPendientes = todasResoluciones.filter(
+    (r) => r.estado === "Pendiente",
+  ).length;
+  const totalPorVencer = todasResoluciones.filter(
+    (r) => r.estado === "Por vencer",
+  ).length;
+  const totalVigentes = todasResoluciones.filter(
+    (r) => r.estado === "Vigente",
+  ).length;
+  const totalVencidos = todasResoluciones.filter(
+    (r) => r.estado === "Vencido",
+  ).length;
+  const totalResoluciones =
+    totalPendientes + totalPorVencer + totalVigentes + totalVencidos;
 
   const resolucionesPorRazonSocial =
     filtroRazonSocial !== "Todas"
@@ -112,11 +144,106 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
     );
 
     if (yaExiste) {
-      showSnackbar("Esta resolución ya está integrada", "error");
+      setMostrarDialogoYaIntegrada(true);
       return;
     }
 
-    setMostrarConfirmacion(true);
+    // Mostrar diálogo de opciones de integración
+    setMostrarDialogoOpcionesIntegracion(true);
+  };
+
+  const integrarSoloGuardar = async () => {
+    if (!resolucionSeleccionada) return;
+
+    setMostrarDialogoOpcionesIntegracion(false);
+
+    try {
+      await crearResolucion({
+        numero_formulario: resolucionSeleccionada.numero_formulario,
+        razon_social: resolucionSeleccionada.razon_social,
+        prefijo: resolucionSeleccionada.prefijo,
+        desde_numero: resolucionSeleccionada.desde_numero,
+        hasta_numero: resolucionSeleccionada.hasta_numero,
+        vigencia: resolucionSeleccionada.vigencia,
+        tipo_solicitud: resolucionSeleccionada.tipo_solicitud,
+        fecha_creacion: resolucionSeleccionada.fecha_creacion,
+        fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
+      });
+
+      const datos = await obtenerResoluciones();
+      const resolucionesAplanadas = datos.map(aplanarResolucion);
+      setResoluciones(resolucionesAplanadas);
+
+      setResolucionSeleccionada(null);
+      showSnackbar("Resolución guardada correctamente", "success");
+    } catch (error: any) {
+      showSnackbar(error.message || "Error al guardar", "error");
+    }
+  };
+
+  const integrarGuardarYSubirUltra = async () => {
+    if (!resolucionSeleccionada) return;
+
+    let empresa = "";
+    if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
+      empresa = "naranka";
+    } else if (
+      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
+    ) {
+      empresa = "kancan";
+    } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
+      empresa = "kancanjeans";
+    }
+
+    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
+      /-/g,
+      "",
+    );
+
+    const params = [
+      `caja:${resolucionSeleccionada.id_ultra || 0}`,
+      `prefijo:${resolucionSeleccionada.prefijo}`,
+      `resolucion:${resolucionSeleccionada.numero_formulario}`,
+      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
+      `desde:${resolucionSeleccionada.desde_numero}`,
+      `hasta:${resolucionSeleccionada.hasta_numero}`,
+      `fecha:${fechaSoloNumeros}`,
+      `vigencia:${resolucionSeleccionada.vigencia}`,
+      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
+      `empresa:${empresa}`,
+    ].join(" ");
+
+    setMostrarDialogoOpcionesIntegracion(false);
+
+    try {
+      await crearResolucion({
+        numero_formulario: resolucionSeleccionada.numero_formulario,
+        razon_social: resolucionSeleccionada.razon_social,
+        prefijo: resolucionSeleccionada.prefijo,
+        desde_numero: resolucionSeleccionada.desde_numero,
+        hasta_numero: resolucionSeleccionada.hasta_numero,
+        vigencia: resolucionSeleccionada.vigencia,
+        tipo_solicitud: resolucionSeleccionada.tipo_solicitud,
+        fecha_creacion: resolucionSeleccionada.fecha_creacion,
+        fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
+      });
+
+      // Codificar parámetros para URL
+      const paramsCodificados = encodeURIComponent(params);
+      window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+
+      const datos = await obtenerResoluciones();
+      const resolucionesAplanadas = datos.map(aplanarResolucion);
+      setResoluciones(resolucionesAplanadas);
+
+      setResolucionSeleccionada(null);
+      showSnackbar(
+        "Resolución integrada y subida a Ultra correctamente",
+        "success",
+      );
+    } catch (error: any) {
+      showSnackbar(error.message || "Error al integrar", "error");
+    }
   };
 
   const confirmarIntegracion = async () => {
@@ -125,13 +252,18 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
     let empresa = "";
     if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
       empresa = "naranka";
-    } else if (resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ") {
+    } else if (
+      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
+    ) {
       empresa = "kancan";
     } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
       empresa = "kancanjeans";
     }
 
-    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(/-/g, "");
+    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
+      /-/g,
+      "",
+    );
 
     const params = [
       `caja:${resolucionSeleccionada.id_ultra || 0}`,
@@ -161,11 +293,9 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
         fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
       });
 
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.src = `empresa://?${params}`;
-      document.body.appendChild(iframe);
-      setTimeout(() => document.body.removeChild(iframe), 1000);
+      // Codificar parámetros para URL
+      const paramsCodificados = encodeURIComponent(params);
+      window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
 
       const datos = await obtenerResoluciones();
       const resolucionesAplanadas = datos.map(aplanarResolucion);
@@ -202,7 +332,10 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
       vigencia: resultado.vigencia,
       tipo_solicitud: resultado.tipo_solicitud,
       fecha_creacion: resultado.fecha_creacion,
-      fecha_vencimiento: calcularVencimiento(resultado.fecha_creacion, resultado.vigencia),
+      fecha_vencimiento: calcularVencimiento(
+        resultado.fecha_creacion,
+        resultado.vigencia,
+      ),
       ultima_factura: 0,
       estado: "Pendiente",
       tienda_nombre: resultado.tienda_nombre,
@@ -212,6 +345,46 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
 
     setResolucionSeleccionada(nuevaResolucion);
     setCargando(false);
+  };
+
+  const ejecutarAppUltra = () => {
+    if (!resolucionSeleccionada) return;
+
+    let empresa = "";
+    if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
+      empresa = "naranka";
+    } else if (
+      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
+    ) {
+      empresa = "kancan";
+    } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
+      empresa = "kancanjeans";
+    }
+
+    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
+      /-/g,
+      "",
+    );
+
+    const params = [
+      `caja:${resolucionSeleccionada.id_ultra || 0}`,
+      `prefijo:${resolucionSeleccionada.prefijo}`,
+      `resolucion:${resolucionSeleccionada.numero_formulario}`,
+      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
+      `desde:${resolucionSeleccionada.desde_numero}`,
+      `hasta:${resolucionSeleccionada.hasta_numero}`,
+      `fecha:${fechaSoloNumeros}`,
+      `vigencia:${resolucionSeleccionada.vigencia}`,
+      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
+      `empresa:${empresa}`,
+    ].join(" ");
+
+    // Codificar parámetros para URL
+    const paramsCodificados = encodeURIComponent(params);
+    window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+
+    setMostrarDialogoYaIntegrada(false);
+    showSnackbar("Aplicación Ultra ejecutada", "info");
   };
 
   return {
@@ -224,6 +397,8 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
     cargandoDatos,
     itemsPorPagina,
     mostrarConfirmacion,
+    mostrarDialogoYaIntegrada,
+    mostrarDialogoOpcionesIntegracion,
     totalResoluciones,
     totalPendientes,
     totalPorVencer,
@@ -239,8 +414,13 @@ export const useResolucionesLogic = ({ showSnackbar }: UseResolucionesLogicOptio
     handleLimpiar,
     handleIntegrar,
     confirmarIntegracion,
+    ejecutarAppUltra,
     handleSubirArchivo,
+    integrarSoloGuardar,
+    integrarGuardarYSubirUltra,
     setPaginaActual,
     setMostrarConfirmacion,
+    setMostrarDialogoYaIntegrada,
+    setMostrarDialogoOpcionesIntegracion,
   };
 };

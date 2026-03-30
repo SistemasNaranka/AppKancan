@@ -55,11 +55,12 @@ export const ContractStatusChip: React.FC<ContractStatusChipProps> = ({
   ...props
 }) => {
   const cfg = contractStatusMap[status];
+  const IconComponent = cfg.Icon;
   return (
     <Chip
       label={cfg.label}
       icon={
-        <cfg.Icon
+        <IconComponent
           sx={{
             fontSize: "0.85rem !important",
             color: `${cfg.color} !important`,

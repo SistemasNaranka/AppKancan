@@ -122,8 +122,7 @@ const TrasladosPanel: React.FC = () => {
         t.nombre_destino?.toLowerCase().includes(filtroNombre.toLowerCase());
       // ✅ Filtrar por fecha (comparar solo YYYY-MM-DD)
       const coincideFecha =
-        !filtroFecha ||
-        (t.fecha && t.fecha.startsWith(filtroFecha));
+        !filtroFecha || (t.fecha && t.fecha.startsWith(filtroFecha));
 
       return coincideTipo && coincideBodega && coincideNombre && coincideFecha;
     });

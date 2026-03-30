@@ -408,11 +408,9 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       };
 
       if (!logs || logs.length === 0) {
-        console.log('CurvasContext - No logs found in DB');
         setDatosCurvas(emptyState);
         return;
       }
-      console.log('CurvasContext - Raw logs fetched:', logs.length);
 
       // Agrupar logs por (referencia + plantilla)
       const groups: Record<string, {
@@ -462,8 +460,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         }
       });
 
-      console.log('CurvasContext - Groups created:', Object.keys(groups).length);
-      Object.keys(groups).forEach(k => console.log('  Group:', k));
+
 
       const matrizGeneral: MatrizGeneralCurvas[] = [];
       const productos: DetalleProducto[] = [];
@@ -820,7 +817,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       }));
     } else if (celdasEditadas.length > 0 && datosCurvas) {
       // Detección automática de cambios manuales en el DataGrid
-      console.log('=== DETECTANDO CAMBIOS MANUALES PARA GUARDAR ===');
 
       const affectedSheets = new Set(celdasEditadas.map(e => e.sheetId));
 
@@ -874,10 +870,8 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       if (logsToSave.length > 0) {
-        console.log(`=== INICIANDO GUARDADO (${logsToSave.length} REGISTROS) ===`);
         const okBatch = await saveLogsBatch(logsToSave);
         if (!okBatch) throw new Error('Error en saveLogsBatch');
-        console.log('=== GUARDADO COMPLETADO ===');
       }
 
       // Pequeña espera para asegurar sincronización visual si es necesario
@@ -997,7 +991,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (logsBatch.length > 0) {
-        console.log(`Confirmando lote con ${logsBatch.length} tiendas en batch...`);
         const okBatch = await saveLogsBatch(logsBatch);
         if (!okBatch) throw new Error('Error al guardar el lote confirmado');
       }
@@ -1355,7 +1348,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
   ): Promise<boolean> => {
     if (!user) return false;
     const sheetIdStr = String(sheetId);
-    console.log('🚀 [guardarEnvioDespacho] Iniciando guardado...', { sheetIdStr, overrideRef, overridePlantilla });
 
     let currentSheetValidation: Record<string, Record<string, number>> = {};
     if (overrideData) {
@@ -1384,8 +1376,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       const plantilla: 'matriz_general' | 'productos' = isMatriz ? 'matriz_general' : 'productos';
       const fechaActual = new Date().toISOString();
       const enviosBatch: any[] = [];
-
-      console.log(`📄 [guardarEnvioDespacho] Lote identificado: ${refFinal} (Plantilla: ${plantilla})`);
 
       // 2. Procesar cada tienda en la validación
       for (const [filaId, tallas] of Object.entries(currentSheetValidation)) {
@@ -1429,11 +1419,9 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         return true; 
       }
 
-      console.log(`📤 [guardarEnvioDespacho] Enviando batch de ${enviosBatch.length} registros a Directus...`);
       const success = await saveEnviosBatch(enviosBatch);
 
       if (success) {
-        console.log('✅ [guardarEnvioDespacho] Envío completado con éxito');
         limpiarValidacion(sheetIdStr);
         return true;
       } else {

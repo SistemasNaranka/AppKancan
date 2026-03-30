@@ -39,13 +39,6 @@ const PendientesFilters: React.FC<Props> = ({
   const theme = useTheme();
   const opcionesDestino = ["Todas las bodegas", ...bodegasDestino];
 
-  const capitalizarPalabras = (texto: string) =>
-    texto
-      .toLowerCase()
-      .split(" ")
-      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-      .join(" ");
-
   return (
     <Paper
       elevation={3}
@@ -200,4 +193,3 @@ const PendientesFilters: React.FC<Props> = ({
 };
 
 export default PendientesFilters;
-

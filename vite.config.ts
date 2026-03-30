@@ -5,6 +5,7 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   base: "./",
+  cacheDir: "node_modules/.vite",
   server: {
     host: true,
     hmr: {
@@ -27,8 +28,30 @@ export default defineConfig({
       "react-router-dom",
       "@emotion/react",
       "@emotion/styled",
-      "ollama",
+      "@mui/material",
+      "@mui/icons-material",
+      "@mui/system",
+      "@mui/x-data-grid",
+      "@mui/x-date-pickers",
+      "@tanstack/react-query",
+      "dayjs",
+      "date-fns",
+      "clsx",
+      "chart.js",
+      "react-chartjs-2",
+      "lucide-react",
+      "file-saver",
+      "exceljs",
+      "xlsx",
+      "jspdf",
+      "jspdf-autotable",
+      "papaparse",
+      "pdfjs-dist",
+      "yup",
+      "react-hook-form",
+      "@hookform/resolvers",
     ],
+    exclude: ["ollama"],
   },
   build: {
     rollupOptions: {
@@ -37,16 +60,12 @@ export default defineConfig({
           if (id.includes("node_modules")) {
             if (id.includes("@directus/sdk")) return "directus";
             if (
-              id.includes("react") ||
-              id.includes("react-dom") ||
-              id.includes("react-router-dom") ||
               id.includes("@mui") ||
               id.includes("@emotion") ||
               id.includes("@tanstack") ||
-              id.includes("dayjs") ||
-              id.includes("clsx") ||
-              id.includes("pdfjs-dist") ||
-              id.includes("file-saver")
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-router-dom")
             ) {
               return "vendor";
             }
@@ -54,13 +73,13 @@ export default defineConfig({
         },
       },
     },
-    sourcemap: true,
+    sourcemap: false,
     minify: "esbuild",
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@resoluciones": path.resolve(__dirname, "./src/apps/promociones/src"),
+      "@resoluciones": path.resolve(__dirname, "./src/apps/resoluciones"),
     },
   },
 });

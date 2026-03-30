@@ -48,22 +48,16 @@ const testCases = [
     { input: "12345", expected: "$ 12.345" },
 ];
 
-console.log("Running Standalone Tests...");
 testCases.forEach(({ input, expected }) => {
     const result = formatearValor(input);
     const normalizedResult = result.replace(/\s/g, ' ');
     const normalizedExpected = expected.replace(/\s/g, ' ');
 
     if (normalizedResult === normalizedExpected) {
-        console.log(`[PASS] Input: "${input}" -> Output: "${result}"`);
     } else {
         // Fallback for different locales/currency symbols in test environment
         if (typeof input === 'string' && /[a-zA-Z]/.test(input) && result === input) {
-            console.log(`[PASS] Input: "${input}" -> Output: "${result}"`);
         } else {
-            console.log(`[FAIL] Input: "${input}"`);
-            console.log(`       Expected: "${expected}"`);
-            console.log(`       Actual:   "${result}"`);
         }
     }
 });

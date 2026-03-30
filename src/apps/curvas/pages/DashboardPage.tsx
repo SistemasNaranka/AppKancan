@@ -543,7 +543,15 @@ const DashboardPage = () => {
               size: 'small',
               sx: {
                 width: { xs: 130, sm: 145 },
-                '& .MuiOutlinedInput-root': { height: 30, fontSize: '0.75rem', bgcolor: 'white' },
+                bgcolor: '#ffffff',
+                borderRadius: 2,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                '& .MuiOutlinedInput-root': {
+                  height: 30,
+                  fontSize: '0.75rem',
+                  bgcolor: '#ffffff',
+                  borderRadius: 2,
+                },
               }
             }
           }}

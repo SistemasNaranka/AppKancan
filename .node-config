@@ -1,8 +1,0 @@
-# Optimizaciones de rendimiento para Node.js
-# Añadir al inicio de scripts en package.json si es necesario
-
-# Aumentar memoria heap para Node.js (útil para proyectos grandes)
-NODE_OPTIONS="--max-old-space-size=4096"
-
-# Para Windows específicamente
-set NODE_OPTIONS=--max-old-space-size=4096

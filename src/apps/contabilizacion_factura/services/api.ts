@@ -150,7 +150,6 @@ export async function saveNitAutomatico(
             numero_factura: numeroFactura,
             valor_factura: valorFactura,
         };
-        console.log("Enviando a Directus:", dataToSend);
 
         const item = await withAutoRefresh(() =>
             directus.request(
