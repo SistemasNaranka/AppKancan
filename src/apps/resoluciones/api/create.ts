@@ -15,6 +15,7 @@ export async function crearResolucion(data: {
   tipo_solicitud: string;
   fecha_creacion: string;
   fecha_vencimiento: string;
+  estado?: string;
 }) {
   try {
     const newResolution = await withAutoRefresh(() =>
@@ -29,7 +30,7 @@ export async function crearResolucion(data: {
           tipo_solicitud: data.tipo_solicitud,
           fecha_creacion: data.fecha_creacion,
           fecha_vencimiento: data.fecha_vencimiento,
-          estado: "Activo",
+          estado: data.estado || "Activo",
         }),
       ),
     );

@@ -168,6 +168,7 @@ export const useResolucionesLogic = ({
         tipo_solicitud: resolucionSeleccionada.tipo_solicitud,
         fecha_creacion: resolucionSeleccionada.fecha_creacion,
         fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
+        estado: "Pendiente",
       });
 
       const datos = await obtenerResoluciones();
@@ -226,6 +227,7 @@ export const useResolucionesLogic = ({
         tipo_solicitud: resolucionSeleccionada.tipo_solicitud,
         fecha_creacion: resolucionSeleccionada.fecha_creacion,
         fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
+        estado: "Activo",
       });
 
       // Codificar parámetros para URL
@@ -291,6 +293,7 @@ export const useResolucionesLogic = ({
         tipo_solicitud: resolucionSeleccionada.tipo_solicitud,
         fecha_creacion: resolucionSeleccionada.fecha_creacion,
         fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
+        estado: "Activo",
       });
 
       // Codificar parámetros para URL

@@ -133,8 +133,8 @@ export function diasRestantes(
  */
 export function aplanarResolucion(r: DirectusResolucion): Resolucion {
   const prefijo = r.prefijo_id || {};
-  const caja = prefijo.caja_id || {};
-  const tienda = caja.tienda_id || {};
+  const caja = prefijo?.caja_id || {};
+  const tienda = typeof caja?.tienda_id === "object" ? caja.tienda_id : null;
 
   const ultima_factura = Number(prefijo.ultima_factura) || 0;
   const desde_numero = Number(r.desde_numero) || 1;
@@ -171,7 +171,7 @@ export function aplanarResolucion(r: DirectusResolucion): Resolucion {
     ultima_factura: ultima_factura,
     ente_facturador: prefijo.ente_facturador || "Principal",
     estado: estadoCalculado,
-    tienda_nombre: tienda.nombre || "",
+    tienda_nombre: tienda?.nombre || "",
     empresa: caja.empresa || "",
     facturas_disponibles: infoFacturas.disponibles,
     facturas_restantes: infoFacturas.restantes,

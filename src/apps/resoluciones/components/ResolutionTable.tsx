@@ -25,7 +25,7 @@ const getRowBackgroundColor = (estado: string, index: number): string => {
     case "Por vencer":
       return "#fff3e0"; // Naranja claro
     case "Pendiente":
-      return "#989898"; // Azul claro
+      return "#C2C2C2"; // Gris claro
     default:
       // Zebra striping para los demás
       return index % 2 === 0 ? "#ffffff" : "#f5f5f5";

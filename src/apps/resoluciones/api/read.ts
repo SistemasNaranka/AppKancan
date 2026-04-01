@@ -22,12 +22,15 @@ export interface DirectusResolucion {
     caja_id: {
       empresa: string;
       id_ultra: number;
-      tienda_id: {
-        id: number;
-        nombre: string;
-      };
-    };
-  };
+      tienda_id:
+        | number
+        | {
+            id: number;
+            nombre: string;
+          }
+        | null;
+    } | null;
+  } | null;
 }
 
 // ==================== FUNCIONES DE LECTURA ====================
@@ -42,23 +45,22 @@ export async function obtenerResoluciones(): Promise<DirectusResolucion[]> {
       directus.request(
         readItems("resoluciones", {
           fields: [
-            "id",
-            "numero_formulario",
-            "razon_social",
-            "prefijo",
-            "desde_numero",
-            "hasta_numero",
-            "vigencia",
-            "tipo_solicitud",
-            "fecha_creacion",
-            "fecha_vencimiento",
-            "estado",
-            "prefijo_id.ultima_factura",
-            "prefijo_id.ente_facturador",
-            "prefijo_id.caja_id.empresa",
-            "prefijo_id.caja_id.id_ultra",
-            "prefijo_id.caja_id.tienda_id.id",
-            "prefijo_id.caja_id.tienda_id.nombre",
+            "*",
+            {
+              prefijo_id: [
+                "ultima_factura",
+                "ente_facturador",
+                {
+                  caja_id: [
+                    "empresa",
+                    "id_ultra",
+                    {
+                      tienda_id: ["id", "nombre"],
+                    },
+                  ],
+                },
+              ],
+            },
           ],
           filter: {
             estado: {
@@ -70,7 +72,6 @@ export async function obtenerResoluciones(): Promise<DirectusResolucion[]> {
         }),
       ),
     );
-
     return data as DirectusResolucion[];
   } catch (error) {
     console.error("❌ Error al obtener resoluciones:", error);
