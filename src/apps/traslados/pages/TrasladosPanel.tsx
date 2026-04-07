@@ -67,19 +67,29 @@ const TrasladosPanel: React.FC = () => {
     }
   }, [isError, queryError]);
 
-  // ✅ Obtener bodegas destino únicas
+  // ✅ Obtener bodegas destino únicas (incluye orígenes si es tienda para filtrar por remitente)
   const bodegasDestino = useMemo(() => {
     const bodegas = new Map<string, string>();
+    const codigoUltra = user?.codigo_ultra?.toString();
+
     pendientes.forEach((t) => {
-      if (t.nombre_destino && !bodegas.has(t.nombre_destino)) {
-        bodegas.set(
-          t.nombre_destino,
-          `${t.bodega_destino} - ${t.nombre_destino}`,
-        );
+      // Agregar destino si existe
+      if (t.nombre_destino) {
+        const label = `${t.bodega_destino} - ${t.nombre_destino}`;
+        if (!bodegas.has(label)) bodegas.set(label, label);
+      }
+      // Si es usuario tienda, también agregar el origen para poder filtrar "quién me envía"
+      if (tienePoliticaTrasladosTiendas && t.nombre_origen) {
+        const label = `${t.bodega_origen} - ${t.nombre_origen}`;
+        if (!bodegas.has(label)) bodegas.set(label, label);
       }
     });
-    return Array.from(bodegas.values()).sort();
-  }, [pendientes]);
+
+    // Filtramos para no mostrar la propia bodega del usuario en la lista (evita confusión)
+    return Array.from(bodegas.values())
+      .filter((b) => !codigoUltra || !b.startsWith(`${codigoUltra} -`))
+      .sort();
+  }, [pendientes, tienePoliticaTrasladosTiendas, user?.codigo_ultra]);
 
   // ✅ Filtrado por tipo (enviados/recibidos), bodega destino, nombre y fecha
   const filtrados = useMemo(() => {
@@ -89,28 +99,30 @@ const TrasladosPanel: React.FC = () => {
       // ✅ Filtrar por tipo: enviados (bodega_origen == codigo_ultra) o recibidos (bodega_destino == codigo_ultra)
       let coincideTipo = true;
       if (filtroTipo === "enviados") {
-        coincideTipo = t.bodega_origen === codigoUltra;
+        coincideTipo = String(t.bodega_origen) === String(codigoUltra);
       } else if (filtroTipo === "recibidos") {
-        coincideTipo = t.bodega_destino === codigoUltra;
+        coincideTipo = String(t.bodega_destino) === String(codigoUltra);
       }
+
+      // ✅ Filtrar por Bodega (Destino u Origen según el caso en vista tienda)
+      const labelDestino = `${t.bodega_destino} - ${t.nombre_destino}`;
+      const labelOrigen = `${t.bodega_origen} - ${t.nombre_origen}`;
 
       const coincideBodega =
         !filtroBodegaDestino ||
         filtroBodegaDestino === "" ||
         filtroBodegaDestino === "Todas las bodegas" ||
-        filtroBodegaDestino.includes(t.nombre_destino) ||
-        filtroBodegaDestino.includes(t.bodega_destino);
+        filtroBodegaDestino === labelDestino ||
+        (tienePoliticaTrasladosTiendas && filtroBodegaDestino === labelOrigen);
 
       const coincideNombre =
         !filtroNombre ||
         t.traslado?.toString().includes(filtroNombre) ||
         t.nombre_origen?.toLowerCase().includes(filtroNombre.toLowerCase()) ||
         t.nombre_destino?.toLowerCase().includes(filtroNombre.toLowerCase());
-
       // ✅ Filtrar por fecha (comparar solo YYYY-MM-DD)
       const coincideFecha =
-        !filtroFecha ||
-        t.fecha === filtroFecha;
+        !filtroFecha || (t.fecha && t.fecha.startsWith(filtroFecha));
 
       return coincideTipo && coincideBodega && coincideNombre && coincideFecha;
     });
@@ -121,21 +133,38 @@ const TrasladosPanel: React.FC = () => {
     filtroTipo,
     filtroFecha,
     user?.codigo_ultra,
+    user?.policies,
+    tienePoliticaTrasladosTiendas,
   ]);
 
   // ✅ Obtener conteos de enviados y recibidos
   const conteos = useMemo(() => {
     const codigoUltra = user?.codigo_ultra ?? "";
-    const enviados = pendientes.filter((t) => t.bodega_origen === codigoUltra);
-    const recibidos = pendientes.filter(
-      (t) => t.bodega_destino === codigoUltra,
+    const enviados = pendientes.filter(
+      (t) => String(t.bodega_origen) === String(codigoUltra),
     );
+    const recibidos = pendientes.filter(
+      (t) => String(t.bodega_destino) === String(codigoUltra),
+    );
+
+    if (tienePoliticaTrasladosTiendas) {
+      const uniqueEnviados = new Set(enviados.map((t) => t.traslado)).size;
+      const uniqueRecibidos = new Set(recibidos.map((t) => t.traslado)).size;
+      const uniqueTotal = new Set(pendientes.map((t) => t.traslado)).size;
+
+      return {
+        total: uniqueTotal,
+        enviados: uniqueEnviados,
+        recibidos: uniqueRecibidos,
+      };
+    }
+
     return {
       total: pendientes.length,
       enviados: enviados.length,
       recibidos: recibidos.length,
     };
-  }, [pendientes, user?.codigo_ultra]);
+  }, [pendientes, user?.codigo_ultra, tienePoliticaTrasladosTiendas]);
 
   // ✅ Selección de traslados
   const handleToggleSeleccion = (id: number) => {
@@ -245,7 +274,11 @@ const TrasladosPanel: React.FC = () => {
       {accessValidation.isValid && (
         <>
           <PanelPendientes
-            totalPendientes={pendientes.length}
+            totalPendientes={
+              tienePoliticaTrasladosTiendas
+                ? new Set(pendientes.map((t) => t.traslado)).size
+                : pendientes.length
+            }
             filtroBodegaDestino={filtroBodegaDestino}
             setFiltroBodegaDestino={setFiltroBodegaDestino}
             filtroNombre={filtroNombre}

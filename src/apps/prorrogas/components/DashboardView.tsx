@@ -14,6 +14,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import PersonIcon from '@mui/icons-material/Person';
 import { useContracts } from '../hooks/useContracts';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
@@ -159,8 +160,8 @@ const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrr
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display:'flex', alignItems:'center', gap:1.5 }}>
-                            <Avatar sx={{ width:30, height:30, fontSize:11, fontWeight:700, bgcolor:avatarBg(c.nombre) }}>
-                              {getInitials(c.nombre)}
+                            <Avatar sx={{ width:30, height:30, bgcolor:avatarBg(c.nombre) }}>
+                              <PersonIcon sx={{ fontSize: 18 }} />
                             </Avatar>
                             <Box>
                               <Typography sx={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{c.nombre}</Typography>
@@ -170,7 +171,7 @@ const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrr
                         </TableCell>
                         <TableCell>
                           <Typography sx={{ fontSize:13, fontWeight:600, color: st==='vencido'?'#b91c1c': st==='proximo'?'#c2410c':'#0f172a' }}>
-                            {c.lastProrroga?.fecha_final ?? '—'}
+                            {c.lastProrroga ? new Date(c.lastProrroga.fecha_final).toLocaleDateString() : '—'}
                           </Typography>
                           <Typography sx={{ fontSize:11, color:'#94a3b8' }}>
                             {c.daysLeft >= 0 ? `En ${c.daysLeft} días` : `Venció hace ${Math.abs(c.daysLeft)} días`}

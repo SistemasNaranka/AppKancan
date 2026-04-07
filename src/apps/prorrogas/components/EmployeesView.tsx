@@ -13,6 +13,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
+import PersonIcon from '@mui/icons-material/Person';
 import { useContracts, EnrichedContrato } from '../hooks/useContracts';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,12 +69,11 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
             sx={{
               width: 46, height: 46,
               bgcolor: av.bg, color: av.color,
-              fontSize: '0.9rem', fontWeight: 800,
               border: '2px solid',
               borderColor: cfg.borderColor,
             }}
           >
-            {initials(c.nombre)}
+            <PersonIcon sx={{ fontSize: 24 }} />
           </Avatar>
           <Chip
             label={cfg.label}

@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import Fab from '@mui/material/Fab';
 import AddIcon from '@mui/icons-material/Add';
 import { theme } from '../lib/theme';
-import { ContractProvider } from '../contexts/Contractcontext';
+import { ContractProvider } from '../contexts/ContractContext';
 import TopBar from '../components/TopBar';
 import TabsNav from '../components/TabsNav';
 import StatCards from '../components/StatCards';
@@ -37,21 +37,41 @@ const Inner: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          gap: 2,
+        }}
+      >
         <CircularProgress size={24} />
-        <Typography variant="body2" color="text.secondary">Cargando contratos…</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Cargando contratos…
+        </Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       <TopBar />
       <TabsNav />
 
       <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 3 }, position: 'relative' }}>
         {selectedContrato ? (
-          <ContractDetail onOpenForm={() => handleOpenForm(selectedContrato.id)} />
+          <ContractDetail
+            onOpenForm={() => handleOpenForm(selectedContrato.id)}
+            onEditContract={() => {/* TODO: abrir formulario de edición */}}
+          />
         ) : (
           <>
             {filters.tab === 'resumen' && <StatCards />}

@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
-import Badge from '@mui/material/Badge';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import Popover from '@mui/material/Popover';
-import Typography from '@mui/material/Typography';
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { useContracts } from '../hooks/useContracts';
-import { formatDate, daysUntil } from '../lib/utils';
+import React, { useState } from "react";
+import Badge from "@mui/material/Badge";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import Popover from "@mui/material/Popover";
+import Typography from "@mui/material/Typography";
+import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { useContractContext } from "../contexts/ContractContext";
+import { formatDate, daysUntil } from "../lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NotificationBell
@@ -20,11 +20,14 @@ import { formatDate, daysUntil } from '../lib/utils';
 
 const NotificationBell: React.FC = () => {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
-  const { allEnriched } = useContracts();
+  const { contratos } = useContractContext();
 
-  const alerts = allEnriched
-    .filter((c) => c.daysLeft >= 0 && c.daysLeft <= 50)
-    .sort((a, b) => a.daysLeft - b.daysLeft);
+  const alerts = contratos
+    .filter((c) => {
+      const days = daysUntil(c.fecha_final);
+      return days >= 0 && days <= 50;
+    })
+    .sort((a, b) => daysUntil(a.fecha_final) - daysUntil(b.fecha_final));
 
   const open = Boolean(anchor);
 
@@ -34,16 +37,21 @@ const NotificationBell: React.FC = () => {
         onClick={(e) => setAnchor(e.currentTarget)}
         size="small"
         sx={{
-          border: '1.5px solid',
-          borderColor: alerts.length > 0 ? 'warning.main' : 'divider',
+          border: "1.5px solid",
+          borderColor: alerts.length > 0 ? "warning.main" : "divider",
           borderRadius: 2,
           width: 40,
           height: 40,
-          bgcolor: alerts.length > 0 ? 'warning.light' : 'background.default',
+          bgcolor: alerts.length > 0 ? "warning.light" : "background.default",
         }}
       >
         <Badge badgeContent={alerts.length} color="error" max={9}>
-          <NotificationsOutlinedIcon sx={{ fontSize: 20, color: alerts.length > 0 ? 'warning.main' : 'text.secondary' }} />
+          <NotificationsOutlinedIcon
+            sx={{
+              fontSize: 20,
+              color: alerts.length > 0 ? "warning.main" : "text.secondary",
+            }}
+          />
         </Badge>
       </IconButton>
 
@@ -51,18 +59,18 @@ const NotificationBell: React.FC = () => {
         open={open}
         anchorEl={anchor}
         onClose={() => setAnchor(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{
           paper: {
             sx: {
               width: 340,
               borderRadius: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: '0 8px 40px rgba(0,70,128,0.16)',
+              border: "1px solid",
+              borderColor: "divider",
+              boxShadow: "0 8px 40px rgba(0,70,128,0.16)",
               mt: 1,
-              overflow: 'hidden',
+              overflow: "hidden",
             },
           },
         }}
@@ -78,17 +86,20 @@ const NotificationBell: React.FC = () => {
             gap: 1.5,
           }}
         >
-          <NotificationsOutlinedIcon sx={{ color: '#7fb8e8', fontSize: 18 }} />
-          <Typography variant="subtitle2" sx={{ color: '#fff', fontWeight: 700 }}>
+          <NotificationsOutlinedIcon sx={{ color: "#7fb8e8", fontSize: 18 }} />
+          <Typography
+            variant="subtitle2"
+            sx={{ color: "#fff", fontWeight: 700 }}
+          >
             Notificaciones
           </Typography>
           {alerts.length > 0 && (
             <Box
               sx={{
-                ml: 'auto',
-                bgcolor: 'error.main',
-                color: '#fff',
-                fontSize: '0.68rem',
+                ml: "auto",
+                bgcolor: "error.main",
+                color: "#fff",
+                fontSize: "0.68rem",
                 fontWeight: 700,
                 px: 1,
                 py: 0.2,
@@ -102,7 +113,7 @@ const NotificationBell: React.FC = () => {
 
         {/* List */}
         {alerts.length === 0 ? (
-          <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Box sx={{ p: 3, textAlign: "center" }}>
             <Typography variant="body2" color="text.secondary">
               Sin alertas pendientes
             </Typography>
@@ -110,31 +121,41 @@ const NotificationBell: React.FC = () => {
         ) : (
           <List disablePadding>
             {alerts.map((c, idx) => {
-              const urgent = c.daysLeft <= 20;
+              const days = daysUntil(c.fecha_final);
+              const urgent = days <= 20;
               return (
                 <React.Fragment key={c.id}>
                   <ListItem
                     alignItems="flex-start"
-                    sx={{ px: 2.5, py: 1.5, bgcolor: idx % 2 === 0 ? 'background.paper' : '#fafbfd' }}
+                    sx={{
+                      px: 2.5,
+                      py: 1.5,
+                      bgcolor: idx % 2 === 0 ? "background.paper" : "#fafbfd",
+                    }}
                   >
                     <Box
                       sx={{
                         width: 32,
                         height: 32,
                         borderRadius: 2,
-                        bgcolor: urgent ? 'error.light' : 'warning.light',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        bgcolor: urgent ? "error.light" : "warning.light",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         mr: 1.5,
                         flexShrink: 0,
                         mt: 0.3,
                       }}
                     >
-                      {urgent
-                        ? <ErrorOutlineIcon sx={{ fontSize: 16, color: 'error.main' }} />
-                        : <WarningAmberIcon sx={{ fontSize: 16, color: 'warning.main' }} />
-                      }
+                      {urgent ? (
+                        <ErrorOutlineIcon
+                          sx={{ fontSize: 16, color: "error.main" }}
+                        />
+                      ) : (
+                        <WarningAmberIcon
+                          sx={{ fontSize: 16, color: "warning.main" }}
+                        />
+                      )}
                     </Box>
                     <ListItemText
                       primary={

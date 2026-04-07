@@ -58,6 +58,5 @@ export function ejecutarActualizarResolucion(
   // Construir el URI del protocolo con los parámetros
   const uri = `${PROTOCOLO_EMPRESA}actualizar?${params.toString()}`;
 
-  console.log("Ejecutando protocolo con parámetros:", uri);
   window.location.href = uri;
 }

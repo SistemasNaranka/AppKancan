@@ -183,7 +183,6 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
       configuracion.hora_cierre?.split(":").slice(0, 2).join(":") ||
       CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
 
-    console.log("✅ Generando horas desde", horaInicio, "hasta", horaFin);
     return generarHorasRango(horaInicio, horaFin);
   }, [configuracion, isLoadingConfig, isErrorConfig]);
 

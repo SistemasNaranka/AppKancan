@@ -11,18 +11,28 @@ export type RequestStatus =
   | 'rechazada'
   | 'completada';
 
+export const requestStatusMap: Record<RequestStatus, {
+  [x: string]: any; label: string; color: string; bg: string; border: string 
+}> = {
+  pendiente: { label: 'Pendiente', color: '#b45309', bg: '#fef3c7', border: '#fde047' },
+  en_revision: { label: 'En Revisión', color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
+  aprobada: { label: 'Aprobada', color: '#15803d', bg: '#dcfce7', border: '#86efac' },
+  rechazada: { label: 'Rechazada', color: '#b91c1c', bg: '#fef2f2', border: '#fca5a5' },
+  completada: { label: 'Completada', color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd' },
+};
+
 export type TabValue = 'resumen' | 'contratos' | 'empleados' | 'prorrogas' | RequestStatus;
 
 // ── Colección: prorrogas ──────────────────────────────────────────────────
 
 export interface Prorroga {
   id: number;
-  contrato_id: number;
+  contrato: number;
   numero: number;
   label: string;
   descripcion: string;
-  fecha_ingreso: string;
-  fecha_final: string;
+  fecha_ingreso: Date |string;
+  fecha_final: Date | string; 
   duracion: number;
   date_created?: string;
   date_updated?: string;
@@ -30,14 +40,14 @@ export interface Prorroga {
 
 export type CreateProrroga = Omit<Prorroga, 'id' | 'date_created' | 'date_updated'>;
 export type UpdateProrroga = Partial<
-  Omit<Prorroga, 'id' | 'contrato_id' | 'date_created' | 'date_updated'>
+  Omit<Prorroga, 'id' | 'contrato' | 'date_created' | 'date_updated'>
 >;
 
 // ── Colección: documentos ─────────────────────────────────────────────────
 
 export interface Documento {
   id: number;
-  contrato_id: number;
+  contrato: number;
   nombre: string;
   tipo: 'contrato' | 'evaluacion' | 'otrosi' | 'otro';
   fecha: string;
@@ -54,37 +64,36 @@ export interface Contrato {
   numero_contrato?: string;
   empleado_id?: number;
   nombre: string;
-  cargo: string;
+  cargo: string | number;
   tipo_contrato?: string;
-  /** Fecha de inicio del contrato original */
-  fecha_ingreso?: string;
-  /** Fecha de vencimiento del contrato (campo directo en BD) */
-  fecha_final?: string;
   empleado_area: string;
   empresa?: string;
   request_status: RequestStatus;
-  prorrogas: Prorroga[];
-  documentos: Documento[];
+  prorrogas?: Prorroga[];
+  documentos?: Documento[];
   date_created?: string;
+  documento: string;
+  apellido: string;
+  prorroga?: boolean | string;
+  duracion?: string | number;
+  fecha_ingreso: string; // YYYY-MM-DD
+  fecha_final: string; // YYYY-MM-DD
   date_updated?: string;
 }
 
 export type CreateContrato = Omit<
   Contrato,
-  'id' | 'prorrogas' | 'documentos' | 'date_created' | 'date_updated'
+  "id" | "date_created" | "date_updated"
 >;
-
 export type UpdateContrato = Partial<CreateContrato>;
 
 // ── Estadísticas ──────────────────────────────────────────────────────────
 
 export interface ContratoStats {
   total: number;
-  pendiente: number;
-  en_revision: number;
-  aprobada: number;
-  rechazada: number;
-  completada: number;
+  vigentes: number;
+  proximos: number;
+  vencidos: number;
 }
 
 export interface DashboardStats {
@@ -102,6 +111,7 @@ export interface ContratoFilters {
   search?: string;
   request_status?: RequestStatus[];
   area?: string;
+  tipo_contrato?: string;
 }
 
 export interface UIFilters {
@@ -117,7 +127,7 @@ export interface PaginationParams {
   page: number;
   limit: number;
   sort?: string;
-  order?: 'asc' | 'desc';
+  order?: "asc" | "desc";
 }
 
 export interface PaginatedResponse<T> {

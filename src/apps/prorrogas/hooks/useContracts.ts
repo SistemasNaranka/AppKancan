@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useContractContext } from '../contexts/Contractcontext';
-import { Contrato, ContractStatus, DashboardStats } from '../types/types';
+import { useContractContext } from '../contexts/ContractContext';
+import { Contrato, ContractStatus, DashboardStats, Prorroga } from '../types/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -33,7 +33,7 @@ export function computeContractStatus(daysLeft: number): ContractStatus {
 
 export interface EnrichedContrato extends Contrato {
   /** Última prórga registrada (mayor número) - puede ser null si no hay prorrogas */
-  lastProrroga: Contrato['prorrogas'][number] | null;
+  lastProrroga: Prorroga | null;
   /** Fecha de vencimiento efectiva (fecha_final del contrato o última(prorroga) */
   fechaVencimiento: string | null;
   /** Días restantes hasta vencimiento (Infinity si no hay fecha) */
@@ -48,7 +48,7 @@ export interface EnrichedContrato extends Contrato {
 
 export const useContracts = () => {
   const ctx = useContractContext();
-  const { contratos, filters, stats } = ctx;
+  const { contratos, filters } = ctx;
 
   // ── 1. Enriquecer todos los contratos ───────────────────────────────────
   // NOTA: Ahora usa fecha_final del contrato directamente para el vencimiento
@@ -93,7 +93,7 @@ export const useContracts = () => {
       .sort((a, b) => {
         if (filters.sortBy === 'vencimiento') return a.daysLeft - b.daysLeft;
         if (filters.sortBy === 'nombre')      return a.nombre.localeCompare(b.nombre);
-        if (filters.sortBy === 'prorroga')    return b.prorrogas.length - a.prorrogas.length;
+        if (filters.sortBy === 'prorroga') return (b.prorrogas?.length ?? 0) - (a.prorrogas?.length ?? 0);
         return 0;
       });
   }, [enriched, filters]);
@@ -142,22 +142,25 @@ export const useContracts = () => {
   );
 
   // ── 6. Conteos por ContractStatus (para badges y distribución) ───────────
-  const counts = useMemo(
-    () => ({
-      activos:    dashboardStats.activos,
-      por_vencer: dashboardStats.por_vencer,
-      criticos:   dashboardStats.criticos,
-      vencidos:   dashboardStats.vencidos,
-      total:      dashboardStats.total,
-      // Legacy: counts por request_status (usa stats de Directus si están)
-      pendiente:   stats?.pendiente   ?? enriched.filter((c) => c.request_status === 'pendiente').length,
-      en_revision: stats?.en_revision ?? enriched.filter((c) => c.request_status === 'en_revision').length,
-      aprobada:    stats?.aprobada    ?? enriched.filter((c) => c.request_status === 'aprobada').length,
-      rechazada:   stats?.rechazada   ?? enriched.filter((c) => c.request_status === 'rechazada').length,
-      completada:  stats?.completada  ?? enriched.filter((c) => c.request_status === 'completada').length,
-    }),
-    [dashboardStats, enriched, stats],
-  );
+const counts = useMemo(
+  () => ({
+    // Estos sí existen en dashboardStats (basado en tus errores previos)
+    activos:     dashboardStats.activos,
+    por_vencer:  dashboardStats.por_vencer,
+    criticos:    dashboardStats.criticos,
+    vencidos:    dashboardStats.vencidos,
+    total:       dashboardStats.total,
+
+    // Para los estados de "solicitud", calculamos directamente de 'enriched'
+    // Quitamos el "dashboardStats?.propiedad" porque esa interfaz no los incluye
+    pendiente:   enriched.filter((c) => c.request_status === 'pendiente').length,
+    en_revision: enriched.filter((c) => c.request_status === 'en_revision').length,
+    aprobada:    enriched.filter((c) => c.request_status === 'aprobada').length,
+    rechazada:   enriched.filter((c) => c.request_status === 'rechazada').length,
+    completada:  enriched.filter((c) => c.request_status === 'completada').length,
+  }),
+  [dashboardStats, enriched],
+);
 
   return {
     // Context base (acciones, estado crudo)

@@ -2,6 +2,7 @@ import React from 'react';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import CircularProgress from '@mui/material/CircularProgress';
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -14,7 +15,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
 import SortOutlinedIcon from '@mui/icons-material/SortOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
@@ -24,6 +25,7 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import PersonIcon from '@mui/icons-material/Person';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
 
@@ -37,7 +39,7 @@ const initials = (name: string | undefined | null) => {
 };
 
 const avatarColor = (id: number | string) => {
-  const colors = ['#004680', '#0070c0', '#1a7a4a', '#7b3f00', '#37474f'];
+  const colors = ["#004680", "#0070c0", "#1a7a4a", "#7b3f00", "#37474f"];
   const idx = String(id).charCodeAt(String(id).length - 1) % colors.length;
   return colors[idx];
 };
@@ -221,7 +223,7 @@ interface Props {
 }
 
 const ContractTable: React.FC<Props> = ({ onOpenForm }) => {
-  const { filteredContratos, allEnriched, filters, setFilter, select } = useContracts();
+  const { filteredContratos, allEnriched, filters, setFilter, select, loading, error } = useContracts();
 
   const isResumen = filters.tab === 'resumen';
 
@@ -237,6 +239,28 @@ const ContractTable: React.FC<Props> = ({ onOpenForm }) => {
   const tableSubtitle = isResumen
     ? 'Últimos 10 contratos actualizados'
     : `${filteredContratos.length} registros`;
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+        <Stack spacing={2} alignItems="center">
+          <CircularProgress size={40} sx={{ color: '#004680' }} />
+          <Typography variant="body2" color="text.secondary">Cargando contratos...</Typography>
+        </Stack>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
+          <Typography variant="body2" fontWeight={600}>Error al cargar contratos</Typography>
+          <Typography variant="caption">{error}</Typography>
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
@@ -316,7 +340,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm }) => {
               {rows.map((c) => {
                 const { text: daysText, color: daysColor } = getDaysLabel(c.daysLeft);
                 const fechaVence = c.lastProrroga?.fecha_final ?? c.fecha_final;
-                const venceDate = safeFormatDate(fechaVence);
+                const venceDate = safeFormatDate(fechaVence?.toString() ?? null);
                 const isUrgent = isFinite(c.daysLeft) && c.daysLeft >= 0 && c.daysLeft <= 30;
 
                 return (
@@ -333,17 +357,8 @@ const ContractTable: React.FC<Props> = ({ onOpenForm }) => {
                     {/* Contrato */}
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Avatar
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            bgcolor: avatarColor(c.id),
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
-                            borderRadius: 1.5,
-                          }}
-                        >
-                          {initials(c.nombre)}
+                       <Avatar sx={{ width: 32, height: 32, bgcolor: avatarColor(c.id), borderRadius: 1.5 }}>
+                          <PersonIcon sx={{ fontSize: 20, color: 'rgba(255,255,255,0.9)' }} />
                         </Avatar>
                         <Box>
                           <Typography variant="body2" fontWeight={700} color="text.primary" fontSize="0.82rem">

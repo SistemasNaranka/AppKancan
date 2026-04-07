@@ -11,7 +11,7 @@ import type {
   Documento,
   CreateDocumento,
 } from "../types/types";
-import { addMonths, getProrrogaDuration, getNextProrrogaNumber } from "../lib/utils";
+import { addMonths, getProrrogaDuration, toLocalDateStr } from "../lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTRATOS
@@ -103,11 +103,16 @@ export async function crearProrroga(
   }
 ): Promise<Prorroga | null> {
   try {
+    // Regla de duración: prórrogas 0-3 →  4 meses, prórrogas 4+ → 12 meses
     const duracion_meses = getProrrogaDuration(data.numero);
-    const fecha_final      = addMonths(data.fecha_inicio, duracion_meses);
+
+    // Regla de fecha fin: fecha_inicio + N meses - 1 día
+    // Ej: inicio 02/02 + 4 meses = 02/06, pero fecha_final real = 01/06
+    // NOTA: addMonths() ya aplica la resta de 1 día internamente
+    const fecha_final = addMonths(data.fecha_inicio, duracion_meses);
 
     const payload: CreateProrroga = {
-      contrato_id:    data.contrato_id,
+      contrato: data.contrato_id,
       numero:         data.numero,
       label:          data.numero === 0 ? "Contrato Inicial" : `Prórroga ${data.numero}`,
       descripcion:    data.descripcion ?? (data.numero >= 4
@@ -143,10 +148,13 @@ export async function actualizarProrroga(
 
     if (updates.fecha_ingreso && updates.numero !== undefined) {
       const duracion_meses = getProrrogaDuration(updates.numero);
+      const fechaInicioStr = updates.fecha_ingreso instanceof Date
+        ? toLocalDateStr(updates.fecha_ingreso)
+        : updates.fecha_ingreso;
       payload = {
         ...payload,
         duracion: duracion_meses,
-        fecha_final: addMonths(updates.fecha_ingreso, duracion_meses),
+        fecha_final: addMonths(fechaInicioStr, duracion_meses),
       };
     }
 
@@ -157,9 +165,9 @@ export async function actualizarProrroga(
     // Si se actualizó la fecha_final, actualizar la fecha_final del contrato
     if (payload.fecha_final) {
       const prorroga = result as Prorroga;
-      if (prorroga && prorroga.contrato_id) {
+      if (prorroga && prorroga.contrato) {
         await withAutoRefresh(() =>
-          directus.request(updateItem("contratos", prorroga.contrato_id, { fecha_final: payload.fecha_final }))
+          directus.request(updateItem("contratos", prorroga.contrato, { fecha_final: payload.fecha_final }))
         );
       }
     }

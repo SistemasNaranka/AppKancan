@@ -14,10 +14,11 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import PersonIcon from '@mui/icons-material/Person';
 import { useContracts, EnrichedContrato } from '../hooks/useContracts';
-import { useContractContext } from '../contexts/Contractcontext';
+import { useContractContext } from '../contexts/ContractContext';
 import { ContratoForm } from './ContratoForm';
-import { CreateContrato, Contrato } from '../types/types';
+import { CreateContrato, Contrato, Prorroga } from '../types/types';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const CARD_RADIUS = 14;
@@ -143,7 +144,7 @@ const ContractsView: React.FC = () => {
         let cmp = 0;
         if (sortKey === 'vencimiento') cmp = a.daysLeft - b.daysLeft;
         if (sortKey === 'nombre') cmp = a.nombre.localeCompare(b.nombre);
-        if (sortKey === 'prorroga') cmp = b.prorrogas.length - a.prorrogas.length;
+        if (sortKey === 'prorroga') cmp = (b.prorrogas?.length ?? 0) - (a.prorrogas?.length ?? 0);
         return sortDir === 'asc' ? cmp : -cmp;
       });
   }, [allEnriched, search, tab, sortKey, sortDir]);
@@ -299,10 +300,9 @@ const ContractsView: React.FC = () => {
                               width: 34, height: 34,
                               bgcolor: st === 'vencido' ? '#fee2e2' : st === 'proximo' ? '#fef3c7' : '#eff6ff',
                               color: st === 'vencido' ? '#dc2626' : st === 'proximo' ? '#d97706' : '#2563eb',
-                              fontSize: '0.72rem', fontWeight: 700,
                             }}
                           >
-                            {initials(c.nombre)}
+                            <PersonIcon sx={{ fontSize: 20 }} />
                           </Avatar>
                           <Box>
                             <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.83rem', lineHeight: 1.3 }}>

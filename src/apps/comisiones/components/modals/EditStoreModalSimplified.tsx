@@ -102,20 +102,12 @@ export const EditStoreModalSimplified: React.FC<
   const isAdmin = area?.toLowerCase() !== "tienda" || tiendas.length > 1;
 
   const handleGuardarWrapper = async () => {
-    console.log("🚀 [EditStoreModalSimplified] handleGuardarWrapper INICIADO");
-    console.log("📋 [EditStoreModalSimplified] empleadosAsignados:", empleadosAsignados.length);
-    console.log("📋 [EditStoreModalSimplified] hasChanges:", hasChanges);
-    console.log("📋 [EditStoreModalSimplified] isValidStaffCombination:", isValidStaffCombination);
-    console.log("📋 [EditStoreModalSimplified] onSaveComplete exists:", !!onSaveComplete);
     
     const success = await handleGuardar();
-    console.log("🚀 [EditStoreModalSimplified] handleGuardar resultado:", success);
     
     if (!success) {
-      console.log("❌ [EditStoreModalSimplified] Error en guardado");
       setSaveError(true);
     } else {
-      console.log("✅ [EditStoreModalSimplified] Guardado exitoso - onSaveComplete será llamado dentro de handleGuardar");
     }
   };
 
@@ -412,7 +404,6 @@ export const EditStoreModalSimplified: React.FC<
                   <Select
                     value={cargoSeleccionado === 0 ? "" : cargoSeleccionado} // Fix: Convert 0 to "" to match displayEmpty/placeholder behavior
                     onChange={(e) => {
-                      console.log("📋 CARGO SELECCIONADO:", e.target.value);
                       setCargoSeleccionado(e.target.value as number);
                     }}
                     displayEmpty

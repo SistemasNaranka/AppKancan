@@ -1,26 +1,55 @@
-import { ContractStatus, Prorroga } from '../types/types';
+import { ContractStatus, Prorroga } from "../types/types";
+import { addMonths as dfAddMonths, subDays, parseISO } from "date-fns";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DATE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Suma N meses a una fecha en formato YYYY-MM-DD */
-export const addMonths = (dateStr: string, months: number): string => {
-  const d = new Date(dateStr);
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().split('T')[0];
+/**
+ * Formatea un objeto Date como YYYY-MM-DD usando la zona horaria local.
+ * Evita el bug de toISOString() que convierte a UTC y puede cambiar la fecha.
+ */
+export const toLocalDateStr = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 };
 
-/** Formatea una fecha para mostrar en español colombiano */
-export const formatDate = (dateStr: string | undefined | null): string => {
+/**
+ * Suma N meses a una fecha en formato YYYY-MM-DD y resta 1 día.
+ * Usa date-fns para manejo correcto de límites de mes y años bisiestos.
+ *
+ * REGLA DE NEGOCIO: Si una prórroga inicia el 02/02 y son 4 meses,
+ * la fecha base sería 02/06, pero la fecha final real es 01/06 (un día menos).
+ * Esta regla aplica para TODAS las prórrogas sin excepción.
+ */
+export const addMonths = (dateStr: string, months: number): string => {
+  const base = parseISO(dateStr);
+  const withMonths = dfAddMonths(base, months);
+  const final = subDays(withMonths, 1);
+  return toLocalDateStr(final);
+};
+
+/**
+ * Calcula la fecha final de una prórroga a partir de su fecha de inicio y duración.
+ * Aplica la regla: fecha_fin = fecha_inicio + duración_meses - 1 día.
+ */
+export const computeEndDate = (fechaInicio: string | Date | null | undefined, duracionMeses: number): string | null => {
+  if (!fechaInicio) return null;
+  const startStr = typeof fechaInicio === 'string' ? fechaInicio.split('T')[0] : toLocalDateStr(fechaInicio);
+  if (!startStr || startStr === '—') return null;
+  return addMonths(startStr, duracionMeses);
+};
+
+export const formatDate = (dateStr: string | Date | null): string => {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('es-CO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  const day   = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year  = d.getFullYear();
+  return `${day}/${month}/${year}`;
 };
 
 /** Días restantes hasta una fecha (negativo si ya venció) */
@@ -46,9 +75,9 @@ export const getProrrogaDuration = (numero: number | undefined): number =>
 /** Estado visual del contrato según días restantes */
 export const getContractStatus = (fechaFin: string): ContractStatus => {
   const days = daysUntil(fechaFin);
-  if (days < 0) return 'vencido';
-  if (days <= 50) return 'proximo';
-  return 'vigente';
+  if (days < 0) return "vencido";
+  if (days <= 50) return "proximo";
+  return "vigente";
 };
 
 export const getNextProrrogaNumber = (prorrogas: Prorroga[]): number => {

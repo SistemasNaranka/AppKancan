@@ -82,13 +82,9 @@ const NormalizarView: React.FC = () => {
     queryKey: ["mapeos_archivos"],
     queryFn: async () => {
       const mapeosDirectus = await obtenerMapeosArchivos();
-      console.log('📦 Datos cargados de Directus:', mapeosDirectus);
 
       const resultado = procesarMapeosParaNormalizacion(mapeosDirectus);
 
-      console.log('✅ Mapeos procesados:');
-      console.log('  - Tipos de archivo:', resultado.tablasMapeo.map(t => t.archivoOrigen));
-      console.log('  - Tiendas mapeadas:', resultado.tiendaMapeos.length);
 
       return resultado;
     },
@@ -206,7 +202,6 @@ const NormalizarView: React.FC = () => {
         if (resultado) {
           nuevoArchivo.tipoArchivo = resultado.tipoArchivo;
           nuevoArchivo.columnasEliminar = resultado.mapeo.columnasEliminar;
-          console.log(`✓ Mapeo encontrado para ${nuevoArchivo.nombre} → Tipo: ${resultado.tipoArchivo}`);
         } else {
           console.warn(`No se encontró mapeo para ${nuevoArchivo.nombre}`);
         }

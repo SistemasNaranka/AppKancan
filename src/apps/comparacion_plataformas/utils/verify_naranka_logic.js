@@ -86,14 +86,10 @@ const testRows = [
     { id: 5, comercio: "Kan Can Jeans Colombia - Naranka", term: "", desc: "Specific Name Match" }
 ];
 
-console.log("--- TEST RUN: OLD LOGIC (Current Behavior) ---");
 testRows.forEach(row => {
     const res = simulateMapping(row, mapeosTienda, false);
-    console.log(`Row ${row.id} (${row.desc}): Mapped to -> ${res.tiendaEncontrada || "SIN TIENDA"}`);
 });
 
-console.log("\n--- TEST RUN: NEW LOGIC (Fixed Behavior) ---");
 testRows.forEach(row => {
     const res = simulateMapping(row, mapeosTienda, true);
-    console.log(`Row ${row.id} (${row.desc}): Mapped to -> ${res.tiendaEncontrada || "SIN TIENDA"}`);
 });

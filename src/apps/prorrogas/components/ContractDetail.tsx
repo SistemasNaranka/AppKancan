@@ -10,7 +10,6 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
 import LinearProgress from '@mui/material/LinearProgress';
-import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -20,8 +19,9 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
-import { useContractContext } from '../contexts/Contractcontext';
-import { daysUntil, formatDate, getProrrogaProgress, formatTipoContrato, getProrrogaDuration } from '../lib/utils';
+import PersonIcon from '@mui/icons-material/Person';
+import { useContractContext } from '../contexts/ContractContext';
+import { daysUntil, formatDate, getProrrogaProgress, formatTipoContrato, getProrrogaDuration, computeEndDate } from '../lib/utils';
 import { Prorroga } from '../types/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,6 +68,21 @@ const prorrogaCircleColor = (num: number, isActive: boolean, isCompleted: boolea
   return { bg: '#f1f5f9', text: '#94a3b8' };
 };
 
+/**
+ * Obtiene la fecha final efectiva de una prórroga.
+ * Si fecha_final existe en BD la usa; si no, la calcula a partir de
+ * fecha_ingreso + duración - 1 día usando date-fns.
+ */
+const getEffectiveEndDate = (prorroga: Prorroga): string => {
+  if (prorroga.fecha_final) {
+    return prorroga.fecha_final instanceof Date
+      ? prorroga.fecha_final.toISOString().split('T')[0]
+      : String(prorroga.fecha_final).split('T')[0];
+  }
+  const duracion = prorroga.duracion ?? getProrrogaDuration(prorroga.numero ?? 0);
+  return computeEndDate(prorroga.fecha_ingreso, duracion) ?? '';
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Timeline Entry
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,15 +91,27 @@ interface TimelineEntryProps {
   prorroga: Prorroga;
   isLast: boolean;
   isActive: boolean;
+  displayIndex: number;
 }
 
-const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActive }) => {
+const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActive, displayIndex }) => {
   const isCompleted = !isActive;
-  // ✅ numero con fallback para que nunca sea undefined
-  const numero = prorroga.numero ?? 0;
-  // ✅ duracion_meses con fallback calculado por regla de negocio
+  const numero = prorroga.numero ?? displayIndex;
   const duracion = prorroga.duracion ?? getProrrogaDuration(numero);
-  const daysLeft = isActive ? daysUntil(prorroga.fecha_final) : null;
+  
+  // DEBUG: Ver qué datos llegan
+  console.log('🔍 TimelineEntry - Prorroga data:', {
+    id: prorroga.id,
+    numero: prorroga.numero,
+    fecha_ingreso: prorroga.fecha_ingreso,
+    fecha_final: prorroga.fecha_final,
+    duracion: prorroga.duracion,
+    tipo_fecha_ingreso: typeof prorroga.fecha_ingreso,
+    tipo_fecha_final: typeof prorroga.fecha_final,
+  });
+  
+  const effectiveEndDate = getEffectiveEndDate(prorroga);
+  const daysLeft = isActive ? daysUntil(effectiveEndDate) : null;
   const isCritical = daysLeft !== null && isFinite(daysLeft) && daysLeft <= 7;
   const circle = prorrogaCircleColor(numero, isActive, isCompleted);
   const progress = isActive ? getProrrogaProgress(prorroga) : null;
@@ -137,11 +164,6 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActiv
             <Typography variant="overline" sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'text.secondary', lineHeight: 1 }}>
               {prorrogaLabel(numero)}
             </Typography>
-            <Chip
-              label={numero === 0 ? 'Contrato original' : `Prórroga #${numero}`}
-              size="small"
-              sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: isActive ? '#004680' : '#e8f0fa', color: isActive ? '#fff' : 'primary.main' }}
-            />
             {isActive && (
               <Chip
                 label={isCritical ? '⚠ Activa · Crítica' : '● Activa'}
@@ -185,7 +207,7 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActiv
           <Stack direction="row" spacing={0.5} alignItems="center">
             <CalendarTodayOutlinedIcon sx={{ fontSize: 12, color: isActive && isCritical ? '#dc2626' : 'text.disabled' }} />
             <Typography variant="caption" sx={{ color: isActive && isCritical ? '#dc2626' : 'text.secondary' }}>
-              Fin: <strong>{formatDate(prorroga.fecha_final)}</strong>
+              Fin: <strong>{formatDate(effectiveEndDate)}</strong>
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -236,16 +258,19 @@ interface Props {
 }
 
 const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
-  const { selectedContrato, select } = useContractContext();
+  const { selectedContrato } = useContractContext();
 
   if (!selectedContrato) return null;
 
   const c = selectedContrato;
-  const prorrogas = [...(c.prorrogas ?? [])].sort((a, b) => a.numero - b.numero);
+  const prorrogas = [...(c.prorrogas ?? [])]
+    .sort((a, b) => (a.numero ?? 0) - (b.numero ?? 0))
+    .filter((p, idx, arr) => arr.findIndex(x => x.id === p.id) === idx);
   const hasProrrogas = prorrogas.length > 0;
   const lastProrroga = hasProrrogas ? prorrogas[prorrogas.length - 1] : null;
   const firstProrroga = hasProrrogas ? prorrogas[0] : null;
-  const daysLeft = lastProrroga ? daysUntil(lastProrroga.fecha_final) : Infinity;
+  const lastEffectiveEnd = lastProrroga ? getEffectiveEndDate(lastProrroga) : null;
+  const daysLeft = lastEffectiveEnd ? daysUntil(lastEffectiveEnd) : Infinity;
   const isCritical = isFinite(daysLeft) && daysLeft <= 7;
   const isVencido = isFinite(daysLeft) && daysLeft < 0;
 
@@ -260,7 +285,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
   const timeProgress = (() => {
     if (!lastProrroga || !isFinite(daysLeft)) return 100;
     const start = new Date(lastProrroga.fecha_ingreso).getTime();
-    const end   = new Date(lastProrroga.fecha_final).getTime();
+    const end   = new Date(lastEffectiveEnd!).getTime();
     if (isNaN(start) || isNaN(end) || end <= start) return 0;
     const elapsed = Date.now() - start;
     const total   = end - start;
@@ -271,107 +296,90 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
 
   return (
     <Box>
-      {/* Breadcrumb */}
-      <Stack direction="row" alignItems="center" spacing={1} mb={2.5}>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<ArrowBackOutlinedIcon />}
-          onClick={() => select(null)}
-          sx={{ borderColor: 'divider', color: '#fff', fontSize: '0.78rem', backgroundColor: '#004680' }}
-        >
-          Volver
-        </Button>
-        <Typography variant="caption" fontWeight={600} color="text.secondary">Contratos</Typography>
-        <Typography variant="caption" color="text.disabled">›</Typography>
-        <Typography variant="caption" fontWeight={600} color="text.secondary">Expediente del Empleado</Typography>
-      </Stack>
+      {/* Body — dos columnas desde el inicio */}
+      <Grid container spacing={2.5} alignItems="flex-start">
 
-      {/* Employee header card */}
-      <Card sx={{ mb: 2.5, borderRadius: 2.5, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-        <CardContent sx={{ p: 2.5 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'flex-start' }} spacing={2}>
-            {/* Left: avatar + info */}
-            <Stack direction="row" spacing={2} alignItems="flex-start">
-              <Avatar
-                sx={{ width: 56, height: 56, bgcolor: avatarBg(c.id), fontSize: '1.1rem', fontWeight: 800, borderRadius: 2.5 }}
-              >
-                {initials(c.nombre)}
-              </Avatar>
-              <Box>
-                <Typography variant="h5" fontWeight={800} mb={0.3}>{c.nombre}</Typography>
-                <Typography variant="body2" color="text.secondary" mb={0.5}>
-                  {cargoName} · {c.empresa || c.empleado_area || '—'}
-                </Typography>
-                <Stack direction="row" spacing={1.5} flexWrap="wrap">
-                  {c.empleado_area && (
-                    <Typography variant="caption" color="text.disabled">
-                      📁 {c.empleado_area}
-                    </Typography>
-                  )}
-                  <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, cursor: 'pointer' }}>
-                    Ver perfil →
-                  </Typography>
-                </Stack>
-              </Box>
-            </Stack>
-
-            {/* Right: action buttons */}
-            <Stack direction="row" spacing={1.5} flexShrink={0}>
-              <Button
-                variant="outlined"
-                startIcon={<FileDownloadOutlinedIcon />}
-                sx={{ borderColor: 'divider', color: '#fff', fontSize: '0.8rem', backgroundColor: '#004680', boxShadow: 'none', '&:hover': { bgcolor: '#005aa3', boxShadow: 'none' } }}
-              >
-                Expediente PDF
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<AddOutlinedIcon />}
-                onClick={onOpenForm}
-                sx={{ fontSize: '0.8rem', backgroundColor: '#004680', boxShadow: 'none', '&:hover': { bgcolor: '#005aa3', boxShadow: 'none' } }}
-              >
-                Extender Contrato
-              </Button>
-            </Stack>
-          </Stack>
-
-          {/* Contract metadata bar */}
-          <Divider sx={{ my: 2 }} />
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} divider={<Divider orientation="vertical" flexItem />}>
-            <Box>
-              <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Nº Contrato</Typography>
-              <Typography variant="body2" fontWeight={700}>{c.numero_contrato ?? `#${c.id}`}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Tipo</Typography>
-              <Typography variant="body2" fontWeight={700}>{formatTipoContrato(c.tipo_contrato)}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Prórroga Actual</Typography>
-              {lastProrroga ? (
-                <Chip
-                  label={lastProrroga.numero === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.numero ?? '—'}`}
-                  size="small"
-                  sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, bgcolor: '#e8f0fa', color: 'primary.main' }}
-                />
-              ) : (
-                <Typography variant="body2" fontWeight={700}>—</Typography>
-              )}
-            </Box>
-            <Box>
-              <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Duración Total</Typography>
-              <Typography variant="body2" fontWeight={700}>{totalMeses > 0 ? `${totalMeses} meses` : '—'}</Typography>
-            </Box>
-          </Stack>
-        </CardContent>
-      </Card>
-
-      {/* Body */}
-      <Grid container spacing={2.5}>
-        {/* ── Timeline ── */}
+        {/* ── Columna izquierda (md:8) ── */}
         <Grid size={{ xs: 12, md: 8 }}>
-          <Card sx={{ borderRadius: 2.5, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+          <Stack spacing={2.5}>
+
+            {/* Tarjeta empleado */}
+            <Card sx={{ borderRadius: 2.5, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+              <CardContent sx={{ p: 2.5 }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'flex-start' }} spacing={2}>
+                  {/* Left: avatar + info */}
+                  <Stack direction="row" spacing={2} alignItems="flex-start">
+                    <Avatar sx={{ width: 56, height: 56, bgcolor: avatarBg(c.id), borderRadius: 2.5 }}>
+                      <PersonIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.9)' }} />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h5" fontWeight={800} mb={0.3}>{c.nombre}</Typography>
+                      <Typography variant="body2" color="text.secondary" mb={0.5}>
+                        {cargoName} · { c.empleado_area || ''}
+                      </Typography>
+                      <Stack direction="row" spacing={1.5} flexWrap="wrap">
+                        {c.empleado_area && (
+                          <Typography variant="caption" color="text.disabled">
+                            📁 {c.empleado_area}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Stack>
+
+                  {/* Right: action buttons */}
+                  <Stack direction="row" spacing={1.5} flexShrink={0}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<FileDownloadOutlinedIcon />}
+                      sx={{ borderColor: 'divider', color: '#fff', fontSize: '0.8rem', backgroundColor: '#004680', boxShadow: 'none', '&:hover': { bgcolor: '#005aa3', boxShadow: 'none' } }}
+                    >
+                      Expediente PDF
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<AddOutlinedIcon />}
+                      onClick={onOpenForm}
+                      sx={{ fontSize: '0.8rem', backgroundColor: '#004680', boxShadow: 'none', '&:hover': { bgcolor: '#005aa3', boxShadow: 'none' } }}
+                    >
+                      Extender Contrato
+                    </Button>
+                  </Stack>
+                </Stack>
+
+                {/* Contract metadata bar */}
+                <Divider sx={{ my: 2 }} />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} divider={<Divider orientation="vertical" flexItem />}>
+                  <Box>
+                    <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Nº Contrato</Typography>
+                    <Typography variant="body2" fontWeight={700}>{c.numero_contrato ?? `#${c.id}`}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Tipo</Typography>
+                    <Typography variant="body2" fontWeight={700}>{formatTipoContrato(c.tipo_contrato)}</Typography>
+                  </Box>
+                   <Box>
+                    <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Prórroga Actual</Typography>
+                    {lastProrroga ? (
+                      <Chip
+                        label={lastProrroga.numero === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.numero}`}
+                        size="small"
+                        sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, bgcolor: '#e8f0fa', color: 'primary.main' }}
+                      />
+                    ) : (
+                      <Typography variant="body2" fontWeight={700}>—</Typography>
+                    )}
+                  </Box>
+                  <Box>
+                    <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Duración Total</Typography>
+                    <Typography variant="body2" fontWeight={700}>{totalMeses > 0 ? `${totalMeses} meses` : '—'}</Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {/* ── Timeline ── */}
+            <Card sx={{ borderRadius: 2.5, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
             <CardContent sx={{ p: 3 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2.5}>
                 <Box>
@@ -400,6 +408,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                   <TimelineEntry
                     key={p.id}
                     prorroga={p}
+                    displayIndex={idx}
                     isLast={idx === prorrogas.length - 1}
                     isActive={idx === prorrogas.length - 1 && !isVencido}
                   />
@@ -407,6 +416,8 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
               )}
             </CardContent>
           </Card>
+
+          </Stack>
         </Grid>
 
         {/* ── Right panel ── */}
@@ -422,14 +433,13 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                 <Stack direction="row" justifyContent="space-between">
                   <Typography variant="caption" sx={{ color: '#a0c8e8' }}>Fecha de inicio original</Typography>
                   <Typography variant="caption" fontWeight={700} sx={{ color: '#fff' }}>
-                    {/* c.fecha_ingreso = fecha de inicio del contrato guardada en el formulario de creación */}
-                    {formatDate(c.fecha_ingreso)}
+                    {firstProrroga ? formatDate(firstProrroga.fecha_ingreso) : formatDate(c.fecha_final)}
                   </Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
                   <Typography variant="caption" sx={{ color: '#a0c8e8' }}>Fecha de vencimiento actual</Typography>
                   <Typography variant="caption" fontWeight={700} sx={{ color: isCritical ? '#fca5a5' : isVencido ? '#9ca3af' : '#fff' }}>
-                    {lastProrroga ? formatDate(lastProrroga.fecha_final) : formatDate(c.fecha_final)}
+                    {lastEffectiveEnd ? formatDate(lastEffectiveEnd) : formatDate(c.fecha_final)}
                   </Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
@@ -448,7 +458,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                   <Typography variant="caption" sx={{ color: '#a0c8e8' }}>Prórroga actual</Typography>
                   {lastProrroga ? (
                     <Chip
-                      label={lastProrroga.numero === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.numero ?? '—'}`}
+                      label={lastProrroga.numero === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.numero}`}
                       size="small"
                       sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' }}
                     />
@@ -539,7 +549,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                   ].map((action) => (
                     <Box
                       key={action.label}
-                      onClick={(action as any).onClick}
+                      onClick={action.onClick ? () => action.onClick?.() : undefined}
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
@@ -547,8 +557,8 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                         px: 1.5,
                         py: 1,
                         borderRadius: 2,
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: 'action.hover' },
+                        cursor: action.onClick ? 'pointer' : 'default',
+                        '&:hover': action.onClick ? { bgcolor: 'action.hover' } : {},
                       }}
                     >
                       {action.icon}

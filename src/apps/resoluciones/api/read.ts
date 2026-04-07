@@ -34,6 +34,7 @@ export interface DirectusResolucion {
 
 /**
  * Obtener todas las resoluciones con sus relaciones
+ * Solo trae resoluciones con estado 'Activo' o 'Pendiente'
  */
 export async function obtenerResoluciones(): Promise<DirectusResolucion[]> {
   try {
@@ -59,6 +60,11 @@ export async function obtenerResoluciones(): Promise<DirectusResolucion[]> {
             "prefijo_id.caja_id.tienda_id.id",
             "prefijo_id.caja_id.tienda_id.nombre",
           ],
+          filter: {
+            estado: {
+              _in: ["Activo", "Pendiente"],
+            },
+          },
           limit: 500,
           sort: ["-id"],
         }),

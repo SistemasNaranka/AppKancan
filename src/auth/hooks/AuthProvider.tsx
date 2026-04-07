@@ -119,14 +119,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const tokens = cargarTokenStorage();
 
       if (!tokens) {
-        console.log("ℹ️ No hay tokens guardados");
         setLoading(false);
         return;
       }
 
       try {
         if (isExpired(tokens.expires_at)) {
-          console.log("🔄 Token expirado, refrescando...");
           try {
             const res = await refreshDirectus(tokens.refresh);
             if (!res) {

@@ -1,38 +1,24 @@
-import React from 'react';
-import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import LinearProgress from '@mui/material/LinearProgress';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import { Prorroga } from '../types/types';
-import { formatDate, daysUntil, getProrrogaDuration, getProrrogaProgress } from '../lib/utils';
+import React from "react";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import { getProrrogaProgress, formatDate, getProrrogaDuration } from "../lib/utils";
+import { daysUntil } from "../hooks/useContracts";
+import { FiberManualRecord, RadioButtonUnchecked, Autorenew, CheckCircle } from "@mui/icons-material";
+import { Stack } from "@mui/material";
+import { Chip, LinearProgress } from "@mui/material";
+import { Prorroga } from "../types/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ContractTimeline
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface Props {
+interface ContractTimelineProps {
   prorrogas: Prorroga[];
 }
 
-const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
-  // Validar que existan prorrogas
-  if (!prorrogas || prorrogas.length === 0) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          No hay prórrogas registradas.
-        </Typography>
-      </Box>
-    );
-  }
-
-  const lastIdx = prorrogas.length - 1;
-  const nextNum = prorrogas[lastIdx].numero + 1;
+const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
+  const lastIdx      = prorrogas.length - 1;
+  const nextNum      = prorrogas.length;           // la siguiente prórroga que se crearía
   const nextDuration = getProrrogaDuration(nextNum);
 
   return (
@@ -52,9 +38,10 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
 
       {/* Prorroga entries */}
       {prorrogas.map((p, idx) => {
-        const isActive    = idx === lastIdx;
-        const isFinalizado = !isActive && daysUntil(p.fecha_final) < 0;
-        const progress    = isActive ? getProrrogaProgress(p) : 0;
+        const isActive     = idx === lastIdx;
+        const isFinalizado = !isActive && daysUntil(p.fecha_final?.toString() ?? null) < 0;
+        const progress     = isActive ? getProrrogaProgress(p) : 0;
+        const diasRestantes = daysUntil(p.fecha_final?.toString() ?? null);
 
         return (
           <Box key={p.id} sx={{ position: 'relative', mb: 2.5 }}>
@@ -69,11 +56,11 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
               }}
             >
               {isActive ? (
-                <FiberManualRecordIcon sx={{ fontSize: 22, filter: 'drop-shadow(0 0 4px rgba(0,70,128,0.4))' }} />
+                <FiberManualRecord sx={{ fontSize: 22, filter: 'drop-shadow(0 0 4px rgba(0,70,128,0.4))' }} />
               ) : isFinalizado ? (
-                <CheckCircleIcon sx={{ fontSize: 18, color: 'primary.light' }} />
+                <CheckCircle sx={{ fontSize: 18, color: 'primary.light' }} />
               ) : (
-                <RadioButtonUncheckedIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                <RadioButtonUnchecked sx={{ fontSize: 18, color: 'text.disabled' }} />
               )}
             </Box>
 
@@ -90,7 +77,7 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
                 <Typography variant="subtitle2" sx={{ color: isActive ? 'primary.main' : 'text.primary', fontWeight: 700 }}>
-                  {p.label}
+                  {p.numero === 0 ? 'Contrato original' : `Prórroga #${p.numero}`}
                 </Typography>
                 <Stack direction="row" spacing={0.8} alignItems="center">
                   {isActive && (
@@ -108,7 +95,7 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
                     />
                   )}
                   <Chip
-                    label={`${p.duracion} meses`}
+                    label={`${p.duracion ?? getProrrogaDuration(p.numero ?? idx)} meses`}
                     size="small"
                     sx={{
                       bgcolor: isActive ? 'primary.main' : '#f0f4f8',
@@ -121,9 +108,11 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
                 </Stack>
               </Stack>
 
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                {p.descripcion}
-              </Typography>
+              {p.descripcion && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  {p.descripcion}
+                </Typography>
+              )}
 
               <Stack direction="row" spacing={3}>
                 <Box>
@@ -144,9 +133,9 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
                     <Typography
                       variant="caption"
                       fontWeight={700}
-                      sx={{ color: daysUntil(p.fecha_final) <= 50 ? 'warning.main' : 'success.main' }}
+                      sx={{ color: isFinite(diasRestantes) && diasRestantes <= 50 ? 'warning.main' : 'success.main' }}
                     >
-                      {daysUntil(p.fecha_final)} días
+                      {isFinite(diasRestantes) ? `${diasRestantes} días` : '—'}
                     </Typography>
                   </Box>
                 )}
@@ -193,9 +182,9 @@ const ContractTimeline: React.FC<Props> = ({ prorrogas }) => {
         }}
       >
         <Box sx={{ position: 'absolute', left: -26, top: 10 }}>
-          <RadioButtonUncheckedIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+          <RadioButtonUnchecked sx={{ fontSize: 18, color: 'text.disabled' }} />
         </Box>
-        <AutorenewIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+        <Autorenew sx={{ fontSize: 18, color: 'text.disabled' }} />
         <Typography variant="caption" color="text.secondary">
           {nextNum >= 4
             ? `Prórroga ${nextNum} — Renovación anual (${nextDuration} meses) · Condiciones de planta`

@@ -1,14 +1,10 @@
-import React from 'react';
-import Chip, { ChipProps } from '@mui/material/Chip';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined';
-import FindInPageOutlinedIcon from '@mui/icons-material/FindInPageOutlined';
-import ThumbDownOffAltOutlinedIcon from '@mui/icons-material/ThumbDownOffAltOutlined';
-import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
-import { ContractStatus, RequestStatus } from '../types/types';
-import { SvgIconComponent } from '@mui/icons-material';
+import React from "react";
+import Chip, { ChipProps } from "@mui/material/Chip";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { ContractStatus, RequestStatus, requestStatusMap } from "../types/types";
+import { SvgIconComponent } from "@mui/icons-material";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG MAPS
@@ -24,63 +20,25 @@ interface ChipConfig {
 
 const contractStatusMap: Record<ContractStatus, ChipConfig> = {
   vigente: {
-    label: 'Vigente',
-    color: '#1a7a4a',
-    bg: '#e6f7ef',
-    border: '#b7dfcc',
+    label: "Vigente",
+    color: "#1a7a4a",
+    bg: "#e6f7ef",
+    border: "#b7dfcc",
     Icon: CheckCircleOutlineIcon,
   },
   proximo: {
-    label: 'Próximo a vencer',
-    color: '#e65100',
-    bg: '#fff3e0',
-    border: '#ffcc80',
+    label: "Próximo a vencer",
+    color: "#e65100",
+    bg: "#fff3e0",
+    border: "#ffcc80",
     Icon: WarningAmberIcon,
   },
   vencido: {
-    label: 'Vencido',
-    color: '#c62828',
-    bg: '#fdecea',
-    border: '#ef9a9a',
+    label: "Vencido",
+    color: "#c62828",
+    bg: "#fdecea",
+    border: "#ef9a9a",
     Icon: ErrorOutlineIcon,
-  },
-};
-
-const requestStatusMap: Record<RequestStatus, ChipConfig> = {
-  pendiente: {
-    label: 'Pendiente',
-    color: '#7b3f00',
-    bg: '#fff8f0',
-    border: '#ffcc80',
-    Icon: PendingActionsOutlinedIcon,
-  },
-  en_revision: {
-    label: 'En Revisión',
-    color: '#004680',
-    bg: '#e8f0fa',
-    border: '#90b4d8',
-    Icon: FindInPageOutlinedIcon,
-  },
-  aprobada: {
-    label: 'Aprobada',
-    color: '#1a7a4a',
-    bg: '#e6f7ef',
-    border: '#b7dfcc',
-    Icon: CheckCircleOutlineIcon,
-  },
-  rechazada: {
-    label: 'Rechazada',
-    color: '#c62828',
-    bg: '#fdecea',
-    border: '#ef9a9a',
-    Icon: ThumbDownOffAltOutlinedIcon,
-  },
-  completada: {
-    label: 'Completada',
-    color: '#37474f',
-    bg: '#eceff1',
-    border: '#b0bec5',
-    Icon: TaskAltOutlinedIcon,
   },
 };
 
@@ -88,16 +46,27 @@ const requestStatusMap: Record<RequestStatus, ChipConfig> = {
 // COMPONENTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface ContractStatusChipProps extends Omit<ChipProps, 'color'> {
+interface ContractStatusChipProps extends Omit<ChipProps, "color"> {
   status: ContractStatus;
 }
 
-export const ContractStatusChip: React.FC<ContractStatusChipProps> = ({ status, ...props }) => {
+export const ContractStatusChip: React.FC<ContractStatusChipProps> = ({
+  status,
+  ...props
+}) => {
   const cfg = contractStatusMap[status];
+  const IconComponent = cfg.Icon;
   return (
     <Chip
       label={cfg.label}
-      icon={<cfg.Icon sx={{ fontSize: '0.85rem !important', color: `${cfg.color} !important` }} />}
+      icon={
+        <IconComponent
+          sx={{
+            fontSize: "0.85rem !important",
+            color: `${cfg.color} !important`,
+          }}
+        />
+      }
       size="small"
       {...props}
       sx={{
@@ -105,8 +74,8 @@ export const ContractStatusChip: React.FC<ContractStatusChipProps> = ({ status, 
         color: cfg.color,
         border: `1px solid ${cfg.border}`,
         fontWeight: 700,
-        fontSize: '0.7rem',
-        '& .MuiChip-icon': { color: cfg.color },
+        fontSize: "0.7rem",
+        "& .MuiChip-icon": { color: cfg.color },
         ...props.sx,
       }}
     />

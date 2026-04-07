@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -15,8 +15,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
-import { useContractContext } from '../contexts/Contractcontext';
-import { addMonths, formatDate, getNextProrrogaNumber, getProrrogaDuration } from '../lib/utils';
+import { useContractContext } from '../contexts/ContractContext';
+import { addMonths, formatDate, getNextProrrogaNumber, getProrrogaDuration, toLocalDateStr } from '../lib/utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProrrogaForm
@@ -36,6 +36,40 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
   const [fechaInicio, setFechaInicio] = useState('');
   const [descripcion, setDescripcion] = useState('');
 
+  // Reset form when contract changes or dialog opens
+  useEffect(() => {
+    if (!contract || !open) {
+      setFechaInicio('');
+      setDescripcion('');
+      return;
+    }
+    const prorrogas = contract.prorrogas ?? [];
+    let fechaBase: string | undefined;
+
+    if (prorrogas.length === 0) {
+      fechaBase = contract.fecha_final;
+    } else {
+      const last = [...prorrogas].sort((a, b) => a.numero - b.numero).pop();
+      const raw = last?.fecha_final;
+      fechaBase = raw != null ? String(raw) : undefined;
+    }
+
+    if (!fechaBase) {
+      setFechaInicio('');
+      return;
+    }
+    const [y, m, d] = String(fechaBase).split('T')[0].split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    if (isNaN(dt.getTime())) {
+      setFechaInicio('');
+      return;
+    }
+    dt.setDate(dt.getDate() + 1);
+    setFechaInicio(toLocalDateStr(dt));
+    setDescripcion('');
+    clearMessages();
+  }, [contract, open]);
+
   const nextNum = useMemo(
     () => (contract ? getNextProrrogaNumber(contract.prorrogas ?? []) : 0),
     [contract],
@@ -43,27 +77,7 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
 
   const duracion = getProrrogaDuration(nextNum);
 
-  const defaultStart = useMemo(() => {
-    if (!contract) return '';
-    const prorrogas = contract.prorrogas ?? [];
-    if (prorrogas.length === 0) return '';
-    const last = prorrogas[prorrogas.length - 1];
-    // Manejar ambos nombres de campo: fecha_final o fecha_fin
-    const fechaFin = last?.fecha_final ?? last?.fecha_final;
-    if (!fechaFin) return '';
-    const d = new Date(fechaFin);
-    if (isNaN(d.getTime())) return '';
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
-  }, [contract]);
-
   const fechaFin = fechaInicio ? addMonths(fechaInicio, duracion) : null;
-
-  const handleOpen = () => {
-    setFechaInicio(defaultStart);
-    setDescripcion('');
-    clearMessages();
-  };
 
   const handleSubmit = async () => {
     if (!fechaInicio) return;
@@ -78,7 +92,7 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
   if (!contract) return null;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth TransitionProps={{ onEntered: handleOpen }}>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <Box sx={{ display: 'flex', minHeight: 480 }}>
 
         {/* Sidebar */}

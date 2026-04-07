@@ -7,11 +7,14 @@
     "skipLibCheck": true,
     "ignoreDeprecations": "6.0",
     "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -19,10 +22,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@resoluciones/*": ["./src/apps/promociones/src/*"]
+      "@resoluciones/*": ["./src/apps/resoluciones/*"]
     },
     "forceConsistentCasingInFileNames": true
   },
   "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
 }

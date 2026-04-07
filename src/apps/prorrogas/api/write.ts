@@ -14,7 +14,7 @@ import { addMonths, getProrrogaDuration } from "../lib/utils";
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CreateProrrogaDirectus {
-  contrato_id:  number;
+  contrato:  number;
   numero:       number;
   label:        string;
   descripcion:  string;
@@ -56,7 +56,7 @@ export async function crearProrroga(params: {
     const label       = numero === 0 ? 'Contrato Inicial' : `Prórroga ${numero}`;
 
     const payload: CreateProrrogaDirectus = {
-      contrato_id,
+      contrato: contrato_id,
       numero,
       label,
       descripcion,

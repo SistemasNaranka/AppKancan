@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Promotion } from "../types/promotion";
-import { obtenerPromociones } from "../api/directus/read";
+import { obtenerPromociones, obtenerPromocionPorId } from "../api/directus/read";
 
 /**
  * Hook para obtener todas las promociones desde Directus.
@@ -25,10 +25,7 @@ export const usePromotions = () => {
 export const usePromotion = (id: number) => {
   return useQuery<Promotion | null, Error>({
     queryKey: ["promocion", id],
-    queryFn: async () => {
-      const { obtenerPromocionPorId } = await import("../api/directus/read");
-      return obtenerPromocionPorId(id);
-    },
+    queryFn: () => obtenerPromocionPorId(id),
     enabled: !!id, // Solo ejecutar si hay ID
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,

@@ -18,13 +18,9 @@ export async function ensureValidToken(): Promise<void> {
 
   // Si el token está expirado, refrescarlo
   if (isExpired(tokens.expires_at)) {
-    console.log("🔄 Token expirado, refrescando antes de la petición...");
-
     try {
-      console.log("Refrescando con directus con el refresh_token");
       const newTokens = await refreshDirectus(tokens.refresh);
       // Guardar los nuevos tokens
-      console.log("Guardando en el storage");
       guardarTokenStorage(
         newTokens.access_token,
         newTokens.refresh_token,
@@ -32,7 +28,6 @@ export async function ensureValidToken(): Promise<void> {
       );
 
       // Actualizar el token en el cliente de Directus
-      console.log("Estableciendo token en el cliente");
       await setTokenDirectus(newTokens.access_token);
     } catch (error) {
       borrarTokenStorage();
@@ -40,6 +35,9 @@ export async function ensureValidToken(): Promise<void> {
       console.error("❌ Error al refrescar token:", error);
       // Manejar sesión expirada (cierra sesión y redirige)
     }
+  } else {
+    // Si no está expirado, igual nos aseguramos que el cliente de Directus lo tenga (evita 403 en reloads)
+    await setTokenDirectus(tokens.access);
   }
 }
 
@@ -58,8 +56,6 @@ export async function requestWithAutoRefresh<T>(
   } catch (error: any) {
     // Si falla por token inválido (401), intentar refrescar y reintentar una vez
     if (error?.response?.status === 401) {
-      console.log("⚠️ Petición falló con 401, REINTENTANDO refrescar token...");
-
       const tokens = cargarTokenStorage();
       if (!tokens) {
         throw error;

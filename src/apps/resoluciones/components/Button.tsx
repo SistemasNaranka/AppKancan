@@ -8,6 +8,7 @@ interface ButtonProps {
   disabled?: boolean;
   icono?: React.ReactNode;
   href?: string;
+  fullWidth?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -17,6 +18,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled = false,
   icono,
   href,
+  fullWidth = false,
 }) => {
   const obtenerEstilo = () => {
     switch (variante) {
@@ -64,6 +66,7 @@ const Button: React.FC<ButtonProps> = ({
       disabled={disabled}
       startIcon={icono}
       href={href}
+      fullWidth={fullWidth}
       size="small"
       sx={{
         ...obtenerEstilo(),

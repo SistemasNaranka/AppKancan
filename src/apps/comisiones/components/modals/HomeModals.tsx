@@ -43,7 +43,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   onSaveComplete,
 }) => {
   const handleAssignmentComplete = (ventasData: any) => {
-    console.log("🔔 [HomeModals] handleAssignmentComplete called with:", ventasData);
     if (onAssignmentComplete) {
       onAssignmentComplete(ventasData);
     }
@@ -53,16 +52,13 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   // Esto asegura que tanto CodesModal como EditStoreModalSimplified/EditStoreBudgetModal 
   // pasen por el mismo flujo de loading y actualización del contador
   const handleSaveCompleteWrapper = async () => {
-    console.log("🔔 [HomeModals] handleSaveCompleteWrapper INICIADO");
     
     if (onShowSaveLoading) {
       // Llamar a handleCodesModalSave sin error = guardado exitoso
       // Esto muestra la pantalla de loading, espera, muestra éxito, y actualiza el contador
       await onShowSaveLoading(undefined);
-      console.log("🔔 [HomeModals] handleSaveCompleteWrapper - onShowSaveLoading completado");
     } else if (onSaveComplete) {
       // Fallback: llamar directamente si onShowSaveLoading no existe
-      console.log("🔔 [HomeModals] handleSaveCompleteWrapper - calling onSaveComplete directly");
       await onSaveComplete();
     }
   };
@@ -73,7 +69,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
       <CodesModal
         isOpen={showCodesModal}
         onClose={() => {
-          console.log("🔔 [HomeModals] CodesModal onClose");
           onCloseCodesModal();
         }}
         selectedMonth={selectedMonth}
@@ -97,7 +92,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         isOpen={showEditStoreModal}
         onClose={() => {
           // Limpiar estado antes de cerrar para evitar cargas innecesarias
-          console.log("🔔 [HomeModals] EditStoreModalSimplified onClose");
           onCloseEditStoreModal();
         }}
         selectedMonth={selectedMonth}
@@ -109,7 +103,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         isOpen={showEditStoreBudgetModal}
         onClose={() => {
           // Limpiar estado antes de cerrar para evitar cargas innecesarias
-          console.log("🔔 [HomeModals] EditStoreBudgetModal onClose");
           onCloseEditStoreBudgetModal();
         }}
         selectedMonth={selectedMonth}

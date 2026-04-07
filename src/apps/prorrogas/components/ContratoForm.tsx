@@ -62,12 +62,12 @@ const statusOptions: { value: RequestStatus; label: string }[] = [
 ];
 
 const cargoOptions = [
-  { value: 'Gerente',         label: 'Gerente' },
-  { value: 'Asesor',          label: 'Asesor' },
-  { value: 'Cajero',          label: 'Cajero' },
-  { value: 'Logistico',       label: 'Logístico' },
-  { value: 'Coadministrador', label: 'Coadministrador' },
-  { value: 'Gerente Online',  label: 'Gerente Online' },
+  { value: 1, label: 'Gerente' },
+  { value: 2, label: 'Asesor' },
+  { value: 3, label: 'Cajero' },
+  { value: 4, label: 'Logístico' },
+  { value: 5, label: 'Coadministrador' },
+  { value: 6, label: 'Gerente Online' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ interface FormData {
   documento_identidad: string;
   nombre: string;
   apellido: string;
-  cargo: string;
+  cargo: number | '';
   tipo_contrato: string;
   area: string;
   fecha_ingreso: string;
@@ -130,13 +130,11 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
   // Poblar el form cuando se abre en modo edición
   useEffect(() => {
     if (open && initialData) {
-      const nombreParts = initialData.nombre.split(' ');
-      const apellido = nombreParts.length > 1 ? nombreParts.slice(1).join(' ') : '';
       setFormData({
-        documento_identidad: '',
-        nombre: nombreParts[0] ?? '',
-        apellido,
-        cargo: typeof initialData.cargo === 'string' ? initialData.cargo : '',
+        documento_identidad: initialData.documento ?? '',
+        nombre: initialData.nombre ?? '',
+        apellido: initialData.apellido ?? '',
+        cargo: typeof initialData.cargo === 'number' ? initialData.cargo : '',
         tipo_contrato: initialData.tipo_contrato ?? '',
         area: initialData.empleado_area ?? '',
         fecha_ingreso: initialData.fecha_ingreso ?? '',
@@ -191,7 +189,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
     const e: Record<string, string> = {};
     if (!formData.nombre.trim())    e.nombre    = 'El nombre es requerido';
     if (!formData.apellido.trim())  e.apellido  = 'El apellido es requerido';
-    if (!formData.cargo.trim())     e.cargo     = 'El cargo es requerido';
+    if (!formData.cargo)      e.cargo     = 'El cargo es requerido';
     if (!formData.tipo_contrato)    e.tipo_contrato = 'El tipo de contrato es requerido';
     if (!formData.area.trim())      e.area      = 'El área es requerida';
     if (!formData.fecha_ingreso)    e.fecha_ingreso = 'La fecha de inicio es requerida';
@@ -209,13 +207,14 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
     if (!validate()) return;
     setSaving(true);
     try {
-      const nombreCompleto = [formData.nombre, formData.apellido].filter(Boolean).join(' ');
       const contratoData: CreateContrato = {
-        nombre:          nombreCompleto,
-        cargo:           formData.cargo,
+        nombre:          formData.nombre,
+        apellido:        formData.apellido,
+        documento:       formData.documento_identidad,
+        cargo: Number(formData.cargo),
         tipo_contrato:   formData.tipo_contrato,
         empleado_area:   formData.area,
-        fecha_ingreso:    formData.fecha_ingreso,
+        fecha_ingreso:   formData.fecha_ingreso,
         fecha_final:     formData.fecha_fin,
         request_status:  formData.request_status,
         ...(isEditing

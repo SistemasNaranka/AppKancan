@@ -157,7 +157,6 @@ export const useStoreManagement = (
               : "0";
           setPresupuesto(presupuestoExistente);
         } catch (budgetError: any) {
-          console.log(
             "No se encontró presupuesto existente para la fecha:",
             budgetError.message
           );
@@ -301,7 +300,6 @@ export const useStoreManagement = (
       return;
     }
 
-    console.log("🔄 Recalculando datos para:", {
       tienda: tienda.nombre,
       presupuesto: parseFloat(presupuesto),
       empleados: empleadosSeleccionados.length,
