@@ -75,7 +75,6 @@ const EnviosPage = () => {
   const {
     datosCurvas,
     actualizarValorValidacion,
-    limpiarValidacion,
     userRole,
     lastLogsUpdate,
     tiendasDict,
@@ -602,7 +601,7 @@ const EnviosPage = () => {
                     sx: {
                       width: 200,
                       bgcolor: "#ffffff",
-                      borderRadius: 2,
+                      borderRadius: 1.5,
                       boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                     },
                   },
@@ -797,47 +796,120 @@ const EnviosPage = () => {
 
       <TextField
         select
-        label="Fecha"
         value={filtroFecha?.format("YYYY-MM-DD") || ""}
         onChange={(e) =>
           setFiltroFecha(e.target.value ? dayjs(e.target.value) : null)
         }
-        SelectProps={{ native: true }}
+        disabled={Object.keys(fechasConDatos).length === 0}
         size="small"
+        slotProps={{
+          select: {
+            native: true,
+            IconComponent: () => null,
+          },
+          input: {
+            sx: {
+              color: "white",
+              fontSize: "0.85rem",
+              fontWeight: 700,
+              height: 16,
+              paddingRight: "36px",
+            },
+          },
+        }}
+        InputProps={{
+          endAdornment: (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                pointerEvents: "none",
+                position: "absolute",
+                right: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "rgba(255,255,255,0.7)",
+              }}
+            >
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                <path
+                  d="M1 1L5 5L9 1"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Box>
+          ),
+        }}
         sx={{
-          minWidth: 140,
-          bgcolor: "rgba(255,255,255,0.15)",
-          borderRadius: 2,
+          width: 170,
           "& .MuiOutlinedInput-root": {
+            height: 40,
             color: "white",
-            "& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
+            bgcolor: "rgba(255,255,255,0.15)",
+            borderRadius: 1.5,
+            padding: "8px 12px",
+            "& fieldset": {
+              borderColor: "rgba(255,255,255,0.3)",
+              borderWidth: 1,
+            },
             "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
             "&.Mui-focused fieldset": { borderColor: "white" },
           },
-          "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-          "& .MuiSvgIcon-root": { color: "rgba(255,255,255,0.7)" },
+          "& .MuiSelect-select": {
+            display: "flex",
+            alignItems: "center",
+            padding: "8px 0",
+          },
+          "& .MuiSelect-selectMenu": {
+            minHeight: "auto",
+            overflow: "visible",
+          },
         }}
       >
-        {Object.keys(fechasConDatos)
-          .sort((a, b) => b.localeCompare(a))
-          .map((fecha) => (
-            <option key={fecha} value={fecha}>
-              {dayjs(fecha).format("DD MMM YYYY")}{" "}
-              {fechasConDatos[fecha] === "enviado" ? "✓" : "⏳"}
-            </option>
-          ))}
+        {(() => {
+          const formattedFiltro = filtroFecha?.format("YYYY-MM-DD") || "";
+          const keys = Object.keys(fechasConDatos);
+          if (formattedFiltro && !keys.includes(formattedFiltro)) {
+            keys.push(formattedFiltro);
+          }
+          if (keys.length === 0) {
+            keys.push("");
+          }
+
+          return keys
+            .sort((a, b) => b.localeCompare(a))
+            .map((fecha) => (
+              <option
+                key={fecha}
+                value={fecha}
+                style={{
+                  backgroundColor: "#ffffff",
+                  color: "#1e293b",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  padding: "10px 12px",
+                }}
+              >
+                {fecha ? dayjs(fecha).format("DD MMM YYYY") : "Seleccionar"}
+              </option>
+            ));
+        })()}
       </TextField>
 
       <DebouncedSearchInput
         value={filtroReferencia}
         onChange={(val) => setFiltroReferencia(val)}
         placeholder="Buscar referencia..."
+        disabled={Object.keys(fechasConDatos).length === 0}
         sx={{
           minWidth: 180,
           "& .MuiOutlinedInput-root": {
             color: "white",
             bgcolor: "rgba(255,255,255,0.15)",
-            borderRadius: 2,
+            borderRadius: 1.5,
             "& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
             "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
             "&.Mui-focused fieldset": { borderColor: "white" },
@@ -860,17 +932,24 @@ const EnviosPage = () => {
         label={`${stats.matched}/${stats.total} listas (${stats.percent}%)`}
         size="small"
         sx={{
-          fontWeight: 800,
+          fontWeight: 700,
           fontSize: "0.7rem",
-          bgcolor: stats.percent === 100 ? "#22c55e" : "#fff",
-          color: stats.percent === 100 ? "#fff" : "#334155",
+          bgcolor: stats.percent === 100 ? "#22c55e" : "#f1f5f9",
+          color: stats.percent === 100 ? "#fff" : "#475569",
+          border: stats.percent === 100 ? "none" : "1px solid #e2e8f0",
         }}
       />
 
       <Button
         variant="contained"
         disabled={!isEverythingValid || isSending}
-        startIcon={isEverythingValid ? <VerifiedIcon /> : <SyncIcon />}
+        startIcon={
+          isEverythingValid ? (
+            <VerifiedIcon sx={{ fontSize: 18 }} />
+          ) : (
+            <SyncIcon sx={{ fontSize: 18 }} />
+          )
+        }
         onClick={handleEnviarADespacho}
         sx={{
           fontWeight: 800,
@@ -881,34 +960,34 @@ const EnviosPage = () => {
           bgcolor: isEverythingValid
             ? "#22c55e"
             : mirrorGrandTotal > 0
-              ? "#ffffff"
-              : "rgba(255,255,255,0.08)",
+              ? "#006ACC"
+              : "rgba(255,255,255,0.1)",
           color: isEverythingValid
             ? "#fff"
             : mirrorGrandTotal > 0
-              ? "#004680"
-              : "rgba(255,255,255,0.35)",
-          px: 1.5,
+              ? "#fff"
+              : "rgba(255,255,255,0.4)",
+          px: 2,
           boxShadow: isEverythingValid
-            ? "0 2px 8px rgba(34,197,94,0.35)"
+            ? "0 2px 8px rgba(34,197,94,0.3)"
             : mirrorGrandTotal > 0
-              ? "0 2px 8px rgba(0,0,0,0.2)"
+              ? "0 2px 8px rgba(0,70,128,0.3)"
               : "none",
           "&:hover": {
             bgcolor: isEverythingValid
               ? "#16a34a"
               : mirrorGrandTotal > 0
-                ? "#e6f4ff"
+                ? "#004680"
                 : undefined,
           },
           "&.Mui-disabled": {
             color: "rgba(255,255,255,0.2)",
-            bgcolor: "rgba(255,255,255,0.04)",
+            bgcolor: "rgba(255,255,255,0.05)",
           },
         }}
       >
         {isSending
-          ? "..."
+          ? "Enviando..."
           : mirrorGrandTotal > 0
             ? `ENVIAR (${mirrorGrandTotal})`
             : "ENVIAR"}
@@ -924,439 +1003,472 @@ const EnviosPage = () => {
 
         <Container maxWidth="xl" sx={{ py: 2 }}>
           <Stack spacing={2} sx={{ mt: 2.5 }}>
-            {/* Consolidated Bar */}
-            <Box
-              sx={{
-                px: 2,
-                py: 0.8,
-                borderRadius: "10px",
-                border: "1px solid #e2e8f0",
-                bgcolor: "#ffffff",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 0.5,
-              }}
-            >
-              <Stack
-                direction="row"
-                spacing={1.5}
-                alignItems="center"
-                sx={{ minWidth: 0 }}
-              >
-                {confirmedEntries.length > 1 ? (
-                  <Tabs
-                    value={safeIndex}
-                    onChange={(_, v) => setSelectedEntry(v)}
-                    variant="scrollable"
-                    scrollButtons="auto"
-                    sx={{
-                      minHeight: 32,
-                      "& .MuiTab-root": {
-                        fontWeight: 700,
-                        textTransform: "none",
-                        minHeight: 32,
-                        fontSize: "0.72rem",
-                        py: 0,
-                        px: 1.2,
-                      },
-                      "& .Mui-selected": { color: "#4338ca" },
-                      "& .MuiTabs-indicator": {
-                        bgcolor: "#4338ca",
-                        height: 2.5,
-                        borderRadius: 2,
-                      },
-                    }}
-                  >
-                    {confirmedEntries.map((entry, i) => (
-                      <Tab
-                        key={i}
-                        icon={entry.icon}
-                        iconPosition="start"
-                        label={getTabLabel(entry, i)}
-                      />
-                    ))}
-                  </Tabs>
-                ) : (
-                  <Chip
-                    icon={current?.icon as any}
-                    label={
-                      current
-                        ? getTabLabel(
-                            current,
-                            confirmedEntries.indexOf(current),
-                          )
-                        : ""
-                    }
-                    size="small"
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: "0.72rem",
-                      bgcolor: "#eef2ff",
-                      color: "#4338ca",
-                      height: 26,
-                    }}
-                  />
-                )}
-
-                {current && (
-                  <>
-                    <Divider
-                      orientation="vertical"
-                      flexItem
-                      sx={{ height: 18, alignSelf: "center" }}
-                    />
-                    <Typography
-                      sx={{
-                        fontSize: "0.72rem",
-                        color: "#64748b",
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {current.sheet.filas.length} Establecimientos ·{" "}
-                      {current.columns.length}{" "}
-                      {current.category === "general" ? "Curvas" : "Tallas"}
-                    </Typography>
-                  </>
-                )}
-              </Stack>
-
-              <Stack direction="row" spacing={1.2} alignItems="center">
-                {[
-                  {
-                    label: "Exacto",
-                    bg: "#f0fdf4",
-                    border: "#86efac",
-                    color: "#15803d",
-                  },
-                  {
-                    label: "Menor",
-                    bg: "#fffbeb",
-                    border: "#fcd34d",
-                    color: "#92400e",
-                  },
-                  {
-                    label: "Excede",
-                    bg: "#fef2f2",
-                    border: "#fca5a5",
-                    color: "#991b1b",
-                  },
-                ].map((l) => (
-                  <Stack
-                    key={l.label}
-                    direction="row"
-                    spacing={0.3}
-                    alignItems="center"
-                  >
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "2px",
-                        bgcolor: l.bg,
-                        border: `1px solid ${l.border}`,
-                      }}
-                    />
-                    <Typography
-                      sx={{
-                        fontSize: "0.6rem",
-                        fontWeight: 700,
-                        color: l.color,
-                      }}
-                    >
-                      {l.label}
-                    </Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            </Box>
-
-            {/* Table */}
-            {current && (
+            {!current ? (
               <Paper
                 elevation={0}
                 sx={{
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  border: "1px solid #e2e8f0",
+                  py: 10,
+                  textAlign: "center",
+                  borderRadius: "8px",
+                  bgcolor: "rgba(255,255,255,0.5)",
+                  border: "2px dashed #cbd5e1",
+                  mt: 4,
                 }}
               >
+                <LocalShippingIcon
+                  sx={{ fontSize: 48, color: "#cbd5e1", mb: 2 }}
+                />
+                <Typography variant="h6" fontWeight={800} color="#64748b">
+                  No hay nada pendiente por despachar
+                </Typography>
+                <Typography variant="body2" color="#94a3b8" mt={1}>
+                  Selecciona otra fecha en la barra superior o comprueba si hay
+                  envíos pendientes.
+                </Typography>
+              </Paper>
+            ) : (
+              <>
+                {/* Consolidated Bar */}
                 <Box
                   sx={{
                     px: 2,
-                    py: 0.6,
-                    bgcolor: "#f8fafc",
-                    borderBottom: "1px solid #e2e8f0",
+                    py: 0.8,
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                    bgcolor: "#ffffff",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: 0.5,
                   }}
                 >
-                  <Stack direction="row" spacing={0.8} alignItems="center">
-                    <SyncIcon sx={{ color: "#6366f1", fontSize: 15 }} />
-                    <Typography
-                      sx={{
-                        fontWeight: 900,
-                        fontSize: "0.75rem",
-                        color: "#334155",
-                      }}
-                    >
-                      TABLA UNIFICADA — REF & INGRESO
-                    </Typography>
-                    <Chip
-                      label="EDITABLE"
-                      size="small"
-                      sx={{
-                        fontWeight: 800,
-                        fontSize: "0.5rem",
-                        height: 16,
-                        bgcolor: "#ede9fe",
-                        color: "#7c3aed",
-                        letterSpacing: 0.3,
-                      }}
-                    />
-                  </Stack>
-                  {isEverythingValid && (
-                    <Chip
-                      icon={<VerifiedIcon sx={{ fontSize: 13 }} />}
-                      label="VERIFICADO"
-                      size="small"
-                      color="success"
-                      sx={{ fontWeight: 800, fontSize: "0.6rem", height: 22 }}
-                    />
-                  )}
-                </Box>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    alignItems="center"
+                    sx={{ minWidth: 0 }}
+                  >
+                    {confirmedEntries.length > 1 ? (
+                      <Tabs
+                        value={safeIndex}
+                        onChange={(_, v) => setSelectedEntry(v)}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        sx={{
+                          minHeight: 32,
+                          "& .MuiTab-root": {
+                            fontWeight: 700,
+                            textTransform: "none",
+                            minHeight: 32,
+                            fontSize: "0.72rem",
+                            py: 0,
+                            px: 1.2,
+                          },
+                          "& .Mui-selected": { color: "#4338ca" },
+                          "& .MuiTabs-indicator": {
+                            bgcolor: "#4338ca",
+                            height: 2.5,
+                            borderRadius: 2,
+                          },
+                        }}
+                      >
+                        {confirmedEntries.map((entry, i) => (
+                          <Tab
+                            key={i}
+                            icon={entry.icon}
+                            iconPosition="start"
+                            label={getTabLabel(entry, i)}
+                          />
+                        ))}
+                      </Tabs>
+                    ) : (
+                      <Chip
+                        icon={current?.icon as any}
+                        label={
+                          current
+                            ? getTabLabel(
+                                current,
+                                confirmedEntries.indexOf(current),
+                              )
+                            : ""
+                        }
+                        size="small"
+                        sx={{
+                          fontWeight: 800,
+                          fontSize: "0.72rem",
+                          bgcolor: "#eef2ff",
+                          color: "#4338ca",
+                          height: 26,
+                        }}
+                      />
+                    )}
 
-                <TableContainer
-                  ref={refTableRef}
-                  sx={{ height: 650, maxHeight: 650, position: "relative" }}
-                >
-                  <Table stickyHeader size="small" sx={{ tableLayout: "auto" }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell
+                    {current && (
+                      <>
+                        <Divider
+                          orientation="vertical"
+                          flexItem
+                          sx={{ height: 18, alignSelf: "center" }}
+                        />
+                        <Typography
                           sx={{
-                            fontWeight: 800,
-                            bgcolor: "#f8fafc",
-                            width: 44,
-                            position: "sticky",
-                            left: 0,
-                            zIndex: 5,
-                            borderRight: "1px solid #e2e8f0",
-                            borderBottom: "2px solid #e2e8f0",
-                            p: 0,
+                            fontSize: "0.72rem",
+                            color: "#64748b",
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {current.sheet.filas.length} Establecimientos ·{" "}
+                          {current.columns.length}{" "}
+                          {current.category === "general" ? "Curvas" : "Tallas"}
+                        </Typography>
+                      </>
+                    )}
+                  </Stack>
+
+                  <Stack direction="row" spacing={1.2} alignItems="center">
+                    {[
+                      {
+                        label: "Exacto",
+                        bg: "#f0fdf4",
+                        border: "#86efac",
+                        color: "#15803d",
+                      },
+                      {
+                        label: "Menor",
+                        bg: "#fffbeb",
+                        border: "#fcd34d",
+                        color: "#92400e",
+                      },
+                      {
+                        label: "Excede",
+                        bg: "#fef2f2",
+                        border: "#fca5a5",
+                        color: "#991b1b",
+                      },
+                    ].map((l) => (
+                      <Stack
+                        key={l.label}
+                        direction="row"
+                        spacing={0.3}
+                        alignItems="center"
+                      >
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "2px",
+                            bgcolor: l.bg,
+                            border: `1px solid ${l.border}`,
                           }}
                         />
-                        <TableCell
+                        <Typography
                           sx={{
-                            fontWeight: 800,
-                            bgcolor: "#f8fafc",
-                            width: 180,
-                            position: "sticky",
-                            left: 44,
-                            zIndex: 4,
-                            borderRight: "2px solid #e2e8f0",
-                            borderBottom: "2px solid #e2e8f0",
-                            fontSize: "0.65rem",
-                            color: "#64748b",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                            py: 0.8,
+                            fontSize: "0.6rem",
+                            fontWeight: 700,
+                            color: l.color,
                           }}
                         >
-                          ESTABLECIMIENTO
-                        </TableCell>
-                        {current.columns.map((col) => (
+                          {l.label}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Box>
+
+                {/* Table */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      px: 2,
+                      py: 0.6,
+                      bgcolor: "#f8fafc",
+                      borderBottom: "1px solid #e2e8f0",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Stack direction="row" spacing={0.8} alignItems="center">
+                      <SyncIcon sx={{ color: "#6366f1", fontSize: 15 }} />
+                      <Typography
+                        sx={{
+                          fontWeight: 900,
+                          fontSize: "0.75rem",
+                          color: "#334155",
+                        }}
+                      >
+                        TABLA UNIFICADA — REF & INGRESO
+                      </Typography>
+                      <Chip
+                        label="EDITABLE"
+                        size="small"
+                        sx={{
+                          fontWeight: 800,
+                          fontSize: "0.5rem",
+                          height: 16,
+                          bgcolor: "#ede9fe",
+                          color: "#7c3aed",
+                          letterSpacing: 0.3,
+                        }}
+                      />
+                    </Stack>
+                    {isEverythingValid && (
+                      <Chip
+                        icon={<VerifiedIcon sx={{ fontSize: 13 }} />}
+                        label="VERIFICADO"
+                        size="small"
+                        color="success"
+                        sx={{ fontWeight: 800, fontSize: "0.6rem", height: 22 }}
+                      />
+                    )}
+                  </Box>
+
+                  <TableContainer
+                    ref={refTableRef}
+                    sx={{ height: 650, maxHeight: 650, position: "relative" }}
+                  >
+                    <Table
+                      stickyHeader
+                      size="small"
+                      sx={{ tableLayout: "auto" }}
+                    >
+                      <TableHead>
+                        <TableRow>
                           <TableCell
-                            key={col}
-                            align="center"
                             sx={{
-                              fontFamily: MONO_FONT,
-                              fontWeight: 900,
+                              fontWeight: 800,
                               bgcolor: "#f8fafc",
-                              fontSize: "0.85rem",
-                              color: "#1e293b",
-                              py: 0.5,
-                              px: 2,
+                              width: 44,
+                              position: "sticky",
+                              left: 0,
+                              zIndex: 5,
+                              borderRight: "1px solid #e2e8f0",
                               borderBottom: "2px solid #e2e8f0",
-                              borderLeft: "1px solid #f1f5f9",
-                              minWidth: 85,
+                              p: 0,
+                            }}
+                          />
+                          <TableCell
+                            sx={{
+                              fontWeight: 800,
+                              bgcolor: "#f8fafc",
+                              width: 180,
+                              position: "sticky",
+                              left: 44,
+                              zIndex: 4,
+                              borderRight: "2px solid #e2e8f0",
+                              borderBottom: "2px solid #e2e8f0",
+                              fontSize: "0.65rem",
+                              color: "#64748b",
+                              textTransform: "uppercase",
+                              letterSpacing: 0.5,
+                              py: 0.8,
                             }}
                           >
-                            {col}
-                            <Typography
-                              sx={{
-                                fontSize: "0.48rem",
-                                color: "#94a3b8",
-                                fontWeight: 600,
-                                textTransform: "uppercase",
-                                letterSpacing: 0.3,
-                                lineHeight: 1,
-                                mt: 0.1,
-                              }}
-                            >
-                              REF / ING
-                            </Typography>
+                            ESTABLECIMIENTO
                           </TableCell>
-                        ))}
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 800,
-                            bgcolor: "#f8fafc",
-                            width: 60,
-                            borderLeft: "2px solid #e2e8f0",
-                            borderBottom: "2px solid #e2e8f0",
-                            fontSize: "0.65rem",
-                            color: "#64748b",
-                          }}
-                        >
-                          TOTAL
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-
-                    <TableBody>
-                      {current.sheet.filas.map((fila: any) => {
-                        const currentId = current?.sheet?.id
-                          ? String(current.sheet.id)
-                          : "";
-                        const currentSheetValidation =
-                          validationData[currentId] || {};
-                        const rowCols = current.getRowColumns(fila);
-                        const rowValidation =
-                          currentSheetValidation[fila.id] || {};
-                        const currentRef = current
-                          ? extractRef(current.sheet)
-                          : "";
-
-                        return (
-                          <MemoizedTableRow
-                            key={fila.id}
-                            fila={fila}
-                            currentSheetId={currentId}
-                            currentRef={currentRef}
-                            rowCols={rowCols}
-                            rowValidation={rowValidation}
-                            activeCell={activeCell}
-                            columns={current.columns}
-                            bloqueosActivos={bloqueosActivos}
-                            user={user}
-                            desmarcarTienda={desmarcarTienda}
-                            intentarBloquear={intentarBloquear}
-                            setSnackbar={setSnackbar}
-                            setActiveCell={setActiveCell}
-                          />
-                        );
-                      })}
-
-                      {/* Totals */}
-                      <TableRow
-                        sx={{ "& td": { borderTop: "2px solid #e2e8f0" } }}
-                      >
-                        <TableCell
-                          sx={{
-                            fontWeight: 900,
-                            fontSize: "0.72rem",
-                            position: "sticky",
-                            left: 0,
-                            bgcolor: "#f1f5f9",
-                            zIndex: 1,
-                            borderRight: "2px solid #e2e8f0",
-                            color: "#475569",
-                            textTransform: "uppercase",
-                            py: 0.4,
-                          }}
-                        >
-                          TOTALES
-                        </TableCell>
-                        {current.columns.map((col) => {
-                          const refTotal = current.columnTotals[col] || 0;
-                          const mirrorTotal = mirrorColumnTotals[col] || 0;
-                          const vs = getValidationStyles(refTotal, mirrorTotal);
-                          return (
+                          {current.columns.map((col) => (
                             <TableCell
-                              key={`t-${col}`}
+                              key={col}
                               align="center"
                               sx={{
-                                bgcolor:
-                                  mirrorTotal > 0 ? vs.bgcolor : "#f8fafc",
+                                fontFamily: MONO_FONT,
+                                fontWeight: 900,
+                                bgcolor: "#f8fafc",
+                                fontSize: "0.85rem",
+                                color: "#1e293b",
+                                py: 0.5,
+                                px: 2,
+                                borderBottom: "2px solid #e2e8f0",
                                 borderLeft: "1px solid #f1f5f9",
-                                py: 0.4,
-                                px: 0.5,
+                                minWidth: 85,
                               }}
                             >
+                              {col}
                               <Typography
                                 sx={{
-                                  fontFamily: MONO_FONT,
-                                  fontSize: "16px",
-                                  color: "#6366f1",
-                                  fontWeight: 700,
-                                  lineHeight: 1.2,
+                                  fontSize: "0.48rem",
+                                  color: "#94a3b8",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                  letterSpacing: 0.3,
+                                  lineHeight: 1,
+                                  mt: 0.1,
                                 }}
                               >
-                                {refTotal}
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  fontFamily: MONO_FONT,
-                                  fontSize: "24px",
-                                  fontWeight: 900,
-                                  lineHeight: 1.2,
-                                  mt: -0.1,
-                                  color: mirrorTotal > 0 ? vs.color : "#94a3b8",
-                                }}
-                              >
-                                {mirrorTotal || "—"}
+                                REF / ING
                               </Typography>
                             </TableCell>
+                          ))}
+                          <TableCell
+                            align="center"
+                            sx={{
+                              fontWeight: 800,
+                              bgcolor: "#f8fafc",
+                              width: 60,
+                              borderLeft: "2px solid #e2e8f0",
+                              borderBottom: "2px solid #e2e8f0",
+                              fontSize: "0.65rem",
+                              color: "#64748b",
+                            }}
+                          >
+                            TOTAL
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+
+                      <TableBody>
+                        {current.sheet.filas.map((fila: any) => {
+                          const currentId = current?.sheet?.id
+                            ? String(current.sheet.id)
+                            : "";
+                          const currentSheetValidation =
+                            validationData[currentId] || {};
+                          const rowCols = current.getRowColumns(fila);
+                          const rowValidation =
+                            currentSheetValidation[fila.id] || {};
+                          const currentRef = current
+                            ? extractRef(current.sheet)
+                            : "";
+
+                          return (
+                            <MemoizedTableRow
+                              key={fila.id}
+                              fila={fila}
+                              currentSheetId={currentId}
+                              currentRef={currentRef}
+                              rowCols={rowCols}
+                              rowValidation={rowValidation}
+                              activeCell={activeCell}
+                              columns={current.columns}
+                              bloqueosActivos={bloqueosActivos}
+                              user={user}
+                              desmarcarTienda={desmarcarTienda}
+                              intentarBloquear={intentarBloquear}
+                              setSnackbar={setSnackbar}
+                              setActiveCell={setActiveCell}
+                            />
                           );
                         })}
-                        <TableCell
-                          align="center"
-                          sx={{
-                            borderLeft: "2px solid #e2e8f0",
-                            bgcolor: "#f1f5f9",
-                            py: 0.4,
-                          }}
+
+                        {/* Totals */}
+                        <TableRow
+                          sx={{ "& td": { borderTop: "2px solid #e2e8f0" } }}
                         >
-                          <Typography
+                          <TableCell
                             sx={{
-                              fontFamily: MONO_FONT,
-                              fontSize: "16px",
-                              color: "#6366f1",
-                              fontWeight: 700,
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            {current.sheet.totalGeneral}
-                          </Typography>
-                          <Typography
-                            sx={{
-                              fontFamily: MONO_FONT,
-                              fontSize: "24px",
                               fontWeight: 900,
-                              lineHeight: 1.2,
-                              mt: -0.1,
-                              color:
-                                mirrorGrandTotal === 0
-                                  ? "#94a3b8"
-                                  : mirrorGrandTotal ===
-                                      current.sheet.totalGeneral
-                                    ? "#15803d"
-                                    : "#dc2626",
+                              fontSize: "0.72rem",
+                              position: "sticky",
+                              left: 0,
+                              bgcolor: "#f1f5f9",
+                              zIndex: 1,
+                              borderRight: "2px solid #e2e8f0",
+                              color: "#475569",
+                              textTransform: "uppercase",
+                              py: 0.4,
                             }}
                           >
-                            {mirrorGrandTotal > 0 ? mirrorGrandTotal : "—"}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
+                            TOTALES
+                          </TableCell>
+                          {current.columns.map((col) => {
+                            const refTotal = current.columnTotals[col] || 0;
+                            const mirrorTotal = mirrorColumnTotals[col] || 0;
+                            const vs = getValidationStyles(
+                              refTotal,
+                              mirrorTotal,
+                            );
+                            return (
+                              <TableCell
+                                key={`t-${col}`}
+                                align="center"
+                                sx={{
+                                  bgcolor:
+                                    mirrorTotal > 0 ? vs.bgcolor : "#f8fafc",
+                                  borderLeft: "1px solid #f1f5f9",
+                                  py: 0.4,
+                                  px: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  sx={{
+                                    fontFamily: MONO_FONT,
+                                    fontSize: "16px",
+                                    color: "#6366f1",
+                                    fontWeight: 700,
+                                    lineHeight: 1.2,
+                                  }}
+                                >
+                                  {refTotal}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontFamily: MONO_FONT,
+                                    fontSize: "24px",
+                                    fontWeight: 900,
+                                    lineHeight: 1.2,
+                                    mt: -0.1,
+                                    color:
+                                      mirrorTotal > 0 ? vs.color : "#94a3b8",
+                                  }}
+                                >
+                                  {mirrorTotal || "—"}
+                                </Typography>
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell
+                            align="center"
+                            sx={{
+                              borderLeft: "2px solid #e2e8f0",
+                              bgcolor: "#f1f5f9",
+                              py: 0.4,
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontFamily: MONO_FONT,
+                                fontSize: "16px",
+                                color: "#6366f1",
+                                fontWeight: 700,
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {current.sheet.totalGeneral}
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontFamily: MONO_FONT,
+                                fontSize: "24px",
+                                fontWeight: 900,
+                                lineHeight: 1.2,
+                                mt: -0.1,
+                                color:
+                                  mirrorGrandTotal === 0
+                                    ? "#94a3b8"
+                                    : mirrorGrandTotal ===
+                                        current.sheet.totalGeneral
+                                      ? "#15803d"
+                                      : "#dc2626",
+                              }}
+                            >
+                              {mirrorGrandTotal > 0 ? mirrorGrandTotal : "—"}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+              </>
             )}
           </Stack>
 

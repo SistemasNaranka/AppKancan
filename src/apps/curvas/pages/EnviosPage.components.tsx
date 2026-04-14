@@ -13,8 +13,10 @@ import {
   Tooltip,
   Chip,
   Stack,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
-import { CheckCircle, Lock } from "@mui/icons-material";
+import { CheckCircle, Lock, Close } from "@mui/icons-material";
 import {
   BRAND,
   MONO_FONT,
@@ -30,6 +32,7 @@ interface DebouncedSearchInputProps {
   onChange: (val: string) => void;
   placeholder?: string;
   sx?: any;
+  disabled?: boolean;
 }
 
 export const DebouncedSearchInput = ({
@@ -37,6 +40,7 @@ export const DebouncedSearchInput = ({
   onChange,
   placeholder,
   sx,
+  disabled,
 }: DebouncedSearchInputProps) => {
   const [localValue, setLocalValue] = useState(value);
 
@@ -55,12 +59,48 @@ export const DebouncedSearchInput = ({
 
   return (
     <TextField
-      label="Referencia"
       size="small"
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}
       placeholder={placeholder}
-      sx={sx}
+      disabled={disabled}
+      InputProps={{
+        endAdornment: localValue ? (
+          <InputAdornment position="end">
+            <IconButton
+              onClick={() => {
+                setLocalValue("");
+                onChange("");
+              }}
+              size="small"
+              sx={{ color: "rgba(255,255,255,0.7)", p: 0.2 }}
+            >
+              <Close fontSize="small" />
+            </IconButton>
+          </InputAdornment>
+        ) : null,
+      }}
+      sx={{
+        ...sx,
+        "& .MuiOutlinedInput-root": {
+          color: "white",
+          "& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
+          "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+          "&.Mui-focused fieldset": { borderColor: "white" },
+          "&.Mui-disabled": {
+            color: "rgba(255,255,255,0.3)",
+            "& fieldset": { borderColor: "rgba(255,255,255,0.1)" },
+          },
+        },
+        "& .MuiInputBase-input": {
+          color: "white",
+          "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
+          "&::placeholder": {
+            color: "rgba(255,255,255,0.5)",
+            opacity: 1,
+          },
+        },
+      }}
     />
   );
 };
@@ -496,27 +536,51 @@ export const MemoizedTableRow = React.memo(
 // CustomDay component for DatePicker
 // ─────────────────────────────────────────────
 import { Dayjs } from "dayjs";
-import { PickersDay, PickersDayProps } from "@mui/x-date-pickers/PickersDay";
+import { PickersDay } from "@mui/x-date-pickers/PickersDay";
 import { Badge } from "@mui/material";
 
-interface CustomDayProps extends Omit<PickersDayProps<any>, "onDaySelect"> {
+interface CustomDayProps {
+  day: Dayjs;
+  outsideCurrentMonth: boolean;
   fechasConDatos: Record<string, "pendiente" | "enviado">;
+  selected?: boolean;
+  onClick?: () => void;
+  onDaySelect: (day: Dayjs | Date) => void;
+  isFirstVisibleCell: boolean;
+  isLastVisibleCell: boolean;
+  [key: string]: any;
 }
 
 export const CustomDay = ({
   day,
   outsideCurrentMonth,
   fechasConDatos,
+  selected,
+  onClick,
+  onDaySelect,
+  isFirstVisibleCell,
+  isLastVisibleCell,
   ...other
 }: CustomDayProps) => {
   const dateStr = day.format("YYYY-MM-DD");
   const estado = fechasConDatos[dateStr];
 
-  let content = <PickersDay {...{ day, outsideCurrentMonth, ...other }} />;
+  const baseContent = (
+    <PickersDay
+      day={day}
+      outsideCurrentMonth={outsideCurrentMonth}
+      selected={selected}
+      onClick={onClick}
+      onDaySelect={onDaySelect}
+      isFirstVisibleCell={isFirstVisibleCell}
+      isLastVisibleCell={isLastVisibleCell}
+      {...other}
+    />
+  );
 
   if (estado && !outsideCurrentMonth) {
     if (estado === "enviado") {
-      content = (
+      return (
         <Badge
           overlap="circular"
           badgeContent={
@@ -524,18 +588,17 @@ export const CustomDay = ({
               sx={{
                 fontSize: 12,
                 color: "#22c55e",
-                bgcolor: "white",
-                borderRadius: "50%",
+                bgcolor: "#ffffff",
               }}
             />
           }
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
-          {content}
+          {baseContent}
         </Badge>
       );
     } else {
-      content = (
+      return (
         <Badge
           color="warning"
           variant="dot"
@@ -551,11 +614,11 @@ export const CustomDay = ({
             },
           }}
         >
-          {content}
+          {baseContent}
         </Badge>
       );
     }
   }
 
-  return content;
+  return baseContent;
 };

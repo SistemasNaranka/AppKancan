@@ -31,7 +31,7 @@ export const useCurvasPolicies = () => {
      * - Basado en política explícita o área coordinada
      */
     const esBodega = (): boolean => {
-        return hasPolicy('CurvasBodega') || esAreaBodega();
+        return hasPolicy('CurvasBodegaDespacho') || hasPolicy('CurvasBodega') || esAreaBodega();
     };
 
     /**
@@ -49,8 +49,8 @@ export const useCurvasPolicies = () => {
         if (tienePoliticaAdmin) return true;
 
         // If they don't have admin policies, we check the role with a fallback for 'sistemas'
-        // 'sistemas' is admin ONLY if they don't have the restricted 'CurvasBodega' policy
-        const esSistemasAdmin = (rolName === 'sistemas' && !hasPolicy('CurvasBodega'));
+        // 'sistemas' is admin ONLY if they don't have the restricted 'CurvasBodegaDespacho' or 'CurvasBodega' policy
+        const esSistemasAdmin = (rolName === 'sistemas' && !hasPolicy('CurvasBodegaDespacho') && !hasPolicy('CurvasBodega'));
 
 
 

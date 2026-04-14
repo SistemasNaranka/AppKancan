@@ -620,8 +620,8 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
               label="Mes de Aplicación"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              SelectProps={{ native: true }}
               slotProps={{
+                select: { native: true },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
