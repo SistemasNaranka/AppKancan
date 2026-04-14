@@ -5,13 +5,25 @@ import React, {
   useEffect,
   useMemo,
   useReducer,
-} from "react";
-import { Contrato, ContratoStats, UIFilters, TabValue } from "../types/types";
-import { getContratos, getContratoStats } from "../api";
-import { useAuth } from "@/auth/hooks/useAuth";
+} from 'react';
+import {
+  Contrato,
+  ContratoStats,
+  UIFilters,
+  TabValue,
+  CreateProrrogaPayload,
+  CreateContrato,
+  UpdateContrato,
+  Prorroga,
+  UpdateProrroga,
+} from '../types/types';
+import { getContratos, getContratoStats } from '../api';
+import { crearProrroga, crearContrato, cambiarRequestStatus, actualizarProrroga, eliminarProrroga, actualizarContrato, eliminarContrato } from '../api';
+import { getNextProrrogaNumber } from '../lib/utils';
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 import { setTokenDirectus } from "@/services/directus/auth";
 import { daysUntil, getContractStatus } from "../lib/utils";
+import { useAuth } from '@/auth/hooks/useAuth';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STATE
@@ -26,6 +38,7 @@ interface State {
   saving: boolean;
   error: string | null;
   successMsg: string | null;
+  //fecha_ingreso: Date;
 }
 
 const initialState: State = {
@@ -44,15 +57,17 @@ const initialState: State = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Action =
-  | { type: "SET_LOADING"; payload: boolean }
-  | { type: "SET_SAVING"; payload: boolean }
-  | { type: "SET_CONTRATOS"; payload: Contrato[] }
-  | { type: "SET_STATS"; payload: ContratoStats }
-  | { type: "SELECT"; payload: number | null }
-  | { type: "SET_FILTER"; payload: Partial<UIFilters> }
-  | { type: "SET_TAB"; payload: TabValue }
-  | { type: "SET_ERROR"; payload: string | null }
-  | { type: "SET_SUCCESS"; payload: string | null };
+  | { type: 'SET_LOADING';    payload: boolean }
+  | { type: 'SET_SAVING';     payload: boolean }
+  | { type: 'SET_CONTRATOS';  payload: Contrato[] }
+  | { type: 'SET_STATS';      payload: ContratoStats }
+  | { type: 'SELECT';         payload: number | null }
+  | { type: 'SET_FILTER';     payload: Partial<UIFilters> }
+  | { type: 'SET_TAB';        payload: TabValue }
+  | { type: 'ADD_PRORROGA';   payload: { contratoId: number; prorroga: Prorroga } }
+  | { type: 'ADD_CONTRATO';   payload: Contrato }
+  | { type: 'SET_ERROR';      payload: string | null }
+  | { type: 'SET_SUCCESS';    payload: string | null };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -74,7 +89,23 @@ function reducer(state: State, action: Action): State {
         filters: { ...state.filters, tab: action.payload },
         selectedId: null,
       };
-    case "SET_ERROR":
+    case 'ADD_PRORROGA':
+      return {
+        ...state,
+        saving: false,
+        contratos: state.contratos.map((c) =>
+          c.id === action.payload.contratoId
+            ? { ...c, prorrogas: [...(c.prorrogas ?? []), action.payload.prorroga] }
+            : c,
+        ),
+      };
+    case 'ADD_CONTRATO':
+      return {
+        ...state,
+        saving: false,
+        contratos: [action.payload, ...state.contratos],
+      };
+    case 'SET_ERROR':
       return { ...state, error: action.payload, saving: false };
     case "SET_SUCCESS":
       return { ...state, successMsg: action.payload };
@@ -103,6 +134,12 @@ interface ContextValue extends State {
   select: (id: number | null) => void;
   setTab: (tab: TabValue) => void;
   setFilter: (f: Partial<UIFilters>) => void;
+  addProrroga: (payload: CreateProrrogaPayload) => Promise<void>;
+  updateProrroga: (id: number, updates: UpdateProrroga) => Promise<void>;
+  deleteProrroga: (id: number) => Promise<boolean>;
+  addContrato: (payload: CreateContrato) => Promise<void>;
+  updateContrato: (id: number, updates: UpdateContrato) => Promise<void>;
+  deleteContrato: (id: number) => Promise<boolean>;
   clearMessages: () => void;
 }
 
@@ -151,11 +188,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           return `${a.nombre} ${a.apellido}`.localeCompare(
             `${b.nombre} ${b.apellido}`,
           );
-        if (state.filters.sortBy === "fecha_ingreso")
-          return (
-            new Date(a.fecha_ingreso).getTime() -
-            new Date(b.fecha_ingreso).getTime()
-          );
+        if (state.filters.sortBy === "prorroga")
+          return (b.prorrogas?.length ?? 0) - (a.prorrogas?.length ?? 0);
         return 0;
       });
   }, [state.contratos, state.filters.search, state.filters.sortBy]);
@@ -189,10 +223,150 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     dispatch({ type: "SET_FILTER", payload: f });
   }, []);
 
+  const addProrroga = useCallback(async (payload: CreateProrrogaPayload) => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const contrato = state.contratos.find((c) => c.id === payload.contractId);
+      if (!contrato) throw new Error('Contrato no encontrado.');
+
+      const numero = getNextProrrogaNumber(contrato.prorrogas ?? []);
+
+      const prorroga = await crearProrroga({
+        contrato_id:  payload.contractId,
+        numero,
+        fecha_inicio: payload.fechaInicio,
+        descripcion:  payload.descripcion,
+      });
+
+      if (!prorroga) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al crear la prórroga.' });
+        return;
+      }
+
+      dispatch({
+        type: 'ADD_PRORROGA',
+        payload: { contratoId: payload.contractId, prorroga },
+      });
+      dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga registrada exitosamente.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar la prórroga.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }, [state.contratos]);
+
+  const addContrato = useCallback(async (payload: CreateContrato) => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const nuevoContrato = await crearContrato(payload);
+
+      if (!nuevoContrato) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al crear el contrato.' });
+        return;
+      }
+
+      // Inicializar el contrato con arrays vacíos para prorrogas y documentos
+      const contratoCompleto: Contrato = {
+        ...nuevoContrato,
+        prorrogas: [],
+        documentos: [],
+      };
+
+      dispatch({
+        type: 'ADD_CONTRATO',
+        payload: contratoCompleto,
+      });
+      dispatch({ type: 'SET_SUCCESS', payload: 'Contrato registrado exitosamente.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar el contrato.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }, []);
+
   const clearMessages = useCallback(() => {
     dispatch({ type: "SET_ERROR", payload: null });
     dispatch({ type: "SET_SUCCESS", payload: null });
   }, []);
+
+  // Funciones CRUD para Prórrogas
+  const updateProrroga = useCallback(async (id: number, updates: UpdateProrroga) => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const updated = await actualizarProrroga(id, updates);
+      if (!updated) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al actualizar la prórroga.' });
+        return;
+      }
+      // Actualizar la prórga en el contrato correspondiente
+      dispatch({ type: 'SET_SAVING', payload: false });
+      dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga actualizada exitosamente.' });
+      // Recargar contratos para obtener datos actualizados
+      await loadContratos();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al actualizar la prórga.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }, [loadContratos]);
+
+  const deleteProrroga = useCallback(async (id: number): Promise<boolean> => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const success = await eliminarProrroga(id);
+      if (!success) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al eliminar la prórga.' });
+        dispatch({ type: 'SET_SAVING', payload: false });
+        return false;
+      }
+      // Recargar contratos para actualizar la lista
+      await loadContratos();
+      dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga eliminada exitosamente.' });
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar la prórga.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+      dispatch({ type: 'SET_SAVING', payload: false });
+      return false;
+    }
+  }, [loadContratos]);
+
+  // Funciones CRUD para Contratos
+  const updateContrato = useCallback(async (id: number, updates: UpdateContrato) => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const updated = await actualizarContrato(id, updates);
+      if (!updated) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al actualizar el contrato.' });
+        return;
+      }
+      dispatch({ type: 'SET_SAVING', payload: false });
+      dispatch({ type: 'SET_SUCCESS', payload: 'Contrato actualizado exitosamente.' });
+      // Recargar contratos para obtener datos actualizados
+      await loadContratos();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al actualizar el contrato.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }, [loadContratos]);
+
+  const deleteContrato = useCallback(async (id: number): Promise<boolean> => {
+    dispatch({ type: 'SET_SAVING', payload: true });
+    try {
+      const success = await eliminarContrato(id);
+      if (!success) {
+        dispatch({ type: 'SET_ERROR', payload: 'Error al eliminar el contrato.' });
+        dispatch({ type: 'SET_SAVING', payload: false });
+        return false;
+      }
+      // Recargar contratos para actualizar la lista
+      await loadContratos();
+      dispatch({ type: 'SET_SUCCESS', payload: 'Contrato eliminado exitosamente.' });
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar el contrato.';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+      dispatch({ type: 'SET_SAVING', payload: false });
+      return false;
+    }
+  }, [loadContratos]);
 
   // ─── Esperar a que AuthProvider termine antes de disparar queries ─────────
   // AuthProvider inicializa el token de forma asíncrona. Si disparamos
@@ -229,18 +403,15 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       select,
       setTab,
       setFilter,
+      addProrroga,
+      updateProrroga,
+      deleteProrroga,
+      addContrato,
+      updateContrato,
+      deleteContrato,
       clearMessages,
     }),
-    [
-      state,
-      selectedContrato,
-      filteredContratos,
-      loadContratos,
-      select,
-      setTab,
-      setFilter,
-      clearMessages,
-    ],
+    [state, selectedContrato, loadContratos, select, setTab, setFilter, addProrroga, updateProrroga, deleteProrroga, addContrato, updateContrato, deleteContrato, clearMessages],
   );
 
   return (

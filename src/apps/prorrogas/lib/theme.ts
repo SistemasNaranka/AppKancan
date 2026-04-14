@@ -75,8 +75,8 @@ export const theme = createTheme({
       styleOverrides: {
         root: { borderRadius: 10, textTransform: 'none', fontWeight: 700 },
         containedPrimary: {
-          background: 'linear-gradient(135deg, #004680, #0070c0)',
-          '&:hover': { background: 'linear-gradient(135deg, #002d54, #005a8e)' },
+          background: "#004680",
+          '&:hover': { background: "#005aa3" },
         },
       },
     },
