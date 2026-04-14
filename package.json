@@ -1,7 +1,8 @@
 {
-  "name": "react-app",
+  "name": "app-kancan",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.10.5",
+  "license": "All Rights Reserved",
   "type": "module",
   "scripts": {
     "dev": "vite --host",

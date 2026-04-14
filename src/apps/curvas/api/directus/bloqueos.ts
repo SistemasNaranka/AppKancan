@@ -12,10 +12,10 @@ const COLLECTION = 'log_curve_scans';
 export const obtenerBloqueosActivos = async (referencia?: string): Promise<BloqueoEscaner[]> => {
   try {
     // Calculamos el timestamp de hace 5 minutos
-    const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const tresMinutosAtras = new Date(Date.now() - 3 * 60 * 1000).toISOString();
 
     const filter: any = {
-      ultima_actividad: { _gte: cincoMinutosAtras } // Solo los activos recientes
+      ultima_actividad: { _gte: tresMinutosAtras } // Solo los activos recientes
     };
     
     if (referencia) {
