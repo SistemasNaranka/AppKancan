@@ -30,13 +30,29 @@ import {
   Sync as SyncIcon,
   Verified as VerifiedIcon,
   Dashboard as DashboardIcon,
-  Analytics as AnalyticsIcon,
-  ShoppingBag as ShoppingBagIcon,
-  DoNotStep as DoNotStepIcon,
+  Delete as DeleteIcon,
+  CheckCircle,
+  Send as SendIcon,
+  Save as SaveIcon,
 } from "@mui/icons-material";
 import { useCurvas } from "../contexts/CurvasContext";
 import { useAuth } from "@/auth/hooks/useAuth";
-import { getLogCurvas, getResumenFechasCurvas } from "../api/directus/read";
+import {
+  getLogCurvas,
+  getEnviosCurvas,
+  getResumenFechasCurvas,
+} from "../api/directus/read";
+import {
+  saveLogsBatch,
+  saveEnviosBatch,
+  deleteEnvioDrafts,
+} from "../api/directus/create";
+import {
+  type LogCurvas,
+  type FilaMatrizGeneral,
+  type FilaDetalleProducto,
+} from "../types";
+
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 import "@fontsource/inter/800.css";
@@ -58,6 +74,8 @@ import {
   CATEGORY_CONFIG,
   getValidationStyles,
   type ConfirmedEntry,
+  type SheetCategory,
+  type SheetData,
 } from "./EnviosPage.utils";
 import {
   DebouncedSearchInput,
@@ -75,9 +93,9 @@ const EnviosPage = () => {
   const {
     datosCurvas,
     actualizarValorValidacion,
+    limpiarValidacion,
     userRole,
     lastLogsUpdate,
-    tiendasDict,
     extractRef,
     guardarEnvioDespacho,
     notificacionCambios,
@@ -86,6 +104,9 @@ const EnviosPage = () => {
     intentarBloquear,
     desmarcarTienda,
     validationData,
+    setValidationData,
+    tiendasDict,
+    refreshLogs,
   } = useCurvas();
 
   // ── State ─────────────────────────────────
@@ -102,9 +123,11 @@ const EnviosPage = () => {
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [filtroFecha, setFiltroFecha] = useState<Dayjs | null>(dayjs());
   const [filtroReferencia, setFiltroReferencia] = useState<string>("");
-  const [logCurvasData, setLogCurvasData] = useState<any[]>([]);
+  const [logCurvasData, setLogCurvasData] = useState<LogCurvas[]>([]);
+  const [enviosCurvasData, setEnviosCurvasData] = useState<any[]>([]);
   const [loadingLogCurvas, setLoadingLogCurvas] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [fechasConDatos, setFechasConDatos] = useState<
     Record<string, "pendiente" | "enviado">
   >({});
@@ -113,8 +136,10 @@ const EnviosPage = () => {
     col: string;
     sheetId: string;
   } | null>(null);
-
+  const [sentEntryKeys, setSentEntryKeys] = useState<Set<string>>(new Set());
+  const hydratedSheetsRef = useRef<Set<string>>(new Set());
   const refTableRef = useRef<HTMLDivElement>(null);
+
   const initDateChecked = useRef(false);
 
   // ── Portal target effect ─────────────────
@@ -157,11 +182,18 @@ const EnviosPage = () => {
     const fetchLogCurvasYTiendas = async () => {
       setLoadingLogCurvas(true);
       try {
-        const data = await getLogCurvas(
-          filtroFecha ? filtroFecha.format("YYYY-MM-DD") : undefined,
-          filtroReferencia || undefined,
-        );
-        setLogCurvasData(data || []);
+        const [logs, envios] = await Promise.all([
+          getLogCurvas(
+            filtroFecha ? filtroFecha.format("YYYY-MM-DD") : undefined,
+            filtroReferencia || undefined,
+          ),
+          getEnviosCurvas(
+            filtroFecha ? filtroFecha.format("YYYY-MM-DD") : undefined,
+            filtroReferencia || undefined,
+          ),
+        ]);
+        setLogCurvasData(logs || []);
+        setEnviosCurvasData(envios || []);
       } catch (error) {
         console.error("Error fetching logs in EnviosPage:", error);
       } finally {
@@ -175,315 +207,358 @@ const EnviosPage = () => {
   }, [filtroFecha, filtroReferencia, userRole, lastLogsUpdate]);
 
   // ── Build confirmed entries ──────────────
-  const confirmedEntries = useMemo<any[]>(() => {
+  // Defined here to avoid "columnas" property errors on official types
+  type InternalCell = {
+    talla: string;
+    cantidad: number;
+    esCero: boolean;
+    esMayorQueCero: boolean;
+  };
+  type InternalFila = (FilaMatrizGeneral | FilaDetalleProducto) & {
+    columnas: InternalCell[];
+    total: number;
+    validationValues: any;
+  };
+
+  const confirmedEntries = useMemo<ConfirmedEntry[]>(() => {
     const entries: ConfirmedEntry[] = [];
-    const seenRefs = new Set<string>();
-
-    // 1. Registros de BD (prioridad)
     if (logCurvasData && logCurvasData.length > 0) {
-      const allLogs = logCurvasData;
       const groupedLogs: Record<string, any[]> = {};
-
-      allLogs.forEach((log: any) => {
+      logCurvasData.forEach((log: LogCurvas) => {
         let rawRef = log.referencia || "SIN REF";
         let colorParsed = "";
         let ref = rawRef.replace(/^REF:\s*/i, "").trim();
-
         if (ref.includes(" | ")) {
           const parts = ref.split(" | ");
           ref = parts[0].trim();
           colorParsed = parts[1].trim();
         }
-
-        const groupKey = `${log.plantilla}|${ref}`;
+        const groupKey = `${log.plantilla}|${ref}|${colorParsed}`;
         if (!groupedLogs[groupKey]) groupedLogs[groupKey] = [];
-        log._color_extraido = colorParsed;
+        (log as any)._color_extraido = colorParsed;
         groupedLogs[groupKey].push(log);
       });
 
       Object.entries(groupedLogs).forEach(([key, logs]) => {
-        const [plantilla, refKey] = key.split("|");
-        const sortedLogs = [...logs].sort((a, b) => {
-          const timeA = new Date(a.fecha).getTime();
-          const timeB = new Date(b.fecha).getTime();
-          if (timeA !== timeB) return timeA - timeB;
-          return Number(a.id) - Number(b.id);
+        const [plantilla, refKey, colorFinal] = key.split("|");
+        const entryKey = `${plantilla === "matriz_general" ? "general" : "producto_a"}|${refKey}|${colorFinal}`;
+
+        if (sentEntryKeys.has(entryKey)) return;
+
+        const lastLog = logs[0];
+
+        const uniqueColumns = Array.from(
+          new Set(
+            logs.flatMap((l) => {
+              const tallasRaw = l.cantidad_talla || "[]";
+              const parsed =
+                typeof tallasRaw === "string"
+                  ? JSON.parse(tallasRaw)
+                  : tallasRaw;
+              const items = Array.isArray(parsed) ? parsed : [];
+              return items.map((p: any) =>
+                String(p.talla || p.numero || "").padStart(2, "0"),
+              );
+            }),
+          ),
+        )
+          .filter((c) => c && c !== "00")
+          .sort();
+
+        // Add deduplication logic to align with CurvasContext/Dashboard
+        const tiendasProcesadas = new Set<string>();
+        const logsDeduplicados = logs.filter((l: any) => {
+          const tId = String(l.tienda_id);
+          if (tiendasProcesadas.has(tId)) return false; // Already have latest for this store
+          tiendasProcesadas.add(tId);
+          return true;
         });
-        const lastLog = sortedLogs[sortedLogs.length - 1];
-        const colorFinal = lastLog._color_extraido || "—";
-        const refBase = refKey.split(" | ")[0].trim();
 
-        const entryKey = `${plantilla === "matriz_general" ? "general" : "producto_a"}|${refBase}`;
-        if (refBase !== "SIN REF") seenRefs.add(entryKey);
+        // Agrupación por Tienda para evitar duplicados en la visualización
+        const logsCategorizados = logsDeduplicados.reduce(
+          (acc: any, l: any) => {
+            const tId = String(l.tienda_id);
+            const tNombre =
+              tiendasDict[tId] || l.tienda_nombre || `Tienda ${tId}`;
 
-        const filasMap = new Map<string, any>();
-        const allColumnsSet = new Set<string>();
-        const logsAUsarMap = new Map<string, any>();
-        sortedLogs.forEach((log: any) =>
-          logsAUsarMap.set(String(log.tienda_id), log),
-        );
-        const logsAUsar = Array.from(logsAUsarMap.values());
-
-        logsAUsar.forEach((log: any) => {
-          let parsedTallas: any[] = [];
-          try {
-            parsedTallas =
-              typeof log.cantidad_talla === "string"
-                ? JSON.parse(log.cantidad_talla)
-                : log.cantidad_talla;
-          } catch (e) {}
-
-          const columnsData: Record<string, any> = {};
-          let rowTotal = 0;
-
-          if (Array.isArray(parsedTallas)) {
-            parsedTallas.forEach((item: any) => {
-              const colStr =
-                plantilla === "matriz_general"
-                  ? String(item.talla).padStart(2, "0")
-                  : String(item.talla);
-              columnsData[colStr] = {
-                valor: item.cantidad || 0,
-                esCero: (item.cantidad || 0) === 0,
-                esMayorQueCero: (item.cantidad || 0) > 0,
+            if (!acc[tId]) {
+              acc[tId] = {
+                id: tId,
+                tienda: {
+                  id: tId,
+                  nombre: tNombre,
+                  codigo: tId,
+                },
+                columnasMap: {} as Record<string, number>,
+                rowData: {} as Record<string, any>,
+                total: 0,
+                validationValues: validationData[entryKey]?.[tId] || {},
               };
-              rowTotal += item.cantidad || 0;
-              allColumnsSet.add(colStr);
-            });
-          }
+            }
 
-          const storeIdStr = String(log.tienda_id);
-          filasMap.set(storeIdStr, {
-            id: storeIdStr,
-            tienda: {
-              id: log.tienda_id,
-              codigo: log.tienda_codigo || "",
-              nombre:
-                tiendasDict[log.tienda_id] ||
-                log.tienda_nombre ||
-                `Tienda ${log.tienda_id}`,
-            },
-            total: rowTotal,
-            ...(plantilla === "matriz_general"
-              ? { curvas: columnsData }
-              : { tallas: columnsData }),
+            const tallasRaw = l.cantidad_talla || "[]";
+            const parsed =
+              typeof tallasRaw === "string" ? JSON.parse(tallasRaw) : tallasRaw;
+            const items = Array.isArray(parsed) ? parsed : [];
+
+            items.forEach((ct: any) => {
+              const colName = String(ct.talla || ct.numero || "").padStart(
+                2,
+                "0",
+              );
+              if (!colName || colName === "00") return;
+
+              const qty = Number(ct.cantidad) || 0;
+              acc[tId].columnasMap[colName] =
+                (acc[tId].columnasMap[colName] || 0) + qty;
+              acc[tId].total += qty;
+            });
+
+            return acc;
+          },
+          {},
+        );
+
+        const aggregatedFilas: InternalFila[] = Object.keys(
+          logsCategorizados,
+        ).map((tId) => {
+          const columnsArray: InternalCell[] = uniqueColumns.map((col) => {
+            const qty = logsCategorizados[tId].columnasMap[col] || 0;
+            return {
+              talla: col,
+              cantidad: qty,
+              esCero: qty === 0,
+              esMayorQueCero: qty > 0,
+            };
           });
+
+          const base = {
+            id: tId,
+            tienda: logsCategorizados[tId].tienda,
+            columnas: columnsArray,
+            total: logsCategorizados[tId].total,
+            validationValues: logsCategorizados[tId].validationValues || {},
+          };
+
+          if (plantilla === "matriz_general") {
+            const curvas: any = {};
+            columnsArray.forEach(
+              (c) =>
+                (curvas[c.talla] = {
+                  valor: c.cantidad,
+                  id: `${tId}-${c.talla}`,
+                  esCero: c.esCero,
+                  esMayorQueCero: c.esMayorQueCero,
+                }),
+            );
+            return { ...base, curvas } as InternalFila;
+          } else {
+            const tallas: any = {};
+            columnsArray.forEach(
+              (c) =>
+                (tallas[c.talla] = {
+                  valor: c.cantidad,
+                  id: `${tId}-${c.talla}`,
+                  esCero: c.esCero,
+                  esMayorQueCero: c.esMayorQueCero,
+                }),
+            );
+            return { ...base, tallas } as InternalFila;
+          }
         });
 
-        const filas = Array.from(filasMap.values()).sort((a, b) =>
-          (a.tienda.nombre || "").localeCompare(b.tienda.nombre || ""),
-        );
-        const sortedColumns = Array.from(allColumnsSet).sort(
-          (a, b) => Number(a) - Number(b),
-        );
-
-        const columnTotals: Record<string, number> = {};
-        sortedColumns.forEach((c) => {
-          columnTotals[c] = filas.reduce(
-            (sum: number, f: any) =>
-              sum + (f.curvas?.[c]?.valor || f.tallas?.[c]?.valor || 0),
+        // Totales de referencia por columna para el footer
+        const referenceTotals: Record<string, number> = {};
+        uniqueColumns.forEach((col) => {
+          referenceTotals[col] = Object.values(logsCategorizados).reduce(
+            (acc: number, t: any) => {
+              return acc + (Number(t.columnasMap[col]) || 0);
+            },
             0,
           );
         });
 
-        const category =
-          plantilla === "matriz_general" ? "general" : "producto_a";
+        const config =
+          CATEGORY_CONFIG[
+            plantilla === "matriz_general"
+              ? "general"
+              : ("producto_a" as SheetCategory)
+          ];
 
         entries.push({
-          category,
-          label: `REF: ${refBase}`,
-          icon:
-            category === "general" ? (
-              <AnalyticsIcon sx={{ fontSize: 16 }} />
-            ) : (
-              <ShoppingBagIcon sx={{ fontSize: 16 }} />
-            ),
-          accent: category === "general" ? "#4f46e5" : "#0891b2",
+          id: entryKey,
+          ref: refKey,
+          label: `REF: ${refKey} | ${colorFinal}`,
+          category: plantilla === "matriz_general" ? "general" : "producto_a",
+          icon: config.icon as React.ReactElement,
+          accent: config.accent,
           sheet: {
-            id: refBase,
-            nombreHoja: refBase,
-            estado: "confirmado",
-            filas,
-            totalGeneral: filas.reduce(
-              (sum: number, f: any) => sum + f.total,
+            id: entryKey,
+            logId: logs.map((l) => String(l.id)).join(","),
+            nombreHoja: lastLog.archivo || "Sin nombre",
+            referencia: refKey,
+            filas: aggregatedFilas as any[],
+            totalGeneral: aggregatedFilas.reduce(
+              (acc: number, f) => acc + (f.total || 0),
               0,
             ),
-            ...(plantilla === "matriz_general"
-              ? {
-                  curvas: sortedColumns,
-                  totalesPorCurva: columnTotals,
-                  referencia: refBase,
-                  metadatos: { color: colorFinal },
-                }
-              : {
-                  tallas: sortedColumns,
-                  metadatos: { referencia: refBase, color: colorFinal },
-                  totalesPorTalla: columnTotals,
-                }),
-          } as any,
-          columns: sortedColumns,
-          getRowColumns: (fila: any) =>
-            Object.fromEntries(
-              sortedColumns.map((c: string) => [
-                c,
-                (fila.curvas || fila.tallas || {})[c]?.valor || 0,
-              ]),
-            ),
-          columnTotals,
+          },
+          columns: uniqueColumns,
+          columnTotals: referenceTotals,
+          getRowColumns: (fila: any) => {
+            const res: Record<string, number> = {};
+            (fila.columnas || []).forEach((c: any) => {
+              res[c.talla] = c.cantidad;
+            });
+            return res;
+          },
         });
       });
     }
-
-    // 2. Matriz en memoria
-    if (datosCurvas) {
-      (datosCurvas.matrizGeneral || [])
-        .filter((s) => s.estado === "confirmado")
-        .forEach((sheet) => {
-          const ref = extractRef(sheet);
-          const entryKey = `general|${ref}`;
-          if (seenRefs.has(entryKey)) return;
-          if (ref !== "SIN REF") seenRefs.add(entryKey);
-
-          const color = (sheet as any).metadatos?.color || "—";
-          entries.push({
-            category: "general",
-            label: `REF: ${ref}`,
-            icon: <AnalyticsIcon sx={{ fontSize: 16 }} />,
-            accent: "#4f46e5",
-            sheet: {
-              ...sheet,
-              referencia: ref,
-              metadatos: { ...(sheet as any).metadatos, color },
-            } as any,
-            columns: sheet.curvas || [],
-            getRowColumns: (fila: any) =>
-              Object.fromEntries(
-                (sheet.curvas || []).map((c: string) => [
-                  c,
-                  (fila.curvas || {})[c]?.valor || 0,
-                ]),
-              ),
-            columnTotals: sheet.totalesPorCurva || {},
-          });
-        });
-
-      (datosCurvas.productos || [])
-        .filter((s) => s.estado === "confirmado")
-        .forEach((sheet) => {
-          const ref = extractRef(sheet);
-          const category =
-            (sheet as any).tipo === "detalle_producto_b"
-              ? "producto_b"
-              : "producto_a";
-          const entryKey = `${category}|${ref}`;
-          if (seenRefs.has(entryKey)) return;
-          if (ref !== "SIN REF") seenRefs.add(entryKey);
-
-          const color = sheet.metadatos?.color || "—";
-          entries.push({
-            category,
-            label: `REF: ${ref}`,
-            icon:
-              category === "producto_a" ? (
-                <ShoppingBagIcon sx={{ fontSize: 16 }} />
-              ) : (
-                <DoNotStepIcon sx={{ fontSize: 16 }} />
-              ),
-            accent: category === "producto_a" ? "#0891b2" : "#7c3aed",
-            sheet: {
-              ...sheet,
-              metadatos: { ...sheet.metadatos, referencia: ref, color },
-            } as any,
-            columns: sheet.tallas || [],
-            getRowColumns: (fila: any) =>
-              Object.fromEntries(
-                (sheet.tallas || []).map((t: string) => [
-                  t,
-                  (fila.tallas || {})[t]?.valor || 0,
-                ]),
-              ),
-            columnTotals: sheet.totalesPorTalla || {},
-          });
-        });
-    }
-
     return entries;
-  }, [datosCurvas, logCurvasData, tiendasDict, extractRef]);
+  }, [logCurvasData, sentEntryKeys, validationData, tiendasDict]);
 
-  const safeIndex = Math.min(
-    selectedEntry,
-    Math.max(0, confirmedEntries.length - 1),
-  );
-  const current = confirmedEntries[safeIndex] as ConfirmedEntry | undefined;
+  const visibleEntries = useMemo(() => {
+    if (!filtroReferencia) return confirmedEntries;
+    const lower = filtroReferencia.toLowerCase();
+    return confirmedEntries.filter((e) =>
+      e.label.toLowerCase().includes(lower),
+    );
+  }, [confirmedEntries, filtroReferencia]);
 
-  // ── Custom hooks ─────────────────────────
+  const current = visibleEntries[selectedEntry] || null;
+
+  const safeIndex = selectedEntry >= visibleEntries.length ? 0 : selectedEntry;
+
+  // ── Keyboard management ─────────────
   useEnviosKeyboard({
     current,
     activeCell,
+    actualizarValorValidacion,
     setActiveCell,
     validationData,
-    actualizarValorValidacion,
     bloqueosActivos,
     user,
     confirmedEntries,
-    safeIndex,
+    safeIndex: selectedEntry,
     setSelectedEntry,
     setSnackbar,
     extractRef,
     intentarBloquear,
   });
 
-  const { mirrorColumnTotals, mirrorGrandTotal, stats, isEverythingValid } =
-    useEnviosValidation({ current, validationData });
+  // ── Hydration from envios_curvas ─────
+  useEffect(() => {
+    if (!current || !enviosCurvasData || enviosCurvasData.length === 0) return;
 
-  // ── Tab label helper ─────────────────────
+    const currentRef = extractRef(current.sheet);
+    const sheetId = String(current.sheet.id);
+
+    // Evitar hidratación repetida de la misma hoja en la misma sesión
+    if (hydratedSheetsRef.current.has(sheetId)) return;
+
+    // Solo hidratar si no hay datos en esta hoja para evitar sobrescribir
+    if (
+      validationData[sheetId] &&
+      Object.keys(validationData[sheetId]).length > 0
+    ) {
+      hydratedSheetsRef.current.add(sheetId);
+      return;
+    }
+
+    const enviosParaRef = enviosCurvasData.filter((log: any) => {
+      const logRef = extractRef({
+        referencia: log.referencia || log.referenciaBase,
+      });
+      return logRef === currentRef;
+    });
+
+    if (enviosParaRef.length === 0) {
+      hydratedSheetsRef.current.add(sheetId);
+      return;
+    }
+
+    const nuevoValidation: Record<string, any> = {};
+    enviosParaRef.forEach((log: any) => {
+      const tiendaId = (typeof log.tienda_id === "object" && log.tienda_id !== null) 
+        ? String(log.tienda_id.id || log.tienda_id.codigo) 
+        : String(log.tienda_id);
+      let parsedTallas: any[] = [];
+      try {
+        parsedTallas =
+          typeof log.cantidad_talla === "string"
+            ? JSON.parse(log.cantidad_talla)
+            : log.cantidad_talla;
+      } catch (e) {
+        return;
+      }
+
+      if (!Array.isArray(parsedTallas)) return;
+
+      const rowData: Record<string, { cantidad: number; barcodes: string[] }> =
+        {};
+      parsedTallas.forEach((item: any) => {
+        const col = String(item.tanda || item.talla).padStart(2, "0");
+        if (!rowData[col]) rowData[col] = { cantidad: 0, barcodes: [] };
+
+        const cantidad = Number(item.cantidad) || 0;
+        const barcodes = Array.isArray(item.barcodes)
+          ? item.barcodes
+          : item.codigo_barra
+            ? [item.codigo_barra]
+            : [];
+
+        rowData[col].cantidad += cantidad;
+        if (barcodes.length > 0) {
+          rowData[col].barcodes.push(...barcodes);
+        }
+      });
+      nuevoValidation[tiendaId] = rowData;
+    });
+
+    if (Object.keys(nuevoValidation).length > 0) {
+      setValidationData((prev) => ({
+        ...prev,
+        [sheetId]: nuevoValidation,
+      }));
+    }
+    hydratedSheetsRef.current.add(sheetId);
+  }, [current?.sheet?.id, enviosCurvasData, validationData, extractRef, setValidationData]);
+
+  const validationResults = useEnviosValidation({ current, validationData });
+  const {
+    mirrorColumnTotals: validationMirrorTotals,
+    mirrorGrandTotal: validationMirrorGrandTotal,
+    stats: validationStats,
+    isEverythingValid,
+  } = validationResults;
+
+  // ── Handlers ─────────────────────────────
   const getTabLabel = (entry: ConfirmedEntry, index: number) => {
     let ref = (entry.label || "")
       .replace("REF: ", "")
       .replace("Plantilla de Producto\nREF: ", "")
       .trim();
-
     if (!ref || ref.toUpperCase() === "SIN REF") {
-      const s = entry.sheet as any;
-      const fallback =
-        s.nombreHoja ||
-        s.referencia ||
-        s.referenciaBase ||
-        s.metadatos?.referencia ||
-        "";
-      const cleanFallback = fallback
-        .replace("Ingreso Manual - ", "")
-        .replace("Manual - ", "")
-        .trim();
-      if (cleanFallback && cleanFallback.toUpperCase() !== "SIN REF") {
-        return `${cleanFallback} - ${CATEGORY_CONFIG[entry.category]?.label || "General"}`;
-      }
       return `Lote ${index + 1} (${entry.category === "general" ? "Gral" : "Prod"})`;
     }
-
     const catName = CATEGORY_CONFIG[entry.category]?.label || "General";
     return `${ref} - ${catName}`;
   };
 
-  // ── Handle enviar a despacho ─────────────
   const handleEnviarADespacho = async () => {
     if (!current || !user) return;
-
     setIsSending(true);
     try {
       const currentRef = extractRef(current.sheet);
-      const currentSheetValidation =
-        validationData[String(current.sheet.id!)] || {};
+      const sheetKey = String(current.sheet.id!);
+      const sheetLogId = current.sheet.logId || sheetKey;
+      const currentSheetValidation = validationData[sheetKey] || {};
 
-      // Verificar si hay datos para enviar
-      const hasData = Object.values(currentSheetValidation).some(
-        (rowValidation: any) => {
-          const rowTotal = Object.values(rowValidation).reduce(
-            (a: number, b: any) => a + Number(b),
-            0,
-          ) as number;
-          return rowTotal > 0;
-        },
+      const hasData = Object.values(currentSheetValidation).some((row: any) =>
+        Object.values(row).some(
+          (cell: any) => (typeof cell === "object" ? cell.cantidad : cell) > 0,
+        ),
       );
 
       if (!hasData) {
@@ -496,20 +571,72 @@ const EnviosPage = () => {
         return;
       }
 
-      const success = await guardarEnvioDespacho(
-        String(current.sheet.id!),
-        undefined,
+      const savedTiendaIds = new Set(
+        enviosCurvasData
+          .filter((e: any) => e.referencia === currentRef)
+          .map((e: any) => String(e.tienda_id)),
+      );
+
+      const template: any = [
+        ...(datosCurvas?.matrizGeneral || []),
+        ...(datosCurvas?.productos || []),
+      ].find((s) => String(s.id) === sheetKey);
+
+      const filteredValidation: Record<string, Record<string, any>> = {};
+
+      for (const [filaId, tallas] of Object.entries(currentSheetValidation)) {
+        const filaIdStr = typeof filaId === "object" ? JSON.stringify(filaId) : String(filaId);
+
+        const fila = template?.filas?.find(
+          (f: any) =>
+            String(f.id) === filaIdStr ||
+            String(f.tienda?.id) === filaIdStr ||
+            String(f.tienda?.codigo) === filaIdStr,
+        );
+
+        const tiendaIdFinal =
+          fila?.tienda?.id || (tiendasDict[filaIdStr] ? filaIdStr : null);
+
+        if (!tiendaIdFinal) continue;
+
+        if (savedTiendaIds.has(String(tiendaIdFinal))) continue;
+
+        const hasValue = Object.values(tallas).some(
+          (cell: any) => (typeof cell === "object" ? cell.cantidad : cell) > 0,
+        );
+
+        if (hasValue) {
+          filteredValidation[filaIdStr] = tallas;
+        }
+      }
+
+      if (Object.keys(filteredValidation).length === 0) {
+        setSnackbar({
+          open: true,
+          message: "No hay tiendas nuevas para enviar. Todo ya fue guardado anteriormente.",
+          severity: "info",
+        });
+        setIsSending(false);
+        return;
+      }
+
+      const result = await guardarEnvioDespacho(
+        sheetLogId,
+        filteredValidation,
         current.category === "general" ? "matriz_general" : "productos",
         currentRef,
       );
 
-      if (success) {
+      if (result.success) {
+        setSentEntryKeys(
+          (prev) => new Set([...prev, `${current.category}|${currentRef}`]),
+        );
+        refreshLogs();
         setSnackbar({
           open: true,
-          message: "Envío registrado exitosamente",
+          message: `✅ Envío registrado: ${currentRef} (${Object.keys(filteredValidation).length} tiendas nuevas)`,
           severity: "success",
         });
-        setSelectedEntry((prev) => Math.max(0, prev - 1));
       } else {
         setSnackbar({
           open: true,
@@ -529,13 +656,422 @@ const EnviosPage = () => {
     }
   };
 
-  // ── Conditional renders ──────────────────
-  const hayDatosEnBD = (logCurvasData?.length ?? 0) > 0;
-  const hayLotesConfirmados = confirmedEntries.length > 0;
+  const handleGuardarProgreso = async () => {
+    if (!current || !user) return;
+    setIsSaving(true);
+    try {
+      const currentRef = extractRef(current.sheet);
+      const sheetKey = String(current.sheet.id!);
+      const currentSheetValidation = validationData[sheetKey] || {};
 
-  if (!datosCurvas && !hayDatosEnBD) {
+      const hasData = Object.values(currentSheetValidation).some((row: any) =>
+        Object.values(row).some(
+          (cell: any) => (typeof cell === "object" ? cell.cantidad : cell) > 0,
+        ),
+      );
+
+      if (!hasData) {
+        setSnackbar({
+          open: true,
+          message: "No hay datos para guardar",
+          severity: "warning",
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      const template: any = [
+        ...(datosCurvas?.matrizGeneral || []),
+        ...(datosCurvas?.productos || []),
+      ].find((s) => String(s.id) === sheetKey);
+
+      const fechaSolo = new Date().toISOString().split("T")[0];
+
+      const enviosBatch: any[] = [];
+
+      for (const [filaId, tallas] of Object.entries(currentSheetValidation)) {
+        const filaIdStr = typeof filaId === "object" ? JSON.stringify(filaId) : String(filaId);
+
+        const fila = template?.filas?.find(
+          (f: any) =>
+            String(f.id) === filaIdStr ||
+            String(f.tienda?.id) === filaIdStr ||
+            String(f.tienda?.codigo) === filaIdStr,
+        );
+
+        const tiendaIdFinal =
+          fila?.tienda?.id || (tiendasDict[filaIdStr] ? filaIdStr : null);
+
+        if (!tiendaIdFinal) continue;
+
+        const cantidadTalla: { talla: number; cantidad: number; codigo_barra: string }[] = [];
+
+        for (const [col, data] of Object.entries(tallas)) {
+          const cellData =
+            typeof data === "object" ? data : { cantidad: data, barcodes: [] };
+          const cantidad = cellData.cantidad || 0;
+          const barcodes = cellData.barcodes || [];
+
+          if (cantidad > 0) {
+            if (barcodes.length > 0) {
+              const barcodeCount: Record<string, number> = {};
+              barcodes.forEach((bc: string) => {
+                barcodeCount[bc] = (barcodeCount[bc] || 0) + 1;
+              });
+
+              Object.entries(barcodeCount).forEach(([codigoBarra, qty]) => {
+                cantidadTalla.push({
+                  talla: parseFloat(col),
+                  cantidad: qty,
+                  codigo_barra: codigoBarra,
+                });
+              });
+            } else {
+              cantidadTalla.push({
+                talla: parseFloat(col),
+                cantidad: cantidad,
+                codigo_barra: "",
+              });
+            }
+          }
+        }
+
+        if (cantidadTalla.length > 0) {
+          enviosBatch.push({
+            tienda_id: String(tiendaIdFinal),
+            plantilla: currentRef,
+            fecha: fechaSolo,
+            cantidad_talla: JSON.stringify(cantidadTalla),
+            referencia: currentRef,
+            usuario_id: String(user.id),
+          });
+        }
+      }
+
+      if (enviosBatch.length === 0) {
+        setSnackbar({
+          open: true,
+          message: "No hay datos válidos para guardar",
+          severity: "warning",
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      console.log("[handleGuardarProgreso] Enviando enviosBatch:", JSON.stringify(enviosBatch, null, 2));
+
+      const ok = await saveEnviosBatch(enviosBatch);
+
+      if (ok) {
+        refreshLogs();
+        setSnackbar({
+          open: true,
+          message: `✅ Progreso guardado: ${currentRef} (${enviosBatch.length} tiendas)`,
+          severity: "success",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Error al guardar progreso",
+          severity: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error en handleGuardarProgreso:", error);
+      setSnackbar({
+        open: true,
+        message: "Error al guardar progreso",
+        severity: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLimpiarBodega = async () => {
+    if (
+      !current ||
+      !window.confirm(
+        "¿Estás seguro de que quieres borrar TODO el escaneo físico de esta referencia? Esta acción no se puede deshacer.",
+      )
+    )
+      return;
+    try {
+      setIsSaving(true);
+      const sheetId = String(current.sheet.id);
+      const currentRef = extractRef(current.sheet);
+
+      setValidationData((prev) => {
+        const next = { ...prev };
+        delete next[sheetId];
+        return next;
+      });
+
+      await saveEnviosBatch([]);
+
+      setSnackbar({
+        open: true,
+        message: "Escaneo de bodega limpiado",
+        severity: "success",
+      });
+    } catch (error) {
+      console.error(error);
+      setSnackbar({
+        open: true,
+        message: "Error al limpiar bodega",
+        severity: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGuardarProceso = async () => {
+    if (!current || !user) return;
+    setIsSaving(true);
+    try {
+      const currentRef = extractRef(current.sheet);
+      const sheetKey = String(current.sheet.id!);
+      const currentSheetValidation = validationData[sheetKey] || {};
+
+      const logsBatch: any[] = [];
+      const fechaActual = new Date().toISOString();
+      const plantilla =
+        current.category === "general" ? "matriz_general" : "productos";
+
+      Object.entries(currentSheetValidation).forEach(
+        ([filaId, rowValidation]) => {
+          const cantidadTalla: any[] = [];
+          Object.entries(rowValidation).forEach(([col, data]) => {
+            const cellData =
+              typeof data === "object"
+                ? data
+                : { cantidad: data, barcodes: [] };
+            if (cellData.cantidad > 0) {
+              if (cellData.barcodes.length > 0) {
+                const barcodeCount: Record<string, number> = {};
+                cellData.barcodes.forEach(
+                  (bc: string) =>
+                    (barcodeCount[bc] = (barcodeCount[bc] || 0) + 1),
+                );
+                Object.entries(barcodeCount).forEach(([bc, qty]) => {
+                  cantidadTalla.push({
+                    talla: parseFloat(col),
+                    cantidad: qty,
+                    codigo_barra: bc,
+                  });
+                });
+              } else {
+                cantidadTalla.push({
+                  talla: parseFloat(col),
+                  cantidad: cellData.cantidad,
+                  codigo_barra: "",
+                });
+              }
+            }
+          });
+
+          if (cantidadTalla.length > 0) {
+            const fila = current.sheet.filas.find((f: any) => f.id === filaId);
+            if (fila?.tienda) {
+              logsBatch.push({
+                tienda_id: fila.tienda.id,
+                tienda_nombre: fila.tienda.nombre,
+                plantilla,
+                fecha: fechaActual,
+                cantidad_talla: cantidadTalla, // Pass array directly for Directus Repeater/JSON
+                referencia: currentRef || "SIN REF",
+                estado: "borrador",
+                usuario_id: user.id,
+              });
+            }
+          }
+        },
+      );
+
+      if (logsBatch.length > 0) {
+        // Primero limpiamos los borradores anteriores de este usuario para esta referencia
+        await deleteEnvioDrafts(currentRef || "SIN REF", String(user.id));
+
+        // Luego guardamos el nuevo lote de progreso en envios_curvas
+        const ok = await saveEnviosBatch(logsBatch);
+        if (ok) {
+          setSnackbar({
+            open: true,
+            message: `✅ Proceso guardado: ${validationMirrorGrandTotal} unidades`,
+            severity: "success",
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: "No se pudo guardar",
+            severity: "error",
+          });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      setSnackbar({
+        open: true,
+        message: "Error al guardar",
+        severity: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ── Render ────────────────────────────
+  const headerContent = (
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+      flexWrap="wrap"
+      sx={{ py: 0.5, justifyContent: "flex-end", width: "100%", gap: 1.5 }}
+    >
+      <Box
+        sx={{
+          display: { xs: "none", lg: "flex" },
+          alignItems: "center",
+          gap: 0.75,
+        }}
+      >
+        <LocalShippingIcon sx={{ fontSize: 18, color: "white" }} />
+        <Typography
+          sx={{
+            fontWeight: 900,
+            fontSize: "0.75rem",
+            color: "white",
+            textTransform: "uppercase",
+          }}
+        >
+          DESPACHO
+        </Typography>
+      </Box>
+      <Divider
+        orientation="vertical"
+        flexItem
+        sx={{ height: 16, bgcolor: "rgba(255,255,255,0.25)" }}
+      />
+      <TextField
+        select
+        value={filtroFecha?.format("YYYY-MM-DD") || ""}
+        onChange={(e) =>
+          setFiltroFecha(e.target.value ? dayjs(e.target.value) : null)
+        }
+        size="small"
+        slotProps={{
+          select: { native: true },
+          input: {
+            sx: {
+              color: "white",
+              fontSize: "0.85rem",
+              fontWeight: 700,
+              height: 16,
+            },
+          },
+        }}
+        sx={{
+          width: 170,
+          "& .MuiOutlinedInput-root": {
+            height: 40,
+            color: "white",
+            bgcolor: "rgba(255,255,255,0.15)",
+            borderRadius: 1.5,
+          },
+        }}
+      >
+        {Object.keys(fechasConDatos)
+          .sort((a, b) => b.localeCompare(a))
+          .map((fecha) => (
+            <option
+              key={fecha}
+              value={fecha}
+              style={{ backgroundColor: "#ffffff", color: "#1e293b" }}
+            >
+              {fecha ? dayjs(fecha).format("DD MMM YYYY") : "Seleccionar"}
+            </option>
+          ))}
+      </TextField>
+      <DebouncedSearchInput
+        value={filtroReferencia}
+        onChange={setFiltroReferencia}
+        placeholder="Buscar..."
+        sx={{
+          minWidth: 180,
+          "& .MuiOutlinedInput-root": {
+            color: "white",
+            bgcolor: "rgba(255,255,255,0.15)",
+            borderRadius: 1.5,
+          },
+        }}
+      />
+      <Box
+        sx={{
+          display: { xs: "none", lg: "flex" },
+          alignItems: "center",
+          gap: 0.75,
+        }}
+      >
+        <Chip
+          label={`${validationStats.matched}/${validationStats.total} (${validationStats.percent}%)`}
+          color={validationStats.percent === 100 ? "success" : "warning"}
+          size="small"
+          icon={<CheckCircle sx={{ fontSize: "14px !important" }} />}
+          sx={{ fontWeight: 700 }}
+        />
+      </Box>
+
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <Button
+          variant="contained"
+          disabled={isSending || isSaving}
+          startIcon={<SaveIcon />}
+          onClick={handleGuardarProgreso}
+          sx={{
+            fontWeight: 700,
+            px: 2.5,
+            borderRadius: 2,
+            height: 40,
+            bgcolor: "#64748b",
+            "&:hover": { bgcolor: "#475569" },
+          }}
+        >
+          {isSaving ? "GUARDANDO..." : "GUARDAR"}
+        </Button>
+        <Button
+          variant="contained"
+          disabled={!isEverythingValid || isSending || isSaving}
+          startIcon={<SendIcon />}
+          onClick={handleEnviarADespacho}
+          sx={{
+            fontWeight: 800,
+            px: 2.5,
+            borderRadius: 2,
+            height: 40,
+            bgcolor: "#22c55e",
+            "&:hover": { bgcolor: "#16a34a" },
+          }}
+        >
+          {isSending ? "ENVIANDO..." : "ENVIAR"}
+        </Button>
+      </Box>
+    </Stack>
+  );
+
+  if (loadingLogCurvas && logCurvasData.length === 0) {
     return (
-      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+      <Box sx={{ width: "100%", mt: 4 }}>
+        <LinearProgress />
+      </Box>
+    );
+  }
+
+  if (visibleEntries.length === 0) {
+    return (
+      <>
+        {portalTarget ? createPortal(headerContent, portalTarget) : null}
         <Container maxWidth="sm" sx={{ py: 8, textAlign: "center" }}>
           <Paper
             elevation={0}
@@ -553,11 +1089,7 @@ const EnviosPage = () => {
               color="#475569"
               gutterBottom
             >
-              Sin lotes confirmados
-            </Typography>
-            <Typography variant="body1" color="#64748b" sx={{ mb: 4 }}>
-              No hay lotes confirmados disponibles para enviar. Por favor,
-              confirme un lote en el Dashboard.
+              Sin lotes para enviar
             </Typography>
             <Button
               variant="contained"
@@ -569,678 +1101,85 @@ const EnviosPage = () => {
             </Button>
           </Paper>
         </Container>
-      </LocalizationProvider>
+      </>
     );
   }
 
-  if (!hayLotesConfirmados && hayDatosEnBD) {
-    return (
-      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-        <Container maxWidth="xl" sx={{ py: 2 }}>
-          <Paper elevation={3} sx={{ p: 3, borderRadius: 3 }}>
-            <Stack direction="row" spacing={2} alignItems="center" mb={3}>
-              <LocalShippingIcon sx={{ fontSize: 32, color: "primary.main" }} />
-              <Typography variant="h5" fontWeight={900}>
-                Datos guardados en Base de Datos
-              </Typography>
-            </Stack>
-
-            <Stack direction="row" spacing={2} mb={3}>
-              <DatePicker
-                label="Fecha"
-                value={filtroFecha}
-                onChange={(v: any) => setFiltroFecha(v as Dayjs | null)}
-                slots={{
-                  day: (props: any) => (
-                    <CustomDay {...props} fechasConDatos={fechasConDatos} />
-                  ),
-                }}
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    sx: {
-                      width: 200,
-                      bgcolor: "#ffffff",
-                      borderRadius: 1.5,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                    },
-                  },
-                }}
-              />
-              <DebouncedSearchInput
-                value={filtroReferencia}
-                onChange={(val) => setFiltroReferencia(val)}
-                placeholder="Buscar referencia..."
-                sx={{ width: 250 }}
-              />
-            </Stack>
-
-            {loadingLogCurvas ? (
-              <LinearProgress />
-            ) : (
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell
-                        sx={{
-                          fontWeight: 900,
-                          bgcolor: "primary.main",
-                          color: "white",
-                        }}
-                      >
-                        Tienda
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 900,
-                          bgcolor: "primary.main",
-                          color: "white",
-                        }}
-                      >
-                        Plantilla
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 900,
-                          bgcolor: "primary.main",
-                          color: "white",
-                        }}
-                      >
-                        Fecha
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 900,
-                          bgcolor: "primary.main",
-                          color: "white",
-                        }}
-                      >
-                        Referencia
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 900,
-                          bgcolor: "primary.main",
-                          color: "white",
-                        }}
-                      >
-                        Cantidad/Talla
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {logCurvasData
-                      .filter(
-                        (item) =>
-                          item.referencia &&
-                          item.referencia.trim() !== "" &&
-                          item.referencia.toUpperCase() !== "SIN REF",
-                      )
-                      .map((item: any, index: number) => (
-                        <TableRow key={index} hover>
-                          <TableCell>{item.tienda_nombre}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={
-                                item.plantilla === "matriz_general"
-                                  ? "Matriz General"
-                                  : "Productos"
-                              }
-                              size="small"
-                              color={
-                                item.plantilla === "matriz_general"
-                                  ? "primary"
-                                  : "secondary"
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {new Date(item.fecha).toLocaleString()}
-                          </TableCell>
-                          <TableCell>{item.referencia || "-"}</TableCell>
-                          <TableCell>
-                            <Tooltip
-                              title={
-                                <pre
-                                  style={{
-                                    margin: 0,
-                                    padding: "4px",
-                                    fontSize: "0.75rem",
-                                    fontFamily: "monospace",
-                                  }}
-                                >
-                                  {typeof item.cantidad_talla === "object"
-                                    ? JSON.stringify(
-                                        item.cantidad_talla,
-                                        null,
-                                        2,
-                                      )
-                                    : String(item.cantidad_talla)}
-                                </pre>
-                              }
-                            >
-                              <Chip
-                                label="Ver JSON"
-                                size="small"
-                                variant="outlined"
-                              />
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-
-            {logCurvasData.length === 0 && !loadingLogCurvas && (
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                sx={{ textAlign: "center", py: 4 }}
-              >
-                No hay registros en la base de datos.
-              </Typography>
-            )}
-          </Paper>
-        </Container>
-      </LocalizationProvider>
-    );
-  }
-
-  // ── Header content for portal ────────────
-  const headerContent = (
-    <Stack
-      direction="row"
-      spacing={1}
-      alignItems="center"
-      flexWrap="wrap"
-      sx={{
-        py: { xs: 0.5, md: 0 },
-        justifyContent: { xs: "center", sm: "flex-end" },
-        width: "100%",
-        gap: { xs: 1, md: 1.5 },
-      }}
-    >
-      <Box
-        sx={{
-          display: { xs: "none", lg: "flex" },
-          alignItems: "center",
-          gap: 0.75,
-        }}
-      >
-        <LocalShippingIcon sx={{ fontSize: 18, color: "white" }} />
-        <Typography
-          sx={{
-            fontWeight: 900,
-            fontSize: "0.75rem",
-            letterSpacing: 0.8,
-            color: "white",
-            textTransform: "uppercase",
-          }}
-        >
-          DESPACHO
-        </Typography>
-      </Box>
-
-      <Divider
-        orientation="vertical"
-        flexItem
-        sx={{
-          height: 16,
-          alignSelf: "center",
-          bgcolor: "rgba(255,255,255,0.25)",
-        }}
-      />
-
-      <TextField
-        select
-        value={filtroFecha?.format("YYYY-MM-DD") || ""}
-        onChange={(e) =>
-          setFiltroFecha(e.target.value ? dayjs(e.target.value) : null)
-        }
-        disabled={Object.keys(fechasConDatos).length === 0}
-        size="small"
-        slotProps={{
-          select: {
-            native: true,
-            IconComponent: () => null,
-          },
-          input: {
-            sx: {
-              color: "white",
-              fontSize: "0.85rem",
-              fontWeight: 700,
-              height: 16,
-              paddingRight: "36px",
-            },
-          },
-        }}
-        InputProps={{
-          endAdornment: (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                pointerEvents: "none",
-                position: "absolute",
-                right: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "rgba(255,255,255,0.7)",
-              }}
-            >
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                <path
-                  d="M1 1L5 5L9 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Box>
-          ),
-        }}
-        sx={{
-          width: 170,
-          "& .MuiOutlinedInput-root": {
-            height: 40,
-            color: "white",
-            bgcolor: "rgba(255,255,255,0.15)",
-            borderRadius: 1.5,
-            padding: "8px 12px",
-            "& fieldset": {
-              borderColor: "rgba(255,255,255,0.3)",
-              borderWidth: 1,
-            },
-            "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
-            "&.Mui-focused fieldset": { borderColor: "white" },
-          },
-          "& .MuiSelect-select": {
-            display: "flex",
-            alignItems: "center",
-            padding: "8px 0",
-          },
-          "& .MuiSelect-selectMenu": {
-            minHeight: "auto",
-            overflow: "visible",
-          },
-        }}
-      >
-        {(() => {
-          const formattedFiltro = filtroFecha?.format("YYYY-MM-DD") || "";
-          const keys = Object.keys(fechasConDatos);
-          if (formattedFiltro && !keys.includes(formattedFiltro)) {
-            keys.push(formattedFiltro);
-          }
-          if (keys.length === 0) {
-            keys.push("");
-          }
-
-          return keys
-            .sort((a, b) => b.localeCompare(a))
-            .map((fecha) => (
-              <option
-                key={fecha}
-                value={fecha}
-                style={{
-                  backgroundColor: "#ffffff",
-                  color: "#1e293b",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  padding: "10px 12px",
-                }}
-              >
-                {fecha ? dayjs(fecha).format("DD MMM YYYY") : "Seleccionar"}
-              </option>
-            ));
-        })()}
-      </TextField>
-
-      <DebouncedSearchInput
-        value={filtroReferencia}
-        onChange={(val) => setFiltroReferencia(val)}
-        placeholder="Buscar referencia..."
-        disabled={Object.keys(fechasConDatos).length === 0}
-        sx={{
-          minWidth: 180,
-          "& .MuiOutlinedInput-root": {
-            color: "white",
-            bgcolor: "rgba(255,255,255,0.15)",
-            borderRadius: 1.5,
-            "& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
-            "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
-            "&.Mui-focused fieldset": { borderColor: "white" },
-          },
-          "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-        }}
-      />
-
-      <Divider
-        orientation="vertical"
-        flexItem
-        sx={{
-          height: 16,
-          alignSelf: "center",
-          bgcolor: "rgba(255,255,255,0.25)",
-        }}
-      />
-
-      <Chip
-        label={`${stats.matched}/${stats.total} listas (${stats.percent}%)`}
-        size="small"
-        sx={{
-          fontWeight: 700,
-          fontSize: "0.7rem",
-          bgcolor: stats.percent === 100 ? "#22c55e" : "#f1f5f9",
-          color: stats.percent === 100 ? "#fff" : "#475569",
-          border: stats.percent === 100 ? "none" : "1px solid #e2e8f0",
-        }}
-      />
-
-      <Button
-        variant="contained"
-        disabled={!isEverythingValid || isSending}
-        startIcon={
-          isEverythingValid ? (
-            <VerifiedIcon sx={{ fontSize: 18 }} />
-          ) : (
-            <SyncIcon sx={{ fontSize: 18 }} />
-          )
-        }
-        onClick={handleEnviarADespacho}
-        sx={{
-          fontWeight: 800,
-          fontSize: "0.75rem",
-          textTransform: "none",
-          borderRadius: 1.5,
-          height: 32,
-          bgcolor: isEverythingValid
-            ? "#22c55e"
-            : mirrorGrandTotal > 0
-              ? "#006ACC"
-              : "rgba(255,255,255,0.1)",
-          color: isEverythingValid
-            ? "#fff"
-            : mirrorGrandTotal > 0
-              ? "#fff"
-              : "rgba(255,255,255,0.4)",
-          px: 2,
-          boxShadow: isEverythingValid
-            ? "0 2px 8px rgba(34,197,94,0.3)"
-            : mirrorGrandTotal > 0
-              ? "0 2px 8px rgba(0,70,128,0.3)"
-              : "none",
-          "&:hover": {
-            bgcolor: isEverythingValid
-              ? "#16a34a"
-              : mirrorGrandTotal > 0
-                ? "#004680"
-                : undefined,
-          },
-          "&.Mui-disabled": {
-            color: "rgba(255,255,255,0.2)",
-            bgcolor: "rgba(255,255,255,0.05)",
-          },
-        }}
-      >
-        {isSending
-          ? "Enviando..."
-          : mirrorGrandTotal > 0
-            ? `ENVIAR (${mirrorGrandTotal})`
-            : "ENVIAR"}
-      </Button>
-    </Stack>
-  );
-
-  // ── Main render ──────────────────────────
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-      <Box sx={{ fontFamily: MAIN_FONT }}>
+      <>
         {portalTarget ? createPortal(headerContent, portalTarget) : null}
-
-        <Container maxWidth="xl" sx={{ py: 2 }}>
-          <Stack spacing={2} sx={{ mt: 2.5 }}>
-            {!current ? (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <Container
+            maxWidth="xl"
+            sx={{
+              height: "calc(100vh - 74px)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              py: 0.5,
+              px: { xs: 0.5, md: 1 },
+              gap: 1,
+            }}
+          >
+            <Stack sx={{ flex: 1, overflow: "hidden" }} spacing={1.5}>
               <Paper
                 elevation={0}
                 sx={{
-                  py: 10,
-                  textAlign: "center",
-                  borderRadius: "8px",
-                  bgcolor: "rgba(255,255,255,0.5)",
-                  border: "2px dashed #cbd5e1",
-                  mt: 4,
+                  minHeight: 48,
+                  borderRadius: 2,
+                  bgcolor: "white",
+                  px: 1,
+                  border: "1px solid #e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
                 }}
               >
-                <LocalShippingIcon
-                  sx={{ fontSize: 48, color: "#cbd5e1", mb: 2 }}
-                />
-                <Typography variant="h6" fontWeight={800} color="#64748b">
-                  No hay nada pendiente por despachar
-                </Typography>
-                <Typography variant="body2" color="#94a3b8" mt={1}>
-                  Selecciona otra fecha en la barra superior o comprueba si hay
-                  envíos pendientes.
-                </Typography>
-              </Paper>
-            ) : (
-              <>
-                {/* Consolidated Bar */}
-                <Box
+                <Tabs
+                  value={selectedEntry}
+                  onChange={(_, v) => setSelectedEntry(v)}
+                  variant="scrollable"
+                  scrollButtons="auto"
                   sx={{
-                    px: 2,
-                    py: 0.8,
-                    borderRadius: "8px",
-                    border: "1px solid #e2e8f0",
-                    bgcolor: "#ffffff",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: 0.5,
+                    minHeight: 48,
+                    "& .MuiTab-root": {
+                      minHeight: 56,
+                      fontWeight: 700,
+                      fontSize: "0.9rem",
+                      textTransform: "none",
+                    },
                   }}
                 >
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="center"
-                    sx={{ minWidth: 0 }}
-                  >
-                    {confirmedEntries.length > 1 ? (
-                      <Tabs
-                        value={safeIndex}
-                        onChange={(_, v) => setSelectedEntry(v)}
-                        variant="scrollable"
-                        scrollButtons="auto"
-                        sx={{
-                          minHeight: 32,
-                          "& .MuiTab-root": {
-                            fontWeight: 700,
-                            textTransform: "none",
-                            minHeight: 32,
-                            fontSize: "0.72rem",
-                            py: 0,
-                            px: 1.2,
-                          },
-                          "& .Mui-selected": { color: "#4338ca" },
-                          "& .MuiTabs-indicator": {
-                            bgcolor: "#4338ca",
-                            height: 2.5,
-                            borderRadius: 2,
-                          },
-                        }}
-                      >
-                        {confirmedEntries.map((entry, i) => (
-                          <Tab
-                            key={i}
-                            icon={entry.icon}
-                            iconPosition="start"
-                            label={getTabLabel(entry, i)}
-                          />
-                        ))}
-                      </Tabs>
-                    ) : (
-                      <Chip
-                        icon={current?.icon as any}
-                        label={
-                          current
-                            ? getTabLabel(
-                                current,
-                                confirmedEntries.indexOf(current),
-                              )
-                            : ""
-                        }
-                        size="small"
-                        sx={{
-                          fontWeight: 800,
-                          fontSize: "0.72rem",
-                          bgcolor: "#eef2ff",
-                          color: "#4338ca",
-                          height: 26,
-                        }}
-                      />
-                    )}
+                  {visibleEntries.map((entry, idx) => (
+                    <Tab key={entry.id} label={getTabLabel(entry, idx)} />
+                  ))}
+                </Tabs>
+              </Paper>
 
-                    {current && (
-                      <>
-                        <Divider
-                          orientation="vertical"
-                          flexItem
-                          sx={{ height: 18, alignSelf: "center" }}
-                        />
-                        <Typography
-                          sx={{
-                            fontSize: "0.72rem",
-                            color: "#64748b",
-                            fontWeight: 600,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {current.sheet.filas.length} Establecimientos ·{" "}
-                          {current.columns.length}{" "}
-                          {current.category === "general" ? "Curvas" : "Tallas"}
-                        </Typography>
-                      </>
-                    )}
-                  </Stack>
-
-                  <Stack direction="row" spacing={1.2} alignItems="center">
-                    {[
-                      {
-                        label: "Exacto",
-                        bg: "#f0fdf4",
-                        border: "#86efac",
-                        color: "#15803d",
-                      },
-                      {
-                        label: "Menor",
-                        bg: "#fffbeb",
-                        border: "#fcd34d",
-                        color: "#92400e",
-                      },
-                      {
-                        label: "Excede",
-                        bg: "#fef2f2",
-                        border: "#fca5a5",
-                        color: "#991b1b",
-                      },
-                    ].map((l) => (
-                      <Stack
-                        key={l.label}
-                        direction="row"
-                        spacing={0.3}
-                        alignItems="center"
-                      >
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: "2px",
-                            bgcolor: l.bg,
-                            border: `1px solid ${l.border}`,
-                          }}
-                        />
-                        <Typography
-                          sx={{
-                            fontSize: "0.6rem",
-                            fontWeight: 700,
-                            color: l.color,
-                          }}
-                        >
-                          {l.label}
-                        </Typography>
-                      </Stack>
-                    ))}
-                  </Stack>
-                </Box>
-
-                {/* Table */}
+              {current && (
                 <Paper
+                  ref={refTableRef}
                   elevation={0}
                   sx={{
-                    borderRadius: "8px",
+                    flex: 1,
                     overflow: "hidden",
+                    borderRadius: 3,
                     border: "1px solid #e2e8f0",
+                    display: "flex",
+                    flexDirection: "column",
+                    bgcolor: "white",
                   }}
                 >
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 0.6,
-                      bgcolor: "#f8fafc",
-                      borderBottom: "1px solid #e2e8f0",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Stack direction="row" spacing={0.8} alignItems="center">
-                      <SyncIcon sx={{ color: "#6366f1", fontSize: 15 }} />
-                      <Typography
-                        sx={{
-                          fontWeight: 900,
-                          fontSize: "0.75rem",
-                          color: "#334155",
-                        }}
-                      >
-                        TABLA UNIFICADA — REF & INGRESO
-                      </Typography>
-                      <Chip
-                        label="EDITABLE"
-                        size="small"
-                        sx={{
-                          fontWeight: 800,
-                          fontSize: "0.5rem",
-                          height: 16,
-                          bgcolor: "#ede9fe",
-                          color: "#7c3aed",
-                          letterSpacing: 0.3,
-                        }}
-                      />
-                    </Stack>
-                    {isEverythingValid && (
-                      <Chip
-                        icon={<VerifiedIcon sx={{ fontSize: 13 }} />}
-                        label="VERIFICADO"
-                        size="small"
-                        color="success"
-                        sx={{ fontWeight: 800, fontSize: "0.6rem", height: 22 }}
-                      />
-                    )}
-                  </Box>
-
-                  <TableContainer
-                    ref={refTableRef}
-                    sx={{ height: 650, maxHeight: 650, position: "relative" }}
-                  >
-                    <Table
-                      stickyHeader
-                      size="small"
-                      sx={{ tableLayout: "auto" }}
-                    >
+                  <TableContainer sx={{ flex: 1, overflow: "auto" }}>
+                    <Table stickyHeader size="small">
                       <TableHead>
                         <TableRow>
                           <TableCell
@@ -1252,7 +1191,7 @@ const EnviosPage = () => {
                               left: 0,
                               zIndex: 5,
                               borderRight: "1px solid #e2e8f0",
-                              borderBottom: "2px solid #e2e8f0",
+                              borderBottom: "1px solid #e2e8f0",
                               p: 0,
                             }}
                           />
@@ -1260,22 +1199,21 @@ const EnviosPage = () => {
                             sx={{
                               fontWeight: 800,
                               bgcolor: "#f8fafc",
-                              width: 180,
+                              width: 150,
                               position: "sticky",
                               left: 44,
                               zIndex: 4,
-                              borderRight: "2px solid #e2e8f0",
-                              borderBottom: "2px solid #e2e8f0",
-                              fontSize: "0.65rem",
+                              borderRight: "1px solid #e2e8f0",
+                              borderBottom: "1px solid #e2e8f0",
+                              fontSize: "0.8rem",
                               color: "#64748b",
                               textTransform: "uppercase",
-                              letterSpacing: 0.5,
-                              py: 0.8,
+                              py: 0.5,
                             }}
                           >
                             ESTABLECIMIENTO
                           </TableCell>
-                          {current.columns.map((col) => (
+                          {current.columns.map((col: string) => (
                             <TableCell
                               key={col}
                               align="center"
@@ -1283,25 +1221,19 @@ const EnviosPage = () => {
                                 fontFamily: MONO_FONT,
                                 fontWeight: 900,
                                 bgcolor: "#f8fafc",
-                                fontSize: "0.85rem",
-                                color: "#1e293b",
-                                py: 0.5,
-                                px: 2,
-                                borderBottom: "2px solid #e2e8f0",
-                                borderLeft: "1px solid #f1f5f9",
-                                minWidth: 85,
+                                fontSize: "1rem",
+                                borderBottom: "1px solid #e2e8f0",
+                                px: 1,
+                                minWidth: 70,
                               }}
                             >
                               {col}
                               <Typography
                                 sx={{
-                                  fontSize: "0.48rem",
+                                  fontSize: "0.6rem",
                                   color: "#94a3b8",
-                                  fontWeight: 600,
-                                  textTransform: "uppercase",
-                                  letterSpacing: 0.3,
-                                  lineHeight: 1,
-                                  mt: 0.1,
+                                  fontWeight: 700,
+                                  mt: -0.2,
                                 }}
                               >
                                 REF / ING
@@ -1314,9 +1246,9 @@ const EnviosPage = () => {
                               fontWeight: 800,
                               bgcolor: "#f8fafc",
                               width: 60,
-                              borderLeft: "2px solid #e2e8f0",
-                              borderBottom: "2px solid #e2e8f0",
-                              fontSize: "0.65rem",
+                              borderLeft: "1px solid #e2e8f0",
+                              borderBottom: "1px solid #e2e8f0",
+                              fontSize: "0.8rem",
                               color: "#64748b",
                             }}
                           >
@@ -1324,31 +1256,29 @@ const EnviosPage = () => {
                           </TableCell>
                         </TableRow>
                       </TableHead>
-
                       <TableBody>
                         {current.sheet.filas.map((fila: any) => {
-                          const currentId = current?.sheet?.id
-                            ? String(current.sheet.id)
-                            : "";
-                          const currentSheetValidation =
-                            validationData[currentId] || {};
-                          const rowCols = current.getRowColumns(fila);
-                          const rowValidation =
-                            currentSheetValidation[fila.id] || {};
-                          const currentRef = current
-                            ? extractRef(current.sheet)
-                            : "";
+                          const sheetId = String(current.sheet.id);
+                          const columns = current.columns;
+                          const rowCols: any = {};
+                          (fila.columnas || []).forEach(
+                            (c: any) => (rowCols[c.talla] = c.cantidad),
+                          );
+
+                          const sheetValidation = validationData[sheetId] || {};
+                          const rowValidation = sheetValidation[fila.id] || sheetValidation[String(fila.tienda?.id)] || {};
+                          console.log("[Render Row] filaId:", fila.id, "tiendaId:", fila.tienda?.id, "foundValidation:", !!rowValidation);
 
                           return (
                             <MemoizedTableRow
-                              key={fila.id}
+                              key={`${sheetId}-${fila.id}`}
                               fila={fila}
-                              currentSheetId={currentId}
-                              currentRef={currentRef}
+                              currentSheetId={sheetId}
+                              currentRef={current.ref}
                               rowCols={rowCols}
                               rowValidation={rowValidation}
                               activeCell={activeCell}
-                              columns={current.columns}
+                              columns={columns}
                               bloqueosActivos={bloqueosActivos}
                               user={user}
                               desmarcarTienda={desmarcarTienda}
@@ -1359,129 +1289,155 @@ const EnviosPage = () => {
                           );
                         })}
 
-                        {/* Totals */}
+                        {/* Fila de Totales */}
                         <TableRow
-                          sx={{ "& td": { borderTop: "2px solid #e2e8f0" } }}
+                          sx={{
+                            bgcolor: "#f8fafc",
+                            "& .MuiTableCell-root": {
+                              fontWeight: 900,
+                              py: 0.5,
+                              borderTop: "2px solid #e2e8f0",
+                            },
+                          }}
                         >
                           <TableCell
                             sx={{
-                              fontWeight: 900,
-                              fontSize: "0.72rem",
                               position: "sticky",
                               left: 0,
-                              bgcolor: "#f1f5f9",
-                              zIndex: 1,
-                              borderRight: "2px solid #e2e8f0",
+                              bgcolor: "#f8fafc",
+                              zIndex: 5,
+                              borderRight: "1px solid #e2e8f0",
+                            }}
+                          />
+                          <TableCell
+                            sx={{
+                              position: "sticky",
+                              left: 44,
+                              bgcolor: "#f8fafc",
+                              zIndex: 4,
+                              borderRight: "1px solid #e2e8f0",
                               color: "#475569",
+                              fontSize: "0.9rem",
                               textTransform: "uppercase",
-                              py: 0.4,
                             }}
                           >
-                            TOTALES
+                            TOTALES:
                           </TableCell>
-                          {current.columns.map((col) => {
-                            const refTotal = current.columnTotals[col] || 0;
-                            const mirrorTotal = mirrorColumnTotals[col] || 0;
-                            const vs = getValidationStyles(
-                              refTotal,
-                              mirrorTotal,
-                            );
+                          {current.columns.map((col: string) => {
+                            const refVal = current.columnTotals[col] || 0;
+                            const scanVal = validationMirrorTotals[col] || 0;
+                            const isComplete = refVal > 0 && scanVal === refVal;
+                            const isOver = refVal > 0 && scanVal > refVal;
+
                             return (
                               <TableCell
-                                key={`t-${col}`}
+                                key={col}
                                 align="center"
                                 sx={{
-                                  bgcolor:
-                                    mirrorTotal > 0 ? vs.bgcolor : "#f8fafc",
                                   borderLeft: "1px solid #f1f5f9",
-                                  py: 0.4,
-                                  px: 0.5,
+                                  bgcolor: isComplete
+                                    ? "#f0fdf4"
+                                    : "transparent",
+                                  transition: "background-color 0.3s ease",
                                 }}
                               >
-                                <Typography
-                                  sx={{
-                                    fontFamily: MONO_FONT,
-                                    fontSize: "16px",
-                                    color: "#6366f1",
-                                    fontWeight: 700,
-                                    lineHeight: 1.2,
-                                  }}
-                                >
-                                  {refTotal}
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    fontFamily: MONO_FONT,
-                                    fontSize: "24px",
-                                    fontWeight: 900,
-                                    lineHeight: 1.2,
-                                    mt: -0.1,
-                                    color:
-                                      mirrorTotal > 0 ? vs.color : "#94a3b8",
-                                  }}
-                                >
-                                  {mirrorTotal || "—"}
-                                </Typography>
+                                <Stack spacing={0}>
+                                  <Typography
+                                    sx={{
+                                      fontSize: "15px",
+                                      color: isComplete ? "#16a34a" : "#3b82f6",
+                                      fontWeight: 700,
+                                      mb: 0.5,
+                                    }}
+                                  >
+                                    {refVal}
+                                  </Typography>
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 800,
+                                      fontSize: "25px",
+                                      color: isOver
+                                        ? "#ef4444"
+                                        : isComplete
+                                          ? "#15803d"
+                                          : scanVal > 0
+                                            ? "#475569"
+                                            : "#cbd5e1",
+                                    }}
+                                  >
+                                    {scanVal || "—"}
+                                  </Typography>
+                                </Stack>
                               </TableCell>
                             );
                           })}
                           <TableCell
                             align="center"
                             sx={{
-                              borderLeft: "2px solid #e2e8f0",
-                              bgcolor: "#f1f5f9",
-                              py: 0.4,
+                              borderLeft: "1px solid #e2e8f0",
+                              bgcolor:
+                                validationMirrorGrandTotal ===
+                                  current.sheet.totalGeneral &&
+                                current.sheet.totalGeneral > 0
+                                  ? "#f0fdf4"
+                                  : "transparent",
                             }}
                           >
-                            <Typography
-                              sx={{
-                                fontFamily: MONO_FONT,
-                                fontSize: "16px",
-                                color: "#6366f1",
-                                fontWeight: 700,
-                                lineHeight: 1.2,
-                              }}
-                            >
-                              {current.sheet.totalGeneral}
-                            </Typography>
-                            <Typography
-                              sx={{
-                                fontFamily: MONO_FONT,
-                                fontSize: "24px",
-                                fontWeight: 900,
-                                lineHeight: 1.2,
-                                mt: -0.1,
-                                color:
-                                  mirrorGrandTotal === 0
-                                    ? "#94a3b8"
-                                    : mirrorGrandTotal ===
-                                        current.sheet.totalGeneral
-                                      ? "#15803d"
-                                      : "#dc2626",
-                              }}
-                            >
-                              {mirrorGrandTotal > 0 ? mirrorGrandTotal : "—"}
-                            </Typography>
+                            <Stack spacing={0}>
+                              <Typography
+                                sx={{
+                                  fontSize: "12px",
+                                  color:
+                                    validationMirrorGrandTotal ===
+                                      current.sheet.totalGeneral &&
+                                    current.sheet.totalGeneral > 0
+                                      ? "#16a34a"
+                                      : "#3b82f6",
+                                  fontWeight: 800,
+                                  mb: 0.2,
+                                }}
+                              >
+                                {current.sheet.totalGeneral}
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontWeight: 800,
+                                  fontSize: "20px",
+                                  color:
+                                    validationMirrorGrandTotal >
+                                    current.sheet.totalGeneral
+                                      ? "#ef4444"
+                                      : validationMirrorGrandTotal ===
+                                            current.sheet.totalGeneral &&
+                                          current.sheet.totalGeneral > 0
+                                        ? "#15803d"
+                                        : validationMirrorGrandTotal > 0
+                                          ? "#1e293b"
+                                          : "#cbd5e1",
+                                }}
+                              >
+                                {validationMirrorGrandTotal > 0
+                                  ? validationMirrorGrandTotal
+                                  : "—"}
+                              </Typography>
+                            </Stack>
                           </TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
                   </TableContainer>
                 </Paper>
-              </>
-            )}
-          </Stack>
+              )}
+            </Stack>
+          </Container>
 
-          {/* Snacks */}
           <Snackbar
             open={snackbar.open}
             autoHideDuration={3000}
             onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
             anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-            sx={{ "& .MuiSnackbarContent-root": { minWidth: "400px" } }}
           >
             <Alert
-              onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
               severity={snackbar.severity}
               variant="filled"
               sx={{ fontWeight: 700, borderRadius: "10px" }}
@@ -1489,44 +1445,8 @@ const EnviosPage = () => {
               {snackbar.message}
             </Alert>
           </Snackbar>
-
-          <Snackbar
-            open={notificacionCambios?.open || false}
-            autoHideDuration={5000}
-            onClose={() => setNotificacionCambios(null)}
-            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-            sx={{
-              "& .MuiSnackbarContent-root": {
-                minWidth: "500px",
-                bgcolor: "#1e3a8a",
-                color: "white",
-              },
-            }}
-          >
-            <Alert
-              onClose={() => setNotificacionCambios(null)}
-              severity="info"
-              variant="filled"
-              sx={{
-                fontWeight: 700,
-                borderRadius: "10px",
-                bgcolor: "#1e3a8a",
-                color: "white",
-                "& .MuiAlert-icon": { color: "#93c5fd" },
-              }}
-            >
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                <Typography variant="subtitle2" fontWeight={900}>
-                  {notificacionCambios?.mensaje || ""}
-                </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                  {notificacionCambios?.ubicacion || ""}
-                </Typography>
-              </Box>
-            </Alert>
-          </Snackbar>
-        </Container>
-      </Box>
+        </Box>
+      </>
     </LocalizationProvider>
   );
 };
