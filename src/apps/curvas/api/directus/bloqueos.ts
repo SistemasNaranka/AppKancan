@@ -7,15 +7,15 @@ const COLLECTION = 'log_curve_scans';
 
 /**
  * Obtiene los bloqueos activos para una referencia específica.
- * Filtra los que tienen más de 5 minutos de inactividad.
+ * Filtra los que tienen más de 7 minutos de inactividad.
  */
 export const obtenerBloqueosActivos = async (referencia?: string): Promise<BloqueoEscaner[]> => {
   try {
-    // Calculamos el timestamp de hace 5 minutos
-    const tresMinutosAtras = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    // Calculamos el timestamp de hace 7 minutos
+    const sieteMinutosAtras = new Date(Date.now() - 7 * 60 * 1000).toISOString();
 
     const filter: any = {
-      ultima_actividad: { _gte: tresMinutosAtras } // Solo los activos recientes
+      ultima_actividad: { _gte: sieteMinutosAtras } // Solo los activos recientes
     };
     
     if (referencia) {

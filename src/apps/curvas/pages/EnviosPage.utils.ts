@@ -24,6 +24,7 @@ export type SheetCategory = 'general' | 'producto_a' | 'producto_b';
 
 export interface SheetData {
   id?: string;
+  logId?: string;
   nombreHoja: string;
   referencia?: string;
   metadatos?: {
@@ -46,6 +47,8 @@ export interface SheetData {
 }
 
 export interface ConfirmedEntry {
+  id: string;
+  ref: string;
   category: SheetCategory;
   label: string;
   icon: React.ReactElement;
@@ -60,9 +63,9 @@ export interface ConfirmedEntry {
 // Category config
 // ─────────────────────────────────────────────
 export const CATEGORY_CONFIG: Record<SheetCategory, { label: string; icon: React.ReactNode; accent: string; chipColor: string }> = {
-  general: { label: 'Matriz General', icon: null as any, accent: BRAND.primary, chipColor: BRAND.bg },
-  producto_a: { label: 'Plantilla de Producto', icon: null as any, accent: '#0891b2', chipColor: '#e0f7fa' },
-  producto_b: { label: 'Plantilla de Producto', icon: null as any, accent: BRAND.dark, chipColor: BRAND.bg },
+  general: { label: 'Textil', icon: null as any, accent: BRAND.primary, chipColor: BRAND.bg },
+  producto_a: { label: 'Calzado/Bolso', icon: null as any, accent: '#0891b2', chipColor: '#e0f7fa' },
+  producto_b: { label: 'Calzado/Bolso', icon: null as any, accent: BRAND.dark, chipColor: BRAND.bg },
 };
 
 // ─────────────────────────────────────────────

@@ -78,15 +78,30 @@ const BRAND = {
 const MAIN_FONT = "'Inter', sans-serif";
 const MONO_FONT = "'Roboto Mono', 'Consolas', monospace";
 
-// Heat-map color scale por cantidad
+// Heat-map color scale por cantidad (semáforo: amarillo-falta, verde-bien, rojo-sobra)
 const getHeatColor = (val: number, max: number) => {
-  if (val === 0) return { bg: "transparent", text: "#cbd5e1", fw: 400 };
-  const ratio = Math.min(val / Math.max(max, 1), 1);
-  if (ratio < 0.2) return { bg: "#f0f9ff", text: "#0284c7", fw: 600 };
-  if (ratio < 0.4) return { bg: "#e0f2fe", text: "#0369a1", fw: 600 };
-  if (ratio < 0.6) return { bg: "#bae6fd", text: "#075985", fw: 700 };
-  if (ratio < 0.8) return { bg: "#7dd3fc", text: "#0c4a6e", fw: 800 };
-  return { bg: "#38bdf8", text: "#082f49", fw: 900 };
+  if (val === 0) return { bg: "#e2e8f0", text: "#94a3b8", fw: 500 }; // Gris para cero (falta)
+  if (val < 2) return { bg: "#fef3c7", text: "#92400e", fw: 600 }; // Amarillo poco (falta)
+  if (val <= 5) return { bg: "#dcfce7", text: "#166534", fw: 700 }; // Verde bien
+  if (val <= 10) return { bg: "#fca5a5", text: "#dc2626", fw: 800 }; // Rojo claro sobra
+  return { bg: "#ef4444", text: "#7f1d1d", fw: 900 }; // Rojo intenso mucho sobra
+};
+
+// Paleta de colores azules para el gráfico de usuarios
+const getUserBarColor = (index: number) => {
+  const colors = [
+    "#006ACC", // BRAND.primary
+    "#0284c7",
+    "#0369a1",
+    "#075985",
+    "#0c4a6e",
+    "#082f49",
+    "#1e3a8a",
+    "#1e40af",
+    "#2563eb",
+    "#3b82f6",
+  ];
+  return colors[index % colors.length];
 };
 
 // ─────────────────────────────────────────────
@@ -102,6 +117,8 @@ interface FilaAnalisis {
   tiendaNombre: string;
   usuarioId: string;
   usuarioNombre: string;
+  fecha?: string;
+  referencia?: string;
   tallas: Record<string, number>;
   total: number;
 }
@@ -114,6 +131,7 @@ interface MatrixDataTransformada {
   tiendasUnicas: number;
   usuariosUnicos: number;
   maxCellValue: number;
+  unidadesPorUsuario: Record<string, { nombre: string; total: number }>;
 }
 
 // ─────────────────────────────────────────────
@@ -192,22 +210,23 @@ const AnalisisPage = () => {
 
   // ── Fetch logs by date ──────────────────────────────────
   const fetchLogsByDate = useCallback(async () => {
-    if (!fecha) return;
+    const isGlobal = selectedRef === "ALL_HISTORICAL";
+    if (!fecha && !isGlobal) return;
     setLoading(true);
     try {
       const data = await getEnviosAnalisis(
-        fecha.startOf("day").toISOString(),
-        fecha.endOf("day").toISOString(),
+        isGlobal || !fecha ? undefined : fecha.startOf("day").toISOString(),
+        isGlobal || !fecha ? undefined : fecha.endOf("day").toISOString(),
       );
       setLogs(data || []);
       // Auto-select first reference if nothing selected yet
-      if (!selectedRef && data.length > 0) {
+      if (!selectedRef && !isGlobal && data.length > 0) {
         const refs = Array.from(
           new Set(data.map((l: any) => l.referencia)),
         ).filter(Boolean) as string[];
         if (refs.length > 0) setSelectedRef(refs.sort()[0]);
       } else if (
-        selectedRef &&
+        selectedRef && !isGlobal &&
         !data.some((l: any) => l.referencia === selectedRef)
       ) {
         setSelectedRef(null);
@@ -239,6 +258,7 @@ const AnalisisPage = () => {
   }, []);
 
   // ── Unique references ───────────────────────────────────
+
   const uniqueReferences = useMemo(() => {
     const refs = Array.from(new Set(logs.map((l) => l.referencia))).filter(
       Boolean,
@@ -307,105 +327,94 @@ const AnalisisPage = () => {
 
   // ── Matrix transform ────────────────────────────────────
   const matrixData = useMemo<MatrixDataTransformada | null>(() => {
-    if (!selectedRef) return null;
-    const filteredLogs = logs.filter((l) => l.referencia === selectedRef);
+    if (!selectedRef || !logs || logs.length === 0) return null;
+    
+    const isGlobal = selectedRef === "ALL_HISTORICAL";
+    const filteredLogs = isGlobal ? logs : logs.filter((l) => l.referencia === selectedRef);
+    
     const allTallasSet = new Set<string>();
     const filasMap = new Map<string, FilaAnalisis>();
 
-    filteredLogs.forEach((log) => {
+    for (const log of filteredLogs) {
       let ct: any[] = [];
       try {
-        ct =
-          typeof log.cantidad_talla === "string"
-            ? JSON.parse(log.cantidad_talla)
-            : log.cantidad_talla;
-      } catch {
-        return;
-      }
+        ct = typeof log.cantidad_talla === "string"
+          ? JSON.parse(log.cantidad_talla)
+          : log.cantidad_talla;
+      } catch { continue; }
 
-      const tiendaId =
-        typeof log.tienda_id === "object" && log.tienda_id !== null
-          ? String(log.tienda_id.id)
-          : String(log.tienda_id);
-      const tiendaNombre =
-        (typeof log.tienda_id === "object" ? log.tienda_id?.nombre : null) ||
-        tiendasDict[tiendaId] ||
-        (log.tienda_nombre?.trim() ? log.tienda_nombre : `Tienda ${tiendaId}`);
+      const tiendaId = log.tienda_id?.id || String(log.tienda_id || "BODEGA");
+      const tiendaNombre = log.tienda_id?.nombre || tiendasDict[tiendaId] || log.tienda_nombre || `Tienda ${tiendaId}`;
 
-      const usuarioId = log.usuario_id
-        ? typeof log.usuario_id === "object"
-          ? log.usuario_id.id
-          : String(log.usuario_id)
-        : "desconocido";
-      const usuarioNombre =
-        log.usuario_id && typeof log.usuario_id === "object"
-          ? `${log.usuario_id.first_name || ""} ${log.usuario_id.last_name || ""}`.trim()
-          : log.usuario_id
-            ? `Usuario ${usuarioId}`
-            : "Desconocido";
+      const u = log.usuario_id;
+      const usuarioId = u?.id || String(u || "desconocido");
+      const usuarioNombre = u?.first_name ? `${u.first_name} ${u.last_name || ""}`.trim() : `Usuario ${usuarioId}`;
 
-      const filaKey = `${tiendaId}|${usuarioId}`;
+      const dateKey = log.fecha ? dayjs(log.fecha).format("DD/MM/YYYY") : "—";
+      // Clave de agrupamiento: en global incluimos fecha y ref; en normal solo tienda+usuario
+      const filaKey = isGlobal 
+        ? `${tiendaId}|${usuarioId}|${log.fecha?.slice(0, 10)}|${log.referencia}` 
+        : `${tiendaId}|${usuarioId}`;
+
       if (!filasMap.has(filaKey)) {
         filasMap.set(filaKey, {
           tiendaId,
           tiendaNombre,
           usuarioId,
           usuarioNombre: usuarioNombre || `Usuario ${usuarioId}`,
+          fecha: isGlobal ? dateKey : undefined,
+          referencia: isGlobal ? log.referencia : undefined,
           tallas: {},
           total: 0,
         });
       }
+
       const fila = filasMap.get(filaKey)!;
       if (Array.isArray(ct)) {
-        ct.forEach((item) => {
-          const tKey = String(item.talla || item.numero || "");
-          if (!tKey) return;
+        for (const item of ct) {
+          const tKey = String(item.talla || item.numero || "").padStart(2, "0");
+          if (!tKey || tKey === "00") continue;
           allTallasSet.add(tKey);
-          fila.tallas[tKey] = (fila.tallas[tKey] || 0) + (item.cantidad || 0);
-          fila.total += item.cantidad || 0;
-        });
+          const cant = Number(item.cantidad) || 0;
+          fila.tallas[tKey] = (fila.tallas[tKey] || 0) + cant;
+          fila.total += cant;
+        }
       }
-    });
+    }
 
     const sortedTallas = Array.from(allTallasSet).sort((a, b) => {
-      const nA = parseFloat(a),
-        nB = parseFloat(b);
+      const nA = parseFloat(a), nB = parseFloat(b);
       return isNaN(nA) || isNaN(nB) ? a.localeCompare(b) : nA - nB;
     });
+
     const columnTotals: Record<string, number> = {};
-    sortedTallas.forEach((t) => {
-      columnTotals[t] = Array.from(filasMap.values()).reduce(
-        (s, f) => s + (f.tallas[t] || 0),
-        0,
-      );
+    sortedTallas.forEach(t => {
+      columnTotals[t] = Array.from(filasMap.values()).reduce((s, f) => s + (f.tallas[t] || 0), 0);
     });
 
-    let filas = Array.from(filasMap.values());
-    if (filtroUsuario)
-      filas = filas.filter((f) => f.usuarioId === filtroUsuario);
-    if (filtroTienda)
-      filas = filas.filter((f) =>
-        f.tiendaNombre.toLowerCase().includes(filtroTienda.toLowerCase()),
-      );
-    filas.sort(
-      (a, b) =>
-        a.tiendaNombre.localeCompare(b.tiendaNombre) ||
-        a.usuarioNombre.localeCompare(b.usuarioNombre),
-    );
+    let filasList = Array.from(filasMap.values());
+    if (filtroUsuario) filasList = filasList.filter(f => f.usuarioId === filtroUsuario);
+    if (filtroTienda) filasList = filasList.filter(f => f.tiendaNombre.toLowerCase().includes(filtroTienda.toLowerCase()));
+    
+    filasList.sort((a, b) => a.tiendaNombre.localeCompare(b.tiendaNombre) || a.usuarioNombre.localeCompare(b.usuarioNombre));
 
-    const maxCellValue = Math.max(
-      ...filas.flatMap((f) => sortedTallas.map((t) => f.tallas[t] || 0)),
-      1,
-    );
+    const maxCellValue = Math.max(...filasList.flatMap(f => sortedTallas.map(t => f.tallas[t] || 0)), 1);
+
+    const unidadesPorUsuario: Record<string, { nombre: string; total: number }> = {};
+    filasList.forEach(f => {
+      if (!unidadesPorUsuario[f.usuarioId]) unidadesPorUsuario[f.usuarioId] = { nombre: f.usuarioNombre, total: 0 };
+      unidadesPorUsuario[f.usuarioId].total += f.total;
+    });
 
     return {
       tallas: sortedTallas,
-      filas,
+      filas: filasList,
       columnTotals,
       grandTotal: Object.values(columnTotals).reduce((s, v) => s + v, 0),
-      tiendasUnicas: new Set(filas.map((f) => f.tiendaId)).size,
-      usuariosUnicos: new Set(filas.map((f) => f.usuarioId)).size,
+      tiendasUnicas: new Set(filasList.map(f => f.tiendaId)).size,
+      usuariosUnicos: new Set(filasList.map(f => f.usuarioId)).size,
       maxCellValue,
+      unidadesPorUsuario,
     };
   }, [logs, selectedRef, tiendasDict, filtroUsuario, filtroTienda]);
 
@@ -417,9 +426,11 @@ const AnalisisPage = () => {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Análisis Curvas");
 
+      const isGlobal = selectedRef === "ALL_HISTORICAL";
       const headers = [
         "Establecimiento",
         "Usuario",
+        ...(isGlobal ? ["Fecha", "Referencia"] : []),
         ...matrixData.tallas,
         "TOTAL",
       ];
@@ -451,6 +462,7 @@ const AnalisisPage = () => {
         const rowData = [
           f.tiendaNombre,
           f.usuarioNombre,
+          ...(isGlobal ? [f.fecha, f.referencia] : []),
           ...matrixData.tallas.map((t) => f.tallas[t] || 0),
           f.total,
         ];
@@ -620,6 +632,38 @@ const AnalisisPage = () => {
       </FormControl>
 
       {/* Reference button - mejorado con más visibilidad */}
+      <Tooltip title="Ver todo el historial acumulado">
+        <Button
+          variant={selectedRef === "ALL_HISTORICAL" ? "contained" : "outlined"}
+          size="small"
+          onClick={() => {
+            if (selectedRef === "ALL_HISTORICAL") {
+              setSelectedRef(null);
+            } else {
+              setSelectedRef("ALL_HISTORICAL");
+            }
+          }}
+          sx={{
+            borderRadius: 2,
+            textTransform: "none",
+            fontWeight: 800,
+            fontSize: "0.78rem",
+            height: 36,
+            px: 2,
+            flexShrink: 0,
+            bgcolor: selectedRef === "ALL_HISTORICAL" ? "#f59e0b" : "transparent",
+            border: "2px solid",
+            borderColor: selectedRef === "ALL_HISTORICAL" ? "#d97706" : "#f59e0b",
+            color: selectedRef === "ALL_HISTORICAL" ? "#ffffff" : "#f59e0b",
+            "&:hover": {
+              bgcolor: selectedRef === "ALL_HISTORICAL" ? "#d97706" : "rgba(245, 158, 11, 0.1)",
+            },
+          }}
+        >
+          {selectedRef === "ALL_HISTORICAL" ? "Histórico Global" : "Históricos"}
+        </Button>
+      </Tooltip>
+
       <Tooltip title="Ver y cambiar referencia">
         <Badge
           badgeContent={uniqueReferences.length}
@@ -678,7 +722,7 @@ const AnalisisPage = () => {
                 whiteSpace: "nowrap",
               }}
             >
-              {selectedRef ?? "Referencia"}
+              {selectedRef === "ALL_HISTORICAL" ? "Histórico Global" : (selectedRef ?? "Referencia")}
             </Box>
           </Button>
         </Badge>
@@ -1076,7 +1120,7 @@ const AnalisisPage = () => {
                     }}
                   />
                   <Chip
-                    label={`${matrixData.grandTotal.toLocaleString("es-CO")} unidades`}
+                    label={`${matrixData.grandTotal.toLocaleString("es-CO")} unidades despachadas`}
                     size="small"
                     sx={{
                       bgcolor: "#f0fdf4",
@@ -1106,10 +1150,10 @@ const AnalisisPage = () => {
                   {/* Legend */}
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     {[
-                      { bg: "#f0f9ff", label: "Bajo" },
-                      { bg: "#bae6fd", label: "Medio" },
-                      { bg: "#7dd3fc", label: "Alto" },
-                      { bg: "#38bdf8", label: "Máx" },
+                      { bg: "#e2e8f0", label: "Falta" },
+                      { bg: "#fef3c7", label: "Poco" },
+                      { bg: "#dcfce7", label: "Bien" },
+                      { bg: "#fca5a5", label: "Sobra" },
                     ].map((l) => (
                       <Stack
                         key={l.label}
@@ -1182,7 +1226,7 @@ const AnalisisPage = () => {
                               position: "sticky",
                               left: 0,
                               fontFamily: MAIN_FONT,
-                              fontSize: "0.65rem",
+                              fontSize: "0.75rem",
                               letterSpacing: 0.5,
                               py: 1.5,
                               px: { xs: 1.5, md: 2 },
@@ -1204,7 +1248,7 @@ const AnalisisPage = () => {
                               position: "sticky",
                               left: { xs: 140, md: 210 },
                               fontFamily: MAIN_FONT,
-                              fontSize: "0.65rem",
+                              fontSize: "0.75rem",
                               letterSpacing: 0.5,
                               py: 1.5,
                               px: { xs: 1, md: 2 },
@@ -1215,6 +1259,43 @@ const AnalisisPage = () => {
                             USUARIO
                           </TableCell>
 
+                          {selectedRef === "ALL_HISTORICAL" && (
+                            <>
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  bgcolor: "#f8fafc",
+                                  color: "#1e293b",
+                                  fontWeight: 800,
+                                  minWidth: 100,
+                                  fontFamily: MAIN_FONT,
+                                  fontSize: "0.75rem",
+                                  py: 1.5,
+                                  borderRight: "1px solid #e2e8f0",
+                                  borderBottom: "2px solid #cbd5e1",
+                                }}
+                              >
+                                FECHA
+                              </TableCell>
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  bgcolor: "#f8fafc",
+                                  color: "#1e293b",
+                                  fontWeight: 800,
+                                  minWidth: 160,
+                                  fontFamily: MAIN_FONT,
+                                  fontSize: "0.75rem",
+                                  py: 1.5,
+                                  borderRight: "1px solid #e2e8f0",
+                                  borderBottom: "2px solid #cbd5e1",
+                                }}
+                              >
+                                REFERENCIA
+                              </TableCell>
+                            </>
+                          )}
+
                           {/* Size headers */}
                           {matrixData.tallas.map((t, idx) => (
                             <TableCell
@@ -1224,16 +1305,16 @@ const AnalisisPage = () => {
                                 bgcolor: idx % 2 === 0 ? "#fafafa" : "#ffffff",
                                 color: "#475569",
                                 fontWeight: 800,
-                                minWidth: { xs: 46, md: 56 },
+                                minWidth: { xs: 56, md: 66 },
                                 fontFamily: MONO_FONT,
-                                fontSize: "0.76rem",
+                                fontSize: "0.85rem",
                                 py: 1.3,
                                 px: 0.4,
                                 borderRight: "1px solid #f1f5f9",
                                 borderBottom: "2px solid #cbd5e1",
                               }}
                             >
-                              {t}
+                              Talla {t}
                             </TableCell>
                           ))}
 
@@ -1244,16 +1325,16 @@ const AnalisisPage = () => {
                               bgcolor: "#e2e8f0",
                               color: "#1e293b",
                               fontWeight: 900,
-                              minWidth: 76,
+                              minWidth: 86,
                               fontFamily: MAIN_FONT,
-                              fontSize: "0.65rem",
+                              fontSize: "0.75rem",
                               letterSpacing: 0.5,
                               py: 1.5,
                               borderLeft: "1px solid #cbd5e1",
                               borderBottom: "2px solid #cbd5e1",
                             }}
                           >
-                            TOTAL
+                            TOTAL UNIDADES
                           </TableCell>
                         </TableRow>
                       </TableHead>
@@ -1266,8 +1347,11 @@ const AnalisisPage = () => {
                             <TableRow
                               key={`${f.tiendaId}-${f.usuarioId}-${i}`}
                               sx={{
-                                "&:hover td": { bgcolor: "#eff6ff !important" },
-                                transition: "background 0.1s",
+                                "&:hover": {
+                                  border: "2px solid #3b82f6",
+                                  boxShadow: "0 2px 8px rgba(59, 130, 246, 0.2)",
+                                },
+                                transition: "border-color 0.1s, box-shadow 0.1s",
                               }}
                             >
                               {/* Establishment */}
@@ -1278,7 +1362,7 @@ const AnalisisPage = () => {
                                   zIndex: 5,
                                   bgcolor: rowBg,
                                   borderRight: "1px solid #e2e8f0",
-                                  py: 1,
+                                  py: 1.2,
                                   px: { xs: 1.2, md: 2 },
                                 }}
                               >
@@ -1289,11 +1373,11 @@ const AnalisisPage = () => {
                                 >
                                   <Box
                                     sx={{
-                                      width: 3,
-                                      height: 24,
+                                      width: 4,
+                                      height: 28,
                                       borderRadius: 1,
                                       bgcolor: BRAND.primary,
-                                      opacity: 0.4,
+                                      opacity: 0.5,
                                       flexShrink: 0,
                                     }}
                                   />
@@ -1303,7 +1387,7 @@ const AnalisisPage = () => {
                                     sx={{
                                       fontFamily: MAIN_FONT,
                                       color: "#0f172a",
-                                      fontSize: { xs: "0.7rem", md: "0.76rem" },
+                                      fontSize: { xs: "0.75rem", md: "0.8rem" },
                                       lineHeight: 1.2,
                                     }}
                                   >
@@ -1320,7 +1404,7 @@ const AnalisisPage = () => {
                                   zIndex: 5,
                                   bgcolor: rowBg,
                                   borderRight: "2px solid #e2e8f0",
-                                  py: 1,
+                                  py: 1.2,
                                   px: { xs: 0.8, md: 1.5 },
                                 }}
                               >
@@ -1331,9 +1415,9 @@ const AnalisisPage = () => {
                                 >
                                   <Avatar
                                     sx={{
-                                      width: 22,
-                                      height: 22,
-                                      fontSize: "0.58rem",
+                                      width: 26,
+                                      height: 26,
+                                      fontSize: "0.62rem",
                                       bgcolor: BRAND.primary,
                                       color: "white",
                                       fontWeight: 900,
@@ -1352,8 +1436,8 @@ const AnalisisPage = () => {
                                       fontFamily: MAIN_FONT,
                                       color: "#334155",
                                       fontSize: {
-                                        xs: "0.68rem",
-                                        md: "0.74rem",
+                                        xs: "0.72rem",
+                                        md: "0.78rem",
                                       },
                                       fontWeight: 600,
                                       lineHeight: 1.2,
@@ -1364,6 +1448,35 @@ const AnalisisPage = () => {
                                 </Stack>
                               </TableCell>
 
+                              {selectedRef === "ALL_HISTORICAL" && (
+                                <>
+                                  <TableCell
+                                    align="center"
+                                    sx={{
+                                      bgcolor: rowBg,
+                                      borderRight: "1px solid #e2e8f0",
+                                      color: "#64748b",
+                                      fontWeight: 600,
+                                      fontSize: "0.75rem",
+                                    }}
+                                  >
+                                    {f.fecha}
+                                  </TableCell>
+                                  <TableCell
+                                    align="center"
+                                    sx={{
+                                      bgcolor: rowBg,
+                                      borderRight: "1px solid #e2e8f0",
+                                      color: "#475569",
+                                      fontWeight: 700,
+                                      fontSize: "0.75rem",
+                                    }}
+                                  >
+                                    {f.referencia}
+                                  </TableCell>
+                                </>
+                              )}
+
                               {/* Size cells — heat-map */}
                               {matrixData.tallas.map((talla, tIdx) => {
                                 const val = f.tallas[talla] || 0;
@@ -1372,66 +1485,78 @@ const AnalisisPage = () => {
                                   matrixData.maxCellValue,
                                 );
                                 return (
-                                  <TableCell
+                                  <Tooltip
                                     key={talla}
-                                    align="center"
-                                    sx={{
-                                      py: 0,
-                                      px: 0.2,
-                                      bgcolor:
-                                        val > 0
-                                          ? bg
-                                          : tIdx % 2 === 0
-                                            ? "#fafafa"
-                                            : "white",
-                                      borderRight: "1px solid #f1f5f9",
-                                      transition: "none",
-                                    }}
+                                    title={`${f.usuarioNombre} escaneó ${val} unidades de Talla ${talla} en ${f.tiendaNombre}`}
+                                    arrow
                                   >
-                                    <Typography
+                                    <TableCell
+                                      align="center"
                                       sx={{
-                                        fontFamily: MONO_FONT,
-                                        fontSize: "0.82rem",
-                                        fontWeight: fw,
-                                        color: text,
-                                        lineHeight: 2.3,
+                                        py: 0.5,
+                                        px: 0.3,
+                                        bgcolor:
+                                          val > 0
+                                            ? bg
+                                            : tIdx % 2 === 0
+                                              ? "#fafafa"
+                                              : "white",
+                                        borderRight: "1px solid #f1f5f9",
+                                        transition: "none",
+                                        cursor: val > 0 ? "pointer" : "default",
                                       }}
                                     >
-                                      {val > 0 ? val : ""}
-                                    </Typography>
-                                  </TableCell>
+                                      <Typography
+                                        sx={{
+                                          fontFamily: MONO_FONT,
+                                          fontSize: "0.9rem",
+                                          fontWeight: fw,
+                                          color: text,
+                                          lineHeight: 2.5,
+                                        }}
+                                      >
+                                        {val > 0 ? val : ""}
+                                      </Typography>
+                                    </TableCell>
+                                  </Tooltip>
                                 );
                               })}
 
                               {/* Row total */}
-                              <TableCell
-                                align="center"
-                                sx={{
-                                  borderLeft: "1px solid #e2e8f0",
-                                  bgcolor:
-                                    f.total > 0
-                                      ? isEven
-                                        ? "#f1f5f9"
-                                        : "#e2e8f0"
-                                      : isEven
-                                        ? "#f8fafc"
-                                        : "#f1f5f9",
-                                  py: 1,
-                                }}
+                              <Tooltip
+                                title={`${f.usuarioNombre} escaneó ${f.total} unidades totales en ${f.tiendaNombre}`}
+                                arrow
                               >
-                                <Typography
+                                <TableCell
+                                  align="center"
                                   sx={{
-                                    fontFamily: MONO_FONT,
-                                    fontSize: "0.86rem",
-                                    fontWeight: 800,
-                                    color: f.total > 0 ? "#1e293b" : "#94a3b8",
+                                    borderLeft: "1px solid #e2e8f0",
+                                    bgcolor:
+                                      f.total > 0
+                                        ? isEven
+                                          ? "#f1f5f9"
+                                          : "#e2e8f0"
+                                        : isEven
+                                          ? "#f8fafc"
+                                          : "#f1f5f9",
+                                    py: 1.2,
+                                    cursor: f.total > 0 ? "pointer" : "default",
                                   }}
                                 >
-                                  {f.total > 0
-                                    ? f.total.toLocaleString("es-CO")
-                                    : "—"}
-                                </Typography>
-                              </TableCell>
+                                  <Typography
+                                    sx={{
+                                      fontFamily: MONO_FONT,
+                                      fontSize: "0.95rem",
+                                      fontWeight: 800,
+                                      color: f.total > 0 ? "#1e293b" : "#94a3b8",
+                                    }}
+                                  >
+                                    {f.total > 0
+                                      ? f.total.toLocaleString("es-CO")
+                                      : "—"}
+                                  </Typography>
+                                </TableCell>
+                              </Tooltip>
                             </TableRow>
                           );
                         })}
@@ -1449,9 +1574,9 @@ const AnalisisPage = () => {
                               color: "#334155",
                               fontFamily: MAIN_FONT,
                               fontWeight: 800,
-                              fontSize: "0.65rem",
+                              fontSize: "0.75rem",
                               letterSpacing: 0.5,
-                              py: 1.3,
+                              py: 1.5,
                               px: 2,
                               borderTop: `2px solid #cbd5e1`,
                               position: "sticky",
@@ -1473,9 +1598,9 @@ const AnalisisPage = () => {
                                     : "#94a3b8",
                                 fontFamily: MONO_FONT,
                                 fontWeight: 800,
-                                fontSize: "0.82rem",
+                                fontSize: "0.9rem",
                                 borderTop: `2px solid #cbd5e1`,
-                                py: 1.3,
+                                py: 1.5,
                                 borderRight: "1px solid #f1f5f9",
                               }}
                             >
@@ -1489,7 +1614,7 @@ const AnalisisPage = () => {
                               color: "#0f172a",
                               fontFamily: MONO_FONT,
                               fontWeight: 900,
-                              fontSize: "1rem",
+                              fontSize: "1.1rem",
                               borderTop: `2px solid #cbd5e1`,
                               borderLeft: "1px solid #cbd5e1",
                             }}
@@ -1501,6 +1626,107 @@ const AnalisisPage = () => {
                     </Table>
                   </TableContainer>
                 </Paper>
+
+                {/* Gráfico de unidades por usuario */}
+                {Object.keys(matrixData.unidadesPorUsuario).length > 0 && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mt: 2,
+                      borderRadius: 3,
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 2px 16px rgba(0,106,204,0.06)",
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontFamily: MAIN_FONT,
+                        fontWeight: 800,
+                        color: BRAND.dark,
+                        mb: 3,
+                        textAlign: "center",
+                      }}
+                    >
+                      Unidades Escaneadas por Usuario
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      {Object.entries(matrixData.unidadesPorUsuario)
+                        .sort(([, a], [, b]) => b.total - a.total)
+                        .map(([userId, data], index) => {
+                          const maxTotal = Math.max(...Object.values(matrixData.unidadesPorUsuario).map(d => d.total));
+                          const widthPercent = maxTotal > 0 ? (data.total / maxTotal) * 100 : 0;
+                          const rank = index + 1;
+                          return (
+                            <Box key={userId} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                              <Typography
+                                sx={{
+                                  fontFamily: MONO_FONT,
+                                  fontWeight: 700,
+                                  fontSize: "0.9rem",
+                                  color: "#64748b",
+                                  minWidth: 30,
+                                  textAlign: "center",
+                                }}
+                              >
+                                #{rank}
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontFamily: MAIN_FONT,
+                                  fontWeight: 600,
+                                  fontSize: "0.85rem",
+                                  color: "#334155",
+                                  minWidth: 140,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {data.nombre}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  flexGrow: 1,
+                                  height: 32,
+                                  bgcolor: "#e2e8f0",
+                                  borderRadius: 3,
+                                  position: "relative",
+                                  overflow: "hidden",
+                                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    height: "100%",
+                                    width: `${widthPercent}%`,
+                                    bgcolor: BRAND.primary,
+                                    borderRadius: 3,
+                                    transition: "width 0.4s ease",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                  }}
+                                />
+                                <Typography
+                                  sx={{
+                                    position: "absolute",
+                                    left: 12,
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    fontFamily: MONO_FONT,
+                                    fontWeight: 900,
+                                    fontSize: "0.85rem",
+                                    color: "white",
+                                    textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                                  }}
+                                >
+                                  {data.total.toLocaleString("es-CO")} uds
+                                </Typography>
+                              </Box>
+                            </Box>
+                          );
+                        })}
+                    </Stack>
+                  </Paper>
+                )}
               </Box>
             </Fade>
           ) : (

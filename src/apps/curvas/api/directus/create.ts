@@ -160,60 +160,35 @@ export const saveLogCurvas = async (
  */
 export const saveLogsBatch = async (
   logsData: Omit<LogCurvas, "id" | "fecha_creacion">[],
-): Promise<string[]> => {
+): Promise<{ tienda_id: string; id: string }[]> => {
   if (!logsData || logsData.length === 0) return [];
 
   try {
-    const results: string[] = [];
+    const results: { tienda_id: string; id: string }[] = [];
 
     for (const log of logsData) {
-      // Buscar si ya existe un registro para esta tienda, referencia y fecha
-      const existingRecords = await withAutoRefresh(() =>
-        directus.request(readItems("log_curvas", {
-          filter: {
-            _and: [
-              { tienda_id: { _eq: log.tienda_id } },
-              { referencia: { _eq: log.referencia || "" } },
-              { fecha: { _gte: `${new Date().toISOString().split('T')[0]}T00:00:00` } },
-              { fecha: { _lte: `${new Date().toISOString().split('T')[0]}T23:59:59` } },
-            ],
-          },
-          limit: 1,
-        }))
-      ) as any[];
+      // SIEMPRE crear nuevo registro para envíos (no actualizar existentes)
+      const item = {
+        tienda_id: log.tienda_id,
+        tienda_nombre: log.tienda_nombre || "",
+        plantilla: log.plantilla,
+        fecha: log.fecha,
+        cantidad_talla: log.cantidad_talla,
+        referencia: log.referencia || "",
+        estado: log.estado || "borrador",
+        fecha_creacion: new Date().toISOString(),
+      };
 
-      if (existingRecords && existingRecords.length > 0) {
-        // Actualizar registro existente
-        const existingId = existingRecords[0].id;
-        await withAutoRefresh(() =>
-          directus.request(updateItems("log_curvas", existingId, {
-            tienda_nombre: log.tienda_nombre || "",
-            plantilla: log.plantilla,
-            fecha: log.fecha,
-            cantidad_talla: log.cantidad_talla,
-            estado: log.estado || "borrador",
-          }))
-        );
-        results.push(String(existingId));
-      } else {
-        // Crear nuevo registro
-        const item = {
-          tienda_id: log.tienda_id,
-          tienda_nombre: log.tienda_nombre || "",
-          plantilla: log.plantilla,
-          fecha: log.fecha,
-          cantidad_talla: log.cantidad_talla,
-          referencia: log.referencia || "",
-          estado: log.estado || "borrador",
-          fecha_creacion: new Date().toISOString(),
-        };
+      console.log(`📝 Creando log para envío:`, item);
 
-        const response = (await withAutoRefresh(() =>
-          directus.request(createItems("log_curvas", [item])),
-        )) as any[];
+      const response = (await withAutoRefresh(() =>
+        directus.request(createItems("log_curvas", [item])),
+      )) as any[];
 
-        results.push(String(response[0].id));
-      }
+      const newId = response[0]?.id;
+      console.log(`✅ Log creado con ID: ${newId} para tienda ${log.tienda_id}`);
+
+      results.push({ tienda_id: log.tienda_id, id: String(newId) });
     }
 
     return results;
@@ -240,15 +215,21 @@ export const saveEnviosBatch = async (
 ): Promise<boolean> => {
   if (!enviosData || enviosData.length === 0) return true;
 
+  console.log("🚨 saveEnviosBatch recibió:", enviosData);
+  console.log("🚨 IDs de plantilla:", enviosData.map(e => ({ tienda: e.tienda_id, plantilla: e.plantilla })));
+
   try {
-    const items = enviosData.map((envio: any) => ({
-      tienda_id: envio.tienda_id,
-      plantilla: envio.plantilla,
-      fecha: envio.fecha,
-      cantidad_talla: envio.cantidad_talla,
-      referencia: envio.referencia,
-      usuario_id: envio.usuario_id,
-    }));
+    const items = enviosData.map((envio: any) => {
+      console.log(`🔍 Procesando envío para tienda ${envio.tienda_id} con plantilla ${envio.plantilla}`);
+      return {
+        tienda_id: envio.tienda_id,
+        plantilla: envio.plantilla,
+        fecha: envio.fecha,
+        cantidad_talla: envio.cantidad_talla,
+        referencia: envio.referencia,
+        usuario_id: envio.usuario_id,
+      };
+    });
 
     await withAutoRefresh(() =>
       directus.request(createItems("envios_curvas", items)),

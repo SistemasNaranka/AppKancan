@@ -218,7 +218,8 @@ export const getHistorialCargas = async (limit = 10) => {
  */
 export const getLogCurvas = async (
   fecha?: string,
-  referencia?: string
+  referencia?: string,
+  lastUpdated?: string
 ): Promise<any[]> => {
   try {
     const queryFilter: any[] = [];
@@ -233,6 +234,12 @@ export const getLogCurvas = async (
     if (referencia) {
       queryFilter.push({
         referencia: { _contains: referencia }
+      });
+    }
+
+    if (lastUpdated) {
+      queryFilter.push({
+        fecha_creacion: { _gt: lastUpdated }
       });
     }
 
@@ -262,7 +269,45 @@ export const getLogCurvas = async (
 };
 
 /**
+ * Obtiene los registros de envios_curvas para una fecha y referencia específicas
+ * Se usa para hidratar la validación física (escaneo)
+ */
+export const getEnviosCurvas = async (
+  fecha?: string,
+  referencia?: string
+): Promise<any[]> => {
+  try {
+    const queryFilter: any[] = [];
+    if (fecha) {
+      queryFilter.push({ fecha: { _gte: `${fecha}T00:00:00`, _lte: `${fecha}T23:59:59` } });
+    }
+    if (referencia) {
+      queryFilter.push({ referencia: { _contains: referencia } });
+    }
+
+    const queryOptions: any = {
+      sort: ['-fecha'],
+      limit: 5000,
+      fields: ['*', 'tienda_id.*']
+    };
+
+    if (queryFilter.length > 0) {
+      queryOptions.filter = queryFilter.length === 1 ? queryFilter[0] : { _and: queryFilter };
+    }
+
+    const response = await withAutoRefresh(() =>
+      directus.request(readItems('envios_curvas', queryOptions))
+    );
+    return response || [];
+  } catch (error) {
+    console.error('Error fetching envios_curvas:', error);
+    return [];
+  }
+};
+
+/**
  * Obtiene los registros de envios_curvas para el módulo de Análisis
+
  * Permite filtrar por un rango de fechas
  */
 export const getEnviosAnalisis = async (
@@ -322,41 +367,36 @@ export const getEnviosAnalisis = async (
  */
 export const getResumenFechasCurvas = async (): Promise<Record<string, 'pendiente' | 'enviado'>> => {
   try {
-    const mapaFechas: Record<string, 'pendiente' | 'enviado'> = {};
-    
-    // Traer últimos registros de log_curvas (limite razonable para no saturar)
-    // Se quita fields: ['fecha', 'estado'] por si la columna estado aún no existe en la BD
-    const logRes = await withAutoRefresh(() =>
+    const response = await withAutoRefresh(() =>
       directus.request(
         readItems('log_curvas', {
+          fields: ['fecha'],
           sort: ['-fecha'],
           limit: 1000,
         })
       )
     );
 
-    if (logRes && logRes.length > 0) {
-      logRes.forEach((item: any) => {
-        if (!item.fecha) return;
-        const dia = item.fecha.split('T')[0];
-        // Si ya hay un pendiente para ese día o si este estado es null/borrador/pendiente
-        const estadoRaw = String(item.estado || '').toLowerCase();
-        const estaPendiente = !estadoRaw || estadoRaw === 'borrador' || estadoRaw === 'pendiente' || estadoRaw === 'undefined';
-        
-        if (estaPendiente) {
-          mapaFechas[dia] = 'pendiente';
-        } else if (!mapaFechas[dia]) {
-          mapaFechas[dia] = 'enviado';
-        }
-      });
-    }
+    const fechas: Record<string, 'pendiente' | 'enviado'> = {};
+    response.forEach((item: any) => {
+      const fecha = item.fecha?.split('T')[0];
+      if (fecha && !fechas[fecha]) {
+        fechas[fecha] = 'enviado';
+      }
+    });
 
-    return mapaFechas;
+    // Marcar fechas futuras o actuales como pendientes si no hay datos
+    const today = new Date().toISOString().split('T')[0];
+    if (!fechas[today]) fechas[today] = 'pendiente';
+
+    return fechas;
   } catch (err) {
     console.error('Error fetching resumen fechas:', err);
     return {};
   }
 };
+
+
 
 export default {
   getMatrizGeneral,
@@ -367,6 +407,7 @@ export default {
   getTallas,
   getHistorialCargas,
   getLogCurvas,
+  getEnviosCurvas,
   getEnviosAnalisis,
   getResumenFechasCurvas,
 };

@@ -15,8 +15,11 @@ import {
   Stack,
   IconButton,
   InputAdornment,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
-import { CheckCircle, Lock, Close } from "@mui/icons-material";
+import { CheckCircle, Lock, Close, Visibility } from "@mui/icons-material";
 import {
   BRAND,
   MONO_FONT,
@@ -113,7 +116,10 @@ interface MemoizedTableRowProps {
   currentSheetId: string;
   currentRef: string;
   rowCols: Record<string, number>;
-  rowValidation: Record<string, number>;
+  rowValidation: Record<
+    string,
+    number | { cantidad: number; barcodes: string[] }
+  >;
   activeCell: { filaId: string; col: string; sheetId: string } | null;
   columns: string[];
   bloqueosActivos: any[];
@@ -141,7 +147,8 @@ export const MemoizedTableRow = React.memo(
     setActiveCell,
   }: MemoizedTableRowProps) => {
     const mirrorRowTotal = Object.values(rowValidation).reduce(
-      (a: number, b: any) => a + Number(b),
+      (a: number, b: any) =>
+        a + (typeof b === "object" ? Number(b.cantidad || 0) : Number(b || 0)),
       0,
     );
     const rowComplete = mirrorRowTotal === fila.total && fila.total > 0;
@@ -275,8 +282,8 @@ export const MemoizedTableRow = React.memo(
         {/* Store name — sticky */}
         <TableCell
           sx={{
-            fontWeight: 600,
-            fontSize: "0.74rem",
+            fontWeight: 800,
+            fontSize: "0.85rem",
             position: "sticky",
             left: 44,
             bgcolor: isLockedByMe
@@ -318,7 +325,15 @@ export const MemoizedTableRow = React.memo(
         {/* Vertical cells */}
         {columns.map((col) => {
           const valRef = rowCols[col] || 0;
-          const valInput = rowValidation[col] || 0;
+          const rawInput = rowValidation[col];
+          const valInput =
+            typeof rawInput === "object"
+              ? rawInput?.cantidad || 0
+              : rawInput || 0;
+          const barcodesCount =
+            typeof rawInput === "object" && Array.isArray(rawInput?.barcodes)
+              ? rawInput.barcodes.length
+              : 0;
           const vs = getValidationStyles(valRef, valInput);
           const isActive =
             activeCell &&
@@ -331,21 +346,25 @@ export const MemoizedTableRow = React.memo(
               key={col}
               id={`cell-${fila.id}-${col}`}
               align="center"
-              tabIndex={isLockedByOther ? -1 : 0}
+              tabIndex={isLockedByMe && valRef > 0 ? 0 : -1}
+              onMouseDown={(e) => {
+                if (valRef === 0) return;
+                if (isLockedByOther) return;
+                if (!isLockedByMe) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
               onClick={() => {
+                if (valRef === 0) return;
+                if (isLockedByOther) return;
                 if (!isLockedByMe) {
                   setSnackbar({
                     open: true,
                     message:
-                      'Debes seleccionar la tienda (Clic en "SEL") para editar',
+                      'Debes seleccionar la tienda (Clic en "SEL") para comenzar a escanear',
                     severity: "warning",
                   });
-                  if (!isLockedByOther)
-                    setActiveCell({
-                      filaId: String(fila.id),
-                      col: String(col),
-                      sheetId: currentSheetId,
-                    });
                   return;
                 }
                 setActiveCell({
@@ -354,8 +373,18 @@ export const MemoizedTableRow = React.memo(
                   sheetId: currentSheetId,
                 });
               }}
-              onFocus={() => {
-                if (isLockedByOther) return;
+              onFocus={(e) => {
+                if (valRef === 0) return;
+                if (isLockedByOther) {
+                  e.preventDefault();
+                  e.target.blur();
+                  return;
+                }
+                if (!isLockedByMe) {
+                  e.preventDefault();
+                  e.target.blur();
+                  return;
+                }
                 setActiveCell({
                   filaId: String(fila.id),
                   col: String(col),
@@ -363,17 +392,19 @@ export const MemoizedTableRow = React.memo(
                 });
               }}
               onKeyDown={(e) => {
+                if (valRef === 0) return;
+                if (isLockedByOther) return;
+                if (!isLockedByMe) {
+                  setSnackbar({
+                    open: true,
+                    message:
+                      'Debes seleccionar la tienda (Clic en "SEL") para comenzar a escanear',
+                    severity: "warning",
+                  });
+                  return;
+                }
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  if (!isLockedByMe) {
-                    setSnackbar({
-                      open: true,
-                      message:
-                        'Debes seleccionar la tienda (Clic en "SEL") para editar',
-                      severity: "warning",
-                    });
-                    return;
-                  }
                   setActiveCell({
                     filaId: String(fila.id),
                     col: String(col),
@@ -384,13 +415,17 @@ export const MemoizedTableRow = React.memo(
               sx={{
                 py: 0.3,
                 px: 0.5,
-                cursor: "pointer",
+                cursor: valRef > 0 ? "pointer" : "not-allowed",
+                opacity: valRef === 0 ? 0.3 : isLockedByOther ? 0.5 : 1,
                 borderLeft: "1px solid #f1f5f9",
-                bgcolor: isActive
-                  ? "#e0f2fe"
-                  : valInput > 0
-                    ? vs.bgcolor
-                    : "transparent",
+                bgcolor:
+                  valRef === 0
+                    ? "#f9fafb"
+                    : isActive
+                      ? "#e0f2fe"
+                      : valInput > 0
+                        ? vs.bgcolor
+                        : "transparent",
                 border: isActive
                   ? "4px solid #2563eb"
                   : "1px solid transparent",
@@ -398,48 +433,51 @@ export const MemoizedTableRow = React.memo(
                 borderRadius: "6px",
                 transition: "all 0.05s ease",
                 "&:hover": {
-                  bgcolor: isActive
-                    ? "#dbeafe"
-                    : valInput > 0
-                      ? vs.bgcolor
-                      : "#f8fafc",
-                  filter: "brightness(0.98)",
+                  bgcolor:
+                    valRef === 0
+                      ? "#f9fafb"
+                      : isActive
+                        ? "#dbeafe"
+                        : valInput > 0
+                          ? vs.bgcolor
+                          : "#f8fafc",
+                  filter: valRef > 0 ? "brightness(0.98)" : "none",
                 },
                 "&:focus": { outline: "none" },
                 position: "relative",
                 zIndex: isActive ? 10 : 1,
               }}
             >
-              {/* REF */}
+              {/* REF (Reference) on top */}
               <Typography
                 sx={{
                   fontFamily: MONO_FONT,
                   fontSize: "15px",
-                  lineHeight: 1.2,
-                  color: valRef > 0 ? "#64748b" : "#cbd5e1",
-                  fontWeight: 600,
+                  lineHeight: 1,
+                  color: "#94a3b8",
+                  fontWeight: 700,
+                  mb: 0.5,
                 }}
               >
-                {valRef}
+                {valRef || 0}
               </Typography>
-              {/* ING */}
+              {/* ING (Scanned) on bottom */}
               <Typography
                 sx={{
                   fontFamily: MONO_FONT,
-                  fontSize: "24px",
-                  lineHeight: 1.2,
-                  fontWeight: valInput > 0 ? 900 : 500,
-                  color: valInput > 0 ? vs.color : "#94a3b8",
-                  mt: -0.1,
+                  fontSize: "25px",
+                  lineHeight: 1,
+                  fontWeight: 800,
+                  color: valInput > 0 ? vs.color : "#cbd5e1",
                 }}
               >
-                {valInput || (valRef > 0 ? "—" : "")}
+                {valInput || "—"}
               </Typography>
               {/* Exact indicator */}
               {vs.indicator === "exact" && valInput > 0 && (
                 <CheckCircle
                   sx={{
-                    fontSize: 7,
+                    fontSize: 12,
                     color: "#22c55e",
                     position: "absolute",
                     top: 1,
@@ -447,6 +485,65 @@ export const MemoizedTableRow = React.memo(
                   }}
                 />
               )}
+               {/* Badge de códigos de barra cuando hay barcodes */}
+               {barcodesCount > 0 && (
+                 <Tooltip 
+                   title={
+                     <Box sx={{ p: 0.5 }}>
+                       <Typography sx={{ fontWeight: 800, fontSize: '0.7rem', mb: 0.5, color: 'white' }}>
+                         CÓDIGOS ESCANEADOS
+                       </Typography>
+                       <Stack spacing={0.2}>
+                          {Object.entries(
+                            (rawInput as any)?.barcodes?.reduce((acc: Record<string, number>, bc: string) => {
+                              acc[bc] = (acc[bc] || 0) + 1;
+                              return acc;
+                            }, {}) || {}
+                          ).map(([bc, count]) => {
+                            const c = count as number;
+                            return (
+                              <Typography key={bc} sx={{ fontFamily: MONO_FONT, fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>
+                                {bc} {c > 1 ? `(x${c})` : ""}
+                              </Typography>
+                            );
+                          })}
+
+                       </Stack>
+                     </Box>
+                   }
+                   arrow
+                 >
+                   <Box
+                     sx={{
+                       position: "absolute",
+                       bottom: 1,
+                       right: 1,
+                       bgcolor: "#1e3a8a",
+                       color: "white",
+                       borderRadius: "10px",
+                       px: 0.5,
+                       py: 0.15,
+                       minWidth: 20,
+                       textAlign: "center",
+                       fontSize: "10px",
+                       fontWeight: 700,
+                       lineHeight: 1.2,
+                       cursor: "pointer",
+                       display: "flex",
+                       alignItems: "center",
+                       justifyContent: "center",
+                       gap: 0.25,
+                       "&:hover": {
+                         bgcolor: "#1e40af",
+                       },
+                     }}
+                   >
+                     <Visibility sx={{ fontSize: 10 }} />
+                     {barcodesCount}
+                   </Box>
+                 </Tooltip>
+               )}
+
             </TableCell>
           );
         })}
@@ -459,10 +556,11 @@ export const MemoizedTableRow = React.memo(
           <Typography
             sx={{
               fontFamily: MONO_FONT,
-              fontSize: "15px",
-              lineHeight: 1.2,
+              fontSize: "12px",
+              lineHeight: 1,
               color: "#64748b",
-              fontWeight: 600,
+              fontWeight: 700,
+              mb: 0.5,
             }}
           >
             {fila.total}
@@ -470,13 +568,12 @@ export const MemoizedTableRow = React.memo(
           <Typography
             sx={{
               fontFamily: MONO_FONT,
-              fontSize: "24px",
-              lineHeight: 1.2,
-              fontWeight: 900,
-              mt: -0.1,
+              fontSize: "20px",
+              lineHeight: 1,
+              fontWeight: 800,
               color:
                 mirrorRowTotal === 0
-                  ? "#94a3b8"
+                  ? "#cbd5e1"
                   : mirrorRowTotal === fila.total
                     ? "#15803d"
                     : mirrorRowTotal > fila.total
@@ -487,8 +584,10 @@ export const MemoizedTableRow = React.memo(
             {mirrorRowTotal > 0 ? mirrorRowTotal : "—"}
           </Typography>
         </TableCell>
-      </TableRow>
-    );
+
+               </TableRow>
+     );
+
   },
   (prev, next) => {
     if (prev.fila !== next.fila) return false;

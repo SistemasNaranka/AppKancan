@@ -241,10 +241,12 @@ const DashboardPage = () => {
   const isPastDate = useMemo(() => filtroFecha < getTodayStr(), [filtroFecha]);
 
   useEffect(() => {
-    if (isHistoricalMode) return;
     setLoadingDate(true);
     setSheetIndex(0);
-    cargarDatosGuardados(filtroFecha).finally(() => setLoadingDate(false));
+    // null = modo histórico (sin filtro de fecha → trae todas las referencias)
+    // filtroFecha = modo normal (filtra por la fecha seleccionada)
+    const fechaParam: string | null = isHistoricalMode ? null : filtroFecha;
+    cargarDatosGuardados(fechaParam).finally(() => setLoadingDate(false));
   }, [filtroFecha, isHistoricalMode]);
 
   const allSheets = useMemo(() => {
@@ -413,7 +415,7 @@ const DashboardPage = () => {
         sortable: false,
         filterable: false,
         disableColumnMenu: true,
-        editable: permissions.canEdit && isToday,
+        editable: false,
         renderCell: (params: GridRenderCellParams) => {
           const valor = Number(params.value || 0);
           const isTotalRow = params.row.id === "row-total-final";
@@ -607,15 +609,13 @@ const DashboardPage = () => {
     ],
   );
 
-  const handleSave = async () => {
-    setSaving(true);
-    const ok = await guardarCambios();
+  // Removida la lógica de guardar en Dashboard ya que es de solo lectura.
+  const handleSave = () => {
     setSnackbar({
       open: true,
-      message: ok ? "Cambios guardados" : "Error al guardar",
-      severity: ok ? "success" : "error",
+      message: "Vista de solo lectura. Edita desde la página de Carga si es necesario.",
+      severity: "info",
     });
-    setSaving(false);
   };
 
   const handleSend = async () => {
@@ -941,6 +941,7 @@ const DashboardPage = () => {
               fontSize: "0.8rem",
               boxShadow: "0 4px 12px rgba(0,106,204,0.3)",
               "&:hover": { bgcolor: BRAND.dark },
+              /* Botón de Guardar removido - Dashboard es ahora SOLO LECTURA */
             }}
           >
             Enviar
@@ -1016,40 +1017,72 @@ const DashboardPage = () => {
                     "& .MuiTabs-flexContainer": { gap: 0.5 },
                   }}
                 >
-                  {sheetNames.map((name, i) => (
-                    <Tab
-                      key={i}
-                      label={name}
-                      sx={{
-                        textTransform: "none",
-                        fontWeight: 700,
-                        minHeight: 36,
-                        borderRadius: "8px",
-                        fontSize: "0.8rem",
-                        px: 2,
-                        fontFamily: MONO_FONT,
-                        transition: "all 0.2s ease",
-                        color: sheetIndex === i ? BRAND.primary : "#6b7280",
-                        bgcolor: sheetIndex === i ? "white" : "transparent",
-                        border:
-                          sheetIndex === i
-                            ? "1px solid #e5e7eb"
-                            : "1px solid transparent",
-                        boxShadow:
-                          sheetIndex === i
-                            ? "0 1px 3px rgba(0,0,0,0.05)"
-                            : "none",
-                        "&.Mui-selected": {
-                          color: BRAND.primary,
-                          bgcolor: "white",
-                          border: "1px solid #e5e7eb",
-                        },
-                        "&:hover": {
-                          bgcolor: sheetIndex === i ? "white" : "#f3f4f6",
-                        },
-                      }}
-                    />
-                  ))}
+                  {allSheets.map((sheet, i) => {
+                    const tabFecha = (sheet as any).fechaCarga
+                      ? dayjs((sheet as any).fechaCarga).format("DD/MM/YY")
+                      : null;
+                    return (
+                      <Tab
+                        key={i}
+                        label={
+                          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, lineHeight: 1 }}>
+                            <Typography
+                              sx={{
+                                fontFamily: MONO_FONT,
+                                fontWeight: 700,
+                                fontSize: "0.8rem",
+                                lineHeight: 1.2,
+                                color: "inherit",
+                              }}
+                            >
+                              {extractRef(sheet)}
+                            </Typography>
+                            {tabFecha && (
+                              <Typography
+                                sx={{
+                                  fontSize: "0.6rem",
+                                  fontWeight: 600,
+                                  lineHeight: 1.1,
+                                  color: sheetIndex === i ? BRAND.primary : "#9ca3af",
+                                  letterSpacing: 0.2,
+                                }}
+                              >
+                                {tabFecha}
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{
+                          textTransform: "none",
+                          fontWeight: 700,
+                          minHeight: tabFecha ? 48 : 36,
+                          borderRadius: "8px",
+                          fontSize: "0.8rem",
+                          px: 2,
+                          fontFamily: MONO_FONT,
+                          transition: "all 0.2s ease",
+                          color: sheetIndex === i ? BRAND.primary : "#6b7280",
+                          bgcolor: sheetIndex === i ? "white" : "transparent",
+                          border:
+                            sheetIndex === i
+                              ? "1px solid #e5e7eb"
+                              : "1px solid transparent",
+                          boxShadow:
+                            sheetIndex === i
+                              ? "0 1px 3px rgba(0,0,0,0.05)"
+                              : "none",
+                          "&.Mui-selected": {
+                            color: BRAND.primary,
+                            bgcolor: "white",
+                            border: "1px solid #e5e7eb",
+                          },
+                          "&:hover": {
+                            bgcolor: sheetIndex === i ? "white" : "#f3f4f6",
+                          },
+                        }}
+                      />
+                    );
+                  })}
                 </Tabs>
                 {isPastDate && (
                   <Box

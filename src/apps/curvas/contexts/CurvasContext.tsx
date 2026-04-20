@@ -87,7 +87,7 @@ interface CurvasContextType {
     tipo: ArchivoSubido["tipo"],
   ) => void;
   limpiarDatos: () => void;
-  cargarDatosGuardados: (fecha?: string) => Promise<void>;
+  cargarDatosGuardados: (fecha?: string | null) => Promise<void>;
 
   // Acciones de edición (solo Admin)
   editarCelda: (
@@ -142,7 +142,7 @@ interface CurvasContextType {
 
   limpiarValidacion: (sheetId?: string) => void;
   guardarEnvioDespacho: (
-    sheetId: string,
+    sheetLogId: string,
     overrideData?: Record<string, Record<string, any>>,
     overridePlantilla?: "matriz_general" | "productos",
     overrideRef?: string,
@@ -296,8 +296,10 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       isMounted = false;
       clearInterval(interval);
-      // Liberar mis bloqueos al desmontar el contexto
-      liberarTodosLosBloqueosDeUsuario(user.id);
+      // Los bloqueos NO se liberan al desmontar (ej. recarga de página).
+      // Expiran automáticamente por TTL (7 minutos en obtenerBloqueosActivos).
+      // Al recargar, intentarBloquearTienda detecta que el lock ya es del mismo
+      // usuario y simplemente lo renueva, manteniendo la continuidad del trabajo.
     };
   }, [user]);
 
@@ -570,10 +572,11 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
   // HIDRATACIÓN DESDE BASE DE DATOS
   // ============================================
   const cargarDatosGuardados = useCallback(
-    async (fechaOverride?: string) => {
+    async (fechaOverride?: string | null) => {
       try {
-        const fecha = fechaOverride || currentDate;
-        const logs = await getLogCurvas(fecha || undefined);
+        // null = modo histórico (sin filtro de fecha); undefined = usa currentDate
+        const fecha = fechaOverride === null ? undefined : (fechaOverride || currentDate || undefined);
+        const logs = await getLogCurvas(fecha);
 
         const emptyState: DatosCurvas = {
           matrizGeneral: [],
@@ -592,7 +595,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           {
             referencia: string;
             normalizedRef: string;
-            plantilla: "matriz_general" | "productos";
+            plantilla: "textil" | "calzado_bolso";
             logs: any[];
             lastUpdate: number;
           }
@@ -694,8 +697,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
                   "Tienda " + log.tienda_id,
                 codigo: "",
               },
-              [group.plantilla === "matriz_general" ? "curvas" : "tallas"]:
-                rowData,
+              [group.plantilla === "textil" ? "curvas" : "tallas"]: rowData,
               total: rowTotal,
             };
             filas.push(fila);
@@ -717,8 +719,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           const colTotals: Record<string, number> = {};
           sortedColumns.forEach((col) => {
             colTotals[col] = filas.reduce((sum, f) => {
-              const data =
-                group.plantilla === "matriz_general" ? f.curvas : f.tallas;
+              const data = group.plantilla === "textil" ? f.curvas : f.tallas;
               return sum + (data[col]?.valor || 0);
             }, 0);
           });
@@ -728,7 +729,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
             0,
           );
 
-          if (group.plantilla === "matriz_general") {
+          if (group.plantilla === "textil") {
             matrizGeneral.push({
               id: String(group.normalizedRef || group.referencia),
               nombreHoja: group.referencia,
@@ -737,7 +738,8 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
               curvas: sortedColumns,
               totalesPorCurva: colTotals,
               totalGeneral,
-              estado: group.logs[0]?.estado || "borrador", // Usar el estado real del primer log del grupo
+              estado: group.logs[0]?.estado || "borrador",
+              fechaCarga: group.logs[0]?.fecha ? new Date(group.logs[0].fecha) : undefined,
             });
           } else {
             productos.push({
@@ -754,7 +756,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
                 proveedor: group.logs[0]?.proveedor || "RECUPERADO",
                 precio: group.logs[0]?.precio || 0,
                 linea:
-                  group.plantilla === "productos"
+                  group.plantilla === "calzado_bolso"
                     ? group.referencia.includes("|")
                       ? "CALZADO"
                       : "PRODUCIDO"
@@ -765,6 +767,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
               totalesPorTalla: colTotals,
               totalGeneral,
               estado: group.logs[0]?.estado || "borrador",
+              fechaCarga: group.logs[0]?.fecha ? new Date(group.logs[0].fecha) : undefined,
             });
           }
         });
@@ -1038,18 +1041,14 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const cambiarTalla = useCallback(
-    (
-      sheetId: string,
-      tallaActual: string,
-      tallaNueva: string,
-    ) => {
+    (sheetId: string, tallaActual: string, tallaNueva: string) => {
       if (!permissions.canEdit || !tallaNueva.trim()) return;
 
       setDatosCurvas((prev) => {
         if (!prev) return prev;
 
         const isGeneral = prev.matrizGeneral.some((s) => s.id === sheetId);
-        const tallaNuevaPadded = tallaNueva.padStart(2, '0');
+        const tallaNuevaPadded = tallaNueva.padStart(2, "0");
 
         if (isGeneral) {
           const updatedData = prev.matrizGeneral.map((sheet) => {
@@ -1061,15 +1060,16 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
             }
 
             // Actualizar array de curvas
-            const nuevasCurvas = sheet.curvas.map(c =>
-              c === tallaActual ? tallaNuevaPadded : c
+            const nuevasCurvas = sheet.curvas.map((c) =>
+              c === tallaActual ? tallaNuevaPadded : c,
             );
 
             // Actualizar filas
             const nuevasFilas = sheet.filas.map((fila) => {
               const nuevasCurvasFila = { ...fila.curvas };
               if (nuevasCurvasFila[tallaActual]) {
-                nuevasCurvasFila[tallaNuevaPadded] = nuevasCurvasFila[tallaActual];
+                nuevasCurvasFila[tallaNuevaPadded] =
+                  nuevasCurvasFila[tallaActual];
                 delete nuevasCurvasFila[tallaActual];
               }
               return { ...fila, curvas: nuevasCurvasFila };
@@ -1101,15 +1101,16 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
             }
 
             // Actualizar array de tallas
-            const nuevasTallas = sheet.tallas.map(t =>
-              t === tallaActual ? tallaNuevaPadded : t
+            const nuevasTallas = sheet.tallas.map((t) =>
+              t === tallaActual ? tallaNuevaPadded : t,
             );
 
             // Actualizar filas
             const nuevasFilas = sheet.filas.map((fila) => {
               const nuevasTallasFila = { ...fila.tallas };
               if (nuevasTallasFila[tallaActual]) {
-                nuevasTallasFila[tallaNuevaPadded] = nuevasTallasFila[tallaActual];
+                nuevasTallasFila[tallaNuevaPadded] =
+                  nuevasTallasFila[tallaActual];
                 delete nuevasTallasFila[tallaActual];
               }
               return { ...fila, tallas: nuevasTallasFila };
@@ -1142,6 +1143,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       // 1. Determinar qué logs guardar (explícitos o detectados de celdasEditadas)
       let logsToSave: any[] = [];
       const fechaActual = new Date().toISOString();
+      const logIdMap: Record<string, string> = {}; // mapa tienda_id -> log_id
 
       if (datosLog && datosLog.length > 0) {
         // Uso de logs explícitos (vía parámetros)
@@ -1213,9 +1215,31 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
+        let logIds: { tienda_id: string; id: string }[] = [];
         if (logsToSave.length > 0) {
-          const logIds = await saveLogsBatch(logsToSave);
+          const convertedLogs = logsToSave.map((log) => ({
+            ...log,
+            plantilla:
+              log.plantilla === "matriz_general"
+                ? "textil"
+                : log.plantilla === "productos"
+                  ? "calzado_bolso"
+                  : log.plantilla,
+          }));
+          logIds = await saveLogsBatch(convertedLogs);
           if (logIds.length === 0) throw new Error("Error en saveLogsBatch");
+
+          // Crear mapa de tienda_id -> log_id desde los resultados
+          logIds.forEach((result) => {
+            console.log(`🔗 Mapeando tienda ${result.tienda_id} -> log ID ${result.id}`);
+            if (result.id && result.id !== 'undefined' && result.id !== 'null') {
+              logIdMap[result.tienda_id] = result.id;
+            } else {
+              console.warn(`⚠️ ID inválido para tienda ${result.tienda_id}: ${result.id}`);
+            }
+          });
+
+          console.log("🗺️ Mapa tienda->log:", logIdMap);
         }
 
         // Pequeña espera para asegurar sincronización visual si es necesario
@@ -1254,6 +1278,46 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           });
         }
 
+        // Actualizar las hojas con los logIds creados
+        if (Object.keys(logIdMap).length > 0) {
+          setDatosCurvas((prev) => {
+            if (!prev) return prev;
+
+            const updatedMatrizGeneral = prev.matrizGeneral.map((sheet) => {
+              // Buscar si alguna tienda de esta hoja tiene un log creado
+              const sheetTiendas = new Set(sheet.filas.map((f: any) => f.tienda?.id).filter(Boolean));
+              const logIdsForSheet = Object.entries(logIdMap)
+                .filter(([tiendaId]) => sheetTiendas.has(tiendaId))
+                .map(([, logId]) => logId);
+
+              if (logIdsForSheet.length > 0) {
+                console.log(`📝 Actualizando hoja ${sheet.id} con logId ${logIdsForSheet[0]}`);
+                return { ...sheet, logId: logIdsForSheet[0] };
+              }
+              return sheet;
+            });
+
+            const updatedProductos = prev.productos.map((sheet) => {
+              const sheetTiendas = new Set(sheet.filas.map((f: any) => f.tienda?.id).filter(Boolean));
+              const logIdsForSheet = Object.entries(logIdMap)
+                .filter(([tiendaId]) => sheetTiendas.has(tiendaId))
+                .map(([, logId]) => logId);
+
+              if (logIdsForSheet.length > 0) {
+                console.log(`📝 Actualizando hoja ${sheet.id} con logId ${logIdsForSheet[0]}`);
+                return { ...sheet, logId: logIdsForSheet[0] };
+              }
+              return sheet;
+            });
+
+            return {
+              ...prev,
+              matrizGeneral: updatedMatrizGeneral,
+              productos: updatedProductos,
+            };
+          });
+        }
+
         setHasChanges(false);
         setCeldasEditadas([]);
         refreshLogs();
@@ -1275,6 +1339,9 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         console.error("No hay datosCurvas cargados para confirmar");
         return false;
       }
+
+      const logIdMap: Record<string, string> = {}; // mapa tienda_id -> log_id
+      let logIds: { tienda_id: string; id: string }[] = []; // IDs de logs creados
 
       // Verificar si ya está confirmado
       const isAlreadyConfirmed = (
@@ -1382,7 +1449,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         const isMatriz = tipo === "general";
         const dataKey = isMatriz ? "curvas" : "tallas";
         const columnas = sheetToPersist[dataKey] || [];
-        const plantilla = isMatriz ? "matriz_general" : "productos";
+        const plantilla = isMatriz ? "textil" : "calzado_bolso";
 
         const baseRef = extractRef(sheetToPersist);
         let ref = typeof baseRef === "string" ? baseRef.trim() : "SIN REF";
@@ -1432,7 +1499,16 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (logsBatch.length > 0) {
-          const logIds = await saveLogsBatch(logsBatch);
+          const convertedLogs = logsBatch.map((log) => ({
+            ...log,
+            plantilla:
+              log.plantilla === "matriz_general"
+                ? "textil"
+                : log.plantilla === "productos"
+                  ? "calzado_bolso"
+                  : log.plantilla,
+          }));
+          logIds = await saveLogsBatch(convertedLogs);
           if (logIds.length === 0)
             throw new Error("Error al guardar el lote confirmado");
         }
@@ -1442,12 +1518,12 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           if (!prev) return prev;
           if (tipo === "general") {
             const matrizGeneral = prev.matrizGeneral.map((s) =>
-              s.id === sheetId ? { ...s, estado: "confirmado" as const } : s,
+              s.id === sheetId ? { ...s, estado: "confirmado" as const, logId: logIds[0] } : s,
             );
             return { ...prev, matrizGeneral };
           } else {
             const updated = prev.productos.map((s) =>
-              s.id === sheetId ? { ...s, estado: "confirmado" as const } : s,
+              s.id === sheetId ? { ...s, estado: "confirmado" as const, logId: logIds[0] } : s,
             );
             return { ...prev, productos: updated };
           }
@@ -1471,6 +1547,8 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       sheetId: string,
       sheetDataOverride?: MatrizGeneralCurvas | DetalleProducto | null,
     ): Promise<boolean> => {
+      let logIds: { tienda_id: string; id: string }[] = []; // IDs de logs creados
+
       try {
         // Usar sheetDataOverride si está disponible, si no buscar en datosCurvas
         let sheetToPersist: any = sheetDataOverride || null;
@@ -1532,7 +1610,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         const isMatriz = tipo === "general";
         const dataKey = isMatriz ? "curvas" : "tallas";
         const columnas = sheetToPersist[dataKey] || [];
-        const plantilla = isMatriz ? "matriz_general" : "productos";
+        const plantilla = isMatriz ? "textil" : "calzado_bolso";
 
         const baseRef = extractRef(sheetToPersist);
         let ref = typeof baseRef === "string" ? baseRef.trim() : "SIN REF";
@@ -1580,7 +1658,48 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (logsBatch.length > 0) {
-          const logIds = await saveLogsBatch(logsBatch);
+          // Filtrar logs inválidos (sin tienda_id o referencia)
+          const validLogs = logsBatch
+            .filter(
+              (log) =>
+                log.tienda_id && log.referencia && log.referencia.trim() !== "",
+            )
+            .map((log) => ({
+              ...log,
+              // Convertir valores internos a valores de BD
+              plantilla:
+                log.plantilla === "matriz_general"
+                  ? "textil"
+                  : log.plantilla === "productos"
+                    ? "calzado_bolso"
+                    : log.plantilla,
+            }));
+
+          console.log(
+            "Logs originales:",
+            logsBatch.length,
+            "Logs válidos:",
+            validLogs.length,
+          );
+          if (validLogs.length < logsBatch.length) {
+            console.log(
+              "Logs inválidos:",
+              logsBatch.filter(
+                (log) =>
+                  !(
+                    log.tienda_id &&
+                    log.referencia &&
+                    log.referencia.trim() !== ""
+                  ),
+              ),
+            );
+          }
+
+          if (validLogs.length === 0) {
+            throw new Error("No hay datos válidos para guardar");
+          }
+
+          logIds = await saveLogsBatch(validLogs);
           if (logIds.length === 0)
             throw new Error("Error al guardar el lote confirmado");
         }
@@ -1648,7 +1767,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           {
             referencia: string;
             normalizedRef: string;
-            plantilla: "matriz_general" | "productos";
+            plantilla: "textil" | "calzado_bolso";
             logs: any[];
             lastUpdate: number;
           }
@@ -1731,8 +1850,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
                   "Tienda " + log.tienda_id,
                 codigo: "",
               },
-              [group.plantilla === "matriz_general" ? "curvas" : "tallas"]:
-                rowData,
+              [group.plantilla === "textil" ? "curvas" : "tallas"]: rowData,
               total: rowTotal,
             });
           });
@@ -1751,8 +1869,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           const colTotals: Record<string, number> = {};
           sortedColumns.forEach((col) => {
             colTotals[col] = filas.reduce((sum, f) => {
-              const data =
-                group.plantilla === "matriz_general" ? f.curvas : f.tallas;
+              const data = group.plantilla === "textil" ? f.curvas : f.tallas;
               return sum + (data[col]?.valor || 0);
             }, 0);
           });
@@ -1761,7 +1878,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
             0,
           );
 
-          if (group.plantilla === "matriz_general") {
+          if (group.plantilla === "textil") {
             matrizGeneral.push({
               id: String(group.normalizedRef || group.referencia),
               nombreHoja: group.referencia,
@@ -1786,7 +1903,8 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
                   : "",
                 proveedor: group.logs[0]?.proveedor || "RECUPERADO",
                 precio: group.logs[0]?.precio || 0,
-                linea: group.plantilla === "productos" ? "CALZADO" : "GENERAL",
+                linea:
+                  group.plantilla === "calzado_bolso" ? "CALZADO" : "GENERAL",
               },
               filas: filas as FilaDetalleProducto[],
               tallas: sortedColumns,
@@ -1820,13 +1938,14 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         const isMatriz = "curvas" in sheet;
         const dataKey = isMatriz ? "curvas" : "tallas";
         const columnas: string[] = sheet[dataKey] || [];
-        const plantilla: "matriz_general" | "productos" = isMatriz
-          ? "matriz_general"
-          : "productos";
+        const plantilla: "textil" | "calzado_bolso" = isMatriz
+          ? "textil"
+          : "calzado_bolso";
         const baseRef = extractRef(sheet);
 
         const fechaActual = new Date().toISOString();
         const logsBatch: any[] = [];
+        let logIds: { tienda_id: string; id: string }[] = []; // IDs de logs creados
 
         for (const fila of sheet.filas) {
           if (!fila.tienda || !fila.tienda.id || fila.id === "row-total-final")
@@ -1861,7 +1980,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
 
         if (logsBatch.length === 0) return false;
 
-        const logIds = await saveLogsBatch(logsBatch);
+        logIds = await saveLogsBatch(logsBatch);
 
         if (logIds.length === 0)
           throw new Error("Error guardando reutilización");
@@ -1875,10 +1994,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
     },
     [datosCurvas, user, extractRef, refreshLogs],
   );
-
-  // ============================================
-  // ACCIONES DE LOG CURVAS (GUARDAR EN DIRECTUS)
-  // ============================================
 
   const guardarLogCurvas = useCallback(
     async (data: {
@@ -1896,10 +2011,17 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         // Fecha actual en formato ISO
         const fechaActual = new Date().toISOString();
 
+        const convertedPlantilla =
+          data.plantilla === "matriz_general"
+            ? "textil"
+            : data.plantilla === "productos"
+              ? "calzado_bolso"
+              : data.plantilla;
+
         const ok = await saveLogCurvas({
           tienda_id: data.tiendaId,
           tienda_nombre: data.tiendaNombre,
-          plantilla: data.plantilla,
+          plantilla: convertedPlantilla,
           fecha: fechaActual,
           cantidad_talla: cantidadTallaJson,
           referencia: data.referencia || "",
@@ -1985,10 +2107,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
     },
     [permissions.canManageShipments, userRole],
   );
-
-  // ============================================
-  // ACCIONES DE VALIDACIÓN (DESPACHO)
-  // ============================================
 
   const actualizarValorValidacion = useCallback(
     (
@@ -2079,105 +2197,73 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
 
   const guardarEnvioDespacho = useCallback(
     async (
-      sheetId: string,
+      sheetLogId: string, // Este puede ser un ID compuesto o referencia
       overrideData?: Record<string, Record<string, any>>,
       overridePlantilla?: "matriz_general" | "productos",
       overrideRef?: string,
     ): Promise<{ success: boolean; logIds?: string[] }> => {
       if (!user) return { success: false };
-      const sheetIdStr = String(sheetId);
 
       let currentSheetValidation: Record<string, Record<string, any>> = {};
       if (overrideData) {
         currentSheetValidation = overrideData;
       } else {
-        currentSheetValidation = validationData[sheetIdStr] || {};
+        currentSheetValidation = validationData[sheetLogId] || {};
       }
 
       if (Object.keys(currentSheetValidation).length === 0) {
-        console.warn(
-          "⚠️ [guardarEnvioDespacho] No hay datos de validación para enviar (lote vacío)",
-        );
+        console.warn("⚠️ [guardarEnvioDespacho] No hay datos de validación");
         return { success: false };
       }
 
+      console.log("🚚 Iniciando guardarEnvioDespacho con logId:", sheetLogId);
+
       try {
-        // 1. Intentar encontrar la hoja original (plantilla)
-        let template: any = [
-          ...(datosCurvas?.matrizGeneral || []),
-          ...(datosCurvas?.productos || []),
-        ].find(
-          (s) =>
-            String(s.id) === sheetIdStr ||
-            extractRef(s).toUpperCase() === sheetIdStr.toUpperCase() ||
-            String(s.nombreHoja).toUpperCase() === sheetIdStr.toUpperCase(),
-        );
+        // Obtener logs para encontrar los IDs reales por tienda
+        const fechaActual = new Date().toISOString().split("T")[0];
+        const logs = await getLogCurvas(fechaActual);
+        const logMap: Record<string, string> = {}; // tienda_id -> log_id
 
-        // Si no hay plantilla, usamos los overrides o valores por defecto
-        const refFinal =
-          overrideRef || (template ? extractRef(template) : sheetIdStr);
-        const isMatriz =
-          overridePlantilla === "matriz_general" ||
-          (template
-            ? datosCurvas?.matrizGeneral?.some((s) => s.id === template.id)
-            : refFinal.length < 6);
-        const plantilla: "matriz_general" | "productos" = isMatriz
-          ? "matriz_general"
-          : "productos";
-        const fechaActual = new Date().toISOString();
+        logs.forEach((log) => {
+          if (log.referencia === overrideRef || log.referencia === sheetLogId.split('|')[1]) {
+            logMap[String(log.tienda_id)] = String(log.id);
+          }
+        });
 
-        const logsBatch: any[] = [];
+        console.log("🗺️ Mapa tienda->log ID:", logMap);
+
+        // Crear envíos usando el ID correcto del log para cada tienda
         const enviosBatch: any[] = [];
-        const logIdMap: Record<string, string> = {}; // mapa tienda_id -> log_id
+        const fechaEnvio = new Date().toISOString().split("T")[0];
 
-        // 2. Procesar cada tienda en la validación
+        console.log("📦 Creando envíos con logIds por tienda");
+
+        // Procesar cada tienda
         for (const [filaId, tallas] of Object.entries(currentSheetValidation)) {
-          // Sanitizar filaId - asegurar que es string
-          const filaIdStr =
-            typeof filaId === "object"
-              ? JSON.stringify(filaId)
-              : String(filaId);
-
-          // Buscamos info de la tienda:
-          // a) En la plantilla local (si existe)
-          // b) O asumimos que filaId es el tienda_id (común en lotes cargados de BD)
-          const fila = template?.filas?.find(
-            (f: any) =>
-              String(f.id) === filaIdStr ||
-              String(f.tienda?.id) === filaIdStr ||
-              String(f.tienda?.codigo) === filaIdStr,
-          );
-
-          const tiendaIdFinal =
-            fila?.tienda?.id || (tiendasDict[filaIdStr] ? filaIdStr : null);
+          const filaIdStr = typeof filaId === "object" ? JSON.stringify(filaId) : String(filaId);
+          const tiendaIdFinal = tiendasDict[filaIdStr] || filaIdStr;
+          const logIdForTienda = logMap[tiendaIdFinal];
 
           if (!tiendaIdFinal) {
-            console.warn(
-              `❓ [guardarEnvioDespacho] No se pudo resolver ID de tienda para la fila ${filaIdStr}. Saltando...`,
-            );
+            console.warn(`⚠️ No se pudo resolver tienda para fila ${filaIdStr}`);
             continue;
           }
 
-          // Construir cantidad_talla con codigo_barra
-          const cantidadTalla: {
-            talla: number;
-            cantidad: number;
-            codigo_barra: string;
-          }[] = [];
+          if (!logIdForTienda) {
+            console.warn(`⚠️ No se encontró log ID para tienda ${tiendaIdFinal} con referencia ${overrideRef || sheetLogId}`);
+            continue;
+          }
+
+          // Construir cantidad_talla con códigos de barras
+          const cantidadTalla: { talla: number; cantidad: number; codigo_barra: string }[] = [];
 
           for (const [col, data] of Object.entries(tallas)) {
-            // data puede ser number (compatibilidad hacia atrás) o { cantidad, barcodes }
-            const cellData =
-              typeof data === "object"
-                ? data
-                : { cantidad: data, barcodes: [] };
+            const cellData = typeof data === "object" ? data : { cantidad: data, barcodes: [] };
             const cantidad = cellData.cantidad || 0;
             const barcodes = cellData.barcodes || [];
 
             if (cantidad > 0) {
-              // Si hay barcodes guardados, crear una entrada por cada barcode
               if (barcodes.length > 0) {
-                // Contar ocurrencias de cada barcode
                 const barcodeCount: Record<string, number> = {};
                 barcodes.forEach((bc: string) => {
                   barcodeCount[bc] = (barcodeCount[bc] || 0) + 1;
@@ -2191,7 +2277,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
                   });
                 });
               } else {
-                // Sin barcodes, crear entrada simple
                 cantidadTalla.push({
                   talla: parseFloat(col),
                   cantidad: cantidad,
@@ -2202,133 +2287,39 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           }
 
           if (cantidadTalla.length > 0) {
-            // Crear registro en log_curvas
-            logsBatch.push({
+            const envioData = {
               tienda_id: String(tiendaIdFinal),
-              tienda_nombre:
-                fila?.tienda?.nombre || tiendasDict[filaIdStr] || "",
-              plantilla,
-              fecha: fechaActual,
+              plantilla: logIdForTienda, // ID REAL del log para esta tienda
+              fecha: fechaEnvio,
               cantidad_talla: JSON.stringify(cantidadTalla),
-              referencia: refFinal,
-              estado: "confirmado",
-            });
+              referencia: overrideRef || "SIN_REF",
+              usuario_id: user?.id,
+            };
+
+            console.log(`📦 Envio creado para tienda ${tiendaIdFinal}:`, envioData);
+            enviosBatch.push(envioData);
           }
         }
 
-        // 3. Guardar logs y obtener IDs
-        let logIds: string[] = [];
-        if (logsBatch.length > 0) {
-          logIds = await saveLogsBatch(logsBatch);
-          if (logIds.length === 0) {
-            console.error(
-              "❌ [guardarEnvioDespacho] Error al guardar logs - no se obtuvo ID",
-            );
-            return { success: false };
-          }
-
-          // Crear mapa de tienda_id -> log_id
-          logsBatch.forEach((log, index) => {
-            if (logIds[index]) {
-              logIdMap[log.tienda_id] = logIds[index];
-            }
-          });
-        }
-
-        if (Object.keys(logIdMap).length === 0) {
-          console.warn(
-            "⚠️ [guardarEnvioDespacho] El lote de envío está vacío tras procesar tiendas",
-          );
+        if (enviosBatch.length === 0) {
+          console.warn("⚠️ No hay envíos para guardar");
           return { success: true, logIds: [] };
         }
 
-        // 4. Crear registros en envios_curvas con referencia al log
-        for (const [filaId, tallas] of Object.entries(currentSheetValidation)) {
-          // Sanitizar filaId - asegurar que es string
-          const filaIdStr =
-            typeof filaId === "object"
-              ? JSON.stringify(filaId)
-              : String(filaId);
+        console.log("🚚 Enviando batch:", enviosBatch);
+        console.log("🚚 Plantilla IDs:", enviosBatch.map(e => e.plantilla));
 
-          const fila = template?.filas?.find(
-            (f: any) =>
-              String(f.id) === filaIdStr ||
-              String(f.tienda?.id) === filaIdStr ||
-              String(f.tienda?.codigo) === filaIdStr,
-          );
+        const saveResult = await saveEnviosBatch(enviosBatch);
 
-          const tiendaIdFinal =
-            fila?.tienda?.id || (tiendasDict[filaIdStr] ? filaIdStr : null);
-
-          if (!tiendaIdFinal) continue;
-
-          const logId = logIdMap[String(tiendaIdFinal)];
-          if (!logId) continue;
-
-          // Reconstruir cantidad_talla para el envio
-          const cantidadTalla: {
-            talla: number;
-            cantidad: number;
-            codigo_barra: string;
-          }[] = [];
-
-          for (const [col, data] of Object.entries(tallas)) {
-            const cellData =
-              typeof data === "object"
-                ? data
-                : { cantidad: data, barcodes: [] };
-            const cantidad = cellData.cantidad || 0;
-            const barcodes = cellData.barcodes || [];
-
-            if (cantidad > 0) {
-              if (barcodes.length > 0) {
-                const barcodeCount: Record<string, number> = {};
-                barcodes.forEach((bc: string) => {
-                  barcodeCount[bc] = (barcodeCount[bc] || 0) + 1;
-                });
-
-                Object.entries(barcodeCount).forEach(([codigoBarra, qty]) => {
-                  cantidadTalla.push({
-                    talla: parseFloat(col),
-                    cantidad: qty,
-                    codigo_barra: codigoBarra,
-                  });
-                });
-              } else {
-                cantidadTalla.push({
-                  talla: parseFloat(col),
-                  cantidad: cantidad,
-                  codigo_barra: "",
-                });
-              }
-            }
-          }
-
-          if (cantidadTalla.length > 0) {
-            enviosBatch.push({
-              tienda_id: String(tiendaIdFinal),
-              plantilla: logId, // ID del log_curvas
-              fecha: new Date().toISOString().split("T")[0],
-              cantidad_talla: JSON.stringify(cantidadTalla),
-              referencia: refFinal,
-              usuario_id: user?.id,
-            });
-          }
-        }
-
-        const success = await saveEnviosBatch(enviosBatch);
-
-        if (success) {
-          limpiarValidacion(sheetIdStr);
-          return { success: true, logIds };
+        if (saveResult) {
+          console.log("✅ Envíos guardados exitosamente");
+          return { success: true, logIds: enviosBatch.map(e => e.plantilla) };
         } else {
-          console.error(
-            "❌ [guardarEnvioDespacho] El servidor rechazó el batch de envío",
-          );
-          return { success: false, logIds };
+          console.error("❌ Error al guardar envíos");
+          return { success: false, logIds: [] };
         }
-      } catch (err) {
-        console.error("❌ [guardarEnvioDespacho] Error crítico:", err);
+      } catch (error) {
+        console.error("❌ Error en guardarEnvioDespacho:", error);
         return { success: false };
       }
     },
@@ -2444,7 +2435,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       limpiarDatos,
       cargarDatosGuardados,
       editarCelda,
-       cambiarTalla,
+      cambiarTalla,
       guardarCambios,
       guardarLogCurvas,
       confirmarLote,
@@ -2489,7 +2480,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       limpiarDatos,
       cargarDatosGuardados,
       editarCelda,
-       cambiarTalla,
+      cambiarTalla,
       guardarCambios,
       guardarLogCurvas,
       confirmarLote,
