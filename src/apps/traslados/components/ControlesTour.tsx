@@ -35,6 +35,7 @@ const logTourAnalytics = (event: TourAnalytics): void => {
     
     // Log para desarrollo
     if (import.meta.env.DEV) {
+      console.log("[Tour Analytics]", event);
     }
   } catch (error) {
     console.error("[Tour Analytics Error]", error);
@@ -360,27 +361,27 @@ export const ControlesTour: React.FC<ControlesTourProps> = ({ onTourComplete }) 
       callback={(data) => handleCallback(data as CallBackProps)}
       tooltipComponent={TourTooltip}
       styles={{
-        options: {
-          primaryColor: theme.palette.primary.main,
-          secondaryColor: theme.palette.secondary.main,
-          zIndex: 9999,
-          arrowColor: "#ffffff",
-          backgroundColor: "#ffffff",
-          textColor: theme.palette.text.primary,
-          overlayColor: "rgba(0, 0, 0, 0.6)",
-          beaconSize: 36,
+      options: {
+        primaryColor: theme.palette.primary.main,
+        secondaryColor: theme.palette.secondary.main,
+        zIndex: 9999,
+        arrowColor: "#ffffff",
+        backgroundColor: "#ffffff",
+        textColor: theme.palette.text.primary,
+        overlayColor: "rgba(0, 0, 0, 0.6)",
+        beaconSize: 36,
           beaconInner: 12,
           marginTop: 8,
-          padding: 16,
-          borderRadius: 12,
-        },
+        padding: 16,
+        borderRadius: 12,
+      },
       }}
       locale={{
-        last: "Finalizar",
-        next: "Siguiente",
-        skip: "Omitir",
-        back: "Atrás",
-        close: "Cerrar",
+      last: "Finalizar",
+      next: "Siguiente",
+      skip: "Omitir",
+      back: "Atrás",
+      close: "Cerrar",
       }}
     />
   );

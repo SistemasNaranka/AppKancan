@@ -361,8 +361,8 @@ export const ReservasTour: React.FC<ReservasTourProps> = ({ children }) => {
   useEffect(() => {
     // Solo correr Joyride si hay pasos para esta fase
     if (
-      tourPhase !== "IDLE" &&
-      tourPhase !== "COMPLETED" &&
+    tourPhase !== "IDLE" &&
+    tourPhase !== "COMPLETED" &&
       tourPhase !== "DIALOG_TOUR" && // El Dialog maneja su propio tour
       currentSteps.length > 0
     ) {

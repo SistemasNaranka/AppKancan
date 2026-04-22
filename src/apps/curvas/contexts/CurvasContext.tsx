@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo, ReactElement } from 'react';
 import { useCurvasPolicies } from '../hooks/useCurvasPolicies';
+//import { TourProvider } from './TourContext';
 import { useAuth } from '@/auth/hooks/useAuth';
 import type {
   UserRole,

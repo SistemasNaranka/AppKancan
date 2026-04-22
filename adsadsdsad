@@ -1,0 +1,20 @@
+[33m59196b6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdesarrollo[m[33m)[m feat: Agregar edición directa de encabezados de tallas en dashboard
+[33mc86b554[m feat: Implement upsert logic in saveLogsBatch for dashboard edits
+[33mb0d922c[m Implementacion de marco legal de licencia y versionamiento del sistema appkancan
+[33m16fad52[m nuevos cambios de configuracion
+[33m932fcf4[m cambios locales
+[33ma1c8323[m Cambios locales
+[33mf954196[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m cmabios en resoluciones para integracion de resoluciones nuevas
+[33m07c65a5[m Cambios en console.log de apps - Integracion de protocolos para ejecutar app local en resoluciones y filtros
+[33ma38da47[m cambios locales
+[33m3692ece[m[33m ([m[1;32msnowy-raven[m[33m, [m[1;32mlearned-radiator[m[33m)[m Merge branch 'desarrollo' of https://github.com/SistemasNaranka/AppKancan into desarrollo
+[33m77bf26a[m cambios locales
+[33m323a7e3[m correcion de mensaje de  traslados
+[33me47ddbf[m cambios locales
+[33m8621570[m chore: correct filename casing to PascalCase for Linux build (ContractContext.tsx)
+[33m81d7abf[m correccion de nombre en import
+[33m24c412e[m cambio en tipografia y importacion
+[33mb050e63[m correcion en nombres de archivos y cambios en prorrogas
+[33m5bc0131[m integracion de card faltante en traslados
+[33m8ac29ec[m cambios de codigos en traslados
+[33ma2b0522[m integracion de nuevos proyectos, cambios en consulta de informe de ventas

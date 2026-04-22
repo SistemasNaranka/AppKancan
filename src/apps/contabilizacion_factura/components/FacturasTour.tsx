@@ -383,26 +383,26 @@ export const FacturasTour = ({
         spotlightClicks
         tooltipComponent={CustomTooltip}
         styles={{
-          options: {
-            zIndex: 10000,
-            arrowColor: "#fff",
-            overlayColor: "rgba(0, 0, 0, 0.5)",
+      options: {
+        zIndex: 10000,
+        arrowColor: "#fff",
+        overlayColor: "rgba(0, 0, 0, 0.5)",
           },
           spotlight: {
             borderRadius: 8,
             boxShadow: "0 0 0 3px #004680, 0 0 25px rgba(0, 70, 128, 0.4)",
-          },
+      },
           buttonClose: { display: "none" },
           buttonBack: { display: "none" },
           buttonNext: { display: "none" },
           buttonSkip: { display: "none" },
         }}
         locale={{
-          back: "Atrás",
-          close: "Cerrar",
-          last: "Continuar",
-          next: "Siguiente",
-          skip: "Salir del tour",
+      back: "Atrás",
+      close: "Cerrar",
+      last: "Continuar",
+      next: "Siguiente",
+      skip: "Salir del tour",
         }}
         floaterProps={{
           disableAnimation: true,

@@ -11,7 +11,6 @@ import ArrowBackOutlinedIcon    from '@mui/icons-material/ArrowBackOutlined';
 import { TabValue } from '../types/types';
 import { useContracts } from '../hooks/useContracts';
 
-
 interface TabConfig {
   value: TabValue;
   label: string;
@@ -26,16 +25,14 @@ const TABS: TabConfig[] = [
 ];
 
 const TabsNav: React.FC = () => {
-  const { filters, setTab, selectedContrato, select, allEnriched } = useContracts();
-
-  /** Badge numérico por pestaña (solo muestra cuando hay alertas relevantes) */
+  const { filters, setTab, counts, selectedContrato, select } = useContracts();
   const badgeFor = (value: TabValue): number | undefined => {
     if (value === 'contratos') {
-      const urgent = allEnriched.filter(c => c.daysLeft >= 0 && c.daysLeft <= 30).length;
+      const urgent = (counts.criticos ?? 0) + (counts.por_vencer ?? 0);
       return urgent > 0 ? urgent : undefined;
     }
     if (value === 'prorrogas') {
-      const pending = allEnriched.filter(c => c.request_status === 'pendiente' || c.request_status === 'en_revision').length;
+      const pending = (counts.pendiente ?? 0) + (counts.en_revision ?? 0);
       return pending > 0 ? pending : undefined;
     }
     return undefined;
@@ -51,7 +48,7 @@ const TabsNav: React.FC = () => {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        {/* Bot├│n Volver ÔÇö solo visible cuando hay un contrato seleccionado */}
+        {/* Bot n Volver ÔÇö solo visible cuando hay un contrato seleccionado */}
         {selectedContrato && (
           <Button
             variant="outlined"

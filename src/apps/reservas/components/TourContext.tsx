@@ -29,6 +29,7 @@ interface TourContextType {
 
   // Control del tour
   startFullTour: () => void;
+  startFullTourWithNavigation: () => void;
   nextPhase: () => void;
   setStepIndex: (index: number) => void;
   stopTour: () => void;
@@ -43,6 +44,8 @@ interface TourContextType {
 
   // Callback para cambiar de pestaña
   setTabChangeCallback: (callback: (tab: TabReservas) => void) => void;
+  getCurrentTab: () => TabReservas;
+  setCurrentTab: (tab: TabReservas) => void;
   
   // Callback para abrir el diálogo de nueva reserva
   setOpenDialogCallback: (callback: () => void) => void;
@@ -91,7 +94,6 @@ const generateMockReservasAdicionales = (): Reserva[] => {
         email: "demo@example.com",
       },
       date_created: fechaAyer,
-      date_updated: fechaAyer,
     },
     // Reserva Cancelada
     {
@@ -112,7 +114,6 @@ const generateMockReservasAdicionales = (): Reserva[] => {
         email: "demo@example.com",
       },
       date_created: fechaHoy,
-      date_updated: fechaHoy,
     },
   ];
 };
@@ -131,6 +132,7 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   const [tourPhase, setTourPhase] = useState<TourPhase>("IDLE");
   const [stepIndex, setStepIndex] = useState(0);
   const [userCreatedReservation, setUserCreatedReservation] = useState<Reserva | null>(null);
+  const [currentTab, setCurrentTab] = useState<TabReservas>("Reserva");
   
   // Callbacks
   const [tabChangeCallback, setTabChangeCallbackState] = useState<
@@ -155,6 +157,28 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
     setStepIndex(0);
     setTourPhase("RESERVA_CLICK_BUTTON");
   }, []);
+
+  // Iniciar el tour con navegación automática a la pestaña Reserva
+  const startFullTourWithNavigation = useCallback(() => {
+    // Resetear el tour
+    setUserCreatedReservation(null);
+    setStepIndex(0);
+    
+    // Navegar a la pestaña Reserva si no está en ella
+    if (tabChangeCallback && currentTab !== "Reserva") {
+      tabChangeCallback("Reserva");
+    }
+    
+    // Iniciar el tour después de un pequeño delay para que la navegación ocurra
+    setTimeout(() => {
+      setTourPhase("RESERVA_CLICK_BUTTON");
+    }, 100);
+  }, [tabChangeCallback, currentTab]);
+
+  // Obtener la pestaña actual
+  const getCurrentTab = useCallback(() => {
+    return currentTab;
+  }, [currentTab]);
 
   // Avanzar a la siguiente fase
   const nextPhase = useCallback(() => {
@@ -244,15 +268,15 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   const onFormSubmitted = useCallback(
     (datos: any) => {
       if (tourPhase === "DIALOG_TOUR") {
-        // Crear la reserva mock con los datos del usuario
+        // Usar los datos recibidos (pueden ser datos de ejemplo si el usuario no llenó el formulario)
         const fechaHoy = format(new Date(), "yyyy-MM-dd");
         const nuevaReserva: Reserva = {
           id: 99901,
-          nombre_sala: datos.nombre_sala,
-          fecha: datos.fecha,
-          hora_inicio: datos.hora_inicio,
-          hora_final: datos.hora_final,
-          titulo_reunion: datos.titulo || "Mi primera reserva",
+          nombre_sala: datos.nombre_sala || "Sala Principal",
+          fecha: datos.fecha || fechaHoy,
+          hora_inicio: datos.hora_inicio || "09:00",
+          hora_final: datos.hora_final || "10:00",
+          titulo_reunion: datos.titulo || "Reunión de Ejemplo",
           observaciones: datos.observaciones || "",
           area: "mi área",
           estado: "Vigente",
@@ -264,7 +288,6 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
             email: "demo@example.com",
           },
           date_created: fechaHoy,
-          date_updated: fechaHoy,
         };
         
         setUserCreatedReservation(nuevaReserva);
@@ -291,6 +314,7 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
         isFullTourRunning,
         stepIndex,
         startFullTour,
+        startFullTourWithNavigation,
         nextPhase,
         setStepIndex,
         stopTour,
@@ -299,6 +323,8 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
         setUserCreatedReservation,
         mockReservasAdicionales,
         setTabChangeCallback,
+        getCurrentTab,
+        setCurrentTab,
         setOpenDialogCallback,
         openDialogForTour,
         setCloseDialogCallback,

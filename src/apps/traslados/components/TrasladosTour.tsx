@@ -342,12 +342,12 @@ export const TrasladosTour: React.FC<TrasladosTourProps> = ({ children }) => {
         spotlightClicks
         tooltipComponent={CustomTooltip}
         styles={{
-          options: {
-            primaryColor: theme.palette.primary.main,
-            zIndex: 10000,
-            arrowColor: "#fff",
-            overlayColor: "rgba(0, 0, 0, 0.5)",
-          },
+      options: {
+        primaryColor: theme.palette.primary.main,
+        zIndex: 10000,
+        arrowColor: "#fff",
+        overlayColor: "rgba(0, 0, 0, 0.5)",
+      },
           spotlight: {
             borderRadius: 8,
             boxShadow: `0 0 0 3px ${theme.palette.primary.main}, 0 0 25px ${theme.palette.primary.main}40`,
@@ -358,11 +358,11 @@ export const TrasladosTour: React.FC<TrasladosTourProps> = ({ children }) => {
           buttonSkip: { display: "none" },
         }}
         locale={{
-          back: "Atrás",
-          close: "Cerrar",
-          last: "¡Entendido!",
-          next: "Siguiente",
-          skip: "Salir del tour",
+      back: "Atrás",
+      close: "Cerrar",
+      last: "¡Entendido!",
+      next: "Siguiente",
+      skip: "Salir del tour",
         }}
         floaterProps={{
           disableAnimation: true,
