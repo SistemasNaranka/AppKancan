@@ -196,7 +196,12 @@ export const FileUploadArea = ({
               {titulo}
             </Typography>
             <Chip
-              label={tipo.replace('_', ' ').toUpperCase()}
+              label={
+                tipo === 'matriz_general' ? 'TEXTIL' :
+                tipo === 'detalle_producto_a' ? 'CALZADO/BOLSO' :
+                tipo === 'detalle_producto_b' ? 'CALZADO/BOLSO' :
+                tipo.replace('_', ' ').toUpperCase()
+              }
               size="small"
               sx={{ height: 20, fontSize: '0.7rem' }}
             />

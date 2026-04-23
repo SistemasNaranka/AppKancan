@@ -104,7 +104,10 @@ const UploadPage = () => {
     datosCurvas,
     cargarDatosManuales,
     guardarCambios,
+    guardarEnvioDespacho,
     confirmarLote,
+    confirmarLoteConDatos,
+    cambiarTalla,
     hasChanges,
     setHasChanges,
     celdasEditadas,
@@ -115,12 +118,23 @@ const UploadPage = () => {
     "general" | "producto_a" | "producto_b"
   >("general");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [snackbarState, setSnackbarState] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "warning" | "info";
+  }>({ open: false, message: "", severity: "success" });
   const [saving, setSaving] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     action: "save",
   });
   const [pendingMatrixData, setPendingMatrixData] = useState<any>(null);
+  // Estado para almacenar las estadísticas correctas del modal de despacho
+  const [dispatchStats, setDispatchStats] = useState<{
+    tiendas: number;
+    totalUnidades: number;
+    columnas: number;
+  } | null>(null);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -165,16 +179,43 @@ const UploadPage = () => {
   }, [datosCurvas, loadType]);
 
   const summaryStats = useMemo(() => {
-    if (!currentData) return { tiendas: 0, totalUnidades: 0, columnas: 0 };
+    if (dispatchStats && confirmDialog.action === "confirm_dispatch") {
+      return dispatchStats;
+    }
+
+    const data = pendingMatrixData || currentData;
+
+    if (!data) {
+      return { tiendas: 0, totalUnidades: 0, columnas: 0 };
+    }
+
+    const filas = data.filas || [];
+    const filasConDatos = filas.filter((f: any) => (f.total || 0) > 0);
+    const totalUnidades =
+      typeof data.totalGeneral === "number"
+        ? data.totalGeneral
+        : filas.reduce((acc: number, f: any) => acc + (f.total || 0), 0);
+
+    // Contar las tallas que tienen datos reales (no solo las columnas)
+    const columnasData = (data as any).curvas || (data as any).tallas || [];
+    const tallasConDatos = new Set<number>();
+    filasConDatos.forEach((fila: any) => {
+      const datosFila = (data as any).curvas ? fila.curvas : fila.tallas;
+      if (datosFila) {
+        Object.entries(datosFila).forEach(([talla, celda]: [string, any]) => {
+          if (celda?.valor > 0) {
+            tallasConDatos.add(parseFloat(talla));
+          }
+        });
+      }
+    });
+
     return {
-      tiendas: currentData.filas.length,
-      totalUnidades: currentData.filas.reduce((acc, f) => acc + f.total, 0),
-      columnas:
-        (currentData as any).curvas?.length ||
-        (currentData as any).tallas?.length ||
-        0,
+      tiendas: filasConDatos.length,
+      totalUnidades: totalUnidades,
+      columnas: tallasConDatos.size || columnasData.length || 0,
     };
-  }, [currentData]);
+  }, [currentData, pendingMatrixData, dispatchStats, confirmDialog.action]);
 
   const handleSave = async (silent: boolean | any = false) => {
     const isSilent = silent === true;
@@ -281,30 +322,13 @@ const UploadPage = () => {
       cargarDatosManuales(dataToSave, tipoArchivo);
       setPendingMatrixData(null);
 
-      // Guardar cambios con los datos de log
-      const ok = await guardarCambios(datosLog);
-
-      if (ok) {
-        if (!isSilent) {
-          setConfirmDialog({ open: false, action: "save" }); // Cerrar SOLO tras éxito para que se vea la animación
-          setShowSuccess(true);
-          setSnackbar({
-            open: true,
-            message: "Datos guardados correctamente como Borrador",
-            severity: "success",
-          });
-        }
-        setHasChanges(false); // Limpiar cambios tras guardar con éxito
-      } else {
-        if (!isSilent) {
-          setConfirmDialog({ open: false, action: "save" });
-          setSnackbar({
-            open: true,
-            message: "ERROR CRÍTICO: No se pudo guardar en la base de datos",
-            severity: "error",
-          });
-        }
+      // Ya NO guardamos en log_curvas aquí - se guardará solo al confirmar en Dashboard
+      const ok = true;
+      if (!isSilent) {
+        setConfirmDialog({ open: false, action: "save" });
+        setShowSuccess(true);
       }
+      setHasChanges(false);
 
       return ok ? dataToSave.id : false;
     } catch (err) {
@@ -324,7 +348,72 @@ const UploadPage = () => {
   };
 
   const handleSendToDispatch = async () => {
-    if (!currentSheetId && !pendingMatrixData) return;
+    // Validación 1: Verificar que haya referencia
+    const refActual =
+      matrixState.ref?.trim() ||
+      pendingMatrixData?.referenciaBase?.trim() ||
+      pendingMatrixData?.referencia?.trim() ||
+      pendingMatrixData?.metadatos?.referencia?.trim();
+
+    if (!refActual && !currentSheetId) {
+      setSnackbar({
+        open: true,
+        message: "⚠️ Debes ingresar una REFERENCIA antes de enviar a despacho",
+        severity: "warning",
+      });
+      return;
+    }
+
+    // Preparar referencia final (igual que en handleSave)
+    let refFinal = refActual;
+    const colorInput =
+      pendingMatrixData?.color || pendingMatrixData?.metadatos?.color;
+    if (
+      colorInput &&
+      colorInput !== "—" &&
+      !refFinal?.includes("|") &&
+      refFinal !== "SIN REF"
+    ) {
+      refFinal = `${refFinal} | ${colorInput}`;
+    }
+
+    // Validación 2: Verificar que haya datos en la tabla
+    const totalActual =
+      matrixState.total ||
+      pendingMatrixData?.totalGeneral ||
+      0 ||
+      (currentData && (currentData as any).totalGeneral > 0
+        ? (currentData as any).totalGeneral
+        : 0);
+
+    if (totalActual <= 0) {
+      setSnackbar({
+        open: true,
+        message:
+          "⚠️ Debes ingresar al menos un valor en las celdas de las tiendas",
+        severity: "warning",
+      });
+      return;
+    }
+
+    // CAPTURAR LAS ESTADÍSTICAS CORRECTAS ANTES DE CUALQUIER OPERACIÓN
+    // Esto asegura que el modal muestre los datos reales incluso después del save silencioso
+    const dataForStats = pendingMatrixData || currentData;
+    if (dataForStats) {
+      const filas = dataForStats.filas || [];
+      const totalUnidades =
+        typeof dataForStats.totalGeneral === "number"
+          ? dataForStats.totalGeneral
+          : filas.reduce((acc: number, f: any) => acc + (f.total || 0), 0);
+      setDispatchStats({
+        tiendas: filas.length,
+        totalUnidades: totalUnidades,
+        columnas:
+          (dataForStats as any).curvas?.length ||
+          (dataForStats as any).tallas?.length ||
+          0,
+      });
+    }
 
     setSaving(true);
 
@@ -333,27 +422,38 @@ const UploadPage = () => {
 
       let targetId = currentSheetId;
 
+      // CRÍTICO: Capturar los datos de la hoja ANTES de cualquier operación
+      // Esto evita el problema donde datosCurvas queda vacío después de handleSave
+      let hojaData: any = null;
+      if (pendingMatrixData) {
+        hojaData = pendingMatrixData;
+      } else if (currentData) {
+        hojaData = currentData;
+      }
+
+      // Capturar el ID de la hoja antes del save
+      const hojaIdAntes = hojaData?.id;
+
       // Si hay cambios pendientes o es una matriz nueva (pendingMatrixData),
       // DEBEMOS guardar los logs antes de confirmar para que aparezcan en Despacho
       if (hasChanges || pendingMatrixData) {
-        const successSaveId = await handleSave(true); // Modo silencioso para no cerrar el diálogo prematuramente
+        const successSaveId = await handleSave(true); // Modo silencioso
         if (!successSaveId) {
-          // Si el guardado falló, handleSave ya habrá hecho setSaving(false) en su finally
-          return; // Detener si el guardado falló
+          setSnackbar({
+            open: true,
+            message:
+              "❌ Error al guardar los datos. No se puede enviar a despacho",
+            severity: "error",
+          });
+          return;
         }
-        // Usar el ID dinámico fresco para evitar el race condition del context! (Bug Fix)
-        targetId =
-          typeof successSaveId === "string"
-            ? successSaveId
-            : `sheet-${pendingMatrixData?.referenciaBase || pendingMatrixData?.referencia || pendingMatrixData?.metadatos?.referencia || "NUEVA"}`;
 
-        // NO desactivamos saving aquí, permitimos que handleSendToDispatch continúe
-        // La animación debe persistir hasta el final del flujo de envío
+        // Usar el ID capturado antes o el devuelto por handleSave
+        targetId =
+          hojaIdAntes || successSaveId || `${refFinal || refActual || "NUEVA"}`;
         setSaving(true);
       } else {
-        targetId =
-          currentSheetId ||
-          `sheet-${pendingMatrixData?.referenciaBase || pendingMatrixData?.referencia || pendingMatrixData?.metadatos?.referencia || "NUEVA"}`;
+        targetId = currentSheetId || `${refFinal || refActual || "NUEVA"}`;
       }
 
       if (!targetId) {
@@ -365,18 +465,33 @@ const UploadPage = () => {
         return;
       }
 
-      ok = await confirmarLote(loadType, targetId);
-
-      setConfirmDialog({ open: false, action: "confirm_dispatch" });
+      // USAR confirmarLoteConDatos con los datos capturados antes
+      // Esto NO depende de datosCurvas que puede estar vacío
+      ok = await confirmarLoteConDatos(loadType, targetId, hojaData);
 
       if (ok) {
         setShowSuccess(true);
-        // Redirigir a envíos después de éxito
-        setTimeout(() => navigate("/curvas/envios"), 2000);
+        setConfirmDialog({ open: false, action: "confirm_dispatch" });
+        setDispatchStats(null);
+        setTimeout(() => navigate("/curvas/envios"), 2500);
+      } else {
+        setConfirmDialog({ open: false, action: "confirm_dispatch" });
+        setDispatchStats(null);
+        setSnackbar({
+          open: true,
+          message: "❌ Error al confirmar el lote de despacho",
+          severity: "error",
+        });
       }
     } catch (err) {
       console.error("Error en handleSendToDispatch:", err);
       setConfirmDialog({ open: false, action: "confirm_dispatch" });
+      setDispatchStats(null);
+      setSnackbar({
+        open: true,
+        message: `❌ Error inesperado: ${err instanceof Error ? err.message : "Consulte la consola"}`,
+        severity: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -392,12 +507,22 @@ const UploadPage = () => {
     }
   };
 
+  const [matrixState, setMatrixState] = useState({ ref: "", total: 0 });
+  const [matrixReady, setMatrixReady] = useState(false);
+
   const handleMatrixChange = useCallback((data: any) => {
     setPendingMatrixData(data);
+    setMatrixState({
+      ref: data.referencia || "",
+      total: data.totalGeneral || 0
+    });
     if (data?.totalGeneral > 0) {
       setHasChanges(true);
     }
-  }, []);
+    setMatrixReady(true);
+  }, [setHasChanges]);
+
+
 
   // Lógica de habilitación de botones: referencia presente + datos con valores
   const hasValidRef = !!(
@@ -771,7 +896,7 @@ const UploadPage = () => {
                     onChange={(val) =>
                       matrixRef.current?.setColor(val)
                     }
-                    placeholder="NEGRO MATE"
+                    placeholder="EJ:78124"
                     sx={{
                       width: 160,
                       "& .MuiOutlinedInput-root": {
@@ -804,39 +929,63 @@ const UploadPage = () => {
               ) : null}
             </Paper>
 
-            <Box id="tour-matrix">
-              <DynamicLoadMatrix
-                ref={matrixRef}
-                type={loadType}
-                onChange={handleMatrixChange}
-                onCancel={() => {}}
-              />
+            <DynamicLoadMatrix
+                  key={loadType}
+                  ref={matrixRef}
+                  type={loadType}
+                  onChange={handleMatrixChange}
+                  onCancel={() => {}}
+                  onTallaChange={(oldTalla, newTalla, tipo) => {
+                    // Sincronizar cambio de talla con estado global
+                    if (currentData?.id) {
+                      cambiarTalla(currentData.id, oldTalla, newTalla);
+                    }
+                  }}
+                  setSnackbar={(s) => {
+                    // Como UploadPage no tiene un snackbar genérico,
+                    // podemos usar el de éxito o crear uno nuevo.
+                    // Por ahora usamos el de éxito para mostrar el error
+                    setShowSuccess(false);
+                    setSnackbarState({
+                      open: s.open,
+                      message: s.message,
+                      severity: s.severity,
+                    });
+                  }}
+                />
             </Box>
-          </Box>
-        </Stack>
+          </Stack>
 
-        {/* ── SNACKBAR Y DIALOGS ── */}
-        <Snackbar
-          open={showSuccess}
-          autoHideDuration={4000}
-          onClose={() => setShowSuccess(false)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert
-            onClose={() => setShowSuccess(false)}
-            severity="success"
-            variant="filled"
-            icon={<CheckCircleIcon fontSize="inherit" />}
-            sx={{
-              borderRadius: 3,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-              minWidth: 400,
-            }}
-          >
-            <strong>OPERACIÓN EXITOSA:</strong> Los datos se han sincronizado
-            correctamente.
-          </Alert>
-        </Snackbar>
+           {/* ── SNACKBAR Y DIALOGS ── */}
+           <Snackbar
+             open={showSuccess || !!snackbarState?.open}
+             autoHideDuration={
+               snackbarState?.severity === "error" ? 8000 :
+               snackbarState?.severity === "warning" ? 3000 : 4000
+             }
+             onClose={() => {
+               setShowSuccess(false);
+               setSnackbarState({ open: false, message: "", severity: "success" });
+             }}
+             anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+           >
+             <Alert
+               onClose={() => {
+                 setShowSuccess(false);
+                 setSnackbarState({ open: false, message: "", severity: "success" });
+               }}
+               severity={snackbarState?.severity || "success"}
+               variant="filled"
+               icon={<CheckCircleIcon fontSize="inherit" />}
+               sx={{
+                 borderRadius: 3,
+                 boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                 minWidth: 400,
+               }}
+             >
+               <strong>{snackbarState?.open ? "AVISO:" : "OPERACIÓN EXITOSA:"}</strong> {snackbarState?.message || "Los datos se han sincronizado correctamente."}
+             </Alert>
+           </Snackbar>
 
         {/* DIÁLOGO DE CONFIRMACIÓN AVANZADO (Dashboard Migration) */}
         <Dialog

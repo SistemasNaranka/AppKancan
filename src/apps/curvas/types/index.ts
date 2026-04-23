@@ -162,6 +162,7 @@ export interface FilaDetalleProducto {
 export interface DetalleProducto {
   id?: string;
   nombreHoja: string;
+  referencia?: string;
   metadatos: MetadatosProducto;
   filas: FilaDetalleProducto[];
   tallas: Talla[];
@@ -409,6 +410,24 @@ export interface HistorialCambios {
 export type TipoPlantilla = 'matriz_general' | 'productos';
 
 /**
+ * Tipo de plantilla para la base de datos
+ */
+export type TipoPlantillaDB = 'textil' | 'calzado_bolso';
+
+/**
+ * Item de cantidad_talla con código de barras
+ * Se guarda en el campo cantidad_talla de log_curvas y envios_curvas
+ */
+export interface CantidadTallaItem {
+  /** Número de talla/curva */
+  talla: number;
+  /** Código de barras escaneado */
+  codigo_barra: string;
+  /** Cantidad de veces que se escaneó este código */
+  cantidad: number;
+}
+
+/**
  * Registro de log de curvas para guardar en Directus
  * Guarda la información de cada aplicación/guardado de plantillas
  */
@@ -418,11 +437,11 @@ export interface LogCurvas {
   tienda_id: string;
   /** Nombre de la tienda (para referencia visual) */
   tienda_nombre?: string;
-  /** Tipo de plantilla: matriz_general (textil) o productos (calzado/bolsos) */
-  plantilla: TipoPlantilla;
+  /** Tipo de plantilla: textil o calzado_bolso */
+  plantilla: TipoPlantillaDB;
   /** Fecha de registro */
   fecha: string;
-  /** JSON con array de objetos {talla: number, cantidad: number} */
+  /** JSON con array de objetos {talla: number, cantidad: number, codigo_barra: string} */
   cantidad_talla: string;
   /** Referencia del producto (opcional) */
   referencia?: string;
@@ -439,16 +458,20 @@ export interface EnvioCurva {
   id?: string;
   /** ID de la tienda en la base de datos */
   tienda_id: string;
-  /** Tipo de plantilla: matriz_general | productos */
-  plantilla: TipoPlantilla;
+  /** ID del registro origen en log_curvas (plantilla) */
+  plantilla: string;
   /** Fecha de despacho */
   fecha: string;
-  /** JSON con array de objetos {talla: number, cantidad: number} */
+  /** JSON con array de objetos {talla: number, cantidad: number, codigo_barra: string} */
   cantidad_talla: string;
   /** Referencia del producto */
   referencia: string;
+  /** Nombre de la tienda */
+  tienda_nombre?: string;
   /** ID del usuario que realiza el despacho */
   usuario_id?: string;
+  /** Estado del envío */
+  estado?: 'borrador' | 'confirmado';
 }
 
 /**

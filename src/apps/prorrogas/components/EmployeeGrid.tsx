@@ -139,42 +139,59 @@ const EmployeeGrid: React.FC = () => {
                   <Divider sx={{ my: 1.5 }} />
 
                   <Stack spacing={1.2}>
-                    {emp.empresa && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <BusinessCenterIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="text.secondary">
-                            Empresa
-                          </Typography>
-                        </Box>
-                        <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 130 }}>
-                          {emp.empresa}
-                        </Typography>
-                      </Box>
-                    )}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CalendarMonthIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          Inicio
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" fontWeight={600}>
-                        {formatDate(emp.fecha_ingreso)}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">Contrato activo</Typography>
+                      <Typography variant="body2" fontWeight={700} sx={{ color: '#004680' }}>
+                        {emp.numero_contrato || `CTR-${emp.id}`}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CalendarMonthIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          Vencimiento
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" fontWeight={600}>
-                        {emp.fecha_final ? formatDate(emp.fecha_final) : 'N/A'}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">Prórroga vigente</Typography>
+                      <Typography variant="body2" fontWeight={700} sx={{ color: '#004680' }}>
+                        {emp.prorrogas && emp.prorrogas.length > 0
+                          ? `#${Math.max(...emp.prorrogas.map(p => p.numero ?? 0))}`
+                          : '—'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">Vence</Typography>
+                      <Typography variant="body2" fontWeight={700}>
+                        {emp.fecha_final ? formatDate(emp.fecha_final) : '—'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">Inicio de contrato</Typography>
+                      <Typography variant="body2" fontWeight={700}>
+                        {emp.fecha_ingreso ? formatDate(emp.fecha_ingreso) : '—'}
                       </Typography>
                     </Box>
                   </Stack>
+
+                  {/* Banner inferior de estado */}
+                  <Box sx={{
+                    mt: 2,
+                    p: 1.2,
+                    borderRadius: 1.5,
+                    textAlign: 'center',
+                    bgcolor: emp.contractStatus === 'vencido' ? '#fef2f2'
+                           : emp.daysLeft <= 30 ? '#fffbeb'
+                           : '#f0fdf4',
+                  }}>
+                    <Typography variant="caption" fontWeight={700} sx={{
+                      color: emp.contractStatus === 'vencido' ? '#dc2626'
+                           : emp.daysLeft <= 30 ? '#d97706'
+                           : '#16a34a',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 0.5,
+                    }}>
+                      {emp.contractStatus === 'vencido'
+                        ? `Vencido hace ${Math.abs(emp.daysLeft)} días`
+                        : `Vigente — ${emp.daysLeft} días restantes`}
+                    </Typography>
+                  </Box>
                 </Card>
               </Grid>
             );

@@ -3,7 +3,7 @@ import Chip, { ChipProps } from "@mui/material/Chip";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { ContractStatus } from "../types/types";
+import { ContractStatus, RequestStatus, requestStatusMap } from "../types/types";
 import { SvgIconComponent } from "@mui/icons-material";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,6 +77,69 @@ export const ContractStatusChip: React.FC<ContractStatusChipProps> = ({
         fontSize: "0.7rem",
         "& .MuiChip-icon": { color: cfg.color },
         ...props.sx,
+      }}
+    />
+  );
+};
+
+interface RequestStatusChipProps extends Omit<ChipProps, 'color'> {
+  status: RequestStatus;
+}
+
+export const RequestStatusChip: React.FC<RequestStatusChipProps> = ({ status, ...props }) => {
+  const cfg = requestStatusMap[status];
+  if (!cfg) {
+    return (
+      <Chip
+        label="Desconocido"
+        size="small"
+        {...props}
+        sx={{
+          backgroundColor: '#eceff1',
+          color: '#37474f',
+          border: '1px solid #b0bec5',
+          fontWeight: 700,
+          fontSize: '0.7rem',
+          ...props.sx,
+        }}
+      />
+    );
+  }
+  return (
+    <Chip
+      label={cfg.label}
+      icon={<cfg.Icon sx={{ fontSize: '0.85rem !important', color: `${cfg.color} !important` }} />}
+      size="small"
+      {...props}
+      sx={{
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        border: `1px solid ${cfg.border}`,
+        fontWeight: 700,
+        fontSize: '0.7rem',
+        '& .MuiChip-icon': { color: cfg.color },
+        ...props.sx,
+      }}
+    />
+  );
+};
+
+/** Badge de alerta de días */
+export const AlertChip: React.FC<{ daysLeft: number }> = ({ daysLeft }) => {
+  if (daysLeft < 0 || daysLeft > 50) return null;
+  const urgent = daysLeft <= 20;
+  return (
+    <Chip
+      label={urgent ? `Alerta urgente · ${daysLeft}d` : `Alerta 50 días · ${daysLeft}d`}
+      size="small"
+      icon={<WarningAmberIcon sx={{ fontSize: '0.8rem !important', color: urgent ? '#c62828 !important' : '#e65100 !important' }} />}
+      sx={{
+        mt: 0.5,
+        backgroundColor: urgent ? '#fdecea' : '#fff3e0',
+        color: urgent ? '#c62828' : '#e65100',
+        border: `1px solid ${urgent ? '#ef9a9a' : '#ffcc80'}`,
+        fontWeight: 700,
+        fontSize: '0.68rem',
       }}
     />
   );

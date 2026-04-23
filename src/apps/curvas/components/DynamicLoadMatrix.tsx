@@ -30,6 +30,8 @@ import {
   Fade,
   Zoom,
   CircularProgress,
+  SxProps,
+  Theme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
@@ -56,6 +58,12 @@ interface DynamicLoadMatrixProps {
   onCancel: () => void;
   onChange?: (data: any) => void;
   type: "general" | "producto_a" | "producto_b";
+  setSnackbar?: (snackbar: {
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "warning" | "info";
+  }) => void;
+  onTallaChange?: (oldTalla: string, newTalla: string, type: "curva" | "talla") => void;
 }
 
 const stickyActionColumnStyle = {
@@ -67,7 +75,7 @@ const stickyActionColumnStyle = {
   borderLeft: "1px solid #e2e8f0",
 };
 
-const headerCellStyle = {
+const headerCellStyle: SxProps<Theme> = {
   bgcolor: "#1e293b",
   color: "white",
   fontWeight: 700,
@@ -420,7 +428,7 @@ const MemoizedMatrixRow = React.memo(
 const DynamicLoadMatrix = forwardRef<
   DynamicLoadMatrixHandle,
   DynamicLoadMatrixProps
->(({ onChange, type }, ref) => {
+>(({ onChange, type, setSnackbar, onTallaChange }, ref) => {
   // ── ESTADO ──────────────────────────────────────────
 
   // Lista de tiendas desde DB
@@ -483,6 +491,11 @@ const DynamicLoadMatrix = forwardRef<
     endCIdx: number;
     isSelecting: boolean;
   } | null>(null);
+
+  // Contador para forzar re-render de inputs cuando hay cambios
+  const [inputResetCounter, setInputResetCounter] = useState(0);
+
+  // Reordenamiento de columnas
 
   // Estado para "Paste Intelligence"
   const [confirmPasteOpen, setConfirmPasteOpen] = useState(false);
@@ -558,6 +571,32 @@ const DynamicLoadMatrix = forwardRef<
     return Object.values(columnTotals).reduce((a, b) => a + b, 0);
   }, [columnTotals]);
 
+  // ── SINCRONIZACIÓN AUTOMÁTICA CON EL PADRE ─────────
+  // Reemplaza la necesidad de polling (setInterval) en UploadPage
+  useEffect(() => {
+    if (onChange) {
+      const validRows = rows
+        .filter((r) => r.name && r.name.trim() !== "" && getRowTotal(r.values) > 0)
+        .map((r) => ({
+          tienda: r.tiendaData || { id: r.id, nombre: r.name },
+          id: r.id,
+          [type === "general" ? "curvas" : "tallas"]: r.values,
+          total: getRowTotal(r.values),
+        }));
+
+      onChange({
+        filas: validRows,
+        totalGeneral: grandTotal,
+        referencia: referencia,
+        referenciaBase: referencia,
+        nombreHoja: referencia,
+        color: color,
+        [type === "general" ? "curvas" : "tallas"]: columns,
+        id: "NUEVA", // Indica que es un borrador nuevo
+      });
+    }
+  }, [rows, columns, referencia, color, grandTotal, type, onChange, getRowTotal]);
+
   // ── VALIDACIÓN Y SANITIZACIÓN ────────────────────────
 
   const handleValueChange = (
@@ -578,11 +617,24 @@ const DynamicLoadMatrix = forwardRef<
   // ── HANDLERS DE ESTRUCTURA ──────────────────────────
 
   const addColumn = () => {
-    const lastCol = columns[columns.length - 1];
-    const nextCol = !isNaN(Number(lastCol))
-      ? (Number(lastCol) + 1).toString()
-      : "NUEVA";
-    setColumns([...columns, nextCol]);
+    const usedNumbers = new Set(
+      columns.filter((c) => !isNaN(Number(c))).map((c) => Number(c)),
+    );
+
+    let nextCol: number;
+    if (type === "general") {
+      nextCol = 1;
+      while (usedNumbers.has(nextCol)) {
+        nextCol++;
+      }
+    } else {
+      const numericColumns = Array.from(usedNumbers).filter((n) => n >= 35);
+      const maxTalla =
+        numericColumns.length > 0 ? Math.max(...numericColumns) : 40;
+      nextCol = maxTalla + 1;
+    }
+
+    setColumns([...columns, nextCol.toString()]);
   };
 
   const removeColumn = (colName: string) => {
@@ -1043,23 +1095,27 @@ const DynamicLoadMatrix = forwardRef<
                   : -1;
                 const isColActive =
                   activeCell?.c === col || (idx >= minC && idx <= maxC);
+
                 return (
                   <TableCell
                     key={col}
                     align="center"
                     sx={{
-                      ...headerCellStyle,
-                      minWidth: 70,
                       bgcolor: isColActive ? "#10b981" : "#0f172a",
                       color: "#fff",
+
+                      textTransform: "uppercase",
+                      fontSize: "0.75rem",
+                      letterSpacing: "0.05em",
+                      py: 1.5,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      minWidth: 70,
                       boxShadow: isColActive
                         ? "inset 0 -4px 0 rgba(255,255,255,0.8)"
                         : "none",
                       transition:
                         "background-color 0.15s ease, box-shadow 0.15s ease",
                       fontWeight: isColActive ? 900 : 600,
-                      fontSize: "0.75rem",
-                      letterSpacing: "0.05em",
                       zIndex: 35,
                     }}
                   >
@@ -1071,10 +1127,120 @@ const DynamicLoadMatrix = forwardRef<
                         gap: 0.5,
                       }}
                     >
-                      {col}
+                      <TextField
+                        size="small"
+                        key={`col-${idx}-${col}-${inputResetCounter}`} // Forzar re-render cuando cambia la columna o hay reset
+                        defaultValue={col}
+                        onBlur={(e) => {
+                          const inputValue = e.target.value.trim();
+                          if (!inputValue) {
+                            // Si queda vacío, restaurar el valor original
+                            const newColumns = [...columns];
+                            newColumns[idx] = col;
+                            setColumns(newColumns);
+                            // Forzar re-render del input
+                            setInputResetCounter(prev => prev + 1);
+                          } else {
+                            // Aplicar formato y actualizar
+                            const cleanValue = inputValue.replace(/[^0-9]/g, "");
+
+                            // Validar que no tenga más de 2 dígitos
+                            if (cleanValue.length > 2) {
+                              // Valor demasiado largo - restaurar y mostrar error
+                              const newColumns = [...columns];
+                              newColumns[idx] = col;
+                              setColumns(newColumns);
+                              setInputResetCounter(prev => prev + 1);
+                              setSnackbar?.({
+                                open: true,
+                                message: `La talla no puede tener más de 2 dígitos`,
+                                severity: "warning",
+                              });
+                              return;
+                            }
+
+                            const formattedValue = cleanValue.padStart(2, "0");
+
+                            // Verificar si la talla ya existe en otras columnas
+                            if (
+                              formattedValue !== col &&
+                              columns.includes(formattedValue)
+                            ) {
+                              // Talla duplicada - restaurar valor original y mostrar aviso
+                              const newColumns = [...columns];
+                              newColumns[idx] = col;
+                              setColumns(newColumns);
+                              // Forzar re-render del input para mostrar el valor restaurado
+                              setInputResetCounter(prev => prev + 1);
+                              setSnackbar?.({
+                                open: true,
+                                message: `La talla ${formattedValue} ya existe en otra columna`,
+                                severity: "warning",
+                              });
+                              return;
+                            }
+
+                            if (formattedValue !== col) {
+                              const newColumns = [...columns];
+                              newColumns[idx] = formattedValue;
+                              setColumns(newColumns);
+                              // Forzar re-render del input para mostrar el nuevo valor
+                              setInputResetCounter(prev => prev + 1);
+
+                              // Sincronizar con estado global
+                              onTallaChange?.(col, formattedValue, type === "general" ? "curva" : "talla");
+                            }
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            // Simular blur para aplicar cambios
+                            e.currentTarget.blur();
+                          } else if (e.key === "Escape") {
+                            // Restaurar valor original
+                            const newColumns = [...columns];
+                            newColumns[idx] = col;
+                            setColumns(newColumns);
+                            // Forzar re-render del input
+                            setInputResetCounter(prev => prev + 1);
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        inputProps={{
+                          style: {
+                            textAlign: "center",
+                            color: "#fff",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            letterSpacing: "0.05em",
+                            padding: "2px 4px",
+                            height: "auto",
+                          },
+                        }}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "& fieldset": { border: "none" },
+                            "&:hover fieldset": {
+                              border: "1px solid rgba(255,255,255,0.3)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              border: "1px solid #10b981",
+                            },
+                          },
+                          "& .MuiOutlinedInput-input": {
+                            padding: "2px 4px",
+                          },
+                          minWidth: 35,
+                          maxWidth: 45,
+                        }}
+                      />
                       <IconButton
                         size="small"
-                        onClick={() => removeColumn(col)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeColumn(col);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
                         sx={{
                           color: alpha("#fff", 0.4),
                           "&:hover": { color: "#ef4444" },

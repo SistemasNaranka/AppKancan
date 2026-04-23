@@ -142,7 +142,7 @@ const procesarHojaMatrizGeneral = (worksheet: XLSX.WorkSheet, sheetName: string,
       sum += val;
     });
 
-    filas.push({ id: tienda.id, tienda, curvas: curvesData, total: totalCol !== -1 ? parseNumericValue(row[totalCol]) : sum });
+    filas.push({ id: `excel-${tienda.id}`, tienda, curvas: curvesData, total: totalCol !== -1 ? parseNumericValue(row[totalCol]) : sum });
   }
 
   if (filas.length === 0) return null;
@@ -258,7 +258,7 @@ const procesarHojaDetalleProducto = (worksheet: XLSX.WorkSheet, sheetName: strin
       totales[t.name] += val;
       sum += val;
     });
-    filas.push({ id: tienda.id, tienda, tallas: tallasData, total: totalCol !== -1 ? parseNumericValue(row[totalCol]) : sum });
+    filas.push({ id: `excel-${tienda.id}`, tienda, tallas: tallasData, total: totalCol !== -1 ? parseNumericValue(row[totalCol]) : sum });
   }
 
   if (filas.length === 0) return null;

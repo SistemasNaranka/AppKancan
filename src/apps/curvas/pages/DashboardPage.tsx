@@ -13,13 +13,13 @@ import {
   Container,
   Typography,
   Paper,
-  Tabs,
-  Tab,
-  Button,
-  Snackbar,
-  Alert,
   Stack,
   TextField,
+  Button,
+  Tabs,
+  Tab,
+  Snackbar,
+  Alert,
   LinearProgress,
   useTheme,
   alpha,
@@ -33,6 +33,8 @@ import {
   QuickFilter,
   FilterPanelTrigger,
 } from "@mui/x-data-grid";
+import { PickersDay, PickersDayProps } from "@mui/x-date-pickers/PickersDay";
+import { Badge } from "@mui/material";
 import { useCurvas } from "../contexts/CurvasContext";
 import { getResumenFechasCurvas } from "../api/directus/read";
 import dayjs from "dayjs";
@@ -40,10 +42,10 @@ import "dayjs/locale/es";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { PickersActionBar } from "@mui/x-date-pickers/PickersActionBar";
 import SaveIcon from "@mui/icons-material/Save";
 import SendIcon from "@mui/icons-material/Send";
 import StorefrontIcon from "@mui/icons-material/Storefront";
-import ReplayIcon from "@mui/icons-material/Replay";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SearchIcon from "@mui/icons-material/Search";
@@ -176,10 +178,11 @@ const DashboardPage = () => {
     datosCurvas,
     permissions,
     editarCelda,
+    cambiarTalla,
     guardarCambios,
     confirmarLote,
-    reutilizarLote,
-    cargarDatosPorFecha,
+
+    cargarDatosGuardados,
     hasChanges,
     extractRef,
   } = useCurvas();
@@ -192,6 +195,7 @@ const DashboardPage = () => {
   }>({ open: false, message: "", severity: "success" });
 
   const [filtroFecha, setFiltroFecha] = useState<string>(getTodayStr());
+  const [isHistoricalMode, setIsHistoricalMode] = useState(false);
   const [filtroReferencia, setFiltroReferencia] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [loadingDate, setLoadingDate] = useState(false);
@@ -202,6 +206,8 @@ const DashboardPage = () => {
     field: string;
   } | null>(null);
 
+  const [resumenFechas, setResumenFechas] = useState<Record<string, 'pendiente' | 'enviado'>>({});
+
   const initDateChecked = useRef(false);
 
   useLayoutEffect(() => {
@@ -211,19 +217,21 @@ const DashboardPage = () => {
 
   useEffect(() => {
     const checkDefaultDate = async () => {
-      if (!initDateChecked.current) {
-        initDateChecked.current = true;
-        try {
-          const resumen = await getResumenFechasCurvas();
+      try {
+        const resumen = await getResumenFechasCurvas();
+        setResumenFechas(resumen);
+
+        if (!initDateChecked.current) {
+          initDateChecked.current = true;
           if (!resumen[getTodayStr()]) {
             const fechasOrd = Object.keys(resumen).sort(
-              (a, b) => new Date(b).getTime() - new Date(a).getTime(),
+              (a, b) => new Date(b).getTime() - new Date(a).getTime()
             );
             if (fechasOrd.length > 0) setFiltroFecha(fechasOrd[0]);
           }
-        } catch (error) {
-          console.error("Error fetching resumen:", error);
         }
+      } catch (error) {
+        console.error("Error fetching resumen:", error);
       }
     };
     checkDefaultDate();
@@ -233,11 +241,13 @@ const DashboardPage = () => {
   const isPastDate = useMemo(() => filtroFecha < getTodayStr(), [filtroFecha]);
 
   useEffect(() => {
-    if (!filtroFecha) return;
     setLoadingDate(true);
     setSheetIndex(0);
-    cargarDatosPorFecha(filtroFecha).finally(() => setLoadingDate(false));
-  }, [filtroFecha, cargarDatosPorFecha]);
+    // null = modo histórico (sin filtro de fecha → trae todas las referencias)
+    // filtroFecha = modo normal (filtra por la fecha seleccionada)
+    const fechaParam: string | null = isHistoricalMode ? null : filtroFecha;
+    cargarDatosGuardados(fechaParam).finally(() => setLoadingDate(false));
+  }, [filtroFecha, isHistoricalMode]);
 
   const allSheets = useMemo(() => {
     if (!datosCurvas) return [];
@@ -348,17 +358,54 @@ const DashboardPage = () => {
         field: `val_${item}`,
         renderHeader: () => (
           <Box sx={{ textAlign: "center", lineHeight: 1.1, py: 0.5 }}>
-            <Typography
-              sx={{
-                fontFamily: MONO_FONT,
-                fontWeight: 900,
-                fontSize: "0.78rem",
-                color: BRAND.text,
-                letterSpacing: 0.5,
-              }}
-            >
-              {item.length === 1 && !isNaN(Number(item)) ? `0${item}` : item}
-            </Typography>
+            {isToday && permissions.canEdit ? (
+              <TextField
+                size="small"
+                defaultValue={item.length === 1 && !isNaN(Number(item)) ? `0${item}` : item}
+                onBlur={(e) => {
+                  const newValue = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                  if (newValue && newValue !== item && datosActuales?.id) {
+                    cambiarTalla(datosActuales.id, item, newValue);
+                  }
+                }}
+                inputProps={{
+                  style: {
+                    textAlign: 'center',
+                    fontFamily: MONO_FONT,
+                    fontWeight: 900,
+                    fontSize: '0.78rem',
+                    color: BRAND.text,
+                    letterSpacing: 0.5,
+                    padding: '2px 4px',
+                    height: 'auto',
+                  }
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': { border: 'none' },
+                    '&:hover fieldset': { border: '1px solid rgba(0,0,0,0.1)' },
+                    '&.Mui-focused fieldset': { border: '1px solid #1976d2' },
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    padding: '2px 4px',
+                  },
+                  minWidth: 40,
+                  maxWidth: 50,
+                }}
+              />
+            ) : (
+              <Typography
+                sx={{
+                  fontFamily: MONO_FONT,
+                  fontWeight: 900,
+                  fontSize: "0.78rem",
+                  color: BRAND.text,
+                  letterSpacing: 0.5,
+                }}
+              >
+                {item.length === 1 && !isNaN(Number(item)) ? `0${item}` : item}
+              </Typography>
+            )}
           </Box>
         ),
         minWidth: 65,
@@ -368,7 +415,7 @@ const DashboardPage = () => {
         sortable: false,
         filterable: false,
         disableColumnMenu: true,
-        editable: permissions.canEdit && isToday,
+        editable: false,
         renderCell: (params: GridRenderCellParams) => {
           const valor = Number(params.value || 0);
           const isTotalRow = params.row.id === "row-total-final";
@@ -562,19 +609,17 @@ const DashboardPage = () => {
     ],
   );
 
-  const handleSave = async () => {
-    setSaving(true);
-    const ok = await guardarCambios();
+  // Removida la lógica de guardar en Dashboard ya que es de solo lectura.
+  const handleSave = () => {
     setSnackbar({
       open: true,
-      message: ok ? "Cambios guardados" : "Error al guardar",
-      severity: ok ? "success" : "error",
+      message: "Vista de solo lectura. Edita desde la página de Carga si es necesario.",
+      severity: "info",
     });
-    setSaving(false);
   };
 
   const handleSend = async () => {
-    if (!datosActuales?.id) return;
+    if (!datosActuales?.id || saving) return;
     setSaving(true);
     const isMatriz = "curvas" in datosActuales;
     const ok = await confirmarLote(
@@ -598,26 +643,7 @@ const DashboardPage = () => {
     setSaving(false);
   };
 
-  const handleReutilizar = async () => {
-    if (!datosActuales?.id) return;
-    setSaving(true);
-    const ok = await reutilizarLote(datosActuales.id);
-    if (ok) {
-      setSnackbar({
-        open: true,
-        message: "Lote reutilizado para hoy",
-        severity: "success",
-      });
-      setFiltroFecha(getTodayStr());
-    } else {
-      setSnackbar({
-        open: true,
-        message: "Error al reutilizar",
-        severity: "error",
-      });
-    }
-    setSaving(false);
-  };
+
 
   const isConfirmed = (datosActuales as any)?.estado === "confirmado";
 
@@ -644,23 +670,15 @@ const DashboardPage = () => {
             px: 2,
             height: 40,
             borderRadius: "6px",
-            bgcolor: "rgba(255, 183, 77, 0.12)",
-            border: "1.5px solid rgba(255, 183, 77, 0.5)",
+            bgcolor: "rgba(156, 163, 175, 0.12)",
+            border: "1.5px solid rgba(156, 163, 175, 0.5)",
             backdropFilter: "blur(4px)",
-            color: "#ffb74d",
+            color: "#6b7280",
             flexShrink: 0,
           }}
         >
-          <CalendarTodayIcon sx={{ fontSize: 16 }} />
-          <Typography
-            sx={{
-              fontSize: "0.65rem",
-              fontWeight: 900,
-              letterSpacing: 0.8,
-              lineHeight: 1,
-            }}
-          >
-            MODO LECTURA
+          <Typography sx={{ fontSize: "0.75rem", fontWeight: 900 }}>
+            📖 SOLO LECTURA - HISTORIAL
           </Typography>
         </Box>
       )}
@@ -713,74 +731,167 @@ const DashboardPage = () => {
         </Box>
       )}
 
-      {/* ── Control: Fecha ── */}
-      <Box
-        sx={{
-          bgcolor: "white",
-          borderRadius: "6px",
-          display: "flex",
-          alignItems: "center",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
-          flexShrink: 0,
-        }}
-      >
-        <DatePicker
-          value={dayjs(filtroFecha)}
-          onChange={(v: any) => {
-            if (v && v.format) setFiltroFecha(v.format("YYYY-MM-DD"));
-          }}
-          maxDate={dayjs()}
-          slotProps={{
-            textField: {
-              size: "small",
-              sx: {
-                width: { xs: 150, sm: 180 },
-                "& .MuiInputBase-root": {
-                  height: 40,
-                  bgcolor: "transparent !important",
-                  "& fieldset": { border: "none" },
-                  "& .MuiInputBase-input": {
-                    fontSize: "0.85rem",
-                    fontWeight: 800,
-                    color: BRAND.text,
-                    pl: 2,
-                  },
-                  "& .MuiInputAdornment-root .MuiSvgIcon-root": {
-                    color: BRAND.primary,
-                    fontSize: 18,
+       {/* ── Control: Fecha ── */}
+       <Box
+         sx={{
+           bgcolor: "white",
+           borderRadius: "6px",
+           display: "flex",
+           alignItems: "center",
+           boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+           flexShrink: 0,
+         }}
+       >
+{!isHistoricalMode && (
+            <DatePicker
+              value={dayjs(filtroFecha)}
+              onChange={(v: any) => {
+                if (v && v.format) setFiltroFecha(v.format("YYYY-MM-DD") || getTodayStr());
+              }}
+              maxDate={dayjs()}
+              localeText={{
+                todayButtonLabel: 'Hoy'
+              }}
+              slots={{
+                day: (props: PickersDayProps) => {
+                  const dateStr = dayjs(props.day).format("YYYY-MM-DD");
+                  const hasData = !!resumenFechas[dateStr];
+                  const isEnviado = resumenFechas[dateStr] === "enviado";
+
+                  return (
+                    <Badge
+                      key={props.day.toString()}
+                      overlap="circular"
+                      badgeContent={
+                        hasData ? (
+                          <Box
+                            sx={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              bgcolor: isEnviado ? "#10b981" : "#f59e0b",
+                              border: "1px solid white",
+                            }}
+                          />
+                        ) : undefined
+                      }
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          right: 8,
+                          top: 8,
+                        },
+                      }}
+                    >
+                      <PickersDay {...props} />
+                    </Badge>
+                  );
+                },
+                actionBar: (props) => (
+                  <PickersActionBar
+                    {...props}
+                    actions={['today']}
+                    sx={{
+                      '& .MuiButton-root': {
+                        fontSize: '0.8rem',
+                        py: 0.5,
+                        px: 2,
+                        minHeight: 32,
+                      },
+                      p: 0.5,
+                      gap: 0.5,
+                    }}
+                  />
+                ),
+              }}
+              slotProps={{
+                textField: {
+                  size: "small",
+                  sx: {
+                    width: { xs: 150, sm: 180 },
+                    "& .MuiInputBase-root": {
+                      height: 40,
+                      bgcolor: "transparent !important",
+                      "& fieldset": { border: "none" },
+                      "& .MuiInputBase-input": {
+                        fontSize: "0.85rem",
+                        fontWeight: 800,
+                        color: BRAND.text,
+                        pl: 2,
+                      },
+                      "& .MuiInputAdornment-root .MuiSvgIcon-root": {
+                        color: BRAND.primary,
+                        fontSize: 18,
+                      },
+                    },
                   },
                 },
-              },
-            },
-          }}
-        />
-      </Box>
+              }}
+            />
+          )}
+         {isHistoricalMode && (
+           <Button
+             onClick={() => setIsHistoricalMode(false)}
+             sx={{
+               height: 40,
+               px: 2,
+               fontSize: "0.85rem",
+               fontWeight: 800,
+               color: BRAND.primary,
+               textTransform: "none",
+             }}
+           >
+             Volver a Fecha
+           </Button>
+         )}
+       </Box>
 
-      {/* ── Control: Buscador ── */}
-      <TextField
-        size="small"
-        placeholder="Filtrar lote..."
-        value={filtroReferencia}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          setFiltroReferencia(e.target.value)
-        }
-        slotProps={{
-          input: {
-            sx: {
-              height: 40,
-              fontWeight: 800,
-              bgcolor: "white !important",
-              color: BRAND.text,
-              borderRadius: "6px",
-              fontSize: "0.85rem",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
-              "& fieldset": { border: "none" },
-              pl: 1,
-            },
-          },
-        }}
-        sx={{ width: { xs: 130, sm: 160 }, flexShrink: 0 }}
-      />
+
+       {/* ── Control: Buscador ── */}
+       <TextField
+         size="small"
+         placeholder="Filtrar lote..."
+         value={filtroReferencia}
+         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+           setFiltroReferencia(e.target.value)
+         }
+         slotProps={{
+           input: {
+             sx: {
+               height: 40,
+               fontWeight: 800,
+               bgcolor: "white !important",
+               color: BRAND.text,
+               borderRadius: "6px",
+               fontSize: "0.85rem",
+               boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+               "& fieldset": { border: "none" },
+               pl: 1,
+             },
+           },
+         }}
+         sx={{ width: { xs: 130, sm: 160 }, flexShrink: 0 }}
+       />
+       <Button
+         onClick={() => setIsHistoricalMode(!isHistoricalMode)}
+         startIcon={<LibraryBooksIcon sx={{ fontSize: 16 }} />}
+         sx={{
+           fontWeight: 900,
+           borderRadius: "6px",
+           textTransform: "none",
+           color: "white",
+           px: 2,
+           height: 40,
+           fontSize: "0.8rem",
+           bgcolor: isHistoricalMode ? BRAND.primary : "#64748b",
+           boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+           "&:hover": {
+             bgcolor: isHistoricalMode ? BRAND.dark : "#475569",
+           },
+         }}
+       >
+         {isHistoricalMode ? "MODO HISTÓRICO" : "HISTÓRICO"}
+       </Button>
+
 
       {/* ── Botones de acción ── */}
       <Stack
@@ -830,34 +941,13 @@ const DashboardPage = () => {
               fontSize: "0.8rem",
               boxShadow: "0 4px 12px rgba(0,106,204,0.3)",
               "&:hover": { bgcolor: BRAND.dark },
+              /* Botón de Guardar removido - Dashboard es ahora SOLO LECTURA */
             }}
           >
             Enviar
           </Button>
         )}
-        {isPastDate && datosActuales && (
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<ReplayIcon sx={{ fontSize: 16 }} />}
-            onClick={handleReutilizar}
-            disabled={saving}
-            sx={{
-              fontWeight: 900,
-              borderRadius: "6px",
-              background: "#4f46e5",
-              color: "white",
-              px: 2,
-              height: 40,
-              textTransform: "none",
-              fontSize: "0.8rem",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-              "&:hover": { background: "#4338ca" },
-            }}
-          >
-            Reutilizar
-          </Button>
-        )}
+
       </Stack>
     </Stack>
   );
@@ -927,40 +1017,72 @@ const DashboardPage = () => {
                     "& .MuiTabs-flexContainer": { gap: 0.5 },
                   }}
                 >
-                  {sheetNames.map((name, i) => (
-                    <Tab
-                      key={i}
-                      label={name}
-                      sx={{
-                        textTransform: "none",
-                        fontWeight: 700,
-                        minHeight: 36,
-                        borderRadius: "8px",
-                        fontSize: "0.8rem",
-                        px: 2,
-                        fontFamily: MONO_FONT,
-                        transition: "all 0.2s ease",
-                        color: sheetIndex === i ? BRAND.primary : "#6b7280",
-                        bgcolor: sheetIndex === i ? "white" : "transparent",
-                        border:
-                          sheetIndex === i
-                            ? "1px solid #e5e7eb"
-                            : "1px solid transparent",
-                        boxShadow:
-                          sheetIndex === i
-                            ? "0 1px 3px rgba(0,0,0,0.05)"
-                            : "none",
-                        "&.Mui-selected": {
-                          color: BRAND.primary,
-                          bgcolor: "white",
-                          border: "1px solid #e5e7eb",
-                        },
-                        "&:hover": {
-                          bgcolor: sheetIndex === i ? "white" : "#f3f4f6",
-                        },
-                      }}
-                    />
-                  ))}
+                  {allSheets.map((sheet, i) => {
+                    const tabFecha = (sheet as any).fechaCarga
+                      ? dayjs((sheet as any).fechaCarga).format("DD/MM/YY")
+                      : null;
+                    return (
+                      <Tab
+                        key={i}
+                        label={
+                          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, lineHeight: 1 }}>
+                            <Typography
+                              sx={{
+                                fontFamily: MONO_FONT,
+                                fontWeight: 700,
+                                fontSize: "0.8rem",
+                                lineHeight: 1.2,
+                                color: "inherit",
+                              }}
+                            >
+                              {extractRef(sheet)}
+                            </Typography>
+                            {tabFecha && (
+                              <Typography
+                                sx={{
+                                  fontSize: "0.6rem",
+                                  fontWeight: 600,
+                                  lineHeight: 1.1,
+                                  color: sheetIndex === i ? BRAND.primary : "#9ca3af",
+                                  letterSpacing: 0.2,
+                                }}
+                              >
+                                {tabFecha}
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{
+                          textTransform: "none",
+                          fontWeight: 700,
+                          minHeight: tabFecha ? 48 : 36,
+                          borderRadius: "8px",
+                          fontSize: "0.8rem",
+                          px: 2,
+                          fontFamily: MONO_FONT,
+                          transition: "all 0.2s ease",
+                          color: sheetIndex === i ? BRAND.primary : "#6b7280",
+                          bgcolor: sheetIndex === i ? "white" : "transparent",
+                          border:
+                            sheetIndex === i
+                              ? "1px solid #e5e7eb"
+                              : "1px solid transparent",
+                          boxShadow:
+                            sheetIndex === i
+                              ? "0 1px 3px rgba(0,0,0,0.05)"
+                              : "none",
+                          "&.Mui-selected": {
+                            color: BRAND.primary,
+                            bgcolor: "white",
+                            border: "1px solid #e5e7eb",
+                          },
+                          "&:hover": {
+                            bgcolor: sheetIndex === i ? "white" : "#f3f4f6",
+                          },
+                        }}
+                      />
+                    );
+                  })}
                 </Tabs>
                 {isPastDate && (
                   <Box
