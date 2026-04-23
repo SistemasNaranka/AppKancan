@@ -114,7 +114,7 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3, bgcolor: '#f4f7fc' } }}>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, bgcolor: '#fff', borderBottom: '1px solid #e8edf5' }}>
+      <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, bgcolor: '#fff', borderBottom: '1px solid #e8edf5' }}>
         <Box>
           <Typography variant="h5" fontWeight={800} color="primary.main">
             Reportes y Estadísticas

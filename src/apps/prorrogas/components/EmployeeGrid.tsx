@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -19,7 +19,7 @@ import { formatDate } from '../lib/utils';
 const avatarColors = ['#004680', '#0284c7', '#4338ca', '#059669', '#d97706', '#dc2626'];
 const avatarColor = (id: number) => avatarColors[id % avatarColors.length];
 const EmployeeGrid: React.FC = () => {
-  const { allEnriched, select } = useContracts();
+  const { allEnriched, select, filters } = useContracts();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'todos' | 'vigente' | 'proximo' | 'vencido'>('todos');
   const [cargoFilter, setCargoFilter] = useState<string>('todos');
@@ -33,11 +33,29 @@ const EmployeeGrid: React.FC = () => {
   const filteredEmployees = allEnriched.filter(c => {
     const statusMatch = statusFilter === 'todos' || c.contractStatus === statusFilter;
     const cargoMatch = cargoFilter === 'todos' || String(c.cargo || 'Sin Cargo') === cargoFilter;
-    return statusMatch && cargoMatch;
+
+    // Búsqueda global del TopBar
+    const q = filters.search.toLowerCase().trim();
+    const searchMatch = !q || (
+      c.nombre.toLowerCase().includes(q) ||
+      (c.apellido?.toLowerCase() ?? '').includes(q) ||
+      String(c.cargo).toLowerCase().includes(q) ||
+      (c.area?.toLowerCase() ?? '').includes(q) ||
+      (c.documento?.toLowerCase() ?? '').includes(q) ||
+      (c.empresa?.toLowerCase() ?? '').includes(q) ||
+      (c.numero_contrato?.toLowerCase() ?? '').includes(q)
+    );
+
+    return statusMatch && cargoMatch && searchMatch;
   });
 
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const rows = filteredEmployees.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  // Reset de paginación cuando cambia la búsqueda global
+  useEffect(() => {
+    setPage(1);
+  }, [filters.search]);
 
   const handleCardClick = (id: number) => {
     select(id);

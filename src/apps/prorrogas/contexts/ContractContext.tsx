@@ -183,6 +183,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             c.apellido.toLowerCase().includes(q) ||
             String(c.cargo).toLowerCase().includes(q) ||
             c.documento.toLowerCase().includes(q) ||
+            (c.area?.toLowerCase() ?? '').includes(q) ||
+            (c.empresa?.toLowerCase() ?? '').includes(q) ||
+            (c.tipo_contrato?.toLowerCase() ?? '').includes(q) ||
+            (c.numero_contrato?.toLowerCase() ?? '').includes(q) ||
             String(c.id).includes(q)
           );
         }
@@ -199,7 +203,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           return (b.prorrogas?.length ?? 0) - (a.prorrogas?.length ?? 0);
         return 0;
       });
-  }, [state.contratos, state.filters.search, state.filters.sortBy]);
+  }, [state.contratos, state.filters.search, state.filters.sortBy, state.filters.tab]);
 
   const loadContratos = useCallback(async () => {
     dispatch({ type: "SET_LOADING", payload: true });

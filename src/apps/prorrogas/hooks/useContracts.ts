@@ -82,9 +82,12 @@ export const useContracts = () => {
         if (q) {
           return (
             c.nombre.toLowerCase().includes(q)       ||
+            (c.apellido?.toLowerCase() ?? '').includes(q) ||
             String(c.cargo).toLowerCase().includes(q)        ||
             (c.area?.toLowerCase() ?? '').includes(q) ||
             (c.empresa?.toLowerCase() ?? '').includes(q)      ||
+            (c.documento?.toLowerCase() ?? '').includes(q) ||
+            (c.tipo_contrato?.toLowerCase() ?? '').includes(q) ||
             (c.numero_contrato?.toLowerCase() ?? '').includes(q)
           );
         }

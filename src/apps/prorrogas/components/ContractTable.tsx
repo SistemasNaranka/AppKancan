@@ -236,6 +236,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
   const [page, setPage] = useState(1);
 
   const isResumen = filters.tab === 'resumen';
+  const hasSearch = filters.search.trim().length > 0;
 
   useEffect(() => {
     setPage(1);
@@ -243,19 +244,23 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
 
   const itemsPerPage = isResumen ? 10 : 20;
 
+  // En Resumen: si hay búsqueda activa, usar filteredContratos para que el buscador funcione
+  // Si no hay búsqueda, mostrar todos ordenados por recientes
   const sourceRows = isResumen
-    ? [...allEnriched]
+    ? (hasSearch ? filteredContratos : [...allEnriched])
     : filteredContratos;
 
   const totalPages = Math.ceil(sourceRows.length / itemsPerPage);
   const rows = sourceRows.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const tableTitle = isResumen
-    ? 'Contratos Recientes'
+    ? (hasSearch ? `Resultados de búsqueda` : 'Contratos Recientes')
     : `Solicitudes — ${filters.tab.charAt(0).toUpperCase() + filters.tab.slice(1).replace('_', ' ')}`;
 
   const tableSubtitle = isResumen
-    ? `Mostrando recientes (Total: ${allEnriched.length})`
+    ? (hasSearch
+        ? `${sourceRows.length} resultados para "${filters.search.trim()}" (Total: ${allEnriched.length})`
+        : `Mostrando recientes (Total: ${allEnriched.length})`)
     : `${filteredContratos.length} registros (Pág. ${page} de ${totalPages || 1})`;
 
   if (loading) {

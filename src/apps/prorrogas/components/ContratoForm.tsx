@@ -241,7 +241,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
       fullWidth
       PaperProps={{ sx: { borderRadius: 3, padding: 1, maxHeight: '90vh' } }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+      <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {isEditing
             ? <EditOutlinedIcon sx={{ color: 'primary.main' }} />
