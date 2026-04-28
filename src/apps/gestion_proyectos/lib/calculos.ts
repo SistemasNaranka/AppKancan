@@ -104,6 +104,46 @@ export function calcularMetricasProceso(proceso: Proceso): MetricasProceso {
 }
 
 /**
+ * Calcula el ahorro total en un mes específico, considerando días exactos del mes
+ */
+export function calcularAhorroPorMes(
+  procesos: Proceso[],
+  mes: number,
+  anio: number
+): number {
+  if (!procesos || procesos.length === 0) return 0;
+
+  const diasEnMes = new Date(anio, mes, 0).getDate();
+
+  return procesos.reduce((total, proceso) => {
+    const tiempoAntes = Number(proceso.tiempo_antes) || 0;
+    const tiempoDespues = Number(proceso.tiempo_despues) || 0;
+    const ahorroPorEjecucion = tiempoAntes - tiempoDespues;
+    if (ahorroPorEjecucion <= 0) return total;
+
+    const frecuenciaCantidad = Number(proceso.frecuencia_cantidad) || 1;
+    const diasSemana = Number(proceso.dias_semana) > 0 ? Number(proceso.dias_semana) : 5;
+
+    let vecesEnMes: number;
+
+    switch (proceso.frecuencia_tipo) {
+      case "diaria":
+        vecesEnMes = frecuenciaCantidad * diasSemana * (diasEnMes / 7);
+        break;
+      case "semanal":
+        vecesEnMes = frecuenciaCantidad * (diasEnMes / 7);
+        break;
+      case "mensual":
+      default:
+        vecesEnMes = frecuenciaCantidad;
+        break;
+    }
+
+    return total + Math.round(ahorroPorEjecucion * vecesEnMes);
+  }, 0);
+}
+
+/**
  * Calcula las métricas totales de un proyecto
  */
 export function calcularMetricasProyecto(

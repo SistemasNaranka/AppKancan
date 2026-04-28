@@ -37,6 +37,7 @@ import {
   PendingActions,
   Diversity1,
   BackupTable,
+  ContactPhone
 } from "@mui/icons-material";
 /**
  * Mapa de íconos permitidos.
@@ -75,6 +76,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Aplicación
   DocumentScanner,
   GridView,
+  ContactPhone,
 
   // 🔸 Categoría: Ventas
   ShoppingCart,

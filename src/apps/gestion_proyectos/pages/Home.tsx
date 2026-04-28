@@ -15,7 +15,6 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Divider,
   IconButton,
   ToggleButton,
   ToggleButtonGroup,
@@ -61,7 +60,7 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-import { formatTiempo, calcularMetricasProyecto } from "../lib/calculos";
+import { formatTiempo, calcularMetricasProyecto, calcularAhorroPorMes } from "../lib/calculos";
 import {
   useProyectos,
   getEstadoColor,
@@ -131,12 +130,11 @@ interface AhorroPanelProps {
   open: boolean;
   onClose: () => void;
   tipo: "mensual" | "anual";
-  total: number;
   proyectos: Proyecto[];
   vistaGrafico?: "mensual" | "anual";
 }
 
-function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: AhorroPanelProps) {
+function AhorroPanel({ open, onClose, tipo, proyectos, vistaGrafico }: AhorroPanelProps) {
   const esMensual = tipo === "mensual";
   const label     = esMensual ? "Ahorro Mensual" : "Ahorro Anual";
   const color     = "#34a853";
@@ -228,25 +226,37 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: Ah
   const [metricasExpanded, setMetricasExpanded] = useState(true);
   const [graficosExpanded, setGraficosExpanded] = useState(false);
 
-  // Desglose por proyecto - usa esMensual para determinar el tipo de datos a mostrar
-  const desglose = proyectos
-    .map((p) => {
-      const m = calcularMetricasProyecto(p.procesos ?? []);
-      return {
-        nombre:   p.nombre,
-        estado:   p.estado,
-        ahorro:   esMensual ? m.ahorro_total_mensual : m.ahorro_total_anual,
-        mensual:  m.ahorro_total_mensual,
-        anual:    m.ahorro_total_anual,
-        procesos: p.procesos ?? [],
-      };
-    })
-    .sort((a, b) => b.ahorro - a.ahorro);
+   // Desglose por proyecto - usa esMensual para determinar el tipo de datos a mostrar
+   const desglose = proyectos
+     .map((p) => {
+       const m = calcularMetricasProyecto(p.procesos ?? []);
+       let ahorro: number;
+       if (esMensual) {
+         ahorro = calcularAhorroPorMes(
+           p.procesos ?? [],
+           mesSeleccionado.mes + 1,
+           mesSeleccionado.año
+         );
+       } else {
+         ahorro = m.ahorro_total_anual;
+       }
+       return {
+         nombre:   p.nombre,
+         estado:   p.estado,
+         ahorro,
+         mensual:  m.ahorro_total_mensual,
+         anual:    m.ahorro_total_anual,
+         procesos: p.procesos ?? [],
+       };
+     })
+     .sort((a, b) => b.ahorro - a.ahorro);
 
-  const conAhorro  = desglose.filter((d) => d.ahorro > 0);
-  const sinAhorro  = desglose.filter((d) => d.ahorro === 0);
-  const promedio   = conAhorro.length > 0 ? Math.round(total / conAhorro.length) : 0;
-  const maxAhorro  = conAhorro[0]?.ahorro ?? 0;
+   // Calcular total según vista (mensual o anual) usando el desglose
+   const totalAhorroVista = desglose.reduce((sum, d) => sum + d.ahorro, 0);
+   const conAhorro  = desglose.filter((d) => d.ahorro > 0);
+   const sinAhorro  = desglose.filter((d) => d.ahorro === 0);
+   const promedio   = conAhorro.length > 0 ? Math.round(totalAhorroVista / conAhorro.length) : 0;
+   const maxAhorro  = conAhorro[0]?.ahorro ?? 0;
 
   // Preparar datos para el gráfico de comparación Manual vs Sistema por Área Beneficiada
   // Los datos dependen del tipo (mensual vs anual) seleccionado en el panel
@@ -284,31 +294,59 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: Ah
     // Agrupar proyectos por área beneficiada
     proyectos.forEach((proyecto) => {
       const area = proyecto.area_beneficiada || "Sin área";
-      
-      // Calcular métricas del proyecto
-      const m = calcularMetricasProyecto(proyecto.procesos ?? []);
-      
-      // Determinar tiempos según el tipo de vista
-      let tiempoAntes: number;
-      let tiempoDespues: number;
-      
+
+      let tiempoAntes: number = 0;
+      let tiempoDespues: number = 0;
+
       if (esMensual) {
-        // Para vista mensual: usar tiempos por ejecución (no anualizados)
-        let tAntes = 0;
-        let tDespues = 0;
+        // Calcular tiempo total del mes seleccionado: ahorro_por_ejecucion * veces_en_el_mes
+        const mes = mesSeleccionado.mes + 1;
+        const anio = mesSeleccionado.año;
         (proyecto.procesos ?? []).forEach((proceso) => {
-          tAntes += Number(proceso.tiempo_antes) || 0;
-          tDespues += Number(proceso.tiempo_despues) || 0;
+          const ahorroPorEjecucion = Number(proceso.tiempo_antes) - Number(proceso.tiempo_despues);
+          if (ahorroPorEjecucion <= 0) return;
+          const frecuenciaCantidad = Number(proceso.frecuencia_cantidad) || 1;
+          const diasSemana = Number(proceso.dias_semana) > 0 ? Number(proceso.dias_semana) : 5;
+          const diasEnMes = new Date(anio, mes, 0).getDate();
+          let vecesEnMes: number;
+          switch (proceso.frecuencia_tipo) {
+            case "diaria":
+              vecesEnMes = frecuenciaCantidad * diasSemana * (diasEnMes / 7);
+              break;
+            case "semanal":
+              vecesEnMes = frecuenciaCantidad * (diasEnMes / 7);
+              break;
+            case "mensual":
+            default:
+              vecesEnMes = frecuenciaCantidad;
+              break;
+          }
+          tiempoAntes += (Number(proceso.tiempo_antes) || 0) * vecesEnMes;
+          tiempoDespues += (Number(proceso.tiempo_despues) || 0) * vecesEnMes;
         });
-        tiempoAntes = tAntes;
-        tiempoDespues = tDespues;
       } else {
-        // Para vista anual: usar los totales anualizados directamente
-        // ahorro_total_anual = tiempo ahorrado por año
-        // Por lo tanto, tiempoAntes = ahorro_total_anual + tiempoDespués (el tiempo que toma ahora en un año)
-        // O simplemente usamos el ahorro_total como comparación
-        tiempoAntes = m.ahorro_total_anual + m.ahorro_total_mensual * 11; // Estimación
-        tiempoDespues = m.ahorro_total_mensual * 11; // Tiempo que tomaría en 11 meses
+        // Vista anual: usar totales anuales directamente
+        (proyecto.procesos ?? []).forEach((proceso) => {
+          const ahorroPorEjecucion = Number(proceso.tiempo_antes) - Number(proceso.tiempo_despues);
+          if (ahorroPorEjecucion <= 0) return;
+          const frecuenciaCantidad = Number(proceso.frecuencia_cantidad) || 1;
+          const diasSemana = Number(proceso.dias_semana) > 0 ? Number(proceso.dias_semana) : 5;
+          let vecesPorAnio: number;
+          switch (proceso.frecuencia_tipo) {
+            case "diaria":
+              vecesPorAnio = frecuenciaCantidad * diasSemana * 52;
+              break;
+            case "semanal":
+              vecesPorAnio = frecuenciaCantidad * 52;
+              break;
+            case "mensual":
+            default:
+              vecesPorAnio = frecuenciaCantidad * 12;
+              break;
+          }
+          tiempoAntes += (Number(proceso.tiempo_antes) || 0) * vecesPorAnio;
+          tiempoDespues += (Number(proceso.tiempo_despues) || 0) * vecesPorAnio;
+        });
       }
 
       // Solo agregar si el área está en las predefinidas
@@ -331,7 +369,7 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: Ah
       tiempoAntes: area.tiempoAntes,
       tiempoDespues: area.tiempoDespues,
     }));
-  }, [proyectos, esMensual]);
+  }, [proyectos, esMensual, mesSeleccionado.mes, mesSeleccionado.año]);
 
   const chartData = {
     labels: datosGraficoArea.map((d) => d.nombreArea.length > 15 ? d.nombreArea.substring(0, 15) + "..." : d.nombreArea),
@@ -508,30 +546,30 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: Ah
               )}
 
 
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
-                {[
-                  { 
-                    label: vistaGraficos === "mensual" ? "Ahorro Mensual" : "Ahorro Anual", 
-                    value: formatTiempo(total), 
-                    sub: vistaGraficos === "mensual" ? `${nombresMeses[mesSeleccionado.mes]} ${mesSeleccionado.año}` : `${mesSeleccionado.año}` 
-                  },
-                  { label: "Promedio",           value: formatTiempo(promedio),    sub: "por proyecto" },
-                  { label: "Proyectos con ahorro", value: conAhorro.length,        sub: `de ${desglose.length} totales` },
-                  { label: "Mayor ahorro",       value: formatTiempo(maxAhorro),   sub: conAhorro[0]?.nombre ?? "—" },
-                ].map((item, i) => (
-                  <Paper key={i} sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
-                    <Typography variant="body2" sx={{ color: "success.dark" }}>
-                      {item.label}
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
-                      {item.value}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      {item.sub}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Box>
+               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
+                 {[
+                   { 
+                     label: vistaGraficos === "mensual" ? "Ahorro Mensual" : "Ahorro Anual", 
+                     value: formatTiempo(totalAhorroVista),
+                     sub: vistaGraficos === "mensual" ? `${nombresMeses[mesSeleccionado.mes]} ${mesSeleccionado.año}` : `${mesSeleccionado.año}` 
+                   },
+                   { label: "Promedio",           value: formatTiempo(promedio),    sub: "por proyecto" },
+                   { label: "Proyectos con ahorro", value: conAhorro.length,        sub: `de ${desglose.length} totales` },
+                   { label: "Mayor ahorro",       value: formatTiempo(maxAhorro),   sub: conAhorro[0]?.nombre ?? "—" },
+                 ].map((item, i) => (
+                   <Paper key={i} sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
+                     <Typography variant="body2" sx={{ color: "success.dark" }}>
+                       {item.label}
+                     </Typography>
+                     <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
+                       {item.value}
+                     </Typography>
+                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                       {item.sub}
+                     </Typography>
+                   </Paper>
+                 ))}
+               </Box>
             </AccordionDetails>
           </Accordion>
 
@@ -626,9 +664,9 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: Ah
                       Comparación Mensual - {mesSeleccionado.año}
                     </Typography>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                      {desglose.filter((d) => d.mensual > 0).map((item, i) => {
-                        const maxVal = Math.max(...desglose.map((d) => d.mensual));
-                        const pct = maxVal > 0 ? (item.mensual / maxVal) * 100 : 0;
+                      {desglose.filter((d) => d.ahorro > 0).map((item, i) => {
+                        const maxVal = Math.max(...desglose.map((d) => d.ahorro));
+                        const pct = maxVal > 0 ? (item.ahorro / maxVal) * 100 : 0;
                         return (
                           <Box key={i} sx={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 1.5, alignItems: "center" }}>
                             <Typography variant="caption" sx={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#374151" }}>
@@ -639,7 +677,7 @@ function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: Ah
                                 <Box sx={{ height: "100%", width: `${pct}%`, bgcolor: "#34a853", borderRadius: 2, transition: "width 0.6s ease" }} />
                               </Box>
                               <Typography variant="caption" sx={{ color: "#34a853", fontWeight: 600, minWidth: 50, textAlign: "right" }}>
-                                {formatTiempo(item.mensual)}
+                                {formatTiempo(item.ahorro)}
                               </Typography>
                             </Box>
                           </Box>
@@ -1289,7 +1327,7 @@ const Home: React.FC = () => {
       </Grid>
 
       {/* Filtros */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+      <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center", flexWrap: "wrap" }}>
         <TabContainer>
           {[
             { id: "todos",          label: "Todos" },
@@ -1374,7 +1412,6 @@ const Home: React.FC = () => {
         open={panelAbierto !== null}
         onClose={() => setPanelAbierto(null)}
         tipo={panelAbierto ?? "mensual"}
-        total={panelAbierto === "mensual" ? metricasTotales.totalAhorroMensual : metricasTotales.totalAhorroAnual}
         proyectos={proyectosFiltrados}
         vistaGrafico={panelAbierto ?? "mensual"}
       />

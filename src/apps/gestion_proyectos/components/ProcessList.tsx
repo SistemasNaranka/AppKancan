@@ -11,6 +11,7 @@ import {
   Button,
   InputAdornment,
 } from "@mui/material";
+import { useState, useMemo } from "react";
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -54,7 +55,6 @@ export function ProcessList({
 }: ProcessListProps) {
   return (
     <Paper elevation={3} sx={{ p: 2.5, borderRadius: 2 }}>
-
       {/* ── Header ── */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -150,13 +150,45 @@ function ProcesoCard({
   onEliminar: (id: string) => void;
   onActualizar: (id: string, campo: string, valor: any) => void;
 }) {
-  const ahorro = proceso.tiempo_antes - proceso.tiempo_despues;
+  // Estado local para la unidad de tiempo compartida
+  const [unidad, setUnidad] = useState<"seg" | "min" | "hora">("seg");
+
+  // Conversiones
+  const segundosAUnidad = (segundos: number): number => {
+    if (segundos === 0) return 0;
+    switch (unidad) {
+      case "min":
+        return segundos / 60;
+      case "hora":
+        return segundos / 3600;
+      default:
+        return segundos;
+    }
+  };
+
+  const unidadASegundos = (valor: number): number => {
+    switch (unidad) {
+      case "min":
+        return valor * 60;
+      case "hora":
+        return valor * 3600;
+      default:
+        return valor;
+    }
+  };
+
+  // Formatea el valor para mostrar en el input
+  const formatearValor = (segundos: number): string => {
+    if (segundos === 0) return "";
+    const convertido = segundosAUnidad(segundos);
+    return Number.isInteger(convertido) ? convertido.toString() : convertido.toFixed(2);
+  };
 
   return (
     <Box
       sx={{
         display: "flex",
-        alignItems: "center",
+        flexDirection: "column",
         gap: 1.5,
         mb: 1.5,
         p: 1.5,
@@ -165,97 +197,121 @@ function ProcesoCard({
         border: "1px solid #dcdcdc",
       }}
     >
-        {/* Número */}
-      <Box
-        sx={{
-          minWidth: 28,
-          height: 28,
-          borderRadius: "50%",
-          bgcolor: "#004680",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "0.78rem",
-          fontWeight: "bold",
-          flexShrink: 0,
-        }}
-      >
-        {index + 1}
-      </Box>
+      {/* Número y nombre en fila */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box
+          sx={{
+            minWidth: 28,
+            height: 28,
+            borderRadius: "50%",
+            bgcolor: "#004680",
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "0.78rem",
+            fontWeight: "bold",
+            flexShrink: 0,
+          }}
+        >
+          {index + 1}
+        </Box>
 
-      {/* Nombre del paso */}
+        {/* Nombre del paso */}
         <TextField
           size="small"
           value={proceso.nombre}
           onChange={(e) => onActualizar(proceso.id, "nombre", e.target.value)}
           placeholder="Nombre del paso"
           sx={{ flexGrow: 1, minWidth: 80 }}
-        slotProps={{ input: { sx: { bgcolor: "white", borderRadius: 1 } } }}
+          slotProps={{ input: { sx: { bgcolor: "white", borderRadius: 1 } } }}
         />
+      </Box>
 
-      {/* Antes */}
+      {/* Selector de unidad compartido */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 4.5 }}>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Unidad:
+        </Typography>
+        <Select
+          value={unidad}
+          onChange={(e) => setUnidad(e.target.value as "seg" | "min" | "hora")}
+          size="small"
+          sx={{ width: 85, fontSize: "0.75rem" }}
+        >
+          <MenuItem value="seg">seg</MenuItem>
+          <MenuItem value="min">min</MenuItem>
+          <MenuItem value="hora">hora</MenuItem>
+        </Select>
+      </Box>
+
+      {/* Antes y Después en fila */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, ml: 4.5 }}>
+        {/* Antes */}
         <TextField
           label="Antes"
           size="small"
-        type="number"
-          value={proceso.tiempo_antes === 0 ? "" : proceso.tiempo_antes}
-        onChange={(e) =>
-            onActualizar(
-              proceso.id,
-              "tiempo_antes",
-            e.target.value === "" ? 0 : Number(e.target.value)
-          )
-        }
+          type="number"
+          value={formatearValor(proceso.tiempo_antes)}
+          onChange={(e) => {
+            const valorNumerico = e.target.value === "" ? 0 : Number(e.target.value);
+            const valorEnSegundos = unidadASegundos(valorNumerico);
+            onActualizar(proceso.id, "tiempo_antes", Math.round(valorEnSegundos));
+          }}
           placeholder="0"
-        sx={{ width: 110 }}
+          sx={{ width: 110 }}
           slotProps={{
             input: {
-            sx: { bgcolor: "white", borderRadius: 1 },
+              sx: { bgcolor: "white", borderRadius: 1 },
               endAdornment: (
                 <InputAdornment position="end">
-                <Typography variant="caption" color="text.secondary">seg</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {unidad === "hora" ? "hrs" : unidad}
+                  </Typography>
                 </InputAdornment>
               ),
             },
           }}
         />
 
-      {/* Después */}
+        {/* Después */}
         <TextField
           label="Después"
           size="small"
-        type="number"
-          value={proceso.tiempo_despues === 0 ? "" : proceso.tiempo_despues}
-        onChange={(e) =>
-            onActualizar(
-              proceso.id,
-              "tiempo_despues",
-            e.target.value === "" ? 0 : Number(e.target.value)
-          )
-        }
+          type="number"
+          value={formatearValor(proceso.tiempo_despues)}
+          onChange={(e) => {
+            const valorNumerico = e.target.value === "" ? 0 : Number(e.target.value);
+            const valorEnSegundos = unidadASegundos(valorNumerico);
+            onActualizar(proceso.id, "tiempo_despues", Math.round(valorEnSegundos));
+          }}
           placeholder="0"
-          sx={{ width: 120 }}
+          sx={{ width: 110 }}
           slotProps={{
             input: {
-            sx: { bgcolor: "white", borderRadius: 1 },
+              sx: { bgcolor: "white", borderRadius: 1 },
               endAdornment: (
                 <InputAdornment position="end">
-                <Typography variant="caption" color="text.secondary">seg</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {unidad === "hora" ? "hrs" : unidad}
+                  </Typography>
                 </InputAdornment>
               ),
             },
           }}
         />
+      </Box>
 
       {/* Eliminar */}
+      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
         <IconButton
           size="small"
           onClick={() => onEliminar(proceso.id)}
-        sx={{ color: "#ff3838", flexShrink: 0 }}
+          sx={{ color: "#ff3838" }}
         >
           <DeleteIcon fontSize="small" />
         </IconButton>
       </Box>
+    </Box>
   );
 }
