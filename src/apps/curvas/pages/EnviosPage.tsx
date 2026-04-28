@@ -20,33 +20,26 @@ import {
   Tab,
   Chip,
   Divider,
-  Tooltip,
   Alert,
   Snackbar,
   LinearProgress,
 } from "@mui/material";
 import {
   LocalShipping as LocalShippingIcon,
-  Sync as SyncIcon,
-  Verified as VerifiedIcon,
   Dashboard as DashboardIcon,
-  Delete as DeleteIcon,
   CheckCircle,
   Send as SendIcon,
   Save as SaveIcon,
 } from "@mui/icons-material";
 import { useCurvas } from "../contexts/CurvasContext";
 import { useAuth } from "@/auth/hooks/useAuth";
+import directus from "@/services/directus/directus";
 import {
   getLogCurvas,
   getEnviosCurvas,
   getResumenFechasCurvas,
 } from "../api/directus/read";
-import {
-  saveLogsBatch,
-  saveEnviosBatch,
-  deleteEnvioDrafts,
-} from "../api/directus/create";
+import { saveEnviosBatch, deleteEnvioDrafts } from "../api/directus/create";
 import {
   type LogCurvas,
   type FilaMatrizGeneral,
@@ -63,25 +56,21 @@ import "@fontsource/roboto-mono/700.css";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import "dayjs/locale/es";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 dayjs.locale("es");
 
 // Imports de archivos separados
 import {
-  MAIN_FONT,
   MONO_FONT,
   CATEGORY_CONFIG,
-  getValidationStyles,
   type ConfirmedEntry,
   type SheetCategory,
-  type SheetData,
 } from "./EnviosPage.utils";
 import {
   DebouncedSearchInput,
   MemoizedTableRow,
-  CustomDay,
 } from "./EnviosPage.components";
 import { useEnviosKeyboard, useEnviosValidation } from "./useEnviosLogic";
 
@@ -94,20 +83,15 @@ const EnviosPage = () => {
   const {
     datosCurvas,
     actualizarValorValidacion,
-    limpiarValidacion,
     userRole,
     lastLogsUpdate,
     extractRef,
-    guardarEnvioDespacho,
-    notificacionCambios,
-    setNotificacionCambios,
     bloqueosActivos,
     intentarBloquear,
     desmarcarTienda,
     validationData,
     setValidationData,
     tiendasDict,
-    refreshLogs,
   } = useCurvas();
 
   // ── State ─────────────────────────────────
@@ -176,17 +160,83 @@ const EnviosPage = () => {
     };
 
     fetchFechas();
-    const interval = setInterval(fetchFechas, 30000);
     return () => {
       isMounted = false;
-      clearInterval(interval);
     };
   }, []);
 
-  // ── Fetch log curvas ─────────────────────
+  // ── Sincronización WebSockets y Data Fetch ─────────────────────
+  const [wsTrigger, setWsTrigger] = useState(0);
+
   useEffect(() => {
-    let interval: any;
+    let isMounted = true;
+    let unsubLog: (() => void) | undefined;
+    let unsubEnvios: (() => void) | undefined;
+
+    const setupWebSockets = async () => {
+      try {
+        try {
+          await directus.connect();
+        } catch (e: any) {
+          if (
+            !e?.message?.includes('state is "open"') &&
+            !e?.message?.includes('state is "connecting"')
+          ) {
+            throw e;
+          }
+        }
+
+        const logRes = await directus.subscribe("log_curve_scans");
+        unsubLog = logRes.unsubscribe;
+        const enviosRes = await directus.subscribe("envios_curvas");
+        unsubEnvios = enviosRes.unsubscribe;
+
+        (async () => {
+          try {
+            for await (const msg of logRes.subscription) {
+              if (!isMounted) break;
+              if (
+                msg.type === "subscription" &&
+                ["create", "update", "delete"].includes(msg.event)
+              ) {
+                setWsTrigger((t) => t + 1);
+              }
+            }
+          } catch (e) {}
+        })();
+
+        (async () => {
+          try {
+            for await (const msg of enviosRes.subscription) {
+              if (!isMounted) break;
+              if (
+                msg.type === "subscription" &&
+                ["create", "update", "delete"].includes(msg.event)
+              ) {
+                setWsTrigger((t) => t + 1);
+              }
+            }
+          } catch (e) {}
+        })();
+      } catch (err) {
+        console.error("Error setting up websockets:", err);
+      }
+    };
+
+    setupWebSockets();
+
+    return () => {
+      isMounted = false;
+      if (unsubLog) unsubLog();
+      if (unsubEnvios) unsubEnvios();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
     const fetchLogCurvasYTiendas = async () => {
+      if (!isMounted) return;
       setLoadingLogCurvas(true);
       try {
         const [logs, envios] = await Promise.all([
@@ -199,19 +249,23 @@ const EnviosPage = () => {
             filtroReferencia || undefined,
           ),
         ]);
-        setLogCurvasData(logs || []);
-        setEnviosCurvasData(envios || []);
+        if (isMounted) {
+          setLogCurvasData(logs || []);
+          setEnviosCurvasData(envios || []);
+        }
       } catch (error) {
         console.error("Error fetching logs in EnviosPage:", error);
       } finally {
-        setLoadingLogCurvas(false);
+        if (isMounted) setLoadingLogCurvas(false);
       }
     };
 
     fetchLogCurvasYTiendas();
-    interval = setInterval(fetchLogCurvasYTiendas, 5000); // Polling fijo cada 5s, como bloqueo
-    return () => clearInterval(interval);
-  }, [filtroFecha, filtroReferencia, userRole, lastLogsUpdate]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [filtroFecha, filtroReferencia, userRole, lastLogsUpdate, wsTrigger]);
 
   // ── Build confirmed entries ──────────────
   // Defined here to avoid "columnas" property errors on official types
@@ -248,7 +302,10 @@ const EnviosPage = () => {
 
       Object.entries(groupedLogs).forEach(([key, logs]) => {
         const [plantilla, refKey, colorFinal] = key.split("|");
-        const isTextil = plantilla === "matriz_general" || plantilla === "textil" || plantilla.toLowerCase().includes("textil");
+        const isTextil =
+          plantilla === "matriz_general" ||
+          plantilla === "textil" ||
+          plantilla.toLowerCase().includes("textil");
         const typeCategory = isTextil ? "general" : "producto_a";
         const entryKey = `${typeCategory}|${refKey}|${colorFinal}`;
 
@@ -387,7 +444,9 @@ const EnviosPage = () => {
           );
         });
 
-        const config = CATEGORY_CONFIG[typeCategory as SheetCategory] || CATEGORY_CONFIG["producto_a"];
+        const config =
+          CATEGORY_CONFIG[typeCategory as SheetCategory] ||
+          CATEGORY_CONFIG["producto_a"];
 
         entries.push({
           id: entryKey,
@@ -431,8 +490,6 @@ const EnviosPage = () => {
   }, [confirmedEntries, filtroReferencia]);
 
   const current = visibleEntries[selectedEntry] || null;
-
-  const safeIndex = selectedEntry >= visibleEntries.length ? 0 : selectedEntry;
 
   // ── Wrapper que registra escaneos propios antes de actualizar validationData ──
   // Esto implementa el concepto "Vista Compartida, Guardado Personal":
@@ -536,12 +593,11 @@ const EnviosPage = () => {
       nuevoValidation[tiendaId] = rowData;
     });
 
-    if (Object.keys(nuevoValidation).length > 0) {
-      setValidationData((prev) => ({
-        ...prev,
-        [sheetId]: nuevoValidation,
-      }));
-    }
+    // Siempre actualizamos para esta hoja, incluso si es un objeto vacío (borrado total)
+    setValidationData((prev) => ({
+      ...prev,
+      [sheetId]: nuevoValidation,
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.sheet?.id, enviosCurvasData, extractRef, setValidationData]);
   // Nota: validationData excluido de deps a propósito — la hidratación es una sola vez.
@@ -559,8 +615,7 @@ const EnviosPage = () => {
     if (!hydratedSheetsRef.current.has(sheetId)) return;
 
     const currentRef = extractRef(current.sheet);
-    const myTiendas =
-      myScannedTiendasRef.current[sheetId] || new Set<string>();
+    const myTiendas = myScannedTiendasRef.current[sheetId] || new Set<string>();
 
     const enviosParaRef = enviosCurvasData.filter((log: any) => {
       const logRef = extractRef({
@@ -569,17 +624,21 @@ const EnviosPage = () => {
       return logRef === currentRef;
     });
 
-    if (enviosParaRef.length === 0) return;
-
     setValidationData((prev) => {
       const prevSheet = { ...(prev[sheetId] || {}) };
       let changed = false;
+
+      // 1. Identificar qué tiendas vienen de la DB y procesarlas
+      const dbTiendaData: Record<string, any> = {};
+      const dbTiendaIds = new Set<string>();
 
       enviosParaRef.forEach((log: any) => {
         const tiendaId =
           typeof log.tienda_id === "object" && log.tienda_id !== null
             ? String(log.tienda_id.id || log.tienda_id.codigo)
             : String(log.tienda_id);
+
+        dbTiendaIds.add(tiendaId);
 
         // NUNCA sobreescribir lo que el usuario actual escaneó en esta sesión
         if (myTiendas.has(tiendaId)) return;
@@ -596,7 +655,10 @@ const EnviosPage = () => {
 
         if (!Array.isArray(parsedTallas)) return;
 
-        const rowData: Record<string, { cantidad: number; barcodes: string[] }> = {};
+        const rowData: Record<
+          string,
+          { cantidad: number; barcodes: string[] }
+        > = {};
         parsedTallas.forEach((item: any) => {
           const col = String(item.tanda || item.talla).padStart(2, "0");
           if (!rowData[col]) rowData[col] = { cantidad: 0, barcodes: [] };
@@ -615,8 +677,19 @@ const EnviosPage = () => {
             }
           }
         });
+        dbTiendaData[tiendaId] = rowData;
+      });
 
-        // Solo actualizar si los datos realmente cambiaron para evitar re-renders
+      // 2. Eliminar de prevSheet las tiendas que YA NO están en la DB (y no son mías)
+      Object.keys(prevSheet).forEach((tiendaId) => {
+        if (!myTiendas.has(tiendaId) && !dbTiendaIds.has(tiendaId)) {
+          delete prevSheet[tiendaId];
+          changed = true;
+        }
+      });
+
+      // 3. Aplicar actualizaciones desde la DB
+      Object.entries(dbTiendaData).forEach(([tiendaId, rowData]) => {
         const newStr = JSON.stringify(rowData);
         const existingStr = JSON.stringify(prevSheet[tiendaId]);
         if (newStr !== existingStr) {
@@ -652,43 +725,49 @@ const EnviosPage = () => {
     return `${ref} - ${catName}`;
   };
 
-  const handleEnviarADespacho = async () => {
+  const handleEnviarADespacho = async (
+    type: "save" | "send" | "auto" = "save",
+  ) => {
     if (!current || !user) return;
-    setIsSending(true);
+
+    if (type === "send") setIsSending(true);
+    if (type === "save") setIsSaving(true);
+
     try {
       const currentRef = extractRef(current.sheet);
       const sheetKey = String(current.sheet.id!);
       const sheetLogId = current.sheet.logId || sheetKey;
       const currentSheetValidation = validationData[sheetKey] || {};
 
-      const hasData = Object.values(currentSheetValidation).some((row: any) =>
-        Object.values(row).some(
-          (cell: any) => (typeof cell === "object" ? cell.cantidad : cell) > 0,
-        ),
-      );
+      // Si es auto-guardado, no validamos si hay datos (permitimos que limpie si es necesario)
+      if (type !== "auto") {
+        const hasData = Object.values(currentSheetValidation).some((row: any) =>
+          Object.values(row).some(
+            (cell: any) =>
+              (typeof cell === "object" ? cell.cantidad : cell) > 0,
+          ),
+        );
 
-      if (!hasData) {
-        setSnackbar({
-          open: true,
-          message: "No hay datos para enviar",
-          severity: "warning",
-        });
-        setIsSending(false);
-        return;
+        const myTiendas = myScannedTiendasRef.current[sheetKey];
+        const hasSomethingToClear = myTiendas && myTiendas.size > 0;
+
+        if (!hasData && !hasSomethingToClear) {
+          setSnackbar({
+            open: true,
+            message: "No hay datos para enviar",
+            severity: "warning",
+          });
+          setIsSending(false);
+          setIsSaving(false);
+          return;
+        }
       }
-
-      const savedTiendaIds = new Set(
-        enviosCurvasData
-          .filter((e: any) => e.referencia === currentRef)
-          .map((e: any) => String(e.tienda_id)),
-      );
 
       const template: any = [
         ...(datosCurvas?.matrizGeneral || []),
         ...(datosCurvas?.productos || []),
       ].find((s) => String(s.id) === sheetKey);
 
-      const filteredValidation: Record<string, Record<string, any>> = {};
       const logsBatch: any[] = [];
       const fechaActual = dayjs().format("YYYY-MM-DD");
 
@@ -789,37 +868,72 @@ const EnviosPage = () => {
         }
       }
 
-      if (logsBatch.length > 0) {
-        // Primero limpiamos los borradores anteriores de este usuario para esta referencia
-        await deleteEnvioDrafts(currentRef || "SIN REF", String(user.id));
+      // Primero limpiamos los borradores anteriores de este usuario para esta referencia
+      await deleteEnvioDrafts(currentRef || "SIN REF", String(user.id));
 
+      if (logsBatch.length > 0) {
         // Luego guardamos el nuevo lote de progreso en envios_curvas
         const ok = await saveEnviosBatch(logsBatch);
         if (ok) {
-          setSnackbar({
-            open: true,
-            message: `✅ Proceso guardado: ${validationMirrorGrandTotal} unidades`,
-            severity: "success",
-          });
-        } else {
+          if (type !== "auto") {
+            setSnackbar({
+              open: true,
+              message: `✅ Proceso guardado: ${validationMirrorGrandTotal} unidades`,
+              severity: "success",
+            });
+          }
+        } else if (type !== "auto") {
           setSnackbar({
             open: true,
             message: "No se pudo guardar",
             severity: "error",
           });
         }
+      } else {
+        // Si no hay datos (0 unidades), y era manual, avisar que se limpió el progreso
+        if (type !== "auto") {
+          setSnackbar({
+            open: true,
+            message: "Progreso limpiado (0 unidades)",
+            severity: "info",
+          });
+        }
+        // Limpiamos nuestra referencia local para esta hoja ya que no hay nada pendiente
+        if (myScannedTiendasRef.current[sheetKey]) {
+          myScannedTiendasRef.current[sheetKey].clear();
+        }
       }
     } catch (error) {
       console.error(error);
-      setSnackbar({
-        open: true,
-        message: "Error al guardar",
-        severity: "error",
-      });
+      if (type !== "auto") {
+        setSnackbar({
+          open: true,
+          message: "Error al guardar",
+          severity: "error",
+        });
+      }
     } finally {
+      setIsSending(false);
       setIsSaving(false);
     }
   };
+
+  // ── Auto-guardado para Envios (Escaneo) ─────────────────────
+  useEffect(() => {
+    if (!current || !user || isSending || isSaving) return;
+
+    const sheetKey = String(current.sheet.id);
+    const myTiendas = myScannedTiendasRef.current[sheetKey];
+
+    // Solo auto-guardar si este usuario ha escaneado algo en esta sesión para esta hoja
+    if (!myTiendas || myTiendas.size === 0) return;
+
+    const timer = setTimeout(() => {
+      handleEnviarADespacho("auto");
+    }, 7000);
+
+    return () => clearTimeout(timer);
+  }, [validationData, current, user]);
 
   // ── Render ────────────────────────────
   const headerContent = (
@@ -928,7 +1042,7 @@ const EnviosPage = () => {
           variant="contained"
           disabled={isSending || isSaving}
           startIcon={<SaveIcon />}
-          onClick={handleEnviarADespacho}
+          onClick={() => handleEnviarADespacho("save")}
           sx={{
             fontWeight: 700,
             px: 2.5,
@@ -944,7 +1058,7 @@ const EnviosPage = () => {
           variant="contained"
           disabled={!isEverythingValid || isSending || isSaving}
           startIcon={<SendIcon />}
-          onClick={handleEnviarADespacho}
+          onClick={() => handleEnviarADespacho("send")}
           sx={{
             fontWeight: 800,
             px: 2.5,
@@ -989,14 +1103,15 @@ const EnviosPage = () => {
               color="#475569"
               gutterBottom
             >
-              Sin lotes para enviar{filtroFecha ? ` del día ${filtroFecha.format("DD MMM YYYY")}` : ""}
+              Sin lotes para enviar
+              {filtroFecha
+                ? ` del día ${filtroFecha.format("DD MMM YYYY")}`
+                : ""}
             </Typography>
-            <Typography
-              variant="body1"
-              color="#64748b"
-              sx={{ mb: 4 }}
-            >
-              Puede que tengas envíos correspondientes a otras fechas. Usa el selector que se encuentra en la parte superior para revisar los datos de otros días.
+            <Typography variant="body1" color="#64748b" sx={{ mb: 4 }}>
+              Puede que tengas envíos correspondientes a otras fechas. Usa el
+              selector que se encuentra en la parte superior para revisar los
+              datos de otros días.
             </Typography>
             <Button
               variant="contained"

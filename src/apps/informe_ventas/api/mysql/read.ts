@@ -67,7 +67,8 @@ export async function obtenerZonas(
     const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
-    return await handleResponse<Zona[]>(response);
+    const data = await handleResponse<Zona[]>(response);
+    return data.map((z) => ({ nombre: z.nombre?.trim() || "" }));
   } catch (error) {
     console.error("Error al obtener zonas:", error);
     return [];
@@ -92,7 +93,8 @@ export async function obtenerCiudades(
     const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
-    return await handleResponse<Ciudad[]>(response);
+    const data = await handleResponse<Ciudad[]>(response);
+    return data.map((c) => ({ nombre: c.nombre?.trim() || "" }));
   } catch (error) {
     console.error("Error al obtener ciudades:", error);
     return [];
@@ -117,7 +119,13 @@ export async function obtenerTiendas(
     const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
-    return await handleResponse<Tienda[]>(response);
+    const data = await handleResponse<Tienda[]>(response);
+    return data.map((t) => ({
+      ...t,
+      nombre: t.nombre?.trim() || "",
+      ciudad: t.ciudad?.trim() || "",
+      zona: t.zona?.trim() || "",
+    }));
   } catch (error) {
     console.error("Error al obtener tiendas:", error);
     return [];
@@ -135,11 +143,11 @@ export async function obtenerGruposHomogeneos(): Promise<GrupoHomogeneo[]> {
     const data = await handleResponse<any[]>(response);
     return data.map((item: any) => ({
       id: item.id,
-      nombre: item.nombre,
-      origen: item.origen,
-      linea_venta: item.linea_venta as LineaVenta,
+      nombre: item.nombre?.trim() || "",
+      origen: item.origen?.trim() || "",
+      linea_venta: (item.linea_venta?.trim() || "Sin línea") as LineaVenta,
       id_grupo: item.id_grupo,
-      agrupacion: item.agrupacion as Agrupacion,
+      agrupacion: (item.agrupacion?.trim() || "Sin agrupación") as Agrupacion,
     }));
   } catch (error) {
     console.error("Error al obtener grupos homogéneos:", error);
@@ -156,30 +164,35 @@ export async function obtenerVentas(
 ): Promise<VentaRegistro[]> {
   try {
     const params = new URLSearchParams();
-    // Solo pasamos las fechas al servidor
-    params.append("fecha_desde", filtros.fecha_desde || "");
-    params.append("fecha_hasta", filtros.fecha_hasta || "");
+    // Pasamos todos los filtros al servidor para que el filtrado sea en la base de datos
+    if (filtros.fecha_desde) params.append("fecha_desde", filtros.fecha_desde);
+    if (filtros.fecha_hasta) params.append("fecha_hasta", filtros.fecha_hasta);
+    if (filtros.bodega) params.append("bodega", filtros.bodega);
+    if (filtros.asesor) params.append("asesor", filtros.asesor);
+    if (filtros.ciudad) params.append("ciudad", filtros.ciudad);
+    if (filtros.zona) params.append("zona", filtros.zona);
+    if (filtros.linea_venta) params.append("linea_venta", filtros.linea_venta);
+    if (filtros.agrupacion) params.append("agrupacion", filtros.agrupacion);
 
-    // Los demás filtros ya NO se envían al servidor
-    // Se aplican en memoria (client-side) en el hook
-
-    const response = await fetch(`${API_URL}/ventas?${params.toString()}`, {
+    const url = `${API_URL}/ventas?${params.toString()}`;
+    const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
-    const data = await handleResponse<any[]>(response);
+    const responseData = await handleResponse<{ data: any[], total: number }>(response);
+    const data = responseData.data || [];
 
     // Transformar datos al formato esperado
     return data.map((item: any) => ({
       // Campos necesarios para cálculos y filtros
       fecha_factura: item.fecdoc || "",
-      asesor: item.nombre_vendedor || "",
-      bodega: item.nombre_bodega || "",
+      asesor: item.nombre_vendedor?.trim() || "",
+      bodega: item.nombre_bodega?.trim() || "",
       venta: Number(item.venta) || 0,
       valor: Number(item.valor) || 0,
-      linea_venta: item.linea_venta || "Sin línea",
-      agrupacion: item.agrupacion || "Sin agrupación",
-      ciudad: item.ciudad || "Sin ciudad",
-      zona: item.zona || "Sin zona",
+      linea_venta: item.linea_venta?.trim() || "Sin línea",
+      agrupacion: item.agrupacion?.trim() || "Sin agrupación",
+      ciudad: item.ciudad?.trim() || "Sin ciudad",
+      zona: item.zona?.trim() || "Sin zona",
     }));
   } catch (error) {
     console.error("Error al obtener ventas:", error);
@@ -195,7 +208,8 @@ export async function obtenerAsesores(): Promise<string[]> {
     const response = await fetch(`${API_URL}/asesores`, {
       headers: getAuthHeaders(),
     });
-    return await handleResponse<string[]>(response);
+    const data = await handleResponse<string[]>(response);
+    return data.map((a) => a?.trim() || "").sort();
   } catch (error) {
     console.error("Error al obtener asesores:", error);
     return [];

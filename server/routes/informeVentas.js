@@ -73,18 +73,18 @@ router.get("/zonas", verifyDirectusToken, async (req, res) => {
 
       // kcn_db.ventas
       sqlParts.push(`
-        SELECT DISTINCT bod.zona AS nombre 
+        SELECT DISTINCT COALESCE(bod.zona, 'Sin zona') AS nombre 
         FROM kcn_db.ventas_${safeYear} v
-        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
-        WHERE ${whereClause} AND bod.zona IS NOT NULL AND bod.zona != ''
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+        WHERE ${whereClause}
       `);
 
       // naranka.ventas
       sqlParts.push(`
-        SELECT DISTINCT bod.zona AS nombre 
+        SELECT DISTINCT COALESCE(bod.zona, 'Sin zona') AS nombre 
         FROM naranka.ventas_${safeYear} v
-        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
-        WHERE ${whereClause} AND bod.zona IS NOT NULL AND bod.zona != ''
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+        WHERE ${whereClause}
       `);
     });
 
@@ -182,20 +182,20 @@ router.get("/ciudades", verifyDirectusToken, async (req, res) => {
         params.push(fecha_desde, fecha_hasta);
       }
 
-      // kcn_db.ventas - usando INNER JOIN más eficiente
+      // kcn_db.ventas
       sqlParts.push(`
-        SELECT DISTINCT bod.ciudad AS nombre 
+        SELECT DISTINCT COALESCE(bod.ciudad, 'Sin ciudad') AS nombre 
         FROM kcn_db.ventas_${safeYear} v
-        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
-        WHERE ${whereClause} AND bod.ciudad IS NOT NULL AND bod.ciudad != ''
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+        WHERE ${whereClause}
       `);
 
       // naranka.ventas
       sqlParts.push(`
-        SELECT DISTINCT bod.ciudad AS nombre 
+        SELECT DISTINCT COALESCE(bod.ciudad, 'Sin ciudad') AS nombre 
         FROM naranka.ventas_${safeYear} v
-        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
-        WHERE ${whereClause} AND bod.ciudad IS NOT NULL AND bod.ciudad != ''
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
+        WHERE ${whereClause}
       `);
     });
 
@@ -293,15 +293,15 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
         params.push(fecha_desde, fecha_hasta);
       }
 
-      // kcn_db.ventas - INNER JOIN más eficiente
+      // kcn_db.ventas
       sqlParts.push(`
         SELECT DISTINCT 
           v.bodega AS id, 
-          v.nombre_bodega AS nombre, 
-          bod.ciudad, 
-          bod.zona
+          TRIM(v.nombre_bodega) AS nombre, 
+          COALESCE(bod.ciudad, 'Sin ciudad') as ciudad, 
+          COALESCE(bod.zona, 'Sin zona') as zona
         FROM kcn_db.ventas_${safeYear} v
-        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
         WHERE ${whereClause}
       `);
 
@@ -309,11 +309,11 @@ router.get("/tiendas", verifyDirectusToken, async (req, res) => {
       sqlParts.push(`
         SELECT DISTINCT 
           v.bodega AS id, 
-          v.nombre_bodega AS nombre, 
-          bod.ciudad, 
-          bod.zona
+          TRIM(v.nombre_bodega) AS nombre, 
+          COALESCE(bod.ciudad, 'Sin ciudad') as ciudad, 
+          COALESCE(bod.zona, 'Sin zona') as zona
         FROM naranka.ventas_${safeYear} v
-        INNER JOIN kancan.bodegas bod ON v.nombre_bodega = bod.nombre
+        LEFT JOIN kancan.bodegas bod ON TRIM(UPPER(v.nombre_bodega)) = TRIM(UPPER(bod.nombre))
         WHERE ${whereClause}
       `);
     });
@@ -540,11 +540,11 @@ router.get("/asesores", verifyDirectusToken, async (req, res) => {
     res.status(500).json({ error: "Error al obtener asesores" });
   }
 });
+const ventasCache = new Map();
+const VENTAS_CACHE_TTL = 5 * 60 * 1000;
+
 router.get("/ventas", verifyDirectusToken, async (req, res) => {
   try {
-    const ventasCache = new Map();
-    const VENTAS_CACHE_TTL = 5 * 60 * 1000;
-
     const {
       fecha_desde,
       fecha_hasta,
@@ -555,7 +555,7 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       linea_venta,
       agrupacion,
       page = 0,
-      limit = 10000,
+      limit = 1000000,
     } = req.query;
 
     let fechaDesde = fecha_desde || "2025-10-01";
@@ -598,18 +598,18 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
     let whereBase = `WHERE v.fecdoc BETWEEN ? AND ?`;
 
     if (bodega) {
-      whereBase += ` AND v.nombre_bodega = ?`;
+      whereBase += ` AND TRIM(UPPER(v.nombre_bodega)) LIKE TRIM(UPPER(?))`;
     }
 
     if (asesor) {
-      whereBase += ` AND v.nombre_vendedor = ?`;
+      whereBase += ` AND (TRIM(UPPER(v.nombre_vendedor)) LIKE CONCAT('%', TRIM(UPPER(?)), '%') OR v.codigo_vendedor = ?)`;
     }
 
     if (ciudad) {
-      whereBase += ` AND bod.ciudad = ?`;
+      whereBase += ` AND TRIM(UPPER(bod.ciudad)) LIKE TRIM(UPPER(?))`;
     }
     if (zona) {
-      whereBase += ` AND bod.zona = ?`;
+      whereBase += ` AND TRIM(UPPER(bod.zona)) LIKE TRIM(UPPER(?))`;
     }
 
     // Filtro por línea de venta (mapeado)
@@ -637,24 +637,27 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
     if (agrupacion) {
       const agrupLower = agrupacion.toLowerCase();
       if (agrupLower === "indigo") {
-        whereBase += ` AND LOWER(gr.agrupacion) IN ('indigo', 'jeans')`;
+        whereBase += ` AND (LOWER(gr.agrupacion) LIKE '%indigo%' OR LOWER(gr.agrupacion) LIKE '%jeans%' OR LOWER(gr.agrupacion) LIKE '%clasico%')`;
       } else if (agrupLower === "tela liviana") {
-        whereBase += ` AND LOWER(gr.agrupacion) IN ('nacional', 'importado', 'tela liviana')`;
+        whereBase += ` AND (LOWER(gr.agrupacion) LIKE '%tela liviana%' OR LOWER(gr.agrupacion) LIKE '%t%liviana%' OR LOWER(gr.agrupacion) LIKE '%pantalon%' OR LOWER(gr.agrupacion) LIKE '%body%' OR LOWER(gr.agrupacion) LIKE '%camisera%')`;
       } else if (agrupLower === "calzado") {
-        whereBase += ` AND LOWER(gr.agrupacion) = 'calzado'`;
+        whereBase += ` AND LOWER(gr.agrupacion) LIKE '%calzado%'`;
       } else if (agrupLower === "complemento") {
-        whereBase += ` AND LOWER(gr.agrupacion) = 'accesorios'`;
+        whereBase += ` AND (LOWER(gr.agrupacion) LIKE '%accesorios%' OR LOWER(gr.agrupacion) LIKE '%complemento%')`;
       } else {
         // Filtro directo si no es uno de los mapeados
-        whereBase += ` AND gr.agrupacion = ?`;
+        whereBase += ` AND gr.agrupacion LIKE ?`;
       }
     }
 
     // Función para generar parámetros por cada consulta
     const getQueryParams = () => {
-      const queryParams = [fecha_desde, fecha_hasta];
+      const queryParams = [fechaDesde, fechaHasta];
       if (bodega) queryParams.push(bodega);
-      if (asesor) queryParams.push(asesor);
+      if (asesor) {
+        queryParams.push(asesor);
+        queryParams.push(asesor.split(" ")[0]); // El primer segmento suele ser el código
+      }
       if (ciudad) queryParams.push(ciudad);
       if (zona) queryParams.push(zona);
       if (linea_venta) {
@@ -678,7 +681,7 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
           agrupLower !== "calzado" &&
           agrupLower !== "complemento"
         ) {
-          queryParams.push(agrupacion);
+          queryParams.push(`%${agrupacion}%`);
         }
       }
       return queryParams;
@@ -693,9 +696,9 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
     // - "promocion", "liquidacion", "segundas" → "Promoción"
     const lineaVentaCase = `
       CASE 
+        WHEN LOWER(gh.linea_venta) LIKE '%coleccion%' THEN 'Colección'
+        WHEN LOWER(gh.linea_venta) LIKE '%basic%' THEN 'Básicos'
         WHEN LOWER(gh.linea_venta) IN ('promocion', 'liquidacion', 'segundas') THEN 'Promoción'
-        WHEN LOWER(gh.linea_venta) = 'basic' THEN 'Básicos'
-        WHEN LOWER(gh.linea_venta) = 'colección' THEN 'Colección'
         WHEN gh.linea_venta IS NULL THEN 'Sin línea'
         ELSE gh.linea_venta
       END AS linea_venta
@@ -708,10 +711,10 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
     // - "accesorios" → "Complemento"
     const agrupacionCase = `
       CASE 
-        WHEN LOWER(gr.agrupacion) IN ('indigo', 'jeans') THEN 'Indigo'
-        WHEN LOWER(gr.agrupacion) IN ('nacional', 'importado', 'tela liviana') THEN 'Tela Liviana'
-        WHEN LOWER(gr.agrupacion) = 'calzado' THEN 'Calzado'
-        WHEN LOWER(gr.agrupacion) = 'accesorios' THEN 'Complemento'
+        WHEN LOWER(gr.agrupacion) LIKE '%indigo%' OR LOWER(gr.agrupacion) LIKE '%jeans%' THEN 'Indigo'
+        WHEN LOWER(gr.agrupacion) LIKE '%tela liviana%' OR LOWER(gr.agrupacion) LIKE '%t%liviana%' THEN 'Tela Liviana'
+        WHEN LOWER(gr.agrupacion) LIKE '%calzado%' THEN 'Calzado'
+        WHEN LOWER(gr.agrupacion) LIKE '%accesorios%' OR LOWER(gr.agrupacion) LIKE '%complemento%' THEN 'Complemento'
         WHEN gr.agrupacion IS NULL THEN 'Sin agrupación'
         ELSE gr.agrupacion
       END AS agrupacion
@@ -723,7 +726,7 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       if (!isValidYear(safeYear)) return;
 
       sqlParts.push(`
-        SELECT v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
+        SELECT v.fecdoc, TRIM(v.nombre_vendedor) AS nombre_vendedor, TRIM(v.nombre_bodega) AS nombre_bodega,
                ROUND(v.cantidad_venta, 0) AS venta, ROUND(v.total_factura, 0) AS valor,
                ${lineaVentaCase},
                ${agrupacionCase},
@@ -740,7 +743,7 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       params.push(...getQueryParams());
 
       sqlParts.push(`
-        SELECT v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
+        SELECT v.fecdoc, TRIM(v.nombre_vendedor) AS nombre_vendedor, TRIM(v.nombre_bodega) AS nombre_bodega,
                -ROUND(v.cantidad, 0) AS venta, -ROUND(v.total_factura, 0) AS valor,
                ${lineaVentaCase},
                ${agrupacionCase},
@@ -763,7 +766,7 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       if (!isValidYear(safeYear)) return;
 
       sqlParts.push(`
-        SELECT v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
+        SELECT v.fecdoc, TRIM(v.nombre_vendedor) AS nombre_vendedor, TRIM(v.nombre_bodega) AS nombre_bodega,
                ROUND(v.cantidad_venta, 0) AS venta, ROUND(v.total_factura, 0) AS valor,
                ${lineaVentaCase},
                ${agrupacionCase},
@@ -780,7 +783,7 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       params.push(...getQueryParams());
 
       sqlParts.push(`
-        SELECT v.fecdoc, v.nombre_vendedor, v.nombre_bodega,
+        SELECT v.fecdoc, TRIM(v.nombre_vendedor) AS nombre_vendedor, TRIM(v.nombre_bodega) AS nombre_bodega,
                -ROUND(v.cantidad, 0) AS venta, -ROUND(v.total_factura, 0) AS valor,
                ${lineaVentaCase},
                ${agrupacionCase},
@@ -808,14 +811,21 @@ router.get("/ventas", verifyDirectusToken, async (req, res) => {
       const paginatedSql = `${sqlFinal} LIMIT ${limitNum} OFFSET ${offset}`;
       const [rows] = await connection.execute(paginatedSql, params);
 
-      ventasCache.set(cacheKey, { time: now, data: rows });
+      const responseObj = {
+        data: rows,
+        total: rows.length,
+        time: new Date().toISOString(),
+      };
+      
+      ventasCache.set(cacheKey, { time: now, data: responseObj });
 
+      // Limpiar caché si es muy grande
       if (ventasCache.size > 100) {
         const oldestKey = ventasCache.keys().next().value;
         ventasCache.delete(oldestKey);
       }
 
-      res.json(rows);
+      res.json(responseObj);
     } finally {
       connection.release();
     }

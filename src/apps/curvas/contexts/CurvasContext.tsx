@@ -40,16 +40,9 @@ import {
 
 // Importar API de Directus
 import {
-  saveMatrizGeneral,
-  saveDetalleProducto,
-  saveHistorialCarga,
-  saveBatchCurvas,
   saveLogCurvas,
   saveLogsBatch,
-  saveEnvioCurva,
   saveEnviosBatch,
-  deleteEnvioDrafts,
-  deleteLogCurvasByRef,
 } from "../api/directus/create";
 import { getLogCurvas, getTiendas } from "../api/directus/read";
 import {
@@ -58,6 +51,7 @@ import {
   liberarTodosLosBloqueosDeUsuario,
   liberarTienda,
 } from "../api/directus/bloqueos";
+import directus from "@/services/directus/directus";
 
 /**
  * Contexto para el módulo de curvas
@@ -276,7 +270,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
   // Estado de concurrencia (bloqueos)
   const [bloqueosActivos, setBloqueosActivos] = useState<BloqueoEscaner[]>([]);
 
-  // Efecto para polling de bloqueos
+  // Efecto para sincronización de bloqueos vía WebSockets
   useEffect(() => {
     if (!user) return;
     let isMounted = true;
@@ -290,12 +284,44 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
+    let unsubLocks: (() => void) | undefined;
+
+    const setupLocksRealtime = async () => {
+      try {
+        try {
+          await directus.connect();
+        } catch (e: any) {
+          if (
+            !e?.message?.includes('state is "open"') &&
+            !e?.message?.includes('state is "connecting"')
+          ) {
+            throw e;
+          }
+        }
+        const locksRes = await directus.subscribe("log_curve_scans");
+        unsubLocks = locksRes.unsubscribe;
+
+        (async () => {
+          try {
+            for await (const msg of locksRes.subscription) {
+              if (!isMounted) break;
+              if (msg.type === "subscription") {
+                fetchLocks();
+              }
+            }
+          } catch (e) {}
+        })();
+      } catch (err) {
+        console.error("Error setting up realtime locks:", err);
+      }
+    };
+
     fetchLocks();
-    const interval = setInterval(fetchLocks, 5000);
+    setupLocksRealtime();
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (unsubLocks) unsubLocks();
       // Los bloqueos NO se liberan al desmontar (ej. recarga de página).
       // Expiran automáticamente por TTL (7 minutos en obtenerBloqueosActivos).
       // Al recargar, intentarBloquearTienda detecta que el lock ya es del mismo
@@ -575,7 +601,10 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
     async (fechaOverride?: string | null) => {
       try {
         // null = modo histórico (sin filtro de fecha); undefined = usa currentDate
-        const fecha = fechaOverride === null ? undefined : (fechaOverride || currentDate || undefined);
+        const fecha =
+          fechaOverride === null
+            ? undefined
+            : fechaOverride || currentDate || undefined;
         const logs = await getLogCurvas(fecha);
 
         const emptyState: DatosCurvas = {
@@ -739,7 +768,9 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
               totalesPorCurva: colTotals,
               totalGeneral,
               estado: group.logs[0]?.estado || "borrador",
-              fechaCarga: group.logs[0]?.fecha ? new Date(group.logs[0].fecha) : undefined,
+              fechaCarga: group.logs[0]?.fecha
+                ? new Date(group.logs[0].fecha)
+                : undefined,
             });
           } else {
             productos.push({
@@ -767,7 +798,9 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
               totalesPorTalla: colTotals,
               totalGeneral,
               estado: group.logs[0]?.estado || "borrador",
-              fechaCarga: group.logs[0]?.fecha ? new Date(group.logs[0].fecha) : undefined,
+              fechaCarga: group.logs[0]?.fecha
+                ? new Date(group.logs[0].fecha)
+                : undefined,
             });
           }
         });
@@ -1139,6 +1172,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         referencia?: string;
         estado?: "borrador" | "confirmado";
       }[],
+      isAutoSave: boolean = false,
     ): Promise<boolean> => {
       // 1. Determinar qué logs guardar (explícitos o detectados de celdasEditadas)
       let logsToSave: any[] = [];
@@ -1231,15 +1265,18 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
 
           // Crear mapa de tienda_id -> log_id desde los resultados
           logIds.forEach((result) => {
-            console.log(`🔗 Mapeando tienda ${result.tienda_id} -> log ID ${result.id}`);
-            if (result.id && result.id !== 'undefined' && result.id !== 'null') {
+            if (
+              result.id &&
+              result.id !== "undefined" &&
+              result.id !== "null"
+            ) {
               logIdMap[result.tienda_id] = result.id;
             } else {
-              console.warn(`⚠️ ID inválido para tienda ${result.tienda_id}: ${result.id}`);
+              console.warn(
+                `⚠️ ID inválido para tienda ${result.tienda_id}: ${result.id}`,
+              );
             }
           });
-
-          console.log("🗺️ Mapa tienda->log:", logIdMap);
         }
 
         // Pequeña espera para asegurar sincronización visual si es necesario
@@ -1251,7 +1288,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           userRole.toLowerCase().includes("gerente") ||
           userRole.toLowerCase().includes("director");
 
-        if (isActuallyAdmin && datosLog && datosLog.length > 0) {
+        if (isActuallyAdmin && datosLog && datosLog.length > 0 && !isAutoSave) {
           // Agrupar cambios por tienda para notificar
           const tiendasAgrupadas = datosLog.reduce(
             (acc, log) => {
@@ -1285,26 +1322,28 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
 
             const updatedMatrizGeneral = prev.matrizGeneral.map((sheet) => {
               // Buscar si alguna tienda de esta hoja tiene un log creado
-              const sheetTiendas = new Set(sheet.filas.map((f: any) => f.tienda?.id).filter(Boolean));
+              const sheetTiendas = new Set(
+                sheet.filas.map((f: any) => f.tienda?.id).filter(Boolean),
+              );
               const logIdsForSheet = Object.entries(logIdMap)
                 .filter(([tiendaId]) => sheetTiendas.has(tiendaId))
                 .map(([, logId]) => logId);
 
               if (logIdsForSheet.length > 0) {
-                console.log(`📝 Actualizando hoja ${sheet.id} con logId ${logIdsForSheet[0]}`);
                 return { ...sheet, logId: logIdsForSheet[0] };
               }
               return sheet;
             });
 
             const updatedProductos = prev.productos.map((sheet) => {
-              const sheetTiendas = new Set(sheet.filas.map((f: any) => f.tienda?.id).filter(Boolean));
+              const sheetTiendas = new Set(
+                sheet.filas.map((f: any) => f.tienda?.id).filter(Boolean),
+              );
               const logIdsForSheet = Object.entries(logIdMap)
                 .filter(([tiendaId]) => sheetTiendas.has(tiendaId))
                 .map(([, logId]) => logId);
 
               if (logIdsForSheet.length > 0) {
-                console.log(`📝 Actualizando hoja ${sheet.id} con logId ${logIdsForSheet[0]}`);
                 return { ...sheet, logId: logIdsForSheet[0] };
               }
               return sheet;
@@ -1330,6 +1369,19 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
     [refreshLogs, userRole, extractRef, celdasEditadas, datosCurvas],
   );
 
+  // ── Efecto de Debounce para Auto-Guardado ─────────────────────
+  useEffect(() => {
+    // Solo auto-guardar si hay cambios manuales pendientes en celdasEditadas
+    if (!hasChanges || celdasEditadas.length === 0) return;
+
+    const timer = setTimeout(() => {
+      // Iniciar auto-guardado en background
+      guardarCambios(undefined, true);
+    }, 7000);
+
+    return () => clearTimeout(timer);
+  }, [celdasEditadas, hasChanges, guardarCambios]);
+
   const confirmarLote = useCallback(
     async (
       tipo: "general" | "producto_a" | "producto_b",
@@ -1340,7 +1392,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      const logIdMap: Record<string, string> = {}; // mapa tienda_id -> log_id
       let logIds: { tienda_id: string; id: string }[] = []; // IDs de logs creados
 
       // Verificar si ya está confirmado
@@ -1349,7 +1400,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
       ).some((s: any) => s.id === sheetId && s.estado === "confirmado");
 
       if (isAlreadyConfirmed) {
-        console.warn("⚠️ [confirmarLote] El lote ya está confirmado:", sheetId);
         return true;
       }
 
@@ -1433,16 +1483,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
 
         if (!sheetToPersist) {
           console.error("No se encontró la hoja para confirmar:", sheetId);
-          console.error("IDs disponibles:", {
-            matrizGeneral: datosCurvas.matrizGeneral.map((s: any) => ({
-              id: s.id,
-              ref: s.referencia,
-            })),
-            productos: datosCurvas.productos.map((s: any) => ({
-              id: s.id,
-              ref: s.referencia,
-            })),
-          });
           return false;
         }
 
@@ -1518,12 +1558,16 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
           if (!prev) return prev;
           if (tipo === "general") {
             const matrizGeneral = prev.matrizGeneral.map((s) =>
-              s.id === sheetId ? { ...s, estado: "confirmado" as const, logId: logIds[0] } : s,
+              s.id === sheetId
+                ? { ...s, estado: "confirmado" as const, logId: logIds[0] }
+                : s,
             );
             return { ...prev, matrizGeneral };
           } else {
             const updated = prev.productos.map((s) =>
-              s.id === sheetId ? { ...s, estado: "confirmado" as const, logId: logIds[0] } : s,
+              s.id === sheetId
+                ? { ...s, estado: "confirmado" as const, logId: logIds[0] }
+                : s,
             );
             return { ...prev, productos: updated };
           }
@@ -1674,26 +1718,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
                     ? "calzado_bolso"
                     : log.plantilla,
             }));
-
-          console.log(
-            "Logs originales:",
-            logsBatch.length,
-            "Logs válidos:",
-            validLogs.length,
-          );
-          if (validLogs.length < logsBatch.length) {
-            console.log(
-              "Logs inválidos:",
-              logsBatch.filter(
-                (log) =>
-                  !(
-                    log.tienda_id &&
-                    log.referencia &&
-                    log.referencia.trim() !== ""
-                  ),
-              ),
-            );
-          }
 
           if (validLogs.length === 0) {
             throw new Error("No hay datos válidos para guardar");
@@ -2216,8 +2240,6 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         return { success: false };
       }
 
-      console.log("🚚 Iniciando guardarEnvioDespacho con logId:", sheetLogId);
-
       try {
         // Obtener logs para encontrar los IDs reales por tienda
         const fechaActual = new Date().toISOString().split("T")[0];
@@ -2225,40 +2247,47 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
         const logMap: Record<string, string> = {}; // tienda_id -> log_id
 
         logs.forEach((log) => {
-          if (log.referencia === overrideRef || log.referencia === sheetLogId.split('|')[1]) {
+          if (
+            log.referencia === overrideRef ||
+            log.referencia === sheetLogId.split("|")[1]
+          ) {
             logMap[String(log.tienda_id)] = String(log.id);
           }
         });
-
-        console.log("🗺️ Mapa tienda->log ID:", logMap);
 
         // Crear envíos usando el ID correcto del log para cada tienda
         const enviosBatch: any[] = [];
         const fechaEnvio = new Date().toISOString().split("T")[0];
 
-        console.log("📦 Creando envíos con logIds por tienda");
-
         // Procesar cada tienda
         for (const [filaId, tallas] of Object.entries(currentSheetValidation)) {
-          const filaIdStr = typeof filaId === "object" ? JSON.stringify(filaId) : String(filaId);
+          const filaIdStr =
+            typeof filaId === "object"
+              ? JSON.stringify(filaId)
+              : String(filaId);
           const tiendaIdFinal = tiendasDict[filaIdStr] || filaIdStr;
           const logIdForTienda = logMap[tiendaIdFinal];
 
           if (!tiendaIdFinal) {
-            console.warn(`⚠️ No se pudo resolver tienda para fila ${filaIdStr}`);
             continue;
           }
 
           if (!logIdForTienda) {
-            console.warn(`⚠️ No se encontró log ID para tienda ${tiendaIdFinal} con referencia ${overrideRef || sheetLogId}`);
             continue;
           }
 
           // Construir cantidad_talla con códigos de barras
-          const cantidadTalla: { talla: number; cantidad: number; codigo_barra: string }[] = [];
+          const cantidadTalla: {
+            talla: number;
+            cantidad: number;
+            codigo_barra: string;
+          }[] = [];
 
           for (const [col, data] of Object.entries(tallas)) {
-            const cellData = typeof data === "object" ? data : { cantidad: data, barcodes: [] };
+            const cellData =
+              typeof data === "object"
+                ? data
+                : { cantidad: data, barcodes: [] };
             const cantidad = cellData.cantidad || 0;
             const barcodes = cellData.barcodes || [];
 
@@ -2296,24 +2325,18 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
               usuario_id: user?.id,
             };
 
-            console.log(`📦 Envio creado para tienda ${tiendaIdFinal}:`, envioData);
             enviosBatch.push(envioData);
           }
         }
 
         if (enviosBatch.length === 0) {
-          console.warn("⚠️ No hay envíos para guardar");
           return { success: true, logIds: [] };
         }
-
-        console.log("🚚 Enviando batch:", enviosBatch);
-        console.log("🚚 Plantilla IDs:", enviosBatch.map(e => e.plantilla));
 
         const saveResult = await saveEnviosBatch(enviosBatch);
 
         if (saveResult) {
-          console.log("✅ Envíos guardados exitosamente");
-          return { success: true, logIds: enviosBatch.map(e => e.plantilla) };
+          return { success: true, logIds: enviosBatch.map((e) => e.plantilla) };
         } else {
           console.error("❌ Error al guardar envíos");
           return { success: false, logIds: [] };
