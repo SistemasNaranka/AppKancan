@@ -94,7 +94,7 @@ const processCommissionData = async (selectedMonth: string) => {
 
   // Crear staff basado en presupuestos asignados
   const staff: any[] = [];
-  let presupuestosDelMes = presupuestosEmpleadosData.filter((pe: any) => {
+  const presupuestosDelMes = presupuestosEmpleadosData.filter((pe: any) => {
     return pe.fecha >= fechaInicio && pe.fecha <= fechaFin;
   });
 
@@ -209,7 +209,7 @@ const processCommissionData = async (selectedMonth: string) => {
   });
 
   // Procesar ventas por empleado
-  let ventasDelMes = ventasEmpleados.filter((ve: any) => {
+  const ventasDelMes = ventasEmpleados.filter((ve: any) => {
     return ve.fecha >= fechaInicio && ve.fecha <= fechaFin;
   });
 

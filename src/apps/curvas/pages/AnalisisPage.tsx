@@ -536,6 +536,7 @@ const AnalisisPage = () => {
 
       {/* Date select - solo fechas con datos */}
       <FormControl
+        className="tour-curvas-analisis-rango"
         size="small"
         sx={{ minWidth: { xs: 120, sm: 140, md: 150 } }}
       >

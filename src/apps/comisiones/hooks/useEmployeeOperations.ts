@@ -128,7 +128,7 @@ export const useEmployeeOperations = (
     );
 
     // ✅ NUEVA LÓGICA: Determinar texto del botón
-    let newButtonConfig = {
+    const newButtonConfig = {
       text: hasExistingData ? "Actualizar" : "Guardar",
       action: hasExistingData ? "update" : "save",
       disabled:

@@ -242,7 +242,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
     setPage(1);
   }, [filters]);
 
-  const itemsPerPage = isResumen ? 10 : 20;
+  const itemsPerPage = 6;
 
   // En Resumen: si hay búsqueda activa, usar filteredContratos para que el buscador funcione
   // Si no hay búsqueda, mostrar todos ordenados por recientes
@@ -260,7 +260,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
   const tableSubtitle = isResumen
     ? (hasSearch
         ? `${sourceRows.length} resultados para "${filters.search.trim()}" (Total: ${allEnriched.length})`
-        : `Mostrando recientes (Total: ${allEnriched.length})`)
+        : `Mostrando recientes`)
     : `${filteredContratos.length} registros (Pág. ${page} de ${totalPages || 1})`;
 
   if (loading) {

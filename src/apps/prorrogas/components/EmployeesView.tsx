@@ -128,7 +128,7 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography variant="caption" color="text.disabled">Area</Typography>
             <Typography variant="caption" fontWeight={600} sx={{ maxWidth: 110, textAlign: 'right' }}>
-              {c.empleado_area}
+              {c.area}
             </Typography>
           </Box>
         </Stack>
@@ -198,7 +198,7 @@ const EmployeesView: React.FC = () => {
         return (
           c.nombre.toLowerCase().includes(q) ||
           c.cargo.toLowerCase().includes(q) ||
-          c.empleado_area.toLowerCase().includes(q)
+          c.area.toLowerCase().includes(q)
         );
       })
       .sort((a, b) => {

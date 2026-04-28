@@ -1,6 +1,6 @@
 // src/apps/reservas/views/ReservasView.tsx
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 // Importar el componente de Tour
 import {
@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
+import { useTutorial } from "@/shared/hooks/TutorialContext";
 
 import { Add as AddIcon } from "@mui/icons-material";
 
@@ -139,6 +140,10 @@ const ReservasViewContent: React.FC = () => {
   const { area } = useApps();
   const { showSnackbar } = useGlobalSnackbar();
 
+  // Contexto global de tutoriales (disparo desde PeekButton)
+  const { activeTutorial, endTutorial } = useTutorial();
+  const floatingBtnRef = useRef<HTMLDivElement>(null);
+
   // Obtener el contexto del tour
   const {
     setTabChangeCallback,
@@ -193,6 +198,25 @@ const ReservasViewContent: React.FC = () => {
       setDialogNueva(false);
     });
   }, [setCloseDialogCallback]);
+
+  // Disparo del tour cuando el PeekButton lo solicita
+  useEffect(() => {
+    if (activeTutorial === "reservas") {
+      // Asegura la pestaña correcta
+      setTabActual("Reserva");
+      setSalaInicial(undefined);
+
+      // Pequeño delay para que el FloatingHelpButton esté montado
+      const t = setTimeout(() => {
+        const btn = floatingBtnRef.current?.querySelector("button");
+        btn?.click();
+        endTutorial(); // limpia el flag global
+      }, 200);
+
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTutorial]);
 
   // Obtener todas las reservas
   const { data: todasReservas = [], isLoading: loadingTodas } = useQuery({
@@ -468,7 +492,9 @@ const ReservasViewContent: React.FC = () => {
 
           {/* Botones de ayuda y nueva reserva - Alineados a la derecha */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <FloatingHelpButton onBeforeStart={handleStartTutorial} />
+            <div ref={floatingBtnRef} style={{ display: "inline-flex" }}>
+              <FloatingHelpButton onBeforeStart={handleStartTutorial} />
+            </div>
             <Button
               className="tour-nueva-reserva"
               startIcon={<AddIcon />}

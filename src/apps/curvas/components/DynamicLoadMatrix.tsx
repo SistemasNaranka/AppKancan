@@ -794,7 +794,7 @@ const DynamicLoadMatrix = forwardRef<
     }
 
     let newRows = [...rows];
-    let tempColumns = [...columns];
+    const tempColumns = [...columns];
     let needsNewDialog = false;
     let totalValuesPasted = 0;
 

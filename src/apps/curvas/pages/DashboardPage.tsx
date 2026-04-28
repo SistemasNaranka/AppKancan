@@ -733,6 +733,7 @@ const DashboardPage = () => {
 
        {/* ── Control: Fecha ── */}
        <Box
+         className="tour-curvas-fecha"
          sx={{
            bgcolor: "white",
            borderRadius: "6px",
@@ -1127,6 +1128,7 @@ const DashboardPage = () => {
                   </Box>
                 )}
                 <Box
+                  className="tour-curvas-datagrid"
                   sx={{
                     height: "calc(100vh - 280px)",
                     minHeight: 400,

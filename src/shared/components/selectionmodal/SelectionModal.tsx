@@ -3,7 +3,7 @@ import { Button, Modal, Box, Typography } from '@mui/material';
 
 // Estilos básicos para el contenido del modal
 const style = {
-  position: 'absolute' as 'absolute', // 'as 'absolute'' es necesario para TypeScript en objetos de estilo
+  position: 'absolute' as const, // 'as 'absolute'' es necesario para TypeScript en objetos de estilo
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',

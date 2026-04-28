@@ -31,8 +31,8 @@ export interface Prorroga {
   numero: number;
   label: string;
   descripcion: string;
-  fecha_ingreso: Date | string; // CORREGIDO: antes era fecha_inicio
-  fecha_final: Date | string;   // CORREGIDO: antes era fecha_fin
+  fecha_ingreso: Date | string;
+  fecha_final: Date | string; 
   duracion: number;
   date_created?: string;
   date_updated?: string;

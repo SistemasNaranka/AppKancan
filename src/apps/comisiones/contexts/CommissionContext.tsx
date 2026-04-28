@@ -86,7 +86,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
         const existingIndex = prev.ventasMensuales.findIndex(
           (v) => v.tienda === tienda && v.mes === mes
         );
-        let newVentasMensuales = [...prev.ventasMensuales];
+        const newVentasMensuales = [...prev.ventasMensuales];
 
         if (existingIndex >= 0) {
           newVentasMensuales[existingIndex] = {
@@ -118,7 +118,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
     (mes: string, porcentaje_gerente: number) => {
       setState((prev) => {
         const existingIndex = prev.monthConfigs.findIndex((c) => c.mes === mes);
-        let newConfigs = [...prev.monthConfigs];
+        const newConfigs = [...prev.monthConfigs];
 
         if (existingIndex >= 0) {
           newConfigs[existingIndex] = { mes, porcentaje_gerente };
@@ -157,7 +157,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({
         const existingIndex = prev.ventas.findIndex(
           (v) => v.tienda === tienda && v.fecha === fecha
         );
-        let newVentas = [...prev.ventas];
+        const newVentas = [...prev.ventas];
 
         if (existingIndex >= 0) {
           newVentas[existingIndex] = {

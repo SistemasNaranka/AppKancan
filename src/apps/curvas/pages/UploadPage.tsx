@@ -538,7 +538,7 @@ const UploadPage = () => {
 
   // Contenido insertado en el Header Global (fondo principal #004680)
   const headerContent = (
-    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ height: "100%" }}>
+    <Stack className="tour-curvas-actions" direction="row" spacing={0.75} alignItems="center" sx={{ height: "100%" }}>
 
       <Divider orientation="vertical" flexItem sx={{ bgcolor: "rgba(255,255,255,0.15)", my: 1 }} />
 
@@ -546,7 +546,7 @@ const UploadPage = () => {
       <Button
         variant="text"
         size="small"
-        startIcon={<PlaylistAddIcon sx={{ color: '#6ee7b7' }} />}
+        startIcon={<PlaylistAddIcon sx={{ color: '#fbbf24' }} />}
         onClick={() => matrixRef.current?.addRow()}
         sx={{
           borderRadius: 2,
@@ -665,7 +665,7 @@ const UploadPage = () => {
         startIcon={
           saving
             ? <HistoryIcon sx={{ animation: "spin 1s linear infinite", color: '#fbbf24' }} />
-            : <SaveIcon sx={{ color: '#fbbf24' }} />
+            : <SaveIcon sx={{ color: '#4ade80' }} />
         }
         onClick={() => setConfirmDialog({ open: true, action: "save" })}
         disabled={saving || !canEnableButtons || isConfirmed}
@@ -929,6 +929,7 @@ const UploadPage = () => {
               ) : null}
             </Paper>
 
+            <Box className="tour-curvas-matrix">
             <DynamicLoadMatrix
                   key={loadType}
                   ref={matrixRef}
@@ -953,6 +954,7 @@ const UploadPage = () => {
                     });
                   }}
                 />
+            </Box>
             </Box>
           </Stack>
 

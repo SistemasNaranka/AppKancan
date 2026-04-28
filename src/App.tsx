@@ -8,8 +8,10 @@ import { AuthProvider } from "@/auth/hooks/AuthProvider";
 import { AppProvider } from "./apps/hooks/AppProvider";
 import client from "./services/tankstack/QueryClient";
 import { AppThemeProvider } from "@/shared/hooks/ThemeContext";
+import { TutorialProvider } from "@/shared/hooks/TutorialContext";
 import { SnackbarProvider } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 import { ForcePasswordChangeModal } from "@/auth/components/ForcePasswordChangeModal";
+import PeekButtonContainer from "@/shared/components/PeekButtonContainer";
 import { useAuth } from "@/auth/hooks/useAuth";
 
 const AppWithPasswordModal = () => {
@@ -28,6 +30,7 @@ const AppWithPasswordModal = () => {
     <>
       <AppRoutes />
       <ForcePasswordChangeModal open={modalOpen} onClose={() => {}} />
+      {isAuthenticated && !user?.requires_password_change && <PeekButtonContainer />}
     </>
   );
 };
@@ -40,7 +43,9 @@ function App() {
           <BrowserRouter>
             <AuthProvider>
               <AppProvider>
-                <AppWithPasswordModal />
+                <TutorialProvider>
+                  <AppWithPasswordModal />
+                </TutorialProvider>
               </AppProvider>
             </AuthProvider>
           </BrowserRouter>

@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { Box, AppBar, Toolbar, Typography, useTheme, Tabs, Tab, IconButton } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, useTheme, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -7,7 +7,9 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useCurvasPolicies } from '../hooks/useCurvasPolicies';
+import { CurvasTourProvider, useCurvasTour } from '../components/CurvasTour';
 
 /**
  * Layout principal del módulo de Curvas
@@ -17,11 +19,18 @@ import { useCurvasPolicies } from '../hooks/useCurvasPolicies';
  * - Tabs para cambiar entre vistas
  * - Contenedor principal para el contenido
  */
-export const CurvasRouteLayout = () => {
+export const CurvasRouteLayout = () => (
+  <CurvasTourProvider>
+    <CurvasRouteLayoutInner />
+  </CurvasTourProvider>
+);
+
+const CurvasRouteLayoutInner = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const { debeAterrizarEnDespacho } = useCurvasPolicies();
+  const { startTour } = useCurvasTour();
 
   const isRestrictedToBodega = debeAterrizarEnDespacho();
 
@@ -91,8 +100,8 @@ export const CurvasRouteLayout = () => {
             justifyContent: 'space-between'
           }}
         >
-          {/* LEFT: Back + Title */}
-          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: { xs: 'auto', md: 180 } }}>
+          {/* LEFT: Back + Title + Help */}
+          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: { xs: 'auto', md: 180 }, flexShrink: 0 }}>
             <IconButton
               edge="start"
               color="inherit"
@@ -107,6 +116,22 @@ export const CurvasRouteLayout = () => {
             >
               <ArrowBackIcon sx={{ fontSize: 20 }} />
             </IconButton>
+            <Tooltip title="Tutorial guiado" arrow>
+              <IconButton
+                onClick={startTour}
+                sx={{
+                  mr: 1.5,
+                  color: 'rgba(255,255,255,0.85)',
+                  bgcolor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.18)', color: 'white' },
+                  width: 38, height: 38,
+                  flexShrink: 0,
+                }}
+              >
+                <HelpOutlineIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
             <Box>
               <Typography
                 variant="subtitle1"
@@ -136,7 +161,7 @@ export const CurvasRouteLayout = () => {
           </Box>
 
           {/* CENTER: Navigation Tabs */}
-          <Box sx={{ display: 'flex', alignItems: 'center', order: { xs: 2, lg: 2 }, width: { xs: '100%', sm: 'auto' } }}>
+          <Box id="tour-curvas-tabs" sx={{ display: 'flex', alignItems: 'center', order: { xs: 2, lg: 2 }, width: { xs: '100%', sm: 'auto' } }}>
             <Tabs
               value={getActiveTab()}
               onChange={handleTabChange}

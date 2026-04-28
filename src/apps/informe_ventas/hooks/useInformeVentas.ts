@@ -180,12 +180,8 @@ export function useInformeVentas(): UseInformeVentasReturn {
     isLoading: loadingVentas,
     isFetching: fetchingVentas,
   } = useQuery({
-    queryKey: ["ventas", filtros.fecha_desde, filtros.fecha_hasta],
-    queryFn: () =>
-      obtenerVentas({
-        fecha_desde: filtros.fecha_desde,
-        fecha_hasta: filtros.fecha_hasta,
-      }),
+    queryKey: ["ventas", filtros], // Incluimos todo el objeto de filtros para re-ejecutar la consulta
+    queryFn: () => obtenerVentas(filtros),
     staleTime: CACHE_TIME,
     gcTime: CACHE_TIME,
     enabled: dataReady,
@@ -245,15 +241,24 @@ export function useInformeVentas(): UseInformeVentasReturn {
       setUmbralesComision(umbralesComisionData);
     }
   }, [umbralesComisionData]);
-  const hasLoadedAtLeastOnce =
-    ventasData !== undefined &&
-    Array.isArray(ventasData) &&
-    ventasData.length > 0;
+  // Indicador de que ya hemos recibido respuesta de la API al menos una vez
+  const hasLoadedAtLeastOnce = ventasData !== undefined;
 
-  // Loading permanece activo hasta que haya datos
-  const loading = loadingVentas || fetchingVentas || !hasLoadedAtLeastOnce;
+  // Loading permanece activo mientras se carga o si no hemos recibido respuesta aún
+  const loading = loadingVentas || fetchingVentas || (ventasData === undefined && !error);
 
   useEffect(() => {}, []);
+
+  // Función para normalizar cadenas (quitar espacios múltiples, convertir a mayúsculas y quitar acentos si es necesario)
+  const normalizeString = (str: string | undefined | null): string => {
+    if (!str) return "";
+    return str
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, " ") // Colapsar múltiples espacios a uno solo
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, ""); // Quitar acentos para máxima compatibilidad
+  };
 
   const extraerCodigoAsesor = (asesorCompleto: string): number | null => {
     const primeraParte = asesorCompleto.trim().split(/\s+/)[0];
@@ -286,19 +291,27 @@ export function useInformeVentas(): UseInformeVentasReturn {
     }
 
     if (filtros.zona) {
-      resultado = resultado.filter((v) => v.zona === filtros.zona);
+      resultado = resultado.filter(
+        (v) => normalizeString(v.zona) === normalizeString(filtros.zona),
+      );
     }
 
     if (filtros.ciudad) {
-      resultado = resultado.filter((v) => v.ciudad === filtros.ciudad);
+      resultado = resultado.filter(
+        (v) => normalizeString(v.ciudad) === normalizeString(filtros.ciudad),
+      );
     }
 
     if (filtros.bodega) {
-      resultado = resultado.filter((v) => v.bodega === filtros.bodega);
+      resultado = resultado.filter(
+        (v) => normalizeString(v.bodega) === normalizeString(filtros.bodega),
+      );
     }
 
     if (filtros.asesor) {
-      resultado = resultado.filter((v) => v.asesor === filtros.asesor);
+      resultado = resultado.filter(
+        (v) => normalizeString(v.asesor) === normalizeString(filtros.asesor),
+      );
     }
 
     if (filtros.linea_venta) {
@@ -556,31 +569,54 @@ export function useInformeVentas(): UseInformeVentasReturn {
     return resultado.map((t) => ({ id: t.id, nombre: t.nombre }));
   }, [tiendas, filtros.zona, filtros.ciudad]);
   const asesoresFiltrados = useMemo(() => {
-    if (!ventasFiltradas.length) return asesores;
+    // Importante: No podemos usar ventasFiltradas porque ya tiene el filtro de asesor aplicado
+    // Necesitamos filtrar las ventas base por el contexto actual (zona, ciudad, tienda)
+    let ventasContexto = ventas;
 
-    let asesoresDisponibles = new Set<string>();
-
-    ventasFiltradas.forEach((v) => {
-      let incluir = true;
-      if (filtros.zona && v.zona !== filtros.zona) {
-        incluir = false;
-      }
-      if (filtros.ciudad && v.ciudad !== filtros.ciudad) {
-        incluir = false;
-      }
-      if (filtros.bodega && v.bodega !== filtros.bodega) {
-        incluir = false;
-      }
-
-      if (incluir) {
-        asesoresDisponibles.add(v.asesor);
-      }
-    });
-    if (filtros.zona || filtros.ciudad || filtros.bodega) {
-      return Array.from(asesoresDisponibles).sort();
+    if (filtros.zona) {
+      const zonaNorm = normalizeString(filtros.zona);
+      ventasContexto = ventasContexto.filter(
+        (v) => normalizeString(v.zona) === zonaNorm,
+      );
     }
-    return asesores;
-  }, [ventasFiltradas, asesores, filtros.zona, filtros.ciudad, filtros.bodega]);
+    if (filtros.ciudad) {
+      const ciudadNorm = normalizeString(filtros.ciudad);
+      ventasContexto = ventasContexto.filter(
+        (v) => normalizeString(v.ciudad) === ciudadNorm,
+      );
+    }
+    if (filtros.bodega) {
+      const bodegaNorm = normalizeString(filtros.bodega);
+      ventasContexto = ventasContexto.filter(
+        (v) => normalizeString(v.bodega) === bodegaNorm,
+      );
+    }
+
+    if (ventasContexto.length === 0) {
+      // Si no hay ventas en este contexto, mostramos todos los asesores disponibles
+      // pero solo si no hay otros filtros activos. Si hay filtros, devolvemos vacío
+      // para que el usuario sepa que no hay nadie con ventas en esa selección.
+      if (!filtros.zona && !filtros.ciudad && !filtros.bodega) {
+        return asesores;
+      }
+      return [];
+    }
+
+    const setAsesores = new Set<string>();
+    ventasContexto.forEach((v) => {
+      if (v.asesor) setAsesores.add(v.asesor);
+    });
+
+    return Array.from(setAsesores).sort();
+  }, [
+    ventas,
+    asesores,
+    filtros.zona,
+    filtros.ciudad,
+    filtros.bodega,
+    filtros.fecha_desde,
+    filtros.fecha_hasta,
+  ]);
 
   return {
     loading,
