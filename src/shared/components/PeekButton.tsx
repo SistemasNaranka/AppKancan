@@ -21,7 +21,7 @@ import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
  *     const TabIcon = () => <HelpCircle size={12} strokeWidth={2.5} />;
  */
 const TabIcon = (): ReactNode => (
-  <ArrowCircleLeftIcon sx={{ fontSize: 14, color: "rgba(255,255,255,0.9)" }} />
+  <ArrowCircleLeftIcon sx={{ fontSize: 14, color: "rgba(255, 255, 255, 0.9)" }} />
 );
 
 /** Flecha ">" de cada item del panel */

@@ -179,15 +179,11 @@ export const saveLogsBatch = async (
         fecha_creacion: new Date().toISOString(),
       };
 
-      console.log(`📝 Creando log para envío:`, item);
-
       const response = (await withAutoRefresh(() =>
         directus.request(createItems("log_curvas", [item])),
       )) as any[];
 
       const newId = response[0]?.id;
-      console.log(`✅ Log creado con ID: ${newId} para tienda ${log.tienda_id}`);
-
       results.push({ tienda_id: log.tienda_id, id: String(newId) });
     }
 
@@ -215,12 +211,8 @@ export const saveEnviosBatch = async (
 ): Promise<boolean> => {
   if (!enviosData || enviosData.length === 0) return true;
 
-  console.log("🚨 saveEnviosBatch recibió:", enviosData);
-  console.log("🚨 IDs de plantilla:", enviosData.map(e => ({ tienda: e.tienda_id, plantilla: e.plantilla })));
-
   try {
     const items = enviosData.map((envio: any) => {
-      console.log(`🔍 Procesando envío para tienda ${envio.tienda_id} con plantilla ${envio.plantilla}`);
       return {
         tienda_id: envio.tienda_id,
         plantilla: envio.plantilla,

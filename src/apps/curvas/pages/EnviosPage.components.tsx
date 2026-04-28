@@ -2,7 +2,7 @@
 // COMPONENTES UI PARA ENVIOSPAGE
 // ============================================
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -11,17 +11,12 @@ import {
   TableCell,
   Button,
   Tooltip,
-  Chip,
   Stack,
   IconButton,
   InputAdornment,
-  List,
-  ListItem,
-  ListItemText,
 } from "@mui/material";
 import { CheckCircle, Lock, Close, Visibility } from "@mui/icons-material";
 import {
-  BRAND,
   MONO_FONT,
   getValidationStyles,
   getRowLockInfo,
@@ -485,65 +480,80 @@ export const MemoizedTableRow = React.memo(
                   }}
                 />
               )}
-               {/* Badge de códigos de barra cuando hay barcodes */}
-               {barcodesCount > 0 && (
-                 <Tooltip 
-                   title={
-                     <Box sx={{ p: 0.5 }}>
-                       <Typography sx={{ fontWeight: 800, fontSize: '0.7rem', mb: 0.5, color: 'white' }}>
-                         CÓDIGOS ESCANEADOS
-                       </Typography>
-                       <Stack spacing={0.2}>
-                          {Object.entries(
-                            (rawInput as any)?.barcodes?.reduce((acc: Record<string, number>, bc: string) => {
+              {/* Badge de códigos de barra cuando hay barcodes */}
+              {barcodesCount > 0 && (
+                <Tooltip
+                  title={
+                    <Box sx={{ p: 0.5 }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 800,
+                          fontSize: "0.7rem",
+                          mb: 0.5,
+                          color: "white",
+                        }}
+                      >
+                        CÓDIGOS ESCANEADOS
+                      </Typography>
+                      <Stack spacing={0.2}>
+                        {Object.entries(
+                          (rawInput as any)?.barcodes?.reduce(
+                            (acc: Record<string, number>, bc: string) => {
                               acc[bc] = (acc[bc] || 0) + 1;
                               return acc;
-                            }, {}) || {}
-                          ).map(([bc, count]) => {
-                            const c = count as number;
-                            return (
-                              <Typography key={bc} sx={{ fontFamily: MONO_FONT, fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>
-                                {bc} {c > 1 ? `(x${c})` : ""}
-                              </Typography>
-                            );
-                          })}
-
-                       </Stack>
-                     </Box>
-                   }
-                   arrow
-                 >
-                   <Box
-                     sx={{
-                       position: "absolute",
-                       bottom: 1,
-                       right: 1,
-                       bgcolor: "#1e3a8a",
-                       color: "white",
-                       borderRadius: "10px",
-                       px: 0.5,
-                       py: 0.15,
-                       minWidth: 20,
-                       textAlign: "center",
-                       fontSize: "10px",
-                       fontWeight: 700,
-                       lineHeight: 1.2,
-                       cursor: "pointer",
-                       display: "flex",
-                       alignItems: "center",
-                       justifyContent: "center",
-                       gap: 0.25,
-                       "&:hover": {
-                         bgcolor: "#1e40af",
-                       },
-                     }}
-                   >
-                     <Visibility sx={{ fontSize: 10 }} />
-                     {barcodesCount}
-                   </Box>
-                 </Tooltip>
-               )}
-
+                            },
+                            {},
+                          ) || {},
+                        ).map(([bc, count]) => {
+                          const c = count as number;
+                          return (
+                            <Typography
+                              key={bc}
+                              sx={{
+                                fontFamily: MONO_FONT,
+                                fontSize: "0.7rem",
+                                color: "rgba(255,255,255,0.8)",
+                              }}
+                            >
+                              {bc} {c > 1 ? `(x${c})` : ""}
+                            </Typography>
+                          );
+                        })}
+                      </Stack>
+                    </Box>
+                  }
+                  arrow
+                >
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      bottom: 1,
+                      right: 1,
+                      bgcolor: "#1e3a8a",
+                      color: "white",
+                      borderRadius: "10px",
+                      px: 0.5,
+                      py: 0.15,
+                      minWidth: 20,
+                      textAlign: "center",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 0.25,
+                      "&:hover": {
+                        bgcolor: "#1e40af",
+                      },
+                    }}
+                  >
+                    <Visibility sx={{ fontSize: 10 }} />
+                    {barcodesCount}
+                  </Box>
+                </Tooltip>
+              )}
             </TableCell>
           );
         })}
@@ -584,10 +594,8 @@ export const MemoizedTableRow = React.memo(
             {mirrorRowTotal > 0 ? mirrorRowTotal : "—"}
           </Typography>
         </TableCell>
-
-               </TableRow>
-     );
-
+      </TableRow>
+    );
   },
   (prev, next) => {
     if (prev.fila !== next.fila) return false;
