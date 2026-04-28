@@ -1930,7 +1930,7 @@ export const CurvasProvider = ({ children }: { children: ReactNode }) => {
     async (sheetId: string): Promise<boolean> => {
       if (!datosCurvas || !user) return false;
       try {
-        let sheet: any =
+        const sheet: any =
           datosCurvas.matrizGeneral.find((s) => s.id === sheetId) ||
           datosCurvas.productos.find((s) => s.id === sheetId);
         if (!sheet) return false;

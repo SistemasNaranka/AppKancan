@@ -315,7 +315,7 @@ const NormalizarView: React.FC = () => {
         );
       }
 
-      let columnasFinales = obtenerColumnasRestantes(
+      const columnasFinales = obtenerColumnasRestantes(
         archivo.columnas,
         archivo.columnasEliminar || []
       );

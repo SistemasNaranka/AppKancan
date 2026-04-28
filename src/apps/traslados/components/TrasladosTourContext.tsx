@@ -1,41 +1,30 @@
-/**
- * TrasladosTourContext.tsx
- * Contexto para manejar el estado del tour guiado de traslados
- */
 import React, {
   createContext,
   useContext,
   useState,
   useCallback,
   ReactNode,
+  useEffect,
 } from "react";
-
-// ============================================
-// TIPOS Y FASES DEL TOUR
-// ============================================
+import { useLocation, useNavigate } from "react-router-dom";
 
 export type TourPhase =
-  | "IDLE"           // No hay tour activo
-  | "FILTROS"        // Tour de filtros (bodega, búsqueda)
-  | "SELECCION"      // Tour de selección de traslados
-  | "LISTA"          // Tour de la lista de traslados
-  | "APROBACION"     // Tour del botón aprobar
-  | "COMPLETED";     // Tour completado
+  | "IDLE"
+  | "FILTROS"
+  | "SELECCION"
+  | "LISTA"
+  | "APROBACION"
+  | "COMPLETED";
 
 interface TrasladosTourContextType {
-  // Estado del tour
   tourPhase: TourPhase;
   isFullTourRunning: boolean;
   stepIndex: number;
-
-  // Control del tour
   startFullTour: () => void;
   nextPhase: () => void;
   setStepIndex: (index: number) => void;
   stopTour: () => void;
   completeTour: () => void;
-
-  // Utilidades de localStorage
   isTourCompleted: () => boolean;
   markTourCompleted: () => void;
   resetTourState: () => void;
@@ -43,13 +32,8 @@ interface TrasladosTourContextType {
 
 const TrasladosTourContext = createContext<TrasladosTourContextType | undefined>(undefined);
 
-// ============================================
-// CONSTANTES
-// ============================================
-
 const TOUR_LOCALSTORAGE_KEY = "traslados-tour-completed-v2";
 
-// Orden de fases
 const PHASE_ORDER: TourPhase[] = [
   "FILTROS",
   "SELECCION",
@@ -58,10 +42,6 @@ const PHASE_ORDER: TourPhase[] = [
   "COMPLETED",
 ];
 
-// ============================================
-// PROVIDER
-// ============================================
-
 interface TrasladosTourProviderProps {
   children: ReactNode;
 }
@@ -69,9 +49,25 @@ interface TrasladosTourProviderProps {
 export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ children }) => {
   const [tourPhase, setTourPhase] = useState<TourPhase>("IDLE");
   const [stepIndex, setStepIndex] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // El tour está corriendo si no está IDLE ni COMPLETED
   const isFullTourRunning = tourPhase !== "IDLE" && tourPhase !== "COMPLETED";
+
+  // Iniciar el tour completo
+  const startFullTour = useCallback(() => {
+    setStepIndex(0);
+    setTourPhase("FILTROS");
+  }, []);
+
+  // Auto-iniciar tour si hay ?tour=start en la URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("tour") === "start" && !isFullTourRunning) {
+      navigate(location.pathname, { replace: true });
+      startFullTour();
+    }
+  }, [location.search, location.pathname, navigate, startFullTour, isFullTourRunning]);
 
   // Verificar si el tour ya fue completado
   const isTourCompleted = useCallback((): boolean => {
@@ -100,23 +96,16 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     }
   }, []);
 
-  // Iniciar el tour completo
-  const startFullTour = useCallback(() => {
-    setStepIndex(0);
-    setTourPhase("FILTROS");
-  }, []);
-
   // Avanzar a la siguiente fase
   const nextPhase = useCallback(() => {
     const currentIndex = PHASE_ORDER.indexOf(tourPhase);
     if (currentIndex >= 0 && currentIndex < PHASE_ORDER.length - 1) {
       const nextPhaseValue = PHASE_ORDER[currentIndex + 1];
       setStepIndex(0);
-      
+
       if (nextPhaseValue === "COMPLETED") {
         setTourPhase("COMPLETED");
         markTourCompleted();
-        // Limpiar después de un momento
         setTimeout(() => {
           setTourPhase("IDLE");
         }, 500);
@@ -161,10 +150,6 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     </TrasladosTourContext.Provider>
   );
 };
-
-// ============================================
-// HOOK
-// ============================================
 
 export const useTrasladosTourContext = (): TrasladosTourContextType => {
   const context = useContext(TrasladosTourContext);

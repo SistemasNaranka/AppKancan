@@ -558,7 +558,7 @@ export function useInformeVentas(): UseInformeVentasReturn {
   const asesoresFiltrados = useMemo(() => {
     if (!ventasFiltradas.length) return asesores;
 
-    let asesoresDisponibles = new Set<string>();
+    const asesoresDisponibles = new Set<string>();
 
     ventasFiltradas.forEach((v) => {
       let incluir = true;

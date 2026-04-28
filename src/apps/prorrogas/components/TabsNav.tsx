@@ -6,7 +6,6 @@ import Tabs from '@mui/material/Tabs';
 import DashboardOutlinedIcon    from '@mui/icons-material/DashboardOutlined';
 import ArticleOutlinedIcon      from '@mui/icons-material/ArticleOutlined';
 import GroupsOutlinedIcon       from '@mui/icons-material/GroupsOutlined';
-import AutorenewOutlinedIcon    from '@mui/icons-material/AutorenewOutlined';
 import ArrowBackOutlinedIcon    from '@mui/icons-material/ArrowBackOutlined';
 import { TabValue } from '../types/types';
 import { useContracts } from '../hooks/useContracts';
@@ -22,7 +21,6 @@ const TABS: TabConfig[] = [
   { value: 'resumen',    label: 'Resumen',    Icon: DashboardOutlinedIcon  },
   { value: 'contratos',  label: 'Contratos',  Icon: ArticleOutlinedIcon    },
   { value: 'empleados',  label: 'Empleados',  Icon: GroupsOutlinedIcon     },
-  { value: 'prorrogas',  label: 'Prórrogas',  Icon: AutorenewOutlinedIcon  },
 ];
 
 const TabsNav: React.FC = () => {
@@ -33,10 +31,6 @@ const TabsNav: React.FC = () => {
     if (value === 'contratos') {
       const urgent = allEnriched.filter(c => c.daysLeft >= 0 && c.daysLeft <= 30).length;
       return urgent > 0 ? urgent : undefined;
-    }
-    if (value === 'prorrogas') {
-      const pending = allEnriched.filter(c => c.request_status === 'pendiente' || c.request_status === 'en_revision').length;
-      return pending > 0 ? pending : undefined;
     }
     return undefined;
   };

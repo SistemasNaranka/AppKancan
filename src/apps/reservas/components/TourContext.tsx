@@ -5,7 +5,9 @@ import React, {
   useCallback,
   ReactNode,
   useMemo,
+  useEffect,
 } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { format, subDays } from "date-fns";
 import type { Reserva } from "../types/reservas.types";
 
@@ -46,18 +48,18 @@ interface TourContextType {
   setTabChangeCallback: (callback: (tab: TabReservas) => void) => void;
   getCurrentTab: () => TabReservas;
   setCurrentTab: (tab: TabReservas) => void;
-  
+
   // Callback para abrir el diálogo de nueva reserva
   setOpenDialogCallback: (callback: () => void) => void;
   openDialogForTour: () => void;
-  
+
   // Callback para cerrar el diálogo
   setCloseDialogCallback: (callback: () => void) => void;
   closeDialogForTour: () => void;
 
   // Notificar que el diálogo se abrió
   onDialogOpened: () => void;
-  
+
   // Notificar que el formulario se envió (reserva creada)
   onFormSubmitted: (datos: any) => void;
 }
@@ -75,7 +77,6 @@ const generateMockReservasAdicionales = (): Reserva[] => {
   const fechaHoy = format(hoy, "yyyy-MM-dd");
 
   return [
-    // Reserva Finalizada (ayer)
     {
       id: 99902,
       nombre_sala: "Sala Secundaria",
@@ -95,7 +96,6 @@ const generateMockReservasAdicionales = (): Reserva[] => {
       },
       date_created: fechaAyer,
     },
-    // Reserva Cancelada
     {
       id: 99903,
       nombre_sala: "Sala Principal",
@@ -133,17 +133,13 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   const [stepIndex, setStepIndex] = useState(0);
   const [userCreatedReservation, setUserCreatedReservation] = useState<Reserva | null>(null);
   const [currentTab, setCurrentTab] = useState<TabReservas>("Reserva");
-  
+  const location = useLocation();
+  const navigate = useNavigate();
+
   // Callbacks
-  const [tabChangeCallback, setTabChangeCallbackState] = useState<
-    ((tab: TabReservas) => void) | null
-  >(null);
-  const [openDialogCallback, setOpenDialogCallbackState] = useState<
-    (() => void) | null
-  >(null);
-  const [closeDialogCallback, setCloseDialogCallbackState] = useState<
-    (() => void) | null
-  >(null);
+  const [tabChangeCallback, setTabChangeCallbackState] = useState<((tab: TabReservas) => void) | null>(null);
+  const [openDialogCallback, setOpenDialogCallbackState] = useState<(() => void) | null>(null);
+  const [closeDialogCallback, setCloseDialogCallbackState] = useState<(() => void) | null>(null);
 
   // Mock data adicional
   const mockReservasAdicionales = useMemo(() => generateMockReservasAdicionales(), []);
@@ -151,7 +147,7 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   // El tour está corriendo si no está IDLE ni COMPLETED
   const isFullTourRunning = tourPhase !== "IDLE" && tourPhase !== "COMPLETED";
 
-  // Iniciar el tour completo
+  // Iniciar el tour completo (sin navegación)
   const startFullTour = useCallback(() => {
     setUserCreatedReservation(null);
     setStepIndex(0);
@@ -163,17 +159,26 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
     // Resetear el tour
     setUserCreatedReservation(null);
     setStepIndex(0);
-    
+
     // Navegar a la pestaña Reserva si no está en ella
     if (tabChangeCallback && currentTab !== "Reserva") {
       tabChangeCallback("Reserva");
     }
-    
+
     // Iniciar el tour después de un pequeño delay para que la navegación ocurra
     setTimeout(() => {
       setTourPhase("RESERVA_CLICK_BUTTON");
     }, 100);
   }, [tabChangeCallback, currentTab]);
+
+  // Auto-iniciar tour si hay ?tour=start en la URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("tour") === "start" && !isFullTourRunning) {
+      navigate(location.pathname, { replace: true });
+      startFullTourWithNavigation();
+    }
+  }, [location.search, location.pathname, navigate, startFullTourWithNavigation, isFullTourRunning]);
 
   // Obtener la pestaña actual
   const getCurrentTab = useCallback(() => {
@@ -186,7 +191,7 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
     if (currentIndex >= 0 && currentIndex < PHASE_ORDER.length - 1) {
       const nextPhaseValue = PHASE_ORDER[currentIndex + 1];
       setStepIndex(0);
-      
+
       // Cambiar pestaña según la fase
       if (nextPhaseValue === "MIS_RESERVAS" && tabChangeCallback) {
         tabChangeCallback("mis");
@@ -224,12 +229,9 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   }, []);
 
   // Setters para callbacks
-  const setTabChangeCallback = useCallback(
-    (callback: (tab: TabReservas) => void) => {
-      setTabChangeCallbackState(() => callback);
-    },
-    []
-  );
+  const setTabChangeCallback = useCallback((callback: (tab: TabReservas) => void) => {
+    setTabChangeCallbackState(() => callback);
+  }, []);
 
   const setOpenDialogCallback = useCallback((callback: () => void) => {
     setOpenDialogCallbackState(() => callback);
@@ -268,7 +270,6 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   const onFormSubmitted = useCallback(
     (datos: any) => {
       if (tourPhase === "DIALOG_TOUR") {
-        // Usar los datos recibidos (pueden ser datos de ejemplo si el usuario no llenó el formulario)
         const fechaHoy = format(new Date(), "yyyy-MM-dd");
         const nuevaReserva: Reserva = {
           id: 99901,
@@ -289,14 +290,14 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
           },
           date_created: fechaHoy,
         };
-        
+
         setUserCreatedReservation(nuevaReserva);
-        
+
         // Cerrar diálogo y continuar tour
         if (closeDialogCallback) {
           closeDialogCallback();
         }
-        
+
         // Avanzar a la siguiente fase
         setTimeout(() => {
           setStepIndex(0);

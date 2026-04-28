@@ -101,7 +101,7 @@ export const formatearValor = (valor: any, columna?: string): string => {
     )
       return null;
 
-    let s = String(v).trim();
+    const s = String(v).trim();
     if (!s) return null;
 
     // Caso AM/PM: "12:10 p. m." o "12:10 PM"
@@ -109,7 +109,7 @@ export const formatearValor = (valor: any, columna?: string): string => {
       /(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*([ap]\.?\s*m\.?|am|pm)/i,
     );
     if (matchAMPM) {
-      let [_, h, m, sec, meridiem] = matchAMPM;
+      const [_, h, m, sec, meridiem] = matchAMPM;
       let hours = parseInt(h);
       const minutes = m.padStart(2, "0");
       const seconds = (sec || "00").padStart(2, "0");

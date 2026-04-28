@@ -349,12 +349,12 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                         sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, bgcolor: '#e8f0fa', color: 'primary.main' }}
                       />
                     ) : (
-                      <Typography variant="body2" fontWeight={700}>—</Typography>
+                      <Typography variant="body2" fontWeight={400} fontStyle={'italic'}>Sin fecha</Typography>
                     )}
                   </Box>
                   <Box>
                     <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Duración Total</Typography>
-                    <Typography variant="body2" fontWeight={700}>{totalMeses > 0 ? `${totalMeses} meses` : '—'}</Typography>
+                    <Typography variant="body2" fontWeight={700}>{totalMeses > 0 ? `${totalMeses} meses` : '-'}</Typography>
                   </Box>
                 </Stack>
               </CardContent>

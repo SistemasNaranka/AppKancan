@@ -1074,6 +1074,7 @@ const EnviosPage = () => {
               {current && (
                 <Paper
                   ref={refTableRef}
+                  className="tour-curvas-tiendas"
                   elevation={0}
                   sx={{
                     flex: 1,
@@ -1085,7 +1086,7 @@ const EnviosPage = () => {
                     bgcolor: "white",
                   }}
                 >
-                  <TableContainer sx={{ flex: 1, overflow: "auto" }}>
+                  <TableContainer className="tour-curvas-scan" sx={{ flex: 1, overflow: "auto" }}>
                     <Table stickyHeader size="small">
                       <TableHead>
                         <TableRow>

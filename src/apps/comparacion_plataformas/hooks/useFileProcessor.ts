@@ -393,7 +393,7 @@ export const useFileProcessor = () => {
 
 
             let filasAgrupadasEnArchivo = 0;
-            let tiendasVistasEnEsteArchivo = new Set<string>();
+            const tiendasVistasEnEsteArchivo = new Set<string>();
 
             archivo.datos.forEach(fila => {
                 totalFilasProcesadas++;
@@ -503,7 +503,7 @@ export const useFileProcessor = () => {
                 const nombresFuentes = Object.keys(fuentes);
                 for (let i = 0; i < nombresFuentes.length; i += 2) {
                     const fuentesEnEstaFila = [nombresFuentes[i], nombresFuentes[i + 1]].filter(Boolean);
-                    let rowForThisPair = startRowSources;
+                    const rowForThisPair = startRowSources;
                     let innerMaxRow = rowForThisPair;
 
                     fuentesEnEstaFila.forEach((fuente, index) => {
@@ -539,7 +539,7 @@ export const useFileProcessor = () => {
                         datos.forEach(fila => {
                             const dRow = worksheet.getRow(r);
                             columnasFuente.forEach((col, cIdx) => {
-                                let val = fila[col];
+                                const val = fila[col];
                                 const colL = col.toLowerCase();
                                 const cell = dRow.getCell(colStart + cIdx);
 

@@ -16,6 +16,7 @@ import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { useNavigate } from "react-router-dom";
 import { DynamicIcon } from "@/shared/utils/DynamicIcon";
+import HomeTutorial from "@/shared/components/HomeTutorial/HomeTutorial";
 
 const appTabs: Record<string, Window | null> = {
   gmailTab: null,
@@ -217,7 +218,7 @@ function Home() {
             gap: { xs: 2, md: 3 },
           }}
         >
-          <Paper elevation={2} sx={cardSx}>
+          <Paper elevation={2} sx={cardSx} className="tutorial-reloj">
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
               <CalendarToday
                 sx={{ fontSize: { xs: 30, md: 40 }, mr: 1, color: "#FFAF2E" }}
@@ -265,7 +266,10 @@ function Home() {
               gap: { xs: 2, md: 3 },
             }}
           >
-            <Box sx={{ textAlign: { xs: "center", sm: "left" } }}>
+            <Box
+              className="tutorial-saludo"
+              sx={{ textAlign: { xs: "center", sm: "left" } }}
+            >
               <Typography
                 variant="h4"
                 fontWeight="bold"
@@ -355,6 +359,7 @@ function Home() {
               }}
             >
               <Box
+                className="tutorial-conexion"
                 sx={{
                   ...hoverSx(color),
                   display: "flex",
@@ -405,6 +410,7 @@ function Home() {
           {/* MY APPS */}
           <Paper
             elevation={2}
+            className="tutorial-mis-apps"
             sx={{
               ...cardSx,
               flex: 1,
@@ -524,6 +530,7 @@ function Home() {
           {/* EXTERNAL APPS */}
           <Paper
             elevation={2}
+            className="tutorial-apps-externas"
             sx={{ ...cardSx, width: { xs: "100%", lg: 280 } }}
           >
             <Typography
@@ -584,6 +591,7 @@ function Home() {
           </Paper>
         </Box>
       </Box>
+      <HomeTutorial ready={!loading} />
     </Box>
   );
 }
