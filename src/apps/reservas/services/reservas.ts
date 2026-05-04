@@ -8,6 +8,7 @@ import {
   updateItem,
   deleteItem,
   readMe,
+  readUsers,
 } from "@directus/sdk";
 import type {
   Reserva,
@@ -42,6 +43,7 @@ const RESERVATION_FIELDS = [
   "estado",
   "titulo_reunion",
   "observaciones",
+  "participantes",
   "area",
 ];
 
@@ -482,3 +484,33 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
     return 0;
   }
 }
+/**
+ * Busca usuarios en la colección directus_users para el autocompletado
+ * @param query Texto a buscar
+ * @returns Lista de usuarios sugeridos
+ */
+export const buscarUsuarios = async (query: string) => {
+  if (!query || query.length < 3) return [];
+
+  try {
+    const result = await withAutoRefresh(() =>
+      directus.request(
+        readUsers({
+          fields: ["first_name", "last_name", "email"],
+          filter: {
+            _or: [
+              { email: { _icontains: query } },
+              { first_name: { _icontains: query } },
+              { last_name: { _icontains: query } },
+            ],
+          },
+          limit: 6,
+        }),
+      ),
+    );
+    return (result as any[]) || [];
+  } catch (error) {
+    console.error("Error al buscar usuarios en Directus:", error);
+    return [];
+  }
+};
