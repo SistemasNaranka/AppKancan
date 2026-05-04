@@ -30,6 +30,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import PersonIcon from '@mui/icons-material/Person';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
+import { getCargoLabel } from '../config/cargos';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -376,7 +377,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
                             {c.nombre ?? `#${c.id}`}
                           </Typography>
                           <Typography variant="caption" color="text.disabled">
-                            {c.cargo ?? `ID: ${c.id}`}
+                            {getCargoLabel(c.cargo)}
                           </Typography>
                         </Box>
                       </Box>

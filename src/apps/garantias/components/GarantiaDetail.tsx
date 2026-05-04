@@ -12,12 +12,10 @@ import {
   Chip,
   IconButton,
 } from "@mui/material";
-import {
-  Close as CloseIcon,
-  Edit as EditIcon,
-  CheckCircle as AprobadaIcon,
-  Cancel as RechazadaIcon,
-} from "@mui/icons-material";
+import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
+import AprobadaIcon from '@mui/icons-material/CheckCircle';
+import RechazadaIcon from '@mui/icons-material/Cancel';
 import { DirectusGarantia, getStatusLabel, getTipoLabel } from "../types";
 
 interface GarantiaDetailProps {

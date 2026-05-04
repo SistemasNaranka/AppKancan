@@ -37,18 +37,16 @@ import {
   InputLabel,
   Select,
 } from "@mui/material";
-import {
-  Refresh as RefreshIcon,
-  Search as SearchIcon,
-  Download as DownloadIcon,
-  Person as PersonIcon,
-  Store as StoreIcon,
-  Analytics as AnalyticsIcon,
-  Close as CloseIcon,
-  FilterList as FilterIcon,
-  CalendarToday as CalendarIcon,
-  LibraryBooks as LibraryBooksIcon,
-} from "@mui/icons-material";
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
+import DownloadIcon from '@mui/icons-material/Download';
+import PersonIcon from '@mui/icons-material/Person';
+import StoreIcon from '@mui/icons-material/Store';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import CloseIcon from '@mui/icons-material/Close';
+import FilterIcon from '@mui/icons-material/FilterList';
+import CalendarIcon from '@mui/icons-material/CalendarToday';
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/es";

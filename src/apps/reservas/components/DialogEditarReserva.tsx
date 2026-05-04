@@ -16,11 +16,9 @@ import {
   Select,
   FormControl,
 } from "@mui/material";
-import {
-  Schedule as ScheduleIcon,
-  Save as SaveIcon,
-  Info as InfoIcon,
-} from "@mui/icons-material";
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import SaveIcon from '@mui/icons-material/Save';
+import InfoIcon from '@mui/icons-material/Info';
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";

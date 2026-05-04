@@ -233,3 +233,25 @@ export async function getProrrogasByContrato(
     return [];
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Historial Cargos
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getHistorialCargos(contratoId: number) {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("historial_cargos", {
+          fields: ["*"],
+          filter: { contrato_id: { _eq: contratoId } },
+          sort: ["-date_created"],
+        })
+      )
+    );
+    return items;
+  } catch (error) {
+    console.error(`❌ Error al cargar historial de cargos del contrato ${contratoId}:`, error);
+    return [];
+  }
+}

@@ -8,7 +8,9 @@ import {
   MenuItem,
   FormControl,
 } from "@mui/material";
-import { Person, Search, CheckCircle } from "@mui/icons-material";
+import Person from '@mui/icons-material/Person';
+import Search from '@mui/icons-material/Search';
+import CheckCircle from '@mui/icons-material/CheckCircle';
 
 interface AddEmployeeSectionProps {
   cargoSeleccionado: number | "";

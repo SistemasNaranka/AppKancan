@@ -6,14 +6,12 @@ import {
   Tooltip,
   IconButton,
 } from "@mui/material";
-import {
-  CalendarMonth,
-  EventBusy,
-  CheckCircle,
-  HighlightOff,
-  InfoOutlined,
-  CheckCircleRounded,
-} from "@mui/icons-material";
+import CalendarMonth from '@mui/icons-material/CalendarMonth';
+import EventBusy from '@mui/icons-material/EventBusy';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import HighlightOff from '@mui/icons-material/HighlightOff';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 

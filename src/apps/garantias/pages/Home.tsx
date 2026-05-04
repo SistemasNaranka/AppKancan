@@ -9,20 +9,18 @@ import {
   Stack,
   Button,
 } from "@mui/material";
-import {
-  Add as AddIcon,
-  PendingActions as PendingActionsIcon,
-  Speed as SpeedIcon,
-  Check as CheckIcon,
-  Pending as PendingIcon,
-  Engineering as EngineeringIcon,
-  LocalShipping as LocalShippingIcon,
-  Dashboard as DashboardIcon,
-  FindInPage as FindInPageIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  TaskAlt as TaskAltIcon,
-} from "@mui/icons-material";
+import AddIcon from '@mui/icons-material/Add';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
+import SpeedIcon from '@mui/icons-material/Speed';
+import CheckIcon from '@mui/icons-material/Check';
+import PendingIcon from '@mui/icons-material/Pending';
+import EngineeringIcon from '@mui/icons-material/Engineering';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import FindInPageIcon from '@mui/icons-material/FindInPage';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 
 import { GarantiaStatsCards } from "../components/GarantiaStatsCards";

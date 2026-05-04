@@ -21,9 +21,11 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import PersonIcon from '@mui/icons-material/Person';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useContractContext } from '../contexts/ContractContext';
 import { daysUntil, formatDate, getProrrogaProgress, formatTipoContrato, getProrrogaDuration, computeEndDate } from '../lib/utils';
 import { Prorroga } from '../types/types';
+import CambiarCargoModal from './CambiarCargoModal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -236,8 +238,9 @@ interface Props {
 }
 
 const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
-  const { selectedContrato } = useContractContext();
+  const { selectedContrato, loadContratos } = useContractContext();
   const [page, setPage] = useState(1);
+  const [cambiarCargoOpen, setCambiarCargoOpen] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -542,6 +545,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
 
                   {[
                     { icon: <EditOutlinedIcon sx={{ fontSize: 16, color: '#6b7280' }} />, label: 'Editar Contrato', sub: 'Modificar datos del contrato', onClick: onEditContract },
+                    { icon: <SwapHorizIcon sx={{ fontSize: 16, color: '#6b7280' }} />, label: 'Cambiar Cargo', sub: 'Actualizar posición del empleado', onClick: () => setCambiarCargoOpen(true) },
                     { icon: <FileDownloadOutlinedIcon sx={{ fontSize: 16, color: '#6b7280' }} />, label: 'Descargar PDF', sub: 'Exportar contrato completo' },
                   ].map((action) => (
                     <Box
@@ -594,7 +598,17 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
               <Card sx={{ borderRadius: 2.5, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
                 <CardContent sx={{ p: 2 }}>
                   <Typography variant="subtitle2" fontWeight={700} mb={2}>Duración por Periodo</Typography>
-                  <Stack spacing={1.5}>
+                  <Stack
+                    spacing={1.5}
+                    sx={{
+                      maxHeight: 320,
+                      overflowY: 'auto',
+                      pr: 0.5,
+                      '&::-webkit-scrollbar': { width: 6 },
+                      '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 3 },
+                      '&::-webkit-scrollbar-thumb:hover': { bgcolor: '#94a3b8' },
+                    }}
+                  >
                     {prorrogas.map((p, idx) => {
                       const isActivePeriod = idx === prorrogas.length - 1 && !isVencido;
                       const barColors = ['#94a3b8', '#60a5fa', '#34d399', '#a78bfa', '#f59e0b'];
@@ -650,6 +664,13 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
           </Stack>
         </Grid>
       </Grid>
+
+      <CambiarCargoModal
+        open={cambiarCargoOpen}
+        onClose={() => setCambiarCargoOpen(false)}
+        contrato={c}
+        onCargoChanged={async () => { await loadContratos(); }}
+      />
     </Box>
   );
 };

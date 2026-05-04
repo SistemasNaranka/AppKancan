@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, useRef, useState } from "react";
 import { Box, Typography, IconButton, Tooltip } from "@mui/material";
-import { ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
+import ArrowBackIos from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIos from '@mui/icons-material/ArrowForwardIos';
 import { Instance } from "@popperjs/core";
 import { Promotion } from "../../types/promotion";
 import { usePromotionsFilter } from "../../hooks/usePromotionsFilter";

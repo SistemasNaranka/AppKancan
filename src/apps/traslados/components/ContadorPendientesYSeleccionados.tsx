@@ -7,7 +7,8 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { PendingActions, CheckCircle } from "@mui/icons-material";
+import PendingActions from '@mui/icons-material/PendingActions';
+import CheckCircle from '@mui/icons-material/CheckCircle';
 
 interface Props {
   pendientes: number;

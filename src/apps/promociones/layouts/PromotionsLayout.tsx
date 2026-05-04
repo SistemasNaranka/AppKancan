@@ -1,6 +1,6 @@
 import React, { useEffect, Suspense, lazy } from "react";
 import { Box, Typography, Chip, Button, Card } from "@mui/material";
-import { Add } from "@mui/icons-material";
+import Add from '@mui/icons-material/Add';
 import { useNavigate, useLocation } from "react-router-dom";
 import SnackbarAlert from "@/auth/components/SnackbarAlert";
 import { useSnackbar } from "@/auth/hooks/useSnackbar";

@@ -15,7 +15,10 @@ import {
   IconButton,
   InputAdornment,
 } from "@mui/material";
-import { CheckCircle, Lock, Close, Visibility } from "@mui/icons-material";
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Lock from '@mui/icons-material/Lock';
+import Close from '@mui/icons-material/Close';
+import Visibility from '@mui/icons-material/Visibility';
 import {
   MONO_FONT,
   getValidationStyles,

@@ -16,17 +16,15 @@ import {
   IconButton,
   Fade,
 } from "@mui/material";
-import {
-  CheckCircle,
-  Error as ErrorIcon,
-  Close,
-  Refresh,
-  CloudUpload,
-  AutoAwesome,
-  Description,
-  Search,
-  CloudSync,
-} from "@mui/icons-material";
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import Close from '@mui/icons-material/Close';
+import Refresh from '@mui/icons-material/Refresh';
+import CloudUpload from '@mui/icons-material/CloudUpload';
+import AutoAwesome from '@mui/icons-material/AutoAwesome';
+import Description from '@mui/icons-material/Description';
+import Search from '@mui/icons-material/Search';
+import CloudSync from '@mui/icons-material/CloudSync';
 import { ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
 
 // ============ PROCESSING FEEDBACK ============

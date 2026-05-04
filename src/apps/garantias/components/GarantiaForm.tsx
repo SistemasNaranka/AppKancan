@@ -17,10 +17,8 @@ import {
   Divider,
   SelectChangeEvent,
 } from "@mui/material";
-import {
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-} from "@mui/icons-material";
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
 import type { Garantia as DirectusGarantia, CreateGarantia, UpdateGarantia } from "../types/types";
 
 // Opciones de tipo de garantía

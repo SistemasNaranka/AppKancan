@@ -7,7 +7,7 @@ import {
   IconButton,
   Divider,
 } from "@mui/material";
-import { Menu } from "@mui/icons-material";
+import Menu from '@mui/icons-material/Menu';
 import { useTheme } from "@mui/material/styles";
 import { useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/auth/hooks/useAuth";

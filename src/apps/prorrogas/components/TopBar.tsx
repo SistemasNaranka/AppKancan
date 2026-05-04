@@ -75,11 +75,9 @@ const TopBar: React.FC = () => {
         />
 
         {/* Notifications */}
-        <Tooltip title="Notificaciones">
           <span>
             <NotificationBell />
           </span>
-        </Tooltip>
       </Toolbar>
     </AppBar>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { MesResumen } from "../../types";
-import { Download as DownloadIcon } from "@mui/icons-material";
+import DownloadIcon from '@mui/icons-material/Download';
 import { Button, Box } from "@mui/material";
 import { useUserPolicies } from "../../hooks/useUserPolicies";
 import CSVData from "../CSVData";

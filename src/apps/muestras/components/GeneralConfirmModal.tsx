@@ -9,7 +9,11 @@ import {
   Divider,
   IconButton,
 } from "@mui/material";
-import { RestartAlt, Delete, Print, Check, Close } from "@mui/icons-material";
+import RestartAlt from '@mui/icons-material/RestartAlt';
+import Delete from '@mui/icons-material/Delete';
+import Print from '@mui/icons-material/Print';
+import Check from '@mui/icons-material/Check';
+import Close from '@mui/icons-material/Close';
 import CancelButton from "@/shared/components/button/CancelButton";
 import ConfirmButton from "@/shared/components/button/ConfirmButton";
 

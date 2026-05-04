@@ -7,7 +7,9 @@ import {
   Box,
   Tooltip,
 } from "@mui/material";
-import { Home, ExpandLess, ExpandMore } from "@mui/icons-material";
+import Home from '@mui/icons-material/Home';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import { Link } from "react-router-dom";
 import { getItemStyles } from "./styles";
 import { DynamicIcon } from "@/shared/utils/DynamicIcon";

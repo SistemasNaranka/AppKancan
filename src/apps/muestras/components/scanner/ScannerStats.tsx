@@ -1,6 +1,8 @@
 import React from "react";
 import { Box, Chip } from "@mui/material";
-import { LibraryBooks, Inventory2, Notes } from "@mui/icons-material";
+import LibraryBooks from '@mui/icons-material/LibraryBooks';
+import Inventory2 from '@mui/icons-material/Inventory2';
+import Notes from '@mui/icons-material/Notes';
 
 interface Props {
   uniqueCount: number;

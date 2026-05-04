@@ -10,15 +10,13 @@ import {
 } from "@mui/material";
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import {
-  PieChart,
-  AccountBalance,
-  People,
-  PointOfSale,
-  AdminPanelSettings,
-  LocalShipping,
-  Business,
-} from "@mui/icons-material";
+import PieChart from '@mui/icons-material/PieChart';
+import AccountBalance from '@mui/icons-material/AccountBalance';
+import People from '@mui/icons-material/People';
+import PointOfSale from '@mui/icons-material/PointOfSale';
+import AdminPanelSettings from '@mui/icons-material/AdminPanelSettings';
+import LocalShipping from '@mui/icons-material/LocalShipping';
+import Business from '@mui/icons-material/Business';
 import { MesResumen } from "../../types";
 import { NoDataChartMessage } from "./NoDataChartMessage";
 

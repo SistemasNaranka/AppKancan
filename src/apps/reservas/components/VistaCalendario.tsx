@@ -16,21 +16,19 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
-import {
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  AccessTime as TimeIcon,
-  Room as RoomIcon,
-  Person as PersonIcon,
-  Close as CloseIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Business as AreaIcon,
-  Add as AddIcon,
-  Notes as NotesIcon,
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-} from "@mui/icons-material";
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import TimeIcon from '@mui/icons-material/AccessTime';
+import RoomIcon from '@mui/icons-material/Room';
+import PersonIcon from '@mui/icons-material/Person';
+import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AreaIcon from '@mui/icons-material/Business';
+import AddIcon from '@mui/icons-material/Add';
+import NotesIcon from '@mui/icons-material/Notes';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useQuery } from "@tanstack/react-query";
 import {
   format,

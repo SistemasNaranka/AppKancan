@@ -1,6 +1,6 @@
 import React from "react";
 import { Dialog, DialogContent, Typography, Box, Button } from "@mui/material";
-import { AnalyticsOutlined } from "@mui/icons-material";
+import AnalyticsOutlined from '@mui/icons-material/AnalyticsOutlined';
 
 interface NoDataModalProps {
   open: boolean;

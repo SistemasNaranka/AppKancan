@@ -20,14 +20,12 @@ import {
   CircularProgress,
   Avatar,
 } from "@mui/material";
-import {
-  Search,
-  Refresh,
-  Person,
-  Warning,
-  CheckCircle,
-  LockReset,
-} from "@mui/icons-material";
+import Search from '@mui/icons-material/Search';
+import Refresh from '@mui/icons-material/Refresh';
+import Person from '@mui/icons-material/Person';
+import Warning from '@mui/icons-material/Warning';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import LockReset from '@mui/icons-material/LockReset';
 import { getAllUsers, resetUserPassword } from "@/services/directus/auth";
 import { useSnackbar } from "@/auth/hooks/useSnackbar";
 

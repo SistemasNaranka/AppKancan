@@ -8,7 +8,8 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { ArrowBack, Save } from "@mui/icons-material";
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import Save from '@mui/icons-material/Save';
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";

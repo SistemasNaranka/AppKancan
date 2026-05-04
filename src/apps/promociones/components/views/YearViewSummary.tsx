@@ -9,7 +9,8 @@ import {
 } from "@mui/material";
 import { Instance } from "@popperjs/core";
 import dayjs, { Dayjs } from "dayjs";
-import { ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
+import ArrowBackIos from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIos from '@mui/icons-material/ArrowForwardIos';
 import { useFilteredPromotions } from "../../hooks/useFilteredPromotions";
 import { usePromotionsFilter } from "../../hooks/usePromotionsFilter";
 

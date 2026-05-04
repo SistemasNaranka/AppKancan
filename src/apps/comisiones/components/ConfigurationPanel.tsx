@@ -21,18 +21,16 @@ import {
   Tooltip,
   Grid,
 } from "@mui/material";
-import {
-  Save,
-  Percent,
-  Close,
-  CalendarMonth,
-  Badge,
-  SettingsSuggest,
-  Event,
-  AddCircleOutline,
-  DeleteOutline,
-  InfoOutlined,
-} from "@mui/icons-material";
+import Save from '@mui/icons-material/Save';
+import Percent from '@mui/icons-material/Percent';
+import Close from '@mui/icons-material/Close';
+import CalendarMonth from '@mui/icons-material/CalendarMonth';
+import Badge from '@mui/icons-material/Badge';
+import SettingsSuggest from '@mui/icons-material/SettingsSuggest';
+import Event from '@mui/icons-material/Event';
+import AddCircleOutline from '@mui/icons-material/AddCircleOutline';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import {
   obtenerCargos,
   obtenerPorcentajesMensuales,

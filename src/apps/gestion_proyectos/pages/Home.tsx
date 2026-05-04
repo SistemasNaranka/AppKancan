@@ -19,25 +19,23 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
-import {
-  Add as AddIcon,
-  Refresh as RefreshIcon,
-  AccessTime as ClockIcon,
-  AutoAwesomeMosaic as AutoAwesomeMosaicICon,
-  CalendarMonth as CalendarIcon,
-  TrendingUp as TrendingUpIcon,
-  SettingsSuggest as SettingsSuggestIcon,
-  Check as CheckIcon,
-  ExpandMore as ExpandMoreIcon,
-  Speed as SpeedIcon,
-  ShowChart as ShowChartIcon,
-  Close as CloseIcon,
-  AutoMode as AutoModeIcon,
-  CalendarToday as CalendarTodayIcon,
-  DateRange as DateRangeIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-} from "@mui/icons-material";
+import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ClockIcon from '@mui/icons-material/AccessTime';
+import AutoAwesomeMosaicICon from '@mui/icons-material/AutoAwesomeMosaic';
+import CalendarIcon from '@mui/icons-material/CalendarMonth';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
+import CheckIcon from '@mui/icons-material/Check';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SpeedIcon from '@mui/icons-material/Speed';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+import CloseIcon from '@mui/icons-material/Close';
+import AutoModeIcon from '@mui/icons-material/AutoMode';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import DateRangeIcon from '@mui/icons-material/DateRange';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {
   Chart as ChartJS,
   CategoryScale,

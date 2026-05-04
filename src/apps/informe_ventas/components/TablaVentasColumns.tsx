@@ -20,7 +20,7 @@ import {
   TableCell,
   TableSortLabel,
 } from "@mui/material";
-import { Search as SearchIcon } from "@mui/icons-material";
+import SearchIcon from '@mui/icons-material/Search';
 import { Agrupacion, TablaVentasFila } from "../types";
 
 type CampoOrden = keyof TablaVentasFila;

@@ -1,10 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/hooks/useAuth";
-import {
-  Home as HomeIcon,
-  ArrowLeft as ArrowLeftIcon,
-  Search as SearchIcon,
-} from "@mui/icons-material";
+import HomeIcon from '@mui/icons-material/Home';
+import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
+import SearchIcon from '@mui/icons-material/Search';
 import {
   Container,
   Paper,

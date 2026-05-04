@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Box, Typography, Alert, alpha } from "@mui/material";
-import { CheckCircle, Error, Warning, Info } from "@mui/icons-material";
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Error from '@mui/icons-material/Error';
+import Warning from '@mui/icons-material/Warning';
+import Info from '@mui/icons-material/Info';
 import { useTheme } from "@mui/material/styles";
 
 interface InlineMessageProps {

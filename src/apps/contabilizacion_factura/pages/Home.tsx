@@ -15,14 +15,12 @@ import {
   Alert,
   Snackbar,
 } from "@mui/material";
-import {
-  CheckCircle,
-  SmartToy,
-  Description,
-  ReceiptLong,
-  Cancel,
-  Update,
-} from "@mui/icons-material";
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import SmartToy from '@mui/icons-material/SmartToy';
+import Description from '@mui/icons-material/Description';
+import ReceiptLong from '@mui/icons-material/ReceiptLong';
+import Cancel from '@mui/icons-material/Cancel';
+import Update from '@mui/icons-material/Update';
 
 // Hooks
 import { useHybridExtractor } from "../hooks/useHybridExtractor";

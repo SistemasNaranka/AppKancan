@@ -10,7 +10,8 @@ import {
     Box,
     CircularProgress,
 } from "@mui/material";
-import { Save, Cancel } from "@mui/icons-material";
+import Save from '@mui/icons-material/Save';
+import Cancel from '@mui/icons-material/Cancel';
 
 interface AutomaticoModalProps {
     open: boolean;

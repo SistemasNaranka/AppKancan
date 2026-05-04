@@ -1,6 +1,6 @@
 import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
-import { createItem, updateItem } from "@directus/sdk";
+import { createItem, updateItem, readItems } from "@directus/sdk";
 import type {
   Prorroga,
   Contrato,
@@ -121,6 +121,59 @@ export async function cambiarRequestStatus(
   } catch (error) {
     console.error(
       `❌ Error al cambiar request_status del contrato ${contratoId}:`,
+      error
+    );
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cambio de Cargo
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Actualiza los campos `cargo` y opcionalmente `area` en la tabla `contratos`.
+ *
+ * Debe llamarse siempre junto con `crearHistorialCargo` para mantener
+ * el contrato sincronizado con el historial de movimientos. El WebSocket
+ * del ContractContext detectará el UPDATE y hará UPSERT_CONTRATO
+ * automáticamente, reflejando el cambio en toda la app sin recargar.
+ *
+ * @param contratoId  ID del contrato a actualizar
+ * @param nuevoCargo  Nombre del nuevo cargo (string)
+ * @param nuevaArea   Área correspondiente al nuevo cargo (opcional)
+ */
+export async function actualizarCargoEnContrato(
+  contratoId: number,
+  nuevoCargo: string,
+  nuevaArea?: string
+): Promise<boolean> {
+  try {
+    // contratos.cargo es FK a util_cargo. Resolver nombre → id.
+    const cargos: any = await withAutoRefresh(() =>
+      directus.request(
+        readItems("util_cargo", {
+          fields: ["id"],
+          filter: { nombre: { _eq: nuevoCargo } },
+          limit: 1,
+        })
+      )
+    );
+    const cargoId = (cargos as any[])?.[0]?.id;
+    if (!cargoId) {
+      throw new Error(`util_cargo no encontrado para nombre="${nuevoCargo}"`);
+    }
+
+    const payload: Record<string, any> = { cargo: cargoId };
+    if (nuevaArea) payload.area = nuevaArea;
+
+    await withAutoRefresh(() =>
+      directus.request(updateItem("contratos", contratoId, payload))
+    );
+    return true;
+  } catch (error) {
+    console.error(
+      `❌ Error al actualizar cargo del contrato ${contratoId}:`,
       error
     );
     return false;

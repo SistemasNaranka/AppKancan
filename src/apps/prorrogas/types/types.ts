@@ -155,3 +155,17 @@ export interface Employee {
   foto?: string;
   empresa?: string;
 }
+
+// ── Historial de Cargos ───────────────────────────────────────────────────
+
+export interface HistorialCargo {
+  id: number;
+  contrato_id: number;
+  cargo_anterior: string | number;
+  cargo_nuevo: string | number;
+  fecha_efectividad: string; // YYYY-MM-DD
+  date_created?: string;
+}
+
+export type CreateHistorialCargo = Omit<HistorialCargo, 'id' | 'date_created'>;
+

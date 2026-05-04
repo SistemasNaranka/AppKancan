@@ -7,7 +7,8 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { Inventory, Numbers } from "@mui/icons-material";
+import Inventory from '@mui/icons-material/Inventory';
+import Numbers from '@mui/icons-material/Numbers';
 
 interface Props {
   articulos: number;

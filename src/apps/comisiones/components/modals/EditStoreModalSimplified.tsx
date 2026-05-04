@@ -23,17 +23,15 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import "dayjs/locale/es"; // Localización español
-import {
-  Close,
-  Save,
-  Person,
-  Search,
-  Store,
-  CalendarToday,
-  Groups,
-  CheckCircle,
-  CalendarMonth,
-} from "@mui/icons-material";
+import Close from '@mui/icons-material/Close';
+import Save from '@mui/icons-material/Save';
+import Person from '@mui/icons-material/Person';
+import Search from '@mui/icons-material/Search';
+import Store from '@mui/icons-material/Store';
+import CalendarToday from '@mui/icons-material/CalendarToday';
+import Groups from '@mui/icons-material/Groups';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import CalendarMonth from '@mui/icons-material/CalendarMonth';
 import { useEditStoreModalLogic } from "../../hooks/useEditStoreModalLogic";
 import { DaysWithoutBudgetPanel } from "./DaysWithoutBudgetPanel";
 import { useApps } from "@/apps/hooks/useApps";

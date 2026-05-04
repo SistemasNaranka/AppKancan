@@ -12,11 +12,9 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { useState, useMemo } from "react";
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Timer as TimerIcon,
-} from "@mui/icons-material";
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import TimerIcon from '@mui/icons-material/Timer';
 
 interface ProcesoForm {
   id: string;

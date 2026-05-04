@@ -28,15 +28,13 @@ import {
   AccordionDetails,
   Autocomplete,
 } from "@mui/material";
-import {
-  Business as BusinessIcon,
-  AccountBalance as ContabilidadIcon,
-  People as RRHHIcon,
-  LocalShipping as LogisticaIcon,
-  DesignServices as DisenoIcon,
-  Computer as SistemasIcon,
-  Campaign as MercadeoIcon,
-} from "@mui/icons-material";
+import BusinessIcon from '@mui/icons-material/Business';
+import ContabilidadIcon from '@mui/icons-material/AccountBalance';
+import RRHHIcon from '@mui/icons-material/People';
+import LogisticaIcon from '@mui/icons-material/LocalShipping';
+import DisenoIcon from '@mui/icons-material/DesignServices';
+import SistemasIcon from '@mui/icons-material/Computer';
+import MercadeoIcon from '@mui/icons-material/Campaign';
 import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -53,23 +51,21 @@ import {
   type ChartOptions,
   type LegendOptions,
 } from "chart.js";
-import {
-  ArrowBack,
-  PostAdd,
-  AccessTimeFilled,
-  Description,
-  Stars,
-  Edit,
-  Close,
-  Save,
-  ExpandMore,
-  TrendingUp,
-  Speed,
-  ShowChart,
-  PieChart,
-  Add,
-  Delete,
-} from "@mui/icons-material";
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import PostAdd from '@mui/icons-material/PostAdd';
+import AccessTimeFilled from '@mui/icons-material/AccessTimeFilled';
+import Description from '@mui/icons-material/Description';
+import Stars from '@mui/icons-material/Stars';
+import Edit from '@mui/icons-material/Edit';
+import Close from '@mui/icons-material/Close';
+import Save from '@mui/icons-material/Save';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import TrendingUp from '@mui/icons-material/TrendingUp';
+import Speed from '@mui/icons-material/Speed';
+import ShowChart from '@mui/icons-material/ShowChart';
+import PieChart from '@mui/icons-material/PieChart';
+import Add from '@mui/icons-material/Add';
+import Delete from '@mui/icons-material/Delete';
 import {
   useProyectoById,
   getEstadoColor,

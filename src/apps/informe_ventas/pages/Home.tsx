@@ -6,10 +6,8 @@ import {
   CircularProgress,
   Button,
 } from "@mui/material";
-import {
-  Assessment as AssessmentIcon,
-  Download as DownloadIcon,
-} from "@mui/icons-material";
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useInformeVentas } from "../hooks/useInformeVentas";
 import { FiltrosVentasComponent } from "../components/FiltrosVentas";
 import { TarjetasResumen } from "../components/TarjetasResumen";

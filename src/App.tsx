@@ -12,6 +12,7 @@ import { TutorialProvider } from "@/shared/hooks/TutorialContext";
 import { SnackbarProvider } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 import { ForcePasswordChangeModal } from "@/auth/components/ForcePasswordChangeModal";
 import PeekButtonContainer from "@/shared/components/PeekButtonContainer";
+import WhatsNewModal from "@/shared/components/WhatsNewModal";
 import { useAuth } from "@/auth/hooks/useAuth";
 
 const AppWithPasswordModal = () => {
@@ -31,6 +32,7 @@ const AppWithPasswordModal = () => {
       <AppRoutes />
       <ForcePasswordChangeModal open={modalOpen} onClose={() => {}} />
       {isAuthenticated && !user?.requires_password_change && <PeekButtonContainer />}
+      {isAuthenticated && !user?.requires_password_change && <WhatsNewModal />}
     </>
   );
 };

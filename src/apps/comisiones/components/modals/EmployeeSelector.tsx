@@ -11,7 +11,8 @@ import {
   useTheme,
   alpha,
 } from "@mui/material";
-import { Person, Search } from "@mui/icons-material";
+import Person from '@mui/icons-material/Person';
+import Search from '@mui/icons-material/Search';
 import { EmployeeInfoCard } from "./EmployeeInfoCard";
 import { DirectusCargo, DirectusAsesor } from "../../types/modal";
 

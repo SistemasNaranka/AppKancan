@@ -11,7 +11,8 @@ import {
   DialogTitle,
   Typography,
 } from "@mui/material";
-import { Work, Warning } from "@mui/icons-material";
+import Work from '@mui/icons-material/Work';
+import Warning from '@mui/icons-material/Warning';
 import { EmployeeSelector } from "../modals/EmployeeSelector";
 import { AssignedEmployeesList } from "../modals/AssignedEmployeesList";
 import { InlineMessage } from "../modals/InlineMessage";

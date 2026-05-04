@@ -21,12 +21,10 @@ import {
   Fade,
   ClickAwayListener,
 } from "@mui/material";
-import {
-  Schedule as ScheduleIcon,
-  CheckCircle as CheckIcon,
-  Info as InfoIcon,
-  Close as CloseIcon,
-} from "@mui/icons-material";
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import CheckIcon from '@mui/icons-material/CheckCircle';
+import InfoIcon from '@mui/icons-material/Info';
+import CloseIcon from '@mui/icons-material/Close';
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";

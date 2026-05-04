@@ -1,11 +1,9 @@
 import React from "react";
 import { Button, Box } from "@mui/material";
-import {
-  Settings,
-  Person,
-  Store,
-  Assignment as AssignmentIcon,
-} from "@mui/icons-material";
+import Settings from '@mui/icons-material/Settings';
+import Person from '@mui/icons-material/Person';
+import Store from '@mui/icons-material/Store';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import { ExportButtons } from "./ExportButtons";
 import { SimpleFilters } from "./SimpleFilters";
 import { SummaryCards } from "../SummaryCards";

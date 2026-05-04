@@ -8,7 +8,9 @@ import {
   IconButton,
   alpha,
 } from "@mui/material";
-import { Person, Groups, Close } from "@mui/icons-material";
+import Person from '@mui/icons-material/Person';
+import Groups from '@mui/icons-material/Groups';
+import Close from '@mui/icons-material/Close';
 import dayjs from "dayjs";
 
 interface AssignedEmployeesSectionProps {

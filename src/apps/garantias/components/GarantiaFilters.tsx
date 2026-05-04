@@ -12,10 +12,8 @@ import {
   OutlinedInput,
   SelectChangeEvent,
 } from "@mui/material";
-import {
-  Search as SearchIcon,
-  Clear as ClearIcon,
-} from "@mui/icons-material";
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 
 interface GarantiaFilters {
   estado?: string[];

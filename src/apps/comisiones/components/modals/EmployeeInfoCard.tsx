@@ -1,6 +1,8 @@
 import React from "react";
 import { Box, Typography, Chip, useTheme, alpha } from "@mui/material";
-import { CheckCircle, Warning, Badge } from "@mui/icons-material";
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Warning from '@mui/icons-material/Warning';
+import Badge from '@mui/icons-material/Badge';
 import { DirectusAsesor } from "../../types/modal";
 
 interface EmployeeInfoCardProps {

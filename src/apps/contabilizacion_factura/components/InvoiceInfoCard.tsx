@@ -16,14 +16,12 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import {
-  CalendarToday,
-  EventBusy,
-  Store,
-  Description,
-  Receipt,
-  CheckCircle,
-} from "@mui/icons-material";
+import CalendarToday from '@mui/icons-material/CalendarToday';
+import EventBusy from '@mui/icons-material/EventBusy';
+import Store from '@mui/icons-material/Store';
+import Description from '@mui/icons-material/Description';
+import Receipt from '@mui/icons-material/Receipt';
+import CheckCircle from '@mui/icons-material/CheckCircle';
 import { DatosFacturaPDF, formatCurrency, formatDate } from "../types";
 
 interface InvoiceInfoCardProps {

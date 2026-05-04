@@ -8,7 +8,7 @@ import {
   MenuItem,
   Popover,
 } from "@mui/material";
-import { FilterList as FilterIcon } from "@mui/icons-material";
+import FilterIcon from '@mui/icons-material/FilterList';
 import type { FiltrosReserva } from "../types/reservas.types";
 import { SALAS_DISPONIBLES, ESTADOS_FILTRO } from "../types/reservas.types";
 

@@ -5,14 +5,12 @@
  */
 
 import { Box, Paper, Typography } from "@mui/material";
-import {
-  TrendingUp as TrendingUpIcon,
-  AttachMoney as AttachMoneyIcon,
-  People as PeopleIcon,
-  Store as StoreIcon,
-  Inventory as InventoryIcon,
-  BarChart as BarChartIcon,
-} from "@mui/icons-material";
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import PeopleIcon from '@mui/icons-material/People';
+import StoreIcon from '@mui/icons-material/Store';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { ResumenVentas } from "../types";
 
 interface TarjetasResumenProps {

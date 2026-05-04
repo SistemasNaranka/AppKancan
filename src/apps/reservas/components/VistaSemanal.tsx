@@ -14,20 +14,18 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import {
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  Add as AddIcon,
-  Close as CloseIcon,
-  AccessTime as TimeIcon,
-  Person as PersonIcon,
-  Room as RoomIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Business as AreaIcon,
-  Notes as NotesIcon,
-  Warning as WarningIcon,
-} from "@mui/icons-material";
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
+import TimeIcon from '@mui/icons-material/AccessTime';
+import PersonIcon from '@mui/icons-material/Person';
+import RoomIcon from '@mui/icons-material/Room';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AreaIcon from '@mui/icons-material/Business';
+import NotesIcon from '@mui/icons-material/Notes';
+import WarningIcon from '@mui/icons-material/Warning';
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { useQuery } from "@tanstack/react-query";
