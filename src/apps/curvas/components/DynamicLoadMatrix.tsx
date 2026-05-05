@@ -978,15 +978,15 @@ const DynamicLoadMatrix = forwardRef<
         referenciaBase: referencia,
         ...(!isGeneral
           ? {
-              metadatos: {
-                referencia: referencia || "",
-                color: color || "UNICO",
-                imagen: "",
-                proveedor: "MANUAL",
-                precio: 0,
-                linea: type === "producto_a" ? "BOLSOS" : "ZAPATOS",
-              },
-            }
+            metadatos: {
+              referencia: referencia || "",
+              color: color || "UNICO",
+              imagen: "",
+              proveedor: "MANUAL",
+              precio: 0,
+              linea: type === "producto_a" ? "BOLSOS" : "ZAPATOS",
+            },
+          }
           : {}),
       };
 

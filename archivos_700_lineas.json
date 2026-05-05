@@ -1,0 +1,94 @@
+[
+    {
+        "File":  "src/apps/curvas/contexts/CurvasContext.tsx",
+        "Lines":  2554
+    },
+    {
+        "File":  "src/apps/curvas/pages/AnalisisPage.tsx",
+        "Lines":  1756
+    },
+    {
+        "File":  "src/apps/curvas/pages/EnviosPage.tsx",
+        "Lines":  1479
+    },
+    {
+        "File":  "src/apps/reservas/components/VistaSemanal.tsx",
+        "Lines":  1428
+    },
+    {
+        "File":  "src/apps/gestion_proyectos/pages/Home.tsx",
+        "Lines":  1393
+    },
+    {
+        "File":  "src/apps/curvas/components/DynamicLoadMatrix.tsx",
+        "Lines":  1382
+    },
+    {
+        "File":  "src/apps/reservas/components/DialogNuevaReserva.tsx",
+        "Lines":  1358
+    },
+    {
+        "File":  "src/apps/gestion_proyectos/pages/DetalleProyecto.tsx",
+        "Lines":  1278
+    },
+    {
+        "File":  "src/apps/curvas/pages/DashboardPage.tsx",
+        "Lines":  1269
+    },
+    {
+        "File":  "src/apps/reservas/components/VistaCalendario.tsx",
+        "Lines":  1249
+    },
+    {
+        "File":  "src/apps/curvas/pages/UploadPage.tsx",
+        "Lines":  1214
+    },
+    {
+        "File":  "src/apps/comisiones/components/ConfigurationTabsPanel.tsx",
+        "Lines":  1174
+    },
+    {
+        "File":  "src/apps/comisiones/hooks/useEmployeeOperations.ts",
+        "Lines":  997
+    },
+    {
+        "File":  "src/apps/comisiones/components/dataTable/DataTableAccordionTable.tsx",
+        "Lines":  969
+    },
+    {
+        "File":  "src/apps/comparacion_plataformas/views/NormalizarView.tsx",
+        "Lines":  957
+    },
+    {
+        "File":  "src/apps/comisiones/components/modals/EditStoreModalSimplified.tsx",
+        "Lines":  925
+    },
+    {
+        "File":  "src/apps/comisiones/pages/Home.tsx",
+        "Lines":  863
+    },
+    {
+        "File":  "src/apps/comisiones/hooks/useEditStoreModalLogic.ts",
+        "Lines":  804
+    },
+    {
+        "File":  "src/apps/comisiones/hooks/useEditStoreBudgetModalLogic.ts",
+        "Lines":  799
+    },
+    {
+        "File":  "src/apps/reservas/components/DialogEditarReserva.tsx",
+        "Lines":  786
+    },
+    {
+        "File":  "src/apps/comisiones/components/modals/CodesModal.tsx",
+        "Lines":  775
+    },
+    {
+        "File":  "src/apps/comisiones/lib/calculations.summary.ts",
+        "Lines":  744
+    },
+    {
+        "File":  "src/apps/curvas/pages/EnviosPage.components.tsx",
+        "Lines":  731
+    }
+]

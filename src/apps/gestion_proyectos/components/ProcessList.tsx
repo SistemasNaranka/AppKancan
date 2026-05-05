@@ -197,8 +197,9 @@ function ProcesoCard({
         border: "1px solid #dcdcdc",
       }}
     >
-      {/* Número y nombre en fila */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      {/* Número, nombre y acciones en fila única */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {/* Número */}
         <Box
           sx={{
             minWidth: 28,
@@ -223,30 +224,22 @@ function ProcesoCard({
           value={proceso.nombre}
           onChange={(e) => onActualizar(proceso.id, "nombre", e.target.value)}
           placeholder="Nombre del paso"
-          sx={{ flexGrow: 1, minWidth: 80 }}
+          sx={{ flexGrow: 1, minWidth: 800, maxWidth: 2200 }}
           slotProps={{ input: { sx: { bgcolor: "white", borderRadius: 1 } } }}
         />
-      </Box>
 
-      {/* Selector de unidad compartido */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 4.5 }}>
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Unidad:
-        </Typography>
+        {/* Unidad */}
         <Select
           value={unidad}
           onChange={(e) => setUnidad(e.target.value as "seg" | "min" | "hora")}
           size="small"
-          sx={{ width: 85, fontSize: "0.75rem" }}
+          sx={{ width: 70, fontSize: "0.75rem", flexShrink: 0 }}
         >
           <MenuItem value="seg">seg</MenuItem>
           <MenuItem value="min">min</MenuItem>
-          <MenuItem value="hora">hora</MenuItem>
+          <MenuItem value="hora">hrs</MenuItem>
         </Select>
-      </Box>
 
-      {/* Antes y Después en fila */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, ml: 4.5 }}>
         {/* Antes */}
         <TextField
           label="Antes"
@@ -259,13 +252,13 @@ function ProcesoCard({
             onActualizar(proceso.id, "tiempo_antes", Math.round(valorEnSegundos));
           }}
           placeholder="0"
-          sx={{ width: 110 }}
+          sx={{ width: 90, flexShrink: 0 }}
           slotProps={{
             input: {
               sx: { bgcolor: "white", borderRadius: 1 },
               endAdornment: (
                 <InputAdornment position="end">
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
                     {unidad === "hora" ? "hrs" : unidad}
                   </Typography>
                 </InputAdornment>
@@ -286,13 +279,13 @@ function ProcesoCard({
             onActualizar(proceso.id, "tiempo_despues", Math.round(valorEnSegundos));
           }}
           placeholder="0"
-          sx={{ width: 110 }}
+          sx={{ width: 110, flexShrink: 0 }}
           slotProps={{
             input: {
               sx: { bgcolor: "white", borderRadius: 1 },
               endAdornment: (
                 <InputAdornment position="end">
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
                     {unidad === "hora" ? "hrs" : unidad}
                   </Typography>
                 </InputAdornment>
@@ -300,18 +293,16 @@ function ProcesoCard({
             },
           }}
         />
-      </Box>
 
-      {/* Eliminar */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        {/* Botón eliminar */}
         <IconButton
           size="small"
           onClick={() => onEliminar(proceso.id)}
-          sx={{ color: "#ff3838" }}
+          sx={{ color: "#ff3838", flexShrink: 0, ml: 0.5 }}
         >
           <DeleteIcon fontSize="small" />
         </IconButton>
-      </Box>
-    </Box>
-  );
-}
+       </Box>
+     </Box>
+   );
+ }

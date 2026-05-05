@@ -102,9 +102,9 @@ export const EditStoreModalSimplified: React.FC<
   const isAdmin = area?.toLowerCase() !== "tienda" || tiendas.length > 1;
 
   const handleGuardarWrapper = async () => {
-    
+
     const success = await handleGuardar();
-    
+
     if (!success) {
       setSaveError(true);
     } else {
