@@ -99,29 +99,45 @@ const Home: React.FC = () => {
                 size="small"
               />
             </Grid>
+
             <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
-                name="Direccion"
-                label="Direccion"
-                value={formData.telefono}
+                name="direccion" // <-- Cambiado a minúscula para coincidir con formData.direccion
+                label="Dirección"
+                value={formData.direccion}
                 onChange={handleInputChange}
                 required
                 variant="outlined"
                 size="small"
               />
 
+              
+
+
+
             </Grid>
+
             <Grid size={{ xs: 12, sm: 4 }}>
+
               <TextField
+
                 fullWidth
+
                 name="telefono"
+
                 label="Teléfono"
+
                 value={formData.telefono}
+
                 onChange={handleInputChange}
+
                 required
+
                 variant="outlined"
+
                 size="small"
+
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>

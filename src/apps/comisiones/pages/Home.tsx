@@ -1,729 +1,114 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useCommission } from "../contexts/CommissionContext";
+import { useMemo } from "react";
 import { HomeHeader } from "../components/ui/HomeHeader";
 import { HomeModals } from "../components/modals/HomeModals";
-import { SummaryCards } from "../components/SummaryCards";
 import { DataTable } from "../components/dataTable/DataTable";
 import { Charts } from "../components/Charts";
 import { LoadingState } from "../components/ui/LoadingState";
 import { ConfigurationTabsPanel } from "../components/ConfigurationTabsPanel";
-import { getAvailableMonths } from "../lib/calculations.utils";
-import { calculateMesResumenAgrupado } from "../lib/calculations.summary";
-import { useOptimizedCommissionData } from "../hooks/useOptimizedCommissionData";
-import { useAvailableMonths } from "../hooks/useAvailableMonths";
-import { useBudgetValidation } from "../hooks/useBudgetValidation";
-import { useUserPolicies } from "../hooks/useUserPolicies";
+import { SaveLoadingScreen } from "../components/ui/SaveLoadingScreen";
+import { SummaryCards } from "../components/SummaryCards";
+import { useHomeLogic } from "../hooks/useHomeLogic";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import GroupsIcon from "@mui/icons-material/Groups";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import { Button, Box, Typography } from "@mui/material";
 
-// 🚀 HOOK OPTIMIZADO - ELIMINA CONGELAMIENTO
-import { useFiltersOptimized } from "../hooks/useFilters.optimized";
-import { Role } from "../types";
-
 export default function Home() {
-  const {
-    state,
-    setVentas,
-    setBudgets,
-    setStaff,
-    setMonthConfigs,
-    updatePresupuestosEmpleados,
-  } = useCommission();
-
-  //  NUEVO: Hook para obtener todos los meses disponibles
-  //  NUEVO: Hook para obtener todos los meses disponibles
-  const { availableMonths, currentMonth, isLoadingMonths } =
-    useAvailableMonths();
-
-  // Estados locales
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth || "");
-  const [showCodesModal, setShowCodesModal] = useState(false);
-  const [showTabsConfigModal, setShowTabsConfigModal] = useState(false);
-
-  //  NUEVO: Estado para pantalla de carga de guardado
-  const [showSaveLoading, setShowSaveLoading] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState(false);
-
-  // 🔄 SINCRONIZAR con el hook de meses disponibles
-  useEffect(() => {
-    if (currentMonth && (currentMonth !== selectedMonth || !selectedMonth)) {
-      setSelectedMonth(currentMonth);
-    }
-  }, [currentMonth]);
-
-  // Flag para evitar que useEffect interfiera cuando hacemos clic en "Total Comisiones"
-  const skipEffectRef = useRef(false);
-
-  // 🚀 QueryClient para limpiar caché
-  const queryClient = useQueryClient();
-
-  // Hook optimizado para datos de comisiones
-  const {
-    data: commissionData,
-    isLoading,
-    isRefetching,
-    isError,
-    error,
-    dataLoadAttempted,
-    hasData,
-    refetch,
-  } = useOptimizedCommissionData(selectedMonth);
-
-  // Estados legacy para compatibilidad temporal
-  const [showNoDataModal, setShowNoDataModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-
-  // 🚀 NUEVO: Variable para controlar el estado del modal de edición
-  const [showEditStoreModal, setShowEditStoreModal] = useState(false);
-  const [showEditStoreBudgetModal, setShowEditStoreBudgetModal] =
-    useState(false);
-
-  const {
-    budgets = [],
-    staff = [],
-    monthConfigs: monthConfigsData = [],
-    ventas = [],
-    presupuestosEmpleados = [],
-    cargos = [],
-    thresholdConfig, // ✅ Extraer umbrales de comisiones
-  } = commissionData || {};
-
-  // Sincronizar datos con el contexto
-  useEffect(() => {
-    if (commissionData) {
-      setBudgets(budgets);
-      setStaff(staff);
-      setMonthConfigs(monthConfigsData);
-      setVentas(ventas);
-      // 🚀 NUEVO: Sincronizar presupuestosEmpleados con el contexto
-      setPresupuestosEmpleados(presupuestosEmpleados);
-    }
-  }, [commissionData, setBudgets, setStaff, setMonthConfigs, setVentas]);
-
-  // 🚀 NUEVO: Función para sincronizar presupuestosEmpleados (solo para datos iniciales)
-  const setPresupuestosEmpleados = useCallback(
-    (presupuestos: any[]) => {
-      updatePresupuestosEmpleados(presupuestos);
-    },
-    [updatePresupuestosEmpleados],
-  );
-
-  const {
-    filterTienda,
-    filterRol,
-    expandedTiendas,
-    isFiltering, // Indicador de filtrado activo
-    setFilterTienda,
-    toggleFilterRol,
-    clearFilterRol,
-    handleToggleAllStores,
-    toggleSingleStore,
-    applyFilters,
-    getUniqueTiendas,
-    getFilteredComissionsForCards,
-    // 🚀 NUEVO: Función para limpiar cache de filtros
-    clearFilterCache,
-  } = useFiltersOptimized();
-
-  // 🚀 NUEVO: Determinar si hay exactamente una tienda seleccionada
-  const hasSingleStoreSelected = filterTienda.length === 1;
-
-  // 🚀 NUEVO: Hook para validar presupuesto diario de empleados
-  // Solo se pasa el nombre de la tienda si hay exactamente una seleccionada
-  const {
-    hasBudgetData,
-    todayBudgetCount,
-    missingDaysCount,
-    validationCompleted: budgetValidationCompleted,
-    revalidateBudgetData,
-  } = useBudgetValidation(hasSingleStoreSelected ? filterTienda[0] : undefined);
-
-  // 🚀 NUEVO: Hook para verificar políticas de usuario
-  const { hasPolicy } = useUserPolicies();
-
-  // Cache para cálculos costosos (optimizado)
-  const calculationCacheRef = useRef<Map<string, any>>(new Map());
-
-  // 🚀 NUEVO: Obtener fecha actual formateada
-  const getCurrentFormattedDate = useCallback(() => {
-    const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    };
-    return now.toLocaleDateString("es-ES", options);
-  }, []);
-
-  // 🚀 NUEVO: Usar los meses disponibles del hook en lugar de extraer de budgets
-  const availableMonthsFinal = useMemo(() => {
-    // Si el hook ya cargó los meses, usarlos
-    if (availableMonths && availableMonths.length > 0) {
-      return availableMonths;
-    }
-
-    // Fallback: usar la lógica original solo si el hook no ha cargado aún
-    const months = getAvailableMonths(budgets);
-    return months.length > 0 ? months : [selectedMonth];
-  }, [availableMonths, budgets, selectedMonth]);
-
-  // Obtener configuración del mes
-  const monthConfig = useMemo(
-    () => monthConfigsData.find((c: any) => c.mes === selectedMonth),
-    [monthConfigsData, selectedMonth],
-  );
-  const porcentajeGerente = useMemo(
-    () => monthConfig?.porcentaje_gerente || 10,
-    [monthConfig],
-  );
-
-  // 🚀 NUEVO: Determinar si debe mostrar el estado de carga (MOVIDO AQUÍ PARA EVITAR HOISTING)
-  const shouldShowLoading = useMemo(() => {
-    // Si la validación de presupuesto no se ha completado, mostrar carga
-    if (!budgetValidationCompleted) {
-      return true;
-    }
-    // Usar el loading normal en otros casos
-    return isLoading || isLoadingMonths;
-  }, [budgetValidationCompleted, isLoading, isLoadingMonths]);
-
-  const mesResumen = useMemo(() => {
-    if (budgets.length === 0 || staff.length === 0 || ventas.length === 0) {
-      return null;
-    }
-
-    const presupuestosEmpleadosState = presupuestosEmpleados || [];
-
-    const createDataHash = () => {
-      const budgetsHash = budgets.reduce(
-        (acc: number, b: any) => acc + Math.round(b.presupuesto_total * 100),
-        0,
-      );
-      const staffHash = staff.reduce(
-        (acc: number, s: any) =>
-          acc + parseInt(s.id.replace(/\D/g, "")) + s.tienda.length,
-        0,
-      );
-      const ventasHash = ventas.reduce(
-        (acc: number, v: any) => acc + Math.round(v.ventas_tienda * 100),
-        0,
-      );
-      const presupuestosHash = presupuestosEmpleadosState.reduce(
-        (acc, p) => acc + Math.round((p.presupuesto || 0) * 100),
-        0,
-      );
-      const presupuestosCount = presupuestosEmpleadosState.length;
-      // ✅ AGREGAR hash de umbrales al cache key
-      const thresholdHash = thresholdConfig?.cumplimiento_valores
-        ? thresholdConfig.cumplimiento_valores.reduce(
-            (acc, t) =>
-              acc +
-              Math.round(t.cumplimiento_min * 1000) +
-              Math.round(t.comision_pct * 100000),
-            0,
-          )
-        : 0;
-
-      return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}_${thresholdHash}`;
-    };
-
-    const dataHash = createDataHash();
-    const cacheKey = `mesResumen_${selectedMonth}_${dataHash}_${porcentajeGerente}`;
-
-    // Limpiar la caché si los datos han cambiado
-    if (calculationCacheRef.current.has(cacheKey)) {
-      return calculationCacheRef.current.get(cacheKey);
-    }
-
-    const result = calculateMesResumenAgrupado(
-      selectedMonth,
-      budgets,
-      staff,
-      ventas,
-      porcentajeGerente,
-      presupuestosEmpleadosState,
-      thresholdConfig, // ✅ PASAR thresholdConfig a los cálculos
-    );
-
-    // ✅ VALIDAR QUE result TENGA DATOS COMPLETOS
-    if (!result || !result.tiendas || result.tiendas.length === 0) {
-      return null; // No guardar en cache resultados vacíos
-    }
-
-    // Guardar en cache
-    if (calculationCacheRef.current.size > 15) {
-      const firstKey = calculationCacheRef.current.keys().next().value;
-      if (firstKey) {
-        calculationCacheRef.current.delete(firstKey);
-      }
-    }
-    calculationCacheRef.current.set(cacheKey, result);
-
-    return result;
-  }, [
-    selectedMonth,
-    budgets,
-    staff,
-    ventas,
-    porcentajeGerente,
-    presupuestosEmpleados,
-    thresholdConfig, // ✅ AGREGAR a dependencias
-  ]);
-
-  const mesResumenFiltrado = useMemo(() => {
-    if (!mesResumen) return null;
-    // Usar el filtrado optimizado del hook
-    return applyFilters(mesResumen);
-  }, [mesResumen, filterRol, filterTienda, applyFilters]);
-
-  // Obtener tiendas únicas para filtros
-  const availableTiendas = useMemo(() => {
-    return getUniqueTiendas(mesResumen);
-  }, [mesResumen, getUniqueTiendas]);
-
-  // 🚀 SOLUCIÓN: Usar una clave forzada para forzar re-render del HomeHeader
-  const [headerKey, setHeaderKey] = useState(0);
-
-  const handleAssignmentComplete = async () => {
-    console.log(`🔄 [Home] handleAssignmentComplete INICIADO`);
-    calculationCacheRef.current.clear();
-
-    clearFilterCache();
-
-    // 🚀 LIMPIAR CACHÉ DE REACT QUERY
-    queryClient.clear();
-    console.log(`🔄 [Home] caché de React Query limpiada`);
-
-    // 🚀 CORRECCIÓN: Primero revalidar presupuesto Y ESPERAR a que termine
-    // Esto asegura que la counter se actualice ANTES de cualquier re-render
-    console.log(`🔄 [Home] calling revalidateBudgetData...`);
-    await revalidateBudgetData();
-    console.log(`🔄 [Home] revalidateBudgetData completado`);
-
-    // Luego hacer refetch de los datos de comisiones
-    console.log(`🔄 [Home] esperando refetch...`);
-    await refetch();
-    console.log(`🔄 [Home] refetch completado`);
-
-    // Pequeño delay adicional para asegurar que el contexto se actualice
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // 🚀 FORZAR re-render del HomeHeader para asegurar que se actualice el mensaje
-    setHeaderKey((prev) => prev + 1);
-
-    // 🚀 Cerrar el CodesModal después de asignar presupuesto
-    setShowCodesModal(false);
-
-    console.log(`🔄 [Home] handleAssignmentComplete FINALIZADO`);
-  };
-
-  // 🚀 NUEVO: Función para mostrar pantalla de carga (usada directamente desde el modal)
-  const onShowSaveLoading = (error?: any) => {
-    handleCodesModalSave(error);
-  };
-
-  // 🚀 NUEVO: Manejar guardado desde el modal
-  const handleCodesModalSave = async (originalError?: any) => {
-    console.log(
-      "🔔 [Home] handleCodesModalSave INICIADO - Error:",
-      originalError,
-    );
-    setShowSaveLoading(true);
-    setSaveSuccess(false);
-    setSaveError(false);
-
-    try {
-      // Si hubo error en el guardado original, mostrar error directamente
-      if (originalError) {
-        console.log("❌ [Home] Error en guardado original:", originalError);
-        setSaveError(true);
-
-        // Mostrar error y ocultar pantalla de carga
-        setTimeout(() => {
-          setShowSaveLoading(false);
-          setSaveError(false);
-        }, 3000); // 3 segundos para mostrar el error
-        return;
-      }
-
-      // Si no hay error, actualizar datos en segundo plano
-      console.log(
-        "🔔 [Home] handleCodesModalSave - Calling handleAssignmentComplete",
-      );
-      await handleAssignmentComplete();
-
-      // Una vez completada la operación real, mostrar éxito
-      setSaveSuccess(true);
-      console.log("✅ [Home] handleCodesModalSave - saveSuccess=true");
-
-      // Ocultar pantalla de carga después de mostrar éxito brevemente
-      setTimeout(() => {
-        setShowSaveLoading(false);
-        setSaveSuccess(false);
-      }, 1000); // 1 segundo para el mensaje de éxito6
-    } catch (error: any) {
-      console.error("❌ [Home] Error durante guardado:", error);
-      setSaveError(true);
-
-      // Mostrar mensaje de error más claro
-      const errorMessage =
-        error?.message || "Error de permisos - No se pudo guardar";
-      console.log("Mostrando mensaje de error:", errorMessage);
-
-      // Mostrar error y ocultar pantalla de carga
-      setTimeout(() => {
-        setShowSaveLoading(false);
-        setSaveError(false);
-      }, 3000); // 3 segundos para mostrar el error
-    }
-  };
-
-  useEffect(() => {
-    // Si el flag está activo, no ejecutar lógica automática
-    if (skipEffectRef.current) {
-      skipEffectRef.current = false;
-      return;
-    }
-
-    // Si no hay filtros de rol activos, contraer todas las tiendas
-    if (filterRol.length === 0) {
-      handleToggleAllStores([], false, true);
-      return;
-    }
-
-    // Si hay filtros de rol activos, expandir tiendas relevantes
-    if (mesResumen && mesResumen.tiendas) {
-      const tiendasAExpandir: string[] = [];
-
-      // 🚀 USAR SET PARA FILTRADO O(1) EN LUGAR DE some()
-      const roleSet = new Set(filterRol);
-      mesResumen.tiendas.forEach((tienda: any) => {
-        const tiendaKey = `${tienda.tienda}-${tienda.fecha}`;
-
-        // Optimización: usar .some() con Set es más rápido
-        const tieneEmpleadosConRoles = tienda.empleados.some((empleado: any) =>
-          roleSet.has(empleado.rol),
-        );
-
-        if (tieneEmpleadosConRoles) {
-          tiendasAExpandir.push(tiendaKey);
-        }
-      });
-
-      handleToggleAllStores(tiendasAExpandir, true, false);
-    }
-  }, [filterRol, mesResumen, handleToggleAllStores]);
-
-  const handleToggleAllStoresWrapper = useCallback(() => {
-    if (!mesResumen) return;
-
-    if (expandedTiendas.size > 0) {
-      handleToggleAllStores([], false, true);
-    } else {
-      const allTiendas = mesResumen.tiendas.map(
-        (tienda: any) => `${tienda.tienda}-${tienda.fecha}`,
-      );
-      handleToggleAllStores(allTiendas, true, false);
-    }
-  }, [mesResumen, expandedTiendas.size, handleToggleAllStores]);
-
-  const handleRoleFilterToggleWithExpansion = useCallback(
-    (role: Role) => {
-      toggleFilterRol(role);
-    },
-    [toggleFilterRol],
-  );
-
-  const handleRoleFilterClear = useCallback(() => {
-    skipEffectRef.current = true;
-    clearFilterRol();
-  }, [clearFilterRol]);
-
-  // 🚀 NUEVO: Manejar cambio de mes con validación
-  const handleMonthChange = useCallback(
-    (month: string) => {
-      if (availableMonthsFinal.includes(month)) {
-        setSelectedMonth(month);
-        return true;
-      }
-      return false;
-    },
-    [availableMonthsFinal],
-  );
-
-  // Manejar errores y estados vacíos - Optimizado para evitar flashes del modal
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    if (isError && error) {
-      setShowNoDataModal(true);
-      setModalTitle("Error al cargar datos");
-      setModalMessage((error as any)?.message || "Ocurrió un error inesperado");
-    } else if (dataLoadAttempted && !hasData && !isLoading && !commissionData) {
-      // Delay para evitar flashes del modal cuando se carga desde caché
-      timeoutId = setTimeout(() => {
-        setShowNoDataModal(true);
-        setModalTitle("Sin datos disponibles");
-        setModalMessage(
-          "No se encontraron datos para el período seleccionado.",
-        );
-      }, 500); // 500ms de delay para dar tiempo al caché
-    } else {
-      setShowNoDataModal(false);
-    }
-
-    // Cleanup timeout
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isError, error, dataLoadAttempted, hasData, isLoading, commissionData]);
-
-  // 🚀 NUEVO: Determinar si mostrar contenido principal
-  const shouldShowMainContent = useMemo(() => {
-    // No mostrar contenido si la validación no está completa
-    if (!budgetValidationCompleted) {
-      return true; // Mostrar mientras carga
-    }
-    // Para usuarios con rol tienda, solo mostrar si tiene presupuesto
-    if (hasPolicy("readComisionesTienda")) {
-      // Si no tiene presupuesto (false), no mostrar; si tiene (true) o está cargando (null), mostrar
-      return hasBudgetData !== false;
-    }
-    // Para otros usuarios, siempre mostrar
-    return true;
-  }, [budgetValidationCompleted, hasBudgetData]);
-
-  // 🚀 NUEVO: Determinar si hay una sola tienda (para gráficos)
-
-  // 🚀 NUEVO: Props condicionales para HomeHeader - solo mostrar SummaryCards si hay presupuesto
+  const { 
+    state, actions, computed, data, contextState, filters, budgetValidation, hasPolicy, refetch 
+  } = useHomeLogic();
+
+  // Construimos la lógica de la cabecera aquí, que es un archivo visual
   const homeHeaderProps = useMemo(() => {
     const baseProps = {
-      selectedMonth,
-      availableMonths: availableMonthsFinal,
-      selectedTiendas: filterTienda,
-      availableTiendas,
-      mesResumen: shouldShowMainContent ? mesResumen : null,
-      mesResumenFiltrado: shouldShowMainContent ? mesResumenFiltrado : null,
-      onMonthChange: handleMonthChange,
-      onTiendaChange: setFilterTienda,
-      onShowConfigModal: () => setShowTabsConfigModal(true),
-      onShowCodesModal: () => setShowCodesModal(true),
-      onShowEditStoreModal: () => setShowEditStoreModal(true),
-      onShowEditStoreBudgetModal: () => setShowEditStoreBudgetModal(true),
-      onToggleAllStores: handleToggleAllStoresWrapper,
-      expandedTiendas,
-      filterRol,
-      getFilteredComissionsForCards: shouldShowMainContent
-        ? getFilteredComissionsForCards
-        : () => ({
-            total_comisiones: 0,
-            comisiones_por_rol: {},
-          }),
-      onRoleFilterToggle: handleRoleFilterToggleWithExpansion,
-      onRoleFilterClear: handleRoleFilterClear,
-      hasBudgetData: hasBudgetData ?? undefined, // Pasar información de presupuesto al header
-      missingDaysCount: missingDaysCount, // Siempre pasar el valor real para mostrar el aviso de días pendientes
+      selectedMonth: state.selectedMonth,
+      availableMonths: computed.availableMonthsFinal,
+      selectedTiendas: filters.filterTienda,
+      availableTiendas: computed.availableTiendas,
+      mesResumen: computed.shouldShowMainContent ? data.mesResumen : null,
+      mesResumenFiltrado: computed.shouldShowMainContent ? data.mesResumenFiltrado : null,
+      onMonthChange: actions.handleMonthChange,
+      onTiendaChange: filters.setFilterTienda,
+      onShowConfigModal: () => actions.setShowTabsConfigModal(true),
+      onShowCodesModal: () => actions.setShowCodesModal(true),
+      onShowEditStoreModal: () => actions.setShowEditStoreModal(true),
+      onShowEditStoreBudgetModal: () => actions.setShowEditStoreBudgetModal(true),
+      onToggleAllStores: actions.handleToggleAllStoresWrapper,
+      expandedTiendas: filters.expandedTiendas,
+      filterRol: filters.filterRol,
+      getFilteredComissionsForCards: computed.shouldShowMainContent ? filters.getFilteredComissionsForCards : () => ({ total_comisiones: 0, comisiones_por_rol: {} }),
+      onRoleFilterToggle: actions.handleRoleFilterToggleWithExpansion,
+      onRoleFilterClear: actions.handleRoleFilterClear,
+      hasBudgetData: budgetValidation.hasBudgetData ?? undefined,
+      missingDaysCount: budgetValidation.missingDaysCount,
     };
 
-    // Solo agregar renderMobileSummaryCards si hay presupuesto
-    if (shouldShowMainContent) {
+    if (computed.shouldShowMainContent) {
       return {
         ...baseProps,
         renderMobileSummaryCards: () => (
-          <SummaryCards
-            mesResumen={mesResumen}
-            onToggleAllStores={handleToggleAllStoresWrapper}
-            expandedTiendas={expandedTiendas}
-            filterRol={filterRol}
-            getFilteredComissionsForCards={getFilteredComissionsForCards}
-            onRoleFilterToggle={handleRoleFilterToggleWithExpansion}
-            onRoleFilterClear={handleRoleFilterClear}
+          <SummaryCards 
+            mesResumen={data.mesResumen} 
+            onToggleAllStores={actions.handleToggleAllStoresWrapper}
+            expandedTiendas={filters.expandedTiendas} 
+            filterRol={filters.filterRol}
+            getFilteredComissionsForCards={filters.getFilteredComissionsForCards}
+            onRoleFilterToggle={actions.handleRoleFilterToggleWithExpansion} 
+            onRoleFilterClear={actions.handleRoleFilterClear}
           />
         ),
       };
     }
-
     return baseProps;
-  }, [
-    selectedMonth,
-    availableMonthsFinal,
-    filterTienda,
-    availableTiendas,
-    mesResumen,
-    mesResumenFiltrado,
-    handleMonthChange,
-    setFilterTienda,
-    handleToggleAllStoresWrapper,
-    expandedTiendas,
-    filterRol,
-    getFilteredComissionsForCards,
-    handleRoleFilterToggleWithExpansion,
-    handleRoleFilterClear,
-    shouldShowMainContent,
-    hasBudgetData,
-  ]);
-
-  // 🚀 NUEVO: Componente de pantalla de carga para guardado - VERSIÓN SIMPLIFICADA
-  // Ya no muestra pantalla oscura para evitar эффект doble recarga
-  const SaveLoadingScreen = () => {
-    if (!showSaveLoading) return null;
-
-    // Mostrar solo un indicador sutil sin pantalla oscura completa
-    return (
-      <div
-        style={{
-          position: "fixed",
-          top: 20,
-          right: 20,
-          zIndex: 9999,
-          backgroundColor: saveSuccess
-            ? "#4caf50"
-            : saveError
-              ? "#f44336"
-              : "#2196f3",
-          color: "white",
-          padding: "8px 16px",
-          borderRadius: 4,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 14,
-          fontWeight: 500,
-        }}
-      >
-        {saveSuccess ? (
-          <>
-            <span style={{ fontSize: 16 }}>✓</span>
-            Guardado correctamente
-          </>
-        ) : saveError ? (
-          <>
-            <span style={{ fontSize: 16 }}>✕</span>
-            Error al guardar
-          </>
-        ) : (
-          <>
-            <span
-              className="animate-spin"
-              style={{ display: "inline-block", fontSize: 16 }}
-            >
-              ⟳
-            </span>
-            Guardando...
-          </>
-        )}
-      </div>
-    );
-  };
+  }, [state.selectedMonth, computed.availableMonthsFinal, filters, computed.availableTiendas, data.mesResumen, data.mesResumenFiltrado, actions, computed.shouldShowMainContent, budgetValidation]);
 
   return (
     <LoadingState
-      isLoading={shouldShowLoading}
-      isRefetching={isRefetching}
-      error={error}
-      hasDataAttempted={dataLoadAttempted}
+      isLoading={computed.shouldShowLoading}
+      isRefetching={data.isRefetching}
+      error={data.error}
+      hasDataAttempted={data.dataLoadAttempted}
     >
       <div className="min-h-screen px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4">
         <div className="max-w-full sm:max-w-[calc(100vw-4rem)] lg:max-w-[calc(100vw-8rem)] xl:max-w-[calc(100vw-12rem)] mx-auto">
-          {/* Header */}
-          <HomeHeader key={headerKey} {...homeHeaderProps} />
+          
+          <HomeHeader key={state.headerKey} {...homeHeaderProps} />
 
-          {/* Contenido con borde - Optimizado para móvil */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
               <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-                {/* 🚀 NUEVO: Aviso de presupuesto diario o contenido principal */}
-                {budgetValidationCompleted &&
-                hasBudgetData === false &&
+                
+                {budgetValidation.validationCompleted &&
+                budgetValidation.hasBudgetData === false &&
                 hasPolicy("readComisionesTienda") ? (
-                  /* Aviso de presupuesto diario no asignado */
                   <section className="space-y-6">
                     <div className="text-center py-12">
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 3,
-                        }}
-                      >
-                        <AssignmentIcon
-                          sx={{
-                            fontSize: 64,
-                            color: "error.main",
-                            opacity: 0.6,
-                          }}
-                        />
+                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                        <AssignmentIcon sx={{ fontSize: 64, color: "error.main", opacity: 0.6 }} />
                         <Box sx={{ textAlign: "center", maxWidth: 500 }}>
-                          <Typography
-                            variant="h5"
-                            component="h2"
-                            sx={{
-                              fontWeight: 600,
-                              mb: 3,
-                              color: "#c62828",
-                            }}
-                          >
+                          <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 3, color: "#c62828" }}>
                             Presupuesto Diario No Asignado
                           </Typography>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              color: "text.secondary",
-                              mb: 1,
-                              fontSize: "1.1rem",
-                            }}
-                          >
-                            No tiene presupuesto del día{" "}
-                            <strong>{getCurrentFormattedDate()}</strong>{" "}
-                            asignado.
+                          <Typography variant="body1" sx={{ color: "text.secondary", mb: 1, fontSize: "1.1rem" }}>
+                            No tiene presupuesto del día <strong>{computed.getCurrentFormattedDate()}</strong> asignado.
                           </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "text.secondary",
-                              fontSize: "1rem",
-                              mb: 4,
-                            }}
-                          >
-                            Para continuar debe asignar el presupuesto diario de
-                            empleados.
+                          <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "1rem", mb: 4 }}>
+                            Para continuar debe asignar el presupuesto diario de empleados.
                           </Typography>
 
                           <Button
-                            variant="contained"
-                            size="large"
-                            startIcon={<AssignmentIcon />}
-                            onClick={() => setShowCodesModal(true)}
+                            variant="contained" size="large" startIcon={<AssignmentIcon />}
+                            onClick={() => actions.setShowCodesModal(true)}
                             sx={{
-                              px: 4,
-                              py: 1.5,
-                              borderRadius: 2,
-                              background:
-                                "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
-                              color: "white",
-                              textTransform: "none",
-                              fontWeight: 600,
-                              fontSize: "1.1rem",
+                              px: 4, py: 1.5, borderRadius: 2,
+                              background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)", color: "white",
+                              textTransform: "none", fontWeight: 600, fontSize: "1.1rem",
                               boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
                               "&:hover": {
-                                background:
-                                  "linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)",
-                                boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
-                                transform: "translateY(-1px)",
+                                background: "linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)",
+                                boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)", transform: "translateY(-1px)",
                               },
-                              "&:active": {
-                                transform: "translateY(0)",
-                              },
+                              "&:active": { transform: "translateY(0)" },
                             }}
                           >
                             Asignar Presupuesto Diario
@@ -734,84 +119,46 @@ export default function Home() {
                   </section>
                 ) : (
                   <section className="space-y-4 sm:space-y-6 lg:space-y-8">
-                    {/* Tabla de Datos */}
                     <section className="space-y-3 sm:space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <h2 className="text-lg sm:text-xl font-semibold">
-                          Detalle de Comisiones
-                        </h2>
+                        <h2 className="text-lg sm:text-xl font-semibold">Detalle de Comisiones</h2>
                         <div className="flex flex-row flex-nowrap items-center gap-2 sm:gap-3">
                           <div className="flex items-center gap-1.5 bg-white shadow-sm px-2 sm:px-3 py-1.5 rounded-xl border text-xs sm:text-sm">
-                            <StorefrontIcon
-                              className="text-blue-600"
-                              fontSize="small"
-                            />
-                            <span className="font-medium">
-                              {(mesResumenFiltrado || mesResumen)?.tiendas
-                                .length || 0}{" "}
-                              Tiendas
-                            </span>
+                            <StorefrontIcon className="text-blue-600" fontSize="small" />
+                            <span className="font-medium">{(data.mesResumenFiltrado || data.mesResumen)?.tiendas.length || 0} Tiendas</span>
                           </div>
-
                           <div className="flex items-center gap-1.5 bg-white shadow-sm px-2 sm:px-3 py-1.5 rounded-xl border text-xs sm:text-sm">
-                            <GroupsIcon
-                              className="text-green-600"
-                              fontSize="small"
-                            />
+                            <GroupsIcon className="text-green-600" fontSize="small" />
                             <span className="font-medium">
-                              {(
-                                mesResumenFiltrado || mesResumen
-                              )?.tiendas.reduce(
-                                (total: number, tienda: any) =>
-                                  total + tienda.empleados.length,
-                                0,
-                              ) || 0}{" "}
-                              Empleados
+                              {(data.mesResumenFiltrado || data.mesResumen)?.tiendas.reduce((total: number, tienda: any) => total + tienda.empleados.length, 0) || 0} Empleados
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* 🚀 COMPONENTE OPTIMIZADO CON isFiltering */}
                       <DataTable
-                        tiendas={
-                          (mesResumenFiltrado || mesResumen)?.tiendas || []
-                        }
-                        cargos={cargos}
-                        selectedMonth={selectedMonth}
-                        onVentasUpdate={(
-                          tienda: string,
-                          fecha,
-                          ventas_tienda,
-                          ventas_por_asesor,
-                        ) => {
-                          setVentas([
-                            ...state.ventas.filter(
-                              (v) =>
-                                !(v.tienda === tienda && v.fecha === fecha),
-                            ),
-                            { tienda, fecha, ventas_tienda, ventas_por_asesor },
-                          ]);
+                        tiendas={(data.mesResumenFiltrado || data.mesResumen)?.tiendas || []}
+                        cargos={data.cargos}
+                        selectedMonth={state.selectedMonth}
+                        onVentasUpdate={(tienda: string, fecha, ventas_tienda, ventas_por_asesor) => {
+                          actions.setVentas([...contextState.ventas.filter((v: any) => !(v.tienda === tienda && v.fecha === fecha)), { tienda, fecha, ventas_tienda, ventas_por_asesor }]);
                         }}
                         readOnly={true}
-                        expandedTiendas={expandedTiendas}
-                        onToggleAllStores={handleToggleAllStoresWrapper}
-                        toggleSingleStore={toggleSingleStore}
-                        filterRol={filterRol}
-                        isLoading={isLoading}
-                        isRefetching={isRefetching}
-                        isFiltering={isFiltering}
-                        thresholdConfig={thresholdConfig}
+                        expandedTiendas={filters.expandedTiendas}
+                        onToggleAllStores={actions.handleToggleAllStoresWrapper}
+                        toggleSingleStore={filters.toggleSingleStore}
+                        filterRol={filters.filterRol}
+                        isLoading={data.isLoading}
+                        isRefetching={data.isRefetching}
+                        isFiltering={filters.isFiltering}
+                        thresholdConfig={data.thresholdConfig}
                       />
                     </section>
 
-                    {/* Gráficos */}
-                    {(mesResumenFiltrado || mesResumen) && (
+                    {(data.mesResumenFiltrado || data.mesResumen) && (
                       <section className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 lg:pt-8">
-                        <h2 className="text-lg sm:text-xl font-semibold">
-                          Análisis Visual
-                        </h2>
-                        <Charts mesResumen={mesResumenFiltrado || mesResumen} />
+                        <h2 className="text-lg sm:text-xl font-semibold">Análisis Visual</h2>
+                        <Charts mesResumen={data.mesResumenFiltrado || data.mesResumen} />
                       </section>
                     )}
                   </section>
@@ -821,40 +168,34 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Modales */}
         <HomeModals
-          showCodesModal={showCodesModal}
-          showEditStoreModal={showEditStoreModal}
-          showEditStoreBudgetModal={showEditStoreBudgetModal}
-          showNoDataModal={showNoDataModal}
-          modalTitle={modalTitle}
-          modalMessage={modalMessage}
-          selectedMonth={selectedMonth}
-          hasSavedData={hasBudgetData === true} // Solo mostrar X si ya hay datos guardados
-          onShowSaveLoading={onShowSaveLoading}
-          onCloseCodesModal={() => {
-            setShowCodesModal(false);
-            // Solo cerrar, no ejecutar pantalla de carga automáticamente
-          }}
-          onCloseEditStoreModal={() => {
-            setShowEditStoreModal(false);
-          }}
-          onCloseEditStoreBudgetModal={() => {
-            setShowEditStoreBudgetModal(false);
-          }}
-          onCloseNoDataModal={() => setShowNoDataModal(false)}
-          onAssignmentComplete={handleAssignmentComplete}
-          onSaveComplete={handleAssignmentComplete}
+          showCodesModal={state.showCodesModal}
+          showEditStoreModal={state.showEditStoreModal}
+          showEditStoreBudgetModal={state.showEditStoreBudgetModal}
+          showNoDataModal={state.showNoDataModal}
+          modalTitle={state.modalTitle}
+          modalMessage={state.modalMessage}
+          selectedMonth={state.selectedMonth}
+          hasSavedData={budgetValidation.hasBudgetData === true}
+          onShowSaveLoading={(error?: any) => actions.handleCodesModalSave(error)}
+          onCloseCodesModal={() => actions.setShowCodesModal(false)}
+          onCloseEditStoreModal={() => actions.setShowEditStoreModal(false)}
+          onCloseEditStoreBudgetModal={() => actions.setShowEditStoreBudgetModal(false)}
+          onCloseNoDataModal={() => actions.setShowNoDataModal(false)}
+          onAssignmentComplete={actions.handleAssignmentComplete}
+          onSaveComplete={actions.handleAssignmentComplete}
         />
 
-        {/* 🚀 NUEVO: Pantalla de carga para guardado */}
-        <SaveLoadingScreen />
+        <SaveLoadingScreen 
+          showSaveLoading={state.showSaveLoading} 
+          saveSuccess={state.saveSuccess} 
+          saveError={state.saveError} 
+        />
 
-        {/* Modal de configuración con pestañas */}
         <ConfigurationTabsPanel
-          open={showTabsConfigModal}
-          onClose={() => setShowTabsConfigModal(false)}
-          initialMonth={selectedMonth}
+          open={state.showTabsConfigModal}
+          onClose={() => actions.setShowTabsConfigModal(false)}
+          initialMonth={state.selectedMonth}
           onThresholdSaved={refetch}
         />
       </div>

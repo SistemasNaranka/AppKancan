@@ -87,7 +87,6 @@ export const EditStoreModalSimplified: React.FC<
     setCargoSeleccionado,
     setCodigoEmpleado,
     // Validaciones
-    isValidStaffCombination, // NUEVO
     hasChanges, // NUEVO
   } = useEditStoreModalLogic({
     isOpen,
@@ -100,9 +99,9 @@ export const EditStoreModalSimplified: React.FC<
   const isAdmin = area?.toLowerCase() !== "tienda" || tiendas.length > 1;
 
   const handleGuardarWrapper = async () => {
-    
+
     const success = await handleGuardar();
-    
+
     if (!success) {
       setSaveError(true);
     } else {
@@ -246,7 +245,7 @@ export const EditStoreModalSimplified: React.FC<
                   adapterLocale="es"
                 >
                   <DatePicker
-                    value={dayjs(fecha)}
+                    value={fecha ? dayjs(fecha) : null}
                     format="DD/MM/YYYY"
                     maxDate={dayjs()} // Bloquear fechas futuras
                     shouldDisableDate={(date) => {
@@ -600,7 +599,7 @@ export const EditStoreModalSimplified: React.FC<
                       !tiendaSeleccionada ||
                       !empleadoEncontrado ||
                       !cargoSeleccionado ||
-                      dayjs(fecha).isAfter(dayjs(), 'day') // Fix: Disable adding if date is future
+                      (fecha ? dayjs(fecha).isAfter(dayjs(), 'day') : false) // Fix: Disable adding if date is future
                     }
                     sx={{
                       py: 1,
