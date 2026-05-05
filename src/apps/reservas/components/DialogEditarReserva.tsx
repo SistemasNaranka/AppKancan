@@ -1,6 +1,6 @@
 // src/apps/reservas/components/DialogEditarReserva.tsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,20 +9,30 @@ import {
   TextField,
   Typography,
   Alert,
-  CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
   MenuItem,
   Select,
   FormControl,
+  Autocomplete,
+  IconButton,
+  Divider,
+  Tooltip,
+  CircularProgress,
+  Avatar,
 } from "@mui/material";
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import SaveIcon from '@mui/icons-material/Save';
-import InfoIcon from '@mui/icons-material/Info';
+import {
+  Schedule as ScheduleIcon,
+  Save as SaveIcon,
+  Info as InfoIcon,
+  PersonAdd as PersonAddIcon,
+  Delete as DeleteIcon,
+  Person as PersonIcon,
+} from "@mui/icons-material";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { format, parse } from "date-fns";
@@ -34,7 +44,9 @@ import {
   HORARIO_FIN,
   DURACION_MINIMA_MINUTOS,
 } from "../types/reservas.types";
-import { getConfiguracionReserva } from "../services/reservas";
+import { getConfiguracionReserva, buscarUsuarios } from "../services/reservas";
+
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 interface DialogEditarReservaProps {
   open: boolean;
@@ -91,7 +103,8 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   const [configCargando, setConfigCargando] = useState(true);
 
   // Estado para rastrear la hora de inicio seleccionada
-  const [horaInicioSeleccionada, setHoraInicioSeleccionada] = useState<string>("");
+  const [horaInicioSeleccionada, setHoraInicioSeleccionada] =
+    useState<string>("");
 
   // Estado para la configuración de horarios
   const [horarioConfig, setHorarioConfig] = useState({
@@ -109,13 +122,13 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   // Filtrar opciones de hora_final para mostrar solo horas >= hora_inicio + 1 hora
   const opcionesHoraFinal = useMemo(() => {
     if (!horaInicioSeleccionada) return opcionesHora;
-    
+
     // Calcular hora minima: hora_inicio + 1 hora
     const [h, m] = horaInicioSeleccionada.split(":").map(Number);
     let horaMinima = h + 1;
     if (horaMinima >= 24) horaMinima = 23;
     const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-    
+
     return opcionesHora.filter((opcion) => opcion.value >= horaMinimaStr);
   }, [opcionesHora, horaInicioSeleccionada]);
 
@@ -190,13 +203,13 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
             function (value) {
               const { hora_inicio } = this.parent;
               if (!value || !hora_inicio) return false;
-              
+
               // Calcular hora minima: hora_inicio + 1 hora
               const [h, m] = hora_inicio.split(":").map(Number);
               let horaMinima = h + 1;
               if (horaMinima >= 24) horaMinima = 23;
               const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-              
+
               return value >= horaMinimaStr;
             },
           )
@@ -214,6 +227,15 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
           .min(3, "Mínimo 3 caracteres")
           .max(100, "Máximo 100 caracteres"),
         observaciones: yup.string().max(500, "Máximo 500 caracteres"),
+        participantes: yup.array().of(
+          yup.object({
+            nombre: yup.string().required("El nombre es obligatorio"),
+            correo: yup
+              .string()
+              .matches(EMAIL_REGEX, "Correo no válido")
+              .required("El correo es obligatorio"),
+          }),
+        ),
       }),
     [horarioConfig],
   );
@@ -234,8 +256,49 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
       hora_final: "",
       titulo: "",
       observaciones: "",
+      participantes: [] as { nombre: string; correo: string }[],
     },
   });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "participantes",
+  });
+
+  // Estado para autocompletado de participantes
+  const [usuariosSugeridos, setUsuariosSugeridos] = useState<any[]>([]);
+  const [buscandoUsuarios, setBuscandoUsuarios] = useState(false);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Estados locales para el nuevo participante que se está escribiendo
+  const [tempNombre, setTempNombre] = useState("");
+  const [tempCorreo, setTempCorreo] = useState("");
+
+  const handleAddParticipante = () => {
+    if (tempNombre.trim() && tempCorreo.trim()) {
+      if (!fields.some(f => f.correo === tempCorreo)) {
+        append({ nombre: tempNombre, correo: tempCorreo });
+        setTempNombre("");
+        setTempCorreo("");
+      }
+    }
+  };
+
+  const handleBuscarUsuarios = (valor: string) => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+    if (valor.length < 3) {
+      setUsuariosSugeridos([]);
+      return;
+    }
+
+    searchTimeout.current = setTimeout(async () => {
+      setBuscandoUsuarios(true);
+      const resultados = await buscarUsuarios(valor);
+      setUsuariosSugeridos(resultados as any[]);
+      setBuscandoUsuarios(false);
+    }, 500);
+  };
 
   // Cargar datos de la reserva cuando se abre el diálogo
   useEffect(() => {
@@ -247,6 +310,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
         hora_final: reserva.hora_final.substring(0, 5),
         titulo: reserva.titulo_reunion || "",
         observaciones: reserva.observaciones || "",
+        participantes: reserva.participantes || [],
       });
     }
   }, [reserva, open, configCargando, reset]);
@@ -255,22 +319,22 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   const horaInicioWatch = watch("hora_inicio");
   const horaFinalWatch = watch("hora_final");
   const observacionesWatch = watch("observaciones");
-  
+
   // Contador de caracteres para observaciones
   const caracteresObservaciones = observacionesWatch?.length || 0;
   const caracteresRestantes = 500 - caracteresObservaciones;
   const aproximandoLimite = caracteresObservaciones >= 450;
-  
+
   useEffect(() => {
     if (horaInicioWatch) {
       setHoraInicioSeleccionada(horaInicioWatch);
-      
+
       // Calcular hora minima: hora_inicio + 1 hora
       const [h, m] = horaInicioWatch.split(":").map(Number);
       let horaMinima = h + 1;
       if (horaMinima >= 24) horaMinima = 23;
       const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-      
+
       // Si la hora_final actual es menor que la nueva hora_minima, actualizar hora_final
       if (horaFinalWatch && horaFinalWatch < horaMinimaStr) {
         setValue("hora_final", horaMinimaStr);
@@ -330,6 +394,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
         hora_final: data.hora_final,
         titulo_reunion: data.titulo,
         observaciones: data.observaciones?.trim() || "",
+        participantes: data.participantes,
       });
       handleClose();
     } catch (err: any) {
@@ -352,10 +417,10 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
       <Dialog
         open={open}
         onClose={handleClose}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3, maxWidth: 900 },
+        slotProps={{
+          paper: { sx: { borderRadius: 3, maxWidth: 1100 } }
         }}
       >
         <DialogContent sx={{ p: 0 }}>
@@ -620,53 +685,150 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Observaciones */}
+
+
+                  {/* Participantes */}
                   <Box>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, fontWeight: 600, color: "#374151" }}
-                    >
-                      Observaciones
-                    </Typography>
-                    <Controller
-                      name="observaciones"
-                      control={control}
-                      render={({ field }) => (
+                    <Box sx={{ p: 1.8, bgcolor: "#F9FAFB", borderRadius: 2, border: "1px solid #E5E7EB", mb: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#374151", mb: 1.2, fontSize: "0.85rem" }}>
+                        Añadir Participantes
+                      </Typography>
+
+                      <Box sx={{ display: "flex", gap: 2, mb: 0.5, alignItems: "flex-end" }}>
                         <TextField
-                          {...field}
+                          placeholder="Nombre"
+                          variant="standard"
+                          size="small"
                           fullWidth
-                          multiline
-                          rows={3}
-                          placeholder="Detalles adicionales, participantes, materiales necesarios, agenda de la reunión..."
-                          error={!!errors.observaciones}
-                          helperText={
-                            errors.observaciones?.message || (
-                              <Typography
-                                component="span"
-                                sx={{
-                                  color: aproximandoLimite 
-                                    ? caracteresObservaciones >= 500 
-                                      ? "#ef4444"  // Rojo cuando llega al límite
-                                      : "#f59e0b"  // Naranja cuando se acerca
-                                    : "#6b7280",  // Gris normal
-                                  fontSize: "0.75rem",
-                                }}
-                              >
-                                {caracteresObservaciones >= 500 
-                                  ? "Límite alcanzado"
-                                  : `Opcional - ${caracteresRestantes} caracteres restantes`}
-                              </Typography>
-                            )
-                          }
-                          disabled={loading}
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              backgroundColor: "white",
-                            },
-                          }}
+                          value={tempNombre}
+                          onChange={(e) => setTempNombre(e.target.value)}
+                          sx={{ flex: 1 }}
                         />
+                        <Autocomplete
+                          freeSolo
+                          options={usuariosSugeridos}
+                          getOptionLabel={(option) =>
+                            typeof option === "string" ? option : option.email
+                          }
+                          loading={buscandoUsuarios}
+                          onInputChange={(_, valor) => {
+                            setTempCorreo(valor);
+                            handleBuscarUsuarios(valor);
+                          }}
+                          onChange={(_, data) => {
+                            if (data && typeof data !== "string") {
+                              setTempCorreo(data.email);
+                              // Solo sobreescribir el nombre si está vacío
+                              if (!tempNombre.trim()) {
+                                setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
+                              }
+                            } else if (typeof data === "string") {
+                              setTempCorreo(data);
+                            }
+                          }}
+                          value={tempCorreo}
+                          sx={{ flex: 2 }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Correo"
+                              variant="standard"
+                              size="small"
+                              fullWidth
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {buscandoUsuarios ? <CircularProgress color="inherit" size={16} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={handleAddParticipante}
+                          disabled={!tempNombre || !tempCorreo}
+                          sx={{ 
+                            minWidth: "auto", 
+                            px: 3, 
+                            textTransform: "none",
+                            bgcolor: "#3B82F6",
+                            "&:hover": { bgcolor: "#2563EB" },
+                            boxShadow: "none",
+                            borderRadius: 1.5,
+                            height: 32
+                          }}
+                        >
+                          Agregar
+                        </Button>
+                      </Box>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        maxHeight: 200, // Un poco más corto
+                        overflowY: "auto",
+                        pr: 1,
+                        "::-webkit-scrollbar": { width: "6px" },
+                        "::-webkit-scrollbar-thumb": {
+                          backgroundColor: "#e5e7eb",
+                          borderRadius: "10px",
+                        },
+                      }}
+                    >
+                      {fields.map((field, index) => (
+                        <Box
+                          key={field.id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.5,
+                            py: 0.8, // Padding más compacto
+                            borderBottom: "1px solid #f3f4f6",
+                            "&:last-child": { borderBottom: "none" },
+                          }}
+                        >
+                          <Avatar
+                            sx={{
+                              width: 30, // Avatar más pequeño
+                              height: 30,
+                              bgcolor: "#EFF6FF",
+                              color: "#3B82F6",
+                            }}
+                          >
+                            <PersonIcon sx={{ fontSize: 18 }} />
+                          </Avatar>
+                          
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#1f2937", fontSize: "0.85rem", lineHeight: 1.2 }} noWrap>
+                              {field.nombre}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.75rem", display: "block" }} noWrap>
+                              {field.correo}
+                            </Typography>
+                          </Box>
+
+                          <IconButton
+                            size="small"
+                            onClick={() => remove(index)}
+                            sx={{ color: "#9ca3af", p: 0.5, "&:hover": { color: "#ef4444" } }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Box>
+                      ))}
+                      {fields.length === 0 && (
+                        <Box sx={{ py: 3, textAlign: "center", bgcolor: "#f9fafb", borderRadius: 2, border: "1px dashed #d1d5db" }}>
+                           <Typography variant="body2" sx={{ color: "#9ca3af", fontStyle: "italic", fontSize: "0.8rem" }}>
+                            No hay invitados en la lista
+                          </Typography>
+                        </Box>
                       )}
-                    />
+                    </Box>
                   </Box>
                 </Box>
 
@@ -723,6 +885,55 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                       {errors.fecha.message}
                     </Typography>
                   )}
+
+                  {/* Observaciones - Movido aquí */}
+                  <Box sx={{ mt: 2 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, fontWeight: 600, color: "#374151" }}
+                    >
+                      Observaciones
+                    </Typography>
+                    <Controller
+                      name="observaciones"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          multiline
+                          rows={3}
+                          placeholder="Detalles adicionales, participantes, materiales necesarios, agenda de la reunión..."
+                          error={!!errors.observaciones}
+                          helperText={
+                            errors.observaciones?.message || (
+                              <Typography
+                                component="span"
+                                sx={{
+                                  color: aproximandoLimite
+                                    ? caracteresObservaciones >= 500
+                                      ? "#ef4444"
+                                      : "#f59e0b"
+                                    : "#6b7280",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                {caracteresObservaciones >= 500
+                                  ? "Límite alcanzado"
+                                  : `Opcional - ${caracteresRestantes} caracteres restantes`}
+                              </Typography>
+                            )
+                          }
+                          disabled={loading}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "white",
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                  </Box>
                 </Box>
               </Box>
 

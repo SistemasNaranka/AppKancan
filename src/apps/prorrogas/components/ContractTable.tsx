@@ -27,6 +27,9 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
 import PersonIcon from '@mui/icons-material/Person';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
@@ -235,24 +238,44 @@ interface Props {
 const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequestProrrogaClick }) => {
   const { filteredContratos, allEnriched, filters, setFilter, select, loading, error } = useContracts();
   const [page, setPage] = useState(1);
+  const [vencSort, setVencSort] = useState<'none' | 'asc' | 'desc'>('none');
 
   const isResumen = filters.tab === 'resumen';
   const hasSearch = filters.search.trim().length > 0;
 
   useEffect(() => {
     setPage(1);
-  }, [filters]);
+  }, [filters, vencSort]);
 
   const itemsPerPage = 6;
 
   // En Resumen: si hay búsqueda activa, usar filteredContratos para que el buscador funcione
   // Si no hay búsqueda, mostrar todos ordenados por recientes
-  const sourceRows = isResumen
+  const baseRows = isResumen
     ? (hasSearch ? filteredContratos : [...allEnriched])
     : filteredContratos;
 
+  // Sort local por vencimiento al hacer click en el header.
+  // none = orden por defecto del hook/contexto (recientes / filtro activo).
+  const sourceRows = vencSort === 'none'
+    ? baseRows
+    : [...baseRows].sort((a, b) => {
+        const da = isFinite(a.daysLeft) ? a.daysLeft : Number.MAX_SAFE_INTEGER;
+        const db = isFinite(b.daysLeft) ? b.daysLeft : Number.MAX_SAFE_INTEGER;
+        return vencSort === 'asc' ? da - db : db - da;
+      });
+
   const totalPages = Math.ceil(sourceRows.length / itemsPerPage);
   const rows = sourceRows.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  const cycleVencSort = () => {
+    setVencSort((s) => (s === 'none' ? 'asc' : s === 'asc' ? 'desc' : 'none'));
+  };
+
+  const vencSortLabel =
+    vencSort === 'asc'  ? 'Próximos a vencer primero'
+  : vencSort === 'desc' ? 'Más lejanos primero'
+  : 'Ordenar por días restantes';
 
   const tableTitle = isResumen
     ? (hasSearch ? `Resultados de búsqueda` : 'Contratos Recientes')
@@ -334,7 +357,22 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
               <TableRow sx={{ '& .MuiTableCell-head': { fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' } }}>
                 <TableCell>Contrato</TableCell>
                 <TableCell>Área</TableCell>
-                <TableCell>Vencimiento</TableCell>
+                <TableCell
+                  onClick={cycleVencSort}
+                  title={vencSortLabel}
+                  sx={{
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    '&:hover': { color: 'primary.main' },
+                  }}
+                >
+                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                    Vencimiento
+                    {vencSort === 'asc' && <ArrowUpwardIcon sx={{ fontSize: 14 }} />}
+                    {vencSort === 'desc' && <ArrowDownwardIcon sx={{ fontSize: 14 }} />}
+                    {vencSort === 'none' && <SwapVertIcon sx={{ fontSize: 14, opacity: 0.5 }} />}
+                  </Box>
+                </TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell align="right" sx={{ pr: 2 }}></TableCell>
               </TableRow>

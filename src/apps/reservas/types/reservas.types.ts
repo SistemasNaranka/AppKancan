@@ -15,6 +15,14 @@ export interface UsuarioReserva {
 }
 
 /**
+ * Participante de una reunión
+ */
+export interface Participante {
+  nombre: string;
+  correo: string;
+}
+
+/**
  * Estructura tal cual viene de Directus (tabla Reuniones_Reservas)
  */
 export interface Reserva {
@@ -28,6 +36,7 @@ export interface Reserva {
   estado: EstadoReserva;
   titulo_reunion: string;
   observaciones?: string;
+  participantes?: Participante[];
   area?: string;
   estadoCalculado?: EstadoReserva;
 }
@@ -76,6 +85,7 @@ export interface NuevaReserva {
   hora_final: string;
   titulo_reunion: string;
   observaciones?: string;
+  participantes?: Participante[];
 }
 
 /**
@@ -89,6 +99,7 @@ export interface ActualizarReserva {
   estado?: EstadoReserva;
   titulo_reunion?: string;
   observaciones?: string;
+  participantes?: Participante[];
 }
 
 /**

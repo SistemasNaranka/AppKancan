@@ -59,12 +59,12 @@ export const useContracts = () => {
         const fechaVencimiento = c.fecha_final ?? null;
         const daysLeft = fechaVencimiento ? daysUntil(fechaVencimiento) : Infinity;
         const contractStatus = isFinite(daysLeft) ? computeContractStatus(daysLeft) : 'vigente';
-        
+
         // Obtener última prórga si existe (para otros usos)
         const lastProrroga = c.prorrogas && c.prorrogas.length > 0
           ? [...c.prorrogas].sort((a, b) => a.numero - b.numero)[c.prorrogas.length - 1]
           : null;
-          
+
         return { ...c, lastProrroga, fechaVencimiento, daysLeft, contractStatus };
       });
   }, [contratos]);

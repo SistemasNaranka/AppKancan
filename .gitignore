@@ -27,3 +27,4 @@ dist-ssr
 .kilo/
 tsconfig.tsbuildinfo
 .claude/
+temp_report/

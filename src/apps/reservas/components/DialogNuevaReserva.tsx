@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   TextField,
+  Autocomplete,
   Typography,
   Alert,
   CircularProgress,
@@ -20,43 +21,36 @@ import {
   Paper,
   Fade,
   ClickAwayListener,
+  IconButton,
+  Divider,
+  Tooltip,
+  Avatar,
 } from "@mui/material";
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import CheckIcon from '@mui/icons-material/CheckCircle';
-import InfoIcon from '@mui/icons-material/Info';
-import CloseIcon from '@mui/icons-material/Close';
+import {
+  Schedule as ScheduleIcon,
+  CheckCircle as CheckIcon,
+  Info as InfoIcon,
+  Close as CloseIcon,
+  PersonAdd as PersonAddIcon,
+  Delete as DeleteIcon,
+  Person as PersonIcon,
+} from "@mui/icons-material";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 import type { NuevaReserva, Sala } from "../types/reservas.types";
-import {
-  SALAS_DISPONIBLES,
-  HORARIO_INICIO,
-  HORARIO_FIN,
-} from "../types/reservas.types";
-import { getConfiguracionReserva } from "../services/reservas";
+import { SALAS_DISPONIBLES, HORARIO_INICIO, HORARIO_FIN } from "../types/reservas.types";
+import { getConfiguracionReserva, buscarUsuarios } from "../services/reservas";
 import { useTourContext } from "./TourContext";
 
-// // ============================================
-// // SPOTLIGHT ANIMATION KEYFRAMES
-// // ============================================
-// const styleSheet = document.createElement("style");
-// styleSheet.textContent = `
-//   // @keyframes pulse-spotlight {
-//   //   // 0%, 100% {
-//   //   //   box-shadow: 0 0 30px rgba(0, 70, 128, 0.16), inset 0 0 20px rgba(0, 70, 128, 0.2);
-//   //   // }
-//   //   // 50% {
-//   //   //   box-shadow: 0 0 50px rgba(0, 70, 128, 0.18), inset 0 0 30px rgba(0, 70, 128, 0.3);
-//   //   // }
-//   // }
-// `;
-// document.head.appendChild(styleSheet);
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+
 
 interface DialogNuevaReservaProps {
   open: boolean;
@@ -772,6 +766,15 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
           .min(3, "Mínimo 3 caracteres")
           .max(100, "Máximo 100 caracteres"),
         observaciones: yup.string().max(500, "Máximo 500 caracteres"),
+        participantes: yup.array().of(
+          yup.object({
+            nombre: yup.string().required("El nombre es obligatorio"),
+            correo: yup
+              .string()
+              .matches(EMAIL_REGEX, "Correo no válido")
+              .required("El correo es obligatorio"),
+          })
+        ),
       }),
     [horarioConfig]
   );
@@ -792,8 +795,49 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       hora_final: "",
       titulo: "",
       observaciones: "",
+      participantes: [] as { nombre: string; correo: string }[],
     },
   });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "participantes",
+  });
+
+  // Estado para autocompletado de participantes
+  const [usuariosSugeridos, setUsuariosSugeridos] = useState<any[]>([]);
+  const [buscandoUsuarios, setBuscandoUsuarios] = useState(false);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Estados locales para el nuevo participante que se está escribiendo
+  const [tempNombre, setTempNombre] = useState("");
+  const [tempCorreo, setTempCorreo] = useState("");
+
+  const handleBuscarUsuarios = (valor: string) => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+    if (valor.length < 3) {
+      setUsuariosSugeridos([]);
+      return;
+    }
+
+    searchTimeout.current = setTimeout(async () => {
+      setBuscandoUsuarios(true);
+      const resultados = await buscarUsuarios(valor);
+      setUsuariosSugeridos(resultados as any[]);
+      setBuscandoUsuarios(false);
+    }, 500);
+  };
+
+  const handleAddParticipante = () => {
+    if (tempNombre.trim() && tempCorreo.trim()) {
+      if (!fields.some(f => f.correo === tempCorreo)) {
+        append({ nombre: tempNombre, correo: tempCorreo });
+        setTempNombre("");
+        setTempCorreo("");
+      }
+    }
+  };
 
   // Actualizar valores cuando cambia la configuración
   useEffect(() => {
@@ -959,6 +1003,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         hora_final: data.hora_final,
         titulo_reunion: data.titulo,
         observaciones: data.observaciones?.trim() || "",
+        participantes: data.participantes,
       });
       handleClose();
     } catch (err: any) {
@@ -981,10 +1026,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       <Dialog
         open={open}
         onClose={isTourMode ? undefined : handleClose}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3, maxWidth: 900 },
+        slotProps={{
+          paper: { sx: { borderRadius: 3, maxWidth: 1100 } }
         }}
       >
         <DialogContent sx={{ p: 0 }}>
@@ -1202,46 +1247,151 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Observaciones */}
-                  <Box ref={observacionesRef}>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                      Observaciones
-                    </Typography>
-                    <Controller
-                      name="observaciones"
-                      control={control}
-                      render={({ field }) => (
+
+
+                  {/* Participantes */}
+                  <Box>
+                    <Box sx={{ p: 1.8, bgcolor: "#F9FAFB", borderRadius: 2, border: "1px solid #E5E7EB", mb: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#374151", mb: 1.2, fontSize: "0.85rem" }}>
+                        Añadir Participantes
+                      </Typography>
+
+                      <Box sx={{ display: "flex", gap: 2, mb: 0.5, alignItems: "flex-end" }}>
                         <TextField
-                          {...field}
+                          placeholder="Nombre"
+                          variant="standard"
+                          size="small"
                           fullWidth
-                          multiline
-                          rows={3}
-                          placeholder="Detalles adicionales, participantes, materiales necesarios..."
-                          error={!!errors.observaciones}
-                          helperText={
-                            errors.observaciones?.message || (
-                              <Typography
-                                component="span"
-                                sx={{
-                                  color: aproximandoLimite
-                                    ? caracteresObservaciones >= 500
-                                      ? "#ef4444"
-                                      : "#f59e0b"
-                                    : "#6b7280",
-                                  fontSize: "0.75rem",
-                                }}
-                              >
-                                {caracteresObservaciones >= 500
-                                  ? "Límite alcanzado"
-                                  : `Opcional - ${caracteresRestantes} caracteres restantes`}
-                              </Typography>
-                            )
-                          }
-                          disabled={loading}
-                          sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "white" } }}
+                          value={tempNombre}
+                          onChange={(e) => setTempNombre(e.target.value)}
+                          sx={{ flex: 1 }}
                         />
+                        <Autocomplete
+                          freeSolo
+                          options={usuariosSugeridos}
+                          getOptionLabel={(option) =>
+                            typeof option === "string" ? option : option.email
+                          }
+                          loading={buscandoUsuarios}
+                          onInputChange={(_, valor) => {
+                            setTempCorreo(valor);
+                            handleBuscarUsuarios(valor);
+                          }}
+                          onChange={(_, data) => {
+                            if (data && typeof data !== "string") {
+                              setTempCorreo(data.email);
+                              // Solo sobreescribir el nombre si está vacío
+                              if (!tempNombre.trim()) {
+                                setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
+                              }
+                            } else if (typeof data === "string") {
+                              setTempCorreo(data);
+                            }
+                          }}
+                          value={tempCorreo}
+                          sx={{ flex: 2 }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Correo"
+                              variant="standard"
+                              size="small"
+                              fullWidth
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {buscandoUsuarios ? <CircularProgress color="inherit" size={16} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={handleAddParticipante}
+                          disabled={!tempNombre || !tempCorreo}
+                          sx={{ 
+                            minWidth: "auto", 
+                            px: 3, 
+                            textTransform: "none",
+                            bgcolor: "#3B82F6",
+                            "&:hover": { bgcolor: "#2563EB" },
+                            boxShadow: "none",
+                            borderRadius: 1.5,
+                            height: 32
+                          }}
+                        >
+                          Agregar
+                        </Button>
+                      </Box>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        maxHeight: 200, // Un poco más corto
+                        overflowY: "auto",
+                        pr: 1,
+                        "::-webkit-scrollbar": { width: "6px" },
+                        "::-webkit-scrollbar-thumb": {
+                          backgroundColor: "#e5e7eb",
+                          borderRadius: "10px",
+                        },
+                      }}
+                    >
+                      {fields.map((field, index) => (
+                        <Box
+                          key={field.id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.5,
+                            py: 0.8, // Padding más compacto
+                            borderBottom: "1px solid #f3f4f6",
+                            "&:last-child": { borderBottom: "none" },
+                          }}
+                        >
+                          <Avatar
+                            sx={{
+                              width: 30, // Avatar más pequeño
+                              height: 30,
+                              bgcolor: "#EFF6FF",
+                              color: "#3B82F6",
+                            }}
+                          >
+                            <PersonIcon sx={{ fontSize: 18 }} />
+                          </Avatar>
+                          
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#1f2937", fontSize: "0.85rem", lineHeight: 1.2 }} noWrap>
+                              {field.nombre}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.75rem", display: "block" }} noWrap>
+                              {field.correo}
+                            </Typography>
+                          </Box>
+
+                          <IconButton
+                            size="small"
+                            onClick={() => remove(index)}
+                            sx={{ color: "#9ca3af", p: 0.5, "&:hover": { color: "#ef4444" } }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Box>
+                      ))}
+                      {fields.length === 0 && (
+                        <Box sx={{ py: 3, textAlign: "center", bgcolor: "#f9fafb", borderRadius: 2, border: "1px dashed #d1d5db" }}>
+                           <Typography variant="body2" sx={{ color: "#9ca3af", fontStyle: "italic", fontSize: "0.8rem" }}>
+                            No hay invitados en la lista
+                          </Typography>
+                        </Box>
                       )}
-                    />
+                    </Box>
+                    
                   </Box>
                 </Box>
 
@@ -1290,6 +1440,48 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                       {errors.fecha.message}
                     </Typography>
                   )}
+
+                  {/* Observaciones - Movido aquí */}
+                  <Box ref={observacionesRef} sx={{ mt: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                      Observaciones
+                    </Typography>
+                    <Controller
+                      name="observaciones"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          multiline
+                          rows={3}
+                          placeholder="Detalles adicionales, participantes, materiales necesarios..."
+                          error={!!errors.observaciones}
+                          helperText={
+                            errors.observaciones?.message || (
+                              <Typography
+                                component="span"
+                                sx={{
+                                  color: aproximandoLimite
+                                    ? caracteresObservaciones >= 500
+                                      ? "#ef4444"
+                                      : "#f59e0b"
+                                    : "#6b7280",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                {caracteresObservaciones >= 500
+                                  ? "Límite alcanzado"
+                                  : `Opcional - ${caracteresRestantes} caracteres restantes`}
+                              </Typography>
+                            )
+                          }
+                          disabled={loading}
+                          sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "white" } }}
+                        />
+                      )}
+                    />
+                  </Box>
                 </Box>
               </Box>
 

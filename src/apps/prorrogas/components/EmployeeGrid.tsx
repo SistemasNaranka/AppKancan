@@ -226,7 +226,7 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
                     }}>
                       {emp.contractStatus === 'vencido'
                         ? `Vencido hace ${Math.abs(emp.daysLeft)} días`
-                        : `Vigente — ${emp.daysLeft} días restantes`}
+                        : `${emp.daysLeft} días restantes`}
                     </Typography>
                   </Box>
                 </Card>

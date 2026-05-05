@@ -197,8 +197,8 @@ const EmployeesView: React.FC = () => {
         if (!q) return true;
         return (
           c.nombre.toLowerCase().includes(q) ||
-          c.cargo.toLowerCase().includes(q) ||
-          c.area.toLowerCase().includes(q)
+          String(c.cargo).toLowerCase().includes(q) ||
+          (c.area?.toLowerCase() ?? '').includes(q)
         );
       })
       .sort((a, b) => {
