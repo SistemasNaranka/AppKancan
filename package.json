@@ -1,7 +1,7 @@
 {
   "name": "app-kancan",
   "private": true,
-  "version": "2.10.7",
+  "version": "2.11.2",
   "license": "All Rights Reserved",
   "type": "module",
   "scripts": {
