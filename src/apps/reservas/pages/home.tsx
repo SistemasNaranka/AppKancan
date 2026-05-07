@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Box, Typography } from "@mui/material";
-import { CalendarMonth as CalendarIcon } from "@mui/icons-material";
+import CalendarIcon from '@mui/icons-material/CalendarMonth';
 import ReservasView from "../views/ReservasView";
 
 const Home: React.FC = () => {

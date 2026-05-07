@@ -1,11 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/hooks/useAuth";
-import {
-  Home as HomeIcon,
-  ArrowBack as ArrowBackIcon,
-  BugReport as BugReportIcon,
-  Refresh as RefreshIcon,
-} from "@mui/icons-material";
+import HomeIcon from '@mui/icons-material/Home';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BugReportIcon from '@mui/icons-material/BugReport';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import {
   Container,
   Paper,

@@ -13,7 +13,9 @@ import {
   Alert,
   Fade,
 } from "@mui/material";
-import { CloudUpload, PictureAsPdf, Refresh } from "@mui/icons-material";
+import CloudUpload from '@mui/icons-material/CloudUpload';
+import PictureAsPdf from '@mui/icons-material/PictureAsPdf';
+import Refresh from '@mui/icons-material/Refresh';
 
 // ============ CONSTANTES ============
 

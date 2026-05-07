@@ -1,14 +1,12 @@
 import React from "react";
 import { Box, Card, CardContent, Typography, Grid, Chip } from "@mui/material";
-import {
-  HourglassEmpty as PendienteIcon,
-  RateReview as RevisionIcon,
-  CheckCircle as AprobadaIcon,
-  Cancel as RechazadaIcon,
-  TaskAlt as CompletadaIcon,
-  Block as CanceladaIcon,
-  Inventory as TotalIcon,
-} from "@mui/icons-material";
+import PendienteIcon from '@mui/icons-material/HourglassEmpty';
+import RevisionIcon from '@mui/icons-material/RateReview';
+import AprobadaIcon from '@mui/icons-material/CheckCircle';
+import RechazadaIcon from '@mui/icons-material/Cancel';
+import CompletadaIcon from '@mui/icons-material/TaskAlt';
+import CanceladaIcon from '@mui/icons-material/Block';
+import TotalIcon from '@mui/icons-material/Inventory';
 
 interface StatCardProps {
   title: string;

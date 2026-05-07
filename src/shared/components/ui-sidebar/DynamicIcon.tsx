@@ -1,6 +1,6 @@
 import * as Icons from "@mui/icons-material";
 import { SvgIconProps } from "@mui/material";
-import { Folder } from "@mui/icons-material";
+import Folder from '@mui/icons-material/Folder';
 
 interface DynamicIconProps extends SvgIconProps {
 iconName?: string;

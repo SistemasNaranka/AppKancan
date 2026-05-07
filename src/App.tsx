@@ -12,11 +12,17 @@ import { TutorialProvider } from "@/shared/hooks/TutorialContext";
 import { SnackbarProvider } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 import { ForcePasswordChangeModal } from "@/auth/components/ForcePasswordChangeModal";
 import PeekButtonContainer from "@/shared/components/PeekButtonContainer";
+import WhatsNewModal from "@/shared/components/WhatsNewModal";
 import { useAuth } from "@/auth/hooks/useAuth";
+import { useScrollLockGuard } from "@/shared/hooks/useScrollLockGuard";
 
 const AppWithPasswordModal = () => {
   const { user, isAuthenticated } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Safety: limpia body lock + overlays huérfanos al navegar
+  // (ver shared/hooks/useScrollLockGuard.ts).
+  useScrollLockGuard();
 
   useEffect(() => {
     if (isAuthenticated && user?.requires_password_change) {
@@ -31,6 +37,7 @@ const AppWithPasswordModal = () => {
       <AppRoutes />
       <ForcePasswordChangeModal open={modalOpen} onClose={() => {}} />
       {isAuthenticated && !user?.requires_password_change && <PeekButtonContainer />}
+      {isAuthenticated && !user?.requires_password_change && <WhatsNewModal />}
     </>
   );
 };

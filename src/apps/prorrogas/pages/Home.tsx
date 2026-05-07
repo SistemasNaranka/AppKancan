@@ -17,6 +17,7 @@ import ContratoForm from '../components/ContratoForm';
 import ContractSelectorModal from '../components/ContractSelectorModal';
 import EmployeeGrid from '../components/EmployeeGrid';
 import { useContracts } from '../hooks/useContracts';
+import { useContractContext } from '../contexts/ContractContext';
 import { CreateContrato } from '../types/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -37,6 +38,16 @@ const Inner: React.FC = () => {
   const handleNewContratoSubmit = async (data: CreateContrato) => {
     await addContrato(data);
     setNewContratoOpen(false);
+  };
+
+  const { updateContrato } = useContractContext();
+  const [editingContract, setEditingContract] = useState<any>(null);
+
+  const handleEditContratoSubmit = async (data: any) => {
+    if (editingContract) {
+      await updateContrato(editingContract.id, data);
+      setEditingContract(null);
+    }
   };
 
   const handleOpenSelector = () => setSelectorOpen(true);
@@ -80,10 +91,10 @@ const Inner: React.FC = () => {
         {selectedContrato ? (
           <ContractDetail
             onOpenForm={() => handleOpenForm(selectedContrato.id)}
-            onEditContract={() => {/* TODO: abrir formulario de edición */}}
+            onEditContract={() => setEditingContract(selectedContrato)}
           />
         ) : filters.tab === 'empleados' ? (
-          <EmployeeGrid />
+          <EmployeeGrid onEditContract={(emp) => setEditingContract(emp)} />
         ) : (
           <>
             {filters.tab === 'resumen' && <StatCards />}
@@ -123,6 +134,15 @@ const Inner: React.FC = () => {
         onClose={handleNewContratoClose}
         onSubmit={handleNewContratoSubmit}
       />
+
+      {editingContract && (
+        <ContratoForm
+          open={!!editingContract}
+          onClose={() => setEditingContract(null)}
+          onSubmit={handleEditContratoSubmit}
+          initialData={editingContract}
+        />
+      )}
 
       <ContractSelectorModal
         open={selectorOpen}

@@ -17,7 +17,8 @@ import {
   Prorroga,
   UpdateProrroga,
 } from '../types/types';
-import { getContratos, getContratoStats } from '../api';
+import { getContratos, getContratoStats, getContratoById } from '../api';
+import directus from '@/services/directus/directus';
 import { crearProrroga, crearContrato, cambiarRequestStatus, actualizarProrroga, eliminarProrroga, actualizarContrato, eliminarContrato } from '../api';
 import { getNextProrrogaNumber } from '../lib/utils';
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
@@ -57,17 +58,19 @@ const initialState: State = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Action =
-  | { type: 'SET_LOADING';    payload: boolean }
-  | { type: 'SET_SAVING';     payload: boolean }
-  | { type: 'SET_CONTRATOS';  payload: Contrato[] }
-  | { type: 'SET_STATS';      payload: ContratoStats }
-  | { type: 'SELECT';         payload: number | null }
-  | { type: 'SET_FILTER';     payload: Partial<UIFilters> }
-  | { type: 'SET_TAB';        payload: TabValue }
-  | { type: 'ADD_PRORROGA';   payload: { contratoId: number; prorroga: Prorroga } }
-  | { type: 'ADD_CONTRATO';   payload: Contrato }
-  | { type: 'SET_ERROR';      payload: string | null }
-  | { type: 'SET_SUCCESS';    payload: string | null };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_SAVING'; payload: boolean }
+  | { type: 'SET_CONTRATOS'; payload: Contrato[] }
+  | { type: 'SET_STATS'; payload: ContratoStats }
+  | { type: 'SELECT'; payload: number | null }
+  | { type: 'SET_FILTER'; payload: Partial<UIFilters> }
+  | { type: 'SET_TAB'; payload: TabValue }
+  | { type: 'ADD_PRORROGA'; payload: { contratoId: number; prorroga: Prorroga } }
+  | { type: 'ADD_CONTRATO'; payload: Contrato }
+  | { type: 'UPSERT_CONTRATO'; payload: Contrato }
+  | { type: 'REMOVE_CONTRATO'; payload: number }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_SUCCESS'; payload: string | null };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -104,6 +107,27 @@ function reducer(state: State, action: Action): State {
         ...state,
         saving: false,
         contratos: [action.payload, ...state.contratos],
+      };
+    case 'UPSERT_CONTRATO': {
+      const idx = state.contratos.findIndex(c => c.id === action.payload.id);
+      if (idx === -1) {
+        return { ...state, contratos: [action.payload, ...state.contratos] };
+      }
+      const next = state.contratos.slice();
+      // Conservar relaciones ya cargadas (prorrogas/documentos) si el payload no las trae
+      next[idx] = {
+        ...next[idx],
+        ...action.payload,
+        prorrogas: action.payload.prorrogas ?? next[idx].prorrogas,
+        documentos: action.payload.documentos ?? next[idx].documentos,
+      };
+      return { ...state, contratos: next };
+    }
+    case 'REMOVE_CONTRATO':
+      return {
+        ...state,
+        contratos: state.contratos.filter(c => c.id !== action.payload),
+        selectedId: state.selectedId === action.payload ? null : state.selectedId,
       };
     case 'SET_ERROR':
       return { ...state, error: action.payload, saving: false };
@@ -243,10 +267,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const numero = getNextProrrogaNumber(contrato.prorrogas ?? []);
 
       const prorroga = await crearProrroga({
-        contrato_id:  payload.contractId,
+        contrato_id: payload.contractId,
         numero,
         fecha_inicio: payload.fechaInicio,
-        descripcion:  payload.descripcion,
+        descripcion: payload.descripcion,
       });
 
       if (!prorroga) {
@@ -309,13 +333,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         dispatch({ type: 'SET_ERROR', payload: 'Error al actualizar la prórroga.' });
         return;
       }
-      // Actualizar la prórga en el contrato correspondiente
+      // Actualizar la prórroga en el contrato correspondiente
       dispatch({ type: 'SET_SAVING', payload: false });
       dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga actualizada exitosamente.' });
       // Recargar contratos para obtener datos actualizados
       await loadContratos();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al actualizar la prórga.';
+      const msg = err instanceof Error ? err.message : 'Error al actualizar la prórroga.';
       dispatch({ type: 'SET_ERROR', payload: msg });
     }
   }, [loadContratos]);
@@ -325,7 +349,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const success = await eliminarProrroga(id);
       if (!success) {
-        dispatch({ type: 'SET_ERROR', payload: 'Error al eliminar la prórga.' });
+        dispatch({ type: 'SET_ERROR', payload: 'Error al eliminar la prórroga.' });
         dispatch({ type: 'SET_SAVING', payload: false });
         return false;
       }
@@ -334,7 +358,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga eliminada exitosamente.' });
       return true;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al eliminar la prórga.';
+      const msg = err instanceof Error ? err.message : 'Error al eliminar la prórroga.';
       dispatch({ type: 'SET_ERROR', payload: msg });
       dispatch({ type: 'SET_SAVING', payload: false });
       return false;
@@ -380,6 +404,98 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       return false;
     }
   }, [loadContratos]);
+
+  // ─── WebSocket: sync contratos en tiempo real (cargo, área, etc.) ────────
+  // Escucha eventos de Directus en la colección `contratos`. Al recibir
+  // create/update/delete, refresca el contrato afectado en el estado global
+  // sin recargar todos los contratos.
+  useEffect(() => {
+    if (authLoading) return;
+    const tokens = cargarTokenStorage();
+    if (!tokens) return;
+
+    let isMounted = true;
+    let unsubContratos: (() => void) | undefined;
+    let unsubHistorial: (() => void) | undefined;
+
+    const setupWS = async () => {
+      try {
+        try {
+          await directus.connect();
+        } catch (e: any) {
+          if (
+            !e?.message?.includes('state is "open"') &&
+            !e?.message?.includes('state is "connecting"')
+          ) {
+            throw e;
+          }
+        }
+
+        const contratosRes = await directus.subscribe('contratos' as any);
+        unsubContratos = contratosRes.unsubscribe;
+
+        (async () => {
+          try {
+            for await (const msg of contratosRes.subscription) {
+              if (!isMounted) break;
+              if (msg.type !== 'subscription') continue;
+              const ids: number[] = Array.isArray((msg as any).data)
+                ? (msg as any).data.map((d: any) => d?.id).filter(Boolean)
+                : [];
+              if (msg.event === 'delete') {
+                ids.forEach((id) =>
+                  dispatch({ type: 'REMOVE_CONTRATO', payload: id })
+                );
+                continue;
+              }
+              if (msg.event === 'create' || msg.event === 'update') {
+                for (const id of ids) {
+                  const fresh = await getContratoById(id);
+                  if (!isMounted) break;
+                  if (fresh) dispatch({ type: 'UPSERT_CONTRATO', payload: fresh });
+                }
+              }
+            }
+          } catch { }
+        })();
+
+        // historial_cargos: si llega un cambio de cargo, refrescar contrato_id
+        try {
+          const histRes = await directus.subscribe('historial_cargos' as any);
+          unsubHistorial = histRes.unsubscribe;
+          (async () => {
+            try {
+              for await (const msg of histRes.subscription) {
+                if (!isMounted) break;
+                if (msg.type !== 'subscription') continue;
+                if (!['create', 'update', 'delete'].includes(msg.event)) continue;
+                const contratoIds: number[] = Array.isArray((msg as any).data)
+                  ? (msg as any).data.map((d: any) => d?.contrato_id).filter(Boolean)
+                  : [];
+                for (const cid of contratoIds) {
+                  const fresh = await getContratoById(cid);
+                  if (!isMounted) break;
+                  if (fresh) dispatch({ type: 'UPSERT_CONTRATO', payload: fresh });
+                }
+              }
+            } catch { }
+          })();
+        } catch (e) {
+          // historial_cargos suscripción opcional — no romper si permisos faltan
+          console.warn('WS historial_cargos no disponible:', e);
+        }
+      } catch (err) {
+        console.error('Error setup WS contratos:', err);
+      }
+    };
+
+    setupWS();
+    return () => {
+      isMounted = false;
+      if (unsubContratos) unsubContratos();
+      if (unsubHistorial) unsubHistorial();
+    };
+  }, [authLoading]);
 
   // ─── Esperar a que AuthProvider termine antes de disparar queries ─────────
   // AuthProvider inicializa el token de forma asíncrona. Si disparamos

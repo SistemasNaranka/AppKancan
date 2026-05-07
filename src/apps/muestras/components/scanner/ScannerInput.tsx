@@ -1,6 +1,7 @@
 // src/components/scanner/ScannerInput.tsx
 import { TextField, InputAdornment, Box, IconButton } from "@mui/material";
-import { QrCodeScanner, Add } from "@mui/icons-material";
+import QrCodeScanner from '@mui/icons-material/QrCodeScanner';
+import Add from '@mui/icons-material/Add';
 import { forwardRef } from "react";
 
 interface Props {

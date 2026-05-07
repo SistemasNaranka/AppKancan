@@ -667,6 +667,7 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
         showSkipButton={false}
         disableOverlayClose
         disableScrolling={false}
+        disableScrollParentFix
         scrollToFirstStep
         spotlightClicks={false}
         tooltipComponent={CustomTooltip}

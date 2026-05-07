@@ -12,13 +12,11 @@ import {
   InputAdornment,
   IconButton,
 } from "@mui/material";
-import {
-  Lock,
-  LockReset,
-  Visibility,
-  VisibilityOff,
-  CheckCircle,
-} from "@mui/icons-material";
+import Lock from '@mui/icons-material/Lock';
+import LockReset from '@mui/icons-material/LockReset';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import CheckCircle from '@mui/icons-material/CheckCircle';
 import { usePasswordReset } from "@/auth/hooks/usePasswordReset";
 
 interface ForcePasswordChangeModalProps {

@@ -22,7 +22,7 @@ export function daysUntil(dateStr: string): number {
  *  - vigente  : > 30 días
  */
 export function computeContractStatus(daysLeft: number): ContractStatus {
-  if (daysLeft < 0)  return 'vencido';
+  if (daysLeft < 0) return 'vencido';
   if (daysLeft <= 30) return 'proximo';
   return 'vigente';
 }
@@ -32,7 +32,7 @@ export function computeContractStatus(daysLeft: number): ContractStatus {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface EnrichedContrato extends Contrato {
-  /** Última prórga registrada (mayor número) - puede ser null si no hay prorrogas */
+  /** Última prórroga registrada (mayor número) - puede ser null si no hay prorrogas */
   lastProrroga: Prorroga | null;
   /** Fecha de vencimiento efectiva (fecha_final del contrato o última(prorroga) */
   fechaVencimiento: string | null;
@@ -59,12 +59,12 @@ export const useContracts = () => {
         const fechaVencimiento = c.fecha_final ?? null;
         const daysLeft = fechaVencimiento ? daysUntil(fechaVencimiento) : Infinity;
         const contractStatus = isFinite(daysLeft) ? computeContractStatus(daysLeft) : 'vigente';
-        
-        // Obtener última prórga si existe (para otros usos)
+
+        // Obtener última prórroga si existe (para otros usos)
         const lastProrroga = c.prorrogas && c.prorrogas.length > 0
           ? [...c.prorrogas].sort((a, b) => a.numero - b.numero)[c.prorrogas.length - 1]
           : null;
-          
+
         return { ...c, lastProrroga, fechaVencimiento, daysLeft, contractStatus };
       });
   }, [contratos]);
@@ -81,11 +81,11 @@ export const useContracts = () => {
         // Búsqueda libre
         if (q) {
           return (
-            c.nombre.toLowerCase().includes(q)       ||
+            c.nombre.toLowerCase().includes(q) ||
             (c.apellido?.toLowerCase() ?? '').includes(q) ||
-            String(c.cargo).toLowerCase().includes(q)        ||
+            String(c.cargo).toLowerCase().includes(q) ||
             (c.area?.toLowerCase() ?? '').includes(q) ||
-            (c.empresa?.toLowerCase() ?? '').includes(q)      ||
+            (c.empresa?.toLowerCase() ?? '').includes(q) ||
             (c.documento?.toLowerCase() ?? '').includes(q) ||
             (c.tipo_contrato?.toLowerCase() ?? '').includes(q) ||
             (c.numero_contrato?.toLowerCase() ?? '').includes(q)
@@ -95,7 +95,7 @@ export const useContracts = () => {
       })
       .sort((a, b) => {
         if (filters.sortBy === 'vencimiento') return a.daysLeft - b.daysLeft;
-        if (filters.sortBy === 'nombre')      return a.nombre.localeCompare(b.nombre);
+        if (filters.sortBy === 'nombre') return a.nombre.localeCompare(b.nombre);
         if (filters.sortBy === 'prorroga') return (b.prorrogas?.length ?? 0) - (a.prorrogas?.length ?? 0);
         return 0;
       });
@@ -103,13 +103,13 @@ export const useContracts = () => {
 
   // ── 3. Estadísticas del dashboard ────────────────────────────────────────
   const dashboardStats = useMemo<DashboardStats>(() => {
-    const now   = new Date();
+    const now = new Date();
     const msDay = 1000 * 60 * 60 * 24 * 30; // ~30 días en ms
 
-    const activos    = enriched.filter((c) => c.contractStatus === 'vigente').length;
+    const activos = enriched.filter((c) => c.contractStatus === 'vigente').length;
     const por_vencer = enriched.filter((c) => c.contractStatus === 'proximo' && c.daysLeft > 7).length;
-    const criticos   = enriched.filter((c) => c.contractStatus === 'proximo' && c.daysLeft <= 7).length;
-    const vencidos   = enriched.filter((c) => c.contractStatus === 'vencido').length;
+    const criticos = enriched.filter((c) => c.contractStatus === 'proximo' && c.daysLeft <= 7).length;
+    const vencidos = enriched.filter((c) => c.contractStatus === 'vencido').length;
 
     const nuevos_este_mes = enriched.filter((c) => {
       if (!c.date_created) return false;
@@ -145,32 +145,32 @@ export const useContracts = () => {
   );
 
   // ── 6. Conteos por ContractStatus (para badges y distribución) ───────────
-const counts = useMemo(
-  () => ({
-    // Estos sí existen en dashboardStats (basado en tus errores previos)
-    activos:     dashboardStats.activos,
-    por_vencer:  dashboardStats.por_vencer,
-    criticos:    dashboardStats.criticos,
-    vencidos:    dashboardStats.vencidos,
-    total:       dashboardStats.total,
+  const counts = useMemo(
+    () => ({
+      // Estos sí existen en dashboardStats (basado en tus errores previos)
+      activos: dashboardStats.activos,
+      por_vencer: dashboardStats.por_vencer,
+      criticos: dashboardStats.criticos,
+      vencidos: dashboardStats.vencidos,
+      total: dashboardStats.total,
 
-    // Para los estados de "solicitud", calculamos directamente de 'enriched'
-    // Quitamos el "dashboardStats?.propiedad" porque esa interfaz no los incluye
-    pendiente:   enriched.filter((c) => c.request_status === 'pendiente').length,
-    en_revision: enriched.filter((c) => c.request_status === 'en_revision').length,
-    aprobada:    enriched.filter((c) => c.request_status === 'aprobada').length,
-    rechazada:   enriched.filter((c) => c.request_status === 'rechazada').length,
-    completada:  enriched.filter((c) => c.request_status === 'completada').length,
-  }),
-  [dashboardStats, enriched],
-);
+      // Para los estados de "solicitud", calculamos directamente de 'enriched'
+      // Quitamos el "dashboardStats?.propiedad" porque esa interfaz no los incluye
+      pendiente: enriched.filter((c) => c.request_status === 'pendiente').length,
+      en_revision: enriched.filter((c) => c.request_status === 'en_revision').length,
+      aprobada: enriched.filter((c) => c.request_status === 'aprobada').length,
+      rechazada: enriched.filter((c) => c.request_status === 'rechazada').length,
+      completada: enriched.filter((c) => c.request_status === 'completada').length,
+    }),
+    [dashboardStats, enriched],
+  );
 
   return {
     // Context base (acciones, estado crudo)
     ...ctx,
 
     // Contratos enriquecidos
-    allEnriched:      enriched,
+    allEnriched: enriched,
     filteredContratos,
     recentContratos,
     alertContratos,
@@ -180,8 +180,8 @@ const counts = useMemo(
     counts,
 
     // Aliases de compatibilidad
-    filteredContracts:  filteredContratos,
-    selectedContract:   ctx.selectedContrato,
-    selectContract:     ctx.select,
+    filteredContracts: filteredContratos,
+    selectedContract: ctx.selectedContrato,
+    selectContract: ctx.select,
   };
 };

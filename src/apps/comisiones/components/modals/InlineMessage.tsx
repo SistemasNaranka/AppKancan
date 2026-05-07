@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Alert, alpha } from "@mui/material";
-import { CheckCircle, Error, Warning, Info } from "@mui/icons-material";
-import { useTheme } from "@mui/material/styles";
+import { Box, Typography, Alert } from "@mui/material";
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Error from '@mui/icons-material/Error';
+import Warning from '@mui/icons-material/Warning';
+import Info from '@mui/icons-material/Info';
 
 interface InlineMessageProps {
   message: string;
@@ -16,7 +18,6 @@ export const InlineMessage: React.FC<InlineMessageProps> = ({
   duration,
   onHide,
 }) => {
-  const theme = useTheme();
   const [visible, setVisible] = useState(false);
 
   // Duración por defecto según el tipo de mensaje

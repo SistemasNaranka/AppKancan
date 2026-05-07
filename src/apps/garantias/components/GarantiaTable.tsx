@@ -14,11 +14,9 @@ import {
   Typography,
   Chip,
 } from "@mui/material";
-import {
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from "@mui/icons-material";
+import ViewIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { EstadoChip } from "./GarantiaStatsCards";
 
 interface DirectusGarantia {

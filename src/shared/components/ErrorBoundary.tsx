@@ -12,13 +12,11 @@ import {
   AccordionDetails,
   Chip,
 } from "@mui/material";
-import {
-  ErrorOutline as ErrorOutlineIcon,
-  Refresh as RefreshIcon,
-  Home as HomeIcon,
-  ExpandMore as ExpandMoreIcon,
-  BugReport as BugReportIcon,
-} from "@mui/icons-material";
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import HomeIcon from '@mui/icons-material/Home';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import BugReportIcon from '@mui/icons-material/BugReport';
 import { keyframes } from "@mui/system";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/hooks/useAuth";

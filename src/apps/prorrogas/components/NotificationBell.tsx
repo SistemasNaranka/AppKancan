@@ -11,8 +11,14 @@ import Typography from "@mui/material/Typography";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { useContractContext } from "../contexts/ContractContext";
-import { formatDate, daysUntil } from "../lib/utils";
+import { useContracts } from "../hooks/useContracts";
+import { formatDate } from "../lib/utils";
+
+// Umbral en días para mostrar alertas en la campana.
+// Un contrato/prórroga aparece desde 60 días antes del vencimiento hasta el día 0.
+const ALERT_THRESHOLD_DAYS = 60;
+// Sub-umbral para marcar como urgente (rojo) dentro de la lista.
+const URGENT_THRESHOLD_DAYS = 15;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NotificationBell
@@ -20,14 +26,11 @@ import { formatDate, daysUntil } from "../lib/utils";
 
 const NotificationBell: React.FC = () => {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
-  const { contratos } = useContractContext();
+  const { allEnriched, select } = useContracts();
 
-  const alerts = contratos
-    .filter((c) => {
-      const days = daysUntil(c.fecha_final);
-      return days >= 0 && days <= 50;
-    })
-    .sort((a, b) => daysUntil(a.fecha_final) - daysUntil(b.fecha_final));
+  const alerts = allEnriched
+    .filter((c) => isFinite(c.daysLeft) && c.daysLeft >= 0 && c.daysLeft <= ALERT_THRESHOLD_DAYS)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
 
   const open = Boolean(anchor);
 
@@ -121,16 +124,19 @@ const NotificationBell: React.FC = () => {
         ) : (
           <List disablePadding>
             {alerts.map((c, idx) => {
-              const days = daysUntil(c.fecha_final);
-              const urgent = days <= 20;
+              const days = c.daysLeft;
+              const urgent = days <= URGENT_THRESHOLD_DAYS;
               return (
                 <React.Fragment key={c.id}>
                   <ListItem
                     alignItems="flex-start"
+                    onClick={() => { select(c.id); setAnchor(null); }}
                     sx={{
                       px: 2.5,
                       py: 1.5,
+                      cursor: 'pointer',
                       bgcolor: idx % 2 === 0 ? "background.paper" : "#fafbfd",
+                      '&:hover': { bgcolor: 'action.hover' },
                     }}
                   >
                     <Box
@@ -160,17 +166,26 @@ const NotificationBell: React.FC = () => {
                     <ListItemText
                       primary={
                         <Typography variant="body2" fontWeight={700} color="text.primary">
-                          {c.nombre}
+                          {c.nombre} {c.apellido ?? ''}
                         </Typography>
                       }
                       secondary={
                         <>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                            El contrato de <strong>{c.nombre}</strong> vence en{' '}
-                            <strong style={{ color: urgent ? '#c62828' : '#e65100' }}>{c.daysLeft} días</strong>
+                            {days === 0 ? (
+                              <>El contrato <strong>vence hoy</strong></>
+                            ) : (
+                              <>
+                                Vence en{' '}
+                                <strong style={{ color: urgent ? '#c62828' : '#e65100' }}>
+                                  {days} {days === 1 ? 'día' : 'días'}
+                                </strong>
+                                {c.lastProrroga ? ' (prórroga vigente)' : ''}
+                              </>
+                            )}
                           </Typography>
                           <Typography variant="caption" color="text.disabled">
-                            {c.lastProrroga && c.lastProrroga.fecha_final ? formatDate(c.lastProrroga.fecha_final) : 'Sin prórga'} · {c.id}
+                            {c.fechaVencimiento ? formatDate(c.fechaVencimiento) : 'Sin fecha'} · #{c.id}
                           </Typography>
                         </>
                       }

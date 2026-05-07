@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { Box, Paper, Typography, Chip, Link } from "@mui/material";
-import { ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { format } from "date-fns";
 import type { Reserva } from "../types/reservas.types";
 import { capitalize } from "../types/reservas.types";

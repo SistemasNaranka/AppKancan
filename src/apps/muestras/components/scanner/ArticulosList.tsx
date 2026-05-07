@@ -1,6 +1,7 @@
 // src/components/scanner/ArticulosList.tsx
 import { Box, IconButton, Typography, Stack, Paper } from "@mui/material";
-import { Delete, RemoveCircle } from "@mui/icons-material";
+import Delete from '@mui/icons-material/Delete';
+import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import { Articulo } from "./types";
 
 interface ArticulosListProps {

@@ -379,6 +379,7 @@ export const FacturasTour = ({
         showProgress
         disableOverlayClose
         disableScrolling={false}
+        disableScrollParentFix
         scrollToFirstStep
         spotlightClicks
         tooltipComponent={CustomTooltip}

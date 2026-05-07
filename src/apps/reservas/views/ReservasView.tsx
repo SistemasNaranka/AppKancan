@@ -21,7 +21,7 @@ import {
   styled,
   keyframes,
 } from "@mui/material";
-import { CalendarMonth as CalendarIcon } from "@mui/icons-material";
+import CalendarIcon from '@mui/icons-material/CalendarMonth';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/hooks/useAuth";
@@ -29,7 +29,7 @@ import { useApps } from "@/apps/hooks/useApps";
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 import { useTutorial } from "@/shared/hooks/TutorialContext";
 
-import { Add as AddIcon } from "@mui/icons-material";
+import AddIcon from '@mui/icons-material/Add';
 
 // Componentes
 import EstadoSalas from "../components/EstadoSalas";

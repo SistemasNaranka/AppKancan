@@ -10,17 +10,15 @@ import {
   Tooltip,
   Chip,
 } from "@mui/material";
-import {
-  Mail,
-  Cloud,
-  GridOn,
-  SignalWifi4Bar,
-  SignalWifi3Bar,
-  SignalWifi2Bar,
-  SignalWifi1Bar,
-  SignalWifiOff,
-  Circle,
-} from "@mui/icons-material";
+import Mail from '@mui/icons-material/Mail';
+import Cloud from '@mui/icons-material/Cloud';
+import GridOn from '@mui/icons-material/GridOn';
+import SignalWifi4Bar from '@mui/icons-material/SignalWifi4Bar';
+import SignalWifi3Bar from '@mui/icons-material/SignalWifi3Bar';
+import SignalWifi2Bar from '@mui/icons-material/SignalWifi2Bar';
+import SignalWifi1Bar from '@mui/icons-material/SignalWifi1Bar';
+import SignalWifiOff from '@mui/icons-material/SignalWifiOff';
+import Circle from '@mui/icons-material/Circle';
 import Clock from "@/homes/clock";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";

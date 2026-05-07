@@ -12,7 +12,9 @@ import {
   InputLabel,
   Chip,
 } from "@mui/material";
-import { Summarize, ListAlt, People } from "@mui/icons-material";
+import Summarize from '@mui/icons-material/Summarize';
+import ListAlt from '@mui/icons-material/ListAlt';
+import People from '@mui/icons-material/People';
 import { MesResumen } from "../types";
 
 interface CSVDataProps {

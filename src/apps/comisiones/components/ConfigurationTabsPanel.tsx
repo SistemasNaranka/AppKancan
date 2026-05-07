@@ -23,18 +23,16 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
-import {
-  Save,
-  Percent,
-  Close,
-  CalendarMonth,
-  Badge,
-  SettingsSuggest,
-  AddCircleOutline,
-  DeleteOutline,
-  InfoOutlined,
-  TrendingUp,
-} from "@mui/icons-material";
+import Save from '@mui/icons-material/Save';
+import Percent from '@mui/icons-material/Percent';
+import Close from '@mui/icons-material/Close';
+import CalendarMonth from '@mui/icons-material/CalendarMonth';
+import Badge from '@mui/icons-material/Badge';
+import SettingsSuggest from '@mui/icons-material/SettingsSuggest';
+import AddCircleOutline from '@mui/icons-material/AddCircleOutline';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import TrendingUp from '@mui/icons-material/TrendingUp';
 import {
   obtenerCargos,
   obtenerPorcentajesMensuales,

@@ -2,13 +2,11 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Box, Paper, Typography, Button, Chip } from "@mui/material";
-import {
-  PersonOutlineOutlined as PersonOutlineOutlinedIcon,
-  DescriptionOutlined as DescriptionOutlinedIcon,
-  AccessTimeOutlined as AccessTimeOutlinedIcon,
-  CheckCircleOutlineOutlined as CheckCircleOutlineOutlinedIcon,
-  DataUsageOutlined as DataUsageOutlinedIcon,
-} from "@mui/icons-material";
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
+import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
+import DataUsageOutlinedIcon from '@mui/icons-material/DataUsageOutlined';
 import { format, differenceInSeconds, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Reserva } from "../types/reservas.types";

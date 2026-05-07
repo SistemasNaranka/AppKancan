@@ -20,12 +20,10 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import {
-  TrendingUp,
-  SupervisorAccount,
-  PointOfSale,
-  Store,
-} from "@mui/icons-material";
+import TrendingUp from '@mui/icons-material/TrendingUp';
+import SupervisorAccount from '@mui/icons-material/SupervisorAccount';
+import PointOfSale from '@mui/icons-material/PointOfSale';
+import Store from '@mui/icons-material/Store';
 import { MesResumen } from "../../types";
 import { NoDataChartMessage } from "./NoDataChartMessage";
 

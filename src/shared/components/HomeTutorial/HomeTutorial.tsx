@@ -74,6 +74,7 @@ function HomeTutorial({ ready = true }: HomeTutorialProps) {
       showProgress
       showSkipButton
       disableScrolling={false}
+      disableScrollParentFix
       scrollToFirstStep
       callback={handleCallback}
       locale={{

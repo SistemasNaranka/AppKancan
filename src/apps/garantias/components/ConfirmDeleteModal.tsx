@@ -8,11 +8,9 @@ import {
   Typography,
   Box,
 } from "@mui/material";
-import {
-  Warning as WarningIcon,
-  Delete as DeleteIcon,
-  Cancel as CancelIcon,
-} from "@mui/icons-material";
+import WarningIcon from '@mui/icons-material/Warning';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 interface ConfirmDeleteModalProps {
   open: boolean;

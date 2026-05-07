@@ -12,20 +12,18 @@ import {
   IconButton,
   Autocomplete,
 } from "@mui/material";
-import {
-  Description as DescriptionIcon,
-  Business as BusinessIcon,
-  Add as AddIcon,
-  AccountBalance as ContabilidadIcon,
-  People as RRHHIcon,
-  LocalShipping as LogisticaIcon,
-  DesignServices as DisenoIcon,
-  Computer as SistemasIcon,
-  Campaign as MercadeoIcon,
-  MoreHoriz as OtraIcon,
-  Store as StoreIcon,
-  AdminPanelSettings as AdministrativaIcon,
-} from "@mui/icons-material";
+import DescriptionIcon from '@mui/icons-material/Description';
+import BusinessIcon from '@mui/icons-material/Business';
+import AddIcon from '@mui/icons-material/Add';
+import ContabilidadIcon from '@mui/icons-material/AccountBalance';
+import RRHHIcon from '@mui/icons-material/People';
+import LogisticaIcon from '@mui/icons-material/LocalShipping';
+import DisenoIcon from '@mui/icons-material/DesignServices';
+import SistemasIcon from '@mui/icons-material/Computer';
+import MercadeoIcon from '@mui/icons-material/Campaign';
+import OtraIcon from '@mui/icons-material/MoreHoriz';
+import StoreIcon from '@mui/icons-material/Store';
+import AdministrativaIcon from '@mui/icons-material/AdminPanelSettings';
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";

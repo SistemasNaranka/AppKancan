@@ -19,12 +19,10 @@ import {
   DialogContentText,
   DialogActions,
 } from "@mui/material";
-import {
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
-} from "@mui/icons-material";
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useProyectoById } from "../hooks/useProyectos";
 import {
   createFeedback,

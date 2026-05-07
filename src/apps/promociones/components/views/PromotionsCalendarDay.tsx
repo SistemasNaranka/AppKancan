@@ -8,11 +8,9 @@ import {
   Chip,
   Divider,
 } from "@mui/material";
-import {
-  ArrowBackIos,
-  ArrowForwardIos,
-  CalendarToday,
-} from "@mui/icons-material";
+import ArrowBackIos from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIos from '@mui/icons-material/ArrowForwardIos';
+import CalendarToday from '@mui/icons-material/CalendarToday';
 import { usePromotionsFilter } from "../../hooks/usePromotionsFilter";
 import { useFilteredPromotions } from "../../hooks/useFilteredPromotions";
 import { Promotion } from "../../types/promotion";

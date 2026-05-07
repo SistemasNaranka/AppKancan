@@ -7,7 +7,8 @@ import {
   Tooltip,
   useTheme,
 } from "@mui/material";
-import { Logout, Settings } from "@mui/icons-material";
+import Logout from '@mui/icons-material/Logout';
+import Settings from '@mui/icons-material/Settings';
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { ConfigPanel } from "@/apps/Configuracion/pages/ConfigPanel";

@@ -1,12 +1,10 @@
 import React from "react";
 import { Typography, Paper } from "@mui/material";
-import {
-  Insights,
-  BarChart,
-  PieChart,
-  TrendingUp,
-  Warning,
-} from "@mui/icons-material";
+import Insights from '@mui/icons-material/Insights';
+import BarChart from '@mui/icons-material/BarChart';
+import PieChart from '@mui/icons-material/PieChart';
+import TrendingUp from '@mui/icons-material/TrendingUp';
+import Warning from '@mui/icons-material/Warning';
 
 interface NoDataChartMessageProps {
   title: string;

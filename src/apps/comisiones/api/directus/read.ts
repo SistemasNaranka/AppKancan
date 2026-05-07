@@ -290,7 +290,7 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
  * Obtener porcentajes mensuales desde la nueva colección
  */
 export async function obtenerPorcentajesMensuales(
-  tiendaId?: number,
+  _tiendaId?: number,
   mesAnio?: string,
 ): Promise<DirectusPorcentajeMensual[]> {
   try {

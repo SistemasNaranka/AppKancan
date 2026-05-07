@@ -1,5 +1,6 @@
 import { Stack } from "@mui/material";
-import { Send, Clear } from "@mui/icons-material";
+import Send from '@mui/icons-material/Send';
+import Clear from '@mui/icons-material/Clear';
 import CancelButton from "@/shared/components/button/CancelButton";
 import ConfirmButton from "@/shared/components/button/ConfirmButton";
 

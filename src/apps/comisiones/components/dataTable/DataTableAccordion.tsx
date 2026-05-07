@@ -1,11 +1,9 @@
 import React from "react";
 import { Box, Typography, useTheme, useMediaQuery } from "@mui/material";
-import {
-  Store as StoreIcon,
-  ExpandMore as ExpandMoreIcon,
-  AttachMoney as AttachMoneyIcon,
-  People as PeopleIcon, // ← AGREGADO
-} from "@mui/icons-material";
+import StoreIcon from '@mui/icons-material/Store';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import PeopleIcon from '@mui/icons-material/People';
 import { TiendaResumen, CommissionThreshold } from "../../types";
 import { formatCurrency } from "../../lib/utils";
 import { blue, grey } from "@mui/material/colors";

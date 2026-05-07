@@ -7,7 +7,8 @@ import {
   useTheme,
   alpha,
 } from "@mui/material";
-import { Close, Groups } from "@mui/icons-material";
+import Close from '@mui/icons-material/Close';
+import Groups from '@mui/icons-material/Groups';
 import { EmpleadoAsignado } from "../../types/modal";
 
 interface AssignedEmployeesListProps {

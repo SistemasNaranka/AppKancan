@@ -234,7 +234,7 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
               </Stack>
               {nextNum >= 4 && (
                 <Chip
-                  label="Renovación Anual — Planta"
+                  label="Renovación Anual."
                   size="small"
                   sx={{ mt: 1, bgcolor: 'primary.main', color: '#fff', fontWeight: 700, fontSize: '0.68rem' }}
                 />

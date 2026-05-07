@@ -14,7 +14,9 @@ import {
 
 import { useFilteredPromotions } from "../hooks/useFilteredPromotions";
 import { usePromotionsFilter } from "../hooks/usePromotionsFilter";
-import { CalendarToday, LocalOffer, Store } from "@mui/icons-material";
+import CalendarToday from '@mui/icons-material/CalendarToday';
+import LocalOffer from '@mui/icons-material/LocalOffer';
+import Store from '@mui/icons-material/Store';
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { ViewType } from "../hooks/PromotionsFilterContext";

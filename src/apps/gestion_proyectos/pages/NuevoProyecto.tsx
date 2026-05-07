@@ -9,13 +9,11 @@ import {
   CircularProgress,
   styled,
 } from "@mui/material";
-import {
-  ArrowBack as ArrowBackIcon,
-  Save as SaveIcon,
-  Description as DescriptionIcon,
-  Timer as TimerIcon,
-  Star as StarIcon,
-} from "@mui/icons-material";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SaveIcon from '@mui/icons-material/Save';
+import DescriptionIcon from '@mui/icons-material/Description';
+import TimerIcon from '@mui/icons-material/Timer';
+import StarIcon from '@mui/icons-material/Star';
 import {
   createProyecto,
   createProcesos,

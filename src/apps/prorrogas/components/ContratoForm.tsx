@@ -48,7 +48,6 @@ const NUEVA_AREA_VALUE = '__nueva__';
 const tipoContratoOptions = [
   { value: 'indefinido', label: 'Indefinido' },
   { value: 'definido',   label: 'Definido' },
-  { value: 'obra',       label: 'Obra o Labor' },
   { value: 'aprendizaje', label: 'Aprendizaje' },
 ];
 
@@ -60,14 +59,7 @@ const statusOptions: { value: RequestStatus; label: string }[] = [
   { value: 'completada',  label: 'Completada' },
 ];
 
-const cargoOptions = [
-  { value: 1, label: 'Gerente' },
-  { value: 2, label: 'Asesor' },
-  { value: 3, label: 'Cajero' },
-  { value: 4, label: 'Logístico' },
-  { value: 5, label: 'Coadministrador' },
-  { value: 6, label: 'Gerente Online' },
-];
+import { ROLES_AREAS } from '../config/cargos';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -76,7 +68,7 @@ interface FormData {
   documento_identidad: string;
   nombre: string;
   apellido: string;
-  cargo: number | '';
+  cargo: string | number | '';
   tipo_contrato: string;
   area: string;
   fecha_ingreso: string;
@@ -169,6 +161,18 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
         return;
       }
 
+      // Si cambia el cargo, auto-asignar el área
+      if (field === 'cargo') {
+        const selectedRole = ROLES_AREAS.find(r => r.nombre === value);
+        if (selectedRole) {
+          setFormData((prev) => ({ ...prev, cargo: value as string, area: selectedRole.area }));
+        } else {
+          setFormData((prev) => ({ ...prev, cargo: value as string }));
+        }
+        if (errors.cargo) setErrors((prev) => { const e = { ...prev }; delete e.cargo; return e; });
+        return;
+      }
+
       setFormData((prev) => ({ ...prev, [field]: value }));
       if (errors[field]) setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
     };
@@ -210,7 +214,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
         nombre:          formData.nombre,
         apellido:        formData.apellido,
         documento:       formData.documento_identidad,
-        cargo: Number(formData.cargo),
+        cargo:           formData.cargo, // Guardamos como nombre (String)
         tipo_contrato:   formData.tipo_contrato,
         area:            formData.area,
         fecha_ingreso:   formData.fecha_ingreso,
@@ -262,18 +266,16 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
 
           {/* ── Documento ── */}
-          {!isEditing && (
-            <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
-              <SectionHeader Icon={BadgeOutlinedIcon} label="DOCUMENTO DE IDENTIDAD" />
-              <TextField
-                label="Número de documento"
-                value={formData.documento_identidad}
-                onChange={handleChange('documento_identidad')}
-                fullWidth size="small" disabled={saving}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Box>
-          )}
+          <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
+            <SectionHeader Icon={BadgeOutlinedIcon} label="DOCUMENTO DE IDENTIDAD" />
+            <TextField
+              label="Número de documento"
+              value={formData.documento_identidad}
+              onChange={handleChange('documento_identidad')}
+              fullWidth size="small" disabled={saving}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </Box>
 
           {/* ── Datos personales ── */}
           <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
@@ -307,8 +309,8 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
                 fullWidth required disabled={saving} size="small" select
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               >
-                {cargoOptions.map((o) => (
-                  <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                {ROLES_AREAS.map((o) => (
+                  <MenuItem key={o.nombre} value={o.nombre}>{o.nombre}</MenuItem>
                 ))}
               </TextField>
               <TextField

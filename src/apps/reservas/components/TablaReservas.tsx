@@ -15,7 +15,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { Edit as EditIcon, Cancel as CancelIcon } from "@mui/icons-material";
+import EditIcon from '@mui/icons-material/Edit';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Reserva, EstadoReserva } from "../types/reservas.types";

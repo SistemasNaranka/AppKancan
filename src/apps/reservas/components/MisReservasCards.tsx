@@ -13,14 +13,12 @@ import {
   Tab,
   Tabs,
 } from "@mui/material";
-import {
-  Edit as EditIcon,
-  Cancel as CancelIcon,
-  CalendarMonth as CalendarIcon,
-  AccessTime as TimeIcon,
-  Notes as NotesIcon,
-  Business as AreaIcon,
-} from "@mui/icons-material";
+import EditIcon from '@mui/icons-material/Edit';
+import CancelIcon from '@mui/icons-material/Cancel';
+import CalendarIcon from '@mui/icons-material/CalendarMonth';
+import TimeIcon from '@mui/icons-material/AccessTime';
+import NotesIcon from '@mui/icons-material/Notes';
+import AreaIcon from '@mui/icons-material/Business';
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Reserva, EstadoReserva } from "../types/reservas.types";

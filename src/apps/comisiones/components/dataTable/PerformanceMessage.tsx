@@ -1,11 +1,9 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
-import {
-  Cancel as CancelIcon,
-  TrendingUp as TrendingUpIcon,
-  CheckCircle as CheckCircleIcon,
-  Star as StarIcon,
-} from "@mui/icons-material";
+import CancelIcon from '@mui/icons-material/Cancel';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import StarIcon from '@mui/icons-material/Star';
 import { green, orange, blue, grey, pink, red } from "@mui/material/colors";
 import { TiendaResumen, CommissionThreshold } from "../../types";
 import { formatCurrency } from "../../lib/utils";

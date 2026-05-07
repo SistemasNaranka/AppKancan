@@ -501,44 +501,23 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   // ============================================
   // TOUR SCROLL PREVENTION
   // ============================================
+  // FIX: unificado en un solo useEffect (antes había dos duplicados que se
+  // pisaban entre sí y dejaban el body lockeado). Restaura el valor PREVIO,
+  // no hardcodea "" — para coexistir con MUI Modal y otros modales custom.
   useEffect(() => {
-    if (dialogTourActive) {
-      // Prevenir scroll en el body cuando el tour está activo
-      const originalStyle = window.getComputedStyle(document.body).overflow;
-      document.body.style.overflow = "hidden";
-      
-      return () => {
-        document.body.style.overflow = originalStyle;
-      };
-    }
-  }, [dialogTourActive]);
+    if (!dialogTourActive) return;
 
-  // Obtener estilo original del overflow del body para restaurar
-  const originalBodyOverflow = useRef<string>("");
-  
-  // Prevenir scroll en el dialog cuando el tour está activo
-  useEffect(() => {
-    if (dialogTourActive) {
-      // Guardar estilo original
-      originalBodyOverflow.current = document.body.style.overflow;
-      // Bloquear scroll en body
-      document.body.style.overflow = "hidden";
-      
-      // Bloquear scroll en el elemento con clase MuiDialogContent-root
-      const dialogContent = document.querySelector(".MuiDialogContent-root");
-      if (dialogContent) {
-        (dialogContent as HTMLElement).style.overflow = "hidden";
-      }
-      
-      return () => {
-        document.body.style.overflow = originalBodyOverflow.current;
-        // Restaurar scroll en dialogContent
-        const dialogContent = document.querySelector(".MuiDialogContent-root");
-        if (dialogContent) {
-          (dialogContent as HTMLElement).style.overflow = "auto";
-        }
-      };
-    }
+    const prevBodyOverflow = document.body.style.overflow;
+    const dialogContent = document.querySelector(".MuiDialogContent-root") as HTMLElement | null;
+    const prevDialogOverflow = dialogContent?.style.overflow ?? "";
+
+    document.body.style.overflow = "hidden";
+    if (dialogContent) dialogContent.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      if (dialogContent) dialogContent.style.overflow = prevDialogOverflow || "auto";
+    };
   }, [dialogTourActive]);
 
   // Iniciar tour del dialog cuando se abre en modo tour

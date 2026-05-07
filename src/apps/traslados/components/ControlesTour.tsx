@@ -358,6 +358,7 @@ export const ControlesTour: React.FC<ControlesTourProps> = ({ onTourComplete }) 
       continuous
       showSkipButton
       showProgress
+      disableScrollParentFix
       callback={(data) => handleCallback(data as CallBackProps)}
       tooltipComponent={TourTooltip}
       styles={{

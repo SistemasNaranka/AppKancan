@@ -12,7 +12,7 @@ import {
   useTheme,
   Fade,
 } from "@mui/material";
-import { Lock } from "@mui/icons-material";
+import Lock from '@mui/icons-material/Lock';
 
 interface AccessValidationModalProps {
   open: boolean;

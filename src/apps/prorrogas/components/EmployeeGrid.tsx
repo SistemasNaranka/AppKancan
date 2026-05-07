@@ -14,11 +14,19 @@ import MenuItem from '@mui/material/MenuItem';
 import PersonIcon from '@mui/icons-material/Person';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import IconButton from '@mui/material/IconButton';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
+import { getCargoLabel } from '../config/cargos';
 const avatarColors = ['#004680', '#0284c7', '#4338ca', '#059669', '#d97706', '#dc2626'];
 const avatarColor = (id: number) => avatarColors[id % avatarColors.length];
-const EmployeeGrid: React.FC = () => {
+
+interface Props {
+  onEditContract?: (emp: any) => void;
+}
+
+const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
   const { allEnriched, select, filters } = useContracts();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'todos' | 'vigente' | 'proximo' | 'vencido'>('todos');
@@ -27,19 +35,19 @@ const EmployeeGrid: React.FC = () => {
 
   // Obtener cargos únicos y ordenados alfabéticamente
   const uniqueCargos = Array.from(
-    new Set(allEnriched.map((c) => String(c.cargo || 'Sin Cargo')))
+    new Set(allEnriched.map((c) => getCargoLabel(c.cargo)))
   ).sort((a, b) => a.localeCompare(b));
 
   const filteredEmployees = allEnriched.filter(c => {
     const statusMatch = statusFilter === 'todos' || c.contractStatus === statusFilter;
-    const cargoMatch = cargoFilter === 'todos' || String(c.cargo || 'Sin Cargo') === cargoFilter;
+    const cargoMatch = cargoFilter === 'todos' || getCargoLabel(c.cargo) === cargoFilter;
 
     // Búsqueda global del TopBar
     const q = filters.search.toLowerCase().trim();
     const searchMatch = !q || (
       c.nombre.toLowerCase().includes(q) ||
       (c.apellido?.toLowerCase() ?? '').includes(q) ||
-      String(c.cargo).toLowerCase().includes(q) ||
+      String(getCargoLabel(c.cargo)).toLowerCase().includes(q) ||
       (c.area?.toLowerCase() ?? '').includes(q) ||
       (c.documento?.toLowerCase() ?? '').includes(q) ||
       (c.empresa?.toLowerCase() ?? '').includes(q) ||
@@ -135,23 +143,34 @@ const EmployeeGrid: React.FC = () => {
                         {`${emp.nombre} ${emp.apellido || ''}`.trim()}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" noWrap>
-                        {emp.cargo || 'Sin Cargo'}
+                        {getCargoLabel(emp.cargo)}
                       </Typography>
                     </Box>
-                    <Chip 
-                      label={emp.contractStatus === 'vencido' ? 'Vencido' : emp.contractStatus === 'proximo' ? 'Por Vencer' : 'Vigente'} 
-                      size="small" 
-                      sx={{ 
-                        position: 'absolute',
-                        right: 0,
-                        top: 0,
-                        bgcolor: emp.contractStatus === 'vencido' ? '#fef2f2' : emp.contractStatus === 'proximo' ? '#fff7ed' : '#f0fdf4',
-                        color: emp.contractStatus === 'vencido' ? '#dc2626' : emp.contractStatus === 'proximo' ? '#d97706' : '#16a34a',
-                        fontWeight: 700,
-                        fontSize: '0.65rem',
-                        height: 20
-                      }}
-                    />
+                    <Box sx={{ position: 'absolute', right: 0, top: 0, display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                      {onEditContract && (
+                        <IconButton 
+                          size="small" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditContract(emp);
+                          }}
+                          sx={{ bgcolor: 'rgba(0,0,0,0.04)', width: 24, height: 24, '&:hover': { bgcolor: 'rgba(0,0,0,0.1)' } }}
+                        >
+                          <EditOutlinedIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      )}
+                      <Chip 
+                        label={emp.contractStatus === 'vencido' ? 'Vencido' : emp.contractStatus === 'proximo' ? 'Por Vencer' : 'Vigente'} 
+                        size="small" 
+                        sx={{ 
+                          bgcolor: emp.contractStatus === 'vencido' ? '#fef2f2' : emp.contractStatus === 'proximo' ? '#fff7ed' : '#f0fdf4',
+                          color: emp.contractStatus === 'vencido' ? '#dc2626' : emp.contractStatus === 'proximo' ? '#d97706' : '#16a34a',
+                          fontWeight: 700,
+                          fontSize: '0.65rem',
+                          height: 20
+                        }}
+                      />
+                    </Box>
                   </Stack>
 
                   <Divider sx={{ my: 1.5 }} />
@@ -207,7 +226,7 @@ const EmployeeGrid: React.FC = () => {
                     }}>
                       {emp.contractStatus === 'vencido'
                         ? `Vencido hace ${Math.abs(emp.daysLeft)} días`
-                        : `Vigente — ${emp.daysLeft} días restantes`}
+                        : `${emp.daysLeft} días restantes`}
                     </Typography>
                   </Box>
                 </Card>
