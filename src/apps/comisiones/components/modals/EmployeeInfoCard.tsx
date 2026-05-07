@@ -1,5 +1,4 @@
-import React from "react";
-import { Box, Typography, Chip, useTheme, alpha } from "@mui/material";
+import { Box, Typography, Chip, useTheme, alpha, CircularProgress } from "@mui/material";
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import Warning from '@mui/icons-material/Warning';
 import Badge from '@mui/icons-material/Badge';
@@ -24,7 +23,7 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({
   const hasNoEmployee = codigoInput.trim() && !empleadoEncontrado;
 
   // Don't show anything if no code is entered or if still loading
-  if (!codigoInput.trim() || loading) {
+  if (!codigoInput.trim()) {
     return null;
   }
 
@@ -49,7 +48,14 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({
         overflow: "hidden",
       }}
     >
-      {hasEmployeeInfo ? (
+      {loading ? (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <CircularProgress size={20} thickness={5} />
+          <Typography variant="body2" fontWeight="600" color="text.secondary">
+            Buscando empleado...
+          </Typography>
+        </Box>
+      ) : hasEmployeeInfo ? (
         <Box
           sx={{
             display: "flex",

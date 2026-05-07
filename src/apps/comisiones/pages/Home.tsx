@@ -177,6 +177,7 @@ export default function Home() {
           modalMessage={state.modalMessage}
           selectedMonth={state.selectedMonth}
           hasSavedData={budgetValidation.hasBudgetData === true}
+          tiendaSeleccionada={budgetValidation.currentStore} // NUEVO
           onShowSaveLoading={(error?: any) => actions.handleCodesModalSave(error)}
           onCloseCodesModal={() => actions.setShowCodesModal(false)}
           onCloseEditStoreModal={() => actions.setShowEditStoreModal(false)}

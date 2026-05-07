@@ -49,7 +49,13 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
       return [];
     }
 
-    const filter: any = { id: { _in: tiendaIds } };
+    // Robustecer el filtro para manejar IDs como string o number
+    const filter: any = {
+      _or: [
+        { id: { _in: tiendaIds } },
+        { id: { _in: tiendaIds.map(String) } },
+      ],
+    };
 
     const data = await withAutoRefresh(() =>
       directus.request(
@@ -170,8 +176,10 @@ export async function obtenerPresupuestosDiarios(
     const filter: any = {};
 
     if (tiendaId) {
-      if (tiendaIds.includes(tiendaId)) {
-        filter.tienda_id = { _eq: tiendaId };
+      const match = tiendaIds.find((id) => String(id) === String(tiendaId));
+      if (match !== undefined) {
+        // Filtro agnóstico al tipo
+        filter.tienda_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
       }
@@ -379,8 +387,10 @@ export async function obtenerPresupuestosEmpleados(
     const filter: any = {};
 
     if (tiendaId) {
-      if (tiendaIds.includes(tiendaId)) {
-        filter.tienda_id = { _eq: tiendaId };
+      const match = tiendaIds.find((id) => String(id) === String(tiendaId));
+      if (match !== undefined) {
+        // Filtro agnóstico al tipo
+        filter.tienda_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
       }
@@ -485,8 +495,10 @@ export async function obtenerVentasEmpleados(
     const filter: any = {};
 
     if (tiendaId) {
-      if (tiendaIds.includes(tiendaId)) {
-        filter.tienda_id = { _eq: tiendaId };
+      const match = tiendaIds.find((id) => String(id) === String(tiendaId));
+      if (match !== undefined) {
+        // Filtro agnóstico al tipo
+        filter.tienda_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
       }

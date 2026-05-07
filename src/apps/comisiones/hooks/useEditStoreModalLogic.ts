@@ -8,11 +8,13 @@ import { guardarPresupuestosEmpleados, eliminarPresupuestosEmpleados } from "../
 import { useBudgetCalculations } from "./useBudgetCalculations";
 import { useBudgetCalendar } from "./useBudgetCalendar";
 
-export const useEditStoreModalLogic = ({ isOpen, onSaveComplete }: any) => {
+export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: any) => {
   // Estados de UI y Datos
   const [fecha, setFecha] = useState<string>(() => localStorage.getItem("modalFecha") || dayjs().format("YYYY-MM-DD"));
-  const [tiendaSeleccionada, setTiendaSeleccionada] = useState<number | "">("");
-  const [tiendaNombre, setTiendaNombre] = useState("");
+  const [tiendaSeleccionada, setTiendaSeleccionada] = useState<number | "">(
+    tiendaProp?.id ? Number(tiendaProp.id) : (typeof tiendaProp === 'number' ? tiendaProp : (tiendaProp && !isNaN(Number(tiendaProp)) ? Number(tiendaProp) : ""))
+  );
+  const [tiendaNombre, setTiendaNombre] = useState(tiendaProp?.nombre || "");
   const [cargoSeleccionado, setCargoSeleccionado] = useState<number | "">("");
   const [codigoEmpleado, setCodigoEmpleado] = useState("");
   const [empleadoEncontrado, setEmpleadoEncontrado] = useState<any>(null);
@@ -22,6 +24,7 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete }: any) => {
   const [todosEmpleados, setTodosEmpleados] = useState<any[]>([]);
   const [cargos, setCargos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingCatalogos, setLoadingCatalogos] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -36,24 +39,65 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete }: any) => {
   useEffect(() => { if (isOpen) loadCatalogos(); }, [isOpen]);
   useEffect(() => { localStorage.setItem("modalFecha", fecha); }, [fecha]);
 
-  // Carga de empleados y días según contexto
+  // Sincronizar tienda si cambia el prop (cuando el modal está abierto)
   useEffect(() => {
-    if (fecha && tiendaSeleccionada) {
-      loadEmpleadosAsignados();
+    if (tiendaProp && isOpen) {
+      const idRaw = tiendaProp.id || (typeof tiendaProp === 'number' ? tiendaProp : (tiendaProp && !isNaN(Number(tiendaProp)) ? Number(tiendaProp) : ""));
+      const id = idRaw !== "" ? Number(idRaw) : "";
+      const nombre = tiendaProp.nombre || "";
+      
+      if (id !== "" && id !== tiendaSeleccionada) {
+        setTiendaSeleccionada(id);
+      }
+      if (nombre && nombre !== tiendaNombre) {
+        setTiendaNombre(nombre);
+      }
+    }
+  }, [tiendaProp, isOpen]);
+
+  // Carga de catálogos - Solo una vez al abrir
+  useEffect(() => { 
+    if (isOpen) {
+      loadCatalogos(); 
+    }
+  }, [isOpen]);
+
+  // Carga de datos del calendario (independiente de catálogos)
+  useEffect(() => {
+    if (isOpen && tiendaSeleccionada) {
       loadDiasSinPresupuesto();
     }
-  }, [fecha, tiendaSeleccionada, todosEmpleados, cargos]);
+  }, [isOpen, tiendaSeleccionada, fecha]);
+
+  // Carga de empleados asignados (depende de catálogos)
+  useEffect(() => {
+    if (isOpen && tiendaSeleccionada && fecha && todosEmpleados.length > 0) {
+      loadEmpleadosAsignados();
+    }
+  }, [isOpen, fecha, tiendaSeleccionada, todosEmpleados.length > 0]);
 
   const loadCatalogos = async () => {
     try {
-      setLoading(true);
+      setLoadingCatalogos(true);
       const [tData, eData, cData] = await Promise.all([obtenerTiendas(), obtenerAsesores(), obtenerCargos()]);
       setTiendas(tData.sort((a: any, b: any) => a.id - b.id));
       setTodosEmpleados(eData);
       setCargos(cData);
       const cargoAsesor = cData.find((c: any) => c.nombre.toLowerCase() === "asesor");
       if (cargoAsesor) setCargoSeleccionado(cargoAsesor.id);
-    } finally { setLoading(false); }
+
+      // Si ya tenemos tienda seleccionada (por prop) pero no el nombre, buscarlo
+      if (tiendaSeleccionada) {
+        const currentTienda = tData.find(t => Number(t.id) === Number(tiendaSeleccionada));
+        if (currentTienda) {
+          setTiendaNombre(currentTienda.nombre);
+        }
+      } else if (tData.length === 1) {
+        // Caso usuario tienda: seleccionar la única disponible
+        setTiendaSeleccionada(Number(tData[0].id));
+        setTiendaNombre(tData[0].nombre);
+      }
+    } finally { setLoadingCatalogos(false); }
   };
 
   const loadEmpleadosAsignados = async () => {
@@ -106,48 +150,118 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete }: any) => {
     return empleadosAsignadosOriginal.some(o => !currentIds.has(o.id));
   }, [empleadosAsignados, empleadosAsignadosOriginal]);
 
-  // Búsqueda automática de empleado por código (4 dígitos).
+  // Búsqueda automática de empleado por código (EXCLUSIVAMENTE ID EXACTO).
   useEffect(() => {
     if (!codigoEmpleado || codigoEmpleado.length < 1) {
       setEmpleadoEncontrado(null);
       return;
     }
+    
+    // Limpiar errores previos al buscar
+    if (error && error.includes("no existe")) setError("");
+
+    // Búsqueda por ID exacto solamente
     const found = todosEmpleados.find((e: any) => String(e.id) === String(codigoEmpleado));
+    
     setEmpleadoEncontrado(found ?? null);
+
+    // ✅ NUEVO: Avisar si el código no existe (cuando tiene 4 dígitos)
+    if (codigoEmpleado.length === 4 && !found) {
+      setError(`⚠️ El código ${codigoEmpleado} no existe en la base de datos.`);
+    }
   }, [codigoEmpleado, todosEmpleados]);
 
-  const handleAgregarEmpleado = () => {
-    if (!empleadoEncontrado || !cargoSeleccionado || !tiendaSeleccionada) return;
+  // Validacin de roles requeridos (Gerente + Asesor)
+  const hasRequiredRoles = useMemo(() => {
+    const roles = empleadosAsignados.map(e => e.cargo_nombre.toLowerCase());
+    const tieneGerente = roles.some(r => r === "gerente" || r === "coadministrador" || r.includes("gerente"));
+    const tieneAsesor = roles.some(r => r === "asesor");
+    return tieneGerente && tieneAsesor;
+  }, [empleadosAsignados]);
+
+  const handleAgregarEmpleado = async () => {
+    // ✅ Validación con mensajes claros
+    if (!tiendaSeleccionada) {
+      setError("Debe seleccionar una tienda primero.");
+      return;
+    }
+    if (!cargoSeleccionado) {
+      setError("Debe seleccionar un cargo para el empleado.");
+      return;
+    }
+    if (!empleadoEncontrado) {
+      if (codigoEmpleado.length > 0) {
+        setError(`El código ${codigoEmpleado} no es válido o no existe.`);
+      } else {
+        setError("Ingrese un código de empleado.");
+      }
+      return;
+    }
+    
     if (empleadosAsignados.some((e) => e.id === empleadoEncontrado.id)) {
       setError("El empleado ya está asignado.");
       return;
     }
+    
     const cargo = cargos.find((c) => c.id === cargoSeleccionado);
-    setEmpleadosAsignados((prev) => [
-      ...prev,
-      {
-        id: empleadoEncontrado.id,
-        codigo: empleadoEncontrado.id,
-        nombre: empleadoEncontrado.nombre,
-        cargo_id: cargoSeleccionado,
-        cargo_nombre: cargo?.nombre ?? "Asesor",
-        presupuesto: 0,
-        fecha,
-      },
-    ]);
-    setCodigoEmpleado("");
-    setEmpleadoEncontrado(null);
+    const nuevoEmpleado = {
+      id: empleadoEncontrado.id,
+      codigo: empleadoEncontrado.id,
+      nombre: empleadoEncontrado.nombre,
+      cargo_id: cargoSeleccionado,
+      cargo_nombre: cargo?.nombre ?? "Asesor",
+      presupuesto: 0,
+      fecha,
+    };
+
+    const nuevaLista = [...empleadosAsignados, nuevoEmpleado];
+    
+    setLoading(true);
+    try {
+      // Reclculo inmediato para evitar ceros
+      const { empleados: calculados } = await recalculateBudgets(nuevaLista, fecha);
+      setEmpleadosAsignados(calculados);
+      setCodigoEmpleado("");
+      setEmpleadoEncontrado(null);
+      clearMessages();
+    } catch (err) {
+      console.error("Error al recalcular al agregar:", err);
+      setEmpleadosAsignados(nuevaLista);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleQuitarEmpleado = (id: number) => {
-    setEmpleadosAsignados((prev) => prev.filter((e) => e.id !== id));
+  const clearMessages = () => {
+    setError("");
+    setSuccess("");
+  };
+
+  const handleQuitarEmpleado = async (id: number) => {
+    const nuevaLista = empleadosAsignados.filter((e) => e.id !== id);
+    
+    if (nuevaLista.length === 0) {
+      setEmpleadosAsignados([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { empleados: calculados } = await recalculateBudgets(nuevaLista, fecha);
+      setEmpleadosAsignados(calculados);
+    } catch (err) {
+      console.error("Error al recalcular al quitar:", err);
+      setEmpleadosAsignados(nuevaLista);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLimpiar = () => {
     setEmpleadosAsignados([]);
   };
 
-  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleAgregarEmpleado();
@@ -165,20 +279,32 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete }: any) => {
   return {
     fecha, setFecha, tiendaSeleccionada, tiendaNombre, cargoSeleccionado, setCargoSeleccionado,
     codigoEmpleado, setCodigoEmpleado, empleadoEncontrado, empleadosAsignados,
-    tiendas, todosEmpleados, cargos, loading, error, success,
-    setError, setSuccess,
+    tiendas, todosEmpleados, cargos, loading, loadingCatalogos, error, success,
+    setError, setSuccess, clearMessages,
     diasSinPresupuesto, diasConPresupuestoCero, diasConAsignacion, selectedDays,
-    hasChanges, handleGuardar,
+    hasChanges, hasRequiredRoles, handleGuardar,
     handleAgregarEmpleado, handleQuitarEmpleado, handleLimpiar, handleKeyPress,
     selectAllPendingDays, clearDaySelection,
-    handleTiendaChange: (id: number) => {
-      setTiendaSeleccionada(id);
-      setTiendaNombre(tiendas.find(t => t.id === id)?.nombre || "");
+    handleTiendaChange: (id: number | string) => {
+      const numericId = id === "" ? "" : Number(id);
+      setTiendaSeleccionada(numericId);
+      const tienda = tiendas.find(t => Number(t.id) === numericId);
+      setTiendaNombre(tienda?.nombre || "");
+      // Limpiar empleados al cambiar de tienda para evitar mezclar datos
+      setEmpleadosAsignados([]);
+      setEmpleadosAsignadosOriginal([]);
     },
     toggleDaySelection: (dia: string) => {
       if (diasConPresupuestoCero.includes(dia) || dayjs(dia).isAfter(dayjs(), 'day')) return;
-      setSelectedDays(prev => prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia]);
-      if (!selectedDays.includes(dia)) setFecha(dia);
+      
+      // Si el día ya está seleccionado, lo quitamos
+      if (selectedDays.includes(dia)) {
+        setSelectedDays(prev => prev.filter(d => d !== dia));
+      } else {
+        // Si no está seleccionado, lo agregamos y cambiamos la fecha activa
+        setSelectedDays(prev => [...prev, dia]);
+        setFecha(dia);
+      }
     },
   };
 };

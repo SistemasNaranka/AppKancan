@@ -104,7 +104,7 @@ export const useEmployeeManagement = (
 
   // ✅ NUEVO: Modificar handleAddEmpleado para incluir datos necesarios
   const handleAddEmpleadoModified = async () => {
-    await handleAddEmpleado(asesoresDisponibles, cargosDisponibles);
+    await handleAddEmpleado(asesoresDisponibles, cargosDisponibles, empleadoEncontrado);
   };
 
   // ✅ NUEVO: Modificar handleSaveAsignaciones para incluir datos necesarios
@@ -138,6 +138,13 @@ export const useEmployeeManagement = (
       loadAsesoresDisponibles();
     }
   }, [tiendaUsuario]);
+
+  // ✅ NUEVO: Buscar empleado automáticamente cuando cambia el código
+  useEffect(() => {
+    buscarEmpleadoPorCodigo(codigoInput);
+  }, [codigoInput, buscarEmpleadoPorCodigo]);
+
+
 
   // ✅ NUEVO: Obtener mensaje actual (combinando ambos hooks)
   const getCargoNombreWithCargos = (cargoId: any): string => {

@@ -145,10 +145,18 @@ export const useEmployeeData = (
       return;
     }
 
+    // Búsqueda ESTRICTA por ID solamente
     const empleado = asesoresDisponibles.find(
-      (a) => a.id === codigoNum || a.id.toString() === codigo.trim(),
+      (a) => String(a.id) === String(codigo.trim())
     );
     setEmpleadoEncontrado(empleado || null);
+
+    // ✅ NUEVO: Avisar si el código no existe (cuando tiene 4 dígitos)
+    if (codigo.trim().length === 4 && !empleado) {
+      setError(`⚠️ El código ${codigo.trim()} no existe en la base de datos.`);
+    } else if (error && error.includes("no existe")) {
+      setError(null);
+    }
   };
 
   const getCurrentMessage = () => {

@@ -34,18 +34,20 @@ import CheckCircle from '@mui/icons-material/CheckCircle';
 import CalendarMonth from '@mui/icons-material/CalendarMonth';
 import { useEditStoreModalLogic } from "../../hooks/useEditStoreModalLogic";
 import { DaysWithoutBudgetPanel } from "./DaysWithoutBudgetPanel";
+import { EmployeeInfoCard } from "./EmployeeInfoCard";
 import { useApps } from "@/apps/hooks/useApps";
 
 interface EditStoreModalSimplifiedProps {
   isOpen: boolean;
   onClose: () => void;
   selectedMonth?: string;
+  tiendaProp?: any;
   onSaveComplete?: () => void;
 }
 
 export const EditStoreModalSimplified: React.FC<
   EditStoreModalSimplifiedProps
-> = ({ isOpen, onClose, selectedMonth, onSaveComplete }) => {
+> = ({ isOpen, onClose, selectedMonth, tiendaProp, onSaveComplete }) => {
   const { area } = useApps();
   // Estado para controlar si se ha guardado correctamente
   const [, setSaveCompleted] = React.useState(false);
@@ -64,6 +66,7 @@ export const EditStoreModalSimplified: React.FC<
     tiendas,
     cargos,
     loading,
+    loadingCatalogos, // NUEVO
     error,
     success,
     diasSinPresupuesto,
@@ -92,6 +95,7 @@ export const EditStoreModalSimplified: React.FC<
     isOpen,
     onClose,
     selectedMonth,
+    tiendaProp,
     onSaveComplete,
     onStateChange: undefined,
   });
@@ -180,7 +184,7 @@ export const EditStoreModalSimplified: React.FC<
 
         <DialogContent sx={{ p: 3, bgcolor: "#fafafa" }}>
           {/* Panel de días sin presupuesto - Solo si hay una tienda seleccionada */}
-          {Boolean(tiendaSeleccionada) && (isAdmin || diasSinPresupuesto.length > 0 || (diasConAsignacion || []).length > 0) && (
+          {Boolean(tiendaSeleccionada) && (
             <Box sx={{ mb: 3 }}>
               <DaysWithoutBudgetPanel
                 diasSinPresupuesto={diasSinPresupuesto}
@@ -188,7 +192,7 @@ export const EditStoreModalSimplified: React.FC<
                 diasAsignados={diasConAsignacion} // NUEVO
                 selectedDays={selectedDays}
                 currentDate={fecha} // Fix: Pass current date to control calendar month
-                hideWhenComplete={!isAdmin} // Solo ocultar para tiendas si están al día
+                hideWhenComplete={false} // Siempre mostrar el calendario en edición para permitir seleccionar cualquier día
                 onToggleDay={toggleDaySelection}
                 onSelectAll={selectAllPendingDays}
                 onClearAll={clearDaySelection}
@@ -527,58 +531,18 @@ export const EditStoreModalSimplified: React.FC<
               >
                 {/* Empleado Encontrado */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  {empleadoEncontrado ? (
+                  <EmployeeInfoCard
+                    codigoInput={codigoEmpleado}
+                    empleadoEncontrado={empleadoEncontrado}
+                    loading={loadingCatalogos}
+                    isMobile={false}
+                  />
+                  {!codigoEmpleado.trim() && (
                     <Box
                       sx={{
                         px: 2,
                         py: 1,
-                        bgcolor: "#e8f5e9", // Green lighter
-                        border: "1px solid",
-                        borderColor: "#66bb6a", // Green light
-                        borderRadius: 2,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1.5,
-                        height: "40px",
-                      }}
-                    >
-                      <CheckCircle sx={{ color: "#2e7d32", fontSize: 20 }} />
-                      <Typography
-                        variant="body2"
-                        fontWeight="700"
-                        color="#1b5e20"
-                        noWrap
-                        sx={{ fontSize: "0.9rem" }}
-                      >
-                        {empleadoEncontrado.nombre}
-                      </Typography>
-                      <Box
-                        sx={{
-                          bgcolor: "rgba(46, 125, 50, 0.1)",
-                          borderRadius: 1.5,
-                          px: 0.8,
-                          py: 0.2,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.5,
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          fontWeight="600"
-                          color="#2e7d32"
-                          sx={{ fontSize: "0.7rem" }}
-                        >
-                          Cod. {empleadoEncontrado.id}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ) : (
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1,
-                        height: "40px", // Placeholder height equal to input
+                        height: "56px", // Height matches EmployeeInfoCard
                         border: "1px dashed #e0e0e0",
                         borderRadius: 2,
                         bgcolor: "#fafafa",
@@ -608,7 +572,7 @@ export const EditStoreModalSimplified: React.FC<
                       borderRadius: 2,
                       textTransform: "none",
                       bgcolor: "primary.dark",
-                      height: "40px",
+                      height: "56px",
                       boxShadow: "none",
                       whiteSpace: "nowrap",
                       "&:hover": {

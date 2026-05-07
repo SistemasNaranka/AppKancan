@@ -32,6 +32,7 @@ interface EditStoreBudgetModalProps {
   onClose: () => void;
   selectedMonth?: string;
   onSaveComplete?: () => void;
+  tiendaProp?: any; // NUEVO
 }
 
 export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
@@ -39,6 +40,7 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
   onClose,
   selectedMonth,
   onSaveComplete,
+  tiendaProp, // NUEVO
 }) => {
   const { area } = useApps();
   const [, setSaveCompleted] = React.useState(false);
@@ -62,9 +64,6 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
     selectedDays,
     tiendas,
     toggleDaySelection,
-    selectAllPendingDays,
-    clearDaySelection,
-    handleKeyPress,
     handleAgregarEmpleado,
     handleQuitarEmpleado,
     handleLimpiar,
@@ -75,13 +74,17 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
     setFecha,
     setCargoSeleccionado,
     setCodigoEmpleado,
-    isValidStaffCombination, // NUEVO
-    hasChanges, // NUEVO
+    handleKeyPress,
+    selectAllPendingDays,
+    clearDaySelection,
+    isValidStaffCombination,
+    hasChanges,
   } = useEditStoreBudgetModalLogic({
     isOpen,
     onClose,
     selectedMonth,
     onSaveComplete,
+    tiendaProp, // NUEVO
   });
 
   const isAdmin = area?.toLowerCase() !== "tienda" || tiendas.length > 1;

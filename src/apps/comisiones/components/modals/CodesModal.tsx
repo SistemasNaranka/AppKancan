@@ -16,10 +16,12 @@ interface CodesModalProps {
   selectedMonth?: string;
   hasSavedData?: boolean;
   onShowSaveLoading?: (error?: any) => void;
+  tiendaProp?: any; // NUEVO
 }
 
 export const CodesModal: React.FC<CodesModalProps> = ({
   isOpen, onClose, onAssignmentComplete, selectedMonth, hasSavedData, onShowSaveLoading,
+  tiendaProp, // NUEVO
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -34,6 +36,9 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     showMultipleStoresWarning, error: validationError, validatePermissionsAndStores, resetState,
   } = usePermissionsValidation();
 
+  // Si se pasa tiendaProp (ej. desde el dashboard por un Admin), usar esa en lugar de la del usuario
+  const tiendaActual = tiendaProp || tiendaUsuario;
+
   const {
     codigoInput, cargoSeleccionado, empleadosAsignados, asesoresDisponibles,
     cargosDisponibles, cargosFiltrados, loading, saving, error, success,
@@ -42,7 +47,7 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     handleClearEmpleados, handleSaveAsignaciones, handleKeyPress,
     codigoInputRef, getCargoNombre, getTiendaNombre, clearMessages,
     buscarEmpleadoPorCodigo, cargarDatosExistentes,
-  } = useEmployeeManagement(tiendaUsuario, onAssignmentComplete);
+  } = useEmployeeManagement(tiendaActual, onAssignmentComplete);
 
   const fechaActual = getFechaActual(selectedMonth);
 
@@ -64,7 +69,7 @@ export const CodesModal: React.FC<CodesModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && validationCompleted && hasPermission && tiendasCount === 1 && tiendaUsuario && dataReady && (!dataLoadTriggered || forceReload)) {
+    if (isOpen && validationCompleted && hasPermission && (tiendasCount === 1 || tiendaProp) && tiendaActual && dataReady && (!dataLoadTriggered || forceReload)) {
       const timer = setTimeout(() => {
         setDataLoadTriggered(true);
         setForceReload(false);
@@ -73,7 +78,7 @@ export const CodesModal: React.FC<CodesModalProps> = ({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, validationCompleted, hasPermission, tiendasCount, tiendaUsuario, dataReady, dataLoadTriggered, forceReload]);
+  }, [isOpen, validationCompleted, hasPermission, tiendasCount, tiendaActual, dataReady, dataLoadTriggered, forceReload, tiendaProp]);
 
   useEffect(() => {
     if (shouldAutoClose) {
@@ -112,7 +117,7 @@ export const CodesModal: React.FC<CodesModalProps> = ({
         fullWidth
         PaperProps={{ sx: { borderRadius: 2, maxHeight: isMobile ? "90vh" : "80vh", position: "relative" } }}
       >
-        <CodesModalHeader tiendaUsuario={tiendaUsuario} fechaActual={fechaActual} />
+        <CodesModalHeader tiendaUsuario={tiendaActual} fechaActual={fechaActual} />
 
         {hasSavedData && (
           <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
@@ -121,9 +126,9 @@ export const CodesModal: React.FC<CodesModalProps> = ({
         )}
 
         <DialogContent sx={{ p: { xs: 2, sm: 3 }, backgroundColor: theme.palette.grey[50], display: "flex", flexDirection: "column" }}>
-          {showMultipleStoresWarning && <MultipleStoresWarning tiendasCount={tiendasCount} />}
+          {showMultipleStoresWarning && !tiendaProp && <MultipleStoresWarning tiendasCount={tiendasCount} />}
           
-          {validationCompleted && hasPermission && tiendasCount === 1 && !showMultipleStoresWarning && (
+          {validationCompleted && hasPermission && (tiendasCount === 1 || tiendaProp) && !showMultipleStoresWarning && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <EmployeeSelector
                 codigoInput={codigoInput} cargoSeleccionado={cargoSeleccionado}

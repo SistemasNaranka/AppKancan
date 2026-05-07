@@ -6,6 +6,7 @@ import { obtenerPresupuestosDiarios, obtenerPresupuestosEmpleados, obtenerPorcen
 import { calculateBudgetsWithFixedDistributive } from "../lib/calculations.budgets";
 import { getFechaActual } from "../lib/modalHelpers";
 import { calcularPresupuestoTotalTienda, getCargoNombreHelper, getTiendaNombreHelper, validateExclusiveRoleHelper } from "./employeeOperations.utils";
+import { useBudgetCalculations } from "./useBudgetCalculations";
 
 export const useEmployeeOperations = (
   tiendaUsuario: DirectusTienda | null,
@@ -27,16 +28,21 @@ export const useEmployeeOperations = (
   const [buttonConfig, setButtonConfig] = useState({ text: "Guardar", action: "save", disabled: false });
   
   const codigoInputRef = useRef<HTMLInputElement>(null);
+  const { recalculateBudgets } = useBudgetCalculations(tiendaUsuario?.id || "");
 
-  // --- LOGICA DE VALIDACIÓN (Efectos) ---
-  useEffect(() => {
+  // ✅ NUEVO: Validación de roles mínimos requeridos
+  const hasRequiredRoles = useMemo(() => {
     const hasManager = empleadosAsignados.some(e => {
       const r = e.cargoAsignado.toLowerCase();
       return ROLES_EXCLUSIVOS.includes(r as RolExclusivo) || r === "gerente online";
     });
     const hasAsesor = empleadosAsignados.some(e => e.cargoAsignado.toLowerCase() === "asesor");
+    return hasManager && hasAsesor;
+  }, [empleadosAsignados]);
 
-    const newCanSave = hasManager && hasAsesor && empleadosAsignados.length > 0;
+  // --- LOGICA DE VALIDACIÓN (Efectos) ---
+  useEffect(() => {
+    const newCanSave = hasRequiredRoles && empleadosAsignados.length > 0;
     if (canSave !== newCanSave) setCanSave(newCanSave);
 
     const newConfig = {
@@ -45,7 +51,7 @@ export const useEmployeeOperations = (
       disabled: !newCanSave
     };
     if (JSON.stringify(buttonConfig) !== JSON.stringify(newConfig)) setButtonConfig(newConfig);
-  }, [empleadosAsignados, hasExistingData, canSave, buttonConfig]);
+  }, [empleadosAsignados, hasExistingData, canSave, buttonConfig, hasRequiredRoles]);
 
   // --- DIRTY CHECK (useMemo) ---
   const hasChanges = useMemo(() => {
@@ -87,12 +93,138 @@ export const useEmployeeOperations = (
             cargoAsignado: getCargoNombreHelper(d.cargo, cargosFull)
           };
         });
-        setEmpleadosAsignados(mapeados);
-        setEmpleadosOriginal(mapeados);
+
+        // ✅ DISTRIBUCIÓN AUTOMÁTICA: Si todos los presupuestos son 0, recalculamos
+        const totalPresupuesto = mapeados.reduce((sum, e) => sum + e.presupuesto, 0);
+        if (totalPresupuesto === 0 && mapeados.length > 0) {
+          const { empleados: calculados } = await recalculateBudgets(
+            mapeados.map(e => ({ ...e.asesor, cargo_nombre: e.cargoAsignado })),
+            fecha
+          );
+          
+          const finalMapeados = mapeados.map((m, i) => ({
+            ...m,
+            presupuesto: calculados[i]?.presupuesto || 0
+          }));
+          
+          setEmpleadosAsignados(finalMapeados);
+          setEmpleadosOriginal(finalMapeados);
+        } else {
+          setEmpleadosAsignados(mapeados);
+          setEmpleadosOriginal(mapeados);
+        }
+
         setHasExistingData(true);
         setIsUpdateMode(true);
       }
     } catch (e) { setError("Error al cargar datos"); } finally { setLoading(false); }
+  };
+
+  // ✅ Función para agregar empleado con distribución de presupuesto
+  const handleAddEmpleado = async (asesores: DirectusAsesor[], cargos: DirectusCargo[], empleadoYaEncontrado?: DirectusAsesor | null) => {
+    if (!codigoInput.trim() || !cargoSeleccionado) {
+      setError("Código y cargo son requeridos");
+      setMessageType("warning");
+      return;
+    }
+
+    const cleanCodigo = codigoInput.trim();
+    const codigoNum = parseInt(cleanCodigo);
+    
+    // 1. Usar el empleado ya encontrado por el buscador si existe
+    // 2. Si no, buscarlo en la lista de forma flexible (id o documento, string o number)
+    // Búsqueda ESTRICTA por ID solamente
+    const asesor = empleadoYaEncontrado || asesores.find(a => 
+      String(a.id) === cleanCodigo
+    );
+
+    if (!asesor) {
+      setError(`No se encontró empleado con código ${cleanCodigo}`);
+      setMessageType("error");
+      return;
+    }
+
+    // Validar si ya está asignado
+    if (empleadosAsignados.some(e => e.asesor.id === asesor.id)) {
+      setError(`${asesor.nombre} ya está asignado`);
+      setMessageType("warning");
+      return;
+    }
+
+    // Validar roles exclusivos
+    const errorRol = validateExclusiveRoleHelper(cargoSeleccionado, asesor, empleadosAsignados);
+    if (errorRol) {
+      setError(errorRol);
+      setMessageType("error");
+      return;
+    }
+
+    const nuevoEmpleado: EmpleadoAsignado = {
+      asesor,
+      cargoAsignado: cargoSeleccionado,
+      presupuesto: 0,
+      tiendaId: typeof asesor.tienda_id === 'object' ? asesor.tienda_id.id : asesor.tienda_id
+    };
+
+    const nuevaLista = [...empleadosAsignados, nuevoEmpleado];
+    
+    try {
+      setLoading(true);
+      const fecha = getFechaActual(undefined); // O pasar la fecha actual desde props
+      const { empleados: calculados } = await recalculateBudgets(
+        nuevaLista.map(e => ({ ...e.asesor, cargo_nombre: e.cargoAsignado })),
+        fecha
+      );
+
+      const listaConPresupuestos = nuevaLista.map((emp, index) => ({
+        ...emp,
+        presupuesto: calculados[index]?.presupuesto || 0
+      }));
+
+      setEmpleadosAsignados(listaConPresupuestos);
+      setCodigoInput("");
+      setSuccess(`${asesor.nombre} agregado con éxito`);
+      setMessageType("success");
+      
+      if (codigoInputRef.current) codigoInputRef.current.focus();
+    } catch (e) {
+      setError("Error al calcular presupuestos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Función para remover empleado y redistribuir
+  const handleRemoveEmpleado = async (asesorId: number) => {
+    const nuevaLista = empleadosAsignados.filter(e => e.asesor.id !== asesorId);
+    
+    if (nuevaLista.length === 0) {
+      setEmpleadosAsignados([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const fecha = getFechaActual(undefined);
+      const { empleados: calculados } = await recalculateBudgets(
+        nuevaLista.map(e => ({ ...e.asesor, cargo_nombre: e.cargoAsignado })),
+        fecha
+      );
+
+      const listaConPresupuestos = nuevaLista.map((emp, index) => ({
+        ...emp,
+        presupuesto: calculados[index]?.presupuesto || 0
+      }));
+
+      setEmpleadosAsignados(listaConPresupuestos);
+      setSuccess("Empleado removido y presupuestos redistribuidos");
+      setMessageType("info");
+    } catch (e) {
+      setError("Error al redistribuir presupuestos");
+      setEmpleadosAsignados(nuevaLista);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ✅ Función de guardado (Lógica compleja de inserts/updates/deletes)[cite: 3]
@@ -138,8 +270,10 @@ export const useEmployeeOperations = (
     codigoInputRef, 
     handleClearEmpleados: () => { setEmpleadosAsignados([]); setHasExistingData(false); },
     handleSaveAsignaciones, cargarDatosExistentes,
+    handleAddEmpleado, handleRemoveEmpleado,
     getCargoNombre: getCargoNombreHelper, getTiendaNombre: getTiendaNombreHelper,
     validateExclusiveRole: (r: string, a: DirectusAsesor) => validateExclusiveRoleHelper(r, a, empleadosAsignados),
+    hasRequiredRoles: () => hasRequiredRoles,
     clearMessages: () => { setError(null); setSuccess(null); }
   };
 };

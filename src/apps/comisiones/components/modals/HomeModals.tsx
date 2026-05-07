@@ -14,6 +14,7 @@ interface HomeModalsProps {
   modalMessage: string;
   selectedMonth: string;
   hasSavedData?: boolean;
+  tiendaSeleccionada?: any; // NUEVO: Tienda seleccionada (para Admins)
 
   // Modal actions
   onCloseCodesModal: () => void;
@@ -34,6 +35,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   modalMessage,
   selectedMonth,
   hasSavedData,
+  tiendaSeleccionada, // NUEVO
   onCloseCodesModal,
   onCloseEditStoreModal,
   onCloseEditStoreBudgetModal,
@@ -73,6 +75,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         }}
         selectedMonth={selectedMonth}
         hasSavedData={hasSavedData}
+        tiendaProp={tiendaSeleccionada} // NUEVO
         onShowSaveLoading={onShowSaveLoading}
         onAssignmentComplete={handleAssignmentComplete}
       />
@@ -95,6 +98,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
           onCloseEditStoreModal();
         }}
         selectedMonth={selectedMonth}
+        tiendaProp={tiendaSeleccionada}
         onSaveComplete={handleSaveCompleteWrapper}
       />
 
@@ -106,6 +110,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
           onCloseEditStoreBudgetModal();
         }}
         selectedMonth={selectedMonth}
+        tiendaProp={tiendaSeleccionada} // NUEVO
         onSaveComplete={handleSaveCompleteWrapper}
       />
     </>
