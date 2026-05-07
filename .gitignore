@@ -28,3 +28,7 @@ dist-ssr
 tsconfig.tsbuildinfo
 .claude/
 temp_report/
+
+# Documentos internos de asignación de tareas
+docs/REQUISITOS_GESTION_PROYECTOS.md
+GUIDE_TECNICA.md
