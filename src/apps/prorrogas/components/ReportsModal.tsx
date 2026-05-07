@@ -15,15 +15,9 @@ import {
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import CloseIcon from '@mui/icons-material/Close';
-import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
-import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useContracts } from '../hooks/useContracts';
-import { formatDate } from '../lib/utils';
 
 interface ReportsModalProps {
   open: boolean;
@@ -184,7 +178,7 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
                         {emp.daysLeft} días
                       </Typography>
                       <Typography variant="caption" color="text.disabled">
-                        Vence: {emp.fecha_final ? formatDate(emp.fecha_final) : 'N/A'}
+                        Vence: {emp.fecha_final ? new Date(emp.fecha_final).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                       </Typography>
                     </Stack>
                   </Box>

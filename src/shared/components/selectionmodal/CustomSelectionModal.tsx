@@ -88,15 +88,15 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [open]);
 
-  // Prevenir scroll del body cuando el modal está abierto
+  // Prevenir scroll del body cuando el modal está abierto.
+  // FIX: restaurar el valor PREVIO en cleanup, no hardcodear "".
+  // Si otro modal MUI está abierto encima, su overflow:hidden se preserva.
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = prev;
     };
   }, [open]);
 

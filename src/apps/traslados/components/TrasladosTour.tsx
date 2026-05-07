@@ -338,6 +338,7 @@ export const TrasladosTour: React.FC<TrasladosTourProps> = ({ children }) => {
         showProgress
         disableOverlayClose
         disableScrolling={false}
+        disableScrollParentFix
         scrollToFirstStep
         spotlightClicks
         tooltipComponent={CustomTooltip}

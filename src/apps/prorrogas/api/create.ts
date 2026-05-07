@@ -164,7 +164,7 @@ export async function crearProrroga(
 
     return result as Prorroga;
   } catch (error) {
-    console.error("❌ Error al crear prórga:", error);
+    console.error("❌ Error al crear prórroga:", error);
     return null;
   }
 }

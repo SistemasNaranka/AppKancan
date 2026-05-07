@@ -58,19 +58,19 @@ const initialState: State = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Action =
-  | { type: 'SET_LOADING';    payload: boolean }
-  | { type: 'SET_SAVING';     payload: boolean }
-  | { type: 'SET_CONTRATOS';  payload: Contrato[] }
-  | { type: 'SET_STATS';      payload: ContratoStats }
-  | { type: 'SELECT';         payload: number | null }
-  | { type: 'SET_FILTER';     payload: Partial<UIFilters> }
-  | { type: 'SET_TAB';        payload: TabValue }
-  | { type: 'ADD_PRORROGA';   payload: { contratoId: number; prorroga: Prorroga } }
-  | { type: 'ADD_CONTRATO';   payload: Contrato }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_SAVING'; payload: boolean }
+  | { type: 'SET_CONTRATOS'; payload: Contrato[] }
+  | { type: 'SET_STATS'; payload: ContratoStats }
+  | { type: 'SELECT'; payload: number | null }
+  | { type: 'SET_FILTER'; payload: Partial<UIFilters> }
+  | { type: 'SET_TAB'; payload: TabValue }
+  | { type: 'ADD_PRORROGA'; payload: { contratoId: number; prorroga: Prorroga } }
+  | { type: 'ADD_CONTRATO'; payload: Contrato }
   | { type: 'UPSERT_CONTRATO'; payload: Contrato }
   | { type: 'REMOVE_CONTRATO'; payload: number }
-  | { type: 'SET_ERROR';      payload: string | null }
-  | { type: 'SET_SUCCESS';    payload: string | null };
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_SUCCESS'; payload: string | null };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -267,10 +267,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const numero = getNextProrrogaNumber(contrato.prorrogas ?? []);
 
       const prorroga = await crearProrroga({
-        contrato_id:  payload.contractId,
+        contrato_id: payload.contractId,
         numero,
         fecha_inicio: payload.fechaInicio,
-        descripcion:  payload.descripcion,
+        descripcion: payload.descripcion,
       });
 
       if (!prorroga) {
@@ -333,13 +333,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         dispatch({ type: 'SET_ERROR', payload: 'Error al actualizar la prórroga.' });
         return;
       }
-      // Actualizar la prórga en el contrato correspondiente
+      // Actualizar la prórroga en el contrato correspondiente
       dispatch({ type: 'SET_SAVING', payload: false });
       dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga actualizada exitosamente.' });
       // Recargar contratos para obtener datos actualizados
       await loadContratos();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al actualizar la prórga.';
+      const msg = err instanceof Error ? err.message : 'Error al actualizar la prórroga.';
       dispatch({ type: 'SET_ERROR', payload: msg });
     }
   }, [loadContratos]);
@@ -349,7 +349,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const success = await eliminarProrroga(id);
       if (!success) {
-        dispatch({ type: 'SET_ERROR', payload: 'Error al eliminar la prórga.' });
+        dispatch({ type: 'SET_ERROR', payload: 'Error al eliminar la prórroga.' });
         dispatch({ type: 'SET_SAVING', payload: false });
         return false;
       }
@@ -358,7 +358,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga eliminada exitosamente.' });
       return true;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al eliminar la prórga.';
+      const msg = err instanceof Error ? err.message : 'Error al eliminar la prórroga.';
       dispatch({ type: 'SET_ERROR', payload: msg });
       dispatch({ type: 'SET_SAVING', payload: false });
       return false;
@@ -456,7 +456,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
                 }
               }
             }
-          } catch {}
+          } catch { }
         })();
 
         // historial_cargos: si llega un cambio de cargo, refrescar contrato_id
@@ -478,7 +478,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
                   if (fresh) dispatch({ type: 'UPSERT_CONTRATO', payload: fresh });
                 }
               }
-            } catch {}
+            } catch { }
           })();
         } catch (e) {
           // historial_cargos suscripción opcional — no romper si permisos faltan

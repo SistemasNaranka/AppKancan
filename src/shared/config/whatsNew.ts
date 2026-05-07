@@ -38,7 +38,7 @@ export const CATEGORY_META: Record<WhatsNewCategory, { label: string; color: str
 };
 
 export const CURRENT_RELEASE: WhatsNewRelease = {
-  version: "1.4.0",
+  version: "2.11.1",
   date: "30 de abril, 2026",
   title: "Novedades en Kancan",
   subtitle: "Mejoras pensadas para tu día a día",

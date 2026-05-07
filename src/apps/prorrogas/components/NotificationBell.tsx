@@ -15,7 +15,7 @@ import { useContracts } from "../hooks/useContracts";
 import { formatDate } from "../lib/utils";
 
 // Umbral en días para mostrar alertas en la campana.
-// Un contrato/prórga aparece desde 60 días antes del vencimiento hasta el día 0.
+// Un contrato/prórroga aparece desde 60 días antes del vencimiento hasta el día 0.
 const ALERT_THRESHOLD_DAYS = 60;
 // Sub-umbral para marcar como urgente (rojo) dentro de la lista.
 const URGENT_THRESHOLD_DAYS = 15;
@@ -180,7 +180,7 @@ const NotificationBell: React.FC = () => {
                                 <strong style={{ color: urgent ? '#c62828' : '#e65100' }}>
                                   {days} {days === 1 ? 'día' : 'días'}
                                 </strong>
-                                {c.lastProrroga ? ' (prórga vigente)' : ''}
+                                {c.lastProrroga ? ' (prórroga vigente)' : ''}
                               </>
                             )}
                           </Typography>

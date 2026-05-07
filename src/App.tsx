@@ -14,10 +14,15 @@ import { ForcePasswordChangeModal } from "@/auth/components/ForcePasswordChangeM
 import PeekButtonContainer from "@/shared/components/PeekButtonContainer";
 import WhatsNewModal from "@/shared/components/WhatsNewModal";
 import { useAuth } from "@/auth/hooks/useAuth";
+import { useScrollLockGuard } from "@/shared/hooks/useScrollLockGuard";
 
 const AppWithPasswordModal = () => {
   const { user, isAuthenticated } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Safety: limpia body lock + overlays huérfanos al navegar
+  // (ver shared/hooks/useScrollLockGuard.ts).
+  useScrollLockGuard();
 
   useEffect(() => {
     if (isAuthenticated && user?.requires_password_change) {
