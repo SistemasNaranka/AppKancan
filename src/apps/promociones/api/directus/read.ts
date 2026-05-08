@@ -65,8 +65,8 @@ export async function getStores(): Promise<DirectusTienda[]> {
         readItems("util_tiendas", {
           fields: ["id", "nombre", "codigo_ultra", "empresa"],
           sort: ["nombre"],
-        })
-      )
+        }),
+      ),
     );
 
     return data as DirectusTienda[];
@@ -86,8 +86,8 @@ export async function getPromotionTypes(): Promise<DirectusPromoTipo[]> {
         readItems("promo_tipo", {
           fields: ["id", "nombre", "duracion", "color"],
           sort: ["nombre"],
-        })
-      )
+        }),
+      ),
     );
 
     return data as DirectusPromoTipo[];
@@ -121,8 +121,8 @@ export async function getPromotions(): Promise<Promotion[]> {
             "tipo_id.color",
           ],
           sort: ["-fecha_inicio"],
-        })
-      )
+        }),
+      ),
     );
 
     // 2. Obtener todas las relaciones promo-tiendas
@@ -141,7 +141,7 @@ export async function getPromotions(): Promise<Promotion[]> {
           },
         },
         limit: -1, // Obtener todos los registros, no solo los primeros 100
-      })
+      }),
     );
 
     // 3. Crear un mapa de promo_id -> tiendas
@@ -189,9 +189,7 @@ export async function getPromotions(): Promise<Promotion[]> {
 /**
  * Obtener una promoción por ID con sus relaciones
  */
-export async function getPromotionById(
-  id: number
-): Promise<Promotion | null> {
+export async function getPromotionById(id: number): Promise<Promotion | null> {
   try {
     // 1. Obtener la promoción con el tipo expandido
     const promo = await withAutoRefresh(() =>
@@ -217,8 +215,8 @@ export async function getPromotionById(
             },
           },
           limit: 1,
-        })
-      )
+        }),
+      ),
     );
 
     if (!promo || promo.length === 0) {
@@ -241,12 +239,12 @@ export async function getPromotionById(
             },
           },
           limit: -1, // Obtener todos los registros
-        })
-      )
+        }),
+      ),
     );
 
     const tiendas = promoTiendas.map(
-      (pt: any) => pt.tiendas_id?.nombre || "Sin nombre"
+      (pt: any) => pt.tiendas_id?.nombre || "Sin nombre",
     );
 
     const tipo = promoData.tipo_id;
@@ -275,7 +273,7 @@ export async function getPromotionById(
  * Obtener tiendas asociadas a una promoción específica
  */
 export async function getPromotionStores(
-  promoId: number
+  promoId: number,
 ): Promise<DirectusTienda[]> {
   try {
     const promoTiendas = await directus.request(
@@ -294,7 +292,7 @@ export async function getPromotionStores(
             _eq: "Activo",
           },
         },
-      })
+      }),
     );
 
     return promoTiendas.map((pt: any) => pt.tiendas_id) as DirectusTienda[];

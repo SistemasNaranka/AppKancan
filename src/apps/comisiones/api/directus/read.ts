@@ -42,7 +42,7 @@ const getMonthNumber = (monthName: string): string => {
 /**
  * Obtener todas las tiendas
  */
-export async function getStores(): Promise<DirectusTienda[]> {
+export async function obtenerTiendas(): Promise<DirectusTienda[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     if (tiendaIds.length === 0) {
@@ -51,10 +51,7 @@ export async function getStores(): Promise<DirectusTienda[]> {
 
     // Robustecer el filtro para manejar IDs como string o number
     const filter: any = {
-      _or: [
-        { id: { _in: tiendaIds } },
-        { id: { _in: tiendaIds.map(String) } },
-      ],
+      _or: [{ id: { _in: tiendaIds } }, { id: { _in: tiendaIds.map(String) } }],
     };
 
     const data = await withAutoRefresh(() =>
