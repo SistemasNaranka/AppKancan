@@ -7,7 +7,7 @@ interface RazonSocialFilterProps {
   onChange: (valor: string) => void;
 }
 
-const RazonSocialFilter: React.FC<RazonSocialFilterProps> = ({
+const SocialReasonFilter: React.FC<RazonSocialFilterProps> = ({
   valor,
   opciones,
   onChange,
@@ -58,4 +58,4 @@ const RazonSocialFilter: React.FC<RazonSocialFilterProps> = ({
   );
 };
 
-export default RazonSocialFilter;
+export default SocialReasonFilter;

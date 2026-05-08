@@ -1,9 +1,9 @@
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { Resolucion } from "../types";
+import { Resolution } from "../types";
 
 export const ExportExcel = async (
-  dataExportar: Resolucion[],
+  dataExportar: Resolution[],
   onError?: (mensaje: string, tipo: "success" | "error") => void,
 ): Promise<void> => {
   if (dataExportar.length === 0) {

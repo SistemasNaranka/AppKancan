@@ -1,4 +1,4 @@
-import { Resolucion } from "../types";
+import { Resolution } from "../types";
 import { DirectusResolucion } from "../api/read";
 
 /**
@@ -7,13 +7,13 @@ import { DirectusResolucion } from "../api/read";
  * - Días restantes de vigencia
  * - Estado original en la base de datos
  */
-export function calcularEstado(
+export function calculateStatus(
   hasta: number,
   vigencia: number,
   fecha_creacion: string,
   consecutivo_actual: number,
   estado: string,
-): Resolucion["estado"] {
+): Resolution["estado"] {
   if (estado === "Pendiente") {
     return "Pendiente";
   }
@@ -51,7 +51,7 @@ export function calcularEstado(
  * Calcula la información de facturas disponibles
  * Retorna el número de facturas restantes y un texto descriptivo
  */
-export function calcularFacturas(
+export function calculateInvoices(
   hasta_numero: number,
   ultima_factura: number,
 ): {
@@ -84,7 +84,7 @@ export function calcularFacturas(
  * Calcula la fecha de vencimiento sumando los meses de vigencia
  * a la fecha de creación
  */
-export function calcularVencimiento(
+export function calculateMaturity(
   fecha_creacion: string,
   vigencia: number,
 ): string {
@@ -98,7 +98,7 @@ export function calcularVencimiento(
  * Calcula los días restantes hasta el vencimiento y genera
  * un texto descriptivo
  */
-export function diasRestantes(
+export function DaysRemaining(
   vigencia: number,
   fecha_creacion: string,
 ): { dias: number; texto: string } {
@@ -131,7 +131,7 @@ export function diasRestantes(
  * Transforma una resolución de Directus (estructura anidada)
  * a un formato plano para la UI
  */
-export function flattenResolution(r: DirectusResolucion): Resolucion {
+export function flattenResolution(r: DirectusResolucion): Resolution {
   const prefijo = r.prefijo_id || {};
   const caja = prefijo?.caja_id || {};
   const tienda = typeof caja?.tienda_id === "object" ? caja.tienda_id : null;
@@ -143,7 +143,7 @@ export function flattenResolution(r: DirectusResolucion): Resolucion {
   const fecha_creacion = r.fecha_creacion || "";
   const estadoOriginal = r.estado || "Pendiente";
 
-  const estadoCalculado = calcularEstado(
+  const estadoCalculado = calculateStatus(
     hasta_numero,
     vigencia,
     fecha_creacion,
@@ -152,10 +152,10 @@ export function flattenResolution(r: DirectusResolucion): Resolucion {
   );
 
   const fecha_vencimiento = fecha_creacion
-    ? calcularVencimiento(fecha_creacion, vigencia)
+    ? calculateMaturity(fecha_creacion, vigencia)
     : "";
 
-  const infoFacturas = calcularFacturas(hasta_numero, ultima_factura);
+  const infoFacturas = calculateInvoices(hasta_numero, ultima_factura);
 
   return {
     id: r.id,

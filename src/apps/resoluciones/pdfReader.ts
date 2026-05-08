@@ -2,7 +2,7 @@ import * as pdfjsLib from "pdfjs-dist";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-export interface DatosPDF {
+export interface DataPDF {
   numero_formulario: string;
   razon_social: string;
   prefijo: string;
@@ -14,7 +14,7 @@ export interface DatosPDF {
   tienda_nombre: string;
 }
 
-export async function LearnPDF(archivo: File): Promise<DatosPDF | string> {
+export async function LearnPDF(archivo: File): Promise<DataPDF | string> {
   try {
     const arrayBuffer = await archivo.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;

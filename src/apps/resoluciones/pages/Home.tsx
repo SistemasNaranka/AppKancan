@@ -11,7 +11,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import SearchBar from "../components/SearchBar";
 import StatusFilters from "../components/StatusFilters";
-import RazonSocialFilter from "../components/RazonSocialFilter";
+import SocialReasonFilter from "../components/RazonSocialFilter";
 import ResolutionCard from "../components/ResolutionCard";
 import ResolutionTable from "../components/ResolutionTable";
 import Pagination from "../components/Pagination";
@@ -22,7 +22,7 @@ import { useResolutionsLogic } from "../hooks/useResolucionesLogic";
 import { ExportExcel } from "../utils/exportarExcel";
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 
-const ResolucionesHome = () => {
+const ResolutionsHome = () => {
   const { showSnackbar } = useGlobalSnackbar();
 
   const {
@@ -144,7 +144,7 @@ const ResolucionesHome = () => {
               justifyContent: { xs: "stretch", sm: "flex-start" },
             }}
           >
-            <RazonSocialFilter
+            <SocialReasonFilter
               valor={filtroRazonSocial}
               opciones={["NARANKA SAS", "MARIA FERNANDA PEREZ VELEZ"]}
               onChange={handleRazonSocialChange}
@@ -327,4 +327,4 @@ const ResolucionesHome = () => {
   );
 };
 
-export default ResolucionesHome;
+export default ResolutionsHome;

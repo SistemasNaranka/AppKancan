@@ -4,10 +4,10 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PendingIcon from '@mui/icons-material/Pending';
-import { EstadoResolucion } from '../types';
+import { StatusResolution } from '../types';
 
 interface StatusBadgeProps {
-  estado: EstadoResolucion;
+  estado: StatusResolution;
   mostrarTexto?: boolean;
 }
 
