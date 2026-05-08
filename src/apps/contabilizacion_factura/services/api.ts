@@ -48,7 +48,7 @@ export async function checkNitExists(nit: string): Promise<boolean> {
  * @param nit El NIT del proveedor
  * @returns El registro del proveedor si existe, null si no
  */
-export async function getAutomaticoByNit(nit: string): Promise<ProveedorContabilidad | null> {
+export async function getAutomaticByNit(nit: string): Promise<ProveedorContabilidad | null> {
     if (!nit) return null;
 
     try {
@@ -82,7 +82,7 @@ export async function getAutomaticoByNit(nit: string): Promise<ProveedorContabil
  * @param nombre El nombre del proveedor
  * @returns El registro del proveedor si existe coincidencia en ambos campos, null si no
  */
-export async function getProveedorByNombreAndNit(
+export async function getProviderByNameAndNit(
     nit: string, 
     nombre: string
 ): Promise<ProveedorContabilidad | null> {
@@ -134,7 +134,7 @@ export async function getProveedorByNombreAndNit(
  * @param valorFactura El valor de la factura (opcional)
  * @returns El item creado
  */
-export async function saveNitAutomatico(
+export async function saveNitAutomatic(
     nit: string, 
     automatico: string,
     nombreProveedor?: string,
@@ -170,7 +170,7 @@ export async function saveNitAutomatico(
  * @param data Los datos a actualizar
  * @returns El item actualizado
  */
-export async function updateProveedorContabilidad(id: number, data: Partial<ProveedorContabilidad>) {
+export async function updateAccountingProvider(id: number, data: Partial<ProveedorContabilidad>) {
     try {
         const item = await withAutoRefresh(() =>
             directus.request(

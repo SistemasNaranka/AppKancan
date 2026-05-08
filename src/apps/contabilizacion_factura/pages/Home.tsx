@@ -35,20 +35,20 @@ import {
 } from "../components/FeedbackComponents";
 import {
   IAStatusBadge,
-  ProveedorProcesamiento,
+  ProviderProcessing,
 } from "../components/IAStatusBadge";
-import { AutomaticoModal } from "../components/AutomaticoModal";
+import { AutomaticModal } from "../components/AutomaticoModal";
 import { TourProvider } from "../components/TourContext";
 
 // Utilidades y tipos
 import { DatosFacturaPDF, EstadoProceso } from "../types";
 import {
   ESTADO_CONFIG,
-  ejecutarActualizarResolucion,
+  executeUpdateResolution,
 } from "../utils/resolucion";
 
 // API
-import { saveNitAutomatico, getAutomaticoByNit } from "../services/api";
+import { saveNitAutomatic, getAutomaticByNit } from "../services/api";
 
 export default function Home() {
   const [datosFactura, setDatosFactura] = useState<DatosFacturaPDF | null>(
@@ -128,7 +128,7 @@ export default function Home() {
 
         // Verificar si el NIT ya tiene un automático asignado
         if (datos.proveedor.nif) {
-          const proveedorData = await getAutomaticoByNit(datos.proveedor.nif);
+          const proveedorData = await getAutomaticByNit(datos.proveedor.nif);
           if (proveedorData && proveedorData.automatico) {
             datos.automaticoAsignado = proveedorData.automatico;
             setAutomaticoAsignado(proveedorData.automatico);
@@ -158,7 +158,7 @@ export default function Home() {
   }, [clearError]);
 
   // Función para manejar el botón Actualizar Resolución con verificación de NIT
-  const handleActualizarResolucion = useCallback(async () => {
+  const handleUpdateResolution = useCallback(async () => {
     if (!datosFactura) return;
 
     // Si no hay NIT ni nombre, NO permitir actualizar - requiere validación obligatoria
@@ -176,7 +176,7 @@ export default function Home() {
       // Verificar si existe un proveedor con ese NIT (el NIT es el identificador único)
       const nitString = String(datosFactura.proveedor.nif).trim();
 
-      const proveedorExistente = await getAutomaticoByNit(nitString);
+      const proveedorExistente = await getAutomaticByNit(nitString);
 
       if (proveedorExistente && proveedorExistente.automatico) {
         // El proveedor YA EXISTE - usar automático existente sin abrir modal
@@ -186,9 +186,8 @@ export default function Home() {
         );
         datosFactura.automaticoAsignado = proveedorExistente.automatico;
         setAutomaticoAsignado(proveedorExistente.automatico);
-
         // Ejecutar directamente sin mostrar snackbar
-        ejecutarActualizarResolucion(datosFactura);
+        executeUpdateResolution(datosFactura);
       } else {
         // El proveedor NO EXISTE - abrir modal para registrar el automático
         setNitActual(datosFactura.proveedor.nif);
@@ -208,7 +207,7 @@ export default function Home() {
   }, [datosFactura]);
 
   // Función para guardar el número automático y ejecutar
-  const handleGuardarAutomatico = useCallback(
+  const handleSaveAutomatic = useCallback(
     async (automatico: string) => {
       if (!nitActual || !datosFactura) return;
 
@@ -227,7 +226,7 @@ export default function Home() {
       setGuardandoAutomatico(true);
       try {
         // Guardar con datos adicionales del proveedor
-        await saveNitAutomatico(
+        await saveNitAutomatic(
           String(nitProveedor).trim(),
           String(automatico).trim(),
           String(nombreProveedor).trim(),
@@ -253,7 +252,7 @@ export default function Home() {
         });
 
         // Ejecutar el programa corporativo
-        ejecutarActualizarResolucion(datosFactura);
+        executeUpdateResolution(datosFactura);
       } catch (error) {
         console.error("Error al guardar automático:", error);
         // Mostrar notificación de error
@@ -276,7 +275,7 @@ export default function Home() {
   };
 
   // Determinar estado basado en el hook
-  const getEstado = (): EstadoProceso => {
+  const getStatus = (): EstadoProceso => {
     if (isProcessing) {
       if (progress < 30) return "cargando";
       if (progress < 70) return "procesando";
@@ -289,7 +288,7 @@ export default function Home() {
   };
 
   // Función para obtener mensaje de procesamiento según el progreso
-  const getMensajeProcesamiento = (): string => {
+  const getProcessingMessage = (): string => {
     if (progress < 15) return "Validando archivo PDF...";
     if (progress < 25) return "Preparando documento...";
     if (progress < 35) return "Conectando con Google Gemini...";
@@ -300,7 +299,7 @@ export default function Home() {
     return "¡Extracción completada!";
   };
 
-  const estado = getEstado();
+  const estado = getStatus();
 
   return (
     <TourProvider>
@@ -362,7 +361,7 @@ export default function Home() {
               }}
             >
               <ProcessingFeedback
-                message={getMensajeProcesamiento()}
+                message={getProcessingMessage()}
                 progress={progress}
                 isProcessing={isProcessing}
               />
@@ -394,7 +393,7 @@ export default function Home() {
               <InvoiceInfoCard datosFactura={datosFactura} />
 
               {estadoHibrido.proveedorUsado && (
-                <ProveedorProcesamiento
+                <ProviderProcessing
                   proveedor={estadoHibrido.proveedorUsado}
                   modelo={estadoHibrido.modeloUsado}
                 />
@@ -441,7 +440,7 @@ export default function Home() {
                 </Button>
                 <Button
                   variant="contained"
-                  onClick={handleActualizarResolucion}
+                  onClick={handleUpdateResolution}
                   startIcon={<Update />}
                   sx={{
                     borderRadius: 2,
@@ -473,13 +472,13 @@ export default function Home() {
         </Box>
 
         {/* Modal para ingresar número automático cuando el NIT es nuevo */}
-        <AutomaticoModal
+        <AutomaticModal
           open={modalAutomaticoOpen}
           nit={nitActual}
           proveedorNombre={datosFactura?.proveedor.nombre}
           numeroFactura={datosFactura?.numeroFactura}
           onClose={() => setModalAutomaticoOpen(false)}
-          onConfirm={handleGuardarAutomatico}
+          onConfirm={handleSaveAutomatic}
         />
 
         {/* Notificaciones */}

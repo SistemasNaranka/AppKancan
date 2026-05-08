@@ -317,7 +317,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
   /**
    * Construye el objeto DatosFacturaPDF desde la respuesta parseada
    */
-  const buildDatosFactura = useCallback(
+  const buildInvoiceData = useCallback(
     (datos: RespuestaExtraccion, file: File): DatosFacturaPDF => {
       return {
         numeroFactura: datos.numero_factura || "Sin número",
@@ -470,7 +470,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
 
         // Paso 8: Construir objeto de datos (75-85%)
         setProgress(80);
-        const datosFactura = buildDatosFactura(datosExtraidos, file);
+        const datosFactura = buildInvoiceData(datosExtraidos, file);
         setProgress(85);
 
         // Paso 9: Validar datos extraídos (85-95%)
@@ -498,13 +498,13 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
         setIsProcessing(false);
       }
     },
-    [extractWithGemini, extractWithOllama, parseResponse, buildDatosFactura],
+    [extractWithGemini, extractWithOllama, parseResponse, buildInvoiceData],
   );
 
   /**
    * Cambia el modelo de Ollama a usar (para fallback)
    */
-  const setModelo = useCallback((modelo: string) => {
+  const setModel = useCallback((modelo: string) => {
     setModeloActual(modelo);
   }, []);
 
@@ -527,7 +527,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
   /**
    * Obtiene la lista de modelos disponibles en Ollama
    */
-  const getModelosDisponibles = useCallback(async (): Promise<string[]> => {
+  const getAvailableModels = useCallback(async (): Promise<string[]> => {
     try {
       const response = await ollama.list();
       return response.models.map((m) => m.name);
@@ -544,8 +544,8 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
     progress,
     clearError,
     modeloActual,
-    setModelo,
-    getModelosDisponibles,
+    setModelo: setModel,
+    getModelosDisponibles: getAvailableModels,
     estadoHibrido,
   };
 }
@@ -564,7 +564,7 @@ function createError(
 }
 
 function handleError(err: unknown): ErrorProcesamientoPDF {
-  if (isErrorProcesamientoPDF(err)) {
+  if (isPdfProcessingError(err)) {
     return err;
   }
 
@@ -592,7 +592,7 @@ function handleError(err: unknown): ErrorProcesamientoPDF {
   );
 }
 
-function isErrorProcesamientoPDF(err: unknown): err is ErrorProcesamientoPDF {
+function isPdfProcessingError(err: unknown): err is ErrorProcesamientoPDF {
   return (
     typeof err === "object" && err !== null && "tipo" in err && "mensaje" in err
   );

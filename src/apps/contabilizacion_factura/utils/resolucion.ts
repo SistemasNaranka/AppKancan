@@ -39,7 +39,7 @@ export const PROTOCOLO_EMPRESA = "empresa://";
  * - proveedorNif: NIF/CIF del proveedor
  * - total: Monto total de la factura
  */
-export function ejecutarActualizarResolucion(
+export function executeUpdateResolution(
   datosFactura?: DatosFacturaPDF | null,
 ) {
   if (!datosFactura) {
