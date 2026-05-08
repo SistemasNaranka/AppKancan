@@ -7,7 +7,7 @@ import type {
   CreateBeneficioInput,
 } from "../../types";
 
-export async function createProyecto(
+export async function createProject(
   data: CreateProyectoInput,
 ): Promise<string | null> {
   try {
@@ -34,7 +34,7 @@ export async function createProyecto(
   }
 }
 
-export async function updateProyecto(
+export async function ProjectUpdate(
   id: string,
   data: Partial<CreateProyectoInput>,
 ): Promise<boolean> {
@@ -72,7 +72,7 @@ export async function deleteProyecto(id: string): Promise<boolean> {
 }
 
 // ✅ FIX: inserciones individuales + Number(proyecto_id)
-export async function createProcesos(
+export async function Createprocesses(
   procesos: CreateProcesoInput[],
 ): Promise<boolean> {
   for (const p of procesos) {
@@ -93,7 +93,7 @@ export async function createProcesos(
   return true;
 }
 
-export async function createProceso(
+export async function createProcess(
   data: CreateProcesoInput,
 ): Promise<string | null> {
   try {
@@ -117,7 +117,7 @@ export async function createProceso(
   }
 }
 
-export async function updateProceso(
+export async function updateProcess(
   id: string,
   data: Partial<CreateProcesoInput>,
 ): Promise<boolean> {
@@ -140,7 +140,7 @@ export async function updateProceso(
   }
 }
 
-export async function deleteProceso(id: string): Promise<boolean> {
+export async function deleteProcess(id: string): Promise<boolean> {
   try {
     await withAutoRefresh(() => directus.request(deleteItem("gp_proceso", id)));
     return true;
@@ -150,7 +150,7 @@ export async function deleteProceso(id: string): Promise<boolean> {
   }
 }
 
-export async function createBeneficio(
+export async function createBenefit(
   data: CreateBeneficioInput,
 ): Promise<string | null> {
   try {
@@ -168,7 +168,7 @@ export async function createBeneficio(
   }
 }
 
-export async function createBeneficios(
+export async function createBenefits(
   beneficios: CreateBeneficioInput[],
 ): Promise<boolean> {
   try {
@@ -186,7 +186,7 @@ export async function createBeneficios(
   }
 }
 
-export async function updateBeneficio(
+export async function updateBenefits(
   id: string,
   data: Partial<CreateBeneficioInput>,
 ): Promise<boolean> {
@@ -203,7 +203,7 @@ export async function updateBeneficio(
   }
 }
 
-export async function deleteBeneficio(id: string): Promise<boolean> {
+export async function deleteBenefits(id: string): Promise<boolean> {
   try {
     await withAutoRefresh(() =>
       directus.request(deleteItem("gp_beneficios", id)),
@@ -250,9 +250,9 @@ export async function updateFeedback(
 ): Promise<boolean> {
   try {
     const payload: any = {};
-    if (data.autor)       payload.autor       = data.autor;
+    if (data.autor) payload.autor = data.autor;
     if (data.descripcion) payload.descripcion = data.descripcion;
-    if (data.tipo)        payload.tipo        = data.tipo;
+    if (data.tipo) payload.tipo = data.tipo;
     await withAutoRefresh(() =>
       directus.request(updateItem("gp_feedback", id, payload)),
     );

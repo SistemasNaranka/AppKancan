@@ -15,9 +15,9 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import TimerIcon from '@mui/icons-material/Timer';
 import StarIcon from '@mui/icons-material/Star';
 import {
-  createProyecto,
-  createProcesos,
-  createBeneficios,
+  createProject,
+  Createprocesses,
+  createBenefits,
 } from "../api/directus/create";
 import type {
   CreateProyectoInput,
@@ -80,7 +80,7 @@ interface BeneficioForm {
   descripcion: string;
 }
 
-interface ProjectFormData {
+interface ProyectosFormData {
   nombre: string;
   areaBeneficiada: string;
   descripcion: string;
@@ -101,7 +101,7 @@ export default function NuevoProyecto() {
   const [error, setError] = useState<string | null>(null);
   const [tabActiva, setTabActiva] = useState<TabId>("info");
 
-  const [projectData, setProjectData] = useState<ProjectFormData>({
+  const [projectData, setProjectData] = useState<ProyectosFormData>({
     nombre: "",
     areaBeneficiada: "",
     descripcion: "",
@@ -125,7 +125,7 @@ export default function NuevoProyecto() {
     setEncargadosList((prev) => [...prev, nombre]);
   const handleRemoveEncargado = (index: number) =>
     setEncargadosList((prev) => prev.filter((_, i) => i !== index));
-  const handleProjectChange = (field: keyof ProjectFormData, value: string) =>
+  const handleProjectChange = (field: keyof ProyectosFormData, value: string) =>
     setProjectData((prev) => ({ ...prev, [field]: value }));
 
   // ─── Frecuencia global ───────────────────────────────────────────────────────
@@ -213,7 +213,7 @@ export default function NuevoProyecto() {
         tipo_proyecto: "actualizacion",
       };
 
-      const proyectoId = await createProyecto(proyectoData);
+      const proyectoId = await createProject(proyectoData);
       if (!proyectoId) throw new Error("Error al crear el proyecto");
 
       // ✅ Guardar procesos
@@ -229,7 +229,7 @@ export default function NuevoProyecto() {
           dias_semana: Number(p.dias_semana) || Number(diasPorSemana) || 5,
           orden: index + 1,
         }));
-        await createProcesos(procesosData);
+        await Createprocesses(procesosData);
       }
 
       // ✅ Guardar beneficios
@@ -238,7 +238,7 @@ export default function NuevoProyecto() {
           proyecto_id: proyectoId,
           descripcion: b.descripcion,
         }));
-        await createBeneficios(beneficiosData);
+        await createBenefits(beneficiosData);
       }
 
       navigate(`/gestion_proyectos/${proyectoId}`);
@@ -252,9 +252,9 @@ export default function NuevoProyecto() {
 
   // ─── Tabs config ─────────────────────────────────────────────────────────────
   const tabs: { id: TabId; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: "info",       label: "Información General", icon: <DescriptionIcon sx={{ fontSize: 16 }} /> },
-    { id: "procesos",   label: "Procesos",             icon: <TimerIcon       sx={{ fontSize: 16 }} />, badge: procesos.length   || undefined },
-    { id: "beneficios", label: "Beneficios",           icon: <StarIcon        sx={{ fontSize: 16 }} />, badge: beneficios.length || undefined },
+    { id: "info", label: "Información General", icon: <DescriptionIcon sx={{ fontSize: 16 }} /> },
+    { id: "procesos", label: "Procesos", icon: <TimerIcon sx={{ fontSize: 16 }} />, badge: procesos.length || undefined },
+    { id: "beneficios", label: "Beneficios", icon: <StarIcon sx={{ fontSize: 16 }} />, badge: beneficios.length || undefined },
   ];
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -311,75 +311,75 @@ export default function NuevoProyecto() {
           </Box>
         </Paper>
 
-            {/* ── Error ── */}
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {/* ── Error ── */}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-            {/* ── Tabs pegadas al panel ── */}
-            <Box sx={{ overflow: "visible" }}>
-              {/* Fila de pestañas */}
-              <Box sx={{ display: "flex", alignItems: "flex-end", gap: 0.5, pl: 2.5, position: "relative", zIndex: 0 }}>
-                {tabs.map((tab) => (
-                  <TabButton
-                    key={tab.id}
-                    active={tabActiva === tab.id}
-                    onClick={() => setTabActiva(tab.id)}
-                    startIcon={tab.icon}
-                  >
-                    {tab.label}
-                    {tab.badge !== undefined && (
-                      <Box sx={{
-                        ml: 0.5, minWidth: 18, height: 18, borderRadius: "50%",
-                        bgcolor: tabActiva === tab.id ? "#004680" : "#9ca3af",
-                        color: "white", fontSize: 11, fontWeight: 700,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        {tab.badge}
-                      </Box>
-                    )}
-                  </TabButton>
-                ))}
-              </Box>
-
-              {/* Panel de contenido conectado */}
-              <Paper
-                elevation={1}
-                sx={{ p: 3, borderRadius: "16px 16px 16px 16px", position: "relative", zIndex: 1 }}
+        {/* ── Tabs pegadas al panel ── */}
+        <Box sx={{ overflow: "visible" }}>
+          {/* Fila de pestañas */}
+          <Box sx={{ display: "flex", alignItems: "flex-end", gap: 0.5, pl: 2.5, position: "relative", zIndex: 0 }}>
+            {tabs.map((tab) => (
+              <TabButton
+                key={tab.id}
+                active={tabActiva === tab.id}
+                onClick={() => setTabActiva(tab.id)}
+                startIcon={tab.icon}
               >
-                {tabActiva === "info" && (
-                  <ProjectForm
-                    data={projectData}
-                    onChange={handleProjectChange}
-                    encargadosList={encargadosList}
-                    onAddEncargado={handleAddEncargado}
-                    onRemoveEncargado={handleRemoveEncargado}
-                  />
+                {tab.label}
+                {tab.badge !== undefined && (
+                  <Box sx={{
+                    ml: 0.5, minWidth: 18, height: 18, borderRadius: "50%",
+                    bgcolor: tabActiva === tab.id ? "#004680" : "#9ca3af",
+                    color: "white", fontSize: 11, fontWeight: 700,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    {tab.badge}
+                  </Box>
                 )}
+              </TabButton>
+            ))}
+          </Box>
 
-                {tabActiva === "procesos" && (
-                  <ProcessList
-                    procesos={procesos}
-                    onAgregar={agregarProceso}
-                    onEliminar={eliminarProceso}
-                    onActualizar={actualizarProceso}
-                    diasPorSemana={diasPorSemana}
-                    onDiasPorSemanaChange={handleDiasPorSemanaChange}
-                    frecuenciaTipo={frecuenciaTipo}
-                    onFrecuenciaTipoChange={handleFrecuenciaTipoChange}
-                    frecuenciaCantidad={frecuenciaCantidad}
-                    onFrecuenciaCantidadChange={handleFrecuenciaCantidadChange}
-                  />
-                )}
+          {/* Panel de contenido conectado */}
+          <Paper
+            elevation={1}
+            sx={{ p: 3, borderRadius: "16px 16px 16px 16px", position: "relative", zIndex: 1 }}
+          >
+            {tabActiva === "info" && (
+              <ProjectForm
+                data={projectData}
+                onChange={handleProjectChange}
+                encargadosList={encargadosList}
+                onAddEncargado={handleAddEncargado}
+                onRemoveEncargado={handleRemoveEncargado}
+              />
+            )}
 
-                {tabActiva === "beneficios" && (
-                  <BenefitList
-                    beneficios={beneficios}
-                    onAgregar={agregarBeneficio}
-                    onEliminar={eliminarBeneficio}
-                    onActualizar={actualizarBeneficio}
-                  />
-                )}
-              </Paper>
-            </Box>
+            {tabActiva === "procesos" && (
+              <ProcessList
+                procesos={procesos}
+                onAgregar={agregarProceso}
+                onEliminar={eliminarProceso}
+                onActualizar={actualizarProceso}
+                diasPorSemana={diasPorSemana}
+                onDiasPorSemanaChange={handleDiasPorSemanaChange}
+                frecuenciaTipo={frecuenciaTipo}
+                onFrecuenciaTipoChange={handleFrecuenciaTipoChange}
+                frecuenciaCantidad={frecuenciaCantidad}
+                onFrecuenciaCantidadChange={handleFrecuenciaCantidadChange}
+              />
+            )}
+
+            {tabActiva === "beneficios" && (
+              <BenefitList
+                beneficios={beneficios}
+                onAgregar={agregarBeneficio}
+                onEliminar={eliminarBeneficio}
+                onActualizar={actualizarBeneficio}
+              />
+            )}
+          </Paper>
+        </Box>
 
       </Box>
     </Box>

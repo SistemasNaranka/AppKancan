@@ -33,7 +33,7 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 
-import { formatTiempo, calcularMetricasProyecto } from "../lib/calculos";
+import { formatTime, calculateProjectMetrics } from "../lib/calculos";
 import type { Proyecto } from "../types";
 
 // Registrar componentes de Chart.js
@@ -48,9 +48,9 @@ interface AhorroPanelProps {
   vistaGrafico?: "mensual" | "anual";
 }
 
-export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: AhorroPanelProps) {
+export function SavingsPanel({ open, onClose, tipo, total, proyectos, vistaGrafico }: AhorroPanelProps) {
   const esMensual = tipo === "mensual";
-  const label     = esMensual ? "Ahorro Mensual" : "Ahorro Anual";
+  const label = esMensual ? "Ahorro Mensual" : "Ahorro Anual";
 
   const fechaActual = new Date();
   const [mesSeleccionado, setMesSeleccionado] = useState<{ mes: number; año: number }>({
@@ -94,8 +94,8 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
 
   const mesSiguiente = () => {
     const ahora = new Date();
-    if (mesSeleccionado.año < ahora.getFullYear() || 
-        (mesSeleccionado.año === ahora.getFullYear() && mesSeleccionado.mes < ahora.getMonth())) {
+    if (mesSeleccionado.año < ahora.getFullYear() ||
+      (mesSeleccionado.año === ahora.getFullYear() && mesSeleccionado.mes < ahora.getMonth())) {
       if (mesSeleccionado.mes === 11) {
         setMesSeleccionado({ mes: 0, año: mesSeleccionado.año + 1 });
       } else {
@@ -121,21 +121,21 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
 
   const desglose = proyectos
     .map((p) => {
-      const m = calcularMetricasProyecto(p.procesos ?? []);
+      const m = calculateProjectMetrics(p.procesos ?? []);
       return {
-        nombre:   p.nombre,
-        estado:   p.estado,
-        ahorro:   esMensual ? m.ahorro_total_mensual : m.ahorro_total_anual,
-        mensual:  m.ahorro_total_mensual,
-        anual:    m.ahorro_total_anual,
+        nombre: p.nombre,
+        estado: p.estado,
+        ahorro: esMensual ? m.ahorro_total_mensual : m.ahorro_total_anual,
+        mensual: m.ahorro_total_mensual,
+        anual: m.ahorro_total_anual,
         procesos: p.procesos ?? [],
       };
     })
     .sort((a, b) => b.ahorro - a.ahorro);
 
-  const conAhorro  = desglose.filter((d) => d.ahorro > 0);
-  const promedio   = conAhorro.length > 0 ? Math.round(total / conAhorro.length) : 0;
-  const maxAhorro  = conAhorro[0]?.ahorro ?? 0;
+  const conAhorro = desglose.filter((d) => d.ahorro > 0);
+  const promedio = conAhorro.length > 0 ? Math.round(total / conAhorro.length) : 0;
+  const maxAhorro = conAhorro[0]?.ahorro ?? 0;
 
   const datosGraficoArea = React.useMemo(() => {
     const AREAS_PREDEFINIDAS = [
@@ -156,11 +156,11 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
 
     proyectos.forEach((proyecto) => {
       const area = proyecto.area_beneficiada || "Sin área";
-      const m = calcularMetricasProyecto(proyecto.procesos ?? []);
-      
+      const m = calculateProjectMetrics(proyecto.procesos ?? []);
+
       let tiempoAntes: number;
       let tiempoDespues: number;
-      
+
       if (esMensual) {
         let tAntes = 0;
         let tDespues = 0;
@@ -267,11 +267,11 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
         </Paper>
 
         <Paper elevation={3} sx={{ borderRadius: "12px 12px 0px 0px", p: 2.5, display: "flex", flexDirection: "column", gap: 1.5, bgcolor: "#fff" }}>
-          <Accordion 
+          <Accordion
             expanded={metricasExpanded}
-            onChange={() => setMetricasExpanded(!metricasExpanded)} 
-            elevation={0} 
-            sx={{ 
+            onChange={() => setMetricasExpanded(!metricasExpanded)}
+            elevation={0}
+            sx={{
               borderRadius: "12px !important", border: "1px solid", borderColor: "divider", boxShadow: "none",
               overflow: "hidden", bgcolor: "white", mt: 2, "&:before": { display: "none" },
               "&.Mui-expanded": { margin: "8px 0 0 0" },
@@ -296,10 +296,10 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
 
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
                 {[
-                  { label: vistaGraficos === "mensual" ? "Ahorro Mensual" : "Ahorro Anual", value: formatTiempo(total), sub: vistaGraficos === "mensual" ? `${nombresMeses[mesSeleccionado.mes]} ${mesSeleccionado.año}` : `${mesSeleccionado.año}` },
-                  { label: "Promedio", value: formatTiempo(promedio), sub: "por proyecto" },
+                  { label: vistaGraficos === "mensual" ? "Ahorro Mensual" : "Ahorro Anual", value: formatTime(total), sub: vistaGraficos === "mensual" ? `${nombresMeses[mesSeleccionado.mes]} ${mesSeleccionado.año}` : `${mesSeleccionado.año}` },
+                  { label: "Promedio", value: formatTime(promedio), sub: "por proyecto" },
                   { label: "Proyectos con ahorro", value: conAhorro.length, sub: `de ${desglose.length} totales` },
-                  { label: "Mayor ahorro", value: formatTiempo(maxAhorro), sub: conAhorro[0]?.nombre ?? "—" },
+                  { label: "Mayor ahorro", value: formatTime(maxAhorro), sub: conAhorro[0]?.nombre ?? "—" },
                 ].map((item, i) => (
                   <Paper key={i} sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
                     <Typography variant="body2" sx={{ color: "success.dark" }}>{item.label}</Typography>
@@ -311,11 +311,11 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
             </AccordionDetails>
           </Accordion>
 
-          <Accordion 
+          <Accordion
             expanded={graficosExpanded}
             onChange={() => setGraficosExpanded(!graficosExpanded)}
-            disableGutters 
-            elevation={0} 
+            disableGutters
+            elevation={0}
             sx={{ "&:before": { display: "none" }, borderRadius: "12px !important", border: "1px solid #cecece", overflow: "hidden", bgcolor: "white" }}
           >
             <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#1a2a3a" }} />} sx={{ bgcolor: "#f1f3f4", "&:hover": { bgcolor: "#f8f9fa" } }}>
@@ -350,7 +350,7 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
                   {datosGraficoArea.length > 0 && (
                     <Box>
                       <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, mb: 1.5, display: "block" }}>
-                        {vistaGraficos === "mensual" 
+                        {vistaGraficos === "mensual"
                           ? `Reducción de Tiempo por Área - ${nombresMeses[mesSeleccionado.mes]} ${mesSeleccionado.año}`
                           : `Reducción de Tiempo por Área - Año ${mesSeleccionado.año}`} (segundos)
                       </Typography>
@@ -375,7 +375,7 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
                               <Box sx={{ flex: 1, height: 8, bgcolor: "#e0e0e0", borderRadius: 2, overflow: "hidden" }}>
                                 <Box sx={{ height: "100%", width: `${pct}%`, bgcolor: "#34a853", borderRadius: 2, transition: "width 0.6s ease" }} />
                               </Box>
-                              <Typography variant="caption" sx={{ color: "#34a853", fontWeight: 600, minWidth: 50, textAlign: "right" }}>{formatTiempo(item.mensual)}</Typography>
+                              <Typography variant="caption" sx={{ color: "#34a853", fontWeight: 600, minWidth: 50, textAlign: "right" }}>{formatTime(item.mensual)}</Typography>
                             </Box>
                           </Box>
                         );
@@ -396,7 +396,7 @@ export function AhorroPanel({ open, onClose, tipo, total, proyectos, vistaGrafic
                               <Box sx={{ flex: 1, height: 8, bgcolor: "#e0e0e0", borderRadius: 2, overflow: "hidden" }}>
                                 <Box sx={{ height: "100%", width: `${pct}%`, bgcolor: "#1976d2", borderRadius: 2, transition: "width 0.6s ease" }} />
                               </Box>
-                              <Typography variant="caption" sx={{ color: "#1976d2", fontWeight: 600, minWidth: 50, textAlign: "right" }}>{formatTiempo(item.anual)}</Typography>
+                              <Typography variant="caption" sx={{ color: "#1976d2", fontWeight: 600, minWidth: 50, textAlign: "right" }}>{formatTime(item.anual)}</Typography>
                             </Box>
                           </Box>
                         );

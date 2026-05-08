@@ -18,8 +18,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { updateProyecto } from "../api/directus/create";
-import { updateProceso, deleteProceso, createProceso } from "../api/directus/create";
+import { ProjectUpdate } from "../api/directus/create";
+import { updateProcess, deleteProcess, createProcess } from "../api/directus/create";
 import type { CreateProyectoInput } from "../types";
 import { EditModalOverlay, EditModalContent } from "./styles";
 import { AREAS_PREDEFINIDAS, ICONOS_AREA } from "./utils";
@@ -45,7 +45,7 @@ interface EditProyectoModalProps {
   setLoading: (loading: boolean) => void;
 }
 
-export default function EditProyectoModal({ open, onClose, proyecto, onSuccess, loading, setLoading }: EditProyectoModalProps) {
+export default function EditProjectModal({ open, onClose, proyecto, onSuccess, loading, setLoading }: EditProyectoModalProps) {
   const [formData, setFormData] = useState<EditProjectFormData>({
     nombre: "",
     areaBeneficiada: "",
@@ -120,7 +120,7 @@ export default function EditProyectoModal({ open, onClose, proyecto, onSuccess, 
   const handleEliminarProceso = async (index: number) => {
     const proceso = procesosEdit[index];
     if (!proceso.isNew && proceso.id) {
-      await deleteProceso(proceso.id);
+      await deleteProcess(proceso.id);
     }
     setProcesosEdit(procesosEdit.filter((_, i) => i !== index));
   };
@@ -173,11 +173,11 @@ export default function EditProyectoModal({ open, onClose, proyecto, onSuccess, 
           .filter((e) => e.nombre),
       };
 
-      const success = await updateProyecto(proyecto.id, proyectoData);
+      const success = await ProjectUpdate(proyecto.id, proyectoData);
       if (success) {
         for (const proceso of procesosEdit) {
           if (proceso.isNew) {
-            await createProceso({
+            await createProcess({
               proyecto_id: proyecto.id,
               nombre: proceso.nombre,
               tiempo_antes: proceso.tiempo_antes,
@@ -188,7 +188,7 @@ export default function EditProyectoModal({ open, onClose, proyecto, onSuccess, 
               orden: procesosEdit.indexOf(proceso) + 1,
             });
           } else {
-            await updateProceso(proceso.id, {
+            await updateProcess(proceso.id, {
               nombre: proceso.nombre,
               tiempo_antes: proceso.tiempo_antes,
               tiempo_despues: proceso.tiempo_despues,
