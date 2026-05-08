@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useUserPolicies } from "./useUserPolicies";
-import { obtenerTiendas } from "../api/directus/read";
+import { getStores } from "../api/directus/read";
 import { DirectusTienda } from "../types/modal";
 
 interface ValidationState {
@@ -41,7 +41,7 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
       }
 
       // 2. Verificar tiendas del usuario
-      const tiendas = await obtenerTiendas();
+      const tiendas = await  getStores();
       setTiendasCount(tiendas.length);
 
       if (tiendas.length === 0) {

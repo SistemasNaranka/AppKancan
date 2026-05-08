@@ -3,7 +3,7 @@ import { Promotion } from "../types/promotion";
 import { usePromotionsFilter } from "./usePromotionsFilter";
 import { usePromotions } from "./usePromotions";
 import { useQuery } from "@tanstack/react-query";
-import { obtenerTiendas } from "../api/directus/read";
+import { getStores } from "../api/directus/read";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
@@ -20,7 +20,7 @@ export const useFilteredPromotions = (): Promotion[] => {
   const { data: promotions = [], isLoading, isError } = usePromotions();
   const { data: stores = [] } = useQuery({
     queryKey: ["prom_tiendas"],
-    queryFn: obtenerTiendas,
+    queryFn: getStores,
     staleTime: 1000 * 60 * 10,
   });
   const {

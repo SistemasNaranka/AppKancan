@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Promotion } from "../types/promotion";
-import { obtenerPromociones, obtenerPromocionPorId } from "../api/directus/read";
+import { getPromotions, getPromotionById } from "../api/directus/read";
 
 /**
  * Hook para obtener todas las promociones desde Directus.
@@ -11,7 +11,7 @@ import { obtenerPromociones, obtenerPromocionPorId } from "../api/directus/read"
 export const usePromotions = () => {
   return useQuery<Promotion[], Error>({
     queryKey: ["promociones"],
-    queryFn: obtenerPromociones,
+    queryFn: getPromotions,
     staleTime: 1000 * 60 * 5, // 5 minutos - los datos se consideran frescos
     gcTime: 1000 * 60 * 30, // 30 minutos - tiempo en caché
     refetchOnWindowFocus: true, // Recargar al volver a la ventana
@@ -25,7 +25,7 @@ export const usePromotions = () => {
 export const usePromotion = (id: number) => {
   return useQuery<Promotion | null, Error>({
     queryKey: ["promocion", id],
-    queryFn: () => obtenerPromocionPorId(id),
+    queryFn: () => getPromotionById(id),
     enabled: !!id, // Solo ejecutar si hay ID
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
