@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import { 
-  obtenerTiendas, obtenerEmpleadosPorFechaExacta, 
+  getStores, obtenerEmpleadosPorFechaExacta, 
   obtenerAsesores, obtenerCargos 
 } from "../api/directus/read";
 import { guardarPresupuestosEmpleados, eliminarPresupuestosEmpleados } from "../api/directus/create";
@@ -69,7 +69,7 @@ export const useEditStoreBudgetModalLogic = ({ isOpen, onSaveComplete, tiendaPro
   const loadCatalogos = async () => {
     try {
       setLoading(true);
-      const [tData, eData, cData] = await Promise.all([obtenerTiendas(), obtenerAsesores(), obtenerCargos()]);
+      const [tData, eData, cData] = await Promise.all([getStores(), obtenerAsesores(), obtenerCargos()]);
       const sortedTiendas = tData.sort((a: any, b: any) => a.id - b.id);
       setTiendas(sortedTiendas);
       setTodosEmpleados(eData);

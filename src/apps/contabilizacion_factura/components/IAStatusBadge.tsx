@@ -143,7 +143,7 @@ interface ProveedorProcesamientoProps {
 /**
  * Componente discreto que muestra qué proveedor y modelo procesó la factura
  */
-export function ProveedorProcesamiento({
+export function ProviderProcessing({
   proveedor,
   modelo,
 }: ProveedorProcesamientoProps) {

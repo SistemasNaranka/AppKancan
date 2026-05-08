@@ -309,7 +309,7 @@ interface FacturasTourProps {
   children: ReactNode;
 }
 
-export const FacturasTour = ({
+export const InvoicesTour = ({
   children,
 }: FacturasTourProps): React.ReactElement => {
   const { tourPhase, stepIndex, setStepIndex, nextPhase, stopTour } =
@@ -413,4 +413,4 @@ export const FacturasTour = ({
   );
 };
 
-export default FacturasTour;
+export default InvoicesTour;

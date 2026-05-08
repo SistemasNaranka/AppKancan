@@ -12,7 +12,7 @@ interface EnvioLoadingModalProps {
   message?: string;
 }
 
-const EnvioLoadingModal: React.FC<EnvioLoadingModalProps> = ({
+const LoadingModal: React.FC<EnvioLoadingModalProps> = ({
   open,
   title = "Enviando muestras...",
   message = "Por favor espera unos segundos mientras procesamos tu solicitud.",
@@ -81,4 +81,4 @@ const EnvioLoadingModal: React.FC<EnvioLoadingModalProps> = ({
   );
 };
 
-export default EnvioLoadingModal;
+export default LoadingModal;

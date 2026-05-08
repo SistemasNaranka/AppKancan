@@ -22,7 +22,7 @@ interface AutomaticoModalProps {
     onConfirm: (automatico: string) => Promise<void>;
 }
 
-export function AutomaticoModal({
+export function AutomaticModal({
     open,
     nit,
     proveedorNombre,

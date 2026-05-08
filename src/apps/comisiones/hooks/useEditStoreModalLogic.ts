@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, type KeyboardEvent } from "react";
 import dayjs from "dayjs";
 import { 
-  obtenerTiendas, obtenerEmpleadosPorFechaExacta, 
+  getStores, obtenerEmpleadosPorFechaExacta, 
   obtenerAsesores, obtenerCargos 
 } from "../api/directus/read";
 import { guardarPresupuestosEmpleados, eliminarPresupuestosEmpleados } from "../api/directus/create";
@@ -79,7 +79,7 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
   const loadCatalogos = async () => {
     try {
       setLoadingCatalogos(true);
-      const [tData, eData, cData] = await Promise.all([obtenerTiendas(), obtenerAsesores(), obtenerCargos()]);
+      const [tData, eData, cData] = await Promise.all([getStores(), obtenerAsesores(), obtenerCargos()]);
       setTiendas(tData.sort((a: any, b: any) => a.id - b.id));
       setTodosEmpleados(eData);
       setCargos(cData);

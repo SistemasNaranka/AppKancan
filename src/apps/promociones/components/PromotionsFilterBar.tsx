@@ -20,7 +20,7 @@ import {
 import usePromotionsFilter from "../hooks/usePromotionsFilter";
 import DescuentoFilter from "./DescuentoFilter";
 import { useSelectionModal } from "@/shared/components/selectionmodal/useSelectionModal";
-import { obtenerTiendas, obtenerTiposPromocion } from "../api/directus/read";
+import { getStores, getPromotionTypes } from "../api/directus/read";
 import { useQuery } from "@tanstack/react-query";
 import CustomSelectionModal, {
   SelectionItem,
@@ -41,14 +41,14 @@ const PromotionsFilterBar: React.FC = () => {
   // Query para obtener tiendas
   const { data: stores = [], isLoading: isLoadingStores } = useQuery({
     queryKey: ["prom_tiendas"],
-    queryFn: obtenerTiendas,
+    queryFn: getStores,
     staleTime: 1000 * 60 * 10, // 10 minutos
   });
 
   // Query para obtener tipos de promoción desde Directus
   const { data: tiposPromocion = [], isLoading: isLoadingTipos } = useQuery({
     queryKey: ["tipos_promocion"],
-    queryFn: obtenerTiposPromocion,
+    queryFn: getPromotionTypes,
     staleTime: 1000 * 60 * 60, // 1 hora
   });
 

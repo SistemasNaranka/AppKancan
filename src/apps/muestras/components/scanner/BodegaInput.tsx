@@ -15,7 +15,7 @@ interface Props {
   onFocus: () => void;
 }
 
-export const BodegaInput = forwardRef<HTMLInputElement, Props>(
+export const WarehouseInput = forwardRef<HTMLInputElement, Props>(
   ({ value, options, onChange, onBlur, onFocus }, ref) => {
     const selectedOption = options.find((opt) => opt.codigo === value) || null;
 
@@ -119,4 +119,4 @@ export const BodegaInput = forwardRef<HTMLInputElement, Props>(
   }
 );
 
-BodegaInput.displayName = "BodegaInput";
+WarehouseInput.displayName = "BodegaInput";

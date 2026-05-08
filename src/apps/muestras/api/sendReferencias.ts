@@ -26,7 +26,7 @@ export interface EnvioMuestrasRequest {
  *   "movementType": "E"
  * }
  */
-export async function enviarMuestras(
+export async function sendSamples(
   articulos: Array<{ codigo: string; cantidad: number }>,
   bodega: string,
   observaciones?: string,

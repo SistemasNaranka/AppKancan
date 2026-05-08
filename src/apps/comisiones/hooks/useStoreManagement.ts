@@ -7,7 +7,7 @@ import {
   BudgetRecord,
 } from "../types";
 import {
-  obtenerTiendas,
+  getStores,
   obtenerAsesores,
   obtenerCargos,
   obtenerPresupuestosDiarios,
@@ -95,7 +95,7 @@ export const useStoreManagement = (
     try {
       setLoading(true);
       const [tiendasData, cargosData] = await Promise.all([
-        obtenerTiendas(),
+        getStores(),
         obtenerCargos(),
       ]);
       setTiendas(tiendasData);
