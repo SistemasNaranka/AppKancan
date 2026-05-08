@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getStores } from "../api/directus/read";
-import { Store } from "../data/mockStores";
+import { Store } from "../types/promotion";
+
 
 export const useStores = () => {
   return useQuery<Store[], Error>({

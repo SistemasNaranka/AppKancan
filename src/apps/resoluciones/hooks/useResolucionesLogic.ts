@@ -76,11 +76,11 @@ export const useResolutionsLogic = ({
 
   const resolucionesBuscadas = busqueda
     ? AllResolutions.filter(
-      (r) =>
-        r.numero_formulario.toLowerCase().includes(busqueda.toLowerCase()) ||
-        r.tienda_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-        r.prefijo.toLowerCase().includes(busqueda.toLowerCase()),
-    )
+        (r) =>
+          r.numero_formulario.toLowerCase().includes(busqueda.toLowerCase()) ||
+          r.tienda_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+          r.prefijo.toLowerCase().includes(busqueda.toLowerCase()),
+      )
     : AllResolutions;
 
   const totalPendientes = AllResolutions.filter(

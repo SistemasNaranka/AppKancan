@@ -24,7 +24,7 @@ export async function ensureValidToken(): Promise<void> {
       guardarTokenStorage(
         newTokens.access_token,
         newTokens.refresh_token,
-        newTokens.expires_at
+        newTokens.expires_at,
       );
 
       // Actualizar el token en el cliente de Directus
@@ -45,7 +45,7 @@ export async function ensureValidToken(): Promise<void> {
  * Wrapper para directus.request que hace refresh automático si es necesario
  */
 export async function requestWithAutoRefresh<T>(
-  requestFn: () => Promise<T>
+  requestFn: () => Promise<T>,
 ): Promise<T> {
   // Verificar y refrescar token si es necesario
   await ensureValidToken();
@@ -67,7 +67,7 @@ export async function requestWithAutoRefresh<T>(
         guardarTokenStorage(
           newTokens.access_token,
           newTokens.refresh_token,
-          newTokens.expires_at
+          newTokens.expires_at,
         );
         await setTokenDirectus(newTokens.access_token);
 
@@ -76,7 +76,7 @@ export async function requestWithAutoRefresh<T>(
       } catch (refreshError) {
         console.error(
           "❌ Error al refrescar token después de 401:",
-          refreshError
+          refreshError,
         );
         // Manejar sesión expirada (cierra sesión y redirige)
       }
@@ -101,7 +101,7 @@ export async function requestWithAutoRefresh<T>(
  * ```
  */
 export async function withAutoRefresh<T>(
-  directusRequest: () => Promise<T>
+  directusRequest: () => Promise<T>,
 ): Promise<T> {
   return requestWithAutoRefresh(directusRequest);
 }

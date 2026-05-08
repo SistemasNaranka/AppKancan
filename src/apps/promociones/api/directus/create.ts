@@ -6,21 +6,22 @@ import {
 } from "@/auth/services/directusInterceptor";
 // Tipos para la creación de promociones
 export interface CreatePromocionData {
-  nombre: string;
-  fecha_inicio: string;
-  fecha_final?: string | null;
-  hora_inicio: string;
-  hora_fin?: string | null;
-  descuento: number;
-  tipo_id: number;
-  observaciones?: string | null;
+  name: string;
+  start_date: string;
+  end_date?: string | null;
+  start_time: string;
+  end_time?: string | null;
+  discount_value: number;
+  type_id: number;
+  notes?: string | null;
 }
 
 export interface PromoTienda {
-  tiendas_id: number | string;
-  promo_id: number;
-  estado: string;
+  store_id: number | string;
+  promotion_id: number;
+  status: string;
 }
+
 
 /**
  * Formatear hora al formato esperado por Directus (HH:MM:SS)
@@ -49,21 +50,22 @@ export async function createPromotion(data: CreatePromocionData) {
   try {
     // Formatear los datos antes de enviar
     const dataFormateada = {
-      nombre: data.nombre.trim(),
-      fecha_inicio: data.fecha_inicio,
-      fecha_final: data.fecha_final || null,
-      hora_inicio: format_time(data.hora_inicio),
-      hora_fin: format_time(data.hora_fin),
-      descuento: Number(data.descuento),
-      tipo_id: Number(data.tipo_id),
-      observaciones: data.observaciones || null,
+      name: data.name.trim(),
+      start_date: data.start_date,
+      end_date: data.end_date || null,
+      start_time: format_time(data.start_time),
+      end_time: format_time(data.end_time),
+      discount_value: Number(data.discount_value),
+      type_id: Number(data.type_id),
+      notes: data.notes || null,
     };
 
     const result = await withAutoRefresh(() =>
-      directus.request(createItem("promo", dataFormateada))
+      directus.request(createItem("com_promotion", dataFormateada))
     );
 
     return result;
+
   } catch (error: any) {
     console.error("❌ Error al crear promoción:", error);
 
@@ -87,16 +89,17 @@ export async function associateStoresPromotion(
 
   try {
     const promoTiendas: PromoTienda[] = tiendasIds.map((tiendaId) => ({
-      tiendas_id: Number(tiendaId),
-      promo_id: Number(promoId),
-      estado: "Activo",
+      store_id: Number(tiendaId),
+      promotion_id: Number(promoId),
+      status: "Activo",
     }));
 
-    const result = await directus.request(
-      createItems("promo_tiendas", promoTiendas)
+    const result = await withAutoRefresh(() =>
+      directus.request(createItems("com_promotion_stores", promoTiendas))
     );
 
     return result;
+
   } catch (error: any) {
     console.error("❌ Error al asociar tiendas:", error);
 

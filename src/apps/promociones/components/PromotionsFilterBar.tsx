@@ -20,7 +20,8 @@ import {
 import usePromotionsFilter from "../hooks/usePromotionsFilter";
 import DescuentoFilter from "./DescuentoFilter";
 import { useSelectionModal } from "@/shared/components/selectionmodal/useSelectionModal";
-import { obtenerTiendas, obtenerTiposPromocion } from "../api/directus/read";
+import { getStores, getPromotionTypes } from "../api/directus/read";
+
 import { useQuery } from "@tanstack/react-query";
 import CustomSelectionModal, {
   SelectionItem,
@@ -41,16 +42,18 @@ const PromotionsFilterBar: React.FC = () => {
   // Query para obtener tiendas
   const { data: stores = [], isLoading: isLoadingStores } = useQuery({
     queryKey: ["prom_tiendas"],
-    queryFn: obtenerTiendas,
+    queryFn: getStores,
     staleTime: 1000 * 60 * 10, // 10 minutos
   });
+
 
   // Query para obtener tipos de promoción desde Directus
   const { data: tiposPromocion = [], isLoading: isLoadingTipos } = useQuery({
     queryKey: ["tipos_promocion"],
-    queryFn: obtenerTiposPromocion,
+    queryFn: getPromotionTypes,
     staleTime: 1000 * 60 * 60, // 1 hora
   });
+
 
   const tiendaModal = useSelectionModal();
 
@@ -58,15 +61,17 @@ const PromotionsFilterBar: React.FC = () => {
   const tiendasDisponibles: SelectionItem[] = useMemo(() => {
     return stores.map((store) => ({
       id: store.id,
-      label: store.nombre,
-      description: store.empresa || "",
+      label: store.name,
+      description: store.company || "",
+
     }));
   }, [stores]);
 
   // Filtrar tipos disponibles según duración seleccionada
   const availableTipos = useMemo(() => {
     if (duracion.length === 0) return tiposPromocion;
-    return tiposPromocion.filter((tipo) => duracion.includes(tipo.duracion));
+    return tiposPromocion.filter((tipo) => duracion.includes(tipo.duration));
+
   }, [duracion, tiposPromocion]);
 
   // Duración por defecto
@@ -216,7 +221,8 @@ const PromotionsFilterBar: React.FC = () => {
                     variant="outlined"
                     color="primary"
                     onClick={() =>
-                      setTipos(availableTipos.map((t) => t.nombre))
+                      setTipos(availableTipos.map((t) => t.name))
+
                     }
                     disabled={selected.length === availableTipos.length}
                     sx={{
@@ -276,9 +282,11 @@ const PromotionsFilterBar: React.FC = () => {
                       >
                         {selected.map((nombre) => {
                           const tipo = availableTipos.find(
-                            (t) => t.nombre === nombre
+                            (t) => t.name === nombre
+
                           );
-                          const color = tipo?.color || "#9e9e9e";
+                          const color = tipo?.color_code || "#9e9e9e";
+
                           return (
                             <Chip
                               key={nombre}
@@ -304,7 +312,8 @@ const PromotionsFilterBar: React.FC = () => {
                     }}
                   >
                     {availableTipos.map((tipo) => (
-                      <MenuItem key={tipo.id} value={tipo.nombre}>
+                      <MenuItem key={tipo.id} value={tipo.name}>
+
                         <Box
                           display="flex"
                           alignItems="center"
@@ -316,19 +325,22 @@ const PromotionsFilterBar: React.FC = () => {
                               width: 14,
                               height: 14,
                               borderRadius: "50%",
-                              bgcolor: tipo.color || "#9e9e9e",
+                              bgcolor: tipo.color_code || "#9e9e9e",
+
                               flexShrink: 0,
                             }}
                           />
                           <ListItemText
-                            primary={tipo.nombre}
+                            primary={tipo.name}
+
                             sx={{
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                             }}
                           />
-                          {selected.includes(tipo.nombre) && (
+                          {selected.includes(tipo.name) && (
+
                             <Typography
                               variant="body2"
                               color="primary"

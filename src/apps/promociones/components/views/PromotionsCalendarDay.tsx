@@ -37,21 +37,24 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ promo, index }) => {
   // Calcular posición y ancho de la barra
   const { start, width } = useMemo(() => {
     // Si es promoción fija (solo marcar el inicio, no todo el día)
-    if (!promo.hora_fin) {
-      const horaInicio = parseInt(promo.hora_inicio.split(":")[0]);
-      const minutosInicio = parseInt(promo.hora_inicio.split(":")[1] || "0");
+    if (!promo.end_time) {
+
+      const horaInicio = parseInt(promo.start_time.split(":")[0]);
+      const minutosInicio = parseInt(promo.start_time.split(":")[1] || "0");
       const startPercent = ((horaInicio + minutosInicio / 60) / 24) * 100;
+
       return { start: startPercent, width: 5 }; // Marca pequeña en el inicio
     }
 
-    const horaInicio = parseInt(promo.hora_inicio.split(":")[0]);
-    const minutosInicio = parseInt(promo.hora_inicio.split(":")[1] || "0");
-    const horaFinal = parseInt(promo.hora_fin.split(":")[0]);
-    const minutosFinal = parseInt(promo.hora_fin.split(":")[1] || "0");
+    const horaInicio = parseInt(promo.start_time.split(":")[0]);
+    const minutosInicio = parseInt(promo.start_time.split(":")[1] || "0");
+    const horaFinal = parseInt(promo.end_time.split(":")[0]);
+    const minutosFinal = parseInt(promo.end_time.split(":")[1] || "0");
 
     const startPercent = ((horaInicio + minutosInicio / 60) / 24) * 100;
     const endPercent = ((horaFinal + minutosFinal / 60) / 24) * 100;
     const widthPercent = endPercent - startPercent;
+
 
     return { start: startPercent, width: widthPercent };
   }, [promo]);
@@ -79,9 +82,10 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ promo, index }) => {
           boxShadow: theme.shadows[4],
         },
       }}
-      title={`${promo.tipo}: ${promo.hora_inicio}${
-        promo.hora_fin ? ` - ${promo.hora_fin}` : " (Todo el día)"
+      title={`${promo.type}: ${promo.start_time}${
+        promo.end_time ? ` - ${promo.end_time}` : " (Todo el día)"
       }`}
+
     >
       <Typography
         variant="caption"
@@ -94,10 +98,12 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ promo, index }) => {
           textOverflow: "ellipsis",
         }}
       >
-        {promo.tipo}
+        {promo.type}
+
       </Typography>
       <Chip
-        label={`${promo.descuento}%`}
+        label={`${promo.discount}%`}
+
         size="small"
         sx={{
           bgcolor: "rgba(255,255,255,0.3)",
@@ -119,8 +125,9 @@ const PromotionsCalendarDay: React.FC = () => {
   const dayPromotions = useMemo(() => {
     const dayStart = focusedDate.startOf("day");
     return promotions.filter((p) => {
-      const start = dayjs(p.fecha_inicio).startOf("day");
-      const end = p.fecha_final ? dayjs(p.fecha_final).endOf("day") : null;
+      const start = dayjs(p.start_date).startOf("day");
+      const end = p.end_date ? dayjs(p.end_date).endOf("day") : null;
+
 
       if (end) {
         return dayStart.isSameOrAfter(start) && dayStart.isSameOrBefore(end);
@@ -311,16 +318,19 @@ const PromotionsCalendarDay: React.FC = () => {
                       fontWeight="bold"
                       sx={{ color: promo.color || "#90caf9" }}
                     >
-                      {promo.tipo}
+                      {promo.type}
+
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {promo.duracion === "temporal"
+                      {promo.duration === "temporal"
                         ? "Promoción Temporal"
                         : "Promoción Fija"}
+
                     </Typography>
                   </Box>
                   <Chip
-                    label={`${promo.descuento}% OFF`}
+                    label={`${promo.discount}% OFF`}
+
                     sx={{
                       bgcolor: promo.color,
                       color: "white",
@@ -331,14 +341,16 @@ const PromotionsCalendarDay: React.FC = () => {
 
                 {/* Descripción */}
                 <Typography variant="body2" sx={{ mb: 1.5 }}>
-                  {promo.descripcion}
+                  {promo.name}
+
                 </Typography>
 
                 {/* Horario */}
                 <Box display="flex" gap={1} mb={1.5}>
                   <Typography variant="caption" color="text.secondary">
-                    <strong>Horario:</strong> {promo.hora_inicio}
-                    {promo.hora_fin ? ` - ${promo.hora_fin}` : " (Todo el día)"}
+                    <strong>Horario:</strong> {promo.start_time}
+                    {promo.end_time ? ` - ${promo.end_time}` : " (Todo el día)"}
+
                   </Typography>
                 </Box>
 
@@ -346,23 +358,25 @@ const PromotionsCalendarDay: React.FC = () => {
                 <Box display="flex" gap={1} mb={1.5}>
                   <Typography variant="caption" color="text.secondary">
                     <strong>Vigencia:</strong>{" "}
-                    {dayjs(promo.fecha_inicio)
+                    {dayjs(promo.start_date)
                       .locale("es")
                       .format("DD/MM/YYYY")}
+
                   </Typography>
-                  {promo.fecha_final && (
+                  {promo.end_date && (
                     <>
                       <Typography variant="caption" color="text.secondary">
                         →
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {dayjs(promo.fecha_final)
+                        {dayjs(promo.end_date)
                           .locale("es")
                           .format("DD/MM/YYYY")}
                       </Typography>
                     </>
                   )}
-                  {!promo.fecha_final && (
+                  {!promo.end_date && (
+
                     <Typography variant="caption" color="text.secondary">
                       (Promoción permanente)
                     </Typography>
@@ -380,7 +394,8 @@ const PromotionsCalendarDay: React.FC = () => {
                     Tiendas aplicables:
                   </Typography>
                   <Box display="flex" flexWrap="wrap" gap={0.5}>
-                    {promo.tiendas.map((tienda) => (
+                    {promo.stores.map((tienda) => (
+
                       <Chip
                         key={tienda}
                         size="small"
