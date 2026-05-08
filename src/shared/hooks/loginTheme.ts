@@ -9,12 +9,12 @@ declare module "@mui/material/styles" {
   }
 }
 
-// 🎨 Paleta específica para el login
+//  Paleta específica para el login
 export const loginTheme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#797979", // 👈 gris neutro principal
+      main: "#797979", // gris neutro principal
       light: "#A0A0A0",
       dark: "#5A5A5A",
       contrastText: "#FFFFFF",

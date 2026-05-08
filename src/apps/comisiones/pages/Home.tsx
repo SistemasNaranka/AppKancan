@@ -18,7 +18,7 @@ export default function Home() {
     state, actions, computed, data, contextState, filters, budgetValidation, hasPolicy, refetch 
   } = useHomeLogic();
 
-  // Construimos la lógica de la cabecera aquí, que es un archivo visual
+  
   const homeHeaderProps = useMemo(() => {
     const baseProps = {
       selectedMonth: state.selectedMonth,
@@ -177,7 +177,6 @@ export default function Home() {
           modalMessage={state.modalMessage}
           selectedMonth={state.selectedMonth}
           hasSavedData={budgetValidation.hasBudgetData === true}
-          tiendaSeleccionada={budgetValidation.currentStore} // NUEVO
           onShowSaveLoading={(error?: any) => actions.handleCodesModalSave(error)}
           onCloseCodesModal={() => actions.setShowCodesModal(false)}
           onCloseEditStoreModal={() => actions.setShowEditStoreModal(false)}

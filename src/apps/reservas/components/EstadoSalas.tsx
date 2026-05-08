@@ -10,7 +10,7 @@ import DataUsageOutlinedIcon from '@mui/icons-material/DataUsageOutlined';
 import { format, differenceInSeconds, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Reserva } from "../types/reservas.types";
-import { SALAS_DISPONIBLES, capitalize } from "../types/reservas.types";
+import { SALAS_DISPONIBLES } from "../types/reservas.types";
 
 interface EstadoSalasProps {
   reservas: Reserva[];
@@ -27,7 +27,7 @@ interface EstadoSala {
   esReservaFutura: boolean;
 }
 
-// Información adicional de las salas
+
 const INFO_SALAS: Record<string, { tipo: string }> = {
   "Sala Princiapal": { tipo: "" },
   "Sala Secundaria": { tipo: "" },
@@ -40,7 +40,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
 }) => {
   const [tiempoActual, setTiempoActual] = useState(new Date());
 
-  // Actualizar tiempo cada segundo para el countdown
+ 
   useEffect(() => {
     const interval = setInterval(() => {
       setTiempoActual(new Date());
@@ -48,13 +48,13 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Calcular estado de cada sala
+  
   const estadosSalas = useMemo((): EstadoSala[] => {
     const hoy = format(tiempoActual, "yyyy-MM-dd");
     const horaActual = format(tiempoActual, "HH:mm");
 
     return SALAS_DISPONIBLES.map((sala) => {
-      // Filtrar reservas vigentes o en curso de esta sala
+      
       const reservasSala = reservas.filter(
         (r) =>
           r.nombre_sala === sala &&
@@ -62,22 +62,22 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
             (r.estadoCalculado || r.estado)?.toLowerCase() === "en curso"),
       );
 
-      // Reservas de hoy
+     
       const reservasSalaHoy = reservasSala.filter((r) => r.fecha === hoy);
 
-      // Determinar si hay reservas hoy (futuras o en curso)
+      
       const hayReservasHoy = reservasSalaHoy.some(
         (r) =>
           r.hora_inicio > horaActual ||
           (r.hora_inicio <= horaActual && r.hora_final > horaActual),
       );
 
-      // Buscar reunión en curso (solo hoy)
+      
       const reunionActual = reservasSalaHoy.find((r) => {
         return r.hora_inicio <= horaActual && r.hora_final > horaActual;
       });
 
-      // Determinar qué reservas mostrar
+      
       let proximasReservas: Reserva[] = [];
       let esReservaFutura = false;
 
@@ -88,14 +88,14 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
           .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
         esReservaFutura = false;
       } else {
-        // No hay reservas hoy: buscar la próxima reserva de cualquier fecha futura
+      
         const reservasFuturas = reservasSala
           .filter(
             (r) =>
               r.fecha > hoy || (r.fecha === hoy && r.hora_inicio > horaActual),
           )
           .sort((a, b) => {
-            // Ordenar por fecha y luego por hora
+           
             if (a.fecha !== b.fecha) {
               return a.fecha.localeCompare(b.fecha);
             }
@@ -121,7 +121,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
     });
   }, [reservas, tiempoActual]);
 
-  // Calcular tiempo restante para una reserva en formato H:MM:SS
+  
   const calcularTiempoRestante = (horaFinal: string): string => {
     const hoy = format(tiempoActual, "yyyy-MM-dd");
     const fechaFin = new Date(`${hoy}T${horaFinal}`);
@@ -140,7 +140,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
     return `${hDisplay}${mDisplay}:${sDisplay}`;
   };
 
-  // Formatear hora para mostrar
+
   const formatearHora = (hora: string): string => {
     const [h, m] = hora.split(":");
     const hour = parseInt(h);
@@ -149,12 +149,8 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
     return `${hour12}:${m} ${ampm}`;
   };
 
-  // Día actual formateado
-  const diaActual = format(tiempoActual, "EEEE, d 'de' MMMM 'de' yyyy", {
-    locale: es,
-  });
 
-  // Formatear etiqueta de fecha para próxima reserva (hoy o futura)
+  
   const obtenerEtiquetaFechaReserva = (
     reserva: Reserva | null,
     esFutura: boolean,
@@ -162,7 +158,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
     if (!reserva) return "";
 
     if (esFutura) {
-      // Mostrar fecha formateada para reservas futuras
+     
       const fechaReserva = parseISO(reserva.fecha);
       return format(fechaReserva, "EEEE d 'de' MMMM", { locale: es });
     }
@@ -187,7 +183,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
           };
 
           if (estado.ocupada && estado.reunionActual) {
-            // Card OCUPADO - Mostrar solo el TÍTULO
+            
 
             return (
               <Paper
@@ -203,7 +199,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                   },
                 }}
               >
-                {/* Header en curso */}
+               
                 <Box
                   sx={{
                     background: "#0F9568",
@@ -230,7 +226,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                       </Typography>
                     </Box>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      {/* Indicador pulsante para reunión en curso */}
+                      
                       <Box
                         sx={{
                           width: 12,
@@ -293,7 +289,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Reunión actual - Solo TÍTULO */}
+                 
                   <Box
                     sx={{
                       display: "flex",
@@ -322,7 +318,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Footer con tiempo y botón */}
+                  
                   <Box
                     sx={{
                       display: "flex",
@@ -373,7 +369,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
               </Paper>
             );
           } else {
-            // Card DISPONIBLE
+            
 
             return (
               <Paper
@@ -389,7 +385,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                   },
                 }}
               >
-                {/* Header Vigente */}
+               
                 <Box
                   sx={{
                     background: "#004680",
@@ -428,7 +424,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                   </Box>
                 </Box>
 
-                {/* Contenido */}
+                
                 <Box sx={{ p: 2.5 }}>
                   {/* Estado actual */}
                   <Box
@@ -462,7 +458,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Próxima reserva - Solo TÍTULO */}
+                 
                   <Box
                     sx={{
                       display: "flex",
@@ -502,7 +498,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Footer con disponibilidad y botón */}
+                  
                   <Box
                     sx={{
                       display: "flex",

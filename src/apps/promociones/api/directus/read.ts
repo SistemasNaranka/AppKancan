@@ -36,7 +36,7 @@ export interface DirectusTienda {
   codigo_ultra: number;
   empresa: string;
 }
-function formatearHoraDisplay(hora: string | null | undefined): string | null {
+function formatDisplayTime(hora: string | null | undefined): string | null {
   if (!hora) return null;
 
   // Si ya es HH:MM, retornar tal cual
@@ -58,7 +58,7 @@ function formatearHoraDisplay(hora: string | null | undefined): string | null {
 /**
  * Obtener todas las tiendas
  */
-export async function obtenerTiendas(): Promise<DirectusTienda[]> {
+export async function getStores(): Promise<DirectusTienda[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
@@ -79,7 +79,7 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
 /**
  * Obtener todos los tipos de promoción
  */
-export async function obtenerTiposPromocion(): Promise<DirectusPromoTipo[]> {
+export async function getPromotionTypes(): Promise<DirectusPromoTipo[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
@@ -100,7 +100,7 @@ export async function obtenerTiposPromocion(): Promise<DirectusPromoTipo[]> {
 /**
  * Obtener todas las promociones con sus relaciones
  */
-export async function obtenerPromociones(): Promise<Promotion[]> {
+export async function getPromotions(): Promise<Promotion[]> {
   try {
     // 1. Obtener todas las promociones con el tipo expandido
     const promos = await withAutoRefresh(() =>
@@ -171,8 +171,8 @@ export async function obtenerPromociones(): Promise<Promotion[]> {
         tiendas: tiendas,
         fecha_inicio: promo.fecha_inicio,
         fecha_final: promo.fecha_final,
-        hora_inicio: formatearHoraDisplay(promo.hora_inicio) || "",
-        hora_fin: formatearHoraDisplay(promo.hora_fin),
+        hora_inicio: formatDisplayTime(promo.hora_inicio) || "",
+        hora_fin: formatDisplayTime(promo.hora_fin),
         descuento: promo.descuento,
         duracion: tipo?.duracion || "temporal",
         color: tipo?.color || "#888",
@@ -189,7 +189,7 @@ export async function obtenerPromociones(): Promise<Promotion[]> {
 /**
  * Obtener una promoción por ID con sus relaciones
  */
-export async function obtenerPromocionPorId(
+export async function getPromotionById(
   id: number
 ): Promise<Promotion | null> {
   try {
@@ -259,8 +259,8 @@ export async function obtenerPromocionPorId(
       tiendas: tiendas,
       fecha_inicio: promoData.fecha_inicio,
       fecha_final: promoData.fecha_final,
-      hora_inicio: formatearHoraDisplay(promoData.hora_inicio) || "",
-      hora_fin: formatearHoraDisplay(promoData.hora_fin),
+      hora_inicio: formatDisplayTime(promoData.hora_inicio) || "",
+      hora_fin: formatDisplayTime(promoData.hora_fin),
       descuento: promoData.descuento,
       duracion: tipo?.duracion || "temporal",
       color: tipo?.color || "#888",
@@ -274,7 +274,7 @@ export async function obtenerPromocionPorId(
 /**
  * Obtener tiendas asociadas a una promoción específica
  */
-export async function obtenerTiendasDePromocion(
+export async function getPromotionStores(
   promoId: number
 ): Promise<DirectusTienda[]> {
   try {
