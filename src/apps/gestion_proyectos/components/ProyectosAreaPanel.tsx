@@ -26,7 +26,7 @@ interface ProyectosAreaPanelProps {
   proyectos: Proyecto[];
 }
 
-export function ProyectosAreaPanel({ open, onClose, proyectos }: ProyectosAreaPanelProps) {
+export function ProjectsAreaPanel({ open, onClose, proyectos }: ProyectosAreaPanelProps) {
   const COLORES_AREA = [
     "#E91E63", "#FF9800", "#009688", "#3F51B5", "#8BC34A",
     "#CDDC39", "#673AB7", "#03A9F4", "#FFC107", "#9E9E9E",

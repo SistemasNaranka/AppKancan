@@ -23,7 +23,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useProyectoById } from "../hooks/useProyectos";
+import {  getProjectById } from "../hooks/useProyectos";
 import {
   createFeedback,
   updateFeedback,
@@ -50,7 +50,7 @@ interface FeedbackForm {
 export default function PostLanzamiento() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { proyecto, loading, error, recargar } = useProyectoById(id!);
+  const { proyecto, loading, error, recargar } =  getProjectById(id!);
   const { showSnackbar } = useGlobalSnackbar();
 
   const [formData, setFormData] = useState<FeedbackForm>({
