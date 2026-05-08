@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { Resolucion } from "../types";
 
-export const exportarAExcel = async (
+export const ExportExcel = async (
   dataExportar: Resolucion[],
   onError?: (mensaje: string, tipo: "success" | "error") => void,
 ): Promise<void> => {

@@ -14,7 +14,7 @@ export interface DatosPDF {
   tienda_nombre: string;
 }
 
-export async function leerPDF(archivo: File): Promise<DatosPDF | string> {
+export async function LearnPDF(archivo: File): Promise<DatosPDF | string> {
   try {
     const arrayBuffer = await archivo.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;

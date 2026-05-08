@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Resolucion, EstadoResolucion } from "../types";
-import { obtenerResoluciones } from "../api/read";
-import { crearResolucion } from "../api/create";
-import { aplanarResolucion, calcularVencimiento } from "../utils/calculos";
+import { getResolutions } from "../api/read";
+import { createResolution } from "../api/create";
+import { flattenResolution, calcularVencimiento } from "../utils/calculos";
 import { useResponsiveItems } from "./useResponsiveItems";
 
 interface UseResolucionesLogicOptions {
@@ -12,7 +12,7 @@ interface UseResolucionesLogicOptions {
   ) => void;
 }
 
-export const useResolucionesLogic = ({
+export const useResolutionsLogic = ({
   showSnackbar,
 }: UseResolucionesLogicOptions) => {
   const [busqueda, setBusqueda] = useState("");
@@ -40,8 +40,8 @@ export const useResolucionesLogic = ({
     async function cargarDatos() {
       try {
         setCargandoDatos(true);
-        const datos = await obtenerResoluciones();
-        const resolucionesAplanadas = datos.map(aplanarResolucion);
+        const datos = await getResolutions();
+        const resolucionesAplanadas = datos.map(flattenResolution);
         setResoluciones(resolucionesAplanadas);
       } catch (error) {
         console.error("Error cargando resoluciones:", error);
@@ -76,11 +76,11 @@ export const useResolucionesLogic = ({
 
   const resolucionesBuscadas = busqueda
     ? todasResoluciones.filter(
-        (r) =>
-          r.numero_formulario.toLowerCase().includes(busqueda.toLowerCase()) ||
-          r.tienda_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-          r.prefijo.toLowerCase().includes(busqueda.toLowerCase()),
-      )
+      (r) =>
+        r.numero_formulario.toLowerCase().includes(busqueda.toLowerCase()) ||
+        r.tienda_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        r.prefijo.toLowerCase().includes(busqueda.toLowerCase()),
+    )
     : todasResoluciones;
 
   const totalPendientes = todasResoluciones.filter(
@@ -158,7 +158,7 @@ export const useResolucionesLogic = ({
     setMostrarDialogoOpcionesIntegracion(false);
 
     try {
-      await crearResolucion({
+      await createResolution({
         numero_formulario: resolucionSeleccionada.numero_formulario,
         razon_social: resolucionSeleccionada.razon_social,
         prefijo: resolucionSeleccionada.prefijo,
@@ -171,8 +171,8 @@ export const useResolucionesLogic = ({
         estado: "Pendiente",
       });
 
-      const datos = await obtenerResoluciones();
-      const resolucionesAplanadas = datos.map(aplanarResolucion);
+      const datos = await getResolutions();
+      const resolucionesAplanadas = datos.map(flattenResolution);
       setResoluciones(resolucionesAplanadas);
 
       setResolucionSeleccionada(null);
@@ -217,7 +217,7 @@ export const useResolucionesLogic = ({
     setMostrarDialogoOpcionesIntegracion(false);
 
     try {
-      await crearResolucion({
+      await createResolution({
         numero_formulario: resolucionSeleccionada.numero_formulario,
         razon_social: resolucionSeleccionada.razon_social,
         prefijo: resolucionSeleccionada.prefijo,
@@ -234,8 +234,8 @@ export const useResolucionesLogic = ({
       const paramsCodificados = encodeURIComponent(params);
       window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
 
-      const datos = await obtenerResoluciones();
-      const resolucionesAplanadas = datos.map(aplanarResolucion);
+      const datos = await getResolutions();
+      const resolucionesAplanadas = datos.map(flattenResolution);
       setResoluciones(resolucionesAplanadas);
 
       setResolucionSeleccionada(null);
@@ -283,7 +283,7 @@ export const useResolucionesLogic = ({
     setMostrarConfirmacion(false);
 
     try {
-      await crearResolucion({
+      await createResolution({
         numero_formulario: resolucionSeleccionada.numero_formulario,
         razon_social: resolucionSeleccionada.razon_social,
         prefijo: resolucionSeleccionada.prefijo,
@@ -300,8 +300,8 @@ export const useResolucionesLogic = ({
       const paramsCodificados = encodeURIComponent(params);
       window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
 
-      const datos = await obtenerResoluciones();
-      const resolucionesAplanadas = datos.map(aplanarResolucion);
+      const datos = await getResolutions();
+      const resolucionesAplanadas = datos.map(flattenResolution);
       setResoluciones(resolucionesAplanadas);
 
       setResolucionSeleccionada(null);

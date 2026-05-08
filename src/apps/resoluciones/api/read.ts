@@ -23,12 +23,12 @@ export interface DirectusResolucion {
       empresa: string;
       id_ultra: number;
       tienda_id:
-        | number
-        | {
-            id: number;
-            nombre: string;
-          }
-        | null;
+      | number
+      | {
+        id: number;
+        nombre: string;
+      }
+      | null;
     } | null;
   } | null;
 }
@@ -39,7 +39,7 @@ export interface DirectusResolucion {
  * Obtener todas las resoluciones con sus relaciones
  * Solo trae resoluciones con estado 'Activo' o 'Pendiente'
  */
-export async function obtenerResoluciones(): Promise<DirectusResolucion[]> {
+export async function getResolutions(): Promise<DirectusResolucion[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(

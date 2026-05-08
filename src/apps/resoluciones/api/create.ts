@@ -5,7 +5,7 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 /**
  * Crear una nueva resolución en la base de datos
  */
-export async function crearResolucion(data: {
+export async function createResolution(data: {
   numero_formulario: string;
   razon_social: string;
   prefijo: string;
