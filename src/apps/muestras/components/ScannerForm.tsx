@@ -1,7 +1,7 @@
 // src/components/ScannerForm.tsx
 import React, { useRef, useEffect, useState } from "react";
 import { Box } from "@mui/material";
-import { BodegaInput } from "./scanner/BodegaInput";
+import { WarehouseInput } from "./scanner/BodegaInput";
 import { ScannerInput } from "./scanner/ScannerInput";
 
 interface ScannerFormProps {
@@ -66,7 +66,7 @@ const ScannerForm: React.FC<ScannerFormProps> = ({
             flex: { sm: "0 0 auto" },
           }}
         >
-          <BodegaInput
+          <WarehouseInput
             ref={bodegaRef}
             value={bodega}
             options={bodegas}

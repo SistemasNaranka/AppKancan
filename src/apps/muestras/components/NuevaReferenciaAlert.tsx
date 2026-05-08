@@ -7,7 +7,7 @@ interface NuevaReferenciaAlertProps {
   alertCounter: number;
 }
 
-const NuevaReferenciaAlert: React.FC<NuevaReferenciaAlertProps> = ({
+const NewReferenceAlert: React.FC<NuevaReferenciaAlertProps> = ({
   ultimoAgregado,
   alertCounter,
 }) => {
@@ -91,4 +91,4 @@ const NuevaReferenciaAlert: React.FC<NuevaReferenciaAlertProps> = ({
   );
 };
 
-export default NuevaReferenciaAlert;
+export default NewReferenceAlert;

@@ -18,7 +18,7 @@ interface ObservacionesModalProps {
   onSave: (observaciones: string) => void;
 }
 
-export const ObservacionesModal: React.FC<ObservacionesModalProps> = ({
+export const NotesModal: React.FC<ObservacionesModalProps> = ({
   open,
   onClose,
   value,
@@ -175,4 +175,4 @@ export const ObservacionesModal: React.FC<ObservacionesModalProps> = ({
   );
 };
 
-export default ObservacionesModal;
+export default NotesModal;

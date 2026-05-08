@@ -77,7 +77,7 @@ export const useScannerLogic = () => {
   };
 
   // === PROCESAR CÓDIGO ===
-  const procesarCodigo = (input: string): string => {
+  const processCode = (input: string): string => {
     // Limpiar y quitar ceros a la izquierda
     const limpio = input.trim().replace(/^0+/, "");
     if (!limpio) return "";
@@ -100,8 +100,8 @@ export const useScannerLogic = () => {
   };
 
   // === AGREGAR CÓDIGO ===
-  const agregarCodigo = (codigo: string) => {
-    const procesado = procesarCodigo(codigo);
+  const addCode = (codigo: string) => {
+    const procesado = processCode(codigo);
     if (!procesado) return;
 
     const nuevo = new Map(codigosMap);
@@ -150,14 +150,14 @@ export const useScannerLogic = () => {
   };
 
   // === ELIMINAR CÓDIGO ===
-  const eliminarCodigo = (codigo: string) => {
+  const deleteCode = (codigo: string) => {
     const nuevo = new Map(codigosMap);
     nuevo.delete(codigo);
     queryClient.setQueryData(["scanner-codigos"], nuevo);
   };
 
   // === REDUCIR CANTIDAD ===
-  const reducirCantidad = (codigo: string) => {
+  const decreaseQuantity = (codigo: string) => {
     const nuevo = new Map(codigosMap);
     const data = nuevo.get(codigo);
     if (data && data.cantidad > 1) {
@@ -169,7 +169,7 @@ export const useScannerLogic = () => {
   };
 
   // === LIMPIAR TODO ===
-  const limpiarTodo = () => {
+  const clearAll = () => {
     queryClient.setQueryData(["scanner-codigos"], new Map());
     setCodigoInput("");
     queryClient.setQueryData(["scanner-observaciones"], "");
@@ -214,10 +214,10 @@ export const useScannerLogic = () => {
     alertCounter,
     observaciones,
     handleBodegaChange,
-    agregarCodigo,
-    eliminarCodigo,
-    reducirCantidad,
-    limpiarTodo,
+    agregarCodigo: addCode,
+    eliminarCodigo: deleteCode,
+    reducirCantidad: decreaseQuantity,
+    limpiarTodo: clearAll,
     setObservaciones,
   };
 };
