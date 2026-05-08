@@ -1,6 +1,6 @@
 import React from "react";
 import { Box } from "@mui/material";
-import { ArticulosList } from "./scanner/ArticulosList";
+import { ArticlesList } from "./scanner/ArticulosList";
 import { ActionButtons } from "./scanner/ActionButtons";
 
 interface ScannerListProps {
@@ -53,7 +53,7 @@ const ScannerList: React.FC<ScannerListProps> = ({
           },
         }}
       >
-        <ArticulosList
+        <ArticlesList
           articulos={articulos}
           onDelete={onDelete}
           onReduce={onReduce}

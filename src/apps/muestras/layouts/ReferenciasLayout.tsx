@@ -6,11 +6,11 @@ import ScannerForm from "../components/ScannerForm";
 import ScannerList from "../components/ScannerList";
 import { ScannerStats } from "../components/scanner/ScannerStats";
 import GeneralConfirmModal from "../components/GeneralConfirmModal";
-import ObservacionesModal from "../components/ObservacionesModal";
-import { enviarMuestras } from "../api/sendReferencias";
-import EnvioLoadingModal from "../components/EnvioLoadingModal";
+import NotesModal from "../components/ObservacionesModal";
+import { sendSamples } from "../api/sendReferencias";
+import LoadingModal from "../components/EnvioLoadingModal";
 
-const ArticulosLayout: React.FC = () => {
+const ArticlesLayout: React.FC = () => {
   const { showSnackbar } = useGlobalSnackbar();
   const [isLoading] = React.useState(false);
   const [confirmModal, setConfirmModal] = React.useState<{
@@ -41,7 +41,7 @@ const ArticulosLayout: React.FC = () => {
   } = useScannerLogic();
 
   // Wrapper para agregarCodigo que muestra el snackbar global
-  const handleAgregarCodigo = (codigo: string) => {
+  const handleAddCode = (codigo: string) => {
     agregarCodigo(codigo);
     const procesado = codigo.trim().replace(/^0+/, "");
     if (procesado) {
@@ -52,7 +52,7 @@ const ArticulosLayout: React.FC = () => {
     }
   };
 
-  const handleEnviar = () => {
+  const handleSend = () => {
     if (codigos.length === 0) {
       showSnackbar("No hay códigos para enviar", "warning");
       return;
@@ -71,7 +71,7 @@ const ArticulosLayout: React.FC = () => {
     setModalCargando(true);
 
     try {
-      await enviarMuestras(codigos, bodega, observaciones, printer);
+      await sendSamples(codigos, bodega, observaciones, printer);
       setModalCargando(false);
       showSnackbar("Muestras enviadas correctamente", "success");
       limpiarTodo();
@@ -149,7 +149,7 @@ const ArticulosLayout: React.FC = () => {
               isScanning={isScanning}
               totalItems={totalItems}
               onBodegaChange={handleBodegaChange}
-              onAgregarCodigo={handleAgregarCodigo}
+              onAgregarCodigo={handleAddCode}
             />
           </Box>
 
@@ -188,7 +188,7 @@ const ArticulosLayout: React.FC = () => {
               onReduce={reducirCantidad}
               hasData={codigos.length > 0}
               isLoading={isLoading}
-              onEnviar={handleEnviar}
+              onEnviar={handleSend}
               onCancelar={() =>
                 setConfirmModal({
                   open: true,
@@ -218,9 +218,9 @@ const ArticulosLayout: React.FC = () => {
           onClose={handleCancelConfirm}
         />
 
-        <EnvioLoadingModal open={modalCargando} />
+        <LoadingModal open={modalCargando} />
 
-        <ObservacionesModal
+        <NotesModal
           open={observacionesModalOpen}
           onClose={() => setObservacionesModalOpen(false)}
           value={observaciones}
@@ -231,4 +231,4 @@ const ArticulosLayout: React.FC = () => {
   );
 };
 
-export default ArticulosLayout;
+export default ArticlesLayout;

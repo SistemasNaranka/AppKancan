@@ -10,7 +10,7 @@ interface ArticulosListProps {
   onReduce: (referencia: string) => void;
 }
 
-export const ArticulosList: React.FC<ArticulosListProps> = ({
+  export const ArticlesList: React.FC<ArticulosListProps> = ({
   articulos,
   onDelete,
   onReduce,

@@ -15,7 +15,7 @@ interface Props {
   unidades: number;
 }
 
-const ContadorArticulos: React.FC<Props> = ({ articulos, unidades }) => {
+const ArticlesCounter: React.FC<Props> = ({ articulos, unidades }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
@@ -136,4 +136,4 @@ const ContadorArticulos: React.FC<Props> = ({ articulos, unidades }) => {
   );
 };
 
-export default ContadorArticulos;
+export default ArticlesCounter;
