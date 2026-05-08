@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { obtenerResoluciones } from "../api/read";
-import { aplanarResolucion } from "../utils/calculos";
+import { getResolutions } from "../api/read";
+import { flattenResolution } from "../utils/calculos";
 import { Resolucion } from "../types";
 
-export const useResoluciones = () => {
+export const useResolution = () => {
   const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,8 +11,8 @@ export const useResoluciones = () => {
   useEffect(() => {
     const fetchResoluciones = async () => {
       try {
-        const data = await obtenerResoluciones();
-        const resolucionesAplanadas = data.map(aplanarResolucion);
+        const data = await getResolutions();
+        const resolucionesAplanadas = data.map(flattenResolution);
         setResoluciones(resolucionesAplanadas);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");

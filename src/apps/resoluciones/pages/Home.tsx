@@ -17,9 +17,9 @@ import ResolutionTable from "../components/ResolutionTable";
 import Pagination from "../components/Pagination";
 import Button from "../components/Button";
 import SummaryCards from "../components/SummaryCards";
-import { leerPDF } from "../pdfReader";
-import { useResolucionesLogic } from "../hooks/useResolucionesLogic";
-import { exportarAExcel } from "../utils/exportarExcel";
+import { LearnPDF } from "../pdfReader";
+import { useResolutionsLogic } from "../hooks/useResolucionesLogic";
+import { ExportExcel } from "../utils/exportarExcel";
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 
 const ResolucionesHome = () => {
@@ -58,14 +58,14 @@ const ResolucionesHome = () => {
     setMostrarConfirmacion,
     setMostrarDialogoYaIntegrada,
     setMostrarDialogoOpcionesIntegracion,
-  } = useResolucionesLogic({ showSnackbar });
+  } = useResolutionsLogic({ showSnackbar });
 
   const handleExportar = async () => {
-    await exportarAExcel(resolucionesFiltradas, (mensaje, tipo) => {});
+    await ExportExcel(resolucionesFiltradas, (mensaje, tipo) => { });
   };
 
   const handleSubirArchivoWrapper = (archivo: File) => {
-    handleSubirArchivo(archivo, leerPDF);
+    handleSubirArchivo(archivo, LearnPDF);
   };
 
   return (

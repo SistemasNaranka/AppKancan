@@ -131,7 +131,7 @@ export function diasRestantes(
  * Transforma una resolución de Directus (estructura anidada)
  * a un formato plano para la UI
  */
-export function aplanarResolucion(r: DirectusResolucion): Resolucion {
+export function flattenResolution(r: DirectusResolucion): Resolucion {
   const prefijo = r.prefijo_id || {};
   const caja = prefijo?.caja_id || {};
   const tienda = typeof caja?.tienda_id === "object" ? caja.tienda_id : null;
