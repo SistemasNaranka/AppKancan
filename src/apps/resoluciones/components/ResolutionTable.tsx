@@ -9,12 +9,12 @@ import {
   Paper,
   Typography,
 } from "@mui/material";
-import { Resolucion } from "../types";
+import { Resolution } from "../types";
 import StatusBadge from "./StatusBadge";
 
 interface ResolutionTableProps {
-  resoluciones: Resolucion[];
-  onSeleccionar: (resolucion: Resolucion) => void;
+  resoluciones: Resolution[];
+  onSeleccionar: (resolucion: Resolution) => void;
 }
 
 // Función para obtener el color de fondo según el estado
