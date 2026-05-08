@@ -7,8 +7,8 @@ export interface AccessValidationResult {
 }
 
 interface UserData {
-  codigo_ultra?: string | number | null;
-  empresa?: string | null;
+  ultra_code?: string | number | null;
+  company?: string | null;
 }
 
 export function useAccessValidation(
@@ -19,22 +19,22 @@ export function useAccessValidation(
       return {
         isValid: false,
         errorType: "no-access",
-        missingFields: ["codigo_ultra", "empresa"],
+        missingFields: ["ultra_code", "company"],
       };
     }
 
     const missingFields: string[] = [];
 
-    const codigoUltraValido =
-      user.codigo_ultra !== null &&
-      user.codigo_ultra !== undefined &&
-      String(user.codigo_ultra).trim() !== "";
+    const ultraCodeValido =
+      user.ultra_code !== null &&
+      user.ultra_code !== undefined &&
+      String(user.ultra_code).trim() !== "";
 
-    const empresaValida =
-      typeof user.empresa === "string" && user.empresa.trim() !== "";
+    const companyValida =
+      typeof user.company === "string" && user.company.trim() !== "";
 
-    if (!codigoUltraValido) missingFields.push("codigo_ultra");
-    if (!empresaValida) missingFields.push("empresa");
+    if (!ultraCodeValido) missingFields.push("ultra_code");
+    if (!companyValida) missingFields.push("company");
 
     if (missingFields.length === 2) {
       return { isValid: false, errorType: "no-access", missingFields };

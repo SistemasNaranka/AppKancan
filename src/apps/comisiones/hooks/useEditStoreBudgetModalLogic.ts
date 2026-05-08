@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import {
-  obtenerTiendas,
+  getStores,
   obtenerEmpleadosPorFechaExacta,
   obtenerAsesores,
   obtenerCargos,
@@ -99,7 +99,7 @@ export const useEditStoreBudgetModalLogic = ({
     try {
       setLoading(true);
       const [tData, eData, cData] = await Promise.all([
-        obtenerTiendas(),
+        getStores(),
         obtenerAsesores(),
         obtenerCargos(),
       ]);

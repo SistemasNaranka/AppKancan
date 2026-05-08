@@ -71,14 +71,8 @@ export async function getStores(): Promise<DirectusTienda[]> {
     );
 
     return data as DirectusTienda[];
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Error al obtener tiendas:", error);
-    if (error?.response) {
-      console.error("Detalles del error (Response):", error.response);
-    }
-    if (error?.errors) {
-      console.error("Errores específicos:", error.errors);
-    }
     throw error;
   }
 }
@@ -90,7 +84,7 @@ export async function getPromotionTypes(): Promise<DirectusPromoTipo[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("com_promotion_type", {
+        readItems("com_promotion_types", {
           fields: ["id", "name", "duration", "color_code"],
           sort: ["name"],
         }),
@@ -98,14 +92,8 @@ export async function getPromotionTypes(): Promise<DirectusPromoTipo[]> {
     );
 
     return data as DirectusPromoTipo[];
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Error al obtener tipos de promoción:", error);
-    if (error?.response) {
-      console.error("Detalles del error (Response):", error.response);
-    }
-    if (error?.errors) {
-      console.error("Errores específicos:", error.errors);
-    }
     throw error;
   }
 }
@@ -118,7 +106,7 @@ export async function getPromotions(): Promise<Promotion[]> {
     // 1. Obtener todas las promociones con el tipo expandido
     const promos = await withAutoRefresh(() =>
       directus.request(
-        readItems("com_promotion", {
+        readItems("com_promotions", {
           fields: [
             "id",
             "name",
@@ -197,14 +185,8 @@ export async function getPromotions(): Promise<Promotion[]> {
     });
 
     return promociones;
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Error al obtener promociones:", error);
-    if (error?.response) {
-      console.error("Detalles del error (Response):", error.response);
-    }
-    if (error?.errors) {
-      console.error("Errores específicos:", error.errors);
-    }
     throw error;
   }
 }
@@ -217,7 +199,7 @@ export async function getPromotionById(id: number): Promise<Promotion | null> {
     // 1. Obtener la promoción con el tipo expandido
     const promo = await withAutoRefresh(() =>
       directus.request(
-        readItems("com_promotion", {
+        readItems("com_promotions", {
           fields: [
             "id",
             "name",
@@ -321,14 +303,8 @@ export async function getPromotionStores(
     );
 
     return promoTiendas.map((pt: any) => pt.store_id) as DirectusTienda[];
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Error al obtener tiendas de la promoción:", error);
-    if (error?.response) {
-      console.error("Detalles del error (Response):", error.response);
-    }
-    if (error?.errors) {
-      console.error("Errores específicos:", error.errors);
-    }
     throw error;
   }
 }

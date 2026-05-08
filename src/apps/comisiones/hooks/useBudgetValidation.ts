@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useUserPolicies } from "./useUserPolicies";
 import {
-  obtenerTiendas,
+  getStores,
   obtenerPresupuestosEmpleados,
   obtenerPresupuestosDiarios,
 } from "../api/directus/read";
@@ -123,7 +123,7 @@ export const useBudgetValidation = (
       }
 
       // 2. Obtener la tienda
-      const tiendas = await obtenerTiendas();
+      const tiendas = await getStores();
       let targetStore: DirectusTienda | undefined;
 
       if (selectedTiendaName) {
@@ -279,7 +279,7 @@ export const useBudgetValidation = (
 
       // 2. Obtener la tienda - FORZAMOS consulta fresca
       console.log(`🔄 [Revalidate ${callId}] Obteniendo tiendas frescas...`);
-      const tiendas = await obtenerTiendas();
+      const tiendas = await getStores();
       console.log(
         `🔄 [Revalidate ${callId}] Tiendas obtenidas: ${tiendas.length}`,
       );

@@ -158,7 +158,7 @@ const MAPA_MONEDAS: Record<string, string> = {
 /**
  * Normaliza un código de moneda a un código ISO 4217 válido
  */
-function normalizarMoneda(currency: string): string {
+function normalizeCurrency(currency: string): string {
   if (!currency) return "COP"; // Default para Colombia
 
   const upperCurrency = currency.toUpperCase().trim();
@@ -190,7 +190,7 @@ export function formatCurrency(
   amount: number,
   currency: string = "COP",
 ): string {
-  const monedaNormalizada = normalizarMoneda(currency);
+  const monedaNormalizada = normalizeCurrency(currency);
   try {
     return new Intl.NumberFormat("es-CO", {
       style: "currency",

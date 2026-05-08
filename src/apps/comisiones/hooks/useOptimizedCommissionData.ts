@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { useAuth } from "@/auth/hooks/useAuth";
 import {
-  obtenerTiendas,
+  getStores,
   obtenerAsesores,
   obtenerCargos,
   obtenerPresupuestosDiarios,
@@ -52,7 +52,7 @@ const processCommissionData = async (selectedMonth: string) => {
     ventasEmpleados,
     umbralesData,
   ] = await Promise.all([
-    obtenerTiendas(),
+    getStores(),
     obtenerAsesores(),
     obtenerCargos(),
     obtenerPresupuestosDiarios(undefined, fechaInicio, fechaFin, selectedMonth),
