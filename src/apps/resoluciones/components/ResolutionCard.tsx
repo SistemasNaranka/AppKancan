@@ -1,13 +1,13 @@
 import React from "react";
 import { Box, Card, CardContent, Typography, Divider } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { Resolucion } from "../types";
+import { Resolution } from "../types";
 import StatusBadge from "./StatusBadge";
 import Button from "./Button";
-import { diasRestantes } from "../utils/calculos";
+import { DaysRemaining } from "../utils/calculos";
 
 interface ResolutionCardProps {
-  resolucion: Resolucion | null;
+  resolucion: Resolution | null;
   onIntegrar: () => void;
   onLimpiar: () => void;
   onSubirArchivo: (archivo: File) => void;
@@ -22,11 +22,11 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
   // Calcular días restantes si hay resolución
   const infoVencimiento =
     resolucion?.vigencia && resolucion?.fecha_creacion
-      ? diasRestantes(resolucion.vigencia, resolucion.fecha_creacion)
+      ? DaysRemaining(resolucion.vigencia, resolucion.fecha_creacion)
       : null;
 
   // Función para formatear número de resolución (4-4-3-3)
-  const formatearResolucion = (numero: string | undefined): string => {
+  const formatResolution = (numero: string | undefined): string => {
     if (!numero) return "";
     const s = numero.toString();
     if (s.length !== 14) return s; // Si no tiene 14 dígitos, devolver sin formato
@@ -47,7 +47,7 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
   const campos = [
     {
       etiqueta: "Resolución",
-      valor: formatearResolucion(resolucion?.numero_formulario),
+      valor: formatResolution(resolucion?.numero_formulario),
     },
     { etiqueta: "Razón social", valor: resolucion?.razon_social },
     { etiqueta: "Prefijo", valor: resolucion?.prefijo },

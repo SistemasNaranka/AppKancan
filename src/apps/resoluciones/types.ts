@@ -1,12 +1,12 @@
 // Estado posible de una resolución
-export type EstadoResolucion =
+export type StatusResolution =
   | "Vigente"
   | "Por vencer"
   | "Vencido"
   | "Pendiente";
 
 // Interfaz principal de una resolución
-export interface Resolucion {
+export interface Resolution {
   id: number;
   id_ultra?: number;
   numero_formulario: string;
@@ -19,7 +19,7 @@ export interface Resolucion {
   fecha_creacion: string;
   fecha_vencimiento: string;
   ultima_factura: number;
-  estado: EstadoResolucion;
+  estado: StatusResolution;
   tienda_nombre: string;
   ente_facturador: string;
   empresa: string;

@@ -1,17 +1,17 @@
 import React from "react";
 import { Button, Box } from "@mui/material";
-import { EstadoResolucion } from "../types";
+import { StatusResolution } from "../types";
 
 interface StatusFiltersProps {
-  estadoActivo: EstadoResolucion | null;
-  onFiltrar: (estado: EstadoResolucion | null) => void;
+  estadoActivo: StatusResolution | null;
+  onFiltrar: (estado: StatusResolution | null) => void;
 }
 
 const StatusFilters: React.FC<StatusFiltersProps> = ({
   estadoActivo,
   onFiltrar,
 }) => {
-  const estados: { valor: EstadoResolucion; color: string }[] = [
+  const estados: { valor: StatusResolution; color: string }[] = [
     { valor: "Pendiente", color: "#9E9E9E" },
     { valor: "Por vencer", color: "#FFA000" },
     { valor: "Vigente", color: "#4CAF50" },

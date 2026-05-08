@@ -1,29 +1,29 @@
 import { useState, useEffect } from "react";
-import { Resolucion, EstadoResolucion } from "../types";
-import { obtenerResoluciones } from "../api/read";
-import { crearResolucion } from "../api/create";
-import { aplanarResolucion, calcularVencimiento } from "../utils/calculos";
+import { Resolution, StatusResolution } from "../types";
+import { getResolutions } from "../api/read";
+import { createResolution } from "../api/create";
+import { flattenResolution, calculateMaturity } from "../utils/calculos";
 import { useResponsiveItems } from "./useResponsiveItems";
 
-interface UseResolucionesLogicOptions {
+interface UseResolutionLogicOptions {
   showSnackbar: (
     message: string,
     severity: "success" | "error" | "warning" | "info",
   ) => void;
 }
 
-export const useResolucionesLogic = ({
+export const useResolutionsLogic = ({
   showSnackbar,
-}: UseResolucionesLogicOptions) => {
+}: UseResolutionLogicOptions) => {
   const [busqueda, setBusqueda] = useState("");
   const [filtroRazonSocial, setFiltroRazonSocial] = useState("Todas");
-  const [filtroEstado, setFiltroEstado] = useState<EstadoResolucion | null>(
+  const [filtroEstado, setFiltroEstado] = useState<StatusResolution | null>(
     null,
   );
   const [resolucionSeleccionada, setResolucionSeleccionada] =
-    useState<Resolucion | null>(null);
+    useState<Resolution | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
+  const [resoluciones, setResoluciones] = useState<Resolution[]>([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
   const [, setCargando] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
@@ -40,8 +40,8 @@ export const useResolucionesLogic = ({
     async function cargarDatos() {
       try {
         setCargandoDatos(true);
-        const datos = await obtenerResoluciones();
-        const resolucionesAplanadas = datos.map(aplanarResolucion);
+        const datos = await getResolutions();
+        const resolucionesAplanadas = datos.map(flattenResolution);
         setResoluciones(resolucionesAplanadas);
       } catch (error) {
         console.error("Error cargando resoluciones:", error);
@@ -53,7 +53,7 @@ export const useResolucionesLogic = ({
     cargarDatos();
   }, []);
 
-  const ordenarPorEstadoYVencimiento = (registros: Resolucion[]) => {
+  const ordenarPorEstadoYVencimiento = (registros: Resolution[]) => {
     const ordenEstado: { [key: string]: number } = {
       Pendiente: 0,
       "Por vencer": 1,
@@ -72,27 +72,27 @@ export const useResolucionesLogic = ({
     });
   };
 
-  const todasResoluciones = ordenarPorEstadoYVencimiento([...resoluciones]);
+  const AllResolutions = ordenarPorEstadoYVencimiento([...resoluciones]);
 
   const resolucionesBuscadas = busqueda
-    ? todasResoluciones.filter(
-        (r) =>
-          r.numero_formulario.toLowerCase().includes(busqueda.toLowerCase()) ||
-          r.tienda_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-          r.prefijo.toLowerCase().includes(busqueda.toLowerCase()),
-      )
-    : todasResoluciones;
+    ? AllResolutions.filter(
+      (r) =>
+        r.numero_formulario.toLowerCase().includes(busqueda.toLowerCase()) ||
+        r.tienda_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        r.prefijo.toLowerCase().includes(busqueda.toLowerCase()),
+    )
+    : AllResolutions;
 
-  const totalPendientes = todasResoluciones.filter(
+  const totalPendientes = AllResolutions.filter(
     (r) => r.estado === "Pendiente",
   ).length;
-  const totalPorVencer = todasResoluciones.filter(
+  const totalPorVencer = AllResolutions.filter(
     (r) => r.estado === "Por vencer",
   ).length;
-  const totalVigentes = todasResoluciones.filter(
+  const totalVigentes = AllResolutions.filter(
     (r) => r.estado === "Vigente",
   ).length;
-  const totalVencidos = todasResoluciones.filter(
+  const totalVencidos = AllResolutions.filter(
     (r) => r.estado === "Vencido",
   ).length;
   const totalResoluciones =
@@ -124,11 +124,11 @@ export const useResolucionesLogic = ({
     setPaginaActual(1);
   };
 
-  const handleFiltrar = (estado: EstadoResolucion | null) => {
+  const handleFiltrar = (estado: StatusResolution | null) => {
     setFiltroEstado(estado);
   };
 
-  const handleSeleccionar = (resolucion: Resolucion) => {
+  const handleSeleccionar = (resolucion: Resolution) => {
     setResolucionSeleccionada(resolucion);
   };
 
@@ -158,7 +158,7 @@ export const useResolucionesLogic = ({
     setMostrarDialogoOpcionesIntegracion(false);
 
     try {
-      await crearResolucion({
+      await createResolution({
         numero_formulario: resolucionSeleccionada.numero_formulario,
         razon_social: resolucionSeleccionada.razon_social,
         prefijo: resolucionSeleccionada.prefijo,
@@ -171,8 +171,8 @@ export const useResolucionesLogic = ({
         estado: "Pendiente",
       });
 
-      const datos = await obtenerResoluciones();
-      const resolucionesAplanadas = datos.map(aplanarResolucion);
+      const datos = await getResolutions();
+      const resolucionesAplanadas = datos.map(flattenResolution);
       setResoluciones(resolucionesAplanadas);
 
       setResolucionSeleccionada(null);
@@ -217,7 +217,7 @@ export const useResolucionesLogic = ({
     setMostrarDialogoOpcionesIntegracion(false);
 
     try {
-      await crearResolucion({
+      await createResolution({
         numero_formulario: resolucionSeleccionada.numero_formulario,
         razon_social: resolucionSeleccionada.razon_social,
         prefijo: resolucionSeleccionada.prefijo,
@@ -234,8 +234,8 @@ export const useResolucionesLogic = ({
       const paramsCodificados = encodeURIComponent(params);
       window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
 
-      const datos = await obtenerResoluciones();
-      const resolucionesAplanadas = datos.map(aplanarResolucion);
+      const datos = await getResolutions();
+      const resolucionesAplanadas = datos.map(flattenResolution);
       setResoluciones(resolucionesAplanadas);
 
       setResolucionSeleccionada(null);
@@ -283,7 +283,7 @@ export const useResolucionesLogic = ({
     setMostrarConfirmacion(false);
 
     try {
-      await crearResolucion({
+      await createResolution({
         numero_formulario: resolucionSeleccionada.numero_formulario,
         razon_social: resolucionSeleccionada.razon_social,
         prefijo: resolucionSeleccionada.prefijo,
@@ -300,8 +300,8 @@ export const useResolucionesLogic = ({
       const paramsCodificados = encodeURIComponent(params);
       window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
 
-      const datos = await obtenerResoluciones();
-      const resolucionesAplanadas = datos.map(aplanarResolucion);
+      const datos = await getResolutions();
+      const resolucionesAplanadas = datos.map(flattenResolution);
       setResoluciones(resolucionesAplanadas);
 
       setResolucionSeleccionada(null);
@@ -325,7 +325,7 @@ export const useResolucionesLogic = ({
       return;
     }
 
-    const nuevaResolucion: Resolucion = {
+    const nuevaResolucion: Resolution = {
       id: Date.now(),
       numero_formulario: resultado.numero_formulario,
       razon_social: resultado.razon_social,
@@ -335,7 +335,7 @@ export const useResolucionesLogic = ({
       vigencia: resultado.vigencia,
       tipo_solicitud: resultado.tipo_solicitud,
       fecha_creacion: resultado.fecha_creacion,
-      fecha_vencimiento: calcularVencimiento(
+      fecha_vencimiento: calculateMaturity(
         resultado.fecha_creacion,
         resultado.vigencia,
       ),

@@ -11,18 +11,18 @@ import DownloadIcon from "@mui/icons-material/Download";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import SearchBar from "../components/SearchBar";
 import StatusFilters from "../components/StatusFilters";
-import RazonSocialFilter from "../components/RazonSocialFilter";
+import SocialReasonFilter from "../components/RazonSocialFilter";
 import ResolutionCard from "../components/ResolutionCard";
 import ResolutionTable from "../components/ResolutionTable";
 import Pagination from "../components/Pagination";
 import Button from "../components/Button";
 import SummaryCards from "../components/SummaryCards";
-import { leerPDF } from "../pdfReader";
-import { useResolucionesLogic } from "../hooks/useResolucionesLogic";
-import { exportarAExcel } from "../utils/exportarExcel";
+import { LearnPDF } from "../pdfReader";
+import { useResolutionsLogic } from "../hooks/useResolucionesLogic";
+import { ExportExcel } from "../utils/exportarExcel";
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 
-const ResolucionesHome = () => {
+const ResolutionsHome = () => {
   const { showSnackbar } = useGlobalSnackbar();
 
   const {
@@ -58,14 +58,14 @@ const ResolucionesHome = () => {
     setMostrarConfirmacion,
     setMostrarDialogoYaIntegrada,
     setMostrarDialogoOpcionesIntegracion,
-  } = useResolucionesLogic({ showSnackbar });
+  } = useResolutionsLogic({ showSnackbar });
 
   const handleExportar = async () => {
-    await exportarAExcel(resolucionesFiltradas, (mensaje, tipo) => {});
+    await ExportExcel(resolucionesFiltradas, (mensaje, tipo) => { });
   };
 
   const handleSubirArchivoWrapper = (archivo: File) => {
-    handleSubirArchivo(archivo, leerPDF);
+    handleSubirArchivo(archivo, LearnPDF);
   };
 
   return (
@@ -144,7 +144,7 @@ const ResolucionesHome = () => {
               justifyContent: { xs: "stretch", sm: "flex-start" },
             }}
           >
-            <RazonSocialFilter
+            <SocialReasonFilter
               valor={filtroRazonSocial}
               opciones={["NARANKA SAS", "MARIA FERNANDA PEREZ VELEZ"]}
               onChange={handleRazonSocialChange}
@@ -327,4 +327,4 @@ const ResolucionesHome = () => {
   );
 };
 
-export default ResolucionesHome;
+export default ResolutionsHome;
