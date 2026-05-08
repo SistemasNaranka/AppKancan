@@ -42,7 +42,7 @@ const getMonthNumber = (monthName: string): string => {
 /**
  * Obtener todas las tiendas
  */
-export async function obtenerTiendas(): Promise<DirectusTienda[]> {
+export async function getStores(): Promise<DirectusTienda[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     if (tiendaIds.length === 0) {
