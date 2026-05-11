@@ -17,7 +17,7 @@ import type {
  * Crea una nueva garantía en Directus.
  * La fecha_solicitud se setea automáticamente a hoy si no se provee.
  */
-export async function crearGarantia(data: CreateGarantia): Promise<Garantia> {
+export async function createWarranty(data: CreateGarantia): Promise<Garantia> {
   const payload: CreateGarantia = {
     ...data,
     estado: data.estado ?? "pendiente",
@@ -35,7 +35,7 @@ export async function crearGarantia(data: CreateGarantia): Promise<Garantia> {
 /**
  * Actualiza una garantía existente por su ID.
  */
-export async function actualizarGarantia(
+export async function updateWarranty(
   id: number,
   updates: UpdateGarantia
 ): Promise<Garantia> {
@@ -49,7 +49,7 @@ export async function actualizarGarantia(
 /**
  * Elimina una garantía por su ID.
  */
-export async function eliminarGarantia(id: number): Promise<void> {
+export async function deleteWarranty(id: number): Promise<void> {
   await withAutoRefresh(() =>
     directus.request(deleteItem("garantias", id))
   );
@@ -59,12 +59,12 @@ export async function eliminarGarantia(id: number): Promise<void> {
  * Cambia solo el estado de una garantía.
  * Shorthand para actualizarGarantia cuando solo cambia el estado.
  */
-export async function cambiarEstadoGarantia(
+export async function changeWarrantyStatus(
   id: number,
   estado: Garantia["estado"],
   resolucion?: string
 ): Promise<Garantia> {
-  return actualizarGarantia(id, {
+  return updateWarranty(id, {
     estado,
     ...(resolucion ? { resolucion } : {}),
     ...(estado === "completada" || estado === "rechazada" || estado === "aprobada"
@@ -80,7 +80,7 @@ export async function cambiarEstadoGarantia(
 /**
  * Crea un nuevo cliente en la tabla "clientes".
  */
-export async function crearCliente(data: CreateCliente): Promise<Cliente> {
+export async function createClient(data: CreateCliente): Promise<Cliente> {
   const result = await withAutoRefresh(() =>
     directus.request(createItem("clientes", data))
   );
@@ -91,7 +91,7 @@ export async function crearCliente(data: CreateCliente): Promise<Cliente> {
 /**
  * Actualiza un cliente existente.
  */
-export async function actualizarCliente(
+export async function updateClient(
   id: number,
   updates: Partial<CreateCliente>
 ): Promise<Cliente> {
