@@ -21,30 +21,28 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
-import { formatTiempo } from "../lib/calculos";
-import { useProyectos } from "../hooks/useProyectos";
+import { formatTime } from "../lib/calculos";
+import { useProjects } from "../hooks/useProyectos";
 import type { Proyecto, EstadoProyecto } from "../types";
 
-// Importación de componentes refactorizados (NUEVO)
-import { AhorroPanel } from "../components/AhorroPanel";
-import { ProyectosAreaPanel } from "../components/ProyectosAreaPanel";
+import { SavingsPanel } from "../components/AhorroPanel";
+import { ProjectsAreaPanel } from "../components/ProyectosAreaPanel";
 import { TabContainer, AnimatedTab } from "./Home.styles";
 import { obtenerMetricasTotales } from "./Home.helpers";
 import { ProjectCard } from "./ProjectCard";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { proyectos, loading, error, recargar } = useProyectos();
+  const { proyectos, loading, error, recargar } = useProjects();
   const [filtroEstado, setFiltroEstado] = useState<EstadoProyecto | "todos">("todos");
   const [panelAbierto, setPanelAbierto] = useState<"mensual" | "anual" | null>(null);
   const [panelProyectosAreaAbierto, setPanelProyectosAreaAbierto] = useState(false);
 
   const proyectosFiltrados: Proyecto[] =
     filtroEstado === "todos"
-      ? proyectos
-      : proyectos.filter((p: Proyecto) => p.estado === filtroEstado);
+      ? (proyectos ?? [])
+      : (proyectos ?? []).filter((p: Proyecto) => p.estado === filtroEstado);
 
-  // Lógica importada desde Home.helpers.ts
   const metricasTotales = obtenerMetricasTotales(proyectosFiltrados);
 
   if (loading) {
@@ -71,7 +69,6 @@ const Home: React.FC = () => {
 
   return (
     <Box sx={{ paddingX: 3, paddingY: 3, minHeight: "100vh", backgroundColor: "transparent", width: "100%" }}>
-      {/* Header */}
       <Paper
         elevation={0}
         sx={{
@@ -98,13 +95,12 @@ const Home: React.FC = () => {
         </Button>
       </Paper>
 
-      {/* Tarjetas de Resumen */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: "auto" }}>
-          <Paper 
-            elevation={0} 
+          <Paper
+            elevation={0}
             onClick={() => setPanelProyectosAreaAbierto(true)}
-            sx={{ 
+            sx={{
               p: 2, border: "1px solid #e8eaed", borderRadius: 2, cursor: "pointer", transition: "all 0.2s ease",
               "&:hover": { border: "1px solid #1a73e8", boxShadow: "0 4px 12px rgba(26,115,232,0.15)", transform: "translateY(-1px)" },
             }}
@@ -187,7 +183,7 @@ const Home: React.FC = () => {
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>Ahorro Mensual</Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "#34a853", lineHeight: 1.2 }}>
-                  {formatTiempo(metricasTotales.totalAhorroMensual)}
+                  {formatTime(metricasTotales.totalAhorroMensual)}
                 </Typography>
               </Box>
               <TrendingUpIcon sx={{ color: "#c8e6c9", fontSize: 20, ml: 1 }} />
@@ -211,7 +207,7 @@ const Home: React.FC = () => {
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>Ahorro Anual</Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "#1976d2", lineHeight: 1.2 }}>
-                  {formatTiempo(metricasTotales.totalAhorroAnual)}
+                  {formatTime(metricasTotales.totalAhorroAnual)}
                 </Typography>
               </Box>
               <TrendingUpIcon sx={{ color: "#bbdefb", fontSize: 20, ml: 1 }} />
@@ -220,13 +216,12 @@ const Home: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Filtros */}
       <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
         <TabContainer>
           {[
-            { id: "todos",          label: "Todos" },
-            { id: "en_proceso",     label: "En Proceso" },
-            { id: "entregado",      label: "Entregado" },
+            { id: "todos", label: "Todos" },
+            { id: "en_proceso", label: "En Proceso" },
+            { id: "entregado", label: "Entregado" },
             { id: "en_seguimiento", label: "En Seguimiento" },
           ].map((tab, index) => {
             const isActive = filtroEstado === tab.id;
@@ -248,7 +243,6 @@ const Home: React.FC = () => {
         </TabContainer>
       </Box>
 
-      {/* Grid de Proyectos */}
       {proyectosFiltrados.length === 0 ? (
         <Paper elevation={1} sx={{ p: 4, textAlign: "center" }}>
           <Typography sx={{ color: "text.secondary", fontSize: 18 }}>No hay proyectos registrados</Typography>
@@ -266,8 +260,7 @@ const Home: React.FC = () => {
         </Grid>
       )}
 
-      {/* Uso de los Componentes Refactorizados */}
-      <AhorroPanel
+      <SavingsPanel
         open={panelAbierto !== null}
         onClose={() => setPanelAbierto(null)}
         tipo={panelAbierto ?? "mensual"}
@@ -276,7 +269,7 @@ const Home: React.FC = () => {
         vistaGrafico={panelAbierto ?? "mensual"}
       />
 
-      <ProyectosAreaPanel
+      <ProjectsAreaPanel
         open={panelProyectosAreaAbierto}
         onClose={() => setPanelProyectosAreaAbierto(false)}
         proyectos={proyectosFiltrados}

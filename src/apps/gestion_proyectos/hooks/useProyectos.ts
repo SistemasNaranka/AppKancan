@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Proyecto, Proceso, Mejora, MetricasProyecto } from "../types";
-import { getProyectos, getProyectoById } from "../api/directus/read";
-import { calcularMetricasProyecto } from "../lib/calculos";
+import { getProjects, getProyectoById } from "../api/directus/read";
+import { calculateProjectMetrics } from "../lib/calculos";
 
 interface UseProyectosReturn {
   proyectos: Proyecto[];
@@ -21,7 +21,7 @@ interface UseProyectoByIdReturn {
 /**
  * Hook para obtener todos los proyectos
  */
-export function useProyectos(): UseProyectosReturn {
+export function useProjects(): UseProyectosReturn {
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export function useProyectos(): UseProyectosReturn {
     setLoading(true);
     setError(null);
     try {
-      const data = await getProyectos();
+      const data = await getProjects();
       setProyectos(data);
     } catch (err) {
       console.error("Error cargando proyectos:", err);
@@ -50,7 +50,7 @@ export function useProyectos(): UseProyectosReturn {
 /**
  * Hook para obtener un proyecto por ID
  */
-export function useProyectoById(id: string): UseProyectoByIdReturn {
+export function getProjectById(id: string): UseProyectoByIdReturn {
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [metricas, setMetricas] = useState<MetricasProyecto>({
     total_procesos: 0,
@@ -72,7 +72,7 @@ export function useProyectoById(id: string): UseProyectoByIdReturn {
         setProyecto(data);
         // Calcular métricas
         if (data.procesos && data.procesos.length > 0) {
-          setMetricas(calcularMetricasProyecto(data.procesos));
+          setMetricas(calculateProjectMetrics(data.procesos));
         }
       } else {
         setError("Proyecto no encontrado");

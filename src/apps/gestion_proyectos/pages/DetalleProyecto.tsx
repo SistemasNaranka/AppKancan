@@ -40,11 +40,11 @@ import {
   ShowChart,
 } from "@mui/icons-material";
 import {
-  useProyectoById,
+  getProjectById,
   getEstadoColor,
   getEstadoLabel,
 } from "../hooks/useProyectos";
-import { formatTiempo, getTextoFrecuencia } from "../lib/calculos";
+import { formatTime, getFrequencyText } from "../lib/calculos";
 import EditProyectoModal from "./EditProyectoModal";
 import { getTipoProyectoLabel } from "./utils";
 import {
@@ -72,7 +72,7 @@ type TabId = "info" | "tiempos" | "beneficios";
 export default function DetalleProyecto() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { proyecto, metricas, loading, error, recargar } = useProyectoById(id || "");
+  const { proyecto, metricas, loading, error, recargar } = getProjectById(id || "");
   const [activeTab, setActiveTab] = useState<TabId>("info");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
@@ -361,13 +361,13 @@ export default function DetalleProyecto() {
                     <Paper sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
                       <Typography variant="body2" sx={{ color: "success.dark" }}>Ahorro Mensual</Typography>
                       <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
-                        {formatTiempo(metricas.ahorro_total_mensual)}
+                        {formatTime(metricas.ahorro_total_mensual)}
                       </Typography>
                     </Paper>
                     <Paper sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
                       <Typography variant="body2" sx={{ color: "success.dark" }}>Ahorro Anual</Typography>
                       <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
-                        {formatTiempo(metricas.ahorro_total_anual)}
+                        {formatTime(metricas.ahorro_total_anual)}
                       </Typography>
                     </Paper>
                     <Paper sx={{ p: 2, bgcolor: "#E6F4FF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
@@ -426,7 +426,7 @@ export default function DetalleProyecto() {
                                 </Typography>
                                 <Typography variant="body2" sx={{ mt: 0.5, color: "text.secondary" }}>
                                   Frecuencia:{" "}
-                                  {getTextoFrecuencia(proceso.frecuencia_tipo as any, proceso.frecuencia_cantidad)}
+                                  {getFrequencyText(proceso.frecuencia_tipo as any, proceso.frecuencia_cantidad)}
                                 </Typography>
                               </Box>
                               <Box sx={{ textAlign: "right" }}>
@@ -444,8 +444,8 @@ export default function DetalleProyecto() {
                             {mProceso.ahorro_mensual > 0 && (
                               <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
                                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                  Ahorra {formatTiempo(mProceso.ahorro_mensual)}/mes (
-                                  {formatTiempo(mProceso.ahorro_anual)}/año)
+                                  Ahorra {formatTime(mProceso.ahorro_mensual)}/mes (
+                                  {formatTime(mProceso.ahorro_anual)}/año)
                                 </Typography>
                               </Box>
                             )}

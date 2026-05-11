@@ -8,7 +8,7 @@ import type {
 /**
  * Convierte segundos a formato legible
  */
-export function formatTiempo(segundos: number): string {
+export function formatTime(segundos: number): string {
   if (segundos < 60) {
     return `${segundos}s`;
   }
@@ -27,7 +27,7 @@ export function formatTiempo(segundos: number): string {
 /**
  * Convierte segundos a horas
  */
-export function segundosAHours(segundos: number): number {
+export function seconsdsAHours(segundos: number): number {
   return Number((segundos / 3600).toFixed(2));
 }
 
@@ -39,7 +39,7 @@ export function segundosAHours(segundos: number): number {
  * 2. Se usa dias_semana para frecuencia diaria (días laborales reales, no 30 fijos).
  * 3. frecuencia_cantidad = 0 usa 1 como default en vez de descartar el proceso.
  */
-export function calcularMetricasProceso(proceso: Proceso): MetricasProceso {
+export function calculateProcessMetrics(proceso: Proceso): MetricasProceso {
   // Casteo seguro: Directus puede enviar strings en lugar de numbers
   const tiempoAntes = Number(proceso.tiempo_antes) || 0;
   const tiempoDespues = Number(proceso.tiempo_despues) || 0;
@@ -106,7 +106,7 @@ export function calcularMetricasProceso(proceso: Proceso): MetricasProceso {
 /**
  * Calcula el ahorro total en un mes específico, considerando días exactos del mes
  */
-export function calcularAhorroPorMes(
+export function calculateMonthlySavings(
   procesos: Proceso[],
   mes: number,
   anio: number
@@ -146,7 +146,7 @@ export function calcularAhorroPorMes(
 /**
  * Calcula las métricas totales de un proyecto
  */
-export function calcularMetricasProyecto(
+export function calculateProjectMetrics(
   procesos: Proceso[],
 ): MetricasProyecto {
   if (!procesos || procesos.length === 0) {
@@ -158,7 +158,7 @@ export function calcularMetricasProyecto(
     };
   }
 
-  const metricasProcesos = procesos.map(calcularMetricasProceso);
+  const metricasProcesos = procesos.map(calculateProcessMetrics);
 
   const ahorroTotalMensual = metricasProcesos.reduce(
     (acc, m) => acc + m.ahorro_mensual,
@@ -181,7 +181,7 @@ export function calcularMetricasProyecto(
 /**
  * Obtiene el texto de la frecuencia
  */
-export function getTextoFrecuencia(
+export function getFrequencyText(
   tipo: FrecuenciaTipo,
   cantidad: number,
 ): string {

@@ -3,25 +3,25 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, readItem } from "@directus/sdk";
 import type { Proyecto, Proceso, Beneficio } from "../../types";
 
-export async function getProyectos(): Promise<Proyecto[]> {
+export async function getProjects(): Promise<Proyecto[]> {
   try {
     // Primero obtenemos todos los proyectos (sin procesos relacionados para evitar problemas de relación)
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("gp_proyectos", {
+        readItems("Sys_Projects", {
           fields: [
             "id",
-            "nombre",
-            "area_beneficiada",
-            "descripcion",
-            "encargados",
-            "fecha_inicio",
-            "fecha_estimada",
-            "fecha_entrega",
-            "estado",
-            "tipo_proyecto",
+            "name",
+            "benefited_area",
+            "description",
+            "assignees",
+            "start_date",
+            "estimated_date",
+            "delivery_date",
+            "status",
+            "project_type",
           ],
-          sort: ["-fecha_inicio"],
+          sort: ["-start_date"],
         }),
       ),
     );
@@ -33,19 +33,19 @@ export async function getProyectos(): Promise<Proyecto[]> {
     // Obtener TODOS los procesos de una vez
     const todosProcesos = await withAutoRefresh(() =>
       directus.request(
-        readItems("gp_proceso", {
+        readItems("Sys_Processes", {
           fields: [
             "id",
-            "proyecto_id",
-            "nombre",
-            "tiempo_antes",
-            "tiempo_despues",
-            "frecuencia_tipo",
-            "frecuencia_cantidad",
-            "dias_semana",
-            "orden",
+            "project_id",
+            "name",
+            "time_before",
+            "time_after",
+            "frequency_type",
+            "frequency_quantity",
+            "weekdays",
+            "order",
           ],
-          sort: ["orden"],
+          sort: ["order"],
         }),
       ),
     );
@@ -132,28 +132,28 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
 
     const procesos = await withAutoRefresh(() =>
       directus.request(
-        readItems("gp_proceso", {
+        readItems("Sys_Processes", {
           fields: [
-            "id",
-            "proyecto_id",
-            "nombre",
-            "tiempo_antes",
-            "tiempo_despues",
-            "frecuencia_tipo",
-            "frecuencia_cantidad",
-            "dias_semana",
-            "orden",
+             "id",
+            "project_id",
+            "name",
+            "time_before",
+            "time_after",
+            "frequency_type",
+            "frequency_quantity",
+            "weekdays",
+            "order",
           ],
           filter: { proyecto_id: { _eq: id } },
-          sort: ["orden"],
+          sort: ["order"],
         }),
       ),
     );
 
     const beneficios = await withAutoRefresh(() =>
       directus.request(
-        readItems("gp_beneficios", {
-          fields: ["id", "proyecto_id", "descripcion"],
+        readItems("Sys_Benefits", {
+          fields: ["id", "project_id", "description"],
           filter: { proyecto_id: { _eq: id } },
         }),
       ),
@@ -204,26 +204,26 @@ export async function getProyectoById(id: string): Promise<Proyecto | null> {
   }
 }
 
-export async function getProcesosByProyecto(
+export async function getProjectById(
   proyectoId: string,
 ): Promise<Proceso[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("gp_proceso", {
+        readItems("Sys_Processes", {
           fields: [
             "id",
-            "proyecto_id",
-            "nombre",
-            "tiempo_antes",
-            "tiempo_despues",
-            "frecuencia_tipo",
-            "frecuencia_cantidad",
-            "dias_semana",
-            "orden",
+            "project_id",
+            "name",
+            "time_before",
+            "time_after",
+            "frequency_type",
+            "frequency_quantity",
+            "weekdays",
+            "order",
           ],
           filter: { proyecto_id: { _eq: proyectoId } },
-          sort: ["orden"],
+          sort: ["order"],
         }),
       ),
     );
@@ -245,14 +245,14 @@ export async function getProcesosByProyecto(
   }
 }
 
-export async function getBeneficiosByProyecto(
+export async function getBenefitsByProject(
   proyectoId: string,
 ): Promise<Beneficio[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("gp_beneficios", {
-          fields: ["id", "proyecto_id", "descripcion"],
+        readItems("Sys_Benefits", {
+          fields: ["id", "id_project", "description"],
           filter: { proyecto_id: { _eq: proyectoId } },
         }),
       ),
