@@ -65,7 +65,7 @@ function buildFilter(filters: GarantiaFilters) {
 /**
  * Obtiene garantías paginadas con filtros opcionales.
  */
-export async function getGarantias(
+export async function getWarranties(
   filters: GarantiaFilters = {},
   pagination: PaginationParams = { page: 0, limit: 10 }
 ): Promise<PaginatedResponse<Garantia>> {
@@ -127,7 +127,7 @@ export async function getGarantias(
 /**
  * Obtiene una garantía por su ID.
  */
-export async function getGarantiaById(id: number): Promise<Garantia> {
+export async function getWarrantyById(id: number): Promise<Garantia> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -163,7 +163,7 @@ export async function getGarantiaById(id: number): Promise<Garantia> {
  * Obtiene los conteos por estado para las tarjetas de estadísticas.
  * Hace UNA sola llamada usando aggregate con groupBy para ser eficiente.
  */
-export async function getGarantiaStats(
+export async function getWarrantyStats(
   filters: GarantiaFilters = {}
 ): Promise<GarantiaStats> {
   try {
@@ -207,7 +207,7 @@ export async function getGarantiaStats(
         }
       }
     );
-
+      
     return stats;
   } catch (error: any) {
     if (error?.response?.status === 403) {
@@ -236,9 +236,9 @@ export async function getGarantiaStats(
 /**
  * Busca clientes por nombre o documento (para autocompletar en el formulario).
  */
-export async function searchClientes(query: string): Promise<Cliente[]> {
+export async function searchClients(query: string): Promise<Cliente[]> {
   if (!query || query.trim().length < 2) return [];
-
+  searchClients 
   try {
     const items = await withAutoRefresh(() =>
       directus.request(

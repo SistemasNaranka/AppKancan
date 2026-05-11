@@ -25,7 +25,7 @@ interface GarantiaDetailProps {
   onEdit: (garantia: DirectusGarantia) => void;
 }
 
-export const GarantiaDetail: React.FC<GarantiaDetailProps> = ({
+export const WarrantyDetail: React.FC<GarantiaDetailProps> = ({
   open,
   garantia,
   onClose,

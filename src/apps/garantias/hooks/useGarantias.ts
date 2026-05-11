@@ -1,16 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getGarantias,
-  getGarantiaById,
-  getGarantiaStats,
-  searchClientes,
+  getWarranties,
+  getWarrantyById,
+  getWarrantyStats,
+  searchClients,
 } from "../api/directus/read";
 import {
-  crearGarantia,
-  actualizarGarantia,
-  eliminarGarantia,
-  cambiarEstadoGarantia,
-  crearCliente,
+  createWarranty,
+  updateWarranty,
+  deleteWarranty,
+  changeWarrantyStatus,
+  createClient,
 } from "../api/directus/create";
 import type {
   GarantiaFilters,
@@ -40,13 +40,13 @@ export const garantiaKeys = {
 /**
  * Lista paginada de garantías con filtros.
  */
-export function useGarantias(
+export function  useWarranties(
   filters: GarantiaFilters = {},
   pagination: PaginationParams = { page: 0, limit: 10 }
 ) {
   return useQuery({
     queryKey: garantiaKeys.list(filters, pagination),
-    queryFn:  () => getGarantias(filters, pagination),
+    queryFn:  () => getWarranties(filters, pagination),
     staleTime: 30_000,   // 30s — no refetch innecesario
     gcTime:    120_000,  // 2min en caché
     placeholderData: (prev) => prev, // mantiene datos anteriores mientras carga
@@ -56,10 +56,10 @@ export function useGarantias(
 /**
  * Detalle de una garantía por ID.
  */
-export function useGarantia(id: number | null) {
+export function useWarranty(id: number | null) {
   return useQuery({
     queryKey: garantiaKeys.detail(id!),
-    queryFn:  () => getGarantiaById(id!),
+    queryFn:  () => getWarrantyById(id!),
     enabled:  id !== null && id > 0,
     staleTime: 60_000,
   });
@@ -69,13 +69,13 @@ export function useGarantia(id: number | null) {
  * Estadísticas agregadas por estado.
  * staleTime más alto porque cambian menos frecuente que la lista.
  */
-export function useGarantiaStats(filters: GarantiaFilters = {}) {
+export function useWarrantyStats(filters: GarantiaFilters = {}) {
   // Para stats, ignoramos el filtro de estado (queremos conteos globales)
   const { estado: _estado, ...filtersForStats } = filters;
 
   return useQuery({
     queryKey: garantiaKeys.stats(filtersForStats),
-    queryFn:  () => getGarantiaStats(filtersForStats),
+    queryFn:  () => getWarrantyStats(filtersForStats),
     staleTime: 60_000,   // 1min — los conteos no cambian tan rápido
     gcTime:    180_000,  // 3min
   });
@@ -84,10 +84,10 @@ export function useGarantiaStats(filters: GarantiaFilters = {}) {
 /**
  * Búsqueda de clientes para autocompletar en el formulario.
  */
-export function useSearchClientes(query: string) {
+export function useSearchClients(query: string) {
   return useQuery({
     queryKey: garantiaKeys.clientes(query),
-    queryFn:  () => searchClientes(query),
+    queryFn:  () => searchClients(query),
     enabled:  query.trim().length >= 2,
     staleTime: 60_000,
   });
@@ -100,11 +100,11 @@ export function useSearchClientes(query: string) {
 /**
  * Crear garantía — invalida lista y stats al terminar.
  */
-export function useCrearGarantia() {
+export function useCreateWarranty() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateGarantia) => crearGarantia(data),
+    mutationFn: (data: CreateGarantia) => createWarranty(data),
     onSuccess: () => {
       // Invalida toda la lista y los stats para que se refresquen
       queryClient.invalidateQueries({ queryKey: garantiaKeys.lists() });
@@ -116,12 +116,12 @@ export function useCrearGarantia() {
 /**
  * Actualizar garantía — actualiza la caché optimistamente.
  */
-export function useActualizarGarantia() {
+export function useUpdateWarranty() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: number; updates: UpdateGarantia }) =>
-      actualizarGarantia(id, updates),
+      updateWarranty(id, updates),
 
     onSuccess: (updatedGarantia) => {
       // Actualiza el detalle en caché directamente sin refetch
@@ -139,11 +139,11 @@ export function useActualizarGarantia() {
 /**
  * Eliminar garantía.
  */
-export function useEliminarGarantia() {
+export function useDeleteWarranty() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => eliminarGarantia(id),
+    mutationFn: (id: number) => deleteWarranty(id),
     onSuccess: (_data, id) => {
       // Elimina el detalle de la caché
       queryClient.removeQueries({ queryKey: garantiaKeys.detail(id) });
@@ -157,7 +157,7 @@ export function useEliminarGarantia() {
 /**
  * Cambiar solo el estado de una garantía (aprobada, rechazada, etc).
  */
-export function useCambiarEstadoGarantia() {
+export function useChangeWarrantyStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -169,7 +169,7 @@ export function useCambiarEstadoGarantia() {
       id: number;
       estado: Garantia["estado"];
       resolucion?: string;
-    }) => cambiarEstadoGarantia(id, estado, resolucion),
+    }) => changeWarrantyStatus(id, estado, resolucion),
 
     onSuccess: (updatedGarantia) => {
       queryClient.setQueryData(
@@ -185,8 +185,8 @@ export function useCambiarEstadoGarantia() {
 /**
  * Crear cliente nuevo desde el formulario de garantía.
  */
-export function useCrearCliente() {
+export function useCreateClient() {
   return useMutation({
-    mutationFn: (data: CreateCliente) => crearCliente(data),
+    mutationFn: (data: CreateCliente) => createClient(data),
   });
 }
