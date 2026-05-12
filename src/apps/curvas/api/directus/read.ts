@@ -105,9 +105,22 @@ export const getDetalleProducto = async (
 
 /**
  * Obtiene la lista de tiendas desde Directus (colección util_tiendas)
- * Ordenadas alfabéticamente
+ * Ordenadas alfabéticamente.
+ *
+ * Caché module-level: las tiendas no cambian dentro de una sesión.
+ * - TTL de 10 min: tras vencerse, la siguiente llamada refresca.
+ * - Dedupe in-flight: si N consumidores llaman a la vez, comparten Promise.
+ * - `invalidateTiendasCache()` permite forzar refresh tras crear/editar tienda.
  */
-export const getTiendas = async (): Promise<Tienda[]> => {
+const TIENDAS_TTL_MS = 10 * 60 * 1000;
+let tiendasCache: { data: Tienda[]; expiresAt: number } | null = null;
+let tiendasInFlight: Promise<Tienda[]> | null = null;
+
+export const invalidateTiendasCache = () => {
+  tiendasCache = null;
+};
+
+const fetchTiendasFresh = async (): Promise<Tienda[]> => {
   try {
     const response = await withAutoRefresh(() =>
       directus.request(
@@ -131,6 +144,28 @@ export const getTiendas = async (): Promise<Tienda[]> => {
     console.error('Error fetching tiendas from util_tiendas:', error);
     return [];
   }
+};
+
+export const getTiendas = async (): Promise<Tienda[]> => {
+  const now = Date.now();
+  if (tiendasCache && tiendasCache.expiresAt > now) {
+    return tiendasCache.data;
+  }
+  if (tiendasInFlight) return tiendasInFlight;
+
+  tiendasInFlight = fetchTiendasFresh()
+    .then((data) => {
+      // Solo cacheamos respuestas válidas (no vacías por error transitorio).
+      if (data.length > 0) {
+        tiendasCache = { data, expiresAt: Date.now() + TIENDAS_TTL_MS };
+      }
+      return data;
+    })
+    .finally(() => {
+      tiendasInFlight = null;
+    });
+
+  return tiendasInFlight;
 };
 
 /**

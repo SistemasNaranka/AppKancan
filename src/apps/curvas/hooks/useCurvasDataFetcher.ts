@@ -1,5 +1,5 @@
 // src/apps/gestion_proyectos/hooks/useCurvasDataFetcher.ts
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { getTiendas, getLogCurvas } from "../api/directus/read";
 import { extractRef } from "../utils/curvasHelpers";
 import type { DatosCurvas, MatrizGeneralCurvas, DetalleProducto, FilaMatrizGeneral, FilaDetalleProducto } from "../types";
@@ -16,6 +16,11 @@ interface FetcherProps {
 export const useCurvasDataFetcher = ({
   setTiendasDict, tiendasDict, setDatosCurvas, currentDate, setCurrentDate, lastLogsUpdate
 }: FetcherProps) => {
+
+  // Leemos tiendasDict por ref para que `cargarDatosGuardados` sea estable
+  // y no dispare refetch en cascada cada vez que el provider crea un objeto nuevo.
+  const tiendasDictRef = useRef(tiendasDict);
+  useEffect(() => { tiendasDictRef.current = tiendasDict; }, [tiendasDict]);
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -97,7 +102,7 @@ export const useCurvasDataFetcher = ({
 
             filas.push({
               id: `${String(log.tienda_id)}-${group.normalizedRef}`,
-              tienda: { id: log.tienda_id, nombre: tiendasDict[log.tienda_id] || log.tienda_nombre || "Tienda " + log.tienda_id, codigo: "" },
+              tienda: { id: log.tienda_id, nombre: tiendasDictRef.current[log.tienda_id] || log.tienda_nombre || "Tienda " + log.tienda_id, codigo: "" },
               [group.plantilla === "textil" ? "curvas" : "tallas"]: rowData,
               total: rowTotal,
             });
@@ -167,7 +172,7 @@ export const useCurvasDataFetcher = ({
         console.error("Error en hidratación de Dashboard:", error);
       }
     },
-    [tiendasDict, currentDate, setDatosCurvas]
+    [currentDate, setDatosCurvas]
   );
 
   const cargarDatosPorFecha = useCallback(
