@@ -28,3 +28,5 @@ dist-ssr
 tsconfig.tsbuildinfo
 .claude/
 temp_report/
+# Added by code-review-graph
+.code-review-graph/

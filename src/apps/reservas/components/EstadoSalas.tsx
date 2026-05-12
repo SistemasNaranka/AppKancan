@@ -170,6 +170,27 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
     return "Próxima reserva";
   };
 
+  // Calcula los días faltantes hasta la fecha de la reserva (a las 00:00).
+  // Devuelve etiqueta amigable: "Hoy" / "Mañana" / "Faltan N días".
+  const obtenerDiasFaltantesLabel = (reserva: Reserva | null): string | null => {
+    if (!reserva) return null;
+    try {
+      const fechaReserva = parseISO(reserva.fecha);
+      fechaReserva.setHours(0, 0, 0, 0);
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const diff = Math.round(
+        (fechaReserva.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      if (diff < 0) return null;
+      if (diff === 0) return "Hoy";
+      if (diff === 1) return "Mañana";
+      return `Faltan ${diff} días`;
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <Box className="tour-estado-salas" sx={{ mb: 4 }}>
       {/* Cards de salas */}
@@ -475,20 +496,48 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                       sx={{ color: "#004680", fontSize: 20, mt: 0.25 }}
                     />
                     <Box>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "#004680",
-                          display: "block",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {estado.proximaReserva
-                          ? estado.esReservaFutura
-                            ? `PRÓXIMA RESERVA · ${obtenerEtiquetaFechaReserva(estado.proximaReserva, estado.esReservaFutura)}`
-                            : "PRÓXIMA RESERVA"
-                          : "SIN RESERVAS"}
-                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#004680",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {estado.proximaReserva
+                            ? estado.esReservaFutura
+                              ? `PRÓXIMA RESERVA · ${obtenerEtiquetaFechaReserva(estado.proximaReserva, estado.esReservaFutura)}`
+                              : "PRÓXIMA RESERVA"
+                            : "SIN RESERVAS"}
+                        </Typography>
+                        {estado.proximaReserva && (() => {
+                          const label = obtenerDiasFaltantesLabel(estado.proximaReserva);
+                          if (!label) return null;
+                          // Color según urgencia
+                          const isHoy = label === "Hoy";
+                          const isManana = label === "Mañana";
+                          const bg = isHoy ? "#16a34a" : isManana ? "#d97706" : "#e8f0f9";
+                          const fg = isHoy || isManana ? "#fff" : "#004680";
+                          return (
+                            <Box
+                              sx={{
+                                px: 0.9,
+                                py: 0.15,
+                                borderRadius: 10,
+                                bgcolor: bg,
+                                color: fg,
+                                fontSize: "0.65rem",
+                                fontWeight: 700,
+                                letterSpacing: "0.02em",
+                                lineHeight: 1.5,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {label}
+                            </Box>
+                          );
+                        })()}
+                      </Box>
                       <Typography
                         variant="body2"
                         sx={{ fontWeight: 500, color: "#6f7073" }}

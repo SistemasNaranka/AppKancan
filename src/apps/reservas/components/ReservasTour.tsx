@@ -436,6 +436,7 @@ export const ReservasTour: React.FC<ReservasTourProps> = ({ children }) => {
         showProgress
         disableOverlayClose
         disableScrolling={false}
+        disableScrollParentFix
         scrollToFirstStep
         spotlightClicks
         tooltipComponent={CustomTooltip}

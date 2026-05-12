@@ -1,0 +1,39 @@
+# Worktrees de Claude
+worktrees/
+
+# Dependencias
+node_modules/
+
+# Build outputs de Vite
+dist/
+build/
+.vite/
+
+# Cache
+.cache/
+*.tsbuildinfo
+
+# Locks (no aportan contexto)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Assets binarios
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.otf
+*.mp4
+*.webp
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Grafo de conocimiento
+.code-review-graph/

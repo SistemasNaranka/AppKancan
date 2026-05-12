@@ -25,6 +25,8 @@ import {
   Divider,
   Tooltip,
   Avatar,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import {
   Schedule as ScheduleIcon,
@@ -46,7 +48,10 @@ import { es } from "date-fns/locale";
 import type { NuevaReserva, Sala } from "../types/reservas.types";
 import { SALAS_DISPONIBLES, HORARIO_INICIO, HORARIO_FIN } from "../types/reservas.types";
 import { getConfiguracionReserva, buscarUsuarios } from "../services/reservas";
+import { notificarCorreoReserva } from "../services/correoReservas";
 import { useTourContext } from "./TourContext";
+import { useFestivos } from "../hooks/useFestivos";
+import { FestivoDay } from "./FestivoDay";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -119,6 +124,20 @@ const DIALOG_TOUR_STEPS: DialogTourStep[] = [
     content: "Agrega detalles adicionales como participantes, materiales necesarios o la agenda de la reunión.",
     placement: "right",
     spotlightPadding: 16,
+  },
+  {
+    target: "tour-dialog-participantes",
+    title: "Añadir Participantes",
+    content: "Escribe el nombre y correo de cada participante y presiona el botón azul para agregarlos. Puedes buscar usuarios registrados escribiendo en el campo de correo.",
+    placement: "right",
+    spotlightPadding: 12,
+  },
+  {
+    target: "tour-dialog-correo",
+    title: "Notificar por Correo",
+    content: "Si está activado, se enviará automáticamente un correo de confirmación a todos los participantes al crear la reserva.",
+    placement: "top",
+    spotlightPadding: 10,
   },
   {
     target: "tour-dialog-submit",
@@ -443,6 +462,11 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [configCargando, setConfigCargando] = useState(true);
+  const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
+  const { data: festivos = {} } = useFestivos(calendarYear);
+
+  // Toggle: enviar correo de confirmación al crear reserva (default ON).
+  const [enviarCorreo, setEnviarCorreo] = useState<boolean>(true);
 
   // Tour context
   const { tourPhase, onDialogOpened, onFormSubmitted, stopTour } = useTourContext();
@@ -459,6 +483,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const horasRef = useRef<HTMLDivElement>(null);
   const fechaRef = useRef<HTMLDivElement>(null);
   const observacionesRef = useRef<HTMLDivElement>(null);
+  const participantesRef = useRef<HTMLDivElement>(null);
+  const correoRef = useRef<HTMLDivElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
 
   const refMap: Record<string, React.RefObject<HTMLElement>> = {
@@ -467,6 +493,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     "tour-dialog-horas": horasRef,
     "tour-dialog-fecha": fechaRef,
     "tour-dialog-observaciones": observacionesRef,
+    "tour-dialog-participantes": participantesRef,
+    "tour-dialog-correo": correoRef,
     "tour-dialog-submit": submitRef,
   };
 
@@ -975,7 +1003,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         }
       }
 
-      await onSubmit({
+      const payload = {
         nombre_sala: data.nombre_sala,
         fecha: data.fecha,
         hora_inicio: data.hora_inicio,
@@ -983,7 +1011,25 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         titulo_reunion: data.titulo,
         observaciones: data.observaciones?.trim() || "",
         participantes: data.participantes,
-      });
+      };
+      await onSubmit(payload);
+
+      // Notificación n8n post-creación. Solo si el usuario activó el toggle.
+      // No bloquea: si falla, solo logea (la reserva ya quedó en BD).
+      if (enviarCorreo) {
+        try {
+          const result = await notificarCorreoReserva({
+            evento: "reserva_creada",
+            reserva: payload,
+          });
+          console.info("[n8n] correo enviado OK:", result);
+        } catch (err) {
+          console.warn("[n8n] correo NO enviado:", err);
+        }
+      } else {
+        console.info("[n8n] envío de correo desactivado por el usuario");
+      }
+
       handleClose();
     } catch (err: any) {
       setError(err.message || "Error al crear la reserva");
@@ -1229,7 +1275,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
 
 
                   {/* Participantes */}
-                  <Box>
+                  <Box ref={participantesRef}>
                     <Box sx={{ p: 1.8, bgcolor: "#F9FAFB", borderRadius: 2, border: "1px solid #E5E7EB", mb: 1.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: "#374151", mb: 1.2, fontSize: "0.85rem" }}>
                         Añadir Participantes
@@ -1258,13 +1304,18 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           }}
                           onChange={(_, data) => {
                             if (data && typeof data !== "string") {
+                              // Usuario elegido del dropdown → sobreescribir SIEMPRE
+                              // nombre + correo (no solo cuando nombre esté vacío),
+                              // así si el usuario cambia de selección, el nombre se
+                              // actualiza al del nuevo usuario.
                               setTempCorreo(data.email);
-                              // Solo sobreescribir el nombre si está vacío
-                              if (!tempNombre.trim()) {
-                                setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
-                              }
+                              setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
                             } else if (typeof data === "string") {
                               setTempCorreo(data);
+                            } else if (data === null) {
+                              // Usuario limpió el campo (clic en X) → limpiar también nombre
+                              setTempCorreo("");
+                              setTempNombre("");
                             }
                           }}
                           value={tempCorreo}
@@ -1398,10 +1449,22 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                               setValue("fecha", format(new Date(value.toString()), "yyyy-MM-dd"));
                             }
                           }}
+                          onMonthChange={(date: any) => {
+                            const y = (date instanceof Date ? date : new Date(date as any)).getFullYear();
+                            if (!isNaN(y)) setCalendarYear(y);
+                          }}
+                          onYearChange={(date: any) => {
+                            const y = (date instanceof Date ? date : new Date(date as any)).getFullYear();
+                            if (!isNaN(y)) setCalendarYear(y);
+                          }}
                           disabled={loading}
                           shouldDisableDate={shouldDisableDate as any}
                           displayStaticWrapperAs="desktop"
-                          slotProps={{ actionBar: { actions: [] } }}
+                          slots={{ day: FestivoDay as any }}
+                          slotProps={{
+                            actionBar: { actions: [] },
+                            day: { festivos } as any,
+                          }}
                           sx={{
                             "& .MuiPickersCalendarHeader-root": { paddingLeft: 2, paddingRight: 2 },
                             "& .MuiDayCalendar-root": { width: "100%" },
@@ -1465,35 +1528,68 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
               </Box>
 
               {/* Botones */}
-              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
-                <Button
-                  onClick={handleClose}
-                  disabled={loading || isTourMode}
-                  sx={{ textTransform: "none", fontWeight: 500, color: "#374151" }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  ref={submitRef}
-                  type={isTourMode ? "button" : "submit"}
-                  onClick={isTourMode ? handleTourSubmit : undefined}
-                  variant="contained"
-                  disabled={loading}
-                  startIcon={
-                    loading ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 2,
+                  mt: 3,
+                  flexWrap: "wrap",
+                }}
+              >
+                <FormControlLabel
+                  ref={correoRef}
+                  control={
+                    <Switch
+                      checked={enviarCorreo}
+                      onChange={(e) => setEnviarCorreo(e.target.checked)}
+                      disabled={loading}
+                      sx={{
+                        "& .MuiSwitch-switchBase.Mui-checked": { color: "#004680" },
+                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                          backgroundColor: "#004680",
+                        },
+                      }}
+                    />
                   }
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 600,
-                    backgroundColor: "#004680",
-                    borderRadius: 2,
-                    boxShadow: "none",
-                    px: 3,
-                    "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" },
-                  }}
-                >
-                  Confirmar Reservación
-                </Button>
+                  label={
+                    <Typography variant="body2" sx={{ color: "#374151" }}>
+                      Enviar correo de confirmación a los participantes
+                    </Typography>
+                  }
+                  sx={{ ml: 0 }}
+                />
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    onClick={handleClose}
+                    disabled={loading || isTourMode}
+                    sx={{ textTransform: "none", fontWeight: 500, color: "#374151" }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    ref={submitRef}
+                    type={isTourMode ? "button" : "submit"}
+                    onClick={isTourMode ? handleTourSubmit : undefined}
+                    variant="contained"
+                    disabled={loading}
+                    startIcon={
+                      loading ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />
+                    }
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 600,
+                      backgroundColor: "#004680",
+                      borderRadius: 2,
+                      boxShadow: "none",
+                      px: 3,
+                      "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" },
+                    }}
+                  >
+                    Confirmar Reservación
+                  </Button>
+                </Box>
               </Box>
             </Box>
           </form>
