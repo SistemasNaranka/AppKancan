@@ -30,7 +30,7 @@ export async function getUserBodegas() {
       ),
     );
 
-    // 🔹 Aplanar los datos - warehouse es el número directo
+    // 🔹 Aplanar los datos
     const bodegas = items.map((item: any) => ({
       codigo: item.warehouse?.toString() || "",
       nombre: `Bodega ${item.warehouse || ""}`,
