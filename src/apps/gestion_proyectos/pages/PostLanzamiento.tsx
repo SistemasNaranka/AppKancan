@@ -247,7 +247,7 @@ export default function PostLanzamiento() {
         </Typography>
         {proyecto.feedbacks && proyecto.feedbacks.length > 0 ? (
           <List>
-            {proyecto.feedbacks.map((feedback, index) => (
+            {proyecto.feedbacks.map((feedback, ) => (
               <ListItem sx={{ backgroundColor: "#f3f4f6", boxShadow: "none", borderRadius: 2, }}
                 key={feedback.id}
                 divider

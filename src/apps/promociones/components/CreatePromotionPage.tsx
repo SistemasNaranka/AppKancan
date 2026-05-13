@@ -16,8 +16,8 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { obtenerTiendas, obtenerTiposPromocion } from "../api/directus/read";
-import { crearPromocionCompleta } from "../api/directus/create";
+import { getStores, getPromotionTypes } from "../api/directus/read";
+import { createCompletePromotion } from "../api/directus/create";
 import { usePromotionForm } from "../hooks/usePromotionForm";
 import { PromotionFormFields } from "./promotionComponents/PromotionFormFields";
 import { PromotionStoresSection } from "./promotionComponents/PromotionStoresSection";
@@ -39,13 +39,13 @@ const CreatePromotionPage: React.FC = () => {
 
   const { data: tiposPromocion = [], isLoading: isLoadingTipos } = useQuery({
     queryKey: ["tipos_promocion"],
-    queryFn: obtenerTiposPromocion,
+    queryFn: getPromotionTypes,
     staleTime: 1000 * 60 * 60,
   });
 
   const { data: stores = [], isLoading: isLoadingStores } = useQuery({
     queryKey: ["prom_tiendas"],
-    queryFn: obtenerTiendas,
+    queryFn: getStores,
     staleTime: 1000 * 60 * 10,
   });
 
@@ -62,7 +62,7 @@ const CreatePromotionPage: React.FC = () => {
   }, [tiposPromocion, formState.duracion, formState.tipoId, updateField]);
 
   const createPromoMutation = useMutation({
-    mutationFn: crearPromocionCompleta,
+    mutationFn: createCompletePromotion,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["promociones"] });
       navigate("/promociones", {
