@@ -1,8 +1,9 @@
 // src/apps/reservas/components/ProximasReuniones.tsx
 
 import React, { useMemo } from "react";
-import { Box, Paper, Typography, Chip, Link } from "@mui/material";
+import { Box, Paper, Typography, Chip, Link, Tooltip } from "@mui/material";
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import PeopleIcon from '@mui/icons-material/People';
 import { format } from "date-fns";
 import type { Reserva } from "../types/reservas.types";
 import { capitalize } from "../types/reservas.types";
@@ -133,7 +134,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "160px 140px 1fr 200px 120px",
+          gridTemplateColumns: "140px 130px 1fr 160px 140px 110px",
           gap: 2,
           px: 2.5,
           py: 1.5,
@@ -167,6 +168,12 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
         </Typography>
         <Typography
           variant="caption"
+          sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}
+        >
+          Participantes
+        </Typography>
+        <Typography
+          variant="caption"
           sx={{
             fontWeight: 600,
             color: "#6b7280",
@@ -189,6 +196,9 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
         reservasHoy.map((reserva, index) => {
           const cancelada = estaCancelada(reserva);
           const estadoInfo = getEstadoDisplay(reserva);
+          const esFinalizada = ["finalizado", "finalizada"].includes(
+            (reserva.estadoCalculado || reserva.estado)?.toLowerCase() || ""
+          );
           const colorSala = COLORES_SALA[reserva.nombre_sala] || {
             bg: "#F3F4F6",
             color: "#374151",
@@ -199,13 +209,13 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
               key={reserva.id}
               sx={{
                 display: "grid",
-                gridTemplateColumns: "160px 140px 1fr 200px 120px",
+                gridTemplateColumns: "140px 130px 1fr 160px 140px 110px",
                 gap: 2,
                 px: 2.5,
                 py: 2,
                 borderBottom:
                   index < reservasHoy.length - 1 ? "1px solid #f0f0f0" : "none",
-                opacity: cancelada ? 0.6 : 1,
+                opacity: cancelada || esFinalizada ? 0.7 : 1,
                 "&:hover": {
                   backgroundColor: "#f9fafb",
                 },
@@ -216,8 +226,8 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                 variant="body2"
                 sx={{
                   fontWeight: 500,
-                  color: "#1a2a3a",
-                  textDecoration: cancelada ? "line-through" : "none",
+                  color: cancelada ? "#ef4444" : esFinalizada ? "#b0b6bf" : "#1a2a3a",
+                  textDecoration: cancelada || esFinalizada ? "line-through" : "none",
                 }}
               >
                 {formatearHora(reserva.hora_inicio)} -{" "}
@@ -241,9 +251,9 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
               <Typography
                 variant="body2"
                 sx={{
-                  color: cancelada ? "#9ca3af" : "#004680",
+                  color: cancelada ? "#ef4444" : esFinalizada ? "#b0b6bf" : "#004680",
                   fontWeight: 500,
-                  textDecoration: cancelada ? "line-through" : "none",
+                  textDecoration: cancelada || esFinalizada ? "line-through" : "none",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -257,7 +267,8 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                 variant="body2"
                 sx={{
                   fontWeight: 500,
-                  color: "#1a2a3a",
+                  color: cancelada ? "#ef4444" : esFinalizada ? "#b0b6bf" : "#1a2a3a",
+                  textDecoration: cancelada || esFinalizada ? "line-through" : "none",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -265,6 +276,52 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
               >
                 {capitalize(reserva.area || "") || "-"}
               </Typography>
+
+              {/* Participantes — count + tooltip con SOLO nombres */}
+              {(() => {
+                const participantes = Array.isArray(reserva.participantes)
+                  ? reserva.participantes
+                  : [];
+                const total = participantes.length;
+                const nombres = participantes
+                  .map((p: any) => p?.nombre)
+                  .filter(Boolean);
+                const tooltipContent =
+                  nombres.length > 0 ? (
+                    <Box sx={{ p: 0.5 }}>
+                      {nombres.map((n: string, i: number) => (
+                        <Typography
+                          key={i}
+                          variant="caption"
+                          sx={{ display: "block", fontSize: "0.75rem" }}
+                        >
+                          {n}
+                        </Typography>
+                      ))}
+                    </Box>
+                  ) : (
+                    "Sin participantes"
+                  );
+                return (
+                  <Tooltip title={tooltipContent} arrow placement="top">
+                    <Box
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.6,
+                        cursor: total > 0 ? "default" : "default",
+                        color: cancelada ? "#ef4444" : esFinalizada ? "#b0b6bf" : "#475569",
+                        width: "fit-content",
+                      }}
+                    >
+                      <PeopleIcon sx={{ fontSize: 16, color: "#64748b" }} />
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {total} {total === 1 ? "participante" : "participantes"}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
+                );
+              })()}
 
               {/* Estado */}
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>

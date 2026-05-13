@@ -6,6 +6,26 @@ import {
 } from "@/auth/services/tokenDirectus";
 import { refreshDirectus, setTokenDirectus } from "@/services/directus/auth";
 
+// Singleton: si ya hay un refresh en vuelo, todas las requests concurrentes
+// esperan al mismo Promise en lugar de disparar refresh duplicados.
+let refreshInFlight: Promise<void> | null = null;
+
+function refreshTokensOnce(refreshToken: string): Promise<void> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const newTokens = await refreshDirectus(refreshToken);
+    guardarTokenStorage(
+      newTokens.access_token,
+      newTokens.refresh_token,
+      newTokens.expires_at
+    );
+    await setTokenDirectus(newTokens.access_token);
+  })().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
 /**
  * Interceptor que verifica y refresca el token antes de cada petición
  */
@@ -19,21 +39,11 @@ export async function ensureValidToken(): Promise<void> {
   // Si el token está expirado, refrescarlo
   if (isExpired(tokens.expires_at)) {
     try {
-      const newTokens = await refreshDirectus(tokens.refresh);
-      // Guardar los nuevos tokens
-      guardarTokenStorage(
-        newTokens.access_token,
-        newTokens.refresh_token,
-        newTokens.expires_at
-      );
-
-      // Actualizar el token en el cliente de Directus
-      await setTokenDirectus(newTokens.access_token);
+      await refreshTokensOnce(tokens.refresh);
     } catch (error) {
       borrarTokenStorage();
       window.location.href = "/";
       console.error("❌ Error al refrescar token:", error);
-      // Manejar sesión expirada (cierra sesión y redirige)
     }
   } else {
     // Si no está expirado, igual nos aseguramos que el cliente de Directus lo tenga (evita 403 en reloads)
@@ -62,14 +72,8 @@ export async function requestWithAutoRefresh<T>(
       }
 
       try {
-        // Forzar refresh
-        const newTokens = await refreshDirectus(tokens.refresh);
-        guardarTokenStorage(
-          newTokens.access_token,
-          newTokens.refresh_token,
-          newTokens.expires_at
-        );
-        await setTokenDirectus(newTokens.access_token);
+        // Forzar refresh (deduplicado: múltiples 401 concurrentes comparten Promise)
+        await refreshTokensOnce(tokens.refresh);
 
         // Reintentar la petición
         return await requestFn();

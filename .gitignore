@@ -27,6 +27,7 @@ dist-ssr
 .kilo/
 tsconfig.tsbuildinfo
 .claude/
+CLAUDE.md
 temp_report/
 
 # Documentos internos de asignación de tareas

@@ -11,6 +11,7 @@ import { SALAS_DISPONIBLES, CONFIGURACION_POR_DEFECTO } from "../types/reservas.
 import type { Reserva } from "../types/reservas.types";
 import type { VistaSemanalProps } from "./VistaSemanal.types";
 import { generarHorasRango, getReservasEnCelda, formatearHora12h, ESTADOS_EXCLUIDOS } from "./VistaSemanal.utils";
+import { useFestivos } from "../hooks/useFestivos";
 import {
   SelectorSala, SelectorVista, NavegacionSemanal, SelectorFecha, PeriodoActual,
   CargandoHorarios, EncabezadoDia, CeldaHora, PopoverDetalleReserva,
@@ -51,6 +52,8 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
   const [reservaSeleccionada, setReservaSeleccionada] = useState<Reserva | null>(null);
 
   const { horas, isLoading: isLoadingConfig, isError: isErrorConfig } = useConfiguracionHoras();
+
+  const { data: festivos = {} } = useFestivos(fechaBase.getFullYear());
 
   const diasSemana = useMemo(() => {
     const inicio = startOfWeek(fechaBase, { weekStartsOn: 1 });
@@ -120,7 +123,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 <Box component="span" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase", fontSize: "0.7rem" }}>Hora</Box>
               </Box>
               {diasSemana.map((dia, idx) => (
-                <EncabezadoDia key={dia.toISOString()} dia={dia} idx={idx} hoy={hoy} reservasSemana={reservasSemana} />
+                <EncabezadoDia key={dia.toISOString()} dia={dia} idx={idx} hoy={hoy} reservasSemana={reservasSemana} nombreFestivo={festivos[format(dia, "yyyy-MM-dd")]} />
               ))}
             </Box>
 

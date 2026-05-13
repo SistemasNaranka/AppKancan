@@ -164,22 +164,28 @@ export const CargandoHorarios: React.FC = () => (
 
 export const EncabezadoDia: React.FC<{
   dia: Date; idx: number; hoy: Date; reservasSemana: Reserva[];
-}> = ({ dia, idx, hoy, reservasSemana }) => {
+  nombreFestivo?: string;
+}> = ({ dia, idx, hoy, reservasSemana, nombreFestivo }) => {
   const esHoy = isSameDay(dia, hoy);
   const fechaStr = format(dia, "yyyy-MM-dd");
   const reservaEnCurso = reservasSemana.find(
     (r) => r.fecha === fechaStr && r.estadoCalculado?.toLowerCase() === "en curso",
   );
-  return (
+  const esFestivo = Boolean(nombreFestivo);
+  const bg = esHoy ? "#EFF6FF" : esFestivo ? "#fef2f2" : "#f9fafb";
+  const inner = (
     <Box sx={{
-      p: 1, textAlign: "center", backgroundColor: esHoy ? "#EFF6FF" : "#f9fafb",
+      p: 1, textAlign: "center", backgroundColor: bg,
       borderRight: idx < 4 ? "1px solid #e0e0e0" : "none", borderBottom: "1px solid #e0e0e0",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      height: 60, boxSizing: "border-box",
+      height: 60, boxSizing: "border-box", position: "relative",
     }}>
+      {esFestivo && (
+        <Box sx={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: "50%", backgroundColor: "#dc2626", pointerEvents: "none" }} />
+      )}
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
         <Typography variant="subtitle2" sx={{
-          fontWeight: 600, color: esHoy ? "#004680" : "#1a2a3a",
+          fontWeight: 600, color: esHoy ? "#004680" : esFestivo ? "#dc2626" : "#1a2a3a",
           textTransform: "capitalize", fontSize: "0.85rem",
         }}>
           {format(dia, "EEEE", { locale: es })}
@@ -191,11 +197,14 @@ export const EncabezadoDia: React.FC<{
           />
         )}
       </Box>
-      <Typography variant="caption" sx={{ color: esHoy ? "#005AA3" : "#6b7280", fontSize: "0.75rem" }}>
+      <Typography variant="caption" sx={{ color: esHoy ? "#005AA3" : esFestivo ? "#dc2626" : "#6b7280", fontSize: "0.75rem", fontWeight: esFestivo ? 600 : 400 }}>
         {format(dia, "d MMM", { locale: es })}
       </Typography>
     </Box>
   );
+  return esFestivo ? (
+    <Tooltip title={nombreFestivo!} arrow placement="top">{inner}</Tooltip>
+  ) : inner;
 };
 
 export const BloqueReserva: React.FC<{

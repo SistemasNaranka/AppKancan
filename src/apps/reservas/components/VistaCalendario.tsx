@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Paper, Tooltip, Typography } from "@mui/material";
+import { useFestivos } from "../hooks/useFestivos";
 import { useQuery } from "@tanstack/react-query";
 import { format, isSameDay, isSameMonth, subMonths, addMonths, setMonth, setYear } from "date-fns";
 import { getReservasMes } from "../services/reservas";
@@ -12,7 +13,7 @@ import { DayPopover, DetailPopover } from "./CalendarPopovers";
 
 // INTERFAZ CORREGIDA
 export interface VistaCalendarioProps {
-  usuarioActualId: number | null;
+  usuarioActualId?: string;
   vistaCalendario?: "semanal" | "mes";
   onCambiarVista?: (vista: "semanal" | "mes") => void;
   salaInicial?: string;
@@ -44,6 +45,8 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
     queryKey: ["reservas", "calendario", fechaActual.getFullYear(), fechaActual.getMonth() + 1],
     queryFn: () => getReservasMes(fechaActual.getFullYear(), fechaActual.getMonth() + 1),
   });
+
+  const { data: festivos = {} } = useFestivos(fechaActual.getFullYear());
 
   const reservas = useMemo(() => reservasRaw.filter(r => {
     const estado = (r.estadoCalculado || r.estado)?.toLowerCase() || "";
@@ -100,11 +103,33 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
           {dias.map((dia, idx) => {
             const resDia = getReservasDia(dia);
             const esHoy = isSameDay(dia, new Date());
+            const fechaStrDia = format(dia, "yyyy-MM-dd");
+            const nombreFestivo = festivos[fechaStrDia];
+            const esFestivo = Boolean(nombreFestivo) && isSameMonth(dia, fechaActual);
+            const cellBg = !isSameMonth(dia, fechaActual)
+              ? "#f9fafb"
+              : esFestivo
+                ? "#fef2f2"
+                : "white";
+            const dayNumberInner = (
+              <Box sx={{ position: "relative", display: "inline-flex" }}>
+                <Box sx={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: esHoy ? "#004680" : "transparent", color: esHoy ? "white" : isSameMonth(dia, fechaActual) ? (esFestivo ? "#dc2626" : "#1a2a3a") : "#9ca3af", fontWeight: esHoy || esFestivo ? 600 : 400, fontSize: "0.875rem" }}>{format(dia, "d")}</Box>
+                {esFestivo && (
+                  <Box sx={{ position: "absolute", top: 2, right: 2, width: 5, height: 5, borderRadius: "50%", backgroundColor: "#dc2626", pointerEvents: "none" }} />
+                )}
+              </Box>
+            );
             return (
               <Box key={idx} onClick={(e) => { setDiaSeleccionado(dia); setAnchorDia(e.currentTarget); }}
-                sx={{ minHeight: 110, p: 0.5, borderRight: idx % numColumnas !== numColumnas - 1 ? "1px solid #e0e0e0" : "none", borderBottom: "1px solid #e0e0e0", backgroundColor: isSameMonth(dia, fechaActual) ? "white" : "#f9fafb", cursor: "pointer", "&:hover": { backgroundColor: "#f3f4f6" } }}>
+                sx={{ minHeight: 110, p: 0.5, borderRight: idx % numColumnas !== numColumnas - 1 ? "1px solid #e0e0e0" : "none", borderBottom: "1px solid #e0e0e0", backgroundColor: cellBg, cursor: "pointer", "&:hover": { backgroundColor: esFestivo ? "#fee2e2" : "#f3f4f6" } }}>
                 <Box sx={{ display: "flex", justifyContent: "center", mb: 0.5, alignItems: "center", gap: 0.5 }}>
-                  <Box sx={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: esHoy ? "#004680" : "transparent", color: esHoy ? "white" : isSameMonth(dia, fechaActual) ? "#1a2a3a" : "#9ca3af", fontWeight: esHoy ? 600 : 400, fontSize: "0.875rem" }}>{format(dia, "d")}</Box>
+                  {esFestivo ? (
+                    <Tooltip title={nombreFestivo} arrow placement="top">
+                      {dayNumberInner}
+                    </Tooltip>
+                  ) : (
+                    dayNumberInner
+                  )}
                 </Box>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                   {resDia.slice(0, 3).map(r => (
