@@ -533,7 +533,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
                   Acciones
                 </TableCell>
               </TableRow>
-            </TableHead>
+            </TableHead>    
             <TableBody>
               {pagedList.map((reserva, index) => (
                 <RowReserva
