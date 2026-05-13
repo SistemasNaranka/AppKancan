@@ -9,8 +9,8 @@ import { readItems } from "@directus/sdk";
 export async function getUserArea() {
   return await withAutoRefresh(() =>
     directus.request(
-      readItems("rol_usuario", {
-        fields: ["id", "area", "rol_id.name"],
+      readItems("core_user_role", {
+        fields: ["id", "department", "rol_id.name"],
       }),
     ),
   );
@@ -24,16 +24,16 @@ export async function getUserBodegas() {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("util_bodega_usuario", {
-          fields: ["bodega"],
+        readItems("core_warehouse_user", {
+          fields: ["id", "warehouse"],
         }),
       ),
     );
 
-    // 🔹 Aplanar los datos - bodega es el número directo
+    // 🔹 Aplanar los datos - warehouse es el número directo
     const bodegas = items.map((item: any) => ({
-      codigo: item.bodega.toString(),
-      nombre: `Bodega ${item.bodega}`,
+      codigo: item.warehouse?.toString() || "",
+      nombre: `Bodega ${item.warehouse || ""}`,
     }));
 
     return bodegas;
@@ -50,16 +50,16 @@ export async function getUserBodegas() {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("app_usuario", {
+        readItems("core_user_app", {
           fields: [
             "id",
             "app_id.id",
-            "app_id.nombre",
-            "app_id.ruta",
-            "app_id.categoria",
-            "app_id.icono_app",
-            "app_id.icono_categoria",
-            "app_id.rol.name",
+            "app_id.name",
+            "app_id.route",
+            "app_id.category",
+            "app_id.app_icon",
+            "app_id.category_icon",
+            "app_id.role_id.name",
           ],
         }),
       ),
@@ -68,12 +68,12 @@ export async function getUserBodegas() {
     // 🔹 Aplanar los datos
     const apps = items.map((item: any) => ({
       id: item.app_id.id,
-      nombre: item.app_id.nombre,
-      ruta: item.app_id.ruta,
-      categoria: item.app_id.categoria,
-      icono_app: item.app_id.icono_app,
-      icono_categoria: item.app_id.icono_categoria,
-      rol: item.app_id.rol?.name,
+      nombre: item.app_id.name,
+      ruta: item.app_id.route,
+      categoria: item.app_id.category,
+      icono_app: item.app_id.app_icon,
+      icono_categoria: item.app_id.category_icon,
+      rol: item.app_id.role_id?.name,
     }));
 
     return apps;

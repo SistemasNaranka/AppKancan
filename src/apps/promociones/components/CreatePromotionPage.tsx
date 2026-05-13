@@ -16,8 +16,9 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { obtenerTiendas, obtenerTiposPromocion } from "../api/directus/read";
-import { crearPromocionCompleta } from "../api/directus/create";
+import { getStores, getPromotionTypes } from "../api/directus/read";
+import { createCompletePromotion } from "../api/directus/create";
+
 import { usePromotionForm } from "../hooks/usePromotionForm";
 import { PromotionFormFields } from "./promotionComponents/PromotionFormFields";
 import { PromotionStoresSection } from "./promotionComponents/PromotionStoresSection";
@@ -39,30 +40,33 @@ const CreatePromotionPage: React.FC = () => {
 
   const { data: tiposPromocion = [], isLoading: isLoadingTipos } = useQuery({
     queryKey: ["tipos_promocion"],
-    queryFn: obtenerTiposPromocion,
+    queryFn: getPromotionTypes,
     staleTime: 1000 * 60 * 60,
   });
 
+
   const { data: stores = [], isLoading: isLoadingStores } = useQuery({
     queryKey: ["prom_tiendas"],
-    queryFn: obtenerTiendas,
+    queryFn: getStores,
     staleTime: 1000 * 60 * 10,
   });
 
+
   React.useEffect(() => {
     const availableTypes = tiposPromocion.filter(
-      (tipo) => tipo.duracion === formState.duracion
+      (tipo) => tipo.duration === formState.duration
     );
     if (
       availableTypes.length > 0 &&
-      !availableTypes.find((t) => t.id === formState.tipoId)
+      !availableTypes.find((t) => t.id === formState.typeId)
     ) {
-      updateField("tipoId", availableTypes[0].id);
+      updateField("typeId", availableTypes[0].id);
     }
-  }, [tiposPromocion, formState.duracion, formState.tipoId, updateField]);
+  }, [tiposPromocion, formState.duration, formState.typeId, updateField]);
+
 
   const createPromoMutation = useMutation({
-    mutationFn: crearPromocionCompleta,
+    mutationFn: createCompletePromotion,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["promociones"] });
       navigate("/promociones", {
@@ -85,18 +89,21 @@ const CreatePromotionPage: React.FC = () => {
     try {
       const formattedData = getFormattedData();
       const promocionData = {
-        nombre: formState.nombre.trim(),
+        name: formState.name.trim(),
         ...formattedData,
-        descuento: formState.descuento,
-        tipo_id: formState.tipoId!,
-        observaciones: formState.observaciones.trim() || null,
+        discount_value: formState.discount,
+        type_id: formState.typeId!,
+        notes: formState.notes.trim() || null,
       };
 
       await createPromoMutation.mutateAsync({
         promocionData,
-        tiendasIds: formState.tiendasSeleccionadas,
+        tiendasIds: formState.selectedStores,
       });
+
+
     } catch (err) {
+
       console.error("Error en submit:", err);
     }
   };
@@ -136,39 +143,43 @@ const CreatePromotionPage: React.FC = () => {
           <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
             <Stack spacing={3} mt={3}>
               <PromotionFormFields
-                tipoId={formState.tipoId}
+                tipoId={formState.typeId}
                 tiposPromocion={tiposPromocion}
-                nombre={formState.nombre}
-                duracion={formState.duracion}
-                fechaInicio={formState.fechaInicio}
-                fechaFinal={formState.fechaFinal}
-                horaInicio={formState.horaInicio}
-                horaFinal={formState.horaFinal}
-                descuento={formState.descuento}
-                observaciones={formState.observaciones}
-                onTipoChange={(value) => updateField("tipoId", value)}
-                onNombreChange={(value) => updateField("nombre", value)}
+                nombre={formState.name}
+                duracion={formState.duration}
+                fechaInicio={formState.startDate}
+                fechaFinal={formState.endDate}
+                horaInicio={formState.startTime}
+                horaFinal={formState.endTime}
+                descuento={formState.discount}
+                observaciones={formState.notes}
+                onTipoChange={(value) => updateField("typeId", value)}
+                onNombreChange={(value) => updateField("name", value)}
                 onDuracionChange={handleDuracionChange}
                 onFechaInicioChange={(value) =>
-                  updateField("fechaInicio", value)
+                  updateField("startDate", value)
                 }
-                onFechaFinalChange={(value) => updateField("fechaFinal", value)}
-                onHoraInicioChange={(value) => updateField("horaInicio", value)}
-                onHoraFinalChange={(value) => updateField("horaFinal", value)}
-                onDescuentoChange={(value) => updateField("descuento", value)}
+                onFechaFinalChange={(value) => updateField("endDate", value)}
+                onHoraInicioChange={(value) => updateField("startTime", value)}
+                onHoraFinalChange={(value) => updateField("endTime", value)}
+                onDescuentoChange={(value) => updateField("discount", value)}
                 onObservacionesChange={(value) =>
-                  updateField("observaciones", value)
+                  updateField("notes", value)
                 }
+
               />
+
 
               <PromotionStoresSection
                 stores={stores}
-                tiendasSeleccionadas={formState.tiendasSeleccionadas}
+                tiendasSeleccionadas={formState.selectedStores}
                 isLoadingStores={isLoadingStores}
                 onStoresSelected={(selected) =>
-                  updateField("tiendasSeleccionadas", selected)
+                  updateField("selectedStores", selected)
                 }
+
               />
+
 
               <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
                 <Button

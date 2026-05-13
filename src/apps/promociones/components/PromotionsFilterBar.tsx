@@ -58,15 +58,15 @@ const PromotionsFilterBar: React.FC = () => {
   const tiendasDisponibles: SelectionItem[] = useMemo(() => {
     return stores.map((store) => ({
       id: store.id,
-      label: store.nombre,
-      description: store.empresa || "",
+      label: store.name,
+      description: store.company || "",
     }));
   }, [stores]);
 
   // Filtrar tipos disponibles según duración seleccionada
   const availableTipos = useMemo(() => {
     if (duracion.length === 0) return tiposPromocion;
-    return tiposPromocion.filter((tipo) => duracion.includes(tipo.duracion));
+    return tiposPromocion.filter((tipo) => duracion.includes(tipo.duration));
   }, [duracion, tiposPromocion]);
 
   // Duración por defecto
@@ -84,14 +84,14 @@ const PromotionsFilterBar: React.FC = () => {
         setTipos([]);
       }
     },
-    [duracion, setDuracion, setTipos]
+    [duracion, setDuracion, setTipos],
   );
 
   const handleConfirmTiendas = useCallback(
     (selectedIds: (string | number)[]) => {
       setTiendas(selectedIds);
     },
-    [setTiendas]
+    [setTiendas],
   );
   const tiendasModalKey = useMemo(() => {
     return `tiendas-modal-${tiendas.join("-")}`;
@@ -215,9 +215,7 @@ const PromotionsFilterBar: React.FC = () => {
                     size="small"
                     variant="outlined"
                     color="primary"
-                    onClick={() =>
-                      setTipos(availableTipos.map((t) => t.nombre))
-                    }
+                    onClick={() => setTipos(availableTipos.map((t) => t.name))}
                     disabled={selected.length === availableTipos.length}
                     sx={{
                       textTransform: "none",
@@ -255,7 +253,7 @@ const PromotionsFilterBar: React.FC = () => {
                     onChange={(event) => {
                       const value = event.target.value;
                       setTipos(
-                        typeof value === "string" ? value.split(",") : value
+                        typeof value === "string" ? value.split(",") : value,
                       );
                     }}
                     input={
@@ -276,9 +274,10 @@ const PromotionsFilterBar: React.FC = () => {
                       >
                         {selected.map((nombre) => {
                           const tipo = availableTipos.find(
-                            (t) => t.nombre === nombre
+                            (t) => t.name === nombre,
                           );
-                          const color = tipo?.color || "#9e9e9e";
+                          const color = tipo?.color_code || "#9e9e9e";
+
                           return (
                             <Chip
                               key={nombre}
@@ -304,7 +303,7 @@ const PromotionsFilterBar: React.FC = () => {
                     }}
                   >
                     {availableTipos.map((tipo) => (
-                      <MenuItem key={tipo.id} value={tipo.nombre}>
+                      <MenuItem key={tipo.id} value={tipo.name}>
                         <Box
                           display="flex"
                           alignItems="center"
@@ -316,19 +315,20 @@ const PromotionsFilterBar: React.FC = () => {
                               width: 14,
                               height: 14,
                               borderRadius: "50%",
-                              bgcolor: tipo.color || "#9e9e9e",
+                              bgcolor: tipo.color_code || "#9e9e9e",
+
                               flexShrink: 0,
                             }}
                           />
                           <ListItemText
-                            primary={tipo.nombre}
+                            primary={tipo.name}
                             sx={{
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                             }}
                           />
-                          {selected.includes(tipo.nombre) && (
+                          {selected.includes(tipo.name) && (
                             <Typography
                               variant="body2"
                               color="primary"

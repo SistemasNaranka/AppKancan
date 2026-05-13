@@ -1,3 +1,4 @@
+// src/apps/gestion_proyectos/components/BenefitList.tsx
 import {
   TextField,
   Paper,
@@ -10,23 +11,23 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import StarIcon from '@mui/icons-material/Star';
 
-interface Beneficio {
+interface Benefit {
   id: string;
-  descripcion: string;
+  description: string;
 }
 
 interface BenefitListProps {
-  beneficios: Beneficio[];
-  onAgregar: () => void;
-  onEliminar: (id: string) => void;
-  onActualizar: (id: string, descripcion: string) => void;
+  benefits: Benefit[];
+  onAdd: () => void;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, description: string) => void;
 }
 
 export function BenefitList({
-  beneficios,
-  onAgregar,
-  onEliminar,
-  onActualizar,
+  benefits,
+  onAdd,
+  onDelete,
+  onUpdate,
 }: BenefitListProps) {
   return (
     <Paper elevation={3} sx={{ p: 2.5, borderRadius: 2 }}>
@@ -43,7 +44,7 @@ export function BenefitList({
           variant="contained"
           size="small"
           startIcon={<AddIcon />}
-          onClick={onAgregar}
+          onClick={onAdd}
           sx={{
             backgroundColor: "#004680",
             boxShadow: "none",
@@ -54,17 +55,17 @@ export function BenefitList({
         </Button>
       </Box>
 
-      {/* ── Lista ── */}
-      {beneficios.length === 0 ? (
+      {/* ── List ── */}
+      {benefits.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
           <Typography variant="body2">No hay beneficios agregados.</Typography>
           <Typography variant="caption">Haz clic en "Agregar Beneficio" para comenzar.</Typography>
         </Box>
       ) : (
         <Box sx={{ maxHeight: 500, overflowY: "auto", pr: 0.5 }}>
-          {beneficios.map((beneficio, index) => (
+          {benefits.map((benefit, index) => (
             <Box
-              key={beneficio.id}
+              key={benefit.id}
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -76,7 +77,7 @@ export function BenefitList({
                 border: "1px solid #dcdcdc",
               }}
             >
-              {/* Número */}
+              {/* Number */}
               <Box
                 sx={{
                   minWidth: 28,
@@ -95,20 +96,20 @@ export function BenefitList({
                 {index + 1}
               </Box>
 
-              {/* Campo de texto */}
+              {/* Text field */}
               <TextField
-                value={beneficio.descripcion}
-                onChange={(e) => onActualizar(beneficio.id, e.target.value)}
+                value={benefit.description}
+                onChange={(e) => onUpdate(benefit.id, e.target.value)}
                 placeholder={`Beneficio ${index + 1}`}
                 fullWidth
                 size="small"
                 slotProps={{ input: { sx: { bgcolor: "white", borderRadius: 1 } } }}
               />
 
-              {/* Eliminar */}
+              {/* Delete */}
               <IconButton
                 size="small"
-                onClick={() => onEliminar(beneficio.id)}
+                onClick={() => onDelete(benefit.id)}
                 sx={{ color: "#ff3838", flexShrink: 0 }}
               >
                 <DeleteIcon fontSize="small" />
@@ -118,11 +119,11 @@ export function BenefitList({
         </Box>
       )}
 
-      {/* ── Footer total ── */}
-      {beneficios.length > 0 && (
+      {/* ── Total footer ── */}
+      {benefits.length > 0 && (
         <Box sx={{ mt: 2, p: 1.5, bgcolor: "#005aa3", borderRadius: 1 }}>
           <Typography variant="body2" color="white">
-            <strong>Total:</strong> {beneficios.length} beneficio(s) registrado(s)
+            <strong>Total:</strong> {benefits.length} beneficio(s) registrado(s)
           </Typography>
         </Box>
       )}

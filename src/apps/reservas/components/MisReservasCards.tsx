@@ -83,7 +83,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   const reservasToShow = isTourActive ? tourReservas : reservas;
 
   const getEstado = (r: Reserva) =>
-    (r.estadoCalculado || r.estado)?.toLowerCase() || "";
+    (r.estadoCalculado || r.status)?.toLowerCase() || "";
 
   const reservasVigentes = reservasToShow.filter(
     (r) => getEstado(r) === "vigente" || getEstado(r) === "en curso",
@@ -111,11 +111,11 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     if (!q) return baseList;
     return baseList.filter((r) =>
       [
-        r.nombre_sala,
-        r.titulo_reunion,
-        r.area,
-        r.observaciones,
-        r.fecha,
+        r.room_name,
+        r.meeting_title,
+        r.departament,
+        r.observations,
+        r.date,
       ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)),
@@ -136,12 +136,12 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   const puedeModificar = (reserva: Reserva): boolean => {
     if (isTourActive) return false;
     if (!usuarioActualId) return false;
-    if (!reserva.usuario_id) return false;
-    if (reserva.usuario_id.id !== usuarioActualId) return false;
-    const estadoActual = reserva.estadoCalculado || reserva.estado;
+    if (!reserva.user_id) return false;
+    if (reserva.user_id.id !== usuarioActualId) return false;
+    const estadoActual = reserva.estadoCalculado || reserva.status;
     if (!puedeModificarse(estadoActual)) return false;
     const ahora = new Date();
-    const fechaReserva = new Date(`${reserva.fecha}T${reserva.hora_inicio}`);
+    const fechaReserva = new Date(`${reserva.date}T${reserva.start_time}`);
     return fechaReserva > ahora;
   };
 
@@ -235,7 +235,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
 
   const RowReserva: React.FC<{ reserva: Reserva; className?: string }> = ({ reserva, className }) => {
     const canModify = puedeModificar(reserva);
-    const estado = (reserva.estadoCalculado || reserva.estado) as EstadoReserva;
+    const estado = (reserva.estadoCalculado || reserva.status) as EstadoReserva;
 
     return (
       <TableRow
@@ -264,7 +264,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
             </Box>
             <Box sx={{ minWidth: 0 }}>
               <Typography sx={{ fontWeight: 700, color: "#004680", fontSize: "0.9rem" }} noWrap>
-                {reserva.titulo_reunion}
+                {reserva.meeting_title}
               </Typography>
               <Box sx={{ mt: 0.5 }}>
                 <EstadoChip estado={estado} />
@@ -279,13 +279,13 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <CalendarIcon sx={{ fontSize: 15, color: "#64748b" }} />
               <Typography sx={{ fontSize: "0.83rem", color: "#1a2a3a", fontWeight: 500 }}>
-                {formatearFecha(reserva.fecha)}
+                {formatearFecha(reserva.date)}
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <TimeIcon sx={{ fontSize: 15, color: "#64748b" }} />
               <Typography sx={{ fontSize: "0.83rem", color: "#475569" }}>
-                {formatearHora(reserva.hora_inicio)} - {formatearHora(reserva.hora_final)}
+                {formatearHora(reserva.start_time)} - {formatearHora(reserva.end_time)}
               </Typography>
             </Box>
           </Stack>
@@ -294,30 +294,30 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
         {/* DETALLES */}
         <TableCell sx={{ py: 2 }}>
           <Stack spacing={0.4}>
-            {reserva.titulo_reunion && (
+            {reserva.room_name && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                 <MeetingRoomIcon sx={{ fontSize: 15, color: "#64748b" }} />
                 <Typography sx={{ fontSize: "0.83rem", color: "#1a2a3a" }}>
-                  {truncarTexto(reserva.nombre_sala, 30)}
+                  {truncarTexto(reserva.room_name, 30)}
                 </Typography>
               </Box>
             )}
-            {reserva.area && (
+            {reserva.departament && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                 <AreaIcon sx={{ fontSize: 15, color: "#64748b" }} />
                 <Typography sx={{ fontSize: "0.83rem", color: "#475569" }}>
-                  {capitalize(reserva.area)}
+                  {capitalize(reserva.departament)}
                 </Typography>
               </Box>
             )}
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <PeopleIcon sx={{ fontSize: 15, color: "#64748b" }} />
               <Typography sx={{ fontSize: "0.83rem", color: "#475569" }}>
-                {reserva.participantes?.length ?? 0}{" "}
-                {(reserva.participantes?.length ?? 0) === 1 ? "participante" : "participantes"}
+                {reserva.participants?.length ?? 0}{" "}
+                {(reserva.participants?.length ?? 0) === 1 ? "participante" : "participantes"}
               </Typography>
             </Box>
-            {!reserva.titulo_reunion && !reserva.area && (
+            {!reserva.meeting_title && !reserva.departament && (
               <Typography sx={{ fontSize: "0.83rem", color: "#94a3b8" }}>—</Typography>
             )}
           </Stack>

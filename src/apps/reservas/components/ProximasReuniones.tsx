@@ -32,15 +32,15 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
   const { reservasHoy, reservasPendientes } = useMemo(() => {
     // Filtrar solo reservas de hoy
     const todasHoy = reservas
-      .filter((r) => r.fecha === hoy)
-      .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+      .filter((r) => r.date === hoy)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
     // Contar solo las pendientes (vigentes y en curso, no canceladas ni finalizadas)
     const pendientes = todasHoy.filter((r) => {
-      const estado = (r.estadoCalculado || r.estado)?.toLowerCase();
+      const estado = (r.estadoCalculado || r.status)?.toLowerCase();
       return (
         (estado === "vigente" || estado === "en curso") &&
-        r.hora_final > horaActual
+        r.end_time > horaActual
       );
     }).length;
 
@@ -63,7 +63,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
   const getEstadoDisplay = (
     reserva: Reserva,
   ): { texto: string; color: string } => {
-    const estado = (reserva.estadoCalculado || reserva.estado)?.toLowerCase();
+    const estado = (reserva.estadoCalculado || reserva.status)?.toLowerCase();
 
     switch (estado) {
       case "en curso":
@@ -83,7 +83,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
 
   // Verificar si una reserva está cancelada
   const estaCancelada = (reserva: Reserva): boolean => {
-    const estado = (reserva.estadoCalculado || reserva.estado)?.toLowerCase();
+    const estado = (reserva.estadoCalculado || reserva.status)?.toLowerCase();
     return estado === "cancelado" || estado === "cancelada";
   };
 
@@ -197,9 +197,9 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
           const cancelada = estaCancelada(reserva);
           const estadoInfo = getEstadoDisplay(reserva);
           const esFinalizada = ["finalizado", "finalizada"].includes(
-            (reserva.estadoCalculado || reserva.estado)?.toLowerCase() || ""
+            (reserva.estadoCalculado || reserva.status)?.toLowerCase() || ""
           );
-          const colorSala = COLORES_SALA[reserva.nombre_sala] || {
+          const colorSala = COLORES_SALA[reserva.room_name] || {
             bg: "#F3F4F6",
             color: "#374151",
           };
@@ -230,13 +230,13 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   textDecoration: cancelada || esFinalizada ? "line-through" : "none",
                 }}
               >
-                {formatearHora(reserva.hora_inicio)} -{" "}
-                {formatearHora(reserva.hora_final)}
+                {formatearHora(reserva.start_time)} -{" "}
+                {formatearHora(reserva.end_time)}
               </Typography>
 
               {/* Sala */}
               <Chip
-                label={reserva.nombre_sala}
+                label={reserva.room_name}
                 size="small"
                 sx={{
                   backgroundColor: colorSala.bg,
@@ -259,7 +259,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {reserva.titulo_reunion || "Sin título"}
+                {reserva.meeting_title || "Sin título"}
               </Typography>
 
               {/* Área */}
@@ -274,13 +274,13 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {capitalize(reserva.area || "") || "-"}
+                {capitalize(reserva.departament || "") || "-"}
               </Typography>
 
               {/* Participantes — count + tooltip con SOLO nombres */}
               {(() => {
-                const participantes = Array.isArray(reserva.participantes)
-                  ? reserva.participantes
+                const participantes = Array.isArray(reserva.participants)
+                  ? reserva.participants
                   : [];
                 const total = participantes.length;
                 const nombres = participantes

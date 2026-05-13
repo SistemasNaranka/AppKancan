@@ -76,11 +76,11 @@ export const useResolutionsLogic = ({
 
   const resolucionesBuscadas = busqueda
     ? AllResolutions.filter(
-      (r) =>
-        r.numero_formulario.toLowerCase().includes(busqueda.toLowerCase()) ||
-        r.tienda_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-        r.prefijo.toLowerCase().includes(busqueda.toLowerCase()),
-    )
+        (r) =>
+          r.numero_formulario.toLowerCase().includes(busqueda.toLowerCase()) ||
+          r.tienda_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+          r.prefijo.toLowerCase().includes(busqueda.toLowerCase()),
+      )
     : AllResolutions;
 
   const totalPendientes = AllResolutions.filter(
@@ -159,16 +159,16 @@ export const useResolutionsLogic = ({
 
     try {
       await createResolution({
-        numero_formulario: resolucionSeleccionada.numero_formulario,
-        razon_social: resolucionSeleccionada.razon_social,
-        prefijo: resolucionSeleccionada.prefijo,
-        desde_numero: resolucionSeleccionada.desde_numero,
-        hasta_numero: resolucionSeleccionada.hasta_numero,
-        vigencia: resolucionSeleccionada.vigencia,
-        tipo_solicitud: resolucionSeleccionada.tipo_solicitud,
-        fecha_creacion: resolucionSeleccionada.fecha_creacion,
-        fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
-        estado: "Pendiente",
+        form_number: resolucionSeleccionada.numero_formulario,
+        business_name: resolucionSeleccionada.razon_social,
+        prefix: resolucionSeleccionada.prefijo,
+        start_number: resolucionSeleccionada.desde_numero,
+        end_number: resolucionSeleccionada.hasta_numero,
+        validity: resolucionSeleccionada.vigencia,
+        request_type: resolucionSeleccionada.tipo_solicitud,
+        creation_date: resolucionSeleccionada.fecha_creacion,
+        expiration_date: resolucionSeleccionada.fecha_vencimiento,
+        status: "Pendiente",
       });
 
       const datos = await getResolutions();
@@ -218,16 +218,16 @@ export const useResolutionsLogic = ({
 
     try {
       await createResolution({
-        numero_formulario: resolucionSeleccionada.numero_formulario,
-        razon_social: resolucionSeleccionada.razon_social,
-        prefijo: resolucionSeleccionada.prefijo,
-        desde_numero: resolucionSeleccionada.desde_numero,
-        hasta_numero: resolucionSeleccionada.hasta_numero,
-        vigencia: resolucionSeleccionada.vigencia,
-        tipo_solicitud: resolucionSeleccionada.tipo_solicitud,
-        fecha_creacion: resolucionSeleccionada.fecha_creacion,
-        fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
-        estado: "Activo",
+        form_number: resolucionSeleccionada.numero_formulario,
+        business_name: resolucionSeleccionada.razon_social,
+        prefix: resolucionSeleccionada.prefijo,
+        start_number: resolucionSeleccionada.desde_numero,
+        end_number: resolucionSeleccionada.hasta_numero,
+        validity: resolucionSeleccionada.vigencia,
+        request_type: resolucionSeleccionada.tipo_solicitud,
+        creation_date: resolucionSeleccionada.fecha_creacion,
+        expiration_date: resolucionSeleccionada.fecha_vencimiento,
+        status: "Activo",
       });
 
       // Codificar parámetros para URL
@@ -284,16 +284,16 @@ export const useResolutionsLogic = ({
 
     try {
       await createResolution({
-        numero_formulario: resolucionSeleccionada.numero_formulario,
-        razon_social: resolucionSeleccionada.razon_social,
-        prefijo: resolucionSeleccionada.prefijo,
-        desde_numero: resolucionSeleccionada.desde_numero,
-        hasta_numero: resolucionSeleccionada.hasta_numero,
-        vigencia: resolucionSeleccionada.vigencia,
-        tipo_solicitud: resolucionSeleccionada.tipo_solicitud,
-        fecha_creacion: resolucionSeleccionada.fecha_creacion,
-        fecha_vencimiento: resolucionSeleccionada.fecha_vencimiento,
-        estado: "Activo",
+        form_number: resolucionSeleccionada.numero_formulario,
+        business_name: resolucionSeleccionada.razon_social,
+        prefix: resolucionSeleccionada.prefijo,
+        start_number: resolucionSeleccionada.desde_numero,
+        end_number: resolucionSeleccionada.hasta_numero,
+        validity: resolucionSeleccionada.vigencia,
+        request_type: resolucionSeleccionada.tipo_solicitud,
+        creation_date: resolucionSeleccionada.fecha_creacion,
+        expiration_date: resolucionSeleccionada.fecha_vencimiento,
+        status: "Activo",
       });
 
       // Codificar parámetros para URL

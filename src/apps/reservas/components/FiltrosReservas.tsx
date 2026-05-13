@@ -45,7 +45,7 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
   };
 
   const tieneFiltrosActivos = () => {
-    return !!(filtros.fecha || filtros.nombre_sala || filtros.estado);
+    return !!(filtros.date || filtros.room_name || filtros.status);
   };
 
   return (
@@ -97,8 +97,8 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
           <TextField
             type="date"
             label="Fecha"
-            value={filtros.fecha || ""}
-            onChange={(e) => handleChange("fecha", e.target.value)}
+            value={filtros.date || ""}
+            onChange={(e) => handleChange("date", e.target.value)}
             InputLabelProps={{ shrink: true }}
             fullWidth
             size="small"
@@ -108,8 +108,8 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
           <TextField
             select
             label="Sala"
-            value={filtros.nombre_sala || ""}
-            onChange={(e) => handleChange("nombre_sala", e.target.value)}
+            value={filtros.room_name || ""}
+            onChange={(e) => handleChange("room_name", e.target.value)}
             fullWidth
             size="small"
           >
@@ -125,8 +125,8 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
           <TextField
             select
             label="Estado"
-            value={filtros.estado || ""}
-            onChange={(e) => handleChange("estado", e.target.value)}
+            value={filtros.status || ""}
+            onChange={(e) => handleChange("status", e.target.value)}
             fullWidth
             size="small"
           >

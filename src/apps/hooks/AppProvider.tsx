@@ -77,7 +77,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
             "Tu cuenta tiene múltiples áreas asignadas. Contacta a soporte.",
         });
       } else {
-        const areaValue = areaUsuario[0].area?.toLowerCase() || null;
+        const areaValue = areaUsuario[0].department?.toLowerCase() || null;
         setArea(areaValue);
         setLoading(false);
 

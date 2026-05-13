@@ -7,8 +7,8 @@ import {
   useTheme,
   alpha,
 } from "@mui/material";
-import Close from '@mui/icons-material/Close';
-import Groups from '@mui/icons-material/Groups';
+import Close from "@mui/icons-material/Close";
+import Groups from "@mui/icons-material/Groups";
 import { EmpleadoAsignado } from "../../types/modal";
 
 interface AssignedEmployeesListProps {
@@ -231,7 +231,7 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
                     width: "100%",
                   }}
                 >
-                  {empleado.asesor.nombre || `Empleado ${empleado.asesor.id}`}
+                  {empleado.asesor.name || `Empleado ${empleado.asesor.id}`}
                 </Typography>
 
                 {/* Cargo - segunda línea - LETRA MÁS GRANDE */}

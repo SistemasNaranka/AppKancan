@@ -2,11 +2,11 @@ import { Box, Typography, Chip, useTheme, alpha, CircularProgress } from "@mui/m
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import Warning from '@mui/icons-material/Warning';
 import Badge from '@mui/icons-material/Badge';
-import { DirectusAsesor } from "../../types/modal";
+import { DirectusStaff } from "../../types/modal";
 
 interface EmployeeInfoCardProps {
   codigoInput: string;
-  empleadoEncontrado: DirectusAsesor | null;
+  empleadoEncontrado: DirectusStaff | null;
   loading?: boolean;
   isMobile?: boolean;
 }
@@ -94,7 +94,7 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({
                 textOverflow: "ellipsis",
               }}
             >
-              {empleadoEncontrado.nombre || `Empleado ${empleadoEncontrado.id}`}
+              {empleadoEncontrado.name || `Empleado ${empleadoEncontrado.id}`}
             </Typography>
             <Chip
               icon={<Badge sx={{ fontSize: 14 }} />}

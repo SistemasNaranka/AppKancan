@@ -64,28 +64,28 @@ const processCommissionData = async (selectedMonth: string) => {
 
   // Convertir presupuestos diarios a BudgetRecord
   const budgets = presupuestosDiarios.map((p: any) => {
-    const tienda = tiendas.find((t: any) => t.id === p.tienda_id);
-    const presupuesto = parseFloat(p.presupuesto) || 0;
+    const tienda = tiendas.find((t: any) => t.id === p.store_id);
+    const presupuesto = parseFloat(p.budget) || 0;
     return {
-      tienda: tienda?.nombre || `Tienda ID ${p.tienda_id}`,
-      tienda_id: p.tienda_id,
-      empresa: tienda?.empresa || "Empresa Desconocida",
-      fecha: p.fecha,
+      tienda: tienda?.name || `Tienda ID ${p.store_id}`,
+      tienda_id: p.store_id,
+      empresa: tienda?.company || "Empresa Desconocida",
+      fecha: p.date,
       presupuesto_total: presupuesto,
     };
   });
 
   // Agregar tiendas sin presupuestos diarios con presupuesto 0
   const tiendasConPresupuestos = new Set(
-    presupuestosDiarios.map((p: any) => p.tienda_id),
+    presupuestosDiarios.map((p: any) => p.store_id),
   );
 
   tiendas.forEach((tienda: any) => {
     if (!tiendasConPresupuestos.has(tienda.id)) {
       budgets.push({
-        tienda: tienda.nombre,
+        tienda: tienda.name,
         tienda_id: tienda.id,
-        empresa: tienda.empresa || "Empresa Desconocida",
+        empresa: tienda.company || "Empresa Desconocida",
         fecha: fechaFin,
         presupuesto_total: 0,
       });
@@ -95,23 +95,23 @@ const processCommissionData = async (selectedMonth: string) => {
   // Crear staff basado en presupuestos asignados
   const staff: any[] = [];
   const presupuestosDelMes = presupuestosEmpleadosData.filter((pe: any) => {
-    return pe.fecha >= fechaInicio && pe.fecha <= fechaFin;
+    return pe.date >= fechaInicio && pe.date <= fechaFin;
   });
 
   // Crear staff basado en presupuestos asignados
   presupuestosDelMes.forEach((pe: any) => {
-    const asesor = asesores.find((a: any) => a.id === pe.asesor);
+    const asesor = asesores.find((a: any) => a.id === pe.advisor_id);
     if (!asesor) return;
 
-    const tienda = tiendas.find((t: any) => t.id === pe.tienda_id);
+    const tienda = tiendas.find((t: any) => t.id === pe.store_id);
 
     // Obtener nombre del cargo
     let cargoNombre = "asesor";
-    if (typeof pe.cargo === "string") {
-      cargoNombre = pe.cargo.toLowerCase();
-    } else if (typeof pe.cargo === "number") {
-      const cargo = cargos.find((c: any) => c.id === pe.cargo);
-      cargoNombre = cargo ? cargo.nombre.toLowerCase() : "asesor";
+    if (typeof pe.position_id === "string") {
+      cargoNombre = pe.position_id.toLowerCase();
+    } else if (typeof pe.position_id === "number") {
+      const cargo = cargos.find((c: any) => c.id === pe.position_id);
+      cargoNombre = cargo ? cargo.name.toLowerCase() : "asesor";
     }
 
     // Mapear a roles estándar
@@ -130,29 +130,29 @@ const processCommissionData = async (selectedMonth: string) => {
 
     staff.push({
       id: asesor.id.toString(),
-      nombre: asesor.nombre || `Empleado ${asesor.id}`,
-      documento: asesor.documento,
-      tienda: tienda?.nombre || `Tienda ID ${pe.tienda_id}`,
-      fecha: pe.fecha,
+      nombre: asesor.name || `Empleado ${asesor.id}`,
+      documento: asesor.document,
+      tienda: tienda?.name || `Tienda ID ${pe.store_id}`,
+      fecha: pe.date,
       rol: rol,
-      cargo_id: pe.cargo,
+      cargo_id: pe.position_id,
     });
   });
 
   // Agregar empleados adicionales de todas las tiendas
   const empleadosConPresupuestos = new Set(
-    presupuestosDelMes.map((pe: any) => pe.asesor.toString()),
+    presupuestosDelMes.map((pe: any) => pe.advisor_id.toString()),
   );
 
   asesores.forEach((asesor: any) => {
     if (!empleadosConPresupuestos.has(asesor.id.toString())) {
-      const tiendaAsesor = tiendas.find((t: any) => t.id === asesor.tienda_id);
+      const tiendaAsesor = tiendas.find((t: any) => t.id === asesor.store_id);
       if (tiendaAsesor) {
         let rol = "asesor";
-        if (asesor.cargo_id) {
-          const cargo = cargos.find((c: any) => c.id === asesor.cargo_id);
+        if (asesor.position_id) {
+          const cargo = cargos.find((c: any) => c.id === asesor.position_id);
           if (cargo) {
-            const cargoNombre = cargo.nombre.toLowerCase();
+            const cargoNombre = cargo.name.toLowerCase();
             rol =
               cargoNombre === "gerente"
                 ? "gerente"
@@ -170,15 +170,15 @@ const processCommissionData = async (selectedMonth: string) => {
 
         staff.push({
           id: asesor.id.toString(),
-          nombre: asesor.nombre || `Empleado ${asesor.id}`,
-          documento: asesor.documento,
-          tienda: tiendaAsesor.nombre,
+          nombre: asesor.name || `Empleado ${asesor.id}`,
+          documento: asesor.document,
+          tienda: tiendaAsesor.name,
           fecha: fechaFin,
           rol: rol,
           cargo_id:
-            typeof asesor.cargo_id === "object"
-              ? asesor.cargo_id.id
-              : asesor.cargo_id,
+            typeof asesor.position_id === "object"
+              ? asesor.position_id.id
+              : asesor.position_id,
         });
       }
     }
@@ -205,34 +205,43 @@ const processCommissionData = async (selectedMonth: string) => {
     return {
       mes: `${monthName} ${year}`,
       porcentaje_gerente: p.gerente_porcentaje,
+      role_config: (p.role_config || []).map((rc: any) => ({
+        role: rc.role,
+        calculation_type: rc.calculation_type,
+        percentage: rc.percentage,
+      })),
     };
   });
 
   // Procesar ventas por empleado
   const ventasDelMes = ventasEmpleados.filter((ve: any) => {
-    return ve.fecha >= fechaInicio && ve.fecha <= fechaFin;
+    return ve.date >= fechaInicio && ve.date <= fechaFin;
   });
 
   const ventasMap = new Map<string, any>();
 
   ventasDelMes.forEach((ve: any) => {
-    const tienda = tiendas.find((t: any) => t.id === ve.tienda_id);
+    const storeId = ve.store_id?.id || ve.store_id;
+    const tienda = tiendas.find((t: any) => String(t.id) === String(storeId));
     if (!tienda) return;
 
-    const key = `${tienda.nombre}-${ve.fecha}`;
+    const key = `${tienda.name}-${ve.date}`;
 
     if (!ventasMap.has(key)) {
       ventasMap.set(key, {
-        tienda: tienda.nombre,
-        fecha: ve.fecha,
+        tienda: tienda.name,
+        fecha: ve.date,
         ventas_tienda: 0,
         ventas_por_asesor: {},
       });
     }
 
     const ventaData = ventasMap.get(key);
-    ventaData.ventas_por_asesor[ve.asesor_id.toString()] = ve.venta;
-    ventaData.ventas_tienda += ve.venta;
+    const advisorId = ve.advisor_id?.id || ve.advisor_id;
+    const saleValue = parseFloat(ve.sale) || 0;
+
+    ventaData.ventas_por_asesor[advisorId.toString()] = saleValue;
+    ventaData.ventas_tienda += saleValue;
   });
 
   const ventas = Array.from(ventasMap.values());
@@ -242,7 +251,7 @@ const processCommissionData = async (selectedMonth: string) => {
     ? {
         mes: umbralesData.mes,
         anio: umbralesData.anio,
-        cumplimiento_valores: umbralesData.cumplimiento_valores,
+        compliance_values: umbralesData.compliance_values,
       }
     : null;
 

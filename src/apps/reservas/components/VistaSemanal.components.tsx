@@ -169,7 +169,7 @@ export const EncabezadoDia: React.FC<{
   const esHoy = isSameDay(dia, hoy);
   const fechaStr = format(dia, "yyyy-MM-dd");
   const reservaEnCurso = reservasSemana.find(
-    (r) => r.fecha === fechaStr && r.estadoCalculado?.toLowerCase() === "en curso",
+    (r) => r.date === fechaStr && r.status?.toLowerCase() === "en curso",
   );
   const esFestivo = Boolean(nombreFestivo);
   const bg = esHoy ? "#EFF6FF" : esFestivo ? "#fef2f2" : "#f9fafb";
@@ -192,8 +192,8 @@ export const EncabezadoDia: React.FC<{
         </Typography>
         {reservaEnCurso && (
           <PulsatingMeetingIndicator
-            meetingDate={fechaStr} startTime={reservaEnCurso.hora_inicio}
-            endTime={reservaEnCurso.hora_final} size={6} color="success"
+            meetingDate={fechaStr} startTime={reservaEnCurso.start_time}
+            endTime={reservaEnCurso.end_time} size={6} color="success"
           />
         )}
       </Box>
@@ -214,9 +214,9 @@ export const BloqueReserva: React.FC<{
   onClick: (e: React.MouseEvent<HTMLElement>, r: Reserva) => void;
 }> = ({ reserva, hora, esInicio, esFin, posicion, onClick }) => {
   const colorReserva = getReservaColor(reserva.id);
-  const esVigente = (reserva.estadoCalculado || reserva.estado)?.toLowerCase() === "vigente";
-  const [, minIni] = reserva.hora_inicio.split(":").map(Number);
-  const [, minFin] = reserva.hora_final.split(":").map(Number);
+  const esVigente = (reserva.estadoCalculado || reserva.status)?.toLowerCase() === "vigente";
+  const [, minIni] = reserva.start_time.split(":").map(Number);
+  const [, minFin] = reserva.end_time.split(":").map(Number);
   const tieneHorasMedias = minIni > 0 || minFin > 0;
   const alturaCompleta = Math.abs(posicion.height - 60) < 1;
   const borderRadius = alturaCompleta || (esInicio && esFin) ? "8px"
@@ -238,7 +238,7 @@ export const BloqueReserva: React.FC<{
             fontSize: "0.75rem", fontWeight: 700, color: "#ffffff", lineHeight: 1.2,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0,
           }}>
-            {reserva.titulo_reunion || "Sin título"}
+            {reserva.meeting_title || "Sin título"}
           </Typography>
           {esVigente && (
             <Box sx={{
@@ -327,7 +327,7 @@ export const PopoverDetalleReserva: React.FC<{
 }> = ({ anchorEl, reservaSeleccionada, usuarioActualId, onClose, onEditar, onCancelar }) => {
   if (!reservaSeleccionada) return null;
   const colorReserva = getReservaColor(reservaSeleccionada.id);
-  const estado = reservaSeleccionada.estadoCalculado || reservaSeleccionada.estado;
+  const estado = reservaSeleccionada.estadoCalculado || reservaSeleccionada.status;
   const puedeMod = puedeModificar(reservaSeleccionada, usuarioActualId);
 
   return (
@@ -342,7 +342,7 @@ export const PopoverDetalleReserva: React.FC<{
             fontWeight: 600, color: "#ffffff", overflow: "hidden",
             textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
           }}>
-            {reservaSeleccionada.titulo_reunion || "Sin título"}
+            {reservaSeleccionada.meeting_title || "Sin título"}
           </Typography>
           <Chip label={estado} size="small" sx={{ mt: 0.5, backgroundColor: "rgba(255,255,255,0.25)", color: "#ffffff", fontWeight: 600, fontSize: "0.7rem", height: 20 }} />
         </Box>
@@ -374,29 +374,29 @@ export const PopoverDetalleReserva: React.FC<{
       <Box sx={{ p: 2 }}>
         <DetalleItem icon={<TimeIcon sx={{ color: "#6b7280", fontSize: 20 }} />}>
           <Typography variant="body2">
-            {reservaSeleccionada.hora_inicio.substring(0, 5)} – {reservaSeleccionada.hora_final.substring(0, 5)}
+            {reservaSeleccionada.start_time.substring(0, 5)} – {reservaSeleccionada.end_time.substring(0, 5)}
           </Typography>
         </DetalleItem>
         <DetalleItem icon={<RoomIcon sx={{ color: "#6b7280", fontSize: 20 }} />}>
-          <Typography variant="body2">{reservaSeleccionada.nombre_sala}</Typography>
+          <Typography variant="body2">{reservaSeleccionada.room_name}</Typography>
         </DetalleItem>
-        {reservaSeleccionada.usuario_id && (
+        {reservaSeleccionada.user_id && (
           <DetalleItem icon={<PersonIcon sx={{ color: "#6b7280", fontSize: 20 }} />}>
             <Typography variant="body2">
-              {reservaSeleccionada.usuario_id.first_name} {reservaSeleccionada.usuario_id.last_name}
+              {reservaSeleccionada.user_id.first_name} {reservaSeleccionada.user_id.last_name}
             </Typography>
           </DetalleItem>
         )}
-        {reservaSeleccionada.area && (
+        {reservaSeleccionada.departament && (
           <DetalleItem icon={<AreaIcon sx={{ color: "#6b7280", fontSize: 20 }} />}>
-            <Typography variant="body2">{capitalize(reservaSeleccionada.area)}</Typography>
+            <Typography variant="body2">{capitalize(reservaSeleccionada.departament)}</Typography>
           </DetalleItem>
         )}
-        {reservaSeleccionada.observaciones && (
+        {reservaSeleccionada.observations && (
           <DetalleItem icon={<NotesIcon sx={{ color: "#6b7280", fontSize: 20, mt: 0.25 }} />}
             alignItems="flex-start" sx={{ mb: 0, mt: 2, pt: 2, borderTop: "1px solid #e0e0e0" }}>
             <Typography variant="body2" sx={{ color: "#374151", whiteSpace: "pre-wrap" }}>
-              {reservaSeleccionada.observaciones}
+              {reservaSeleccionada.observations}
             </Typography>
           </DetalleItem>
         )}

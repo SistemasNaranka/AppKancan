@@ -45,21 +45,21 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
   // Filtrar solo reservas vigentes y en curso (no mostrar finalizadas ni canceladas)
   const reservasFiltradas = reservas.filter((reserva) => {
     const estado =
-      (reserva.estadoCalculado || reserva.estado)?.toLowerCase() || "";
+      (reserva.estadoCalculado || reserva.status)?.toLowerCase() || "";
     return estado === "vigente" || estado === "en curso";
   });
 
   const puedeModificar = (reserva: Reserva): boolean => {
     if (!usuarioActualId) return false;
-    if (!reserva.usuario_id) return false;
-    if (reserva.usuario_id.id !== usuarioActualId) return false;
+    if (!reserva.user_id) return false;
+    if (reserva.user_id.id !== usuarioActualId) return false;
 
     // Usar estado calculado para determinar si puede modificarse
-    const estadoActual = reserva.estadoCalculado || reserva.estado;
+    const estadoActual = reserva.estadoCalculado || reserva.status;
     if (!puedeModificarse(estadoActual)) return false;
 
     const ahora = new Date();
-    const fechaReserva = new Date(`${reserva.fecha}T${reserva.hora_inicio}`);
+    const fechaReserva = new Date(`${reserva.date}T${reserva.start_time}`);
 
     return fechaReserva > ahora;
   };
@@ -80,15 +80,15 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
   };
 
   const getNombreUsuario = (reserva: Reserva): string => {
-    if (!reserva.usuario_id) {
+    if (!reserva.user_id) {
       return "Usuario no disponible";
     }
-    return `${reserva.usuario_id.first_name} ${reserva.usuario_id.last_name}`;
+    return `${reserva.user_id.first_name} ${reserva.user_id.last_name}`;
   };
 
   // Obtener el estado a mostrar (calculado o guardado)
   const getEstadoMostrar = (reserva: Reserva): EstadoReserva => {
-    return (reserva.estadoCalculado || reserva.estado) as EstadoReserva;
+    return (reserva.estadoCalculado || reserva.status) as EstadoReserva;
   };
 
   if (loading) {
@@ -167,11 +167,11 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
                 {/* Sala */}
                 <TableCell>
                   <Typography variant="body1" sx={{ fontWeight: "600" }}>
-                    {reserva.nombre_sala}
+                    {reserva.room_name}
                   </Typography>
-                  {reserva.observaciones && (
+                  {reserva.observations && (
                     <Typography variant="caption" color="text.secondary">
-                      {reserva.observaciones}
+                      {reserva.observations}
                     </Typography>
                   )}
                 </TableCell>
@@ -183,21 +183,21 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
                 {/* Fecha */}
                 <TableCell>
                   <Typography variant="body2">
-                    {formatearFecha(reserva.fecha)}
+                    {formatearFecha(reserva.date)}
                   </Typography>
                 </TableCell>
 
                 {/* Hora Inicio */}
                 <TableCell>
                   <Typography variant="body2">
-                    {formatearHora(reserva.hora_inicio)}
+                    {formatearHora(reserva.start_time)}
                   </Typography>
                 </TableCell>
 
                 {/* Hora Fin */}
                 <TableCell>
                   <Typography variant="body2">
-                    {formatearHora(reserva.hora_final)}
+                    {formatearHora(reserva.end_time)}
                   </Typography>
                 </TableCell>
 

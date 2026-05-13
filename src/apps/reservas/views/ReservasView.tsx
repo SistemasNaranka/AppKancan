@@ -306,7 +306,7 @@ const ReservasViewContent: React.FC = () => {
     // Agregar el área del usuario a los datos de la reserva
     const datosConArea = {
       ...datos,
-      area: area || null,
+      departament: area || undefined,
     };
     await mutationCrear.mutateAsync(datosConArea);
   };
@@ -366,13 +366,13 @@ const ReservasViewContent: React.FC = () => {
         const result = await notificarCorreoReserva({
           evento: "reserva_cancelada",
           reserva: {
-            nombre_sala: reservaSeleccionada.nombre_sala,
-            fecha: reservaSeleccionada.fecha,
-            hora_inicio: (reservaSeleccionada.hora_inicio || "").substring(0, 5),
-            hora_final: (reservaSeleccionada.hora_final || "").substring(0, 5),
-            titulo_reunion: reservaSeleccionada.titulo_reunion || "",
-            observaciones: reservaSeleccionada.observaciones || "",
-            participantes: (reservaSeleccionada as any).participantes || [],
+            room_name: reservaSeleccionada.room_name,
+            date: reservaSeleccionada.date,
+            start_time: (reservaSeleccionada.start_time || "").substring(0, 5),
+            end_time: (reservaSeleccionada.end_time || "").substring(0, 5),
+            meeting_title: reservaSeleccionada.meeting_title || "",
+            observations: reservaSeleccionada.observations || "",
+            participants: (reservaSeleccionada as any).participants || [],
           },
           // Campo extra fuera del type — n8n lo recibe en data.motivo
           ...({ motivo: motivoCancelacion.trim() } as any),
@@ -621,8 +621,8 @@ const ReservasViewContent: React.FC = () => {
                   variant="body2"
                   sx={{ color: "#065F46", fontWeight: "bold", textAlign: "center" }}
                 >
-                  Mostrando solo tu reserva de ejemplo: "{userCreatedReservation.titulo_reunion}" 
-                  en {userCreatedReservation.nombre_sala}
+                  Mostrando solo tu reserva de ejemplo: "{userCreatedReservation.meeting_title}" 
+                  en {userCreatedReservation.room_name}
                 </Typography>
               </Box>
             )}
@@ -636,7 +636,7 @@ const ReservasViewContent: React.FC = () => {
                 usuarioActualId={user?.id}
                 vistaCalendario={vistaCalendario}
                 onCambiarVista={setVistaCalendario}
-                salaInicial={salaInicial || userCreatedReservation?.nombre_sala}
+                salaInicial={salaInicial || userCreatedReservation?.room_name}
               />
             ) : (
               <VistaCalendario
@@ -646,7 +646,7 @@ const ReservasViewContent: React.FC = () => {
                 usuarioActualId={user?.id}
                 vistaCalendario={vistaCalendario}
                 onCambiarVista={setVistaCalendario}
-                salaInicial={salaInicial || userCreatedReservation?.nombre_sala}
+                salaInicial={salaInicial || userCreatedReservation?.room_name}
               />
             )}
           </Box>
@@ -787,7 +787,7 @@ const ReservasViewContent: React.FC = () => {
               </Box>
 
               {/* Título de la reunión */}
-              {reservaSeleccionada?.titulo_reunion && (
+              {reservaSeleccionada?.meeting_title && (
                 <Box
                   sx={{
                     px: 2,
@@ -799,7 +799,7 @@ const ReservasViewContent: React.FC = () => {
                     Reunión
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "#111827", mt: 0.3 }}>
-                    {reservaSeleccionada.titulo_reunion}
+                    {reservaSeleccionada.meeting_title}
                   </Typography>
                 </Box>
               )}
@@ -821,7 +821,7 @@ const ReservasViewContent: React.FC = () => {
                     Sala
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "#111827", lineHeight: 1.3 }}>
-                    {reservaSeleccionada?.nombre_sala}
+                    {reservaSeleccionada?.room_name}
                   </Typography>
                 </Box>
               </Box>
@@ -843,14 +843,14 @@ const ReservasViewContent: React.FC = () => {
                     Fecha
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "#111827", lineHeight: 1.3 }}>
-                    {reservaSeleccionada?.fecha
+                    {reservaSeleccionada?.date
                       ? (() => {
                           try {
-                            const [y, m, d] = reservaSeleccionada.fecha.split("-").map(Number);
+                            const [y, m, d] = reservaSeleccionada.date.split("-").map(Number);
                             const date = new Date(y, m - 1, d);
                             return format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
                           } catch {
-                            return reservaSeleccionada.fecha;
+                            return reservaSeleccionada.date;
                           }
                         })()
                       : ""}
@@ -883,7 +883,7 @@ const ReservasViewContent: React.FC = () => {
                         const h12 = hh > 12 ? hh - 12 : hh === 0 ? 12 : hh;
                         return `${h12}:${String(mm).padStart(2, "0")} ${ampm}`;
                       };
-                      return `${fmt(reservaSeleccionada?.hora_inicio)} — ${fmt(reservaSeleccionada?.hora_final)}`;
+                      return `${fmt(reservaSeleccionada?.start_time)} — ${fmt(reservaSeleccionada?.end_time)}`;
                     })()}
                   </Typography>
                 </Box>

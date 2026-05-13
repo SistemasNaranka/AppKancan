@@ -32,8 +32,8 @@ const useConfiguracionHoras = () => {
       if (isError) console.warn("⚠️ Usando configuración por defecto de horarios");
       return generarHorasRango(CONFIGURACION_POR_DEFECTO.hora_inicio_operacion, CONFIGURACION_POR_DEFECTO.hora_fin_operacion);
     }
-    const horaInicio = data.hora_apertura?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_inicio_operacion;
-    const horaFin = data.hora_cierre?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
+    const horaInicio = data.opening_time?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_inicio_operacion;
+    const horaFin = data.closing_time?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
     return generarHorasRango(horaInicio, horaFin);
   }, [data, isLoading, isError]);
 
@@ -64,10 +64,10 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     const fechaInicio = format(diasSemana[0], "yyyy-MM-dd");
     const fechaFin = format(diasSemana[4], "yyyy-MM-dd");
     return reservas.filter((r) => {
-      const estado = (r.estadoCalculado || r.estado)?.toLowerCase();
+      const estado = (r.estadoCalculado || r.status)?.toLowerCase();
       if (ESTADOS_EXCLUIDOS.includes(estado)) return false;
-      if (r.nombre_sala !== salaSeleccionada) return false;
-      return r.fecha >= fechaInicio && r.fecha <= fechaFin;
+      if (r.room_name !== salaSeleccionada) return false;
+      return r.date >= fechaInicio && r.date <= fechaFin;
     });
   }, [reservas, diasSemana, salaSeleccionada]);
 

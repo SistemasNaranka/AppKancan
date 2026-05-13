@@ -178,17 +178,17 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
         const item = data[0] as any;
         setCurrentRecordId(item.id); // Guardamos el ID del registro encontrado
         if (
-          item.configuracion_roles &&
-          Array.isArray(item.configuracion_roles) &&
-          item.configuracion_roles.length > 0
+          item.role_config &&
+          Array.isArray(item.role_config) &&
+          item.role_config.length > 0
         ) {
-          const configs: RoleConfigRow[] = item.configuracion_roles.map(
+          const configs: RoleConfigRow[] = item.role_config.map(
             (c: any, index: number) => ({
               id: `row-${index}-${Date.now()}`,
-              rol: c.rol,
+              rol: c.role,
               tipo_calculo:
-                c.tipo_calculo === "Distributivo" ? "Distributivo" : "Fijo",
-              porcentaje: c.porcentaje?.toString() || "",
+                c.calculation_type === "Distributive" ? "Distributivo" : "Fijo",
+              porcentaje: c.percentage?.toString() || "",
             }),
           );
           setRoleConfigs(configs);
@@ -279,9 +279,9 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
         id: currentRecordId, // Le pasamos el ID explícito para que sepa exactamente qué actualizar
         mes: `${selectedYear}-${selectedMonth}`,
         roleConfigs: validConfigs.map((c) => ({
-          rol: c.rol,
-          tipo_calculo: c.tipo_calculo,
-          porcentaje: parseFloat(c.porcentaje) || 0,
+          role: c.rol,
+          calculation_type: c.tipo_calculo,
+          percentage: parseFloat(c.porcentaje) || 0,
         })),
       });
       setSuccess("Configuraciones guardadas exitosamente.");
@@ -450,11 +450,11 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                     >
                       {cargos.map((c) => (
                         <MenuItem
-                          key={c.id || c.nombre}
-                          value={c.nombre}
+                          key={c.id || c.name}
+                          value={c.name}
                           sx={{ fontSize: "0.95rem" }}
                         >
-                          {c.nombre}
+                          {c.name}
                         </MenuItem>
                       ))}
                     </Select>

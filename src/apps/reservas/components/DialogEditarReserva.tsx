@@ -277,31 +277,31 @@ const DialogEditarReserva: React.FC<
   const schema = useMemo(
     () =>
       yup.object({
-        nombre_sala: yup
+        room_name: yup
           .string()
           .required(
             "Selecciona una sala",
           ),
 
-        fecha: yup
+        date: yup
           .string()
           .required(
             "Selecciona una fecha",
           ),
 
-        hora_inicio: yup
+        start_time: yup
           .string()
           .required(
             "Selecciona hora de inicio",
           ),
 
-        hora_final: yup
+        end_time: yup
           .string()
           .required(
             "Selecciona hora de fin",
           ),
 
-        titulo: yup
+        meeting_title: yup
           .string()
           .required(
             "El título es obligatorio",
@@ -315,22 +315,22 @@ const DialogEditarReserva: React.FC<
             "Máximo 100 caracteres",
           ),
 
-        observaciones: yup
+        observations: yup
           .string()
           .max(
             500,
             "Máximo 500 caracteres",
           ),
 
-        participantes: yup.array().of(
+        participants: yup.array().of(
           yup.object({
-            nombre: yup
+            name: yup
               .string()
               .required(
                 "El nombre es obligatorio",
               ),
 
-            correo: yup
+            email: yup
               .string()
               .matches(
                 EMAIL_REGEX,
@@ -361,14 +361,14 @@ const DialogEditarReserva: React.FC<
     resolver:
       yupResolver(schema),
     defaultValues: {
-      nombre_sala: "" as Sala,
-      fecha: "",
-      hora_inicio:
+      room_name: "" as Sala,
+      date: "",
+      start_time:
         horarioConfig.horaApertura,
-      hora_final: "",
-      titulo: "",
-      observaciones: "",
-      participantes: [],
+      end_time: "",
+      meeting_title: "",
+      observations: "",
+      participants: [],
     },
   });
 
@@ -378,7 +378,7 @@ const DialogEditarReserva: React.FC<
     remove,
   } = useFieldArray({
     control,
-    name: "participantes",
+    name: "participants",
   });
 
 
@@ -387,21 +387,22 @@ const DialogEditarReserva: React.FC<
   // ================================
 
   const horaInicioWatch =
-    watch("hora_inicio");
+    watch("start_time");
 
   const horaFinalWatch =
-    watch("hora_final");
+    watch("end_time");
 
   const observacionesWatch =
-    watch("observaciones");
+    watch("observations");
 
   const caracteresObservaciones = observacionesWatch?.length || 0;
   const caracteresRestantes = 500 - caracteresObservaciones;
   const aproximandoLimite = caracteresObservaciones >= 450;
 
-  const shouldDisableDate = (date: Date) => {
+  const shouldDisableDate = (day: Date | any) => {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
+    const date = day instanceof Date ? day : (day?.toDate?.() ?? new Date(day));
     return date < hoy;
   };
 
@@ -422,14 +423,14 @@ const DialogEditarReserva: React.FC<
           if (config) {
             setHorarioConfig({
               horaApertura:
-                config.hora_apertura?.substring(
+                config.opening_time?.substring(
                   0,
                   5,
                 ) ||
                 HORARIO_INICIO,
 
               horaCierre:
-                config.hora_cierre?.substring(
+                config.closing_time?.substring(
                   0,
                   5,
                 ) ||
@@ -460,23 +461,22 @@ const DialogEditarReserva: React.FC<
     if (!open || !reserva) return;
 
     // Normalizar participantes: aceptar tanto {nombre, correo} como {nombre, email}
-    const participantesNormalizados = Array.isArray(reserva.participantes)
-      ? reserva.participantes.map((p: any) => ({
-          nombre: p?.nombre ?? "",
-          correo: p?.correo ?? p?.email ?? "",
+    const participantesNormalizados = Array.isArray(reserva.participants)
+      ? reserva.participants.map((p: any) => ({
+          name: p?.name ?? "",
+          email: p?.email ?? p?.email ?? "",
         }))
       : [];
 
     reset({
-      nombre_sala: reserva.nombre_sala as Sala,
-      fecha: reserva.fecha,
-      hora_inicio: (reserva.hora_inicio || "").substring(0, 5),
-      hora_final: (reserva.hora_final || "").substring(0, 5),
-      titulo: reserva.titulo_reunion ?? "",
-      observaciones: reserva.observaciones ?? "",
-      participantes: participantesNormalizados,
+      date: reserva.date,
+      start_time: (reserva.start_time || "").substring(0, 5),
+      end_time: (reserva.end_time || "").substring(0, 5),
+      meeting_title: reserva.meeting_title ?? "",
+      observations  : reserva.observations ?? "",
+      participants: participantesNormalizados,
     });
-    setHoraInicioSeleccionada((reserva.hora_inicio || "").substring(0, 5));
+    setHoraInicioSeleccionada((reserva.start_time || "").substring(0, 5));
     setError(null);
   }, [open, reserva, reset]);
 
@@ -494,13 +494,13 @@ const DialogEditarReserva: React.FC<
         if (
           !fields.some(
             (f) =>
-              f.correo ===
+              (f as any).email ===
               tempCorreo,
           )
         ) {
           append({
-            nombre: tempNombre,
-            correo: tempCorreo,
+            name: tempNombre,
+            email: tempCorreo,
           });
 
           setTempNombre("");
@@ -563,7 +563,7 @@ const DialogEditarReserva: React.FC<
   ) => {
     if (newSala) {
       setValue(
-        "nombre_sala",
+        "room_name",
         newSala,
       );
     }
@@ -574,7 +574,7 @@ const DialogEditarReserva: React.FC<
   ) => {
     if (date) {
       setValue(
-        "fecha",
+        "date",
         format(
           date,
           "yyyy-MM-dd",
@@ -601,10 +601,10 @@ const DialogEditarReserva: React.FC<
         ) {
           const hayConflicto =
             await verificarConflicto(
-              data.nombre_sala,
-              data.fecha,
-              data.hora_inicio,
-              data.hora_final,
+              data.room_name,
+              data.date,
+              data.start_time,
+              data.end_time,
               reserva.id,
             );
 
@@ -624,13 +624,13 @@ const DialogEditarReserva: React.FC<
         }
 
         const payloadActualizacion = {
-          nombre_sala: data.nombre_sala,
-          fecha: data.fecha,
-          hora_inicio: data.hora_inicio,
-          hora_final: data.hora_final,
-          titulo_reunion: data.titulo,
-          observaciones: data.observaciones?.trim() || "",
-          participantes: data.participantes,
+          room_name: data.room_name,
+          date: data.date,
+          start_time: data.start_time,
+          end_time: data.end_time,
+          meeting_title: data.meeting_title,
+          observations: data.observations?.trim() || "",
+          participantes: data.participants,
         };
 
         await onSubmit(reserva.id, payloadActualizacion);
@@ -640,11 +640,11 @@ const DialogEditarReserva: React.FC<
         if (enviarCorreo) {
           // Detectar qué cambió respecto a la reserva original.
           const cambios = {
-            sala: reserva.nombre_sala !== data.nombre_sala,
-            fecha: reserva.fecha !== data.fecha,
-            hora_inicio: (reserva.hora_inicio || "").substring(0, 5) !== data.hora_inicio,
-            hora_final: (reserva.hora_final || "").substring(0, 5) !== data.hora_final,
-            titulo: (reserva.titulo_reunion || "") !== data.titulo,
+            sala: reserva.meeting_title !== data.meeting_title,
+            fecha: reserva.date !== data.date,
+            hora_inicio: (reserva.start_time || "").substring(0, 5) !== data.start_time,
+            hora_final: (reserva.end_time || "").substring(0, 5) !== data.end_time,
+            titulo: (reserva.meeting_title || "") !== data.meeting_title,
           };
           try {
             const result = await notificarCorreoReserva({
@@ -653,11 +653,11 @@ const DialogEditarReserva: React.FC<
               // Campos extra fuera del type para que n8n los reciba
               ...({
                 reserva_anterior: {
-                  nombre_sala: reserva.nombre_sala,
-                  fecha: reserva.fecha,
-                  hora_inicio: (reserva.hora_inicio || "").substring(0, 5),
-                  hora_final: (reserva.hora_final || "").substring(0, 5),
-                  titulo_reunion: reserva.titulo_reunion,
+                  nombre_sala: reserva.meeting_title,
+                  fecha: reserva.date,
+                  hora_inicio: (reserva.start_time || "").substring(0, 5),
+                  hora_final: (reserva.end_time || "").substring(0, 5),
+                  titulo_reunion: reserva.meeting_title,
                 },
                 cambios,
                 reserva_id: reserva.id,
@@ -744,15 +744,15 @@ const DialogEditarReserva: React.FC<
                       Título de la Reunión *
                     </Typography>
                     <Controller
-                      name="titulo"
+                      name="meeting_title"
                       control={control}
                       render={({ field }) => (
                         <TextField
                           {...field}
                           fullWidth
                           placeholder="ej. Sincronización Semanal"
-                          error={!!errors.titulo}
-                          helperText={errors.titulo?.message}
+                          error={!!errors.meeting_title}
+                          helperText={errors.meeting_title?.message}
                           disabled={loading}
                           size="small"
                           sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "white" } }}
@@ -767,7 +767,7 @@ const DialogEditarReserva: React.FC<
                       Seleccionar Sala *
                     </Typography>
                     <Controller
-                      name="nombre_sala"
+                      name="room_name"
                       control={control}
                       render={({ field }) => (
                         <ToggleButtonGroup
@@ -802,9 +802,9 @@ const DialogEditarReserva: React.FC<
                         </ToggleButtonGroup>
                       )}
                     />
-                    {errors.nombre_sala && (
+                    {errors.meeting_title && (
                       <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-                        {errors.nombre_sala.message}
+                        {errors.meeting_title.message}
                       </Typography>
                     )}
                   </Box>
@@ -837,10 +837,10 @@ const DialogEditarReserva: React.FC<
                           Hora de Inicio *
                         </Typography>
                         <Controller
-                          name="hora_inicio"
+                          name="start_time"
                           control={control}
                           render={({ field }) => (
-                            <FormControl fullWidth error={!!errors.hora_inicio}>
+                            <FormControl fullWidth error={!!errors.start_time}>
                               <Select
                                 {...field}
                                 disabled={loading || configCargando}
@@ -853,9 +853,9 @@ const DialogEditarReserva: React.FC<
                                   </MenuItem>
                                 ))}
                               </Select>
-                              {errors.hora_inicio && (
+                              {errors.start_time && (
                                 <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                  {errors.hora_inicio.message}
+                                  {errors.start_time.message}
                                 </Typography>
                               )}
                             </FormControl>
@@ -867,10 +867,10 @@ const DialogEditarReserva: React.FC<
                           Hora de Fin *
                         </Typography>
                         <Controller
-                          name="hora_final"
+                          name="end_time"
                           control={control}
                           render={({ field }) => (
-                            <FormControl fullWidth error={!!errors.hora_final}>
+                            <FormControl fullWidth error={!!errors.start_time}>
                               <Select
                                 {...field}
                                 disabled={loading || configCargando}
@@ -883,9 +883,9 @@ const DialogEditarReserva: React.FC<
                                   </MenuItem>
                                 ))}
                               </Select>
-                              {errors.hora_final && (
+                              {errors.start_time && (
                                 <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                  {errors.hora_final.message}
+                                  {errors.start_time.message}
                                 </Typography>
                               )}
                             </FormControl>
@@ -1047,7 +1047,7 @@ const DialogEditarReserva: React.FC<
                     }}
                   >
                     <Controller
-                      name="fecha"
+                      name="date"
                       control={control}
                       render={({ field }) => (
                         <StaticDatePicker
@@ -1056,9 +1056,10 @@ const DialogEditarReserva: React.FC<
                               ? parse(field.value, "yyyy-MM-dd", new Date())
                               : null
                           }
-                          onChange={(date) => {
+                          onChange={(date: any) => {
                             if (date) {
-                              field.onChange(format(date, "yyyy-MM-dd"));
+                              const d = date instanceof Date ? date : (date?.toDate?.() ?? new Date(date));
+                              field.onChange(format(d, "yyyy-MM-dd"));
                             }
                           }}
                           shouldDisableDate={shouldDisableDate}
@@ -1073,9 +1074,9 @@ const DialogEditarReserva: React.FC<
                       )}
                     />
                   </Box>
-                  {errors.fecha && (
+                  {errors.date && (
                     <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-                      {errors.fecha.message}
+                      {errors.date.message}
                     </Typography>
                   )}
 
@@ -1085,7 +1086,7 @@ const DialogEditarReserva: React.FC<
                       Observaciones
                     </Typography>
                     <Controller
-                      name="observaciones"
+                      name="observations"
                       control={control}
                       render={({ field }) => (
                         <TextField
@@ -1094,9 +1095,9 @@ const DialogEditarReserva: React.FC<
                           multiline
                           rows={3}
                           placeholder="Detalles adicionales..."
-                          error={!!errors.observaciones}
+                          error={!!errors.observations}
                           helperText={
-                            errors.observaciones?.message || (
+                            errors.observations?.message || (
                               <Typography
                                 component="span"
                                 sx={{

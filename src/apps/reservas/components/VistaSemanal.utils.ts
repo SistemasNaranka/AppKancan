@@ -68,7 +68,7 @@ export const formatearHora12h = (hora: string): string => {
 };
 
 export const getColorEstado = (reserva: Reserva) => {
-  const estado = (reserva.estadoCalculado || reserva.estado) as EstadoReserva;
+  const estado = (reserva.estadoCalculado || reserva.status) as EstadoReserva;
   return {
     bg: COLORES_ESTADO[estado] || "#F3F4F6",
     text: COLORES_TEXTO_ESTADO[estado] || "#374151",
@@ -76,14 +76,14 @@ export const getColorEstado = (reserva: Reserva) => {
 };
 
 export const puedeModificar = (reserva: Reserva, usuarioActualId?: string): boolean => {
-  if (!usuarioActualId || !reserva.usuario_id) return false;
-  if (reserva.usuario_id.id !== usuarioActualId) return false;
-  return puedeModificarse(reserva.estadoCalculado || reserva.estado);
+  if (!usuarioActualId || !reserva.user_id) return false;
+  if (reserva.user_id.id !== usuarioActualId) return false;
+  return puedeModificarse(reserva.estadoCalculado || reserva.status);
 };
 
 export const generarBloquesPorHora = (reserva: Reserva): BloqueHora[] => {
-  const [horaIni, minIni] = reserva.hora_inicio.split(":").map(Number);
-  const [horaFin, minFin] = reserva.hora_final.split(":").map(Number);
+  const [horaIni, minIni] = reserva.start_time.split(":").map(Number);
+  const [horaFin, minFin] = reserva.end_time.split(":").map(Number);
   const ALT = 60;
   const bloques: BloqueHora[] = [];
   const horaFinAjustada = minFin > 0 ? horaFin + 1 : horaFin;
@@ -119,7 +119,7 @@ export const getReservasEnCelda = (
   const horaNum = parseInt(hora.split(":")[0]);
   const resultado: ReservaEnCelda[] = [];
   reservasSemana.forEach((r) => {
-    if (r.fecha !== fechaStr) return;
+    if (r.date !== fechaStr) return;
     const bloque = generarBloquesPorHora(r).find(
       (b) => parseInt(b.hora.split(":")[0]) === horaNum,
     );

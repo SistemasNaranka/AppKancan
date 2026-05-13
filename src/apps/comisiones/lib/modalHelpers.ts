@@ -15,7 +15,7 @@ export const mapearCargoACargoId = (
   cargosDisponibles: any[]
 ): number => {
   const cargo = cargosDisponibles.find(
-    (c) => c.nombre.toLowerCase() === cargoAsignado.toLowerCase()
+    (c) => c.name.toLowerCase() === cargoAsignado.toLowerCase()
   );
   return cargo?.id || 2; // Default a asesor si no encuentra
 };
@@ -28,14 +28,14 @@ export const getCargoNombre = (
   cargosDisponibles: any[]
 ): string => {
   // Si es un objeto con nombre, devolverlo
-  if (typeof cargoId === "object" && cargoId?.nombre) {
-    return cargoId.nombre;
+  if (typeof cargoId === "object" && cargoId?.name) {
+    return cargoId.name;
   }
   // Si es un número, buscar en cargosDisponibles
   if (typeof cargoId === "number") {
     const cargo = cargosDisponibles.find((c: any) => c.id === cargoId);
-    const nombre = cargo?.nombre || "Asesor";
-    return nombre;
+    const name = cargo?.name || "Asesor";
+    return name;
   }
   return "Asesor";
 };
@@ -45,8 +45,8 @@ export const getCargoNombre = (
  */
 export const getTiendaNombre = (tiendaId: any): string => {
   // Si es un objeto con nombre, devolverlo
-  if (typeof tiendaId === "object" && tiendaId?.nombre) {
-    return tiendaId.nombre;
+  if (typeof tiendaId === "object" && tiendaId?.name) {
+    return tiendaId.name;
   }
   // Si es un número, devolver el ID como string
   if (typeof tiendaId === "number") {
@@ -94,10 +94,10 @@ export const validarGerenteExistente = (
   cargosDisponibles: any[]
 ): string | null => {
   const gerenteCargo = cargosDisponibles.find(
-    (c) => c.nombre.toLowerCase() === "gerente"
+    (c) => c.name.toLowerCase() === "gerente"
   );
 
-  if (gerenteCargo && cargoSeleccionado === gerenteCargo.nombre.toLowerCase()) {
+  if (gerenteCargo && cargoSeleccionado === gerenteCargo.name.toLowerCase()) {
     const tiendaId =
       typeof nuevoEmpleado.tienda_id === "object"
         ? nuevoEmpleado.tienda_id.id
@@ -105,12 +105,12 @@ export const validarGerenteExistente = (
 
     const gerenteExistente = empleadosAsignados.find(
       (e) =>
-        e.cargoAsignado === gerenteCargo.nombre.toLowerCase() &&
+        e.cargoAsignado === gerenteCargo.name.toLowerCase() &&
         e.tiendaId === tiendaId
     );
 
     if (gerenteExistente) {
-      return `Ya hay un gerente asignado para esta tienda: ${gerenteExistente.asesor.nombre}`;
+      return `Ya hay un gerente asignado para esta tienda: ${gerenteExistente.asesor.name}`;
     }
   }
 

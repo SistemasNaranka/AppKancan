@@ -8,10 +8,18 @@ export interface UsuarioReserva {
   first_name: string;
   last_name: string;
   email: string;
-  rol_usuario?: {
+  user_role?: {
     id: number;
     area?: string;
   };
+}
+
+/**
+ * Participante de una reunión
+ */
+export interface Participante {
+  name: string;
+  email: string;
 }
 
 /**
@@ -20,17 +28,18 @@ export interface UsuarioReserva {
 export interface Reserva {
   id: number;
   date_created: string;
-  usuario_id: UsuarioReserva | null;
-  nombre_sala: string;
-  fecha: string;
-  hora_inicio: string;
-  hora_final: string;
-  estado: EstadoReserva;
-  titulo_reunion: string;
-  observaciones?: string;
-  area?: string;
+  user_id: UsuarioReserva | null;
+  room_name: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status: EstadoReserva;
+  meeting_title: string;
+  observations?: string;
+  participants?: Participante[];
+  departament?: string;
   estadoCalculado?: EstadoReserva;
-  participantes?: { nombre: string; correo: string }[];
+  //participantes?: { nombre: string; correo: string }[];
 }
 
 /**
@@ -71,37 +80,38 @@ export const SALAS_DISPONIBLES: Sala[] = ["Sala Principal", "Sala Secundaria"];
  * Datos para crear una nueva reserva
  */
 export interface NuevaReserva {
-  nombre_sala: Sala;
-  fecha: string;
-  hora_inicio: string;
-  hora_final: string;
-  titulo_reunion: string;
-  observaciones?: string;
-  participantes?: { nombre: string; correo: string }[];
+  room_name: Sala;
+  date: string;
+  start_time: string;
+  end_time: string;
+  meeting_title: string;
+  observations?: string;
+  participants?: Participante[];
+  departament?: string;
 }
 
 /**
  * Datos para actualizar una reserva existente
  */
 export interface ActualizarReserva {
-  nombre_sala?: Sala;
-  fecha?: string;
-  hora_inicio?: string;
-  hora_final?: string;
-  estado?: EstadoReserva;
-  titulo_reunion?: string;
-  observaciones?: string;
-  participantes?: { nombre: string; correo: string }[];
+  room_name?: Sala;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+  status?: EstadoReserva;
+  meeting_title?: string;
+  observations?: string;
+  participants?: Participante[];
 }
 
 /**
  * Filtros para consultar reservas
  */
 export interface FiltrosReserva {
-  fecha?: string;
-  nombre_sala?: Sala | "";
-  estado?: EstadoReserva | "";
-  usuario_id?: string;
+  date?: string;
+  room_name?: Sala | "";
+  status?: EstadoReserva | "";
+  user_id?: string;
 }
 
 /**
@@ -130,9 +140,9 @@ export const COLORES_TEXTO_ESTADO: Record<EstadoReserva, string> = {
  */
 export interface ConfiguracionHorario {
   id: number;
-  hora_inicio: string; // Formato HH:mm
-  hora_fin: string;    // Formato HH:mm
-  activo: boolean;
+  opening_time: string; // Formato HH:mm
+  closing_time: string;    // Formato HH:mm
+  status: "Activo" | "Inactivo";
 }
 
 /**
@@ -182,13 +192,13 @@ export const DURACION_MINIMA_MINUTOS = 30;
  */
 export const calcularEstadoReserva = (reserva: Reserva): EstadoReserva => {
   // Si está cancelado, mantener ese estado
-  if (estaCancelado(reserva.estado)) {
-    return reserva.estado;
+  if (estaCancelado(reserva.status)) {
+    return reserva.status;
   }
 
   const ahora = new Date();
-  const fechaInicio = new Date(`${reserva.fecha}T${reserva.hora_inicio}`);
-  const fechaFin = new Date(`${reserva.fecha}T${reserva.hora_final}`);
+  const fechaInicio = new Date(`${reserva.date}T${reserva.start_time}`);
+  const fechaFin = new Date(`${reserva.date}T${reserva.end_time}`);
 
   // Si ya pasó la hora final → Finalizado
   if (ahora >= fechaFin) {

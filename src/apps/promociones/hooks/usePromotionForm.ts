@@ -4,31 +4,33 @@ import dayjs from "dayjs";
 import { PromotionDuration } from "../types/promotion";
 
 export interface IPromotionFormState {
-  tipoId: number | null;
-  nombre: string;
-  duracion: PromotionDuration;
-  fechaInicio: Dayjs | null;
-  fechaFinal: Dayjs | null;
-  horaInicio: Dayjs | null;
-  horaFinal: Dayjs | null;
-  descuento: number;
-  observaciones: string;
-  tiendasSeleccionadas: (string | number)[];
+  typeId: number | null;
+  name: string;
+  duration: PromotionDuration;
+  startDate: Dayjs | null;
+  endDate: Dayjs | null;
+  startTime: Dayjs | null;
+  endTime: Dayjs | null;
+  discount: number;
+  notes: string;
+  selectedStores: (string | number)[];
 }
+
 
 export const usePromotionForm = () => {
   const [formState, setFormState] = useState<IPromotionFormState>({
-    tipoId: null,
-    nombre: "",
-    duracion: "temporal",
-    fechaInicio: null,
-    fechaFinal: null,
-    horaInicio: null,
-    horaFinal: null,
-    descuento: 10,
-    observaciones: "",
-    tiendasSeleccionadas: [],
+    typeId: null,
+    name: "",
+    duration: "temporal",
+    startDate: null,
+    endDate: null,
+    startTime: null,
+    endTime: null,
+    discount: 10,
+    notes: "",
+    selectedStores: [],
   });
+
 
   const [error, setError] = useState<string>("");
 
@@ -43,55 +45,56 @@ export const usePromotionForm = () => {
   );
 
   const handleDuracionChange = useCallback((isTemporal: boolean) => {
-    const newDuracion = isTemporal ? "temporal" : "fija";
+    const newDuration = isTemporal ? "temporal" : "fija";
     setFormState((prev) => ({
       ...prev,
-      duracion: newDuracion,
-      tipoId: null, // Reset tipoId when changing duration
+      duration: newDuration,
+      typeId: null, // Reset typeId when changing duration
       ...(isTemporal
         ? {}
         : {
-            fechaFinal: null,
-            horaFinal: null,
-            horaInicio: dayjs("00:01", "HH:mm"),
+            endDate: null,
+            endTime: null,
+            startTime: dayjs("00:01", "HH:mm"),
           }),
     }));
   }, []);
 
+
   const validateForm = useCallback((): string | null => {
     const {
-      tipoId,
-      nombre,
-      fechaInicio,
-      horaInicio,
-      fechaFinal,
-      horaFinal,
-      descuento,
-      tiendasSeleccionadas,
-      duracion,
+      typeId,
+      name,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      discount,
+      selectedStores,
+      duration,
     } = formState;
 
-    if (!tipoId) return "Por favor selecciona un tipo de promoción";
-    if (!nombre.trim()) return "Por favor ingresa un nombre para la promoción";
-    if (!fechaInicio) return "Por favor selecciona una fecha de inicio";
-    if (!horaInicio) return "Por favor selecciona una hora de inicio";
-    if (nombre.trim().length < 3) {
+    if (!typeId) return "Por favor selecciona un tipo de promoción";
+    if (!name.trim()) return "Por favor ingresa un nombre para la promoción";
+    if (!startDate) return "Por favor selecciona una fecha de inicio";
+    if (!startTime) return "Por favor selecciona una hora de inicio";
+    if (name.trim().length < 3) {
       return "El nombre debe tener al menos 3 caracteres";
     }
 
-    if (duracion === "temporal") {
-      if (!fechaFinal)
+    if (duration === "temporal") {
+      if (!endDate)
         return "Las promociones temporales requieren fecha final";
-      if (!horaFinal) return "Las promociones temporales requieren hora final";
+      if (!endTime) return "Las promociones temporales requieren hora final";
 
-      const datetimeInicio = fechaInicio
+      const datetimeInicio = startDate
         .clone()
-        .hour(horaInicio.hour())
-        .minute(horaInicio.minute());
-      const datetimeFinal = fechaFinal
+        .hour(startTime.hour())
+        .minute(startTime.minute());
+      const datetimeFinal = endDate
         .clone()
-        .hour(horaFinal.hour())
-        .minute(horaFinal.minute());
+        .hour(endTime.hour())
+        .minute(endTime.minute());
 
       if (
         datetimeFinal.isBefore(datetimeInicio) ||
@@ -101,44 +104,47 @@ export const usePromotionForm = () => {
       }
     }
 
-    const ahora = dayjs();
-    const datetimeInicio = fechaInicio
-      .clone()
-      .hour(horaInicio.hour())
-      .minute(horaInicio.minute());
 
-    if (duracion === "temporal" && fechaFinal && horaFinal) {
-      const datetimeFinal = fechaFinal
+    const ahora = dayjs();
+    const datetimeInicio = startDate
+      .clone()
+      .hour(startTime.hour())
+      .minute(startTime.minute());
+
+    if (duration === "temporal" && endDate && endTime) {
+      const datetimeFinal = endDate
         .clone()
-        .hour(horaFinal.hour())
-        .minute(horaFinal.minute());
+        .hour(endTime.hour())
+        .minute(endTime.minute());
 
       if (datetimeFinal.isBefore(ahora)) {
         return "La fecha final no puede ser anterior a la fecha actual";
       }
     }
-    if (descuento < 1 || descuento > 100) {
+    if (discount < 1 || discount > 100) {
       return "El descuento debe estar entre 1% y 100%";
     }
 
-    if (tiendasSeleccionadas.length === 0) {
+    if (selectedStores.length === 0) {
       return "Por favor selecciona al menos una tienda";
     }
+
 
     return null;
   }, [formState]);
 
   const getFormattedData = useCallback(() => {
-    const { fechaInicio, horaInicio, fechaFinal, horaFinal, duracion } =
+    const { startDate, startTime, endDate, endTime, duration } =
       formState;
     return {
-      fecha_inicio: fechaInicio?.format("YYYY-MM-DD") || "",
-      hora_inicio: horaInicio?.format("HH:mm") || "",
-      fecha_final:
-        duracion === "temporal" ? fechaFinal?.format("YYYY-MM-DD") : null,
-      hora_fin: duracion === "temporal" ? horaFinal?.format("HH:mm") : null,
+      start_date: startDate?.format("YYYY-MM-DD") || "",
+      start_time: startTime?.format("HH:mm") || "",
+      end_date:
+        duration === "temporal" ? endDate?.format("YYYY-MM-DD") : null,
+      end_time: duration === "temporal" ? endTime?.format("HH:mm") : null,
     };
   }, [formState]);
+
 
   return {
     formState,

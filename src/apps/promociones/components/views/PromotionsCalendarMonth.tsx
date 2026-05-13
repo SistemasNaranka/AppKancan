@@ -99,10 +99,12 @@ const DayCell: React.FC<DayCellProps> = React.memo(
               key={promo.id}
               sx={{
                 height: 12,
-                width: promo.fecha_final ? "100%" : "20%", // Para fijas, solo una marca pequeña
+                width: promo.end_date ? "100%" : "20%", // Para fijas, solo una marca pequeña
+
                 backgroundColor: promo.color || "#90caf9", // 👈 usa el color de la base de datos
                 borderRadius: 1,
-                opacity: promo.fecha_final ? 1 : 0.95,
+                opacity: promo.end_date ? 1 : 0.95,
+
               }}
             />
           ))}
@@ -190,14 +192,16 @@ const PromotionsCalendarMonth: React.FC = () => {
               fontWeight="bold"
               sx={{ color: promo.color || "#90caf9" }}
             >
-              {promo.tipo} — {promo.descuento}%
+              {promo.type} — {promo.discount}%
+
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {dayjs(promo.fecha_inicio).locale("es").format("D MMM")} →{" "}
-              {promo.fecha_final
-                ? dayjs(promo.fecha_final).locale("es").format("D MMM")
+              {dayjs(promo.start_date).locale("es").format("D MMM")} →{" "}
+              {promo.end_date
+                ? dayjs(promo.end_date).locale("es").format("D MMM")
                 : "-Fija"}
             </Typography>
+
           </Box>
         ))}
       </Box>
@@ -222,13 +226,14 @@ const PromotionsCalendarMonth: React.FC = () => {
     (day: number): Promotion[] => {
       const date = dayjs(focusedDate).date(day).startOf("day");
       return promotions.filter((p) => {
-        const start = dayjs(p.fecha_inicio).startOf("day");
-        const end = p.fecha_final ? dayjs(p.fecha_final).endOf("day") : null;
+        const start = dayjs(p.start_date).startOf("day");
+        const end = p.end_date ? dayjs(p.end_date).endOf("day") : null;
         if (end) {
           return date.isSameOrAfter(start) && date.isSameOrBefore(end);
         }
         return date.isSame(start, "day");
       });
+
     },
     [promotions, focusedDate]
   );

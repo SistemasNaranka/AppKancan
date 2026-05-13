@@ -29,7 +29,7 @@ const TrasladosPanel: React.FC = () => {
 
   // ✅ Verificar si el usuario tiene la política TrasladosTiendas
   const tienePoliticaTrasladosTiendas =
-    user?.policies?.includes("TrasladosTiendas") ?? false;
+    user?.policies?.includes("StoreTransfers") ?? false;
 
   // ✅ Query para cargar traslados con cache automático
   const {
@@ -38,10 +38,10 @@ const TrasladosPanel: React.FC = () => {
     isError,
     error: queryError,
   } = useQuery({
-    queryKey: ["traslados_pendientes", user?.codigo_ultra, user?.empresa],
+    queryKey: ["traslados_pendientes", user?.ultra_code, user?.company],
     queryFn: async () => {
-      const codigo = user?.codigo_ultra;
-      const empresa = user?.empresa;
+      const codigo = user?.ultra_code;
+      const empresa = user?.company;
 
       if (!codigo || !empresa) {
         throw new Error("Usuario no autenticado o datos incompletos");
@@ -49,15 +49,15 @@ const TrasladosPanel: React.FC = () => {
 
       // ✅ Usar URL diferente si el usuario tiene política de tienda
       return await obtenerTraslados(
-        codigo,
-        empresa,
+        String(codigo),
+        String(empresa),
         tienePoliticaTrasladosTiendas,
       );
     },
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 2,
     enabled:
-      !!user?.codigo_ultra && !!user?.empresa && accessValidation.isValid,
+      !!user?.ultra_code && !!user?.company && accessValidation.isValid,
   });
 
   // ✅ Mostrar errores de la query
@@ -70,7 +70,7 @@ const TrasladosPanel: React.FC = () => {
   // ✅ Obtener bodegas destino únicas (incluye orígenes si es tienda para filtrar por remitente)
   const bodegasDestino = useMemo(() => {
     const bodegas = new Map<string, string>();
-    const codigoUltra = user?.codigo_ultra?.toString();
+    const codigoUltra = user?.ultra_code?.toString();
 
     pendientes.forEach((t) => {
       // Agregar destino si existe
@@ -89,11 +89,11 @@ const TrasladosPanel: React.FC = () => {
     return Array.from(bodegas.values())
       .filter((b) => !codigoUltra || !b.startsWith(`${codigoUltra} -`))
       .sort();
-  }, [pendientes, tienePoliticaTrasladosTiendas, user?.codigo_ultra]);
+  }, [pendientes, tienePoliticaTrasladosTiendas, user?.ultra_code]);
 
   // ✅ Filtrado por tipo (enviados/recibidos), bodega destino, nombre y fecha
   const filtrados = useMemo(() => {
-    const codigoUltra = user?.codigo_ultra ?? "";
+    const codigoUltra = user?.ultra_code ?? "";
 
     return pendientes.filter((t) => {
       // ✅ Filtrar por tipo: enviados (bodega_origen == codigo_ultra) o recibidos (bodega_destino == codigo_ultra)
@@ -132,14 +132,14 @@ const TrasladosPanel: React.FC = () => {
     filtroNombre,
     filtroTipo,
     filtroFecha,
-    user?.codigo_ultra,
+    user?.ultra_code,
     user?.policies,
     tienePoliticaTrasladosTiendas,
   ]);
 
   // ✅ Obtener conteos de enviados y recibidos
   const conteos = useMemo(() => {
-    const codigoUltra = user?.codigo_ultra ?? "";
+    const codigoUltra = user?.ultra_code ?? "";
     const enviados = pendientes.filter(
       (t) => String(t.bodega_origen) === String(codigoUltra),
     );
@@ -164,7 +164,7 @@ const TrasladosPanel: React.FC = () => {
       enviados: enviados.length,
       recibidos: recibidos.length,
     };
-  }, [pendientes, user?.codigo_ultra, tienePoliticaTrasladosTiendas]);
+  }, [pendientes, user?.ultra_code, tienePoliticaTrasladosTiendas]);
 
   // ✅ Selección de traslados
   const handleToggleSeleccion = (id: number) => {
@@ -191,7 +191,7 @@ const TrasladosPanel: React.FC = () => {
     clave: string,
   ) => {
     try {
-      if (!user?.empresa || !user?.codigo_ultra) {
+      if (!user?.company || !user?.ultra_code) {
         throw new Error("Faltan datos de usuario para aprobar traslados");
       }
 
@@ -207,22 +207,22 @@ const TrasladosPanel: React.FC = () => {
         console.log(
           "Informacion enviada",
           trasladosSeleccionados,
-          user.empresa,
-          user.codigo_ultra,
+          user.company,
+          user.ultra_code,
           clave,
         );
       }
 
       const resultado = await aprobarTraslados(
         trasladosSeleccionados,
-        user.empresa,
-        user.codigo_ultra,
+        String(user.company),
+        String(user.ultra_code),
         clave,
       );
 
       // ✅ Actualizar el cache de TanStack Query
       queryClient.setQueryData<Traslado[]>(
-        ["traslados_pendientes", user?.codigo_ultra, user?.empresa],
+        ["traslados_pendientes", user?.ultra_code, user?.company],
         (old = []) => old.filter((p) => !ids.includes(p.traslado)),
       );
 
@@ -240,7 +240,7 @@ const TrasladosPanel: React.FC = () => {
   // 🔄 CAMBIO: Agregar función para reintentar la carga
   const handleRetry = () => {
     queryClient.invalidateQueries({
-      queryKey: ["traslados_pendientes", user?.codigo_ultra, user?.empresa],
+      queryKey: ["traslados_pendientes", user?.ultra_code, user?.company],
     });
   };
 
@@ -250,7 +250,7 @@ const TrasladosPanel: React.FC = () => {
 
   // ✅ Verificar si el usuario tiene la política que impide aprobar traslados
   const tienePoliticaTrasladosJefezona =
-    user?.policies?.includes("TrasladosJefezona") ?? false;
+    user?.policies?.includes("AreaManagerTransfers") ?? false;
 
   return (
     <Box
