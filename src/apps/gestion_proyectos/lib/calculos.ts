@@ -1,254 +1,168 @@
 import type {
-  Proceso,
-  MetricasProceso,
-  MetricasProyecto,
-  FrecuenciaTipo,
+  Process,
+  ProcessMetrics,
+  ProjectMetrics,
+  FrequencyType,
 } from "../types";
 
 /**
- * Convierte segundos a formato legible
+ * Converts seconds to readable format
  */
-export function formatTime(segundos: number): string {
-  if (segundos < 60) {
-    return `${segundos}s`;
+export function formatTime(seconds: number): string {
+  if (seconds === undefined || seconds === null || isNaN(seconds)) {
+    return "0s";
   }
 
-  const horas = Math.floor(segundos / 3600);
-  const minutos = Math.floor((segundos % 3600) / 60);
-  const segs = segundos % 60;
+  const isNegative = seconds < 0;
+  const absSeconds = Math.abs(seconds);
 
-  if (horas > 0) {
-    return `${horas}h ${minutos}m ${segs}s`;
+  if (absSeconds < 60) {
+    return `${isNegative ? "-" : ""}${absSeconds}s`;
   }
 
-  return `${minutos}m ${segs}s`;
+  const hours = Math.floor(absSeconds / 3600);
+  const minutes = Math.floor((absSeconds % 3600) / 60);
+  const segs = absSeconds % 60;
+
+  if (hours > 0) {
+    return `${isNegative ? "-" : ""}${hours}h ${minutes}m ${segs}s`;
+  }
+
+  return `${isNegative ? "-" : ""}${minutes}m ${segs}s`;
 }
 
 /**
- * Convierte segundos a horas
+ * Converts seconds to hours
  */
-export function seconsdsAHours(segundos: number): number {
-  return Number((segundos / 3600).toFixed(2));
+export function secondsToHours(seconds: number): number {
+  return Number((seconds / 3600).toFixed(2));
 }
 
 /**
- * Calcula las métricas de un solo proceso.
- *
- * FIXES:
- * 1. Se castean todos los campos a Number() — Directus devuelve strings, no numbers.
- * 2. Se usa dias_semana para frecuencia diaria (días laborales reales, no 30 fijos).
- * 3. frecuencia_cantidad = 0 usa 1 como default en vez de descartar el proceso.
+ * Calculates metrics for a single process.
  */
-export function calculateProcessMetrics(proceso: Proceso): MetricasProceso {
-  // Casteo seguro: Directus puede enviar strings en lugar de numbers
-  const tiempoAntes = Number(proceso.tiempo_antes) || 0;
-  const tiempoDespues = Number(proceso.tiempo_despues) || 0;
-  const frecuenciaCantidad = Number(proceso.frecuencia_cantidad) || 1;
-  // dias_semana: cuántos días a la semana se realiza el proceso (default 5 laborales)
-  const diasSemana =
-    Number(proceso.dias_semana) > 0 ? Number(proceso.dias_semana) : 5;
+export function calculateProcessMetrics(process: Process): ProcessMetrics {
+  const timeBefore = Number(process.time_before) || 0;
+  const timeAfter = Number(process.time_after) || 0;
+  const frequencyQuantity = Number(process.frequency_quantity) || 1;
+  const weekdays = Number(process.weekdays) > 0 ? Number(process.weekdays) : 5;
 
-  const ahorroPorEjecucion = tiempoAntes - tiempoDespues;
+  const savingsPerExecution = timeBefore - timeAfter;
 
-  // Si no hay ahorro real, retornar ceros
-  if (ahorroPorEjecucion <= 0) {
-    return {
-      ahorro_por_ejecucion: 0,
-      ahorro_diario: 0,
-      ahorro_semanal: 0,
-      ahorro_mensual: 0,
-      ahorro_anual: 0,
-    };
-  }
+  let timesPerDay: number;
+  let timesPerWeek: number;
+  let timesPerMonth: number;
+  let timesPerYear: number;
 
-  let vecesPorDia: number;
-  let vecesPorSemana: number;
-  let vecesPorMes: number;
-  let vecesPorAnio: number;
-
-  switch (proceso.frecuencia_tipo) {
+  switch (process.frequency_type) {
     case "diaria":
-      // frecuencia_cantidad = veces POR DÍA que se ejecuta el proceso
-      // diasSemana = días laborales a la semana que aplica (ej: 5)
-      vecesPorDia = frecuenciaCantidad;
-      vecesPorSemana = frecuenciaCantidad * diasSemana;
-      vecesPorMes = frecuenciaCantidad * diasSemana * 4.33; // semanas promedio al mes
-      vecesPorAnio = frecuenciaCantidad * diasSemana * 52; // semanas al año
+      timesPerDay = frequencyQuantity;
+      timesPerWeek = frequencyQuantity * weekdays;
+      timesPerMonth = frequencyQuantity * weekdays * 4.33;
+      timesPerYear = frequencyQuantity * weekdays * 52;
       break;
 
     case "semanal":
-      // frecuencia_cantidad = veces POR SEMANA
-      vecesPorDia = frecuenciaCantidad / diasSemana;
-      vecesPorSemana = frecuenciaCantidad;
-      vecesPorMes = frecuenciaCantidad * 4.33;
-      vecesPorAnio = frecuenciaCantidad * 52;
+      timesPerDay = frequencyQuantity / weekdays;
+      timesPerWeek = frequencyQuantity;
+      timesPerMonth = frequencyQuantity * 4.33;
+      timesPerYear = frequencyQuantity * 52;
       break;
 
     case "mensual":
     default:
-      // frecuencia_cantidad = veces POR MES
-      vecesPorDia = frecuenciaCantidad / (diasSemana * 4.33);
-      vecesPorSemana = frecuenciaCantidad / 4.33;
-      vecesPorMes = frecuenciaCantidad;
-      vecesPorAnio = frecuenciaCantidad * 12;
+      timesPerDay = frequencyQuantity / (weekdays * 4.33);
+      timesPerWeek = frequencyQuantity / 4.33;
+      timesPerMonth = frequencyQuantity;
+      timesPerYear = frequencyQuantity * 12;
       break;
   }
 
   return {
-    ahorro_por_ejecucion: ahorroPorEjecucion,
-    ahorro_diario: Math.round(ahorroPorEjecucion * vecesPorDia),
-    ahorro_semanal: Math.round(ahorroPorEjecucion * vecesPorSemana),
-    ahorro_mensual: Math.round(ahorroPorEjecucion * vecesPorMes),
-    ahorro_anual: Math.round(ahorroPorEjecucion * vecesPorAnio),
+    savings_per_execution: savingsPerExecution,
+    daily_savings: Math.round(savingsPerExecution * timesPerDay),
+    weekly_savings: Math.round(savingsPerExecution * timesPerWeek),
+    monthly_savings: Math.round(savingsPerExecution * timesPerMonth),
+    yearly_savings: Math.round(savingsPerExecution * timesPerYear),
   };
 }
 
 /**
- * Calcula el ahorro total en un mes específico, considerando días exactos del mes
- */
-export function calculateMonthlySavings(
-  procesos: Proceso[],
-  mes: number,
-  anio: number
-): number {
-  if (!procesos || procesos.length === 0) return 0;
-
-  const diasEnMes = new Date(anio, mes, 0).getDate();
-
-  return procesos.reduce((total, proceso) => {
-    const tiempoAntes = Number(proceso.tiempo_antes) || 0;
-    const tiempoDespues = Number(proceso.tiempo_despues) || 0;
-    const ahorroPorEjecucion = tiempoAntes - tiempoDespues;
-    if (ahorroPorEjecucion <= 0) return total;
-
-    const frecuenciaCantidad = Number(proceso.frecuencia_cantidad) || 1;
-    const diasSemana = Number(proceso.dias_semana) > 0 ? Number(proceso.dias_semana) : 5;
-
-    let vecesEnMes: number;
-
-    switch (proceso.frecuencia_tipo) {
-      case "diaria":
-        vecesEnMes = frecuenciaCantidad * diasSemana * (diasEnMes / 7);
-        break;
-      case "semanal":
-        vecesEnMes = frecuenciaCantidad * (diasEnMes / 7);
-        break;
-      case "mensual":
-      default:
-        vecesEnMes = frecuenciaCantidad;
-        break;
-    }
-
-    return total + Math.round(ahorroPorEjecucion * vecesEnMes);
-  }, 0);
-}
-
-/**
- * Calcula las métricas totales de un proyecto
+ * Calculates total metrics for a project
  */
 export function calculateProjectMetrics(
-  procesos: Proceso[],
-): MetricasProyecto {
-  if (!procesos || procesos.length === 0) {
+  processes: Process[],
+): ProjectMetrics {
+  if (!processes || processes.length === 0) {
     return {
-      total_procesos: 0,
-      ahorro_total_mensual: 0,
-      ahorro_total_anual: 0,
-      procesos: [],
+      total_processes: 0,
+      total_monthly_savings: 0,
+      total_yearly_savings: 0,
+      processes_metrics: [],
     };
   }
 
-  const metricasProcesos = procesos.map(calculateProcessMetrics);
+  const processMetrics = processes.map(calculateProcessMetrics);
 
-  const ahorroTotalMensual = metricasProcesos.reduce(
-    (acc, m) => acc + m.ahorro_mensual,
+  const totalMonthlySavings = processMetrics.reduce(
+    (acc, m) => acc + m.monthly_savings,
     0,
   );
 
-  const ahorroTotalAnual = metricasProcesos.reduce(
-    (acc, m) => acc + m.ahorro_anual,
+  const totalYearlySavings = processMetrics.reduce(
+    (acc, m) => acc + m.yearly_savings,
     0,
   );
 
   return {
-    total_procesos: procesos.length,
-    ahorro_total_mensual: ahorroTotalMensual,
-    ahorro_total_anual: ahorroTotalAnual,
-    procesos: metricasProcesos,
+    total_processes: processes.length,
+    total_monthly_savings: totalMonthlySavings,
+    total_yearly_savings: totalYearlySavings,
+    processes_metrics: processMetrics,
   };
 }
 
 /**
- * Obtiene el texto de la frecuencia
+ * Gets frequency text
  */
 export function getFrequencyText(
-  tipo: FrecuenciaTipo,
-  cantidad: number,
+  type: FrequencyType,
+  quantity: number,
 ): string {
-  switch (tipo) {
+  switch (type) {
     case "diaria":
-      return `${cantidad} veces/día`;
+      return `${quantity} veces/día`;
     case "semanal":
-      return `${cantidad} veces/semana`;
+      return `${quantity} veces/semana`;
     case "mensual":
-      return `${cantidad} veces/mes`;
+      return `${quantity} veces/mes`;
     default:
-      return `${cantidad} veces`;
+      return `${quantity} veces`;
   }
 }
 
 /**
- * Obtiene las opciones de frecuencia para select
+ * Options for frequency select
  */
-export const opcionesFrecuencia = [
+export const frequencyOptions = [
   { value: "diaria", label: "Diaria" },
   { value: "semanal", label: "Semanal" },
   { value: "mensual", label: "Mensual" },
 ];
 
 /**
- * Obtiene las opciones de estado para select
+ * Options for project status select
  */
-export const opcionesEstadoProyecto = [
+export const projectStatusOptions = [
   { value: "en_proceso", label: "En Proceso", color: "blue" },
   { value: "entregado", label: "Entregado", color: "green" },
   { value: "en_seguimiento", label: "En Seguimiento", color: "orange" },
 ];
 
 /**
- * Obtiene las opciones de tipo de proyecto
+ * Options for project type
  */
-export const opcionesTipoProyecto = [
+export const projectTypeOptions = [
   { value: "mejora", label: "Mejora" },
   { value: "nuevo", label: "Nuevo" },
-];
-
-/**
- * Obtiene las opciones de prioridad
- */
-export const opcionesPrioridad = [
-  { value: "alta", label: "Alta", color: "red" },
-  { value: "media", label: "Media", color: "yellow" },
-  { value: "baja", label: "Baja", color: "green" },
-];
-
-/**
- * Obtiene las opciones de estado de mejora
- */
-export const opcionesEstadoMejora = [
-  { value: "pendiente", label: "Pendiente", color: "gray" },
-  { value: "en_progreso", label: "En Progreso", color: "blue" },
-  { value: "implementada", label: "Implementada", color: "green" },
-];
-
-/**
- * Obtiene las opciones de tipo de mejora
- */
-export const opcionesTipoMejora = [
-  { value: "mejora_rendimiento", label: "Mejora de Rendimiento" },
-  { value: "mejora_usabilidad", label: "Mejora de Usabilidad" },
-  { value: "nueva_funcionalidad", label: "Nueva Funcionalidad" },
-  { value: "correccion_error", label: "Corrección de Error" },
-  { value: "optimizacion", label: "Optimización" },
-  { value: "otro", label: "Otro" },
 ];

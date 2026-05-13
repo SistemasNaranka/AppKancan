@@ -20,7 +20,7 @@ export const useBudgetCalculations = (tiendaSeleccionada: number | "") => {
         };
       }
 
-      const presupuestoTotal = presupuestosTienda[0].presupuesto;
+      const presupuestoTotal = presupuestosTienda[0].budget;
       let mesAnioParaAPI = "";
       let shouldUseApi = false;
 

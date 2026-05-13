@@ -8,12 +8,12 @@ import {
   readItems,
 } from "@directus/sdk";
 import {
-  DirectusPresupuestoDiarioEmpleado,
+  DirectusStaffDailyBudget,
   DirectusPorcentajeMensual,
-  DirectusPresupuestoDiarioTienda,
+  DirectusStoreDailyBudget,
   DirectusVentasDiariasEmpleado,
   DirectusVentasDiariasTienda,
-  DirectusCargo,
+  DirectusPosition,
 } from "../../types";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
@@ -28,9 +28,10 @@ export async function guardarPorcentajesMensuales(
   try {
     // Verificar si ya existe para este mes
     const existentes = await directus.request(
-      readItems("porcentaje_mensual_presupuesto", {
+      readItems("com_monthly_budget_percentages", {
         filter: {
-          fecha: { _eq: porcentajes.fecha },
+          month: { _eq: porcentajes.fecha.split("-")[1] },
+          year: { _eq: porcentajes.fecha.split("-")[0] },
         },
         limit: 1,
       }),
@@ -40,27 +41,79 @@ export async function guardarPorcentajesMensuales(
       // Actualizar
       const updated = await withAutoRefresh(() =>
         directus.request(
-          updateItems("porcentaje_mensual_presupuesto", existentes[0].id, {
-            gerente_tipo: porcentajes.gerente_tipo,
-            gerente_porcentaje: porcentajes.gerente_porcentaje,
-            asesor_tipo: porcentajes.asesor_tipo,
-            asesor_porcentaje: porcentajes.asesor_porcentaje,
-            cajero_tipo: porcentajes.cajero_tipo,
-            cajero_porcentaje: porcentajes.cajero_porcentaje,
-            logistico_tipo: porcentajes.logistico_tipo,
-            logistico_porcentaje: porcentajes.logistico_porcentaje,
+          updateItems("com_monthly_budget_percentages", existentes[0].id, {
+            role_config: [
+              {
+                role: "gerente",
+                calculation_type:
+                  porcentajes.gerente_tipo === "fijo"
+                    ? "Fixed"
+                    : "Distributive",
+                percentage: porcentajes.gerente_porcentaje,
+              },
+              {
+                role: "asesor",
+                calculation_type:
+                  porcentajes.asesor_tipo === "fijo" ? "Fixed" : "Distributive",
+                percentage: porcentajes.asesor_porcentaje,
+              },
+              {
+                role: "cajero",
+                calculation_type:
+                  porcentajes.cajero_tipo === "fijo" ? "Fixed" : "Distributive",
+                percentage: porcentajes.cajero_porcentaje,
+              },
+              {
+                role: "logistico",
+                calculation_type:
+                  porcentajes.logistico_tipo === "fijo"
+                    ? "Fixed"
+                    : "Distributive",
+                percentage: porcentajes.logistico_porcentaje,
+              },
+            ],
           }),
         ),
       );
-      return updated[0] as DirectusPorcentajeMensual;
+      return updated[0] as any;
     } else {
       // Crear
+      const payload = {
+        month: porcentajes.fecha.split("-")[1],
+        year: porcentajes.fecha.split("-")[0],
+        role_config: [
+          {
+            role: "gerente",
+            calculation_type:
+              porcentajes.gerente_tipo === "fijo" ? "Fixed" : "Distributive",
+            percentage: porcentajes.gerente_porcentaje,
+          },
+          {
+            role: "asesor",
+            calculation_type:
+              porcentajes.asesor_tipo === "fijo" ? "Fixed" : "Distributive",
+            percentage: porcentajes.asesor_porcentaje,
+          },
+          {
+            role: "cajero",
+            calculation_type:
+              porcentajes.cajero_tipo === "fijo" ? "Fixed" : "Distributive",
+            percentage: porcentajes.cajero_porcentaje,
+          },
+          {
+            role: "logistico",
+            calculation_type:
+              porcentajes.logistico_tipo === "fijo" ? "Fixed" : "Distributive",
+            percentage: porcentajes.logistico_porcentaje,
+          },
+        ],
+      };
       const created = await withAutoRefresh(() =>
         directus.request(
-          createItems("porcentaje_mensual_presupuesto", [porcentajes]),
+          createItems("com_monthly_budget_percentages", [payload]),
         ),
       );
-      return created[0] as DirectusPorcentajeMensual;
+      return created[0] as any;
     }
   } catch (error) {
     console.error("❌ Error al guardar porcentajes mensuales:", error);
@@ -72,16 +125,14 @@ export async function guardarPorcentajesMensuales(
  * Crear presupuestos diarios para empleados
  */
 export async function guardarPresupuestosEmpleados(
-  presupuestos: Omit<DirectusPresupuestoDiarioEmpleado, "id">[],
-): Promise<DirectusPresupuestoDiarioEmpleado[]> {
+  presupuestos: Omit<DirectusStaffDailyBudget, "id">[],
+): Promise<DirectusStaffDailyBudget[]> {
   try {
     const created = await withAutoRefresh(() =>
-      directus.request(
-        createItems("presupuesto_diario_empleados", presupuestos),
-      ),
+      directus.request(createItems("com_employee_daily_budgets", presupuestos)),
     );
 
-    return created as DirectusPresupuestoDiarioEmpleado[];
+    return created as DirectusStaffDailyBudget[];
   } catch (error) {
     console.error("❌ Error al guardar presupuestos empleados:", error);
     throw error;
@@ -98,10 +149,10 @@ export async function eliminarPresupuestosEmpleados(
   try {
     await withAutoRefresh(() =>
       directus.request(
-        deleteItems("presupuesto_diario_empleados", {
+        deleteItems("com_employee_daily_budgets", {
           filter: {
-            tienda_id: { _eq: tiendaId },
-            fecha: { _eq: fecha },
+            store_id: { _eq: tiendaId },
+            date: { _eq: fecha },
           },
         }),
       ),
@@ -118,17 +169,17 @@ export async function eliminarPresupuestosEmpleados(
 export async function actualizarPresupuestoEmpleado(
   id: number,
   presupuesto: number,
-): Promise<DirectusPresupuestoDiarioEmpleado> {
+): Promise<DirectusStaffDailyBudget> {
   try {
     const updated = await withAutoRefresh(() =>
       directus.request(
-        updateItems("presupuesto_diario_empleados", [id], {
-          presupuesto: presupuesto,
+        updateItems("com_employee_daily_budgets", [id], {
+          budget: presupuesto,
         }),
       ),
     );
 
-    return updated[0] as DirectusPresupuestoDiarioEmpleado;
+    return updated[0] as DirectusStaffDailyBudget;
   } catch (error) {
     console.error("❌ Error al actualizar presupuesto empleado:", error);
     throw error;
@@ -141,7 +192,7 @@ export async function actualizarPresupuestoEmpleado(
 export async function eliminarPresupuestoEmpleado(id: number): Promise<void> {
   try {
     await withAutoRefresh(() =>
-      directus.request(deleteItems("presupuesto_diario_empleados", [id])),
+      directus.request(deleteItems("com_employee_daily_budgets", [id])),
     );
   } catch (error) {
     console.error("❌ Error al eliminar presupuesto empleado:", error);
@@ -161,10 +212,10 @@ export async function guardarVentasEmpleados(
 
     for (const venta of ventas) {
       const existentes = await directus.request(
-        readItems("ventas_diarias_empleado", {
+        readItems("com_employee_daily_sales", {
           filter: {
-            asesor_id: { _eq: venta.asesor_id },
-            fecha: { _eq: venta.fecha },
+            advisor_id: { _eq: venta.advisor_id },
+            date: { _eq: venta.date },
           },
           limit: 1,
         }),
@@ -174,8 +225,8 @@ export async function guardarVentasEmpleados(
         // Actualizar
         const updated = await withAutoRefresh(() =>
           directus.request(
-            updateItems("ventas_diarias_empleado", existentes[0].id, {
-              venta: venta.venta,
+            updateItems("com_employee_daily_sales", existentes[0].id, {
+              sale: venta.sale,
             }),
           ),
         );
@@ -183,7 +234,7 @@ export async function guardarVentasEmpleados(
       } else {
         // Crear
         const created = await withAutoRefresh(() =>
-          directus.request(createItems("ventas_diarias_empleado", [venta])),
+          directus.request(createItems("com_employee_daily_sales", [venta])),
         );
         results.push(created[0] as DirectusVentasDiariasEmpleado);
       }
@@ -204,7 +255,7 @@ export async function guardarVentasTienda(
 ): Promise<DirectusVentasDiariasTienda> {
   try {
     const existentes = await directus.request(
-      readItems("ventas_diarias_tienda", {
+      readItems("venta_diaria_tienda", {
         filter: {
           tienda_id: { _eq: venta.tienda_id },
           fecha: { _eq: venta.fecha },
@@ -217,7 +268,7 @@ export async function guardarVentasTienda(
       // Actualizar
       const updated = await withAutoRefresh(() =>
         directus.request(
-          updateItems("ventas_diarias_tienda", existentes[0].id, {
+          updateItems("venta_diaria_tienda", existentes[0].id, {
             ventas_totales: venta.ventas_totales,
           }),
         ),
@@ -226,7 +277,7 @@ export async function guardarVentasTienda(
     } else {
       // Crear
       const created = await withAutoRefresh(() =>
-        directus.request(createItems("ventas_diarias_tienda", [venta])),
+        directus.request(createItems("venta_diaria_tienda", [venta])),
       );
       return created[0] as DirectusVentasDiariasTienda;
     }
@@ -240,17 +291,17 @@ export async function guardarVentasTienda(
  * Crear presupuestos diarios de tienda (desde CSV)
  */
 export async function guardarPresupuestosTienda(
-  presupuestos: Omit<DirectusPresupuestoDiarioTienda, "id">[],
-): Promise<DirectusPresupuestoDiarioTienda[]> {
+  presupuestos: Omit<DirectusStoreDailyBudget, "id">[],
+): Promise<DirectusStoreDailyBudget[]> {
   try {
-    const results: DirectusPresupuestoDiarioTienda[] = [];
+    const results: DirectusStoreDailyBudget[] = [];
 
     for (const presupuesto of presupuestos) {
       const existentes = await directus.request(
-        readItems("presupuestos_diario_tienda", {
+        readItems("com_store_daily_budgets", {
           filter: {
-            tienda_id: { _eq: presupuesto.tienda_id },
-            fecha: { _eq: presupuesto.fecha },
+            store_id: { _eq: presupuesto.store_id },
+            date: { _eq: presupuesto.date },
           },
           limit: 1,
         }),
@@ -260,20 +311,20 @@ export async function guardarPresupuestosTienda(
         // Actualizar
         const updated = await withAutoRefresh(() =>
           directus.request(
-            updateItems("presupuestos_diario_tienda", existentes[0].id, {
-              presupuesto: presupuesto.presupuesto,
+            updateItems("com_store_daily_budgets", existentes[0].id, {
+              budget: presupuesto.budget,
             }),
           ),
         );
-        results.push(updated[0] as DirectusPresupuestoDiarioTienda);
+        results.push(updated[0] as DirectusStoreDailyBudget);
       } else {
         // Crear
         const created = await withAutoRefresh(() =>
           directus.request(
-            createItems("presupuestos_diario_tienda", [presupuesto]),
+            createItems("com_store_daily_budgets", [presupuesto]),
           ),
         );
-        results.push(created[0] as DirectusPresupuestoDiarioTienda);
+        results.push(created[0] as DirectusStoreDailyBudget);
       }
     }
 
@@ -288,13 +339,13 @@ export async function guardarPresupuestosTienda(
  * Crear un nuevo cargo
  */
 export async function createCargo(
-  cargo: Omit<DirectusCargo, "id">,
-): Promise<DirectusCargo> {
+  cargo: Omit<DirectusPosition, "id">,
+): Promise<DirectusPosition> {
   try {
     const created = await withAutoRefresh(() =>
-      directus.request(createItems("util_cargo", [cargo])),
+      directus.request(createItems("core_positions", [cargo])),
     );
-    return created[0] as DirectusCargo;
+    return created[0] as DirectusPosition;
   } catch (error) {
     console.error("❌ Error al crear cargo:", error);
     throw error;
@@ -308,9 +359,9 @@ export async function saveRoleBudgetConfiguration(data: {
   id?: number | string; // ID opcional para actualización directa
   mes: string; // "YYYY-MM"
   roleConfigs: {
-    rol: string;
-    tipo_calculo: "Fijo" | "Distributivo";
-    porcentaje: number;
+    role: string;
+    calculation_type: "Fijo" | "Distributivo";
+    percentage: number;
   }[];
 }): Promise<any> {
   try {
@@ -332,7 +383,7 @@ export async function saveRoleBudgetConfiguration(data: {
       // 1. Buscar configuración existente usando STRINGs para asegurar coincidencia exacta
       // Ya que guardamos mes como "01", "12" etc. y anio como string
       const existingFilter = {
-        _and: [{ mes: { _eq: mesStr } }, { anio: { _eq: anioStr } }],
+        _and: [{ month: { _eq: mesStr } }, { year: { _eq: anioStr } }],
       };
 
       console.log(
@@ -342,7 +393,7 @@ export async function saveRoleBudgetConfiguration(data: {
 
       const existentes = await withAutoRefresh(() =>
         directus.request(
-          readItems("porcentaje_mensual_presupuesto", {
+          readItems("com_monthly_budget_percentages", {
             filter: existingFilter,
             limit: 1,
           }),
@@ -356,9 +407,10 @@ export async function saveRoleBudgetConfiguration(data: {
 
     // 2. Preparar las configuraciones enviadas
     const finalConfigs = data.roleConfigs.map((c) => ({
-      rol: c.rol,
-      tipo_calculo: c.tipo_calculo,
-      porcentaje: c.tipo_calculo === "Distributivo" ? 0 : c.porcentaje,
+      role: c.role,
+      calculation_type:
+        c.calculation_type === "Distributivo" ? "Distributive" : "Fixed",
+      percentage: c.calculation_type === "Distributivo" ? 0 : c.percentage,
     }));
 
     // 3. Guardar cambios
@@ -368,16 +420,16 @@ export async function saveRoleBudgetConfiguration(data: {
       );
       return await withAutoRefresh(() =>
         directus.request(
-          updateItem("porcentaje_mensual_presupuesto", recordId, {
-            configuracion_roles: finalConfigs,
+          updateItem("com_monthly_budget_percentages", recordId, {
+            role_config: finalConfigs,
           }),
         ),
       );
     } else {
       const payload = {
-        mes: mes.toString().padStart(2, "0"),
-        anio: anio.toString(),
-        configuracion_roles: finalConfigs,
+        month: mes.toString().padStart(2, "0"),
+        year: anio.toString(),
+        role_config: finalConfigs,
       };
 
       console.log(
@@ -386,7 +438,7 @@ export async function saveRoleBudgetConfiguration(data: {
       );
 
       return await withAutoRefresh(() =>
-        directus.request(createItem("porcentaje_mensual_presupuesto", payload)),
+        directus.request(createItem("com_monthly_budget_percentages", payload)),
       );
     }
   } catch (error: any) {
@@ -402,16 +454,16 @@ export async function saveRoleBudgetConfiguration(data: {
 
 /**
  * Guardar configuración de umbrales de comisión mensual
- * Tabla: cumplimiento_mensual_comisiones
- * Campo JSON: cumplimiento_valores
+ * Tabla: com_monthly_commission_compliance
+ * Campo JSON: compliance_values
  */
 export async function guardarUmbralesComisiones(data: {
   id?: number | string; // ID opcional para actualización directa
   mes: string; // "YYYY-MM"
-  cumplimiento_valores: Array<{
-    cumplimiento_min: number;
-    comision_pct: number;
-    nombre: string;
+  compliance_values: Array<{
+    min_compliance: number;
+    pct_commission: number;
+    name: string;
     color?: string;
   }>;
 }): Promise<any> {
@@ -425,12 +477,12 @@ export async function guardarUmbralesComisiones(data: {
     // Si no tenemos ID, buscar por mes/año
     if (!recordId) {
       const existingFilter = {
-        _and: [{ mes: { _eq: mes } }, { anio: { _eq: anio } }],
+        _and: [{ month: { _eq: mes } }, { year: { _eq: anio } }],
       };
 
       const existentes = await withAutoRefresh(() =>
         directus.request(
-          readItems("cumplimiento_mensual_comisiones", {
+          readItems("com_monthly_commission_compliance", {
             filter: existingFilter,
             limit: 1,
           }),
@@ -442,31 +494,31 @@ export async function guardarUmbralesComisiones(data: {
       }
     }
 
-    // Ordenar umbrales por cumplimiento_min ascendente
-    const valoresOrdenados = [...data.cumplimiento_valores].sort(
-      (a, b) => a.cumplimiento_min - b.cumplimiento_min,
+    // Ordenar umbrales por min_compliance ascendente
+    const valoresOrdenados = [...data.compliance_values].sort(
+      (a, b) => a.min_compliance - b.min_compliance,
     );
 
     if (recordId) {
       // Actualizar
       return await withAutoRefresh(() =>
         directus.request(
-          updateItem("cumplimiento_mensual_comisiones", recordId, {
-            cumplimiento_valores: valoresOrdenados,
+          updateItem("com_monthly_commission_compliance", recordId, {
+            compliance_values: valoresOrdenados,
           }),
         ),
       );
     } else {
       // Crear nuevo
       const payload = {
-        mes: mes,
-        anio: anio,
-        cumplimiento_valores: valoresOrdenados,
+        month: mes,
+        year: anio,
+        compliance_values: valoresOrdenados,
       };
 
       return await withAutoRefresh(() =>
         directus.request(
-          createItem("cumplimiento_mensual_comisiones", payload),
+          createItem("com_monthly_commission_compliance", payload),
         ),
       );
     }

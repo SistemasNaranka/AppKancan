@@ -315,7 +315,7 @@ export const EditStoreModalSimplified: React.FC<
                 <Autocomplete
                   options={tiendas}
                   getOptionLabel={(option) =>
-                    `${option.nombre} - ${option.empresa}`
+                    `${option.name} - ${option.company || ''}`
                   }
                   value={
                     tiendas.find((t) => t.id == tiendaSeleccionada) || null
@@ -445,7 +445,7 @@ export const EditStoreModalSimplified: React.FC<
                               bgcolor: "primary.main",
                             }}
                           />
-                          {cargo.nombre}
+                          {cargo.name}
                         </Box>
                       </MenuItem>
                     ))}

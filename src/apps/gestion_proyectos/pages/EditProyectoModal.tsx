@@ -1,3 +1,4 @@
+// src/apps/gestion_proyectos/pages/EditProyectoModal.tsx
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -18,28 +19,28 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { ProjectUpdate } from "../api/directus/create";
+import { updateProject } from "../api/directus/create";
 import { updateProcess, deleteProcess, createProcess } from "../api/directus/create";
-import type { CreateProyectoInput } from "../types";
+import type { CreateProjectInput, Project } from "../types";
 import { EditModalOverlay, EditModalContent } from "./styles";
 import { AREAS_PREDEFINIDAS, ICONOS_AREA } from "./utils";
 
 interface EditProjectFormData {
-  nombre: string;
-  areaBeneficiada: string;
-  descripcion: string;
-  encargado: string;
-  fechaInicio: string;
-  fechaEstimada: string;
-  fechaEntrega: string;
-  estado: string;
-  tipoProyecto: string;
+  name: string;
+  benefitedArea: string;
+  description: string;
+  assignees: string;
+  startDate: string;
+  estimatedDate: string;
+  deliveryDate: string;
+  status: string;
+  projectType: string;
 }
 
 interface EditProyectoModalProps {
   open: boolean;
   onClose: () => void;
-  proyecto: import("../types").Proyecto | null;
+  proyecto: Project | null;
   onSuccess: () => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
@@ -47,51 +48,51 @@ interface EditProyectoModalProps {
 
 export default function EditProjectModal({ open, onClose, proyecto, onSuccess, loading, setLoading }: EditProyectoModalProps) {
   const [formData, setFormData] = useState<EditProjectFormData>({
-    nombre: "",
-    areaBeneficiada: "",
-    descripcion: "",
-    encargado: "",
-    fechaInicio: "",
-    fechaEstimada: "",
-    fechaEntrega: "",
-    estado: "en_proceso",
-    tipoProyecto: "mejora",
+    name: "",
+    benefitedArea: "",
+    description: "",
+    assignees: "",
+    startDate: "",
+    estimatedDate: "",
+    deliveryDate: "",
+    status: "en_proceso",
+    projectType: "mejora",
   });
 
-  const [procesosEdit, setProcesosEdit] = useState<Array<{
+  const [processesEdit, setProcessesEdit] = useState<Array<{
     id: string;
-    nombre: string;
-    tiempo_antes: number;
-    tiempo_despues: number;
-    frecuencia_tipo: string;
-    frecuencia_cantidad: number;
-    dias_semana: number;
+    name: string;
+    time_before: number;
+    time_after: number;
+    frequency_type: string;
+    frequency_quantity: number;
+    weekdays: number;
     isNew?: boolean;
   }>>([]);
 
   useEffect(() => {
     if (proyecto && open) {
       setFormData({
-        nombre: proyecto.nombre,
-        areaBeneficiada: proyecto.area_beneficiada,
-        descripcion: proyecto.descripcion,
-        encargado: proyecto.encargados?.map((e) => e.nombre).join(", ") || "",
-        fechaInicio: proyecto.fecha_inicio,
-        fechaEstimada: proyecto.fecha_estimada,
-        fechaEntrega: proyecto.fecha_entrega || "",
-        estado: proyecto.estado,
-        tipoProyecto: proyecto.tipo_proyecto,
+        name: proyecto.name,
+        benefitedArea: proyecto.benefited_area,
+        description: proyecto.description,
+        assignees: proyecto.assignees?.map((e) => e.name).join(", ") || "",
+        startDate: proyecto.start_date,
+        estimatedDate: proyecto.estimated_date,
+        deliveryDate: proyecto.delivery_date || "",
+        status: proyecto.status,
+        projectType: proyecto.project_type,
       });
 
-      setProcesosEdit(
-        (proyecto.procesos || []).map((p) => ({
+      setProcessesEdit(
+        (proyecto.processes || []).map((p) => ({
           id: p.id,
-          nombre: p.nombre,
-          tiempo_antes: p.tiempo_antes,
-          tiempo_despues: p.tiempo_despues,
-          frecuencia_tipo: p.frecuencia_tipo,
-          frecuencia_cantidad: p.frecuencia_cantidad,
-          dias_semana: p.dias_semana,
+          name: p.name,
+          time_before: Number(p.time_before),
+          time_after: Number(p.time_after),
+          frequency_type: p.frequency_type,
+          frequency_quantity: p.frequency_quantity,
+          weekdays: p.weekdays,
         }))
       );
     }
@@ -101,33 +102,33 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAgregarProceso = () => {
-    setProcesosEdit([
-      ...procesosEdit,
+  const handleAddProcess = () => {
+    setProcessesEdit([
+      ...processesEdit,
       {
         id: `new_${Date.now()}`,
-        nombre: "",
-        tiempo_antes: 0,
-        tiempo_despues: 0,
-        frecuencia_tipo: "diaria",
-        frecuencia_cantidad: 1,
-        dias_semana: 5,
+        name: "",
+        time_before: 0,
+        time_after: 0,
+        frequency_type: "diaria",
+        frequency_quantity: 1,
+        weekdays: 5,
         isNew: true,
       },
     ]);
   };
 
-  const handleEliminarProceso = async (index: number) => {
-    const proceso = procesosEdit[index];
-    if (!proceso.isNew && proceso.id) {
-      await deleteProcess(proceso.id);
+  const handleRemoveProcess = async (index: number) => {
+    const process = processesEdit[index];
+    if (!process.isNew && process.id) {
+      await deleteProcess(process.id);
     }
-    setProcesosEdit(procesosEdit.filter((_, i) => i !== index));
+    setProcessesEdit(processesEdit.filter((_, i) => i !== index));
   };
 
-  const handleActualizarProceso = (index: number, field: string, value: any) => {
-    setProcesosEdit(
-      procesosEdit.map((p, i) =>
+  const handleUpdateProcess = (index: number, field: string, value: any) => {
+    setProcessesEdit(
+      processesEdit.map((p, i) =>
         i === index ? { ...p, [field]: value } : p
       )
     );
@@ -139,63 +140,63 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
 
     setLoading(true);
     try {
-      let nuevoEstado = formData.estado;
+      let finalStatus = formData.status;
 
-      if (formData.fechaEntrega) {
-        const fechaEntrega = dayjs(formData.fechaEntrega);
-        const hoy = dayjs();
-        const esFechaPasadaOActual = fechaEntrega.isBefore(hoy) || fechaEntrega.isSame(hoy, "day");
-        const esFechaFutura = fechaEntrega.isAfter(hoy, "day");
+      if (formData.deliveryDate) {
+        const deliveryDate = dayjs(formData.deliveryDate);
+        const today = dayjs();
+        const isPastOrToday = deliveryDate.isBefore(today) || deliveryDate.isSame(today, "day");
+        const isFuture = deliveryDate.isAfter(today, "day");
 
-        if (formData.estado === "entregado" && esFechaFutura) {
-          nuevoEstado = "en_proceso";
-        } else if (formData.estado === "en_proceso" && esFechaPasadaOActual) {
-          nuevoEstado = "entregado";
+        if (formData.status === "entregado" && isFuture) {
+          finalStatus = "en_proceso";
+        } else if (formData.status === "en_proceso" && isPastOrToday) {
+          finalStatus = "entregado";
         }
       } else {
-        if (formData.estado === "entregado") {
-          nuevoEstado = "en_proceso";
+        if (formData.status === "entregado") {
+          finalStatus = "en_proceso";
         }
       }
 
-      const proyectoData: Partial<CreateProyectoInput> = {
-        nombre: formData.nombre,
-        area_beneficiada: formData.areaBeneficiada,
-        descripcion: formData.descripcion,
-        fecha_inicio: formData.fechaInicio,
-        fecha_estimada: formData.fechaEstimada,
-        fecha_entrega: formData.fechaEntrega || null,
-        estado: nuevoEstado as any,
-        tipo_proyecto: formData.tipoProyecto as any,
-        encargados: formData.encargado
+      const projectUpdateData: Partial<CreateProjectInput> = {
+        name: formData.name,
+        benefited_area: formData.benefitedArea,
+        description: formData.description,
+        start_date: formData.startDate,
+        estimated_date: formData.estimatedDate,
+        delivery_date: formData.deliveryDate || null,
+        status: finalStatus as any,
+        project_type: formData.projectType as any,
+        assignees: formData.assignees
           .split(",")
-          .map((n) => ({ nombre: n.trim() }))
-          .filter((e) => e.nombre),
+          .map((n) => ({ name: n.trim() }))
+          .filter((e) => e.name),
       };
 
-      const success = await ProjectUpdate(proyecto.id, proyectoData);
+      const success = await updateProject(proyecto.id, projectUpdateData);
       if (success) {
-        for (const proceso of procesosEdit) {
-          if (proceso.isNew) {
+        for (const process of processesEdit) {
+          if (process.isNew) {
             await createProcess({
-              proyecto_id: proyecto.id,
-              nombre: proceso.nombre,
-              tiempo_antes: proceso.tiempo_antes,
-              tiempo_despues: proceso.tiempo_despues,
-              frecuencia_tipo: proceso.frecuencia_tipo as any,
-              frecuencia_cantidad: proceso.frecuencia_cantidad,
-              dias_semana: proceso.dias_semana,
-              orden: procesosEdit.indexOf(proceso) + 1,
+              project_id: proyecto.id,
+              name: process.name,
+              time_before: process.time_before,
+              time_after: process.time_after,
+              frequency_type: process.frequency_type as any,
+              frequency_quantity: process.frequency_quantity,
+              weekdays: process.weekdays,
+              order: processesEdit.indexOf(process) + 1,
             });
           } else {
-            await updateProcess(proceso.id, {
-              nombre: proceso.nombre,
-              tiempo_antes: proceso.tiempo_antes,
-              tiempo_despues: proceso.tiempo_despues,
-              frecuencia_tipo: proceso.frecuencia_tipo as any,
-              frecuencia_cantidad: proceso.frecuencia_cantidad,
-              dias_semana: proceso.dias_semana,
-              orden: procesosEdit.indexOf(proceso) + 1,
+            await updateProcess(process.id, {
+              name: process.name,
+              time_before: process.time_before,
+              time_after: process.time_after,
+              frequency_type: process.frequency_type as any,
+              frequency_quantity: process.frequency_quantity,
+              weekdays: process.weekdays,
+              order: processesEdit.indexOf(process) + 1,
             });
           }
         }
@@ -228,8 +229,8 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
           <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
             <TextField
               label="Nombre del Proyecto"
-              value={formData.nombre}
-              onChange={(e) => handleChange("nombre", e.target.value)}
+              value={formData.name}
+              onChange={(e) => handleChange("name", e.target.value)}
               required
               fullWidth
               size="medium"
@@ -238,11 +239,11 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
             <Autocomplete
               freeSolo
               options={AREAS_PREDEFINIDAS}
-              value={formData.areaBeneficiada || ""}
-              onChange={(_event, value) => handleChange("areaBeneficiada", value || "")}
+              value={formData.benefitedArea || ""}
+              onChange={(_event, value) => handleChange("benefitedArea", value || "")}
               onInputChange={(_event, value, reason) => {
                 if (reason === "input") {
-                  handleChange("areaBeneficiada", value);
+                  handleChange("benefitedArea", value);
                 }
               }}
               renderInput={(params) => (
@@ -270,9 +271,9 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
             <FormControl fullWidth size="medium">
               <InputLabel>Estado</InputLabel>
               <Select
-                value={formData.estado}
+                value={formData.status}
                 label="Estado"
-                onChange={(e) => handleChange("estado", e.target.value)}
+                onChange={(e) => handleChange("status", e.target.value)}
               >
                 <MenuItem value="en_proceso">En Proceso</MenuItem>
                 <MenuItem value="entregado">Entregado</MenuItem>
@@ -283,38 +284,39 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
             <FormControl fullWidth size="medium">
               <InputLabel>Tipo de Proyecto</InputLabel>
               <Select
-                value={formData.tipoProyecto}
+                value={formData.projectType}
                 label="Tipo de Proyecto"
-                onChange={(e) => handleChange("tipoProyecto", e.target.value)}
+                onChange={(e) => handleChange("projectType", e.target.value)}
               >
-                <MenuItem value="actualizacion">Actualizacón</MenuItem>
-                <MenuItem value="proyecto_nuevo">Proyecto Nuevo</MenuItem>
+                <MenuItem value="actualizacion">Actualización</MenuItem>
+                <MenuItem value="mejora">Mejora</MenuItem>
+                <MenuItem value="nuevo">Nuevo Proyecto</MenuItem>
               </Select>
             </FormControl>
 
             <Box sx={{ display: "flex", gap: 2 }}>
               <DatePicker
                 label="Fecha Inicio"
-                value={formData.fechaInicio ? dayjs(formData.fechaInicio) : null}
+                value={formData.startDate ? dayjs(formData.startDate) : null}
                 slotProps={{ textField: { fullWidth: true, required: true, size: "medium", disabled: true } }}
               />
               <DatePicker
                 label="Fecha Estimada"
-                value={formData.fechaEstimada ? dayjs(formData.fechaEstimada) : null}
+                value={formData.estimatedDate ? dayjs(formData.estimatedDate) : null}
                 slotProps={{ textField: { fullWidth: true, required: true, size: "medium", disabled: true } }}
               />
               <DatePicker
                 label="Fecha Entrega"
-                value={formData.fechaEntrega ? dayjs(formData.fechaEntrega) : null}
-                onChange={(newValue) => handleChange("fechaEntrega", newValue ? dayjs(newValue).format("YYYY-MM-DD") : "")}
+                value={formData.deliveryDate ? dayjs(formData.deliveryDate) : null}
+                onChange={(newValue) => handleChange("deliveryDate", newValue ? dayjs(newValue).format("YYYY-MM-DD") : "")}
                 slotProps={{ textField: { fullWidth: true, size: "medium" } }}
               />
             </Box>
 
             <TextField
               label="Encargados (separados por coma)"
-              value={formData.encargado}
-              onChange={(e) => handleChange("encargado", e.target.value)}
+              value={formData.assignees}
+              onChange={(e) => handleChange("assignees", e.target.value)}
               fullWidth
               size="medium"
               placeholder="Nombre1, Nombre2, ..."
@@ -322,8 +324,8 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
 
             <TextField
               label="Descripción"
-              value={formData.descripcion}
-              onChange={(e) => handleChange("descripcion", e.target.value)}
+              value={formData.description}
+              onChange={(e) => handleChange("description", e.target.value)}
               fullWidth
               size="medium"
               multiline
@@ -339,18 +341,18 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
                   variant="outlined"
                   size="small"
                   startIcon={<Add />}
-                  onClick={handleAgregarProceso}
+                  onClick={handleAddProcess}
                   sx={{ textTransform: "none" }}
                 >
                   Agregar Proceso
                 </Button>
               </Box>
 
-              {procesosEdit.length > 0 ? (
+              {processesEdit.length > 0 ? (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 300, overflow: "auto" }}>
-                  {procesosEdit.map((proceso, index) => (
+                  {processesEdit.map((process, index) => (
                     <Paper
-                      key={proceso.id}
+                      key={process.id}
                       variant="outlined"
                       sx={{ p: 2, borderRadius: 2 }}
                     >
@@ -360,7 +362,7 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
                         </Typography>
                         <IconButton
                           size="small"
-                          onClick={() => handleEliminarProceso(index)}
+                          onClick={() => handleRemoveProcess(index)}
                           sx={{ color: "error.main" }}
                         >
                           <Delete fontSize="small" />
@@ -369,33 +371,33 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
                       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                         <TextField
                           label="Nombre"
-                          value={proceso.nombre}
-                          onChange={(e) => handleActualizarProceso(index, "nombre", e.target.value)}
+                          value={process.name}
+                          onChange={(e) => handleUpdateProcess(index, "name", e.target.value)}
                           size="small"
                           sx={{ flex: 1, minWidth: 150 }}
                         />
                         <TextField
                           label="Tiempo antes (seg)"
                           type="number"
-                          value={proceso.tiempo_antes}
-                          onChange={(e) => handleActualizarProceso(index, "tiempo_antes", Number(e.target.value))}
+                          value={process.time_before}
+                          onChange={(e) => handleUpdateProcess(index, "time_before", Number(e.target.value))}
                           size="small"
                           sx={{ width: 120 }}
                         />
                         <TextField
                           label="Tiempo después (seg)"
                           type="number"
-                          value={proceso.tiempo_despues}
-                          onChange={(e) => handleActualizarProceso(index, "tiempo_despues", Number(e.target.value))}
+                          value={process.time_after}
+                          onChange={(e) => handleUpdateProcess(index, "time_after", Number(e.target.value))}
                           size="small"
                           sx={{ width: 120 }}
                         />
                         <FormControl size="small" sx={{ minWidth: 100 }}>
                           <InputLabel>Frecuencia</InputLabel>
                           <Select
-                            value={proceso.frecuencia_tipo}
+                            value={process.frequency_type}
                             label="Frecuencia"
-                            onChange={(e) => handleActualizarProceso(index, "frecuencia_tipo", e.target.value)}
+                            onChange={(e) => handleUpdateProcess(index, "frequency_type", e.target.value)}
                           >
                             <MenuItem value="diaria">Diaria</MenuItem>
                             <MenuItem value="semanal">Semanal</MenuItem>

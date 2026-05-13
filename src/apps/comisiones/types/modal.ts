@@ -3,28 +3,28 @@
  */
 
 // Interfaces copiadas para evitar problemas de importación
-export interface DirectusAsesor {
+export interface DirectusStaff {
   id: number;
-  nombre?: string;
-  documento: number;
-  tienda_id: number | DirectusTienda;
-  cargo_id: number | DirectusCargo;
+  name?: string;
+  document: number;
+  store_id: number | DirectusTienda;
+  position_id: number | DirectusPosition;
 }
 
-export interface DirectusCargo {
+export interface DirectusPosition {
   id: number;
-  nombre: string;
+  name: string;
 }
 
 export interface DirectusTienda {
   id: number;
-  nombre: string;
-  codigo_ultra: number;
-  empresa: string;
+  name: string;
+  ultra_code: number;
+  company: string;
 }
 
 export interface EmpleadoAsignado {
-  asesor: DirectusAsesor;
+  asesor: DirectusStaff;
   presupuesto: number;
   tiendaId: number;
   cargoAsignado: string;

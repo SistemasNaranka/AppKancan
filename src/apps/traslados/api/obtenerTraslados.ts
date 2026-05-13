@@ -9,13 +9,13 @@ const WEBHOOK_URL_TRASLADOS_TIENDAS = import.meta.env
 
 /**
  * Obtiene los traslados pendientes desde el backend
- * @param codigo_ultra - Código del usuario
- * @param empresa - Empresa del usuario
+ * @param ultra_code - Código del usuario (proviene de user.ultra_code)
+ * @param company - Empresa del usuario (proviene de user.company)
  * @param esTienda - Si es true, usa la URL de traslados de tiendas
  */
 export async function obtenerTraslados(
-  codigo_ultra: string,
-  empresa: string,
+  ultra_code: string,
+  company: string,
   esTienda: boolean = false,
 ): Promise<Traslado[]> {
   // Seleccionar la URL correcta según el tipo de usuario
@@ -24,7 +24,8 @@ export async function obtenerTraslados(
   const resp = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ codigo_ultra, empresa }),
+    // Mapeamos de vuelta a los nombres que espera el Webhook
+    body: JSON.stringify({ codigo_ultra: ultra_code, empresa: company }),
   });
 
   if (!resp.ok) {
@@ -39,7 +40,7 @@ export async function obtenerTraslados(
   return data;
 }
 
-// 🔹 Interfaz para la estructura de envío
+// 🔹 Interfaz para la estructura de envío que espera el Webhook
 export interface AprobacionTrasladosRequest {
   traslados: Array<{
     traslado: number;
@@ -52,12 +53,12 @@ export interface AprobacionTrasladosRequest {
 
 export async function aprobarTraslados(
   trasladosSeleccionados: Traslado[],
-  empresa: string,
-  codigo_ultra: string,
+  company: string,
+  ultra_code: string,
   clave: string,
 ): Promise<any> {
   // ✅ Validaciones
-  if (!empresa || !codigo_ultra || !clave) {
+  if (!company || !ultra_code || !clave) {
     throw new Error("Faltan datos requeridos: empresa, codigo_ultra o clave");
   }
 
@@ -71,13 +72,11 @@ export async function aprobarTraslados(
     fecha: t.fecha,
   }));
 
-  // ✅ Construir el payload con la estructura exacta
-  const codigo_ultra_str = String(codigo_ultra);
-
+  // ✅ Construir el payload con la estructura exacta que espera el Webhook
   const payload: AprobacionTrasladosRequest = {
     traslados: trasladosFormateados,
-    empresa,
-    codigo_ultra: codigo_ultra_str,
+    empresa: company,
+    codigo_ultra: String(ultra_code),
     clave,
   };
 

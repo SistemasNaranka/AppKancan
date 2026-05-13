@@ -17,12 +17,13 @@ import { usePromotionsFilter } from "../../hooks/usePromotionsFilter";
 // 🎯 Interface para las promociones con datos de posicionamiento
 interface PromoWithPosition {
   id: number;
-  tipo: string;
-  descripcion: string;
-  fecha_inicio: string;
-  fecha_final: string | null;
-  descuento: number;
+  type: string;
+  name: string;
+  start_date: string;
+  end_date: string | null;
+  discount: number;
   color: string;
+
   // Datos calculados para el posicionamiento
   startOffset: number; // % donde empieza la barra en el mes
   widthPercent: number; // % del ancho que ocupa la barra
@@ -60,10 +61,11 @@ const YearViewSummary: React.FC = () => {
       const monthEnd = dayjs().year(year).month(monthIdx).endOf("month");
       const daysInMonth = monthEnd.date();
 
-      const promoStart = dayjs(promo.fecha_inicio);
-      const promoEnd = promo.fecha_final
-        ? dayjs(promo.fecha_final)
+      const promoStart = dayjs(promo.start_date);
+      const promoEnd = promo.end_date
+        ? dayjs(promo.end_date)
         : promoStart; // Si es fija, solo el día de inicio
+
 
       // Verificar si la promo intersecta con este mes
       if (
@@ -169,15 +171,17 @@ const YearViewSummary: React.FC = () => {
               fontWeight="bold"
               sx={{ color: promo.color || "#1976d2" }}
             >
-              {promo.tipo} — {promo.descuento}%
+              {promo.type} — {promo.discount}%
+
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {`${dayjs(promo.fecha_inicio).locale("es").format("D MMM")} → ${
-                promo.fecha_final
-                  ? dayjs(promo.fecha_final).locale("es").format("D MMM")
+              {`${dayjs(promo.start_date).locale("es").format("D MMM")} → ${
+                promo.end_date
+                  ? dayjs(promo.end_date).locale("es").format("D MMM")
                   : "Fija"
               }`}
             </Typography>
+
           </Box>
         ))}
       </Box>

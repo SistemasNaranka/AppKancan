@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
 import {
   TiendaResumen,
   Role,
-  DirectusCargo,
+  DirectusPosition,
   CommissionThreshold,
   CommissionThresholdConfig,
 } from "../../types";
@@ -17,7 +17,7 @@ import { green, blue, orange, grey, pink, red } from "@mui/material/colors";
 
 interface DataTableProps {
   tiendas: TiendaResumen[];
-  cargos?: DirectusCargo[];
+  cargos?: DirectusPosition[];
   selectedMonth: string;
   onVentasUpdate: (
     tienda: string,
@@ -345,46 +345,46 @@ export const DataTable: React.FC<DataTableProps> = memo(
         // Valores por defecto si no hay configuración
         const DEFAULT_THRESHOLDS = [
           {
-            cumplimiento_min: 85,
-            comision_pct: 0.002,
-            nombre: "Básico",
+            min_compliance: 85,
+            pct_commission: 0.002,
+            name: "Básico",
             color: "red",
           },
           {
-            cumplimiento_min: 90,
-            comision_pct: 0.0035,
-            nombre: "Muy Regular",
+            min_compliance: 90,
+            pct_commission: 0.0035,
+            name: "Muy Regular",
             color: "pink",
           },
           {
-            cumplimiento_min: 95,
-            comision_pct: 0.005,
-            nombre: "Regular",
+            min_compliance: 95,
+            pct_commission: 0.005,
+            name: "Regular",
             color: "orange",
           },
           {
-            cumplimiento_min: 100,
-            comision_pct: 0.007,
-            nombre: "Buena",
+            min_compliance: 100,
+            pct_commission: 0.007,
+            name: "Buena",
             color: "blue",
           },
           {
-            cumplimiento_min: 110,
-            comision_pct: 0.01,
-            nombre: "Excelente",
+            min_compliance: 110,
+            pct_commission: 0.01,
+            name: "Excelente",
             color: "green",
           },
         ];
 
         const umbrales =
-          thresholdConfig?.cumplimiento_valores &&
-          thresholdConfig.cumplimiento_valores.length > 0
-            ? thresholdConfig.cumplimiento_valores
+          thresholdConfig?.compliance_values &&
+          thresholdConfig.compliance_values.length > 0
+            ? thresholdConfig.compliance_values
             : DEFAULT_THRESHOLDS;
 
-        // Ordenar umbrales por cumplimiento_min ascendente
+        // Ordenar umbrales por min_compliance ascendente
         const umbralesOrdenados = [...umbrales].sort(
-          (a, b) => a.cumplimiento_min - b.cumplimiento_min,
+          (a, b) => a.min_compliance - b.min_compliance,
         );
 
         // Verificar si el cumplimiento está dentro de alguno de los umbrales configurados
@@ -392,8 +392,8 @@ export const DataTable: React.FC<DataTableProps> = memo(
           const nextUmbral =
             umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
           return (
-            pct >= umbral.cumplimiento_min &&
-            (!nextUmbral || pct < nextUmbral.cumplimiento_min)
+            pct >= umbral.min_compliance &&
+            (!nextUmbral || pct < nextUmbral.min_compliance)
           );
         });
 
@@ -419,8 +419,8 @@ export const DataTable: React.FC<DataTableProps> = memo(
           const nextUmbral = umbralesOrdenados[i + 1];
 
           if (
-            pct >= umbral.cumplimiento_min &&
-            (!nextUmbral || pct < nextUmbral.cumplimiento_min)
+            pct >= umbral.min_compliance &&
+            (!nextUmbral || pct < nextUmbral.min_compliance)
           ) {
             // Si el umbral tiene un color configurado, usarlo
             if (umbral.color && colorMap[umbral.color]) {
@@ -428,21 +428,21 @@ export const DataTable: React.FC<DataTableProps> = memo(
             }
 
             // Si no, usar la lógica de color por defecto
-            if (umbral.cumplimiento_min >= 85 && umbral.cumplimiento_min < 90) {
+            if (umbral.min_compliance >= 85 && umbral.min_compliance < 90) {
               return red[300]; // Rojo para umbrales 85-89%
             } else if (
-              umbral.cumplimiento_min >= 90 &&
-              umbral.cumplimiento_min < 95
+              umbral.min_compliance >= 90 &&
+              umbral.min_compliance < 95
             ) {
               return pink[300]; // Rosa para umbrales 90-94%
             } else if (
-              umbral.cumplimiento_min >= 95 &&
-              umbral.cumplimiento_min < 100
+              umbral.min_compliance >= 95 &&
+              umbral.min_compliance < 100
             ) {
               return orange[600]; // Naranja para umbrales 95-99%
             } else if (
-              umbral.cumplimiento_min >= 100 &&
-              umbral.cumplimiento_min < 110
+              umbral.min_compliance >= 100 &&
+              umbral.min_compliance < 110
             ) {
               return blue[600]; // Azul para umbrales 100-109%
             } else {
@@ -481,7 +481,7 @@ export const DataTable: React.FC<DataTableProps> = memo(
           incrementallyLoadedCount={incrementallyLoadedCount}
           isIncrementallyLoading={isIncrementallyLoading}
           tiendaKeys={tiendaKeys}
-          thresholdConfig={thresholdConfig?.cumplimiento_valores}
+          thresholdConfig={thresholdConfig?.compliance_values}
         />
       );
     }, [

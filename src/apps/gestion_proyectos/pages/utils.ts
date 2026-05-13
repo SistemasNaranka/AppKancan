@@ -25,7 +25,7 @@ export const ICONOS_AREA: Record<string, React.ElementType> = {
   "Mercadeo": MercadeoIcon,
 };
 
-export function getTipoProyectoLabel(tipo: string | undefined): string {
+export function getProjectTypeLabel(tipo: string | undefined): string {
   if (!tipo) return "No especificado";
 
   const tipoLower = tipo.toLowerCase();

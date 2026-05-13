@@ -1,3 +1,4 @@
+// src/apps/gestion_proyectos/pages/DetalleProyecto.tsx
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -40,13 +41,13 @@ import {
   ShowChart,
 } from "@mui/icons-material";
 import {
-  getProjectById,
-  getEstadoColor,
-  getEstadoLabel,
-} from "../hooks/useProyectos";
+  useProjectById,
+  getStatusColor,
+  getStatusLabel,
+} from "../hooks/useProjects";
 import { formatTime, getFrequencyText } from "../lib/calculos";
 import EditProyectoModal from "./EditProyectoModal";
-import { getTipoProyectoLabel } from "./utils";
+import { getProjectTypeLabel } from "./utils";
 import {
   VolverButton,
   HeaderContainer,
@@ -67,18 +68,18 @@ ChartJS.register(
   Filler,
 );
 
-type TabId = "info" | "tiempos" | "beneficios";
+type TabId = "info" | "times" | "benefits";
 
-export default function DetalleProyecto() {
+export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { proyecto, metricas, loading, error, recargar } = getProjectById(id || "");
+  const { project, metrics, loading, error, reload } = useProjectById(id || "");
   const [activeTab, setActiveTab] = useState<TabId>("info");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
-  const [procesosExpanded, setProcesosExpanded] = useState(true);
-  const [metricasExpanded, setMetricasExpanded] = useState(true);
-  const [graficosExpanded, setGraficosExpanded] = useState(true);
+  const [processesExpanded, setProcessesExpanded] = useState(true);
+  const [metricsExpanded, setMetricsExpanded] = useState(true);
+  const [chartsExpanded, setChartsExpanded] = useState(true);
 
   if (loading) {
     return (
@@ -102,7 +103,7 @@ export default function DetalleProyecto() {
     );
   }
 
-  if (error || !proyecto) {
+  if (error || !project) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ p: 3 }}>
@@ -129,12 +130,12 @@ export default function DetalleProyecto() {
     );
   }
 
-  const estadoColors = getEstadoColor(proyecto.estado);
+  const statusColors = getStatusColor(project.status);
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: "info", label: "Información General", icon: <Description sx={{ fontSize: 16 }} /> },
-    { id: "tiempos", label: "Impacto en Tiempos", icon: <AccessTimeFilled sx={{ fontSize: 16 }} /> },
-    { id: "beneficios", label: "Beneficios", icon: <Stars sx={{ fontSize: 16 }} /> },
+    { id: "times", label: "Impacto en Tiempos", icon: <AccessTimeFilled sx={{ fontSize: 16 }} /> },
+    { id: "benefits", label: "Beneficios", icon: <Stars sx={{ fontSize: 16 }} /> },
   ];
 
   return (
@@ -169,7 +170,7 @@ export default function DetalleProyecto() {
                 textOverflow: "ellipsis",
               }}
             >
-              {proyecto.nombre}
+              {project.name}
             </Typography>
             <Typography
               variant="body2"
@@ -181,16 +182,16 @@ export default function DetalleProyecto() {
                 textOverflow: "ellipsis",
               }}
             >
-              {proyecto.descripcion}
+              {project.description}
             </Typography>
             <Box sx={{ mt: 1, display: "flex", justifyContent: "center" }}>
               <Chip
-                label={getEstadoLabel(proyecto.estado)}
+                label={getStatusLabel(project.status)}
                 size="small"
                 sx={{
                   fontWeight: "medium",
-                  backgroundColor: estadoColors.bg,
-                  color: estadoColors.text,
+                  backgroundColor: statusColors.bg,
+                  color: statusColors.text,
                 }}
               />
             </Box>
@@ -236,9 +237,9 @@ export default function DetalleProyecto() {
       <EditProyectoModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        proyecto={proyecto}
+        proyecto={project}
         onSuccess={() => {
-          recargar();
+          reload();
           setEditModalOpen(false);
         }}
         loading={editLoading}
@@ -283,49 +284,47 @@ export default function DetalleProyecto() {
           }}
         >
           {activeTab === "info" && (
-            <>
-              <Box
-                sx={{
-                  display: "flex",
-                  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
-                  gap: 10,
-                }}
-              >
-                <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold", }}>Área Beneficiada</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: "medium" }}>{proyecto.area_beneficiada}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold", }}>Tipo de proyecto</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: "medium" }}>{getTipoProyectoLabel(proyecto.tipo_proyecto)}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold", }}>Encargados</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: "medium" }}>
-                    {proyecto.encargados?.map((e) => e.nombre).join(", ") || "Sin asignar"}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold", }}>Fecha de Inicio</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: "medium" }}>{proyecto.fecha_inicio}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold", }}>Fecha Estimada</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: "medium" }}>{proyecto.fecha_estimada}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontWeight: "bold", }}>Fecha de Entrega</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: "medium" }}>{proyecto.fecha_entrega}</Typography>
-                </Box>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },
+                gap: 4,
+              }}
+            >
+              <Box>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: "bold" }}>Área Beneficiada</Typography>
+                <Typography variant="body1" sx={{ fontWeight: "medium" }}>{project.benefited_area}</Typography>
               </Box>
-            </>
+              <Box>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: "bold" }}>Tipo de proyecto</Typography>
+                <Typography variant="body1" sx={{ fontWeight: "medium" }}>{getProjectTypeLabel(project.project_type)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: "bold" }}>Encargados</Typography>
+                <Typography variant="body1" sx={{ fontWeight: "medium" }}>
+                  {project.assignees?.map((e) => e.name).join(", ") || "Sin asignar"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: "bold" }}>Fecha de Inicio</Typography>
+                <Typography variant="body1" sx={{ fontWeight: "medium" }}>{project.start_date}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: "bold" }}>Fecha Estimada</Typography>
+                <Typography variant="body1" sx={{ fontWeight: "medium" }}>{project.estimated_date}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: "bold" }}>Fecha de Entrega</Typography>
+                <Typography variant="body1" sx={{ fontWeight: "medium" }}>{project.delivery_date || "Pendiente"}</Typography>
+              </Box>
+            </Box>
           )}
 
-          {activeTab === "tiempos" && (
+          {activeTab === "times" && (
             <>
               <Accordion
-                expanded={metricasExpanded}
-                onChange={() => setMetricasExpanded(!metricasExpanded)}
+                expanded={metricsExpanded}
+                onChange={() => setMetricsExpanded(!metricsExpanded)}
                 sx={{
                   boxShadow: "none",
                   border: "1px solid",
@@ -338,7 +337,7 @@ export default function DetalleProyecto() {
                 <AccordionSummary
                   expandIcon={<ExpandMore />}
                   sx={{
-                    borderRadius: metricasExpanded ? "12px 12px 0 0" : "12px",
+                    borderRadius: metricsExpanded ? "12px 12px 0 0" : "12px",
                     backgroundColor: "#f8f9fa",
                     "&:hover": { backgroundColor: "#f1f3f4" },
                   }}
@@ -361,19 +360,19 @@ export default function DetalleProyecto() {
                     <Paper sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
                       <Typography variant="body2" sx={{ color: "success.dark" }}>Ahorro Mensual</Typography>
                       <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
-                        {formatTime(metricas.ahorro_total_mensual)}
+                        {formatTime(metrics.total_monthly_savings)}
                       </Typography>
                     </Paper>
                     <Paper sx={{ p: 2, bgcolor: "#EBF9EF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
                       <Typography variant="body2" sx={{ color: "success.dark" }}>Ahorro Anual</Typography>
                       <Typography variant="h5" sx={{ fontWeight: "bold", color: "success.dark" }}>
-                        {formatTime(metricas.ahorro_total_anual)}
+                        {formatTime(metrics.total_yearly_savings)}
                       </Typography>
                     </Paper>
                     <Paper sx={{ p: 2, bgcolor: "#E6F4FF", textAlign: "center", borderRadius: 3, boxShadow: "none" }}>
                       <Typography variant="body2" sx={{ color: "info.dark" }}>Total Procesos</Typography>
                       <Typography variant="h5" sx={{ fontWeight: "bold", color: "info.dark" }}>
-                        {metricas.total_procesos}
+                        {metrics.total_processes}
                       </Typography>
                     </Paper>
                   </Box>
@@ -381,8 +380,8 @@ export default function DetalleProyecto() {
               </Accordion>
 
               <Accordion
-                expanded={procesosExpanded}
-                onChange={() => setProcesosExpanded(!procesosExpanded)}
+                expanded={processesExpanded}
+                onChange={() => setProcessesExpanded(!processesExpanded)}
                 sx={{
                   boxShadow: "none",
                   border: "1px solid",
@@ -396,7 +395,7 @@ export default function DetalleProyecto() {
                 <AccordionSummary
                   expandIcon={<ExpandMore />}
                   sx={{
-                    borderRadius: procesosExpanded ? "12px 12px 0 0" : "12px",
+                    borderRadius: processesExpanded ? "12px 12px 0 0" : "12px",
                     backgroundColor: "#f8f9fa",
                     "&:hover": { backgroundColor: "#f1f3f4" },
                   }}
@@ -409,24 +408,24 @@ export default function DetalleProyecto() {
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails sx={{ p: 2 }}>
-                  {proyecto.procesos && proyecto.procesos.length > 0 ? (
+                  {project.processes && project.processes.length > 0 ? (
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      {proyecto.procesos.map((proceso, index) => {
-                        const mProceso = metricas.procesos[index] || {
-                          ahorro_por_ejecucion: 0,
-                          ahorro_mensual: 0,
-                          ahorro_anual: 0,
+                      {project.processes.map((process, index) => {
+                        const mProcess = metrics.processes_metrics[index] || {
+                          savings_per_execution: 0,
+                          monthly_savings: 0,
+                          yearly_savings: 0,
                         };
                         return (
-                          <Paper key={proceso.id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                          <Paper key={process.id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <Box>
                                 <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
-                                  {index + 1}. {proceso.nombre}
+                                  {index + 1}. {process.name}
                                 </Typography>
                                 <Typography variant="body2" sx={{ mt: 0.5, color: "text.secondary" }}>
                                   Frecuencia:{" "}
-                                  {getFrequencyText(proceso.frecuencia_tipo as any, proceso.frecuencia_cantidad)}
+                                  {getFrequencyText(process.frequency_type as any, process.frequency_quantity)}
                                 </Typography>
                               </Box>
                               <Box sx={{ textAlign: "right" }}>
@@ -434,18 +433,22 @@ export default function DetalleProyecto() {
                                   Ahorro por ejecución
                                 </Typography>
                                 <Typography variant="body1" sx={{ fontWeight: "medium", color: "success.main" }}>
-                                  {proceso.tiempo_antes}s → {proceso.tiempo_despues}s
-                                  <Typography component="span" variant="body2" sx={{ ml: 1, color: "success.dark" }}>
-                                    (-{proceso.tiempo_antes - proceso.tiempo_despues}s)
+                                  {process.time_before}s → {process.time_after}s
+                                  <Typography 
+                                    component="span" 
+                                    variant="body2" 
+                                    sx={{ ml: 1, color: (Number(process.time_before) - Number(process.time_after)) >= 0 ? "success.dark" : "error.dark" }}
+                                  >
+                                    ({(Number(process.time_before) - Number(process.time_after)) >= 0 ? "-" : "+"}{Math.abs(Number(process.time_before) - Number(process.time_after))}s)
                                   </Typography>
                                 </Typography>
                               </Box>
                             </Box>
-                            {mProceso.ahorro_mensual > 0 && (
+                            {mProcess.monthly_savings > 0 && (
                               <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
                                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                  Ahorra {formatTime(mProceso.ahorro_mensual)}/mes (
-                                  {formatTime(mProceso.ahorro_anual)}/año)
+                                  Ahorra {formatTime(mProcess.monthly_savings)}/mes (
+                                  {formatTime(mProcess.yearly_savings)}/año)
                                 </Typography>
                               </Box>
                             )}
@@ -464,8 +467,8 @@ export default function DetalleProyecto() {
               </Accordion>
 
               <Accordion
-                expanded={graficosExpanded}
-                onChange={() => setGraficosExpanded(!graficosExpanded)}
+                expanded={chartsExpanded}
+                onChange={() => setChartsExpanded(!chartsExpanded)}
                 sx={{
                   boxShadow: "none",
                   border: "1px solid",
@@ -479,7 +482,7 @@ export default function DetalleProyecto() {
                 <AccordionSummary
                   expandIcon={<ExpandMore />}
                   sx={{
-                    borderRadius: graficosExpanded ? "12px 12px 0 0" : "12px",
+                    borderRadius: chartsExpanded ? "12px 12px 0 0" : "12px",
                     backgroundColor: "#f8f9fa",
                     "&:hover": { backgroundColor: "#f1f3f4" },
                   }}
@@ -492,7 +495,7 @@ export default function DetalleProyecto() {
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails sx={{ p: 2 }}>
-                  {proyecto.procesos && proyecto.procesos.length > 0 ? (
+                  {project.processes && project.processes.length > 0 ? (
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: "#1a2b45" }}>
@@ -501,11 +504,11 @@ export default function DetalleProyecto() {
                         <Box sx={{ height: 250 }}>
                           <Line
                             data={{
-                              labels: proyecto.procesos.map((p, i) => `${i + 1}. ${p.nombre.substring(0, 15)}${p.nombre.length > 15 ? '...' : ''}`),
+                              labels: project.processes.map((p, i) => `${i + 1}. ${p.name.substring(0, 15)}${p.name.length > 15 ? '...' : ''}`),
                               datasets: [
                                 {
                                   label: 'Tiempo Original (seg)',
-                                  data: proyecto.procesos.map(p => p.tiempo_antes),
+                                  data: project.processes.map(p => p.time_before),
                                   borderColor: '#ef4444',
                                   backgroundColor: 'rgba(255, 255, 255, 0)',
                                   tension: 0.3,
@@ -513,7 +516,7 @@ export default function DetalleProyecto() {
                                 },
                                 {
                                   label: 'Tiempo Optimizado (seg)',
-                                  data: proyecto.procesos.map(p => p.tiempo_despues),
+                                  data: project.processes.map(p => p.time_after),
                                   borderColor: '#22c55e',
                                   backgroundColor: 'rgba(255, 255, 255, 0)',
                                   tension: 0.3,
@@ -554,12 +557,12 @@ export default function DetalleProyecto() {
                         </Typography>
                         <Box sx={{ height: 280, display: 'flex', justifyContent: 'center' }}>
                           {(() => {
-                            const totalAntes = proyecto.procesos.reduce((sum, p) => sum + p.tiempo_antes, 0);
-                            const totalDespues = proyecto.procesos.reduce((sum, p) => sum + p.tiempo_despues, 0);
+                            const totalBefore = project.processes.reduce((sum, p) => sum + (Number(p.time_before) || 0), 0);
+                            const totalAfter = project.processes.reduce((sum, p) => sum + (Number(p.time_after) || 0), 0);
                             const data = {
                               labels: ['Tiempo Original', 'Tiempo Optimizado'],
                               datasets: [{
-                                data: [totalAntes, totalDespues],
+                                data: [totalBefore, totalAfter],
                                 backgroundColor: ['#ef4444', '#22c55e'],
                                 borderColor: ['#dc2626', '#16a34a'],
                                 borderWidth: 2,
@@ -575,9 +578,9 @@ export default function DetalleProyecto() {
                                 tooltip: {
                                   callbacks: {
                                     label: (context: TooltipItem<"doughnut">) => {
-                                      const total = totalAntes + totalDespues;
+                                      const total = totalBefore + totalAfter;
                                       const value = context.raw as number;
-                                      const percentage = ((value / total) * 100).toFixed(1);
+                                      const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
                                       return `${context.label}: ${value} segundos (${percentage}%)`;
                                     },
                                   },
@@ -602,14 +605,14 @@ export default function DetalleProyecto() {
             </>
           )}
 
-          {activeTab === "beneficios" && (
+          {activeTab === "benefits" && (
             <>
-              {proyecto.beneficios && proyecto.beneficios.length > 0 ? (
+              {project.benefits && project.benefits.length > 0 ? (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-                  {proyecto.beneficios.slice(0, 12).map((beneficio) => (
-                    <Paper key={beneficio.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                  {project.benefits.slice(0, 12).map((benefit) => (
+                    <Paper key={benefit.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
                       <Typography variant="body1" sx={{ fontWeight: "medium" }}>
-                        {beneficio.descripcion}
+                        {benefit.description}
                       </Typography>
                     </Paper>
                   ))}

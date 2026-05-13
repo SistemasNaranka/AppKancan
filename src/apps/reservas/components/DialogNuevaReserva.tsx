@@ -25,6 +25,8 @@ import {
   Divider,
   Tooltip,
   Avatar,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import {
   Schedule as ScheduleIcon,
@@ -46,7 +48,10 @@ import { es } from "date-fns/locale";
 import type { NuevaReserva, Sala } from "../types/reservas.types";
 import { SALAS_DISPONIBLES, HORARIO_INICIO, HORARIO_FIN } from "../types/reservas.types";
 import { getConfiguracionReserva, buscarUsuarios } from "../services/reservas";
+import { notificarCorreoReserva } from "../services/correoReservas";
 import { useTourContext } from "./TourContext";
+import { useFestivos } from "../hooks/useFestivos";
+import { FestivoDay } from "./FestivoDay";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -121,6 +126,20 @@ const DIALOG_TOUR_STEPS: DialogTourStep[] = [
     spotlightPadding: 16,
   },
   {
+    target: "tour-dialog-participantes",
+    title: "Añadir Participantes",
+    content: "Escribe el nombre y correo de cada participante y presiona el botón azul para agregarlos. Puedes buscar usuarios registrados escribiendo en el campo de correo.",
+    placement: "right",
+    spotlightPadding: 12,
+  },
+  {
+    target: "tour-dialog-correo",
+    title: "Notificar por Correo",
+    content: "Si está activado, se enviará automáticamente un correo de confirmación a todos los participantes al crear la reserva.",
+    placement: "top",
+    spotlightPadding: 10,
+  },
+  {
     target: "tour-dialog-submit",
     title: "¡Confirma tu Reserva!",
     content: 'Haz clic en "Confirmar Reservación". Si no llenaste el formulario, se usarán datos de ejemplo automáticamente.',
@@ -135,9 +154,9 @@ const DIALOG_TOUR_STEPS: DialogTourStep[] = [
 // DATOS DE EJEMPLO PARA EL TOUR
 // ============================================
 const DATOS_EJEMPLO_TOUR = {
-  titulo: "Reunión de Ejemplo - Tutorial",
-  nombre_sala: "Sala Principal" as Sala,
-  observaciones: "Esta es una reserva de ejemplo.",
+  meeting_title: "Reunión de Ejemplo - Tutorial",
+  room_name: "Sala Principal" as Sala,
+  observations: "Esta es una reserva de ejemplo.",
 };
 
 // ============================================
@@ -391,11 +410,8 @@ const SpotlightOverlay: React.FC<SpotlightOverlayProps> = ({ targetEl, open }) =
           width: rect.width + padding * 2,
           height: rect.height + padding * 2,
           borderRadius: 3,
-          //border: "4px solid #004680",
-          //boxShadow: "0 0 30px rgba(0, 70, 128, 0.6), inset 0 0 20px rgba(0, 70, 128, 0.2)",
           pointerEvents: "none",
           transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-          //animation: "pulse-spotlight 2s ease-in-out infinite",
         }}
       />
     </Box>
@@ -443,6 +459,11 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [configCargando, setConfigCargando] = useState(true);
+  const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
+  const { data: festivos = {} } = useFestivos(calendarYear);
+
+  // Toggle: enviar correo de confirmación al crear reserva.
+  const [enviarCorreo, setEnviarCorreo] = useState<boolean>(true);
 
   // Tour context
   const { tourPhase, onDialogOpened, onFormSubmitted, stopTour } = useTourContext();
@@ -459,6 +480,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const horasRef = useRef<HTMLDivElement>(null);
   const fechaRef = useRef<HTMLDivElement>(null);
   const observacionesRef = useRef<HTMLDivElement>(null);
+  const participantesRef = useRef<HTMLDivElement>(null);
+  const correoRef = useRef<HTMLDivElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
 
   const refMap: Record<string, React.RefObject<HTMLElement>> = {
@@ -467,6 +490,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     "tour-dialog-horas": horasRef,
     "tour-dialog-fecha": fechaRef,
     "tour-dialog-observaciones": observacionesRef,
+    "tour-dialog-participantes": participantesRef,
+    "tour-dialog-correo": correoRef,
     "tour-dialog-submit": submitRef,
   };
 
@@ -563,12 +588,12 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   // Si el formulario está vacío, usa datos de ejemplo automáticamente
   const handleTourSubmit = () => {
     // Obtener valores actuales del formulario
-    const currentTitulo = watch("titulo");
-    const currentSala = watch("nombre_sala");
-    const currentFecha = watch("fecha");
-    const currentHoraInicio = watch("hora_inicio");
-    const currentHoraFinal = watch("hora_final");
-    const currentObservaciones = watch("observaciones");
+    const currentTitulo = watch("meeting_title");
+    const currentSala = watch("room_name");
+    const currentFecha = watch("date");
+    const currentHoraInicio = watch("start_time");
+    const currentHoraFinal = watch("end_time");
+    const currentObservaciones = watch("observations");
 
     // Verificar si el formulario tiene datos válidos (al menos título y sala)
     const formularioLleno = currentTitulo && currentTitulo.trim().length >= 3 && currentSala;
@@ -577,12 +602,12 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       // Usuario llenó el formulario, usar sus datos
       setDialogTourActive(false);
       onFormSubmitted({
-        nombre_sala: currentSala,
-        fecha: currentFecha || format(new Date(), "yyyy-MM-dd"),
-        hora_inicio: currentHoraInicio || horarioConfig.horaApertura,
-        hora_final: currentHoraFinal || `${(parseInt(horarioConfig.horaApertura.split(":")[0]) + 1).toString().padStart(2, "0")}:00`,
-        titulo: currentTitulo,
-        observaciones: currentObservaciones?.trim() || "",
+        room_name: currentSala,
+        date: currentFecha || format(new Date(), "yyyy-MM-dd"),
+        start_time: currentHoraInicio || horarioConfig.horaApertura,
+        end_time: currentHoraFinal || `${(parseInt(horarioConfig.horaApertura.split(":")[0]) + 1).toString().padStart(2, "0")}:00`,
+        meeting_title: currentTitulo,
+        observations: currentObservaciones?.trim() || "",
       });
     } else {
       // Formulario vacío, usar datos de ejemplo
@@ -595,23 +620,23 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       const horaFinEjemplo = `${(h + 1).toString().padStart(2, "0")}:30`;
 
       // Llenar el formulario visualmente con datos de ejemplo
-      setValue("titulo", DATOS_EJEMPLO_TOUR.titulo);
-      setValue("nombre_sala", DATOS_EJEMPLO_TOUR.nombre_sala);
-      setValue("fecha", fechaEjemplo);
-      setValue("hora_inicio", horaInicioEjemplo);
-      setValue("hora_final", horaFinEjemplo);
-      setValue("observaciones", DATOS_EJEMPLO_TOUR.observaciones);
+      setValue("meeting_title", DATOS_EJEMPLO_TOUR.meeting_title);
+      setValue("room_name", DATOS_EJEMPLO_TOUR.room_name);
+      setValue("date", fechaEjemplo);
+      setValue("start_time", horaInicioEjemplo);
+      setValue("end_time", horaFinEjemplo);
+      setValue("observations", DATOS_EJEMPLO_TOUR.observations);
 
       // Enviar con datos de ejemplo
       setTimeout(() => {
         setDialogTourActive(false);
         onFormSubmitted({
-          nombre_sala: DATOS_EJEMPLO_TOUR.nombre_sala,
-          fecha: fechaEjemplo,
-          hora_inicio: horaInicioEjemplo,
-          hora_final: horaFinEjemplo,
-          titulo: DATOS_EJEMPLO_TOUR.titulo,
-          observaciones: DATOS_EJEMPLO_TOUR.observaciones,
+          room_name: DATOS_EJEMPLO_TOUR.room_name,
+          date: fechaEjemplo,
+          start_time: horaInicioEjemplo,
+          end_time: horaFinEjemplo,
+          meeting_title: DATOS_EJEMPLO_TOUR.meeting_title,
+          observations: DATOS_EJEMPLO_TOUR.observations,
         });
       }, 100);
     }
@@ -659,8 +684,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         const config = await getConfiguracionReserva();
         if (config) {
           const horaApertura =
-            config.hora_apertura?.substring(0, 5) || HORARIO_INICIO;
-          const horaCierre = config.hora_cierre?.substring(0, 5) || HORARIO_FIN;
+            config.opening_time?.substring(0, 5) || HORARIO_INICIO;
+          const horaCierre = config.closing_time?.substring(0, 5) || HORARIO_FIN;
           setHorarioConfig({ horaApertura, horaCierre });
         }
       } catch (err) {
@@ -679,8 +704,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const schema = useMemo(
     () =>
       yup.object({
-        nombre_sala: yup.string().required("Selecciona una sala"),
-        fecha: yup
+        room_name: yup.string().required("Selecciona una sala"),
+        date: yup
           .string()
           .required("Selecciona una fecha")
           .test("fecha-valida", "No puedes reservar fechas pasadas", (value) => {
@@ -690,7 +715,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
             hoy.setHours(0, 0, 0, 0);
             return fechaSeleccionada >= hoy;
           }),
-        hora_inicio: yup
+        start_time: yup
           .string()
           .required("Selecciona hora de inicio")
           .test(
@@ -709,16 +734,16 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
               return value < horarioConfig.horaCierre;
             }
           ),
-        hora_final: yup
+        end_time: yup
           .string()
           .required("Selecciona hora de fin")
           .test(
             "hora-mayor",
             "La hora de fin debe ser al menos 30 minutos después de la hora de inicio",
             function (value) {
-              const { hora_inicio } = this.parent;
-              if (!value || !hora_inicio) return false;
-              const [h, m] = hora_inicio.split(":").map(Number);
+              const { start_time } = this.parent;
+              if (!value || !start_time) return false;
+              const [h, m] = start_time.split(":").map(Number);
               // Agregar 30 minutos
               let horaMinima = h;
               let minutoMinimo = m + 30;
@@ -739,16 +764,16 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
               return value <= horarioConfig.horaCierre;
             }
           ),
-        titulo: yup
+        meeting_title: yup
           .string()
           .required("El título es obligatorio")
           .min(3, "Mínimo 3 caracteres")
           .max(100, "Máximo 100 caracteres"),
-        observaciones: yup.string().max(500, "Máximo 500 caracteres"),
-        participantes: yup.array().of(
+        observations: yup.string().max(500, "Máximo 500 caracteres"),
+        participants: yup.array().of(
           yup.object({
-            nombre: yup.string().required("El nombre es obligatorio"),
-            correo: yup
+            name: yup.string().required("El nombre es obligatorio"),
+            email: yup
               .string()
               .matches(EMAIL_REGEX, "Correo no válido")
               .required("El correo es obligatorio"),
@@ -768,19 +793,19 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      nombre_sala: "" as Sala,
-      fecha: format(new Date(), "yyyy-MM-dd"),
-      hora_inicio: horarioConfig.horaApertura,
-      hora_final: "",
-      titulo: "",
-      observaciones: "",
-      participantes: [] as { nombre: string; correo: string }[],
+      room_name: "" as Sala,
+      date: format(new Date(), "yyyy-MM-dd"),
+      start_time: horarioConfig.horaApertura,
+      end_time: "",
+      meeting_title: "",
+      observations: "",
+      participants: [] as { name: string; email: string }[],
     },
   });
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "participantes",
+    name: "participants",
   });
 
   // Estado para autocompletado de participantes
@@ -810,8 +835,8 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
 
   const handleAddParticipante = () => {
     if (tempNombre.trim() && tempCorreo.trim()) {
-      if (!fields.some(f => f.correo === tempCorreo)) {
-        append({ nombre: tempNombre, correo: tempCorreo });
+      if (!fields.some(f => (f as any).email === tempCorreo)) {
+        append({ name: tempNombre, email: tempCorreo });
         setTempNombre("");
         setTempCorreo("");
       }
@@ -854,11 +879,11 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       }
       const horaFinDefault = `${horaFin.toString().padStart(2, "0")}:${minutoFin.toString().padStart(2, "0")}`;
       
-      setValue("hora_inicio", horaInicioDefault);
+      setValue("start_time", horaInicioDefault);
       if (horaFinDefault <= horarioConfig.horaCierre) {
-        setValue("hora_final", horaFinDefault);
+        setValue("end_time", horaFinDefault);
       } else {
-        setValue("hora_final", horarioConfig.horaCierre);
+        setValue("end_time", horarioConfig.horaCierre);
       }
     }
   }, [configCargando, opcionesHora, horarioConfig, setValue]);
@@ -866,19 +891,19 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   useEffect(() => {
     if (open && !configCargando) {
       if (fechaInicial) {
-        setValue("fecha", fechaInicial);
+        setValue("date", fechaInicial);
       } else {
-        setValue("fecha", format(new Date(), "yyyy-MM-dd"));
+        setValue("date", format(new Date(), "yyyy-MM-dd"));
       }
       if (salaInicial) {
-        setValue("nombre_sala", salaInicial);
+        setValue("room_name", salaInicial);
       }
       if (horaInicial) {
         if (
           horaInicial >= horarioConfig.horaApertura &&
           horaInicial < horarioConfig.horaCierre
         ) {
-          setValue("hora_inicio", horaInicial);
+          setValue("start_time", horaInicial);
           const [h, m] = horaInicial.split(":").map(Number);
           // Calcular hora final (+30 minutos)
           let horaFin = h;
@@ -889,18 +914,18 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
           }
           const horaFinStr = `${horaFin.toString().padStart(2, "0")}:${minutoFin.toString().padStart(2, "0")}`;
           if (horaFinStr <= horarioConfig.horaCierre) {
-            setValue("hora_final", horaFinStr);
+            setValue("end_time", horaFinStr);
           } else {
-            setValue("hora_final", horarioConfig.horaCierre);
+            setValue("end_time", horarioConfig.horaCierre);
           }
         }
       }
     }
   }, [open, configCargando, fechaInicial, salaInicial, horaInicial, horarioConfig, setValue]);
 
-  const horaInicioWatch = watch("hora_inicio");
-  const horaFinalWatch = watch("hora_final");
-  const observacionesWatch = watch("observaciones");
+  const horaInicioWatch = watch("start_time");
+  const horaFinalWatch = watch("end_time");
+  const observacionesWatch = watch("observations");
 
   const caracteresObservaciones = observacionesWatch?.length || 0;
   const caracteresRestantes = 500 - caracteresObservaciones;
@@ -920,7 +945,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       if (horaMinima >= 24) horaMinima = 23;
       const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutoMinimo.toString().padStart(2, "0")}`;
       if (horaFinalWatch && horaFinalWatch < horaMinimaStr) {
-        setValue("hora_final", horaMinimaStr);
+        setValue("end_time", horaMinimaStr);
       }
     }
   }, [horaInicioWatch, horaFinalWatch, setValue]);
@@ -937,7 +962,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     newSala: Sala | null
   ) => {
     if (newSala) {
-      setValue("nombre_sala", newSala);
+      setValue("room_name", newSala);
     }
   };
 
@@ -946,12 +971,12 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     if (isTourMode) {
       setDialogTourActive(false);
       onFormSubmitted({
-        nombre_sala: data.nombre_sala,
-        fecha: data.fecha,
-        hora_inicio: data.hora_inicio,
-        hora_final: data.hora_final,
-        titulo: data.titulo,
-        observaciones: data.observaciones?.trim() || "",
+        room_name: data.room_name,
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        meeting_title: data.meeting_title,
+        observations: data.observations?.trim() || "",
       });
       return;
     }
@@ -963,10 +988,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     try {
       if (verificarConflicto) {
         const hayConflicto = await verificarConflicto(
-          data.nombre_sala,
-          data.fecha,
-          data.hora_inicio,
-          data.hora_final
+          data.room_name,
+          data.date,
+          data.start_time,
+          data.end_time
         );
         if (hayConflicto) {
           setError("Ya existe una reserva en este horario para esta sala");
@@ -975,15 +1000,34 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         }
       }
 
-      await onSubmit({
-        nombre_sala: data.nombre_sala,
-        fecha: data.fecha,
-        hora_inicio: data.hora_inicio,
-        hora_final: data.hora_final,
-        titulo_reunion: data.titulo,
-        observaciones: data.observaciones?.trim() || "",
-        participantes: data.participantes,
-      });
+      const payload = {
+        room_name: data.room_name,
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        meeting_title: data.meeting_title,
+        observations: data.observations?.trim() || "",
+        participants: data.participants,
+        departament: data.departament,
+      };
+      await onSubmit(payload);
+
+      // Notificación n8n post-creación. Solo si el usuario activó el toggle.
+      // No bloquea: si falla, solo logea (la reserva ya quedó en BD).
+      if (enviarCorreo) {
+        try {
+          const result = await notificarCorreoReserva({
+            evento: "reserva_creada",
+            reserva: payload,
+          });
+          console.info("[n8n] correo enviado OK:", result);
+        } catch (err) {
+          console.warn("[n8n] correo NO enviado:", err);
+        }
+      } else {
+        console.info("[n8n] envío de correo desactivado por el usuario");
+      }
+
       handleClose();
     } catch (err: any) {
       setError(err.message || "Error al crear la reserva");
@@ -1076,15 +1120,15 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                       Título de la Reunión *
                     </Typography>
                     <Controller
-                      name="titulo"
+                      name="meeting_title"
                       control={control}
                       render={({ field }) => (
                         <TextField
                           {...field}
                           fullWidth
                           placeholder="ej. Sincronización Semanal"
-                          error={!!errors.titulo}
-                          helperText={errors.titulo?.message}
+                          error={!!errors.meeting_title}
+                          helperText={errors.meeting_title?.message}
                           disabled={loading}
                           size="small"
                           sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "white" } }}
@@ -1099,7 +1143,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                       Seleccionar Sala *
                     </Typography>
                     <Controller
-                      name="nombre_sala"
+                      name="room_name"
                       control={control}
                       render={({ field }) => (
                         <ToggleButtonGroup
@@ -1134,9 +1178,9 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                         </ToggleButtonGroup>
                       )}
                     />
-                    {errors.nombre_sala && (
+                    {errors.room_name && (
                       <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-                        {errors.nombre_sala.message}
+                        {errors.room_name.message}
                       </Typography>
                     )}
                   </Box>
@@ -1168,10 +1212,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           Hora de Inicio *
                         </Typography>
                         <Controller
-                          name="hora_inicio"
+                          name="start_time"
                           control={control}
                           render={({ field }) => (
-                            <FormControl fullWidth error={!!errors.hora_inicio}>
+                            <FormControl fullWidth error={!!errors.start_time}>
                               <Select
                                 {...field}
                                 disabled={loading || configCargando}
@@ -1184,9 +1228,9 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                                   </MenuItem>
                                 ))}
                               </Select>
-                              {errors.hora_inicio && (
+                              {errors.start_time && (
                                 <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                  {errors.hora_inicio.message}
+                                  {errors.start_time.message}
                                 </Typography>
                               )}
                             </FormControl>
@@ -1198,10 +1242,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           Hora de Fin *
                         </Typography>
                         <Controller
-                          name="hora_final"
+                          name="end_time"
                           control={control}
                           render={({ field }) => (
-                            <FormControl fullWidth error={!!errors.hora_final}>
+                            <FormControl fullWidth error={!!errors.end_time}>
                               <Select
                                 {...field}
                                 disabled={loading || configCargando}
@@ -1214,9 +1258,9 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                                   </MenuItem>
                                 ))}
                               </Select>
-                              {errors.hora_final && (
+                              {errors.end_time && (
                                 <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                  {errors.hora_final.message}
+                                  {errors.end_time.message}
                                 </Typography>
                               )}
                             </FormControl>
@@ -1229,7 +1273,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
 
 
                   {/* Participantes */}
-                  <Box>
+                  <Box ref={participantesRef}>
                     <Box sx={{ p: 1.8, bgcolor: "#F9FAFB", borderRadius: 2, border: "1px solid #E5E7EB", mb: 1.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: "#374151", mb: 1.2, fontSize: "0.85rem" }}>
                         Añadir Participantes
@@ -1258,13 +1302,18 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           }}
                           onChange={(_, data) => {
                             if (data && typeof data !== "string") {
+                              // Usuario elegido del dropdown → sobreescribir SIEMPRE
+                              // nombre + correo (no solo cuando nombre esté vacío),
+                              // así si el usuario cambia de selección, el nombre se
+                              // actualiza al del nuevo usuario.
                               setTempCorreo(data.email);
-                              // Solo sobreescribir el nombre si está vacío
-                              if (!tempNombre.trim()) {
-                                setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
-                              }
+                              setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
                             } else if (typeof data === "string") {
                               setTempCorreo(data);
+                            } else if (data === null) {
+                              // Usuario limpió el campo (clic en X) → limpiar también nombre
+                              setTempCorreo("");
+                              setTempNombre("");
                             }
                           }}
                           value={tempCorreo}
@@ -1328,14 +1377,14 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                             display: "flex",
                             alignItems: "center",
                             gap: 1.5,
-                            py: 0.8, // Padding más compacto
+                            py: 0.8,
                             borderBottom: "1px solid #f3f4f6",
                             "&:last-child": { borderBottom: "none" },
                           }}
                         >
                           <Avatar
                             sx={{
-                              width: 30, // Avatar más pequeño
+                              width: 30,
                               height: 30,
                               bgcolor: "#EFF6FF",
                               color: "#3B82F6",
@@ -1346,10 +1395,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography variant="body2" sx={{ fontWeight: 600, color: "#1f2937", fontSize: "0.85rem", lineHeight: 1.2 }} noWrap>
-                              {field.nombre}
+                              {(field as any).name}
                             </Typography>
                             <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.75rem", display: "block" }} noWrap>
-                              {field.correo}
+                              {(field as any).email}
                             </Typography>
                           </Box>
 
@@ -1388,20 +1437,32 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                     }}
                   >
                     <Controller
-                      name="fecha"
+                      name="date"
                       control={control}
                       render={({ field }) => (
                         <StaticDatePicker
                           value={field.value ? parse(field.value, "yyyy-MM-dd", new Date()) : null}
                           onChange={(value: any) => {
                             if (value) {
-                              setValue("fecha", format(new Date(value.toString()), "yyyy-MM-dd"));
+                              setValue("date", format(new Date(value.toString()), "yyyy-MM-dd"));
                             }
+                          }}
+                          onMonthChange={(date: any) => {
+                            const y = (date instanceof Date ? date : new Date(date as any)).getFullYear();
+                            if (!isNaN(y)) setCalendarYear(y);
+                          }}
+                          onYearChange={(date: any) => {
+                            const y = (date instanceof Date ? date : new Date(date as any)).getFullYear();
+                            if (!isNaN(y)) setCalendarYear(y);
                           }}
                           disabled={loading}
                           shouldDisableDate={shouldDisableDate as any}
                           displayStaticWrapperAs="desktop"
-                          slotProps={{ actionBar: { actions: [] } }}
+                          slots={{ day: FestivoDay as any }}
+                          slotProps={{
+                            actionBar: { actions: [] },
+                            day: { festivos } as any,
+                          }}
                           sx={{
                             "& .MuiPickersCalendarHeader-root": { paddingLeft: 2, paddingRight: 2 },
                             "& .MuiDayCalendar-root": { width: "100%" },
@@ -1414,19 +1475,19 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                       )}
                     />
                   </Box>
-                  {errors.fecha && (
+                  {errors.date && (
                     <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-                      {errors.fecha.message}
+                      {errors.date.message}
                     </Typography>
                   )}
 
-                  {/* Observaciones - Movido aquí */}
+                  {/* Observaciones */}
                   <Box ref={observacionesRef} sx={{ mt: 2 }}>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
                       Observaciones
                     </Typography>
                     <Controller
-                      name="observaciones"
+                      name="observations"
                       control={control}
                       render={({ field }) => (
                         <TextField
@@ -1435,9 +1496,9 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           multiline
                           rows={3}
                           placeholder="Detalles adicionales, participantes, materiales necesarios..."
-                          error={!!errors.observaciones}
+                          error={!!errors.observations}
                           helperText={
-                            errors.observaciones?.message || (
+                            errors.observations?.message || (
                               <Typography
                                 component="span"
                                 sx={{
@@ -1465,35 +1526,68 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
               </Box>
 
               {/* Botones */}
-              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
-                <Button
-                  onClick={handleClose}
-                  disabled={loading || isTourMode}
-                  sx={{ textTransform: "none", fontWeight: 500, color: "#374151" }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  ref={submitRef}
-                  type={isTourMode ? "button" : "submit"}
-                  onClick={isTourMode ? handleTourSubmit : undefined}
-                  variant="contained"
-                  disabled={loading}
-                  startIcon={
-                    loading ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 2,
+                  mt: 3,
+                  flexWrap: "wrap",
+                }}
+              >
+                <FormControlLabel
+                  ref={correoRef}
+                  control={
+                    <Switch
+                      checked={enviarCorreo}
+                      onChange={(e) => setEnviarCorreo(e.target.checked)}
+                      disabled={loading}
+                      sx={{
+                        "& .MuiSwitch-switchBase.Mui-checked": { color: "#004680" },
+                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                          backgroundColor: "#004680",
+                        },
+                      }}
+                    />
                   }
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 600,
-                    backgroundColor: "#004680",
-                    borderRadius: 2,
-                    boxShadow: "none",
-                    px: 3,
-                    "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" },
-                  }}
-                >
-                  Confirmar Reservación
-                </Button>
+                  label={
+                    <Typography variant="body2" sx={{ color: "#374151" }}>
+                      Enviar correo de confirmación a los participantes
+                    </Typography>
+                  }
+                  sx={{ ml: 0 }}
+                />
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    onClick={handleClose}
+                    disabled={loading || isTourMode}
+                    sx={{ textTransform: "none", fontWeight: 500, color: "#374151" }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    ref={submitRef}
+                    type={isTourMode ? "button" : "submit"}
+                    onClick={isTourMode ? handleTourSubmit : undefined}
+                    variant="contained"
+                    disabled={loading}
+                    startIcon={
+                      loading ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />
+                    }
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 600,
+                      backgroundColor: "#004680",
+                      borderRadius: 2,
+                      boxShadow: "none",
+                      px: 3,
+                      "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" },
+                    }}
+                  >
+                    Confirmar Reservación
+                  </Button>
+                </Box>
               </Box>
             </Box>
           </form>

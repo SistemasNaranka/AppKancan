@@ -89,9 +89,9 @@ export const useHomeLogic = () => {
       const budgetsHash = budgets.reduce((acc: number, b: any) => acc + Math.round(b.presupuesto_total * 100), 0);
       const staffHash = staff.reduce((acc: number, s: any) => acc + parseInt(s.id.replace(/\D/g, "")) + s.tienda.length, 0);
       const ventasHash = ventas.reduce((acc: number, v: any) => acc + Math.round(v.ventas_tienda * 100), 0);
-      const presupuestosHash = presupuestosEmpleadosState.reduce((acc, p) => acc + Math.round((p.presupuesto || 0) * 100), 0);
+      const presupuestosHash = presupuestosEmpleadosState.reduce((acc, p) => acc + Math.round((p.budget || 0) * 100), 0);
       const presupuestosCount = presupuestosEmpleadosState.length;
-      const thresholdHash = thresholdConfig?.cumplimiento_valores ? thresholdConfig.cumplimiento_valores.reduce((acc, t) => acc + Math.round(t.cumplimiento_min * 1000) + Math.round(t.comision_pct * 100000), 0) : 0;
+      const thresholdHash = thresholdConfig?.compliance_values ? thresholdConfig.compliance_values.reduce((acc, t) => acc + Math.round(t.min_compliance * 1000) + Math.round(t.pct_commission * 100000), 0) : 0;
       return `${budgetsHash}_${staffHash}_${ventasHash}_${presupuestosHash}_${presupuestosCount}_${thresholdHash}`;
     };
 
@@ -210,7 +210,7 @@ export const useHomeLogic = () => {
 
   const shouldShowMainContent = useMemo(() => {
     if (!budgetValidation.validationCompleted) return true;
-    if (hasPolicy("readComisionesTienda")) return budgetValidation.hasBudgetData !== false;
+    if (hasPolicy("crud_commission_stores")) return budgetValidation.hasBudgetData !== false;
     return true;
   }, [budgetValidation.validationCompleted, budgetValidation.hasBudgetData, hasPolicy]);
 

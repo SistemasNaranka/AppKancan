@@ -71,9 +71,9 @@ export const calculateTiendaResumen = (
 
       const presupuestoDiario = presupuestosEmpleados?.find(
         (pe) =>
-          pe.asesor.toString() === empleado.id.toString() && pe.fecha === fecha
+          pe.advisor_id.toString() === empleado.id.toString() && pe.date === fecha
       );
-      const presupuestoIndividual = presupuestoDiario?.presupuesto || 0;
+      const presupuestoIndividual = presupuestoDiario?.budget || 0;
 
       return calculateCajeroCommission(
         empleado,
@@ -82,7 +82,7 @@ export const calculateTiendaResumen = (
         totalEmpleadosDia,
         ventasIndividuales,
         presupuestoIndividual,
-        thresholdConfig?.cumplimiento_valores
+        thresholdConfig?.compliance_values
       );
     } else if (empleado.rol === "logistico") {
       const totalEmpleadosDia = tiendaStaff.length;
@@ -96,9 +96,9 @@ export const calculateTiendaResumen = (
 
       const presupuestoDiario = presupuestosEmpleados?.find(
         (pe) =>
-          pe.asesor.toString() === empleado.id.toString() && pe.fecha === fecha
+          pe.advisor_id.toString() === empleado.id.toString() && pe.date === fecha
       );
-      const presupuestoIndividual = presupuestoDiario?.presupuesto || 0;
+      const presupuestoIndividual = presupuestoDiario?.budget || 0;
 
       return calculateLogisticoCommission(
         empleado,
@@ -107,7 +107,7 @@ export const calculateTiendaResumen = (
         totalEmpleadosDia,
         ventasIndividuales,
         presupuestoIndividual,
-        thresholdConfig?.cumplimiento_valores
+        thresholdConfig?.compliance_values
       );
     } else if (empleado.rol === "gerente_online") {
       const ventasIndividuales = getEmployeeVentas(
@@ -130,11 +130,11 @@ export const calculateTiendaResumen = (
 
       const presupuestoDiario = presupuestosEmpleados?.find(
         (pe) =>
-          pe.asesor.toString() === empleado.id.toString() && pe.fecha === fecha
+          pe.advisor_id.toString() === empleado.id.toString() && pe.date === fecha
       );
 
       if (presupuestoDiario) {
-        presupuestoGerente = presupuestoDiario.presupuesto;
+        presupuestoGerente = presupuestoDiario.budget;
       } else {
         presupuestoGerente = round(
           (budget.presupuesto_total * porcentaje_gerente) / 100
@@ -154,7 +154,7 @@ export const calculateTiendaResumen = (
         ventasIndividualesGerente,
         tiendaVentas,
         budget.presupuesto_total,
-        thresholdConfig?.cumplimiento_valores
+        thresholdConfig?.compliance_values
       );
     } else {
       let presupuesto = 0;
@@ -162,11 +162,11 @@ export const calculateTiendaResumen = (
 
       const presupuestoDiario = presupuestosEmpleados?.find(
         (pe) =>
-          pe.asesor.toString() === empleado.id.toString() && pe.fecha === fecha
+          pe.advisor_id.toString() === empleado.id.toString() && pe.date === fecha
       );
 
       if (presupuestoDiario) {
-        presupuesto = presupuestoDiario.presupuesto;
+        presupuesto = presupuestoDiario.budget;
       } else {
         const presupuesto_asesores =
           budget.presupuesto_total * ((100 - porcentaje_gerente) / 100);
@@ -184,7 +184,7 @@ export const calculateTiendaResumen = (
         empleado,
         presupuesto,
         ventas,
-        thresholdConfig?.cumplimiento_valores
+        thresholdConfig?.compliance_values
       );
     }
   });

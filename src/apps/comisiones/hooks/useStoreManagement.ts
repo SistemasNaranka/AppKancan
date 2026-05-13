@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   DirectusTienda,
-  DirectusAsesor,
-  DirectusCargo,
+  DirectusStaff,
+  DirectusPosition,
   BudgetRecord,
 } from "../types";
 import {
@@ -25,8 +25,8 @@ export interface StoreData {
   tienda: DirectusTienda | null;
   presupuesto: string;
   fecha: string;
-  empleados: DirectusAsesor[];
-  empleadosSeleccionados: DirectusAsesor[];
+  empleados: DirectusStaff[];
+  empleadosSeleccionados: DirectusStaff[];
   presupuestosEmpleados: any[];
   loading: boolean;
   error: string | null;
@@ -40,13 +40,13 @@ export interface UseStoreManagementReturn extends StoreData {
   setTienda: (tienda: DirectusTienda | null) => void;
   setPresupuesto: (presupuesto: string) => void;
   setFecha: (fecha: string) => void;
-  setEmpleadosSeleccionados: (empleados: DirectusAsesor[]) => void;
+  setEmpleadosSeleccionados: (empleados: DirectusStaff[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setSuccess: (success: string | null) => void;
 
   // Handlers
-  handleAddEmpleado: (empleado: DirectusAsesor) => void;
+  handleAddEmpleado: (empleado: DirectusStaff) => void;
   handleRemoveEmpleado: (empleadoId: number) => void;
   handleSaveChanges: () => Promise<void>;
   handleLoadStoreData: (tiendaId: number, fecha: string) => Promise<void>;
@@ -55,7 +55,7 @@ export interface UseStoreManagementReturn extends StoreData {
   recalcularDatos: () => void;
 
   // Helpers
-  getStoreEmployees: (tiendaId: number) => Promise<DirectusAsesor[]>;
+  getStoreEmployees: (tiendaId: number) => Promise<DirectusStaff[]>;
   validateForm: () => boolean;
 
   // Callback para actualizar datos principales
@@ -63,7 +63,7 @@ export interface UseStoreManagementReturn extends StoreData {
 }
 
 export const useStoreManagement = (
-  onSaveComplete?: () => void
+  onSaveComplete?: () => void,
 ): UseStoreManagementReturn => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -72,9 +72,9 @@ export const useStoreManagement = (
   const [tienda, setTienda] = useState<DirectusTienda | null>(null);
   const [presupuesto, setPresupuesto] = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
-  const [empleados, setEmpleados] = useState<DirectusAsesor[]>([]);
+  const [empleados, setEmpleados] = useState<DirectusStaff[]>([]);
   const [empleadosSeleccionados, setEmpleadosSeleccionados] = useState<
-    DirectusAsesor[]
+    DirectusStaff[]
   >([]);
   const [presupuestosEmpleados, setPresupuestosEmpleados] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -84,7 +84,7 @@ export const useStoreManagement = (
 
   // Estado de datos base
   const [tiendas, setTiendas] = useState<DirectusTienda[]>([]);
-  const [cargos, setCargos] = useState<DirectusCargo[]>([]);
+  const [cargos, setCargos] = useState<DirectusPosition[]>([]);
 
   // Cargar datos base al inicializar
   useEffect(() => {
@@ -113,9 +113,9 @@ export const useStoreManagement = (
       const asesoresData = await obtenerAsesores();
       return asesoresData.filter((asesor) => {
         const asesorTiendaId =
-          typeof asesor.tienda_id === "object"
-            ? asesor.tienda_id.id
-            : asesor.tienda_id;
+          typeof asesor.store_id === "object"
+            ? asesor.store_id.id
+            : asesor.store_id;
         return asesorTiendaId === tiendaId;
       });
     } catch (err: any) {
@@ -149,17 +149,17 @@ export const useStoreManagement = (
           const presupuestosDiarios = await obtenerPresupuestosDiarios(
             tiendaId,
             selectedFecha,
-            selectedFecha
+            selectedFecha,
           );
           const presupuestoExistente =
             presupuestosDiarios.length > 0
-              ? presupuestosDiarios[0].presupuesto.toString()
+              ? presupuestosDiarios[0].budget.toString()
               : "0";
           setPresupuesto(presupuestoExistente);
         } catch (budgetError: any) {
-            console.error(
+          console.error(
             "No se encontró presupuesto existente para la fecha:",
-            budgetError.message
+            budgetError.message,
           );
           setPresupuesto("0");
         }
@@ -177,24 +177,24 @@ export const useStoreManagement = (
         setLoading(false);
       }
     },
-    [tiendas, getStoreEmployees]
+    [tiendas, getStoreEmployees],
   );
 
   // Agregar empleado a la selección
   const handleAddEmpleado = useCallback(
-    (empleado: DirectusAsesor) => {
+    (empleado: DirectusStaff) => {
       if (!empleadosSeleccionados.find((emp) => emp.id === empleado.id)) {
         setEmpleadosSeleccionados((prev) => [...prev, empleado]);
         setError(null);
       }
     },
-    [empleadosSeleccionados]
+    [empleadosSeleccionados],
   );
 
   // Remover empleado de la selección
   const handleRemoveEmpleado = useCallback((empleadoId: number) => {
     setEmpleadosSeleccionados((prev) =>
-      prev.filter((emp) => emp.id !== empleadoId)
+      prev.filter((emp) => emp.id !== empleadoId),
     );
   }, []);
 
@@ -248,9 +248,9 @@ export const useStoreManagement = (
 
       // 1. Guardar/Actualizar presupuesto diario de la tienda
       const presupuestoTienda = {
-        tienda_id: tienda!.id,
-        presupuesto: presupuestoTotal,
-        fecha: fecha,
+        store_id: tienda!.id,
+        budget: presupuestoTotal,
+        date: fecha,
       };
 
       await guardarPresupuestosTienda([presupuestoTienda] as any);
@@ -261,15 +261,15 @@ export const useStoreManagement = (
       // 3. Crear nuevos presupuestos para cada empleado seleccionado
       const nuevosPresupuestosEmpleados = empleadosSeleccionados.map(
         (empleado) => ({
-          asesor: empleado.id,
-          tienda_id: tienda!.id,
-          cargo:
-            typeof empleado.cargo_id === "object"
-              ? empleado.cargo_id.id
-              : empleado.cargo_id,
-          fecha: fecha,
-          presupuesto: presupuestoPorEmpleado,
-        })
+          advisor_id: empleado.id,
+          store_id: tienda!.id,
+          position_id:
+            typeof empleado.position_id === "object"
+              ? empleado.position_id.id
+              : empleado.position_id,
+          date: fecha,
+          budget: presupuestoPorEmpleado,
+        }),
       );
 
       await guardarPresupuestosEmpleados(nuevosPresupuestosEmpleados as any);
@@ -302,7 +302,7 @@ export const useStoreManagement = (
     }
 
     const datosRecalculados = {
-      tienda: tienda.nombre,
+      tienda: tienda.name,
       presupuesto: parseFloat(presupuesto),
       empleados: empleadosSeleccionados.length,
       fecha,
@@ -338,7 +338,7 @@ export const useStoreManagement = (
       setPresupuesto(value);
       clearMessages();
     },
-    [clearMessages]
+    [clearMessages],
   );
 
   const handleFechaChange = useCallback(
@@ -346,7 +346,7 @@ export const useStoreManagement = (
       setFecha(value);
       clearMessages();
     },
-    [clearMessages]
+    [clearMessages],
   );
 
   return {

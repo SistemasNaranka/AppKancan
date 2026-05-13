@@ -41,7 +41,7 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
   filtroTipo = "todos",
 }) => {
   const { user } = useAuth();
-  const codigoUltra = user?.codigo_ultra ?? "";
+  const codigoUltra = user?.ultra_code ?? "";
 
   // Estados para el modal de detalle (Solo para tiendas)
   const [modalOpen, setModalOpen] = useState(false);

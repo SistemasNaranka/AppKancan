@@ -97,14 +97,16 @@ const DayCell: React.FC<DayCellProps> = React.memo(
               key={promo.id}
               sx={{
                 height: 16,
-                width: promo.fecha_final ? "100%" : "30%", // Para fijas, solo una marca pequeña
+                width: promo.end_date ? "100%" : "30%", // Para fijas, solo una marca pequeña
+
                 backgroundColor: promo.color || theme.palette.primary.main,
                 borderRadius: 0.5,
                 display: "flex",
                 alignItems: "center",
                 px: 0.5,
               }}
-              title={`${promo.tipo}: ${promo.descuento}%`}
+              title={`${promo.type}: ${promo.discount}%`}
+
             >
               <Typography
                 variant="caption"
@@ -117,7 +119,8 @@ const DayCell: React.FC<DayCellProps> = React.memo(
                   whiteSpace: "nowrap",
                 }}
               >
-                {promo.tipo} {promo.descuento}%
+                {promo.type} {promo.discount}%
+
               </Typography>
             </Box>
           ))}
@@ -168,8 +171,9 @@ const PromotionsCalendarWeek: React.FC = () => {
     (date: Dayjs): Promotion[] => {
       const dayStart = date.startOf("day");
       return promotions.filter((p) => {
-        const start = dayjs(p.fecha_inicio).startOf("day");
-        const end = p.fecha_final ? dayjs(p.fecha_final).endOf("day") : null;
+        const start = dayjs(p.start_date).startOf("day");
+        const end = p.end_date ? dayjs(p.end_date).endOf("day") : null;
+
         if (end) {
           return dayStart.isSameOrAfter(start) && dayStart.isSameOrBefore(end);
         }
@@ -241,14 +245,16 @@ const PromotionsCalendarWeek: React.FC = () => {
               fontWeight="bold"
               sx={{ color: promo.color || "#90caf9" }}
             >
-              {promo.tipo} — {promo.descuento}%
+              {promo.type} — {promo.discount}%
+
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {dayjs(promo.fecha_inicio).locale("es").format("D MMM")} →{" "}
-              {promo.fecha_final
-                ? dayjs(promo.fecha_final).locale("es").format("D MMM")
+              {dayjs(promo.start_date).locale("es").format("D MMM")} →{" "}
+              {promo.end_date
+                ? dayjs(promo.end_date).locale("es").format("D MMM")
                 : "-Fija"}
             </Typography>
+
           </Box>
         ))}
       </Box>

@@ -1,3 +1,4 @@
+// src/apps/gestion_proyectos/pages/NuevoProyecto.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,13 +17,13 @@ import TimerIcon from '@mui/icons-material/Timer';
 import StarIcon from '@mui/icons-material/Star';
 import {
   createProject,
-  Createprocesses,
+  createProcesses,
   createBenefits,
 } from "../api/directus/create";
 import type {
-  CreateProyectoInput,
-  CreateProcesoInput,
-  CreateBeneficioInput,
+  CreateProjectInput,
+  CreateProcessInput,
+  CreateBenefitInput,
 } from "../types";
 import { ProjectForm } from "../components/ProjectForm";
 import { ProcessList } from "../components/ProcessList";
@@ -65,119 +66,119 @@ const TabButton = styled(Button, {
 }));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface ProcesoForm {
+interface ProcessForm {
   id: string;
-  nombre: string;
-  tiempo_antes: number;
-  tiempo_despues: number;
-  frecuencia_tipo: string;
-  frecuencia_cantidad: number;
-  dias_semana: number;
+  name: string;
+  time_before: number;
+  time_after: number;
+  frequency_type: string;
+  frequency_quantity: number;
+  weekdays: number;
 }
 
-interface BeneficioForm {
+interface BenefitForm {
   id: string;
-  descripcion: string;
+  description: string;
 }
 
-interface ProyectosFormData {
-  nombre: string;
-  areaBeneficiada: string;
-  descripcion: string;
-  encargados: string;
-  fechaInicio: string;
-  fechaEstimada: string;
-  fechaEntrega: string;
-  estado: string;
-  tipoProyecto: string;
+interface ProjectFormData {
+  name: string;
+  benefitedArea: string;
+  description: string;
+  assignees: string;
+  startDate: string;
+  estimatedDate: string;
+  deliveryDate: string;
+  status: string;
+  projectType: string;
 }
 
-type TabId = "info" | "procesos" | "beneficios";
+type TabId = "info" | "processes" | "benefits";
 
 // ──────────── Componente ───────────────
-export default function NuevoProyecto() {
+export default function NewProject() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tabActiva, setTabActiva] = useState<TabId>("info");
+  const [activeTab, setActiveTab] = useState<TabId>("info");
 
-  const [projectData, setProjectData] = useState<ProyectosFormData>({
-    nombre: "",
-    areaBeneficiada: "",
-    descripcion: "",
-    encargados: "",
-    fechaInicio: "",
-    fechaEstimada: "",
-    fechaEntrega: "",
-    estado: "en_proceso",
-    tipoProyecto: "Actualizacion",
+  const [projectData, setProjectData] = useState<ProjectFormData>({
+    name: "",
+    benefitedArea: "",
+    description: "",
+    assignees: "",
+    startDate: "",
+    estimatedDate: "",
+    deliveryDate: "",
+    status: "en_proceso",
+    projectType: "mejora",
   });
 
-  const [procesos, setProcesos] = useState<ProcesoForm[]>([]);
-  const [diasPorSemana, setDiasPorSemana] = useState<string>("5");
-  const [frecuenciaTipo, setFrecuenciaTipo] = useState<string>("diaria");
-  const [frecuenciaCantidad, setFrecuenciaCantidad] = useState<string>("1");
-  const [beneficios, setBeneficios] = useState<BeneficioForm[]>([]);
-  const [encargadosList, setEncargadosList] = useState<string[]>([]);
+  const [processes, setProcesses] = useState<ProcessForm[]>([]);
+  const [globalWeekdays, setGlobalWeekdays] = useState<string>("5");
+  const [globalFrequencyType, setGlobalFrequencyType] = useState<string>("diaria");
+  const [globalFrequencyQuantity, setGlobalFrequencyQuantity] = useState<string>("1");
+  const [benefits, setBenefits] = useState<BenefitForm[]>([]);
+  const [assigneesList, setAssigneesList] = useState<string[]>([]);
 
-  // ─── Encargados ─────────────────────────────────────────────────────────────
-  const handleAddEncargado = (nombre: string) =>
-    setEncargadosList((prev) => [...prev, nombre]);
-  const handleRemoveEncargado = (index: number) =>
-    setEncargadosList((prev) => prev.filter((_, i) => i !== index));
-  const handleProjectChange = (field: keyof ProyectosFormData, value: string) =>
+  // ─── Assignees ─────────────────────────────────────────────────────────────
+  const handleAddAssignee = (name: string) =>
+    setAssigneesList((prev) => [...prev, name]);
+  const handleRemoveAssignee = (index: number) =>
+    setAssigneesList((prev) => prev.filter((_, i) => i !== index));
+  const handleProjectChange = (field: keyof ProjectFormData, value: string) =>
     setProjectData((prev) => ({ ...prev, [field]: value }));
 
-  // ─── Frecuencia global ───────────────────────────────────────────────────────
-  const handleDiasPorSemanaChange = (value: string) => {
-    setDiasPorSemana(value);
-    setProcesos((prev) =>
-      prev.map((p) => ({ ...p, dias_semana: Number(value) || 5 }))
+  // ─── Global frequency ──────────────────────────────────────────────────────
+  const handleWeekdaysChange = (value: string) => {
+    setGlobalWeekdays(value);
+    setProcesses((prev) =>
+      prev.map((p) => ({ ...p, weekdays: Number(value) || 5 }))
     );
   };
-  const handleFrecuenciaTipoChange = (value: string) => {
-    setFrecuenciaTipo(value);
-    setProcesos((prev) => prev.map((p) => ({ ...p, frecuencia_tipo: value })));
+  const handleFrequencyTypeChange = (value: string) => {
+    setGlobalFrequencyType(value);
+    setProcesses((prev) => prev.map((p) => ({ ...p, frequency_type: value })));
   };
-  const handleFrecuenciaCantidadChange = (value: string) => {
-    setFrecuenciaCantidad(value);
-    setProcesos((prev) =>
-      prev.map((p) => ({ ...p, frecuencia_cantidad: Number(value) }))
+  const handleFrequencyQuantityChange = (value: string) => {
+    setGlobalFrequencyQuantity(value);
+    setProcesses((prev) =>
+      prev.map((p) => ({ ...p, frequency_quantity: Number(value) }))
     );
   };
 
-  // ─── Procesos ────────────────────────────────────────────────────────────────
-  const agregarProceso = () =>
-    setProcesos((prev) => [
+  // ─── Processes ────────────────────────────────────────────────────────────────
+  const addProcess = () =>
+    setProcesses((prev) => [
       ...prev,
       {
         id: Date.now().toString(),
-        nombre: "",
-        tiempo_antes: 0,
-        tiempo_despues: 0,
-        frecuencia_tipo: frecuenciaTipo,
-        frecuencia_cantidad: Number(frecuenciaCantidad),
-        dias_semana: Number(diasPorSemana) || 5,
+        name: "",
+        time_before: 0,
+        time_after: 0,
+        frequency_type: globalFrequencyType,
+        frequency_quantity: Number(globalFrequencyQuantity),
+        weekdays: Number(globalWeekdays) || 5,
       },
     ]);
-  const eliminarProceso = (id: string) =>
-    setProcesos((prev) => prev.filter((p) => p.id !== id));
-  const actualizarProceso = (id: string, campo: string, valor: any) =>
-    setProcesos((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p))
+  const removeProcess = (id: string) =>
+    setProcesses((prev) => prev.filter((p) => p.id !== id));
+  const updateProcess = (id: string, field: string, value: any) =>
+    setProcesses((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
     );
 
-  // ─── Beneficios ──────────────────────────────────────────────────────────────
-  const agregarBeneficio = () =>
-    setBeneficios((prev) => [
+  // ─── Benefits ──────────────────────────────────────────────────────────────
+  const addBenefit = () =>
+    setBenefits((prev) => [
       ...prev,
-      { id: Date.now().toString(), descripcion: "" },
+      { id: Date.now().toString(), description: "" },
     ]);
-  const eliminarBeneficio = (id: string) =>
-    setBeneficios((prev) => prev.filter((b) => b.id !== id));
-  const actualizarBeneficio = (id: string, descripcion: string) =>
-    setBeneficios((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, descripcion } : b))
+  const removeBenefit = (id: string) =>
+    setBenefits((prev) => prev.filter((b) => b.id !== id));
+  const updateBenefit = (id: string, description: string) =>
+    setBenefits((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, description } : b))
     );
 
   // ─── Submit ──────────────────────────────────────────────────────────────────
@@ -188,60 +189,60 @@ export default function NuevoProyecto() {
 
     try {
       if (
-        !projectData.nombre ||
-        !projectData.areaBeneficiada ||
-        !projectData.fechaInicio ||
-        !projectData.fechaEstimada
+        !projectData.name ||
+        !projectData.benefitedArea ||
+        !projectData.startDate ||
+        !projectData.estimatedDate
       ) {
         setError("Por favor complete los campos requeridos en Información General");
-        setTabActiva("info");
+        setActiveTab("info");
         setLoading(false);
         return;
       }
 
-      const proyectoData: CreateProyectoInput = {
-        nombre: projectData.nombre,
-        area_beneficiada: projectData.areaBeneficiada,
-        descripcion: projectData.descripcion,
-        encargados: encargadosList
-          .map((nombre) => ({ nombre }))
-          .filter((e) => e.nombre),
-        fecha_inicio: projectData.fechaInicio,
-        fecha_estimada: projectData.fechaEstimada,
-        fecha_entrega: projectData.fechaEntrega || null,
-        estado: projectData.estado as any,
-        tipo_proyecto: "actualizacion",
+      const inputData: CreateProjectInput = {
+        name: projectData.name,
+        benefited_area: projectData.benefitedArea,
+        description: projectData.description,
+        assignees: assigneesList
+          .map((name) => ({ name }))
+          .filter((e) => e.name),
+        start_date: projectData.startDate,
+        estimated_date: projectData.estimatedDate,
+        delivery_date: projectData.deliveryDate || null,
+        status: projectData.status as any,
+        project_type: projectData.projectType as any,
       };
 
-      const proyectoId = await createProject(proyectoData);
-      if (!proyectoId) throw new Error("Error al crear el proyecto");
+      const projectId = await createProject(inputData);
+      if (!projectId) throw new Error("Error al crear el proyecto");
 
-      // ✅ Guardar procesos
-      if (procesos.length > 0) {
-        const procesosData: CreateProcesoInput[] = procesos.map((p, index) => ({
-          proyecto_id: proyectoId,
-          nombre: p.nombre,
-          tiempo_antes: Number(p.tiempo_antes),
-          tiempo_despues: Number(p.tiempo_despues),
-          frecuencia_tipo: (p.frecuencia_tipo || frecuenciaTipo) as any,
-          frecuencia_cantidad:
-            Number(p.frecuencia_cantidad) || Number(frecuenciaCantidad),
-          dias_semana: Number(p.dias_semana) || Number(diasPorSemana) || 5,
-          orden: index + 1,
+      // ✅ Save processes
+      if (processes.length > 0) {
+        const processesData: CreateProcessInput[] = processes.map((p, index) => ({
+          project_id: projectId,
+          name: p.name,
+          time_before: Number(p.time_before),
+          time_after: Number(p.time_after),
+          frequency_type: (p.frequency_type || globalFrequencyType) as any,
+          frequency_quantity:
+            Number(p.frequency_quantity) || Number(globalFrequencyQuantity),
+          weekdays: Number(p.weekdays) || Number(globalWeekdays) || 5,
+          order: index + 1,
         }));
-        await Createprocesses(procesosData);
+        await createProcesses(processesData);
       }
 
-      // ✅ Guardar beneficios
-      if (beneficios.length > 0) {
-        const beneficiosData: CreateBeneficioInput[] = beneficios.map((b) => ({
-          proyecto_id: proyectoId,
-          descripcion: b.descripcion,
+      // ✅ Save benefits
+      if (benefits.length > 0) {
+        const benefitsData: CreateBenefitInput[] = benefits.map((b) => ({
+          project_id: projectId,
+          description: b.description,
         }));
-        await createBenefits(beneficiosData);
+        await createBenefits(benefitsData);
       }
 
-      navigate(`/gestion_proyectos/${proyectoId}`);
+      navigate(`/gestion_proyectos/${projectId}`);
     } catch (err) {
       console.error("Error guardando proyecto:", err);
       setError("Error al guardar el proyecto. Intente de nuevo.");
@@ -253,8 +254,8 @@ export default function NuevoProyecto() {
   // ─── Tabs config ─────────────────────────────────────────────────────────────
   const tabs: { id: TabId; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: "info", label: "Información General", icon: <DescriptionIcon sx={{ fontSize: 16 }} /> },
-    { id: "procesos", label: "Procesos", icon: <TimerIcon sx={{ fontSize: 16 }} />, badge: procesos.length || undefined },
-    { id: "beneficios", label: "Beneficios", icon: <StarIcon sx={{ fontSize: 16 }} />, badge: beneficios.length || undefined },
+    { id: "processes", label: "Procesos", icon: <TimerIcon sx={{ fontSize: 16 }} />, badge: processes.length || undefined },
+    { id: "benefits", label: "Beneficios", icon: <StarIcon sx={{ fontSize: 16 }} />, badge: benefits.length || undefined },
   ];
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -314,22 +315,21 @@ export default function NuevoProyecto() {
         {/* ── Error ── */}
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-        {/* ── Tabs pegadas al panel ── */}
+        {/* ── Tabs ── */}
         <Box sx={{ overflow: "visible" }}>
-          {/* Fila de pestañas */}
           <Box sx={{ display: "flex", alignItems: "flex-end", gap: 0.5, pl: 2.5, position: "relative", zIndex: 0 }}>
             {tabs.map((tab) => (
               <TabButton
                 key={tab.id}
-                active={tabActiva === tab.id}
-                onClick={() => setTabActiva(tab.id)}
+                active={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 startIcon={tab.icon}
               >
                 {tab.label}
                 {tab.badge !== undefined && (
                   <Box sx={{
                     ml: 0.5, minWidth: 18, height: 18, borderRadius: "50%",
-                    bgcolor: tabActiva === tab.id ? "#004680" : "#9ca3af",
+                    bgcolor: activeTab === tab.id ? "#004680" : "#9ca3af",
                     color: "white", fontSize: 11, fontWeight: 700,
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
@@ -340,42 +340,41 @@ export default function NuevoProyecto() {
             ))}
           </Box>
 
-          {/* Panel de contenido conectado */}
           <Paper
             elevation={1}
             sx={{ p: 3, borderRadius: "16px 16px 16px 16px", position: "relative", zIndex: 1 }}
           >
-            {tabActiva === "info" && (
+            {activeTab === "info" && (
               <ProjectForm
                 data={projectData}
                 onChange={handleProjectChange}
-                encargadosList={encargadosList}
-                onAddEncargado={handleAddEncargado}
-                onRemoveEncargado={handleRemoveEncargado}
+                assigneesList={assigneesList}
+                onAddAssignee={handleAddAssignee}
+                onRemoveAssignee={handleRemoveAssignee}
               />
             )}
 
-            {tabActiva === "procesos" && (
+            {activeTab === "processes" && (
               <ProcessList
-                procesos={procesos}
-                onAgregar={agregarProceso}
-                onEliminar={eliminarProceso}
-                onActualizar={actualizarProceso}
-                diasPorSemana={diasPorSemana}
-                onDiasPorSemanaChange={handleDiasPorSemanaChange}
-                frecuenciaTipo={frecuenciaTipo}
-                onFrecuenciaTipoChange={handleFrecuenciaTipoChange}
-                frecuenciaCantidad={frecuenciaCantidad}
-                onFrecuenciaCantidadChange={handleFrecuenciaCantidadChange}
+                processes={processes}
+                onAdd={addProcess}
+                onDelete={removeProcess}
+                onUpdate={updateProcess}
+                daysPerWeek={globalWeekdays}
+                onDaysPerWeekChange={handleWeekdaysChange}
+                frequencyType={globalFrequencyType}
+                onFrequencyTypeChange={handleFrequencyTypeChange}
+                frequencyQuantity={globalFrequencyQuantity}
+                onFrequencyQuantityChange={handleFrequencyQuantityChange}
               />
             )}
 
-            {tabActiva === "beneficios" && (
+            {activeTab === "benefits" && (
               <BenefitList
-                beneficios={beneficios}
-                onAgregar={agregarBeneficio}
-                onEliminar={eliminarBeneficio}
-                onActualizar={actualizarBeneficio}
+                benefits={benefits}
+                onAdd={addBenefit}
+                onDelete={removeBenefit}
+                onUpdate={updateBenefit}
               />
             )}
           </Paper>

@@ -18,15 +18,15 @@ import {
 } from "@mui/icons-material";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { Bar } from "react-chartjs-2";
-import type { Proyecto } from "../types";
+import type { Project } from "../types";
 
 interface ProyectosAreaPanelProps {
   open: boolean;
   onClose: () => void;
-  proyectos: Proyecto[];
+  projects: Project[];
 }
 
-export function ProjectsAreaPanel({ open, onClose, proyectos }: ProyectosAreaPanelProps) {
+export function ProjectsAreaPanel({ open, onClose, projects }: ProyectosAreaPanelProps) {
   const COLORES_AREA = [
     "#E91E63", "#FF9800", "#009688", "#3F51B5", "#8BC34A",
     "#CDDC39", "#673AB7", "#03A9F4", "#FFC107", "#9E9E9E",
@@ -38,42 +38,42 @@ export function ProjectsAreaPanel({ open, onClose, proyectos }: ProyectosAreaPan
     "Sistemas", "Mercadeo", "Comercial", "Administrativa"
   ];
 
-  const proyectosPorArea = React.useMemo(() => {
-    const conteo = new Map<string, number>();
-    AREAS_PREDEFINIDAS.forEach(area => conteo.set(area, 0));
+  const projectsByArea = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    AREAS_PREDEFINIDAS.forEach(area => counts.set(area, 0));
     
-    proyectos.forEach(proyecto => {
-      const area = proyecto.area_beneficiada || "Sin área";
-      if (conteo.has(area)) {
-        conteo.set(area, (conteo.get(area) || 0) + 1);
-      } else if (!conteo.has(area)) {
-        conteo.set(area, 1);
+    projects.forEach(project => {
+      const area = project.benefited_area || "Sin área";
+      if (counts.has(area)) {
+        counts.set(area, (counts.get(area) || 0) + 1);
+      } else if (!counts.has(area)) {
+        counts.set(area, 1);
       }
     });
     
-    return Array.from(conteo.entries())
-      .map(([area, cantidad]) => ({ area, cantidad }))
-      .filter(item => item.cantidad > 0)
-      .sort((a, b) => b.cantidad - a.cantidad);
-  }, [proyectos]);
+    return Array.from(counts.entries())
+      .map(([area, quantity]) => ({ area, quantity }))
+      .filter(item => item.quantity > 0)
+      .sort((a, b) => b.quantity - a.quantity);
+  }, [projects]);
 
-  const totalProyectos = proyectos.length;
-  const coloresUsados = proyectosPorArea.map((_, i) => COLORES_AREA[i % COLORES_AREA.length]);
+  const totalProjects = projects.length;
+  const colorsUsed = projectsByArea.map((_, i) => COLORES_AREA[i % COLORES_AREA.length]);
 
-  const pieChartData = proyectosPorArea.map((item, index) => ({
+  const pieChartData = projectsByArea.map((item, index) => ({
     id: index,
-    value: item.cantidad,
+    value: item.quantity,
     label: item.area,
-    color: coloresUsados[index],
+    color: colorsUsed[index],
   }));
 
   const barData = {
-    labels: proyectosPorArea.map(d => d.area.length > 20 ? d.area.substring(0, 20) + "..." : d.area),
+    labels: projectsByArea.map(d => d.area.length > 20 ? d.area.substring(0, 20) + "..." : d.area),
     datasets: [{
       label: "Cantidad de Proyectos",
-      data: proyectosPorArea.map(d => d.cantidad),
-      backgroundColor: coloresUsados,
-      borderColor: coloresUsados.map(c => c),
+      data: projectsByArea.map(d => d.quantity),
+      backgroundColor: colorsUsed,
+      borderColor: colorsUsed.map(c => c),
       borderWidth: 1,
       borderRadius: 4,
     }],
@@ -85,7 +85,7 @@ export function ProjectsAreaPanel({ open, onClose, proyectos }: ProyectosAreaPan
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (context: any) => `${context.raw} proyectos (${((context.raw / totalProyectos) * 100).toFixed(1)}%)` } },
+      tooltip: { callbacks: { label: (context: any) => `${context.raw} proyectos (${((context.raw / totalProjects) * 100).toFixed(1)}%)` } },
     },
     scales: {
       x: { beginAtZero: true, title: { display: true, text: "Cantidad de Proyectos" }, ticks: { stepSize: 1 } },
@@ -111,7 +111,7 @@ export function ProjectsAreaPanel({ open, onClose, proyectos }: ProyectosAreaPan
             </Box>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1 }}>Proyectos por Área</Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>Total: {totalProyectos} proyectos</Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>Total: {totalProjects} proyectos</Typography>
             </Box>
           </Box>
           <IconButton onClick={onClose} sx={{ color: "white", "&:hover": { bgcolor: "rgba(255,255,255,0.15)" } }}>
@@ -133,7 +133,7 @@ export function ProjectsAreaPanel({ open, onClose, proyectos }: ProyectosAreaPan
               </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 2 }}>
-              {proyectosPorArea.length === 0 ? (
+              {projectsByArea.length === 0 ? (
                 <Typography variant="body2" sx={{ color: "text.disabled", textAlign: "center", py: 4 }}>No hay proyectos para mostrar</Typography>
               ) : (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -144,7 +144,7 @@ export function ProjectsAreaPanel({ open, onClose, proyectos }: ProyectosAreaPan
                         <Box sx={{ height: 280, width: '100%', display: 'flex', justifyContent: 'center' }}>
                           <PieChart
                             series={[{
-                              data: pieChartData, innerRadius: 50, outerRadius: 90, paddingAngle: 2, cornerRadius: 4, highlightScope: { fade: 'global', highlight: 'item' }, faded: { innerRadius: 40, additionalRadius: -10 }, valueFormatter: (item) => `${item.value} proyectos (${((item.value / totalProyectos) * 100).toFixed(1)}%)`,
+                              data: pieChartData, innerRadius: 50, outerRadius: 90, paddingAngle: 2, cornerRadius: 4, highlightScope: { fade: 'global', highlight: 'item' }, faded: { innerRadius: 40, additionalRadius: -10 }, valueFormatter: (item) => `${item.value} proyectos (${((item.value / totalProjects) * 100).toFixed(1)}%)`,
                             }]}
                             width={320} height={260}
                             sx={{ '& .MuiChartsLegend-root': { fontSize: '11px', padding: '4px' }, '& .MuiChartsLegend-mark': { width: 15, height: 15 } }}
@@ -165,12 +165,12 @@ export function ProjectsAreaPanel({ open, onClose, proyectos }: ProyectosAreaPan
                   <Box sx={{ mt: 2, p: 2, bgcolor: "#f8f9fa", borderRadius: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: "#1a2a3a" }}>Detalle por Área</Typography>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                      {proyectosPorArea.map((item, i) => (
+                      {projectsByArea.map((item, i) => (
                         <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1, borderRadius: 1, bgcolor: "white", border: "1px solid #e0e0e0" }}>
-                          <Box sx={{ width: 16, height: 16, borderRadius: 1, bgcolor: coloresUsados[i], flexShrink: 0 }} />
+                          <Box sx={{ width: 16, height: 16, borderRadius: 1, bgcolor: colorsUsed[i], flexShrink: 0 }} />
                           <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>{item.area}</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 700, color: "#004680" }}>{item.cantidad}</Typography>
-                          <Typography variant="caption" sx={{ color: "text.secondary", minWidth: 50, textAlign: "right" }}>{((item.cantidad / totalProyectos) * 100).toFixed(1)}%</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: "#004680" }}>{item.quantity}</Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary", minWidth: 50, textAlign: "right" }}>{((item.quantity / totalProjects) * 100).toFixed(1)}%</Typography>
                         </Box>
                       ))}
                     </Box>

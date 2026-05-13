@@ -17,8 +17,17 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
   const [loadingLogCurvas, setLoadingLogCurvas] = useState(false);
   const [fechasConDatos, setFechasConDatos] = useState<Record<string, "pendiente" | "enviado">>({});
   const [wsTrigger, setWsTrigger] = useState(0);
-  
+
   const initDateChecked = useRef(false);
+  // Coalesce: agrupa ráfagas de eventos WS en un solo refetch (evita loops de 304s).
+  const wsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleWsRefetch = () => {
+    if (wsDebounceRef.current) clearTimeout(wsDebounceRef.current);
+    wsDebounceRef.current = setTimeout(() => {
+      wsDebounceRef.current = null;
+      setWsTrigger((t) => t + 1);
+    }, 800);
+  };
 
   // Fetch de fechas con datos
   useEffect(() => {
@@ -64,7 +73,7 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
           try {
             for await (const msg of logRes.subscription) {
               if (!isMounted) break;
-              if (msg.type === "subscription" && ["create", "update", "delete"].includes(msg.event)) setWsTrigger((t) => t + 1);
+              if (msg.type === "subscription" && ["create", "update", "delete"].includes(msg.event)) scheduleWsRefetch();
             }
           } catch (e) {}
         })();
@@ -73,7 +82,7 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
           try {
             for await (const msg of enviosRes.subscription) {
               if (!isMounted) break;
-              if (msg.type === "subscription" && ["create", "update", "delete"].includes(msg.event)) setWsTrigger((t) => t + 1);
+              if (msg.type === "subscription" && ["create", "update", "delete"].includes(msg.event)) scheduleWsRefetch();
             }
           } catch (e) {}
         })();
@@ -85,6 +94,10 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
     setupWebSockets();
     return () => {
       isMounted = false;
+      if (wsDebounceRef.current) {
+        clearTimeout(wsDebounceRef.current);
+        wsDebounceRef.current = null;
+      }
       if (unsubLog) unsubLog();
       if (unsubEnvios) unsubEnvios();
     };

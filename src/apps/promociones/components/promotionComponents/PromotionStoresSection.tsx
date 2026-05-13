@@ -22,8 +22,9 @@ export const PromotionStoresSection: React.FC<PromotionStoresSectionProps> = ({
     () =>
       stores.map((s) => ({
         id: s.id,
-        label: s.nombre,
-        description: s.empresa || "",
+        label: s.name,
+        description: s.company || "",
+
       })),
     [stores]
   );
@@ -31,7 +32,8 @@ export const PromotionStoresSection: React.FC<PromotionStoresSectionProps> = ({
   const selectedStoreNames = useMemo(() => {
     return stores
       .filter((s) => tiendasSeleccionadas.includes(s.id))
-      .map((s) => s.nombre);
+      .map((s) => s.name);
+
   }, [stores, tiendasSeleccionadas]);
 
   // 🔧 Maneja la confirmación de selección

@@ -117,7 +117,7 @@ export const AddEmployeeSection: React.FC<AddEmployeeSectionProps> = ({
                         bgcolor: "primary.main",
                       }}
                     />
-                    {cargo.nombre}
+                    {cargo.name}
                   </Box>
                 </MenuItem>
               ))}
@@ -220,7 +220,7 @@ export const AddEmployeeSection: React.FC<AddEmployeeSectionProps> = ({
                   noWrap
                   sx={{ fontSize: "0.9rem" }}
                 >
-                  {empleadoEncontrado.nombre}
+                  {empleadoEncontrado.name}
                 </Typography>
                 <Box
                   sx={{

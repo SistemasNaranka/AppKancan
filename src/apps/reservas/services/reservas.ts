@@ -28,7 +28,7 @@ const RESERVATION_FIELDS = [
   "id",
   "date_created",
   {
-    usuario_id: [
+    user_id: [
       "id",
       "first_name",
       "last_name",
@@ -36,15 +36,15 @@ const RESERVATION_FIELDS = [
       { rol_usuario: ["id", "area"] },
     ],
   },
-  "nombre_sala",
-  "fecha",
-  "hora_inicio",
-  "hora_final",
-  "estado",
-  "titulo_reunion",
-  "observaciones",
-  "participantes",
-  "area",
+  "room_name",
+  "date",
+  "start_time",
+  "end_time",
+  "status",
+  "meeting_title",
+  "observations",
+  "participants",
+  "departament",
 ];
 
 /**
@@ -71,7 +71,7 @@ function filtrarPorEstadoCalculado(
 
   return reservas.filter((reserva) => {
     const estadoCalculado = (
-      reserva.estadoCalculado || reserva.estado
+      reserva.estadoCalculado || reserva.status
     ).toLowerCase();
 
     // Mapear variantes
@@ -104,28 +104,28 @@ export async function getReservas(
     const filter: any = {};
 
     // Filtro por fecha - EXACTO
-    if (filtros?.fecha) {
-      filter.fecha = { _eq: filtros.fecha };
+    if (filtros?.date) {
+      filter.date = { _eq: filtros.date };
     }
 
     // Filtro por sala
-    if (filtros?.nombre_sala) {
-      filter.nombre_sala = { _eq: filtros.nombre_sala };
+    if (filtros?.room_name) {
+      filter.room_name = { _eq: filtros.room_name };
     }
 
     // Filtro por usuario
-    if (filtros?.usuario_id) {
-      filter.usuario_id = { _eq: filtros.usuario_id };
+    if (filtros?.user_id) {
+      filter.user_id = { _eq: filtros.user_id };
     }
 
     // NO filtrar por estado en la BD (se hace después con estado calculado)
 
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("reuniones_reservas", {
+        readItems("adm_meeting_reservations", {
           fields: RESERVATION_FIELDS,
           ...(Object.keys(filter).length > 0 && { filter }),
-          sort: ["fecha", "hora_inicio"],
+          sort: ["date", "start_time"],
         }),
       ),
     );
@@ -134,8 +134,8 @@ export async function getReservas(
     let reservas = procesarReservas(items as Reserva[]);
 
     // Filtrar por estado calculado en el cliente
-    if (filtros?.estado) {
-      reservas = filtrarPorEstadoCalculado(reservas, filtros.estado);
+    if (filtros?.status) {
+      reservas = filtrarPorEstadoCalculado(reservas, filtros.status);
     }
 
     return reservas;
@@ -161,15 +161,15 @@ export async function getReservasMes(
 
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("reuniones_reservas", {
+        readItems("adm_meeting_reservations", {
           fields: RESERVATION_FIELDS,
           filter: {
-            fecha: {
+            date: {
               _gte: primerDia,
               _lte: ultimaFecha,
             },
           },
-          sort: ["fecha", "hora_inicio"],
+          sort: ["date", "start_time"],
         }),
       ),
     );
@@ -197,30 +197,30 @@ export async function getMisReservas(
     );
 
     const filter: any = {
-      usuario_id: { _eq: me.id },
+      user_id: { _eq: me.id },
     };
 
-    if (filtros?.fecha) {
-      filter.fecha = { _eq: filtros.fecha };
+    if (filtros?.date) {
+      filter.date = { _eq: filtros.date };
     }
-    if (filtros?.nombre_sala) {
-      filter.nombre_sala = { _eq: filtros.nombre_sala };
+    if (filtros?.room_name) {
+      filter.room_name = { _eq: filtros.room_name };
     }
 
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("reuniones_reservas", {
+        readItems("adm_meeting_reservations", {
           fields: RESERVATION_FIELDS,
           filter,
-          sort: ["-fecha", "-hora_inicio"],
+          sort: ["-date", "-start_time"],
         }),
       ),
     );
 
     let reservas = procesarReservas(items as Reserva[]);
 
-    if (filtros?.estado) {
-      reservas = filtrarPorEstadoCalculado(reservas, filtros.estado);
+    if (filtros?.status) {
+      reservas = filtrarPorEstadoCalculado(reservas, filtros.status);
     }
 
     return reservas;
@@ -237,7 +237,7 @@ export async function getReservaById(id: number): Promise<Reserva> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("reuniones_reservas", {
+        readItems("adm_meeting_reservations", {
           fields: RESERVATION_FIELDS,
           filter: {
             id: { _eq: id },
@@ -275,10 +275,10 @@ export async function crearReserva(datos: NuevaReserva): Promise<Reserva> {
 
     const item = await withAutoRefresh(() =>
       directus.request(
-        createItem("reuniones_reservas", {
+        createItem("adm_meeting_reservations", {
           ...datos,
-          usuario_id: me.id,
-          estado: "Vigente",
+          user_id: me.id,
+          status: "Vigente",
         }),
       ),
     );
@@ -299,7 +299,7 @@ export async function actualizarReserva(
 ): Promise<Reserva> {
   try {
     await withAutoRefresh(() =>
-      directus.request(updateItem("reuniones_reservas", id, datos)),
+      directus.request(updateItem("adm_meeting_reservations", id, datos)),
     );
 
     return await getReservaById(id);
@@ -313,7 +313,7 @@ export async function actualizarReserva(
  * Cancela una reserva
  */
 export async function cancelarReserva(id: number): Promise<Reserva> {
-  return await actualizarReserva(id, { estado: "Cancelado" });
+  return await actualizarReserva(id, { status: "Cancelado" });
 }
 
 /**
@@ -322,7 +322,7 @@ export async function cancelarReserva(id: number): Promise<Reserva> {
 export async function eliminarReserva(id: number): Promise<void> {
   try {
     await withAutoRefresh(() =>
-      directus.request(deleteItem("reuniones_reservas", id)),
+      directus.request(deleteItem("adm_meeting_reservations", id)),
     );
   } catch (error) {
     console.error("❌ Error al eliminar reserva:", error);
@@ -342,26 +342,26 @@ export async function verificarConflictoHorario(
 ): Promise<boolean> {
   try {
     const filter: any = {
-      nombre_sala: { _eq: sala },
-      fecha: { _eq: fecha },
-      estado: { _neq: "Cancelado" },
+      room_name: { _eq: sala },
+      date: { _eq: fecha },
+      status: { _neq: "Cancelado" },
       _or: [
         {
           _and: [
-            { hora_inicio: { _lte: horaInicio } },
-            { hora_final: { _gt: horaInicio } },
+            { start_time: { _lte: horaInicio } },
+            { end_time: { _gt: horaInicio } },
           ],
         },
         {
           _and: [
-            { hora_inicio: { _lt: horaFinal } },
-            { hora_final: { _gte: horaFinal } },
+            { start_time: { _lt: horaFinal } },
+            { end_time: { _gte: horaFinal } },
           ],
         },
         {
           _and: [
-            { hora_inicio: { _gte: horaInicio } },
-            { hora_final: { _lte: horaFinal } },
+            { start_time: { _gte: horaInicio } },
+            { end_time: { _lte: horaFinal } },
           ],
         },
       ],
@@ -373,7 +373,7 @@ export async function verificarConflictoHorario(
 
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("reuniones_reservas", {
+        readItems("adm_meeting_reservations", {
           fields: ["id"],
           filter,
           limit: 1,
@@ -393,8 +393,8 @@ export async function verificarConflictoHorario(
  */
 export interface ConfiguracionReserva {
   id: number;
-  hora_apertura: string; // Ej: "08:00:00"
-  hora_cierre: string; // Ej: "15:00:00"
+  opening_time: string; // Ej: "08:00:00"
+  closing_time: string; // Ej: "15:00:00"
 }
 
 /**
@@ -405,8 +405,8 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("configuracion_reserva", {
-          fields: ["id", "hora_apertura", "hora_cierre"],
+        readItems("adm_reservation_configs", {
+          fields: ["id", "opening_time", "closing_time"],
           limit: 1,
         }),
       ),
@@ -438,13 +438,13 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
     // y cuya fecha/hora final ya pasó
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("reuniones_reservas", {
-          fields: ["id", "fecha", "hora_final", "estado"],
+        readItems("adm_meeting_reservations", {
+          fields: ["id", "date", "end_time", "status"],
           filter: {
             _and: [
-              { estado: { _neq: "Cancelado" } },
-              { estado: { _neq: "Finalizado" } },
-              { fecha: { _lte: format(ahora, "yyyy-MM-dd") } },
+              { status: { _neq: "Cancelado" } },
+              { status: { _neq: "Finalizado" } },
+              { date: { _lte: format(ahora, "yyyy-MM-dd") } },
             ],
           },
         }),
@@ -457,7 +457,7 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
 
     // Filtrar solo las que ya pasaron su hora final
     const reservasAFinalizar = items.filter((reserva: any) => {
-      const fechaFin = new Date(`${reserva.fecha}T${reserva.hora_final}`);
+      const fechaFin = new Date(`${reserva.date}T${reserva.end_time}`);
       return ahora >= fechaFin;
     });
 
@@ -469,8 +469,8 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
     const actualizaciones = reservasAFinalizar.map((reserva: any) =>
       withAutoRefresh(() =>
         directus.request(
-          updateItem("reuniones_reservas", reserva.id, {
-            estado: "Finalizado",
+          updateItem("adm_meeting_reservations", reserva.id, {
+            status: "Finalizado",
           }),
         ),
       ),

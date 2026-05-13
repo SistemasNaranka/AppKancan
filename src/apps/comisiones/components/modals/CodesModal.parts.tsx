@@ -14,7 +14,7 @@ export const CodesModalHeader: React.FC<CodesModalHeaderProps> = ({
 }) => (
   <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
     <Work />
-    Asignar Asesores {tiendaUsuario?.nombre || "Tienda"} - {fechaActual}
+    Asignar Asesores {tiendaUsuario?.name || "Tienda"} - {fechaActual}
   </DialogTitle>
 );
 
@@ -30,9 +30,9 @@ export const MultipleStoresWarning: React.FC<MultipleStoresWarningProps> = ({
       Múltiples Tiendas Asignadas
     </Typography>
     <Typography variant="body2">
-      Tienes {tiendasCount} tiendas asignadas. Para usar esta función,
-      necesitas tener asignada únicamente una tienda. Por favor, contacta al
-      soporte o sistemas para resolver esta situación.
+      Tienes {tiendasCount} tiendas asignadas. Para usar esta función, necesitas
+      tener asignada únicamente una tienda. Por favor, contacta al soporte o
+      sistemas para resolver esta situación.
     </Typography>
   </Alert>
 );

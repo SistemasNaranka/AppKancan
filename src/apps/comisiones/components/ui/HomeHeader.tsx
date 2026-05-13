@@ -195,7 +195,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                         // Si es tienda:
                         // - Si NO hay presupuesto del día de hoy, abre CodesModal (asignación inicial)
                         // - Si SÍ hay presupuesto del día de hoy, abre EditStoreBudgetModal (edición con fecha)
-                        if (hasPolicy("readComisionesTienda")) {
+                        if (hasPolicy("crud_commission_stores")) {
                           if (hasBudgetData === false) {
                             // No hay presupuesto del día de hoy, abrir CodesModal
                             onShowCodesModal();
@@ -203,14 +203,14 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                             // Hay presupuesto del día de hoy, abrir EditStoreBudgetModal
                             onShowEditStoreBudgetModal();
                           }
-                        } else if (hasPolicy("readComisionesAdmin")) {
+                        } else if (hasPolicy("crud_commission_admin")) {
                           // Admin siempre abre EditStoreModal
                           onShowEditStoreModal();
                         }
                       }}
                       variant="contained"
                       startIcon={
-                        hasPolicy("readComisionesTienda") ? (
+                        hasPolicy("crud_commission_stores") ? (
                           <Person />
                         ) : (
                           <Store />

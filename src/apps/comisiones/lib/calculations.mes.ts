@@ -189,14 +189,14 @@ export const calculateMesResumenAgrupado = (
           const presupuestosEmpleadoTienda =
             presupuestosEmpleados?.filter(
               (pe) =>
-                pe.asesor.toString() === empleado.id.toString() &&
-                pe.tienda_id === tiendaData.tienda_id &&
-                getMonthYear(pe.fecha) === mes
+                pe.advisor_id.toString() === empleado.id.toString() &&
+                pe.store_id === tiendaData.tienda_id &&
+                getMonthYear(pe.date) === mes
             ) || [];
 
           if (presupuestosEmpleadoTienda.length > 0) {
             empleadoData.presupuestoMensual = presupuestosEmpleadoTienda.reduce(
-              (sum, pe) => sum + (parseFloat(pe.presupuesto) || 0),
+              (sum, pe) => sum + (parseFloat(pe.budget) || 0),
               0
             );
           } else {
@@ -280,7 +280,7 @@ export const calculateMesResumenAgrupado = (
           totalEmpleadosTienda,
           empleadoData.ventasMensual,
           empleadoData.presupuestoMensual,
-          thresholdConfig?.cumplimiento_valores || undefined
+          thresholdConfig?.compliance_values || undefined
         );
         empleadoComision.fecha = diasTrabajados[0];
         empleadoComision.dias_laborados = diasTrabajados.length;
@@ -294,7 +294,7 @@ export const calculateMesResumenAgrupado = (
           totalEmpleadosTienda,
           empleadoData.ventasMensual,
           empleadoData.presupuestoMensual,
-          thresholdConfig?.cumplimiento_valores || undefined
+          thresholdConfig?.compliance_values || undefined
         );
         empleadoComision.fecha = diasTrabajados[0];
         empleadoComision.dias_laborados = diasTrabajados.length;
@@ -313,7 +313,7 @@ export const calculateMesResumenAgrupado = (
           ventasMensual,
           tiendaData.ventasTotal,
           presupuestoTotalTienda,
-          thresholdConfig?.cumplimiento_valores || undefined
+          thresholdConfig?.compliance_values || undefined
         );
         empleadoComision.fecha = diasTrabajados[0];
         empleadoComision.dias_laborados = diasTrabajados.length;
@@ -324,7 +324,7 @@ export const calculateMesResumenAgrupado = (
         );
         const comision_pct = getCommissionPercentage(
           cumplimientoIndividual,
-          thresholdConfig?.cumplimiento_valores || undefined
+          thresholdConfig?.compliance_values || undefined
         );
         const ventaBase = calculateBaseSale(ventasMensual);
         const comision_monto = round(ventaBase * comision_pct);
@@ -343,26 +343,26 @@ export const calculateMesResumenAgrupado = (
           comision_monto,
           proxima_comision: getNextCommission(
             comision_pct,
-            thresholdConfig?.cumplimiento_valores || undefined
+            thresholdConfig?.compliance_values || undefined
           ),
           proximo_presupuesto:
             getNextBudget(
               getNextCommission(
                 comision_pct,
-                thresholdConfig?.cumplimiento_valores || undefined
+                thresholdConfig?.compliance_values || undefined
               ),
               presupuestoMensual,
-              thresholdConfig?.cumplimiento_valores || undefined
+              thresholdConfig?.compliance_values || undefined
             ) || undefined,
           proxima_venta:
             getNextSale(
               getNextBudget(
                 getNextCommission(
                   comision_pct,
-                  thresholdConfig?.cumplimiento_valores || undefined
+                  thresholdConfig?.compliance_values || undefined
                 ),
                 presupuestoMensual,
-                thresholdConfig?.cumplimiento_valores || undefined
+                thresholdConfig?.compliance_values || undefined
               ),
               ventasMensual
             ) || undefined,
@@ -371,14 +371,14 @@ export const calculateMesResumenAgrupado = (
               getNextBudget(
                 getNextCommission(
                   comision_pct,
-                  thresholdConfig?.cumplimiento_valores || undefined
+                  thresholdConfig?.compliance_values || undefined
                 ),
                 presupuestoMensual,
-                thresholdConfig?.cumplimiento_valores || undefined
+                thresholdConfig?.compliance_values || undefined
               ),
               getNextCommission(
                 comision_pct,
-                thresholdConfig?.cumplimiento_valores || undefined
+                thresholdConfig?.compliance_values || undefined
               )
             ) || undefined,
           dias_laborados: diasTrabajados.length,

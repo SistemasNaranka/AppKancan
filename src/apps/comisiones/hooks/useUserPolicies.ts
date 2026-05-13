@@ -8,22 +8,22 @@ export const useUserPolicies = () => {
   };
 
   const canSeeConfig = (): boolean => {
-    return hasPolicy("readComisionesAdmin");
+    return hasPolicy("crud_commission_admin");
   };
 
   const canSeeAssign = (): boolean => {
-    return hasPolicy("readComisionesAdmin");
+    return hasPolicy("crud_commission_admin");
   };
 
   const canAssignEmployees = (): boolean => {
     return (
-      hasPolicy("readComisionesAdmin") || hasPolicy("readComisionesTienda")
+      hasPolicy("crud_commission_admin") || hasPolicy("crud_commission_stores")
     );
   };
 
   const canSeeStoreFilter = (): boolean => {
     return (
-      hasPolicy("readComisionesAdmin") || hasPolicy("readComisionesComercial")
+      hasPolicy("crud_commission_admin") || hasPolicy("crud_commission_commercial")
     );
   };
 

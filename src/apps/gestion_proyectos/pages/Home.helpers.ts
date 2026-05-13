@@ -1,20 +1,20 @@
-import { Proyecto } from "../types";
+import { Project } from "../types";
 import { calculateProjectMetrics } from "../lib/calculos";
 
-export interface MetricasTotales {
-    totalAhorroMensual: number;
-    totalAhorroAnual: number;
+export interface TotalMetrics {
+    totalMonthlySavings: number;
+    totalYearlySavings: number;
 }
 
-export const obtenerMetricasTotales = (proyectosFiltrados: Proyecto[]): MetricasTotales => {
-    return proyectosFiltrados.reduce<MetricasTotales>(
-        (acc, proyecto) => {
-            const metricas = calculateProjectMetrics(proyecto.procesos ?? []);
+export const getTotalMetrics = (filteredProjects: Project[]): TotalMetrics => {
+    return filteredProjects.reduce<TotalMetrics>(
+        (acc, project) => {
+            const metrics = calculateProjectMetrics(project.processes ?? []);
             return {
-                totalAhorroMensual: acc.totalAhorroMensual + metricas.ahorro_total_mensual,
-                totalAhorroAnual: acc.totalAhorroAnual + metricas.ahorro_total_anual,
+                totalMonthlySavings: acc.totalMonthlySavings + metrics.total_monthly_savings,
+                totalYearlySavings: acc.totalYearlySavings + metrics.total_yearly_savings,
             };
         },
-        { totalAhorroMensual: 0, totalAhorroAnual: 0 }
+        { totalMonthlySavings: 0, totalYearlySavings: 0 }
     );
 };

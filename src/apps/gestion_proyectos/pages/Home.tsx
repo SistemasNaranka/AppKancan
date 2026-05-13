@@ -22,28 +22,28 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { formatTime } from "../lib/calculos";
-import { useProjects } from "../hooks/useProyectos";
-import type { Proyecto, EstadoProyecto } from "../types";
+import { useProjects } from "../hooks/useProjects";
+import type { Project, ProjectStatus } from "../types";
 
 import { SavingsPanel } from "../components/AhorroPanel";
 import { ProjectsAreaPanel } from "../components/ProyectosAreaPanel";
 import { TabContainer, AnimatedTab } from "./Home.styles";
-import { obtenerMetricasTotales } from "./Home.helpers";
+import { getTotalMetrics } from "./Home.helpers";
 import { ProjectCard } from "./ProjectCard";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { proyectos, loading, error, recargar } = useProjects();
-  const [filtroEstado, setFiltroEstado] = useState<EstadoProyecto | "todos">("todos");
-  const [panelAbierto, setPanelAbierto] = useState<"mensual" | "anual" | null>(null);
-  const [panelProyectosAreaAbierto, setPanelProyectosAreaAbierto] = useState(false);
+  const { projects, loading, error, reload } = useProjects();
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
+  const [panelOpen, setPanelOpen] = useState<"mensual" | "anual" | null>(null);
+  const [panelProjectsAreaOpen, setPanelProjectsAreaOpen] = useState(false);
 
-  const proyectosFiltrados: Proyecto[] =
-    filtroEstado === "todos"
-      ? (proyectos ?? [])
-      : (proyectos ?? []).filter((p: Proyecto) => p.estado === filtroEstado);
+  const filteredProjects: Project[] =
+    statusFilter === "todos"
+      ? (projects ?? [])
+      : (projects ?? []).filter((p: Project) => p.status === statusFilter);
 
-  const metricasTotales = obtenerMetricasTotales(proyectosFiltrados);
+  const totalMetrics = getTotalMetrics(filteredProjects);
 
   if (loading) {
     return (
@@ -61,7 +61,7 @@ const Home: React.FC = () => {
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: 256 }}>
         <Box sx={{ textAlign: "center" }}>
           <Typography sx={{ color: "error.main", fontSize: 18 }}>{error}</Typography>
-          <Button variant="contained" onClick={recargar} sx={{ mt: 2 }}>Reintentar</Button>
+          <Button variant="contained" onClick={reload} sx={{ mt: 2 }}>Reintentar</Button>
         </Box>
       </Box>
     );
@@ -99,7 +99,7 @@ const Home: React.FC = () => {
         <Grid size={{ xs: 12, sm: 6, md: "auto" }}>
           <Paper
             elevation={0}
-            onClick={() => setPanelProyectosAreaAbierto(true)}
+            onClick={() => setPanelProjectsAreaOpen(true)}
             sx={{
               p: 2, border: "1px solid #e8eaed", borderRadius: 2, cursor: "pointer", transition: "all 0.2s ease",
               "&:hover": { border: "1px solid #1a73e8", boxShadow: "0 4px 12px rgba(26,115,232,0.15)", transform: "translateY(-1px)" },
@@ -112,7 +112,7 @@ const Home: React.FC = () => {
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>Total Proyectos</Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "text.primary", lineHeight: 1.2 }}>
-                  {proyectosFiltrados.length}
+                  {filteredProjects.length}
                 </Typography>
               </Box>
             </Box>
@@ -128,7 +128,7 @@ const Home: React.FC = () => {
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>En Seguimiento</Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "warning.main", lineHeight: 1.2 }}>
-                  {proyectosFiltrados.filter((p: Proyecto) => p.estado === "en_seguimiento").length}
+                  {filteredProjects.filter((p: Project) => p.status === "en_seguimiento").length}
                 </Typography>
               </Box>
             </Box>
@@ -144,7 +144,7 @@ const Home: React.FC = () => {
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>En Progreso</Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "#1a73e8", lineHeight: 1.2 }}>
-                  {proyectosFiltrados.filter((p: Proyecto) => p.estado === "en_proceso").length}
+                  {filteredProjects.filter((p: Project) => p.status === "en_proceso").length}
                 </Typography>
               </Box>
             </Box>
@@ -160,7 +160,7 @@ const Home: React.FC = () => {
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>Entregados</Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "#2e7d32", lineHeight: 1.2 }}>
-                  {proyectosFiltrados.filter((p: Proyecto) => p.estado === "entregado").length}
+                  {filteredProjects.filter((p: Project) => p.status === "entregado").length}
                 </Typography>
               </Box>
             </Box>
@@ -170,7 +170,7 @@ const Home: React.FC = () => {
         <Grid size={{ xs: 12, sm: 6, md: "auto" }}>
           <Paper
             elevation={0}
-            onClick={() => setPanelAbierto("mensual")}
+            onClick={() => setPanelOpen("mensual")}
             sx={{
               p: 2, border: "1px solid #ede8e8", borderRadius: 2, cursor: "pointer", transition: "all 0.2s ease",
               "&:hover": { border: "1px solid #34a853", boxShadow: "0 4px 12px rgba(52,168,83,0.15)", transform: "translateY(-1px)" },
@@ -183,7 +183,7 @@ const Home: React.FC = () => {
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>Ahorro Mensual</Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "#34a853", lineHeight: 1.2 }}>
-                  {formatTime(metricasTotales.totalAhorroMensual)}
+                  {formatTime(totalMetrics.totalMonthlySavings)}
                 </Typography>
               </Box>
               <TrendingUpIcon sx={{ color: "#c8e6c9", fontSize: 20, ml: 1 }} />
@@ -194,7 +194,7 @@ const Home: React.FC = () => {
         <Grid size={{ xs: 12, sm: 6, md: "auto" }}>
           <Paper
             elevation={0}
-            onClick={() => setPanelAbierto("anual")}
+            onClick={() => setPanelOpen("anual")}
             sx={{
               p: 2, border: "1px solid #e8eaed", borderRadius: 2, cursor: "pointer", transition: "all 0.2s ease",
               "&:hover": { border: "1px solid #1976d2", boxShadow: "0 4px 12px rgba(25,118,210,0.15)", transform: "translateY(-1px)" },
@@ -207,7 +207,7 @@ const Home: React.FC = () => {
               <Box>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>Ahorro Anual</Typography>
                 <Typography variant="h5" sx={{ fontWeight: "bold", color: "#1976d2", lineHeight: 1.2 }}>
-                  {formatTime(metricasTotales.totalAhorroAnual)}
+                  {formatTime(totalMetrics.totalYearlySavings)}
                 </Typography>
               </Box>
               <TrendingUpIcon sx={{ color: "#bbdefb", fontSize: 20, ml: 1 }} />
@@ -224,14 +224,14 @@ const Home: React.FC = () => {
             { id: "entregado", label: "Entregado" },
             { id: "en_seguimiento", label: "En Seguimiento" },
           ].map((tab, index) => {
-            const isActive = filtroEstado === tab.id;
+            const isActive = statusFilter === tab.id;
             return (
               <AnimatedTab
                 key={tab.id}
                 isActive={isActive}
                 isFirst={index === 0}
                 isLast={index === 3}
-                onClick={() => setFiltroEstado(tab.id as typeof filtroEstado)}
+                onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
                 tabIndex={0}
                 role="tab"
                 aria-selected={isActive}
@@ -243,36 +243,36 @@ const Home: React.FC = () => {
         </TabContainer>
       </Box>
 
-      {proyectosFiltrados.length === 0 ? (
+      {filteredProjects.length === 0 ? (
         <Paper elevation={1} sx={{ p: 4, textAlign: "center" }}>
           <Typography sx={{ color: "text.secondary", fontSize: 18 }}>No hay proyectos registrados</Typography>
           <Typography variant="body2" sx={{ color: "text.disabled", mt: 1 }}>Los proyectos que crees aparecerán aquí</Typography>
         </Paper>
       ) : (
         <Grid container spacing={2}>
-          {proyectosFiltrados.map((proyecto: Proyecto) => (
+          {filteredProjects.map((project: Project) => (
             <ProjectCard
-              key={proyecto.id}
-              proyecto={proyecto}
-              onClick={() => navigate(`/gestion_proyectos/${proyecto.id}`)}
+              key={project.id}
+              project={project}
+              onClick={() => navigate(`/gestion_proyectos/${project.id}`)}
             />
           ))}
         </Grid>
       )}
 
       <SavingsPanel
-        open={panelAbierto !== null}
-        onClose={() => setPanelAbierto(null)}
-        tipo={panelAbierto ?? "mensual"}
-        total={panelAbierto === "mensual" ? metricasTotales.totalAhorroMensual : metricasTotales.totalAhorroAnual}
-        proyectos={proyectosFiltrados}
-        vistaGrafico={panelAbierto ?? "mensual"}
+        open={panelOpen !== null}
+        onClose={() => setPanelOpen(null)}
+        tipo={panelOpen ?? "mensual"}
+        total={panelOpen === "mensual" ? totalMetrics.totalMonthlySavings : totalMetrics.totalYearlySavings}
+        proyectos={filteredProjects}
+        vistaGrafico={panelOpen ?? "mensual"}
       />
 
       <ProjectsAreaPanel
-        open={panelProyectosAreaAbierto}
-        onClose={() => setPanelProyectosAreaAbierto(false)}
-        proyectos={proyectosFiltrados}
+        open={panelProjectsAreaOpen}
+        onClose={() => setPanelProjectsAreaOpen(false)}
+        projects={filteredProjects}
       />
     </Box>
   );

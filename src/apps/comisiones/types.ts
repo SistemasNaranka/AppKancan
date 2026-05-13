@@ -98,31 +98,31 @@ export interface AppState {
 }
 
 // Interfaces para Directus
-export interface DirectusAsesor {
+export interface DirectusStaff {
   id: number;
-  nombre?: string;
-  documento: number;
-  tienda_id: number | DirectusTienda;
-  cargo_id: number | DirectusCargo;
+  name?: string;
+  document: number;
+  store_id: number | DirectusTienda;
+  position_id: number | DirectusPosition;
 }
 
-export interface DirectusCargo {
+export interface DirectusPosition {
   id: number;
-  nombre: string;
+  name: string;
 }
 
 export interface DirectusTienda {
   id: number;
-  nombre: string;
-  codigo_ultra: number;
-  empresa: string;
+  name: string;
+  ultra_code: number;
+  company: string;
 }
 
-export interface DirectusPresupuestoDiarioTienda {
+export interface DirectusStoreDailyBudget {
   id: number;
-  tienda_id: number;
-  presupuesto: number;
-  fecha: string;
+  store_id: number;
+  budget: number;
+  date: string;
 }
 
 export interface DirectusPorcentajeMensual {
@@ -142,30 +142,30 @@ export interface DirectusPorcentajeMensual {
 
 export interface DirectusPorcentajeMensualNuevo {
   id: number;
-  mes: string;
-  anio: string;
-  configuracion_roles: Array<{
-    rol: string;
-    tipo_calculo: "Fijo" | "Distributivo";
-    porcentaje: number;
+  month: string;
+  year: string;
+  role_config: Array<{
+    role: string;
+    calculation_type: "Fixed" | "Distributive";
+    percentage: number;
   }>;
 }
 
-export interface DirectusPresupuestoDiarioEmpleado {
+export interface DirectusStaffDailyBudget {
   id: number;
-  asesor: number;
-  tienda_id: number;
-  cargo: number;
-  fecha: string;
-  presupuesto: number;
+  advisor_id: number;
+  store_id: number;
+  position_id: number;
+  date: string;
+  budget: number;
 }
 
 export interface DirectusVentasDiariasEmpleado {
   id: number;
-  fecha: string;
-  asesor_id: number;
-  tienda_id: number;
-  venta: number;
+  date: string;
+  advisor_id: number;
+  store_id: number;
+  sale: number;
 }
 
 export interface DirectusVentasDiariasTienda {
@@ -179,13 +179,13 @@ export interface DirectusVentasDiariasTienda {
 
 /**
  * Un umbral individual de comisión
- * Solo necesita cumplimiento_min, ya que el max es implícito (min del siguiente umbral)
+ * Solo necesita min_compliance, ya que el max es implícito (min del siguiente umbral)
  */
 export interface CommissionThreshold {
-  cumplimiento_min: number; // Porcentaje mínimo de cumplimiento (90, 95, 100, 110...)
-  comision_pct: number; // Porcentaje de comisión en formato decimal (0.0035 = 0.35%)
-  nombre: string; // Etiqueta para mostrar en UI (ej: "Muy Regular", "Regular")
-  color?: string; // Color hexadecimal o nombre de color (ej: "#00ffff", "cyan", "pink")
+  min_compliance: number; // Porcentaje mínimo de cumplimiento (95, 100, 110...)
+  pct_commission: number; // Porcentaje de comisión en formato decimal (0.0035 = 0.35%)
+  name: string; // Etiqueta para mostrar en UI
+  color?: string; // Color hexadecimal o nombre de color
 }
 
 /**
@@ -194,15 +194,15 @@ export interface CommissionThreshold {
 export interface CommissionThresholdConfig {
   mes: string; // "MMM YYYY"
   anio: string; // "YYYY"
-  cumplimiento_valores: CommissionThreshold[]; // Array de umbrales ordenados por cumplimiento_min ascendente
+  compliance_values: CommissionThreshold[]; // Array de umbrales ordenados por min_compliance ascendente
 }
 
 /**
  * Respuesta de Directus para cumplimiento_mensual_comisiones
  */
-export interface DirectusCumplimientoComisiones {
+export interface DirectusCommissionCompliance {
   id: number;
-  mes: string; // "01"-"12"
-  anio: string; // "YYYY"
-  cumplimiento_valores: CommissionThreshold[]; // JSON array
+  month: string; // "01"-"12"
+  year: string; // "YYYY"
+  compliance_values: CommissionThreshold[]; // JSON array
 }

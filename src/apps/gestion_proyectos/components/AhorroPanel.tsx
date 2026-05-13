@@ -34,7 +34,7 @@ import {
 import { Bar } from "react-chartjs-2";
 
 import { formatTime, calculateProjectMetrics } from "../lib/calculos";
-import type { Proyecto } from "../types";
+import type { Project } from "../types";
 
 // Registrar componentes de Chart.js
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -44,7 +44,7 @@ interface AhorroPanelProps {
   onClose: () => void;
   tipo: "mensual" | "anual";
   total: number;
-  proyectos: Proyecto[];
+  proyectos: Project[];
   vistaGrafico?: "mensual" | "anual";
 }
 
@@ -121,14 +121,14 @@ export function SavingsPanel({ open, onClose, tipo, total, proyectos, vistaGrafi
 
   const desglose = proyectos
     .map((p) => {
-      const m = calculateProjectMetrics(p.procesos ?? []);
+      const m = calculateProjectMetrics(p.processes ?? []);
       return {
-        nombre: p.nombre,
-        estado: p.estado,
-        ahorro: esMensual ? m.ahorro_total_mensual : m.ahorro_total_anual,
-        mensual: m.ahorro_total_mensual,
-        anual: m.ahorro_total_anual,
-        procesos: p.procesos ?? [],
+        nombre: p.name,
+        estado: p.status,
+        ahorro: esMensual ? m.total_monthly_savings : m.total_yearly_savings,
+        mensual: m.total_monthly_savings,
+        anual: m.total_yearly_savings,
+        procesos: p.processes ?? [],
       };
     })
     .sort((a, b) => b.ahorro - a.ahorro);
@@ -155,8 +155,8 @@ export function SavingsPanel({ open, onClose, tipo, total, proyectos, vistaGrafi
     });
 
     proyectos.forEach((proyecto) => {
-      const area = proyecto.area_beneficiada || "Sin área";
-      const m = calculateProjectMetrics(proyecto.procesos ?? []);
+      const area = proyecto.benefited_area || "Sin área";
+      const m = calculateProjectMetrics(proyecto.processes ?? []);
 
       let tiempoAntes: number;
       let tiempoDespues: number;
@@ -164,20 +164,20 @@ export function SavingsPanel({ open, onClose, tipo, total, proyectos, vistaGrafi
       if (esMensual) {
         let tAntes = 0;
         let tDespues = 0;
-        (proyecto.procesos ?? []).forEach((proceso) => {
-          tAntes += Number(proceso.tiempo_antes) || 0;
-          tDespues += Number(proceso.tiempo_despues) || 0;
+        (proyecto.processes ?? []).forEach((proceso) => {
+          tAntes += Number(proceso.time_before) || 0;
+          tDespues += Number(proceso.time_after) || 0;
         });
         tiempoAntes = tAntes;
         tiempoDespues = tDespues;
       } else {
-        tiempoAntes = m.ahorro_total_anual + m.ahorro_total_mensual * 11;
-        tiempoDespues = m.ahorro_total_mensual * 11;
+        tiempoAntes = m.total_yearly_savings + m.total_monthly_savings * 11;
+        tiempoDespues = m.total_monthly_savings * 11;
       }
 
       if (areasAgrupadas.has(area)) {
         const areaData = areasAgrupadas.get(area)!;
-        areaData.proyectos.push({ nombre: proyecto.nombre, tiempoAntes, tiempoDespues });
+        areaData.proyectos.push({ nombre: proyecto.name, tiempoAntes, tiempoDespues });
         areaData.tiempoAntes += tiempoAntes;
         areaData.tiempoDespues += tiempoDespues;
       }

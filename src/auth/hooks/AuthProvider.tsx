@@ -58,14 +58,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         id: me.id,
         nombre: me.first_name,
         apellido: me.last_name,
-        codigo_ultra: me.codigo_ultra,
-        empresa: me.empresa,
+        ultra_code: me.ultra_code,
+        company: me.company,
         rol: me.role?.name,
-        tienda_id: me.tienda_id,
+        store_id: me.store?.id,
         policies: extractedPolicies,
         requires_password_change: me.requires_password_change || false,
-        key_gemini: me.key_gemini,
-        modelo_ia: me.modelo_ia,
+        ia_key: me.ia_key,
+        ia_model: me.ia_model,
       });
     } catch (error) {
       console.error("❌ Error en login:", error);
@@ -162,14 +162,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           id: me.id,
           nombre: me.first_name,
           apellido: me.last_name,
-          codigo_ultra: me.codigo_ultra,
-          empresa: me.empresa,
+          ultra_code: me.ultra_code,
+          company: me.company,
           rol: me.role?.name,
-          tienda_id: me.tienda_id,
+          store_id: me.store?.id,
           policies: extractedPolicies,
           requires_password_change: me.requires_password_change || false,
-          key_gemini: me.key_gemini,
-          modelo_ia: me.modelo_ia,
+          ia_key: me.ia_key,
+          ia_model: me.ia_model,
         });
       } catch (error: any) {
         console.error("❌ Error al inicializar autenticación:", error);

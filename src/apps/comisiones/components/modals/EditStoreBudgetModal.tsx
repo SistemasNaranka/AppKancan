@@ -285,7 +285,7 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
                   >
                     {tiendas.map((t) => (
                       <MenuItem key={t.id} value={t.id}>
-                        {t.nombre}
+                        {t.name}
                       </MenuItem>
                     ))}
                   </TextField>

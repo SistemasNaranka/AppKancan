@@ -10,15 +10,22 @@ export type PromotionDuration = "temporal" | "fija";
 
 export interface Promotion {
   id: number;
-  tipo: string;
-  descripcion: string;
-  observaciones?: string; // Campo opcional para observaciones
-  tiendas: string[];
-  fecha_inicio: string;
-  fecha_final: string | null;
-  hora_inicio: string;
-  hora_fin: string | null;
-  descuento: number;
-  duracion: "temporal" | "fija";
-  color: string; // 👈 agrega este campo
+  type: string;
+  name: string;
+  notes?: string;
+  stores: string[];
+  start_date: string;
+  end_date: string | null;
+  start_time: string;
+  end_time: string | null;
+  discount: number;
+  duration: "temporal" | "fija";
+  color: string;
+}
+
+export interface Store {
+  id: string | number;
+  name: string;
+  codigo_ultra?: number;
+  company?: string;
 }
