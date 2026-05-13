@@ -1,15 +1,15 @@
 import directus from "@/services/directus/directus";
 import { readItems } from "@directus/sdk";
 import {
-  DirectusAsesor,
-  DirectusCargo,
+  DirectusStaff,
+  DirectusPosition,
   DirectusTienda,
-  DirectusPresupuestoDiarioTienda,
+  DirectusStoreDailyBudget,
   DirectusPorcentajeMensual,
   DirectusPorcentajeMensualNuevo,
-  DirectusPresupuestoDiarioEmpleado,
+  DirectusStaffDailyBudget,
   DirectusVentasDiariasEmpleado,
-  DirectusCumplimientoComisiones,
+  DirectusCommissionCompliance,
   CommissionThreshold,
 } from "../../types";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
@@ -42,7 +42,7 @@ const getMonthNumber = (monthName: string): string => {
 /**
  * Obtener todas las tiendas
  */
-export async function obtenerTiendas(): Promise<DirectusTienda[]> {
+export async function getStores(): Promise<DirectusTienda[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     if (tiendaIds.length === 0) {
@@ -56,8 +56,8 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("util_tiendas", {
-          fields: ["id", "nombre", "codigo_ultra", "empresa"],
+        readItems("core_stores", {
+          fields: ["id", "name", "ultra_code", "company"],
           filter,
           sort: ["id"],
           limit: -1,
@@ -73,18 +73,21 @@ export async function obtenerTiendas(): Promise<DirectusTienda[]> {
 /**
  * Obtener todos los cargos
  */
-export async function obtenerCargos(): Promise<DirectusCargo[]> {
+export async function obtenerCargos(): Promise<DirectusPosition[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("util_cargo", {
-          fields: ["id", "nombre"],
-          sort: ["nombre"],
+        readItems("core_positions", {
+          fields: ["id", "name"],
+          sort: ["name"],
           limit: -1,
         }),
       ),
     );
-    return data as DirectusCargo[];
+    return (data as any[]).map(item => ({
+      ...item,
+      name: item.name || "Cargo sin nombre"
+    })) as DirectusPosition[];
   } catch (error) {
     throw error;
   }
@@ -93,27 +96,28 @@ export async function obtenerCargos(): Promise<DirectusCargo[]> {
 /**
  * Obtener todos los asesores con sus relaciones
  */
-export async function obtenerAsesores(): Promise<DirectusAsesor[]> {
+export async function obtenerAsesores(): Promise<DirectusStaff[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("asesores", {
+        readItems("com_advisors", {
           fields: [
             "id",
-            "documento",
-            "tienda_id.id",
-            "tienda_id.nombre",
-            "tienda_id.codigo_ultra",
-            "cargo_id.id",
-            "cargo_id.nombre",
-            "nombre",
+            "document",
+            "store_id.id",
+            "store_id.name",
+            "store_id.ultra_code",
+            "position_id.id",
+            "position_id.name",
+            "name",
           ],
           sort: ["id"],
           limit: -1,
         }),
       ),
     );
-    return data as DirectusAsesor[];
+
+    return data as DirectusStaff[];
   } catch (error) {
     throw error;
   }
@@ -167,7 +171,7 @@ export async function obtenerPresupuestosDiarios(
   fechaInicio?: string,
   fechaFin?: string,
   mesSeleccionado?: string,
-): Promise<DirectusPresupuestoDiarioTienda[]> {
+): Promise<DirectusStoreDailyBudget[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     const filter: any = {};
@@ -176,13 +180,13 @@ export async function obtenerPresupuestosDiarios(
       const match = tiendaIds.find((id) => String(id) === String(tiendaId));
       if (match !== undefined) {
         // Filtro agnóstico al tipo
-        filter.tienda_id = { _in: [String(match), Number(match)] };
+        filter.store_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
       }
     } else {
       if (tiendaIds.length > 0) {
-        filter.tienda_id = { _in: tiendaIds };
+        filter.store_id = { _in: tiendaIds };
       }
     }
 
@@ -192,23 +196,23 @@ export async function obtenerPresupuestosDiarios(
       const [mesNombre, anio] = mesSeleccionado.split(" ");
       const mesInicio = `${anio}-${getMonthNumber(mesNombre)}-01`;
 
-      filter.fecha = { _between: [mesInicio, fechaActual] };
+      filter.date = { _between: [mesInicio, fechaActual] };
     } else if (fechaInicio && fechaFin) {
-      filter.fecha = { _between: [fechaInicio, fechaFin] };
+      filter.date = { _between: [fechaInicio, fechaFin] };
     }
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("presupuestos_diario_tienda", {
-          fields: ["id", "tienda_id", "presupuesto", "fecha"],
+        readItems("com_store_daily_budgets", {
+          fields: ["id", "store_id", "budget", "date"],
           filter,
-          sort: ["-fecha"],
+          sort: ["-date"],
           limit: -1,
         }),
       ),
     );
 
-    return data as DirectusPresupuestoDiarioTienda[];
+    return data as DirectusStoreDailyBudget[];
   } catch (error) {
     throw error;
   }
@@ -224,15 +228,15 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
     const filter: any = {};
 
     if (tiendaIds.length > 0) {
-      filter.tienda_id = { _in: tiendaIds };
+      filter.store_id = { _in: tiendaIds };
     }
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("presupuestos_diario_tienda", {
-          fields: ["fecha"],
+        readItems("com_store_daily_budgets", {
+          fields: ["date"],
           filter,
-          sort: ["-fecha"],
+          sort: ["-date"],
           limit: -1,
         }),
       ),
@@ -242,7 +246,7 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
     const mesesSet = new Set<string>();
     data.forEach((item: any) => {
       // Usar fecha local en lugar de UTC
-      const fecha = new Date(item.fecha + "T00:00:00");
+      const fecha = new Date(item.date + "T00:00:00");
       const meses = [
         "Ene",
         "Feb",
@@ -318,16 +322,16 @@ export async function obtenerPorcentajesMensuales(
       };
       const mesNumero = mesMap[mesNombre];
       if (mesNumero) {
-        filter.mes = { _eq: mesNumero };
-        filter.anio = { _eq: anio };
+        filter.month = { _eq: mesNumero };
+        filter.year = { _eq: anio };
       }
     }
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("porcentaje_mensual_presupuesto", {
-          fields: ["id", "mes", "anio", "configuracion_roles"],
+        readItems("com_monthly_budget_percentages", {
+          fields: ["id", "month", "year", "role_config"],
           filter,
-          sort: ["-anio", "-mes"],
+          sort: ["-year", "-month"],
           limit: 1,
         }),
       ),
@@ -338,20 +342,20 @@ export async function obtenerPorcentajesMensuales(
       data as DirectusPorcentajeMensualNuevo[]
     ).map((item) => {
       const configMap: { [key: string]: any } = {};
-      if (item.configuracion_roles && Array.isArray(item.configuracion_roles)) {
-        item.configuracion_roles.forEach((config) => {
-          const rolLower = config.rol.toLowerCase();
-          configMap[`${rolLower}_tipo`] = config.tipo_calculo.toLowerCase() as
-            | "fijo"
-            | "distributivo";
-          configMap[`${rolLower}_porcentaje`] = config.porcentaje;
+      if (item.role_config && Array.isArray(item.role_config)) {
+        item.role_config.forEach((config) => {
+          const roleLower = config.role.toLowerCase();
+          const tipo =
+            config.calculation_type === "Fixed" ? "fijo" : "distributivo";
+          configMap[`${roleLower}_tipo`] = tipo;
+          configMap[`${roleLower}_porcentaje`] = config.percentage;
         });
       }
 
       return {
         id: item.id,
-        fecha: `${item.anio}-${item.mes}`,
-        configuracion_roles: item.configuracion_roles, // Mantener el array original
+        fecha: `${item.year}-${item.month}`,
+        role_config: item.role_config, // Mantener el array original
         gerente_tipo: configMap.gerente_tipo,
         gerente_porcentaje: configMap.gerente_porcentaje,
         asesor_tipo: configMap.asesor_tipo,
@@ -378,7 +382,7 @@ export async function obtenerPresupuestosEmpleados(
   tiendaId?: number,
   fecha?: string,
   mesSeleccionado?: string,
-): Promise<DirectusPresupuestoDiarioEmpleado[]> {
+): Promise<DirectusStaffDailyBudget[]> {
   try {
     const tiendaIds = await obtenerTiendasIdsUsuarioActual();
     const filter: any = {};
@@ -387,43 +391,43 @@ export async function obtenerPresupuestosEmpleados(
       const match = tiendaIds.find((id) => String(id) === String(tiendaId));
       if (match !== undefined) {
         // Filtro agnóstico al tipo
-        filter.tienda_id = { _in: [String(match), Number(match)] };
+        filter.store_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
       }
     } else {
       if (tiendaIds.length > 0) {
-        filter.tienda_id = { _in: tiendaIds };
+        filter.store_id = { _in: tiendaIds };
       }
     }
 
     // 🚀 REVERTIDO: Restaurar funcionalidad original para no dañar toda la app
     if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
       const fechaActual = getCurrentDate();
-      filter.fecha = { _lte: fechaActual };
+      filter.date = { _lte: fechaActual };
     } else if (fecha) {
-      filter.fecha = { _lte: fecha }; // Restaurar funcionalidad original
+      filter.date = { _lte: fecha }; // Restaurar funcionalidad original
     }
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("presupuesto_diario_empleados", {
+        readItems("com_employee_daily_budgets", {
           fields: [
             "id",
-            "asesor",
-            "tienda_id",
-            "cargo",
-            "fecha",
-            "presupuesto",
+            "advisor_id",
+            "store_id",
+            "position_id",
+            "date",
+            "budget",
           ],
           filter,
-          sort: ["fecha", "asesor"],
+          sort: ["date", "advisor_id"],
           limit: -1,
         }),
       ),
     );
 
-    return data as DirectusPresupuestoDiarioEmpleado[];
+    return data as DirectusStaffDailyBudget[];
   } catch (error) {
     throw error;
   }
@@ -436,13 +440,13 @@ export async function obtenerPresupuestosEmpleados(
 export async function obtenerEmpleadosPorFechaExacta(
   tiendaIds: number[],
   fechaExacta: string,
-): Promise<DirectusPresupuestoDiarioEmpleado[]> {
+): Promise<DirectusStaffDailyBudget[]> {
   try {
     const tiendaIdsPermitidos = await obtenerTiendasIdsUsuarioActual();
 
     // Filtrar solo las tiendas que el usuario tiene permiso de ver
     const tiendasFiltradas = tiendaIds.filter((id) =>
-      tiendaIdsPermitidos.includes(id),
+      tiendaIdsPermitidos.some((pId: any) => String(pId?.id || pId) === String(id)),
     );
 
     if (tiendasFiltradas.length === 0) {
@@ -450,29 +454,29 @@ export async function obtenerEmpleadosPorFechaExacta(
     }
 
     const filter: any = {
-      tienda_id: { _in: tiendasFiltradas },
-      fecha: { _eq: fechaExacta },
+      store_id: { _in: tiendasFiltradas },
+      date: { _eq: fechaExacta },
     };
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("presupuesto_diario_empleados", {
+        readItems("com_employee_daily_budgets", {
           fields: [
             "id",
-            "asesor",
-            "tienda_id",
-            "cargo",
-            "fecha",
-            "presupuesto",
+            "advisor_id",
+            "store_id",
+            "position_id",
+            "date",
+            "budget",
           ],
           filter,
-          sort: ["asesor"],
+          sort: ["advisor_id"],
           limit: -1,
         }),
       ),
     );
 
-    return data as DirectusPresupuestoDiarioEmpleado[];
+    return data as DirectusStaffDailyBudget[];
   } catch (error) {
     console.error("Error al obtener empleados por fecha exacta:", error);
     return [];
@@ -495,30 +499,30 @@ export async function obtenerVentasEmpleados(
       const match = tiendaIds.find((id) => String(id) === String(tiendaId));
       if (match !== undefined) {
         // Filtro agnóstico al tipo
-        filter.tienda_id = { _in: [String(match), Number(match)] };
+        filter.store_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
       }
     } else {
       if (tiendaIds.length > 0) {
-        filter.tienda_id = { _in: tiendaIds };
+        filter.store_id = { _in: tiendaIds };
       }
     }
 
     // 🚀 NUEVO: Si es el mes actual, filtrar hasta la fecha actual
     if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
       const fechaActual = getCurrentDate();
-      filter.fecha = { _lte: fechaActual };
+      filter.date = { _lte: fechaActual };
     } else if (fecha) {
-      filter.fecha = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas
+      filter.date = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas
     }
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("venta_diaria_empleado", {
-          fields: ["id", "fecha", "asesor_id", "tienda_id", "venta"],
+        readItems("com_employee_daily_sales", {
+          fields: ["id", "date", "advisor_id", "store_id", "sale"],
           filter,
-          sort: ["fecha", "asesor_id"],
+          sort: ["date", "advisor_id"],
           limit: -1,
         }),
       ),
@@ -535,22 +539,22 @@ export async function obtenerVentasEmpleados(
  */
 export async function obtenerTiendasUsuario(
   usuarioId: number,
-): Promise<{ tienda_id: number; estado: string }[]> {
+): Promise<{ store_id: number; status: string }[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("tiendas_usuarios", {
-          fields: ["tienda_id", "estado"],
+        readItems("core_user_stores", {
+          fields: ["store_id", "status"],
           filter: {
-            usuario_id: { _eq: usuarioId },
-            estado: { _eq: "Activo" },
+            user_id: { _eq: usuarioId },
+            status: { _eq: "Activo" },
           },
           limit: -1,
         }),
       ),
     );
 
-    return data as { tienda_id: number; estado: string }[];
+    return data as { store_id: number; status: string }[];
   } catch (error: any) {
     // Si es error 404 (colección no existe), devolver array vacío
     if (error.response?.status === 404) {
@@ -568,17 +572,17 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("usuarios_tiendas", {
-          fields: ["tienda_id"],
+        readItems("core_user_stores", {
+          fields: ["store_id"],
           filter: {
-            estado: { _eq: "Activo" },
+            status: { _eq: "Activo" },
           },
           limit: -1,
         }),
       ),
     );
 
-    const tiendaIds = data.map((item: any) => item.tienda_id);
+    const tiendaIds = data.map((item: any) => item.store_id);
     return tiendaIds;
   } catch (error: any) {
     // Si es error 404 (colección no existe), devolver array vacío
@@ -599,7 +603,7 @@ export interface CommissionThresholdConfigWithId {
   id: number;
   mes: string; // "MMM YYYY"
   anio: string; // "YYYY"
-  cumplimiento_valores: CommissionThreshold[];
+  compliance_values: CommissionThreshold[];
 }
 
 /**
@@ -631,17 +635,17 @@ export async function obtenerUmbralesComisiones(
       };
       const mesNumero = mesMap[mesNombre];
       if (mesNumero) {
-        filter.mes = { _eq: mesNumero };
-        filter.anio = { _eq: anio };
+        filter.month = { _eq: mesNumero };
+        filter.year = { _eq: anio };
       }
     }
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("cumplimiento_mensual_comisiones", {
-          fields: ["id", "mes", "anio", "cumplimiento_valores"],
+        readItems("com_monthly_commission_compliance", {
+          fields: ["id", "month", "year", "compliance_values"],
           filter,
-          sort: ["-anio", "-mes"],
+          sort: ["-year", "-month"],
           limit: 1,
         }),
       ),
@@ -651,7 +655,7 @@ export async function obtenerUmbralesComisiones(
       return null;
     }
 
-    const item = data[0] as DirectusCumplimientoComisiones;
+    const item = data[0] as DirectusCommissionCompliance;
 
     // Convertir a formato de configuración
     const mesesLabels: { [key: string]: string } = {
@@ -671,9 +675,9 @@ export async function obtenerUmbralesComisiones(
 
     return {
       id: item.id,
-      mes: `${mesesLabels[item.mes]} ${item.anio}`,
-      anio: item.anio,
-      cumplimiento_valores: item.cumplimiento_valores || [],
+      mes: `${mesesLabels[item.month]} ${item.year}`,
+      anio: item.year,
+      compliance_values: item.compliance_values || [],
     };
   } catch (error: any) {
     // Si la colección no existe o hay error, retornar null para usar valores por defecto

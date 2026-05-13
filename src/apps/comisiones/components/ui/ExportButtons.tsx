@@ -19,8 +19,8 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
 
   // Solo mostrar si el usuario tiene la política readComisionesAdmin o readComisionesComercial
   if (
-    !hasPolicy("readComisionesAdmin") &&
-    !hasPolicy("readComisionesComercial")
+    !hasPolicy("crud_commission_admin") &&
+    !hasPolicy("crud_commission_commercial")
   ) {
     return null;
   }

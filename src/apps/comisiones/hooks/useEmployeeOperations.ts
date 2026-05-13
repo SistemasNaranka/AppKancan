@@ -1,6 +1,6 @@
 // useEmployeeOperations.ts (Versión Mejorada)
 import { useState, useEffect, useRef, useMemo } from "react";
-import { DirectusAsesor, DirectusCargo, DirectusTienda, EmpleadoAsignado, ROLES_EXCLUSIVOS, RolExclusivo } from "../types/modal";
+import { DirectusStaff, DirectusPosition, DirectusTienda, EmpleadoAsignado, ROLES_EXCLUSIVOS, RolExclusivo } from "../types/modal";
 import { guardarPresupuestosEmpleados, actualizarPresupuestoEmpleado, eliminarPresupuestoEmpleado } from "../api/directus/create";
 import { obtenerPresupuestosDiarios, obtenerPresupuestosEmpleados, obtenerPorcentajesMensuales, obtenerAsesores, obtenerCargos } from "../api/directus/read";
 import { calculateBudgetsWithFixedDistributive } from "../lib/calculations.budgets";
@@ -73,24 +73,24 @@ export const useEmployeeOperations = (
   // --- HANDLERS PRINCIPALES ---
 
   // ✅ Función para cargar datos (Lógica original preservada)
-  const cargarDatosExistentes = async (fecha: string, mes?: string, asesores?: DirectusAsesor[], cargos?: DirectusCargo[]) => {
+  const cargarDatosExistentes = async (fecha: string, mes?: string, asesores?: DirectusStaff[], cargos?: DirectusPosition[]) => {
     if (!tiendaUsuario) return;
     try {
       setLoading(true);
       const datos = await obtenerPresupuestosEmpleados(tiendaUsuario.id, fecha, mes);
-      const hoy = datos.filter(d => d.fecha === fecha);
+      const hoy = datos.filter(d => d.date === fecha);
 
       if (hoy.length > 0) {
         const asesoresFull = (!asesores || asesores.length === 0) ? await obtenerAsesores() : asesores;
         const cargosFull = (!cargos || cargos.length === 0) ? await obtenerCargos() : cargos;
 
         const mapeados: EmpleadoAsignado[] = hoy.map(d => {
-          const emp = asesoresFull.find(a => a.id === d.asesor);
+          const emp = asesoresFull.find(a => a.id === d.advisor_id);
           return {
-            asesor: emp || { id: d.asesor, nombre: `Empleado ${d.asesor}`, documento: 0, tienda_id: d.tienda_id, cargo_id: d.cargo },
-            presupuesto: d.presupuesto || 0,
-            tiendaId: d.tienda_id,
-            cargoAsignado: getCargoNombreHelper(d.cargo, cargosFull)
+            asesor: emp || { id: d.advisor_id, name: `Empleado ${d.advisor_id}`, document: 0, store_id: d.store_id, position_id: d.position_id },
+            presupuesto: d.budget || 0,
+            tiendaId: d.store_id,
+            cargoAsignado: getCargoNombreHelper(d.position_id, cargosFull)
           };
         });
 
@@ -121,7 +121,7 @@ export const useEmployeeOperations = (
   };
 
   // ✅ Función para agregar empleado con distribución de presupuesto
-  const handleAddEmpleado = async (asesores: DirectusAsesor[], cargos: DirectusCargo[], empleadoYaEncontrado?: DirectusAsesor | null) => {
+  const handleAddEmpleado = async (asesores: DirectusStaff[], cargos: DirectusPosition[], empleadoYaEncontrado?: DirectusStaff | null) => {
     if (!codigoInput.trim() || !cargoSeleccionado) {
       setError("Código y cargo son requeridos");
       setMessageType("warning");
@@ -146,7 +146,7 @@ export const useEmployeeOperations = (
 
     // Validar si ya está asignado
     if (empleadosAsignados.some(e => e.asesor.id === asesor.id)) {
-      setError(`${asesor.nombre} ya está asignado`);
+      setError(`${asesor.name} ya está asignado`);
       setMessageType("warning");
       return;
     }
@@ -163,7 +163,7 @@ export const useEmployeeOperations = (
       asesor,
       cargoAsignado: cargoSeleccionado,
       presupuesto: 0,
-      tiendaId: typeof asesor.tienda_id === 'object' ? asesor.tienda_id.id : asesor.tienda_id
+      tiendaId: typeof asesor.store_id === 'object' ? asesor.store_id.id : asesor.store_id
     };
 
     const nuevaLista = [...empleadosAsignados, nuevoEmpleado];
@@ -183,7 +183,7 @@ export const useEmployeeOperations = (
 
       setEmpleadosAsignados(listaConPresupuestos);
       setCodigoInput("");
-      setSuccess(`${asesor.nombre} agregado con éxito`);
+      setSuccess(`${asesor.name} agregado con éxito`);
       setMessageType("success");
       
       if (codigoInputRef.current) codigoInputRef.current.focus();
@@ -228,12 +228,12 @@ export const useEmployeeOperations = (
   };
 
   // ✅ Función de guardado (Lógica compleja de inserts/updates/deletes)[cite: 3]
-  const handleSaveAsignaciones = async (fecha: string, cargos: DirectusCargo[]) => {
+  const handleSaveAsignaciones = async (fecha: string, cargos: DirectusPosition[]) => {
     if (!canSave) return;
     try {
       setSaving(true);
-      const existentes = (await obtenerPresupuestosEmpleados(tiendaUsuario!.id, fecha)).filter(e => e.fecha === fecha);
-      const mapaExistentes = new Map(existentes.map(e => [e.asesor, e]));
+      const existentes = (await obtenerPresupuestosEmpleados(tiendaUsuario!.id, fecha)).filter(e => e.date === fecha);
+      const mapaExistentes = new Map(existentes.map(e => [e.advisor_id, e]));
 
       const paraInsertar: any[] = [];
       const paraActualizar: any[] = [];
@@ -242,12 +242,12 @@ export const useEmployeeOperations = (
       empleadosAsignados.forEach(emp => {
         const ex = mapaExistentes.get(emp.asesor.id);
         if (ex) {
-          if (ex.presupuesto !== emp.presupuesto) paraActualizar.push({ id: ex.id, presupuesto: emp.presupuesto });
+          if (ex.budget !== emp.presupuesto) paraActualizar.push({ id: ex.id, presupuesto: emp.presupuesto });
           mapaExistentes.delete(emp.asesor.id);
         } else {
           paraInsertar.push({ 
-            asesor: emp.asesor.id, fecha, presupuesto: emp.presupuesto, 
-            tienda_id: emp.tiendaId, cargo: cargos.find(c => c.nombre === emp.cargoAsignado)?.id || 2 
+            advisor_id: emp.asesor.id, date: fecha, budget: emp.presupuesto, 
+            store_id: emp.tiendaId, position_id: cargos.find(c => c.name === emp.cargoAsignado)?.id || 2 
           });
         }
       });
@@ -272,7 +272,7 @@ export const useEmployeeOperations = (
     handleSaveAsignaciones, cargarDatosExistentes,
     handleAddEmpleado, handleRemoveEmpleado,
     getCargoNombre: getCargoNombreHelper, getTiendaNombre: getTiendaNombreHelper,
-    validateExclusiveRole: (r: string, a: DirectusAsesor) => validateExclusiveRoleHelper(r, a, empleadosAsignados),
+    validateExclusiveRole: (r: string, a: DirectusStaff) => validateExclusiveRoleHelper(r, a, empleadosAsignados),
     hasRequiredRoles: () => hasRequiredRoles,
     clearMessages: () => { setError(null); setSuccess(null); }
   };

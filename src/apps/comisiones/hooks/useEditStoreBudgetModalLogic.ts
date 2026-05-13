@@ -30,7 +30,7 @@ export const useEditStoreBudgetModalLogic = ({
           ? Number(tiendaProp)
           : "",
   );
-  const [tiendaNombre, setTiendaNombre] = useState(tiendaProp?.nombre || "");
+  const [tiendaNombre, setTiendaNombre] = useState(tiendaProp?.name || "");
   const [cargoSeleccionado, setCargoSeleccionado] = useState<number | "">("");
   const [codigoEmpleado, setCodigoEmpleado] = useState("");
   const [empleadoEncontrado, setEmpleadoEncontrado] = useState<any>(null);
@@ -111,11 +111,11 @@ export const useEditStoreBudgetModalLogic = ({
       // ✅ NUEVO: Auto-selección para tienda única
       if (sortedTiendas.length === 1 && !tiendaId) {
         setTiendaId(Number(sortedTiendas[0].id));
-        setTiendaNombre(sortedTiendas[0].nombre);
+        setTiendaNombre(sortedTiendas[0].name);
       }
 
       const cargoAsesor = cData.find(
-        (c: any) => c.nombre.toLowerCase() === "asesor",
+        (c: any) => c.name.toLowerCase() === "asesor",
       );
       if (cargoAsesor) setCargoSeleccionado(cargoAsesor.id);
     } finally {
@@ -132,17 +132,17 @@ export const useEditStoreBudgetModalLogic = ({
         fecha,
       );
       const mapeados = presupuestos.map((p: any) => {
-        const emp = todosEmpleados.find((e) => e.id === p.asesor);
-        const car = cargos.find((c) => c.id === p.cargo);
+        const emp = todosEmpleados.find((e) => e.id === p.advisor_id);
+        const car = cargos.find((c) => c.id === p.position_id);
         return {
-          id: p.asesor,
+          id: p.advisor_id,
           id_presupuesto: p.id,
-          nombre: emp?.nombre || `Empleado ${p.asesor}`,
-          codigo: p.asesor,
-          cargo_id: p.cargo,
-          cargo_nombre: car?.nombre || "Asesor",
-          presupuesto: p.presupuesto || 0,
-          fecha: p.fecha,
+          nombre: emp?.name || `Empleado ${p.advisor_id}`,
+          codigo: p.advisor_id,
+          cargo_id: p.position_id,
+          cargo_nombre: car?.name || "Asesor",
+          presupuesto: p.budget || 0,
+          fecha: p.date,
         };
       });
       setEmpleadosAsignados(mapeados);
@@ -179,10 +179,10 @@ export const useEditStoreBudgetModalLogic = ({
     const cargoDoc = cargos.find((c) => c.id === cargoSeleccionado);
     const nuevoEmpleado = {
       id: empleadoEncontrado.id,
-      nombre: empleadoEncontrado.nombre,
+      nombre: empleadoEncontrado.name,
       codigo: empleadoEncontrado.id, // Usar ID como código para consistencia
       cargo_id: cargoSeleccionado,
-      cargo_nombre: cargoDoc?.nombre || "Asesor",
+      cargo_nombre: cargoDoc?.name || "Asesor",
       presupuesto: 0,
       fecha,
     };
@@ -247,11 +247,11 @@ export const useEditStoreBudgetModalLogic = ({
         const listaFinal = calculated ? empleados : empleadosAsignados;
         await guardarPresupuestosEmpleados(
           listaFinal.map((emp) => ({
-            asesor: emp.id,
-            tienda_id: tiendaId,
-            cargo: emp.cargo_id,
-            fecha: dia,
-            presupuesto: emp.presupuesto || 0,
+            advisor_id: emp.id,
+            store_id: tiendaId,
+            position_id: emp.cargo_id,
+            date: dia,
+            budget: emp.presupuesto || 0,
           })),
         );
       }
@@ -322,7 +322,7 @@ export const useEditStoreBudgetModalLogic = ({
     handleLimpiar: () => setEmpleadosAsignados([]),
     handleTiendaChange: (id: number) => {
       setTiendaId(id);
-      setTiendaNombre(tiendas.find((t) => t.id === id)?.nombre || "");
+      setTiendaNombre(tiendas.find((t) => t.id === id)?.name || "");
     },
     toggleDaySelection: (dia: string) => {
       if (

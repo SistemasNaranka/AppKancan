@@ -14,7 +14,7 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
   const [tiendaSeleccionada, setTiendaSeleccionada] = useState<number | "">(
     tiendaProp?.id ? Number(tiendaProp.id) : (typeof tiendaProp === 'number' ? tiendaProp : (tiendaProp && !isNaN(Number(tiendaProp)) ? Number(tiendaProp) : ""))
   );
-  const [tiendaNombre, setTiendaNombre] = useState(tiendaProp?.nombre || "");
+  const [tiendaNombre, setTiendaNombre] = useState(tiendaProp?.name || "");
   const [cargoSeleccionado, setCargoSeleccionado] = useState<number | "">("");
   const [codigoEmpleado, setCodigoEmpleado] = useState("");
   const [empleadoEncontrado, setEmpleadoEncontrado] = useState<any>(null);
@@ -44,7 +44,7 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
     if (tiendaProp && isOpen) {
       const idRaw = tiendaProp.id || (typeof tiendaProp === 'number' ? tiendaProp : (tiendaProp && !isNaN(Number(tiendaProp)) ? Number(tiendaProp) : ""));
       const id = idRaw !== "" ? Number(idRaw) : "";
-      const nombre = tiendaProp.nombre || "";
+      const nombre = tiendaProp.name || "";
       
       if (id !== "" && id !== tiendaSeleccionada) {
         setTiendaSeleccionada(id);
@@ -83,19 +83,19 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
       setTiendas(tData.sort((a: any, b: any) => a.id - b.id));
       setTodosEmpleados(eData);
       setCargos(cData);
-      const cargoAsesor = cData.find((c: any) => c.nombre.toLowerCase() === "asesor");
+      const cargoAsesor = cData.find((c: any) => c.name.toLowerCase() === "asesor");
       if (cargoAsesor) setCargoSeleccionado(cargoAsesor.id);
 
       // Si ya tenemos tienda seleccionada (por prop) pero no el nombre, buscarlo
       if (tiendaSeleccionada) {
         const currentTienda = tData.find(t => Number(t.id) === Number(tiendaSeleccionada));
         if (currentTienda) {
-          setTiendaNombre(currentTienda.nombre);
+          setTiendaNombre(currentTienda.name);
         }
       } else if (tData.length === 1) {
         // Caso usuario tienda: seleccionar la única disponible
         setTiendaSeleccionada(Number(tData[0].id));
-        setTiendaNombre(tData[0].nombre);
+        setTiendaNombre(tData[0].name);
       }
     } finally { setLoadingCatalogos(false); }
   };
@@ -106,12 +106,12 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
       setLoading(true);
       const presupuestos = await obtenerEmpleadosPorFechaExacta([tiendaSeleccionada as number], fecha);
       const mapeados = presupuestos.map((p: any) => {
-        const emp = todosEmpleados.find((e) => e.id === p.asesor);
-        const car = cargos.find((c) => c.id === p.cargo);
+        const emp = todosEmpleados.find((e) => e.id === p.advisor_id);
+        const car = cargos.find((c) => c.id === p.position_id);
         return { 
-          id: p.asesor, id_presupuesto: p.id, nombre: emp?.nombre || `Empleado ${p.asesor}`, 
-          codigo: p.asesor, cargo_id: p.cargo, cargo_nombre: car?.nombre || "Asesor", 
-          presupuesto: p.presupuesto || 0, fecha: p.fecha 
+          id: p.advisor_id, id_presupuesto: p.id, nombre: emp?.name || `Empleado ${p.advisor_id}`, 
+          codigo: p.advisor_id, cargo_id: p.position_id, cargo_nombre: car?.name || "Asesor", 
+          presupuesto: p.budget || 0, fecha: p.date 
         };
       });
       setEmpleadosAsignados(mapeados);
@@ -129,7 +129,7 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
         const res = await recalculateBudgets(empleadosAsignados, dia);
         const listaFinal = res.calculated ? res.empleados : empleadosAsignados;
         await guardarPresupuestosEmpleados(listaFinal.map(emp => ({
-          asesor: emp.id, tienda_id: tiendaSeleccionada, cargo: emp.cargo_id, fecha: dia, presupuesto: emp.presupuesto || 0,
+          advisor_id: emp.id, store_id: tiendaSeleccionada, position_id: emp.cargo_id, date: dia, budget: emp.presupuesto || 0,
         })));
       }
       setSuccess(`✅ Asignación actualizada (${diasAGuardar.length} días)`);
@@ -207,9 +207,9 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
     const nuevoEmpleado = {
       id: empleadoEncontrado.id,
       codigo: empleadoEncontrado.id,
-      nombre: empleadoEncontrado.nombre,
+      nombre: empleadoEncontrado.name,
       cargo_id: cargoSeleccionado,
-      cargo_nombre: cargo?.nombre ?? "Asesor",
+      cargo_nombre: cargo?.name ?? "Asesor",
       presupuesto: 0,
       fecha,
     };
@@ -289,7 +289,7 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
       const numericId = id === "" ? "" : Number(id);
       setTiendaSeleccionada(numericId);
       const tienda = tiendas.find(t => Number(t.id) === numericId);
-      setTiendaNombre(tienda?.nombre || "");
+      setTiendaNombre(tienda?.name || "");
       // Limpiar empleados al cambiar de tienda para evitar mezclar datos
       setEmpleadosAsignados([]);
       setEmpleadosAsignadosOriginal([]);

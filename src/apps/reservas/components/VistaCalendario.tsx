@@ -12,7 +12,7 @@ import { DayPopover, DetailPopover } from "./CalendarPopovers";
 
 // INTERFAZ CORREGIDA
 export interface VistaCalendarioProps {
-  usuarioActualId: number | null;
+  usuarioActualId: string | null | undefined;
   vistaCalendario?: "semanal" | "mes";
   onCambiarVista?: (vista: "semanal" | "mes") => void;
   salaInicial?: string;
@@ -46,23 +46,22 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
   });
 
   const reservas = useMemo(() => reservasRaw.filter(r => {
-    const estado = (r.estadoCalculado || r.estado)?.toLowerCase() || "";
-    return (estado === "vigente" || estado === "en curso") && r.nombre_sala === salaSeleccionada;
+    const estado = (r.estadoCalculado || r.status)?.toLowerCase() || "";
+    return (estado === "vigente" || estado === "en curso") && r.room_name === salaSeleccionada;
   }), [reservasRaw, salaSeleccionada]);
 
   // ... dentro de VistaCalendario.tsx
 
-  const getReservasDia = (fecha: Date) => reservas.filter(r => r.fecha === format(fecha, "yyyy-MM-dd"));
+  const getReservasDia = (fecha: Date) => reservas.filter(r => r.date === format(fecha, "yyyy-MM-dd"));
   
   const puedeModificar = (reserva: Reserva) => {
-    // FIX: Convertimos a Number para asegurar que la comparación sea válida
-    const idUsuarioReserva = reserva.usuario_id?.id ? Number(reserva.usuario_id.id) : null;
-    const idUsuarioLogueado = usuarioActualId ? Number(usuarioActualId) : null;
+    const idUsuarioReserva = reserva.user_id?.id;
+    const idUsuarioLogueado = usuarioActualId;
 
     if (!idUsuarioLogueado || idUsuarioReserva !== idUsuarioLogueado) return false;
-    if (!puedeModificarse(reserva.estadoCalculado || reserva.estado)) return false;
+    if (!puedeModificarse(reserva.estadoCalculado || reserva.status)) return false;
     
-    return new Date(`${reserva.fecha}T${reserva.hora_inicio}`) > new Date();
+    return new Date(`${reserva.date}T${reserva.start_time}`) > new Date();
   };
 
 // ... resto del código
@@ -110,7 +109,7 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
                   {resDia.slice(0, 3).map(r => (
                     <Box key={r.id} onClick={(e) => { e.stopPropagation(); setReservaSeleccionada(r); setAnchorReserva(e.currentTarget); }}
                       sx={{ height: 18, backgroundColor: getReservaColor(r.id), borderRadius: "2px", px: 0.5, display: "flex", alignItems: "center" }}>
-                      <Typography sx={{ fontSize: "0.6rem", fontWeight: 500, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{formatearHora(r.hora_inicio)} {truncarTexto(r.titulo_reunion || "Sin título", 15)}</Typography>
+                      <Typography sx={{ fontSize: "0.6rem", fontWeight: 500, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{formatearHora(r.start_time)} {truncarTexto(r.meeting_title || "Sin título", 15)}</Typography>
                     </Box>
                   ))}
                   {resDia.length > 3 && <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.6rem", textAlign: "center" }}>+{resDia.length - 3} más</Typography>}

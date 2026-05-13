@@ -23,16 +23,16 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
-import Save from '@mui/icons-material/Save';
-import Percent from '@mui/icons-material/Percent';
-import Close from '@mui/icons-material/Close';
-import CalendarMonth from '@mui/icons-material/CalendarMonth';
-import Badge from '@mui/icons-material/Badge';
-import SettingsSuggest from '@mui/icons-material/SettingsSuggest';
-import AddCircleOutline from '@mui/icons-material/AddCircleOutline';
-import DeleteOutline from '@mui/icons-material/DeleteOutline';
-import InfoOutlined from '@mui/icons-material/InfoOutlined';
-import TrendingUp from '@mui/icons-material/TrendingUp';
+import Save from "@mui/icons-material/Save";
+import Percent from "@mui/icons-material/Percent";
+import Close from "@mui/icons-material/Close";
+import CalendarMonth from "@mui/icons-material/CalendarMonth";
+import Badge from "@mui/icons-material/Badge";
+import SettingsSuggest from "@mui/icons-material/SettingsSuggest";
+import AddCircleOutline from "@mui/icons-material/AddCircleOutline";
+import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
+import TrendingUp from "@mui/icons-material/TrendingUp";
 import {
   obtenerCargos,
   obtenerPorcentajesMensuales,
@@ -90,16 +90,16 @@ const COLOR_OPTIONS = [
 
 interface RoleConfigRow {
   id: string;
-  rol: string;
-  tipo_calculo: "Fijo" | "Distributivo";
-  porcentaje: string;
+  role: string;
+  calculation_type: "Fijo" | "Distributivo";
+  percentage: string;
 }
 
 interface ThresholdRow {
   id: string;
-  cumplimiento_min: string;
-  comision_pct: string;
-  nombre: string;
+  min_compliance: string;
+  pct_commission: string;
+  name: string;
   color: string;
 }
 
@@ -139,9 +139,9 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       id: `${idPrefix}-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`,
-      rol: "",
-      tipo_calculo: "Fijo",
-      porcentaje: "",
+      role: "",
+      calculation_type: "Fijo",
+      percentage: "",
     }),
     [],
   );
@@ -151,9 +151,9 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       id: `${idPrefix}-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`,
-      cumplimiento_min: "",
-      comision_pct: "",
-      nombre: "",
+      min_compliance: "",
+      pct_commission: "",
+      name: "",
       color: "",
     }),
     [],
@@ -162,30 +162,30 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
   const createDefaultThresholdRows = (): ThresholdRow[] => [
     {
       ...createEmptyThresholdRow("d1"),
-      cumplimiento_min: "90",
-      comision_pct: "0.0035",
-      nombre: "Muy Regular",
+      min_compliance: "90",
+      pct_commission: "0.0035",
+      name: "Muy Regular",
       color: "pink",
     },
     {
       ...createEmptyThresholdRow("d2"),
-      cumplimiento_min: "95",
-      comision_pct: "0.005",
-      nombre: "Regular",
+      min_compliance: "95",
+      pct_commission: "0.005",
+      name: "Regular",
       color: "orange",
     },
     {
       ...createEmptyThresholdRow("d3"),
-      cumplimiento_min: "100",
-      comision_pct: "0.007",
-      nombre: "Buena",
+      min_compliance: "100",
+      pct_commission: "0.007",
+      name: "Buena",
       color: "blue",
     },
     {
       ...createEmptyThresholdRow("d4"),
-      cumplimiento_min: "110",
-      comision_pct: "0.01",
-      nombre: "Excelente",
+      min_compliance: "110",
+      pct_commission: "0.01",
+      name: "Excelente",
       color: "green",
     },
   ];
@@ -280,17 +280,17 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
         const item = data[0] as any;
         setCurrentRoleRecordId(item.id);
         if (
-          item.configuracion_roles &&
-          Array.isArray(item.configuracion_roles) &&
-          item.configuracion_roles.length > 0
+          item.role_config &&
+          Array.isArray(item.role_config) &&
+          item.role_config.length > 0
         ) {
-          const configs: RoleConfigRow[] = item.configuracion_roles.map(
+          const configs: RoleConfigRow[] = item.role_config.map(
             (c: any, index: number) => ({
               id: `row-${index}-${Date.now()}`,
-              rol: c.rol,
-              tipo_calculo:
-                c.tipo_calculo === "Distributivo" ? "Distributivo" : "Fijo",
-              porcentaje: c.porcentaje?.toString() || "",
+              role: c.role,
+              calculation_type:
+                c.calculation_type === "Distributive" ? "Distributivo" : "Fijo",
+              percentage: c.percentage?.toString() || "",
             }),
           );
           setRoleConfigs(configs);
@@ -320,22 +320,16 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
         `${mesNombre} ${selectedYear}`,
       );
 
-      if (
-        data &&
-        data.cumplimiento_valores &&
-        data.cumplimiento_valores.length > 0
-      ) {
+      if (data && data.compliance_values && data.compliance_values.length > 0) {
         setCurrentThresholdRecordId(data.id);
 
-        const rows: ThresholdRow[] = data.cumplimiento_valores.map(
-          (t, index) => ({
-            id: `row-${index}-${Date.now()}`,
-            cumplimiento_min: t.cumplimiento_min.toString(),
-            comision_pct: t.comision_pct.toString(),
-            nombre: t.nombre || "",
-            color: t.color || "",
-          }),
-        );
+        const rows: ThresholdRow[] = data.compliance_values.map((t, index) => ({
+          id: `row-${index}-${Date.now()}`,
+          min_compliance: t.min_compliance.toString(),
+          pct_commission: t.pct_commission.toString(),
+          name: t.name || "",
+          color: t.color || "",
+        }));
         setThresholdRows(rows);
       } else {
         setThresholdRows(createDefaultThresholdRows());
@@ -368,8 +362,8 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       prev.map((row) => {
         if (row.id === id) {
           const updated = { ...row, [field]: value };
-          if (field === "tipo_calculo" && value === "Distributivo") {
-            updated.porcentaje = "0";
+          if (field === "calculation_type" && value === "Distributivo") {
+            updated.percentage = "0";
           }
           return updated;
         }
@@ -411,24 +405,24 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       return;
     }
 
-    const validConfigs = roleConfigs.filter((c) => c.rol.trim() !== "");
+    const validConfigs = roleConfigs.filter((c) => c.role.trim() !== "");
     if (validConfigs.length === 0) {
       setError("Debe configurar al menos un rol.");
       return;
     }
 
-    const roles = validConfigs.map((c) => c.rol);
+    const roles = validConfigs.map((c) => c.role);
     if (new Set(roles).size !== roles.length) {
       setError("No se pueden repetir roles en la misma configuración.");
       return;
     }
 
     for (const config of validConfigs) {
-      if (config.tipo_calculo === "Fijo") {
-        const p = parseFloat(config.porcentaje);
+      if (config.calculation_type === "Fijo") {
+        const p = parseFloat(config.percentage);
         if (isNaN(p) || p < 0 || p > 100) {
           setError(
-            `El porcentaje para ${config.rol} debe estar entre 0 y 100.`,
+            `El porcentaje para ${config.role} debe estar entre 0 y 100.`,
           );
           return;
         }
@@ -441,9 +435,9 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
         id: currentRoleRecordId,
         mes: `${selectedYear}-${selectedMonth}`,
         roleConfigs: validConfigs.map((c) => ({
-          rol: c.rol,
-          tipo_calculo: c.tipo_calculo,
-          porcentaje: parseFloat(c.porcentaje) || 0,
+          role: c.role,
+          calculation_type: c.calculation_type,
+          percentage: parseFloat(c.percentage) || 0,
         })),
       });
       setSuccess("Configuraciones de roles guardadas exitosamente.");
@@ -468,7 +462,7 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
     }
 
     const validRows = thresholdRows.filter(
-      (r) => r.cumplimiento_min.trim() !== "" && r.comision_pct.trim() !== "",
+      (r) => r.min_compliance.trim() !== "" && r.pct_commission.trim() !== "",
     );
 
     if (validRows.length === 0) {
@@ -476,18 +470,18 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       return;
     }
 
-    const cumplimientoValues = validRows.map((r) =>
-      parseFloat(r.cumplimiento_min),
+    const complianceValuesArr = validRows.map((r) =>
+      parseFloat(r.min_compliance),
     );
-    const uniqueValues = new Set(cumplimientoValues);
-    if (uniqueValues.size !== cumplimientoValues.length) {
+    const uniqueValues = new Set(complianceValuesArr);
+    if (uniqueValues.size !== complianceValuesArr.length) {
       setError("No pueden haber valores duplicados de cumplimiento mínimo.");
       return;
     }
 
     for (const row of validRows) {
-      const cumplimiento = parseFloat(row.cumplimiento_min);
-      const comision = parseFloat(row.comision_pct);
+      const cumplimiento = parseFloat(row.min_compliance);
+      const comision = parseFloat(row.pct_commission);
 
       if (isNaN(cumplimiento) || cumplimiento < 0) {
         setError("El cumplimiento mínimo debe ser un número válido mayor a 0.");
@@ -504,16 +498,16 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       setLoading(true);
 
       const valores: CommissionThreshold[] = validRows.map((r) => ({
-        cumplimiento_min: parseFloat(r.cumplimiento_min),
-        comision_pct: parseFloat(r.comision_pct),
-        nombre: r.nombre.trim() || "",
+        min_compliance: parseFloat(r.min_compliance),
+        pct_commission: parseFloat(r.pct_commission),
+        name: r.name.trim() || "",
         color: r.color?.trim() || "",
       }));
 
       await guardarUmbralesComisiones({
         id: currentThresholdRecordId,
         mes: `${selectedYear}-${selectedMonth}`,
-        cumplimiento_valores: valores,
+        compliance_values: valores,
       });
 
       setSuccess("Configuración de umbrales guardada exitosamente.");
@@ -707,10 +701,10 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                       <FormControl fullWidth size="small">
                         <InputLabel>Rol</InputLabel>
                         <Select
-                          value={row.rol}
+                          value={row.role}
                           label="Rol"
                           onChange={(e) =>
-                            handleRoleRowChange(row.id, "rol", e.target.value)
+                            handleRoleRowChange(row.id, "role", e.target.value)
                           }
                           startAdornment={
                             <InputAdornment position="start">
@@ -721,11 +715,11 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                         >
                           {cargos.map((c) => (
                             <MenuItem
-                              key={c.id || c.nombre}
-                              value={c.nombre}
+                              key={c.id || c.name}
+                              value={c.name}
                               sx={{ fontSize: "0.95rem" }}
                             >
-                              {c.nombre}
+                              {c.name}
                             </MenuItem>
                           ))}
                         </Select>
@@ -735,12 +729,12 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                       <FormControl fullWidth size="small">
                         <InputLabel>Tipo de Cálculo</InputLabel>
                         <Select
-                          value={row.tipo_calculo}
+                          value={row.calculation_type}
                           label="Tipo de Cálculo"
                           onChange={(e) =>
                             handleRoleRowChange(
                               row.id,
-                              "tipo_calculo",
+                              "calculation_type",
                               e.target.value,
                             )
                           }
@@ -764,15 +758,15 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                         size="small"
                         label="Porcentaje"
                         type="number"
-                        value={row.porcentaje}
+                        value={row.percentage}
                         onChange={(e) =>
                           handleRoleRowChange(
                             row.id,
-                            "porcentaje",
+                            "percentage",
                             e.target.value,
                           )
                         }
-                        disabled={row.tipo_calculo === "Distributivo"}
+                        disabled={row.calculation_type === "Distributivo"}
                         slotProps={{
                           input: {
                             endAdornment: (
@@ -898,11 +892,11 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                           size="small"
                           label="Cumplimiento Mínimo (%)"
                           type="number"
-                          value={row.cumplimiento_min}
+                          value={row.min_compliance}
                           onChange={(e) =>
                             handleThresholdRowChange(
                               row.id,
-                              "cumplimiento_min",
+                              "min_compliance",
                               e.target.value,
                             )
                           }
@@ -919,11 +913,11 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                           size="small"
                           label="Comisión (%)"
                           type="number"
-                          value={row.comision_pct}
+                          value={row.pct_commission}
                           onChange={(e) =>
                             handleThresholdRowChange(
                               row.id,
-                              "comision_pct",
+                              "pct_commission",
                               e.target.value,
                             )
                           }
@@ -1031,11 +1025,11 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
                           fullWidth
                           size="small"
                           label="Nombre"
-                          value={row.nombre}
+                          value={row.name}
                           onChange={(e) =>
                             handleThresholdRowChange(
                               row.id,
-                              "nombre",
+                              "name",
                               e.target.value,
                             )
                           }

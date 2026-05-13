@@ -57,24 +57,24 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
       
       const reservasSala = reservas.filter(
         (r) =>
-          r.nombre_sala === sala &&
-          ((r.estadoCalculado || r.estado)?.toLowerCase() === "vigente" ||
-            (r.estadoCalculado || r.estado)?.toLowerCase() === "en curso"),
+          r.room_name === sala &&
+          ((r.estadoCalculado || r.status)?.toLowerCase() === "vigente" ||
+            (r.estadoCalculado || r.status)?.toLowerCase() === "en curso"),
       );
 
      
-      const reservasSalaHoy = reservasSala.filter((r) => r.fecha === hoy);
+      const reservasSalaHoy = reservasSala.filter((r) => r.date === hoy);
 
       
       const hayReservasHoy = reservasSalaHoy.some(
         (r) =>
-          r.hora_inicio > horaActual ||
-          (r.hora_inicio <= horaActual && r.hora_final > horaActual),
+          r.start_time > horaActual ||
+          (r.start_time <= horaActual && r.end_time > horaActual),
       );
 
       
       const reunionActual = reservasSalaHoy.find((r) => {
-        return r.hora_inicio <= horaActual && r.hora_final > horaActual;
+        return r.start_time <= horaActual && r.end_time > horaActual;
       });
 
       
@@ -84,22 +84,22 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
       if (hayReservasHoy) {
         // Hay reservas hoy: mostrar próximas reservas de hoy ordenadas cronológicamente
         proximasReservas = reservasSalaHoy
-          .filter((r) => r.hora_inicio > horaActual)
-          .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+          .filter((r) => r.start_time > horaActual)
+          .sort((a, b) => a.start_time.localeCompare(b.start_time));
         esReservaFutura = false;
       } else {
       
         const reservasFuturas = reservasSala
           .filter(
             (r) =>
-              r.fecha > hoy || (r.fecha === hoy && r.hora_inicio > horaActual),
+              r.date > hoy || (r.date === hoy && r.start_time > horaActual),
           )
           .sort((a, b) => {
            
-            if (a.fecha !== b.fecha) {
-              return a.fecha.localeCompare(b.fecha);
+            if (a.date !== b.date) {
+              return a.date.localeCompare(b.date);
             }
-            return a.hora_inicio.localeCompare(b.hora_inicio);
+            return a.start_time.localeCompare(b.start_time);
           });
 
         if (reservasFuturas.length > 0) {
@@ -159,7 +159,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
 
     if (esFutura) {
      
-      const fechaReserva = parseISO(reserva.fecha);
+      const fechaReserva = parseISO(reserva.date);
       return format(fechaReserva, "EEEE d 'de' MMMM", { locale: es });
     }
 
@@ -282,8 +282,8 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         ORGANIZADOR ACTUAL
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {estado.reunionActual.usuario_id
-                          ? `${estado.reunionActual.usuario_id.first_name} ${estado.reunionActual.usuario_id.last_name}`
+                        {estado.reunionActual.user_id
+                          ? `${estado.reunionActual.user_id.first_name} ${estado.reunionActual.user_id.last_name}`
                           : "Usuario"}
                       </Typography>
                     </Box>
@@ -313,7 +313,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         REUNIÓN ACTUAL
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {estado.reunionActual.titulo_reunion || "Sin título"}
+                        {estado.reunionActual.meeting_title || "Sin título"}
                       </Typography>
                     </Box>
                   </Box>
@@ -344,7 +344,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         }}
                       >
                         {calcularTiempoRestante(
-                          estado.reunionActual.hora_final,
+                          estado.reunionActual.end_time,
                         )}
                       </Typography>
                     </Box>
@@ -490,7 +490,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         sx={{ fontWeight: 500, color: "#6f7073" }}
                       >
                         {estado.proximaReserva
-                          ? `${formatearHora(estado.proximaReserva.hora_inicio)} - ${estado.proximaReserva.titulo_reunion || "Sin título"}`
+                          ? `${formatearHora(estado.proximaReserva.start_time)} - ${estado.proximaReserva.meeting_title || "Sin título"}`
                           : estado.esReservaFutura
                             ? "Sin reservas programadas para hoy"
                             : "Sin reservas programadas"}

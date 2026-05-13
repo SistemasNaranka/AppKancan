@@ -76,7 +76,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
 
   // Separar reservas por estado calculado
   const getEstado = (r: Reserva) =>
-    (r.estadoCalculado || r.estado)?.toLowerCase() || "";
+    (r.estadoCalculado || r.status)?.toLowerCase() || "";
 
   const reservasEnCurso = reservasToShow.filter((r) => getEstado(r) === "en curso");
   const reservasVigentes = reservasToShow.filter((r) => getEstado(r) === "vigente");
@@ -92,14 +92,14 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     if (isTourActive) return false;
 
     if (!usuarioActualId) return false;
-    if (!reserva.usuario_id) return false;
-    if (reserva.usuario_id.id !== usuarioActualId) return false;
+    if (!reserva.user_id) return false;
+    if (reserva.user_id.id !== usuarioActualId) return false;
 
-    const estadoActual = reserva.estadoCalculado || reserva.estado;
+    const estadoActual = reserva.estadoCalculado || reserva.status;
     if (!puedeModificarse(estadoActual)) return false;
 
     const ahora = new Date();
-    const fechaReserva = new Date(`${reserva.fecha}T${reserva.hora_inicio}`);
+    const fechaReserva = new Date(`${reserva.date}T${reserva.start_time}`);
     return fechaReserva > ahora;
   };
 
@@ -166,7 +166,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   }) => {
     const canModify = puedeModificar(reserva);
     const estadoMostrar = (reserva.estadoCalculado ||
-      reserva.estado) as EstadoReserva;
+      reserva.status) as EstadoReserva;
     const estilo = getEstiloCard(estadoMostrar);
 
     // Verificar si es la reserva creada por el usuario en el tour
@@ -287,14 +287,14 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
               fontSize: "1.1rem",
             }}
           >
-            {reserva.nombre_sala}
+            {reserva.room_name}
           </Typography>
 
           {/* Fecha */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
             <CalendarIcon sx={{ fontSize: 18, color: "#64748b" }} />
             <Typography variant="body2" sx={{ color: "#475569" }}>
-              {formatearFecha(reserva.fecha)}
+              {formatearFecha(reserva.date)}
             </Typography>
           </Box>
 
@@ -302,25 +302,25 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
             <TimeIcon sx={{ fontSize: 18, color: "#64748b" }} />
             <Typography variant="body2" sx={{ color: "#475569" }}>
-              {formatearHora(reserva.hora_inicio)} -{" "}
-              {formatearHora(reserva.hora_final)}
+              {formatearHora(reserva.start_time)} -{" "}
+              {formatearHora(reserva.end_time)}
             </Typography>
           </Box>
 
           {/* Área */}
-          {reserva.area && (
+          {reserva.departament && (
             <Box
               sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}
             >
               <AreaIcon sx={{ fontSize: 18, color: "#64748b" }} />
               <Typography variant="body2" sx={{ color: "#475569" }}>
-                {capitalize(reserva.area)}
+                {capitalize(reserva.departament)}
               </Typography>
             </Box>
           )}
 
           {/* Observaciones */}
-          {reserva.observaciones && (
+          {reserva.observations && (
             <Box
               sx={{ display: "flex", alignItems: "flex-start", gap: 1, mt: 1 }}
             >
@@ -334,7 +334,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
                   wordBreak: "break-word",
                 }}
               >
-                {truncarTexto(reserva.observaciones, 40)}
+                {truncarTexto(reserva.observations, 40)}
               </Typography>
             </Box>
           )}

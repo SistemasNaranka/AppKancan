@@ -24,16 +24,16 @@ export async function getUserBodegas() {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("util_bodega_usuario", {
-          fields: ["bodega"],
+        readItems("core_warehouse_user", {
+          fields: ["id", "warehouse"],
         }),
       ),
     );
 
-    // 🔹 Aplanar los datos - bodega es el número directo
+    // 🔹 Aplanar los datos - warehouse es el número directo
     const bodegas = items.map((item: any) => ({
-      codigo: item.bodega.toString(),
-      nombre: `Bodega ${item.bodega}`,
+      codigo: item.warehouse?.toString() || "",
+      nombre: `Bodega ${item.warehouse || ""}`,
     }));
 
     return bodegas;

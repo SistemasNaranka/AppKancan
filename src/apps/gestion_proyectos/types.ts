@@ -1,146 +1,146 @@
-// Estados del proyecto
-export type EstadoProyecto = "en_proceso" | "entregado" | "en_seguimiento";
+// Project statuses
+export type ProjectStatus = "en_proceso" | "entregado" | "en_seguimiento";
 
-// Tipo de proyecto
-export type TipoProyecto = "actualizacion" | "proyecto_nuevo";
+// Project types
+export type ProjectType = "actualizacion" | "proyecto_nuevo";
 
-// Tipo de frecuencia
-export type FrecuenciaTipo = "diaria" | "semanal" | "mensual";
+// Frequency types
+export type FrequencyType = "diaria" | "semanal" | "mensual";
 
-// Encargado (estructura como en Directus)
-export interface Encargado {
-  nombre: string;
+// Assignee (structure from Directus)
+export interface Assignee {
+  name: string;
   id?: number;
 }
 
-// Proceso (paso) del proyecto
-export interface Proceso {
+// Project process (step)
+export interface Process {
   id: string;
-  proyecto_id: string;
-  nombre: string;
-  tiempo_antes: number;
-  tiempo_despues: number;
-  frecuencia_tipo: FrecuenciaTipo;
-  frecuencia_cantidad: number;
-  dias_semana: number;
-  orden: number;
+  project_id: string;
+  name: string;
+  time_before: number;
+  time_after: number;
+  frequency_type: FrequencyType;
+  frequency_quantity: number;
+  weekdays: number;
+  order: number;
 }
 
-// Beneficio del proyecto
-export interface Beneficio {
+// Project benefit
+export interface Benefit {
   id: string;
-  proyecto_id: string;
-  descripcion: string;
+  project_id: string;
+  description: string;
 }
 
-// Proyecto principal
-export interface Proyecto {
+// Main Project
+export interface Project {
   id: string;
-  nombre: string;
-  area_beneficiada: string;
-  descripcion: string;
-  fecha_inicio: string;
-  fecha_estimada: string;
-  fecha_entrega: string | null;
-  estado: EstadoProyecto;
-  tipo_proyecto: TipoProyecto;
-  encargados: Encargado[];
-  creado_por?: string;
-  fecha_creacion?: string;
-  // Campos relacionados (opcionales, se cargan por separado)
-  procesos?: Proceso[];
-  beneficios?: Beneficio[];
+  name: string;
+  benefited_area: string;
+  description: string;
+  start_date: string;
+  estimated_date: string;
+  delivery_date: string | null;
+  status: ProjectStatus;
+  project_type: ProjectType;
+  assignees: Assignee[];
+  created_by?: string;
+  date_created?: string;
+  // Related fields (optional, loaded separately)
+  processes?: Process[];
+  benefits?: Benefit[];
   feedbacks?: Feedback[];
-  // Alias para compatibilidad con PostLanzamiento (mapeado desde beneficios)
+  // Alias for compatibility with PostLanzamiento
   mejoras?: Array<{
     id: string;
-    proyecto_id: string;
+    project_id: string;
     titulo: string;
-    descripcion: string;
+    description: string;
     tipo: string;
     prioridad: string;
     estado: string;
   }>;
 }
 
-// Datos para crear un proyecto (sin id ni campos automáticos)
-export interface CreateProyectoInput {
-  nombre: string;
-  area_beneficiada: string;
-  descripcion: string;
-  fecha_inicio: string;
-  fecha_estimada: string;
-  fecha_entrega: string | null;
-  estado: EstadoProyecto;
-  tipo_proyecto: TipoProyecto;
-  encargados: Encargado[];
+// Data to create a project
+export interface CreateProjectInput {
+  name: string;
+  benefited_area: string;
+  description: string;
+  start_date: string;
+  estimated_date: string;
+  delivery_date: string | null;
+  status: ProjectStatus;
+  project_type: ProjectType;
+  assignees: Assignee[];
 }
 
-// Datos para crear un proceso
-export interface CreateProcesoInput {
-  proyecto_id: string;
-  nombre: string;
-  tiempo_antes: number;
-  tiempo_despues: number;
-  frecuencia_tipo: FrecuenciaTipo;
-  frecuencia_cantidad: number;
-  dias_semana: number;
-  orden: number;
+// Data to create a process
+export interface CreateProcessInput {
+  project_id: string;
+  name: string;
+  time_before: number;
+  time_after: number;
+  frequency_type: FrequencyType;
+  frequency_quantity: number;
+  weekdays: number;
+  order: number;
 }
 
-// Datos para crear un beneficio
-export interface CreateBeneficioInput {
-  proyecto_id: string;
-  descripcion: string;
+// Data to create a benefit
+export interface CreateBenefitInput {
+  project_id: string;
+  description: string;
 }
 
-// Feedback del proyecto (post-lanzamiento)
+// Project feedback (post-launch)
 export interface Feedback {
   id: string;
-  proyecto_id: string;
-  autor: string;
-  descripcion: string;
-  fecha_creacion?: string;
+  project_id: string;
+  author: string;
+  description: string;
+  date_created?: string;
 }
 
-// Datos para crear un feedback
+// Data to create a feedback
 export interface CreateFeedbackInput {
-  proyecto_id: string;
-  autor: string;
-  descripcion: string;
+  project_id: string;
+  author: string;
+  description: string;
 }
 
-// Métricas calculadas de un proceso
-export interface MetricasProceso {
-  ahorro_por_ejecucion: number; // segundos
-  ahorro_diario: number; // segundos
-  ahorro_semanal: number; // segundos
-  ahorro_mensual: number; // segundos
-  ahorro_anual: number; // segundos
+// Calculated metrics for a process
+export interface ProcessMetrics {
+  savings_per_execution: number; // seconds
+  daily_savings: number; // seconds
+  weekly_savings: number; // seconds
+  monthly_savings: number; // seconds
+  yearly_savings: number; // seconds
 }
 
-// Resumen de métricas de un proyecto
-export interface MetricasProyecto {
-  total_procesos: number;
-  ahorro_total_mensual: number; // segundos
-  ahorro_total_anual: number; // segundos
-  procesos: MetricasProceso[];
+// Summary of project metrics
+export interface ProjectMetrics {
+  total_processes: number;
+  total_monthly_savings: number; // seconds
+  total_yearly_savings: number; // seconds
+  processes_metrics: ProcessMetrics[];
 }
 
-// Opciones para selectores
-export const OPCIONES_ESTADO: { value: EstadoProyecto; label: string }[] = [
+// Selector options
+export const OPTIONS_STATUS: { value: ProjectStatus; label: string }[] = [
   { value: "en_proceso", label: "En Proceso" },
   { value: "entregado", label: "Entregado" },
   { value: "en_seguimiento", label: "En Seguimiento" },
 ];
 
-export const OPCIONES_TIPO_PROYECTO: { value: TipoProyecto; label: string }[] =
+export const OPTIONS_PROJECT_TYPE: { value: ProjectType; label: string }[] =
   [
     { value: "actualizacion", label: "Actualización" },
     { value: "proyecto_nuevo", label: "Proyecto Nuevo" },
   ];
 
-export const OPCIONES_FRECUENCIA: { value: FrecuenciaTipo; label: string }[] = [
+export const OPTIONS_FREQUENCY: { value: FrequencyType; label: string }[] = [
   { value: "diaria", label: "Diaria" },
   { value: "semanal", label: "Semanal" },
   { value: "mensual", label: "Mensual" },
@@ -187,7 +187,7 @@ export const opcionesPrioridad = [
 
 export const opcionesEstadoMejora = [
   { value: "pendiente", label: "Pendiente" },
-  { value: "en_progreso", label: "En Progreso" },
+  { value: "en_progreso", label: "En Proceso" },
   { value: "completado", label: "Completado" },
   { value: "cancelado", label: "Cancelado" },
 ];

@@ -1,3 +1,4 @@
+// src/apps/gestion_proyectos/components/ProcessList.tsx
 import {
   TextField,
   Select,
@@ -11,45 +12,45 @@ import {
   Button,
   InputAdornment,
 } from "@mui/material";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import TimerIcon from '@mui/icons-material/Timer';
 
-interface ProcesoForm {
+interface ProcessForm {
   id: string;
-  nombre: string;
-  tiempo_antes: number;
-  tiempo_despues: number;
-  frecuencia_tipo: string;
-  frecuencia_cantidad: number;
-  dias_semana: number;
+  name: string;
+  time_before: number;
+  time_after: number;
+  frequency_type: string;
+  frequency_quantity: number;
+  weekdays: number;
 }
 
 interface ProcessListProps {
-  procesos: ProcesoForm[];
-  onAgregar: () => void;
-  onEliminar: (id: string) => void;
-  onActualizar: (id: string, campo: string, valor: any) => void;
-  diasPorSemana?: string;
-  onDiasPorSemanaChange?: (value: string) => void;
-  frecuenciaTipo?: string;
-  onFrecuenciaTipoChange?: (value: string) => void;
-  frecuenciaCantidad?: string;
-  onFrecuenciaCantidadChange?: (value: string) => void;
+  processes: ProcessForm[];
+  onAdd: () => void;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, field: string, value: any) => void;
+  daysPerWeek?: string;
+  onDaysPerWeekChange?: (value: string) => void;
+  frequencyType?: string;
+  onFrequencyTypeChange?: (value: string) => void;
+  frequencyQuantity?: string;
+  onFrequencyQuantityChange?: (value: string) => void;
 }
 
 export function ProcessList({
-  procesos,
-  onAgregar,
-  onEliminar,
-  onActualizar,
-  diasPorSemana,
-  onDiasPorSemanaChange,
-  frecuenciaTipo,
-  onFrecuenciaTipoChange,
-  frecuenciaCantidad,
-  onFrecuenciaCantidadChange,
+  processes,
+  onAdd,
+  onDelete,
+  onUpdate,
+  daysPerWeek,
+  onDaysPerWeekChange,
+  frequencyType,
+  onFrequencyTypeChange,
+  frequencyQuantity,
+  onFrequencyQuantityChange,
 }: ProcessListProps) {
   return (
     <Paper elevation={3} sx={{ p: 2.5, borderRadius: 2 }}>
@@ -66,21 +67,21 @@ export function ProcessList({
           color="success"
           size="small"
           startIcon={<AddIcon />}
-          onClick={onAgregar}
+          onClick={onAdd}
           sx={{ boxShadow: "none", "&:hover": { boxShadow: "none", backgroundColor: "#38993D" } }}
         >
           Agregar
         </Button>
       </Box>
 
-      {/* ── Controles de frecuencia ── */}
+      {/* ── Frequency controls ── */}
       <Box sx={{ display: "flex", gap: 2, mb: 2.5 }}>
         <FormControl fullWidth size="small">
           <InputLabel>Frecuencia</InputLabel>
           <Select
-            value={frecuenciaTipo || "diaria"}
+            value={frequencyType || "diaria"}
             label="Frecuencia"
-            onChange={(e) => onFrecuenciaTipoChange?.(e.target.value)}
+            onChange={(e) => onFrequencyTypeChange?.(e.target.value)}
           >
             <MenuItem value="diaria">Diaria</MenuItem>
             <MenuItem value="semanal">Semanal</MenuItem>
@@ -91,20 +92,20 @@ export function ProcessList({
         <TextField
           label="Veces"
           type="number"
-          value={frecuenciaCantidad || "1"}
-          onChange={(e) => onFrecuenciaCantidadChange?.(e.target.value)}
+          value={frequencyQuantity || "1"}
+          onChange={(e) => onFrequencyQuantityChange?.(e.target.value)}
           fullWidth
           size="small"
           helperText="Veces que se repite"
           inputProps={{ min: 1 }}
         />
 
-        {frecuenciaTipo === "diaria" && (
+        {frequencyType === "diaria" && (
           <TextField
             label="Días por semana"
             type="number"
-            value={diasPorSemana || "5"}
-            onChange={(e) => onDiasPorSemanaChange?.(e.target.value)}
+            value={daysPerWeek || "5"}
+            onChange={(e) => onDaysPerWeekChange?.(e.target.value)}
             fullWidth
             size="small"
             helperText="Días que se realiza"
@@ -113,21 +114,21 @@ export function ProcessList({
         )}
       </Box>
 
-      {/* ── Lista de procesos ── */}
+      {/* ── Process list ── */}
       <Box sx={{ maxHeight: 420, overflowY: "auto", pr: 0.5 }}>
-        {procesos.length === 0 ? (
+        {processes.length === 0 ? (
           <Box sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
             <Typography variant="body2">No hay procesos agregados.</Typography>
             <Typography variant="caption">Haz clic en "Agregar" para comenzar.</Typography>
           </Box>
         ) : (
-          procesos.map((proceso, index) => (
-            <ProcesoCard
-              key={proceso.id}
-              proceso={proceso}
+          processes.map((process, index) => (
+            <ProcessCard
+              key={process.id}
+              process={process}
               index={index}
-              onEliminar={onEliminar}
-              onActualizar={onActualizar}
+              onDelete={onDelete}
+              onUpdate={onUpdate}
             />
           ))
         )}
@@ -136,50 +137,50 @@ export function ProcessList({
   );
 }
 
-// ─── Tarjeta de proceso ───────────────────────────────────────────────────────
-function ProcesoCard({
-  proceso,
+// ─── Process card ───────────────────────────────────────────────────────
+function ProcessCard({
+  process,
   index,
-  onEliminar,
-  onActualizar,
+  onDelete,
+  onUpdate,
 }: {
-  proceso: ProcesoForm;
+  process: ProcessForm;
   index: number;
-  onEliminar: (id: string) => void;
-  onActualizar: (id: string, campo: string, valor: any) => void;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, field: string, value: any) => void;
 }) {
-  // Estado local para la unidad de tiempo compartida
-  const [unidad, setUnidad] = useState<"seg" | "min" | "hora">("seg");
+  // Local state for shared time unit
+  const [unit, setUnit] = useState<"seg" | "min" | "hora">("seg");
 
-  // Conversiones
-  const segundosAUnidad = (segundos: number): number => {
-    if (segundos === 0) return 0;
-    switch (unidad) {
+  // Conversions
+  const secondsToUnit = (seconds: number): number => {
+    if (seconds === 0) return 0;
+    switch (unit) {
       case "min":
-        return segundos / 60;
+        return seconds / 60;
       case "hora":
-        return segundos / 3600;
+        return seconds / 3600;
       default:
-        return segundos;
+        return seconds;
     }
   };
 
-  const unidadASegundos = (valor: number): number => {
-    switch (unidad) {
+  const unitToSeconds = (value: number): number => {
+    switch (unit) {
       case "min":
-        return valor * 60;
+        return value * 60;
       case "hora":
-        return valor * 3600;
+        return value * 3600;
       default:
-        return valor;
+        return value;
     }
   };
 
-  // Formatea el valor para mostrar en el input
-  const formatearValor = (segundos: number): string => {
-    if (segundos === 0) return "";
-    const convertido = segundosAUnidad(segundos);
-    return Number.isInteger(convertido) ? convertido.toString() : convertido.toFixed(2);
+  // Format value to show in input
+  const formatValue = (seconds: number): string => {
+    if (seconds === 0) return "";
+    const converted = secondsToUnit(seconds);
+    return Number.isInteger(converted) ? converted.toString() : converted.toFixed(2);
   };
 
   return (
@@ -195,9 +196,9 @@ function ProcesoCard({
         border: "1px solid #dcdcdc",
       }}
     >
-      {/* Número, nombre y acciones en fila única */}
+      {/* Number, name and actions in a single row */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {/* Número */}
+        {/* Number */}
         <Box
           sx={{
             minWidth: 28,
@@ -216,20 +217,20 @@ function ProcesoCard({
           {index + 1}
         </Box>
 
-        {/* Nombre del paso */}
+        {/* Step name */}
         <TextField
           size="small"
-          value={proceso.nombre}
-          onChange={(e) => onActualizar(proceso.id, "nombre", e.target.value)}
+          value={process.name}
+          onChange={(e) => onUpdate(process.id, "name", e.target.value)}
           placeholder="Nombre del paso"
-          sx={{ flexGrow: 1, minWidth: 800, maxWidth: 2200 }}
+          sx={{ flexGrow: 1, minWidth: 200 }}
           slotProps={{ input: { sx: { bgcolor: "white", borderRadius: 1 } } }}
         />
 
-        {/* Unidad */}
+        {/* Unit */}
         <Select
-          value={unidad}
-          onChange={(e) => setUnidad(e.target.value as "seg" | "min" | "hora")}
+          value={unit}
+          onChange={(e) => setUnit(e.target.value as "seg" | "min" | "hora")}
           size="small"
           sx={{ width: 70, fontSize: "0.75rem", flexShrink: 0 }}
         >
@@ -238,16 +239,16 @@ function ProcesoCard({
           <MenuItem value="hora">hrs</MenuItem>
         </Select>
 
-        {/* Antes */}
+        {/* Before */}
         <TextField
           label="Antes"
           size="small"
           type="number"
-          value={formatearValor(proceso.tiempo_antes)}
+          value={formatValue(process.time_before)}
           onChange={(e) => {
-            const valorNumerico = e.target.value === "" ? 0 : Number(e.target.value);
-            const valorEnSegundos = unidadASegundos(valorNumerico);
-            onActualizar(proceso.id, "tiempo_antes", Math.round(valorEnSegundos));
+            const numericValue = e.target.value === "" ? 0 : Number(e.target.value);
+            const valueInSeconds = unitToSeconds(numericValue);
+            onUpdate(process.id, "time_before", Math.round(valueInSeconds));
           }}
           placeholder="0"
           sx={{ width: 90, flexShrink: 0 }}
@@ -257,7 +258,7 @@ function ProcesoCard({
               endAdornment: (
                 <InputAdornment position="end">
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
-                    {unidad === "hora" ? "hrs" : unidad}
+                    {unit === "hora" ? "hrs" : unit}
                   </Typography>
                 </InputAdornment>
               ),
@@ -265,16 +266,16 @@ function ProcesoCard({
           }}
         />
 
-        {/* Después */}
+        {/* After */}
         <TextField
           label="Después"
           size="small"
           type="number"
-          value={formatearValor(proceso.tiempo_despues)}
+          value={formatValue(process.time_after)}
           onChange={(e) => {
-            const valorNumerico = e.target.value === "" ? 0 : Number(e.target.value);
-            const valorEnSegundos = unidadASegundos(valorNumerico);
-            onActualizar(proceso.id, "tiempo_despues", Math.round(valorEnSegundos));
+            const numericValue = e.target.value === "" ? 0 : Number(e.target.value);
+            const valueInSeconds = unitToSeconds(numericValue);
+            onUpdate(process.id, "time_after", Math.round(valueInSeconds));
           }}
           placeholder="0"
           sx={{ width: 110, flexShrink: 0 }}
@@ -284,7 +285,7 @@ function ProcesoCard({
               endAdornment: (
                 <InputAdornment position="end">
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
-                    {unidad === "hora" ? "hrs" : unidad}
+                    {unit === "hora" ? "hrs" : unit}
                   </Typography>
                 </InputAdornment>
               ),
@@ -292,10 +293,10 @@ function ProcesoCard({
           }}
         />
 
-        {/* Botón eliminar */}
+        {/* Delete button */}
         <IconButton
           size="small"
-          onClick={() => onEliminar(proceso.id)}
+          onClick={() => onDelete(process.id)}
           sx={{ color: "#ff3838", flexShrink: 0, ml: 0.5 }}
         >
           <DeleteIcon fontSize="small" />

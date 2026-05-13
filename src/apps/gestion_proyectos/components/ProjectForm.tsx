@@ -1,3 +1,4 @@
+// src/apps/gestion_proyectos/components/ProjectForm.tsx
 import React, { useState } from "react";
 import {
   TextField,
@@ -21,7 +22,6 @@ import LogisticaIcon from '@mui/icons-material/LocalShipping';
 import DisenoIcon from '@mui/icons-material/DesignServices';
 import SistemasIcon from '@mui/icons-material/Computer';
 import MercadeoIcon from '@mui/icons-material/Campaign';
-import OtraIcon from '@mui/icons-material/MoreHoriz';
 import StoreIcon from '@mui/icons-material/Store';
 import AdministrativaIcon from '@mui/icons-material/AdminPanelSettings';
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -29,9 +29,9 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { opcionesEstadoProyecto } from "../lib/calculos";
+import { OPTIONS_STATUS } from "../types";
 
-// Opciones predefinidas para área beneficiada
+// Predefined options for benefited area
 const AREAS_PREDEFINIDAS = [
   "Contabilidad",
   "Recursos Humanos",
@@ -43,7 +43,7 @@ const AREAS_PREDEFINIDAS = [
   "Administrativa",
 ];
 
-// Mapeo de iconos por área
+// Icon mapping per area
 const ICONOS_AREA: Record<string, React.ElementType> = {
   "Contabilidad": ContabilidadIcon,
   "Recursos Humanos": RRHHIcon,
@@ -56,55 +56,55 @@ const ICONOS_AREA: Record<string, React.ElementType> = {
 };
 
 interface ProjectFormData {
-  nombre: string;
-  areaBeneficiada: string;
-  descripcion: string;
-  encargados: string;
-  fechaInicio: string;
-  fechaEstimada: string;
-  fechaEntrega: string;
-  estado: string;
-  tipoProyecto: string;
+  name: string;
+  benefitedArea: string;
+  description: string;
+  assignees: string;
+  startDate: string;
+  estimatedDate: string;
+  deliveryDate: string;
+  status: string;
+  projectType: string;
 }
 
 interface ProjectFormProps {
   data: ProjectFormData;
   onChange: (field: keyof ProjectFormData, value: string) => void;
-  onAddEncargado?: (nombre: string) => void;
-  onRemoveEncargado?: (index: number) => void;
-  encargadosList?: string[];
+  onAddAssignee?: (name: string) => void;
+  onRemoveAssignee?: (index: number) => void;
+  assigneesList?: string[];
 }
 
 /**
- * Formulario de Datos del Proyecto
- * Diseño limpio y espacioso para mejor UX
+ * Project Data Form
+ * Clean and spacious design for better UX
  */
 export function ProjectForm({
   data,
   onChange,
-  encargadosList = [],
-  onAddEncargado,
-  onRemoveEncargado,
+  assigneesList = [],
+  onAddAssignee,
+  onRemoveAssignee,
 }: ProjectFormProps) {
-  const [nuevoEncargado, setNuevoEncargado] = useState("");
+  const [newAssignee, setNewAssignee] = useState("");
 
   const handleAreaChange = (_event: React.SyntheticEvent, value: string | null) => {
     const newValue = value || "";
-    onChange("areaBeneficiada", newValue);
+    onChange("benefitedArea", newValue);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && nuevoEncargado.trim()) {
+    if (e.key === "Enter" && newAssignee.trim()) {
       e.preventDefault();
-      onAddEncargado?.(nuevoEncargado.trim());
-      setNuevoEncargado("");
+      onAddAssignee?.(newAssignee.trim());
+      setNewAssignee("");
     }
   };
 
   const handleAddClick = () => {
-    if (nuevoEncargado.trim()) {
-      onAddEncargado?.(nuevoEncargado.trim());
-      setNuevoEncargado("");
+    if (newAssignee.trim()) {
+      onAddAssignee?.(newAssignee.trim());
+      setNewAssignee("");
     }
   };
 
@@ -119,7 +119,7 @@ export function ProjectForm({
         }}
       >
         {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3, boxShadow: "none", }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
           <DescriptionIcon sx={{ color: "#004680", fontSize: 24 }} />
           <Typography variant="h6" fontWeight="600">
             Datos del Proyecto
@@ -127,26 +127,26 @@ export function ProjectForm({
         </Box>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-          {/* Nombre del Proyecto */}
+          {/* Project Name */}
           <TextField
             label="Nombre del Proyecto"
-            value={data.nombre}
-            onChange={(e) => onChange("nombre", e.target.value)}
+            value={data.name}
+            onChange={(e) => onChange("name", e.target.value)}
             required
             fullWidth
             size="medium"
             placeholder="Ej: Comparación de Archivos"
           />
 
-          {/* Área Beneficiada con Autocomplete */}
+          {/* Benefited Area with Autocomplete */}
           <Autocomplete
             freeSolo
             options={AREAS_PREDEFINIDAS}
-            value={data.areaBeneficiada || ""}
+            value={data.benefitedArea || ""}
             onChange={handleAreaChange}
             onInputChange={(_event, value, reason) => {
               if (reason === "input") {
-                onChange("areaBeneficiada", value);
+                onChange("benefitedArea", value);
               }
             }}
             renderInput={(params) => (
@@ -182,16 +182,16 @@ export function ProjectForm({
             }}
           />
 
-          {/* Estado y Tipo en fila */}
+          {/* Status and Type in a row */}
           <Box sx={{ display: "flex", gap: 2 }}>
             <FormControl fullWidth size="medium">
               <InputLabel>Estado</InputLabel>
               <Select
-                value={data.estado}
+                value={data.status}
                 label="Estado"
-                onChange={(e) => onChange("estado", e.target.value)}
+                onChange={(e) => onChange("status", e.target.value)}
               >
-                {opcionesEstadoProyecto.map((op) => (
+                {OPTIONS_STATUS.map((op) => (
                   <MenuItem key={op.value} value={op.value}>
                     {op.label}
                   </MenuItem>
@@ -202,9 +202,9 @@ export function ProjectForm({
             <FormControl fullWidth size="medium">
               <InputLabel>Tipo de Proyecto</InputLabel>
               <Select
-                value={data.tipoProyecto}
+                value={data.projectType}
                 label="Tipo de Proyecto"
-                onChange={(e) => onChange("tipoProyecto", e.target.value)}
+                onChange={(e) => onChange("projectType", e.target.value)}
               >
                 <MenuItem value="mejora">Actualización</MenuItem>
                 <MenuItem value="nuevo">Proyecto Nuevo</MenuItem>
@@ -212,14 +212,14 @@ export function ProjectForm({
             </FormControl>
           </Box>
 
-          {/* Fechas en fila */}
+          {/* Dates in a row */}
           <Box sx={{ display: "flex", gap: 2 }}>
             <DatePicker
               label="Fecha Inicio"
-              value={data.fechaInicio ? dayjs(data.fechaInicio) : null}
+              value={data.startDate ? dayjs(data.startDate) : null}
               onChange={(newValue) =>
                 onChange(
-                  "fechaInicio",
+                  "startDate",
                   newValue ? dayjs(newValue).format("YYYY-MM-DD") : "",
                 )
               }
@@ -234,10 +234,10 @@ export function ProjectForm({
 
             <DatePicker
               label="Fecha Estimada"
-              value={data.fechaEstimada ? dayjs(data.fechaEstimada) : null}
+              value={data.estimatedDate ? dayjs(data.estimatedDate) : null}
               onChange={(newValue) =>
                 onChange(
-                  "fechaEstimada",
+                  "estimatedDate",
                   newValue ? dayjs(newValue).format("YYYY-MM-DD") : "",
                 )
               }
@@ -251,11 +251,11 @@ export function ProjectForm({
             />
 
             <DatePicker
-              label="Fecha Entrega "
-              value={data.fechaEntrega ? dayjs(data.fechaEntrega) : null}
+              label="Fecha Entrega"
+              value={data.deliveryDate ? dayjs(data.deliveryDate) : null}
               onChange={(newValue) =>
                 onChange(
-                  "fechaEntrega",
+                  "deliveryDate",
                   newValue ? dayjs(newValue).format("YYYY-MM-DD") : "",
                 )
               }
@@ -268,13 +268,13 @@ export function ProjectForm({
             />
           </Box>
 
-          {/* Encargados con chips */}
+          {/* Assignees with chips */}
           <Box>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
               <TextField
                 label="Encargados"
-                value={nuevoEncargado}
-                onChange={(e) => setNuevoEncargado(e.target.value)}
+                value={newAssignee}
+                onChange={(e) => setNewAssignee(e.target.value)}
                 onKeyDown={handleKeyDown}
                 fullWidth
                 size="medium"
@@ -283,7 +283,7 @@ export function ProjectForm({
               <IconButton
                 color="primary"
                 onClick={handleAddClick}
-                disabled={!nuevoEncargado.trim()}
+                disabled={!newAssignee.trim()}
                 sx={{
                   bgcolor: "primary.main",
                   color: "white",
@@ -296,13 +296,13 @@ export function ProjectForm({
                 <AddIcon />
               </IconButton>
             </Box>
-            {encargadosList.length > 0 && (
+            {assigneesList.length > 0 && (
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1.5 }}>
-                {encargadosList.map((nombre, index) => (
+                {assigneesList.map((name, index) => (
                   <Chip
                     key={index}
-                    label={nombre}
-                    onDelete={() => onRemoveEncargado?.(index)}
+                    label={name}
+                    onDelete={() => onRemoveAssignee?.(index)}
                     color="primary"
                     variant="outlined"
                     size="medium"
@@ -312,11 +312,11 @@ export function ProjectForm({
             )}
           </Box>
 
-          {/* Descripción */}
+          {/* Description */}
           <TextField
             label="Descripción"
-            value={data.descripcion}
-            onChange={(e) => onChange("descripcion", e.target.value)}
+            value={data.description}
+            onChange={(e) => onChange("description", e.target.value)}
             fullWidth
             size="medium"
             multiline

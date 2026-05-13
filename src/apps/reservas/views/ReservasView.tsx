@@ -579,8 +579,8 @@ const ReservasViewContent: React.FC = () => {
                   variant="body2"
                   sx={{ color: "#065F46", fontWeight: "bold", textAlign: "center" }}
                 >
-                  Mostrando solo tu reserva de ejemplo: "{userCreatedReservation.titulo_reunion}" 
-                  en {userCreatedReservation.nombre_sala}
+                  Mostrando solo tu reserva de ejemplo: "{userCreatedReservation.meeting_title}" 
+                  en {userCreatedReservation.room_name}
                 </Typography>
               </Box>
             )}
@@ -594,7 +594,7 @@ const ReservasViewContent: React.FC = () => {
                 usuarioActualId={user?.id}
                 vistaCalendario={vistaCalendario}
                 onCambiarVista={setVistaCalendario}
-                salaInicial={salaInicial || userCreatedReservation?.nombre_sala}
+                salaInicial={salaInicial || userCreatedReservation?.room_name}
               />
             ) : (
               <VistaCalendario
@@ -604,7 +604,7 @@ const ReservasViewContent: React.FC = () => {
                 usuarioActualId={user?.id}
                 vistaCalendario={vistaCalendario}
                 onCambiarVista={setVistaCalendario}
-                salaInicial={salaInicial || userCreatedReservation?.nombre_sala}
+                salaInicial={salaInicial || userCreatedReservation?.room_name}
               />
             )}
           </Box>
@@ -646,12 +646,12 @@ const ReservasViewContent: React.FC = () => {
               ¿Estás seguro de que deseas cancelar esta reserva?
               <br />
               <br />
-              <strong>Sala:</strong> {reservaSeleccionada?.nombre_sala}
+              <strong>Sala:</strong> {reservaSeleccionada?.room_name}
               <br />
-              <strong>Fecha:</strong> {reservaSeleccionada?.fecha}
+              <strong>Fecha:</strong> {reservaSeleccionada?.date}
               <br />
-              <strong>Hora:</strong> {reservaSeleccionada?.hora_inicio} -{" "}
-              {reservaSeleccionada?.hora_final}
+              <strong>Hora:</strong> {reservaSeleccionada?.start_time} -{" "}
+              {reservaSeleccionada?.end_time}
             </DialogContentText>
           </DialogContent>
           <DialogActions>

@@ -104,16 +104,16 @@ export const getDetalleProducto = async (
 };
 
 /**
- * Obtiene la lista de tiendas desde Directus (colección util_tiendas)
+ * Obtiene la lista de tiendas desde Directus (colección core_stores)
  * Ordenadas alfabéticamente
  */
 export const getTiendas = async (): Promise<Tienda[]> => {
   try {
     const response = await withAutoRefresh(() =>
       directus.request(
-        readItems('util_tiendas', {
-          fields: ['id', 'nombre', 'codigo_ultra'],
-          sort: ['nombre'],
+        readItems('core_stores', {
+          fields: ['id', 'name', 'ultra_code'],
+          sort: ['name'],
         })
       )
     );
@@ -121,14 +121,14 @@ export const getTiendas = async (): Promise<Tienda[]> => {
     if (response && response.length > 0) {
       return response.map((item: any) => ({
         id: String(item.id),
-        codigo: String(item.codigo_ultra || ''),
-        nombre: String(item.nombre || ''),
+        codigo: String(item.ultra_code || ''),
+        nombre: String(item.name || ''),
       }));
     }
 
     return [];
   } catch (error) {
-    console.error('Error fetching tiendas from util_tiendas:', error);
+    console.error('Error fetching tiendas from core_stores:', error);
     return [];
   }
 };
@@ -337,8 +337,8 @@ export const getEnviosAnalisis = async (
         'usuario_id.first_name',
         'usuario_id.last_name',
         'tienda_id.id',
-        'tienda_id.nombre',
-        'tienda_id.codigo_ultra'
+        'tienda_id.name',
+        'tienda_id.ultra_code'
       ],
     };
 

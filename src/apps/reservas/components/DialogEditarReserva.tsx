@@ -270,31 +270,31 @@ const DialogEditarReserva: React.FC<
   const schema = useMemo(
     () =>
       yup.object({
-        nombre_sala: yup
+        room_name: yup
           .string()
           .required(
             "Selecciona una sala",
           ),
 
-        fecha: yup
+        date: yup
           .string()
           .required(
             "Selecciona una fecha",
           ),
 
-        hora_inicio: yup
+        start_time: yup
           .string()
           .required(
             "Selecciona hora de inicio",
           ),
 
-        hora_final: yup
+        end_time: yup
           .string()
           .required(
             "Selecciona hora de fin",
           ),
 
-        titulo: yup
+        meeting_title: yup
           .string()
           .required(
             "El título es obligatorio",
@@ -308,22 +308,22 @@ const DialogEditarReserva: React.FC<
             "Máximo 100 caracteres",
           ),
 
-        observaciones: yup
+        observations: yup
           .string()
           .max(
             500,
             "Máximo 500 caracteres",
           ),
 
-        participantes: yup.array().of(
+        participants: yup.array().of(
           yup.object({
-            nombre: yup
+            name: yup
               .string()
               .required(
                 "El nombre es obligatorio",
               ),
 
-            correo: yup
+            email: yup
               .string()
               .matches(
                 EMAIL_REGEX,
@@ -354,14 +354,14 @@ const DialogEditarReserva: React.FC<
     resolver:
       yupResolver(schema),
     defaultValues: {
-      nombre_sala: "" as Sala,
-      fecha: "",
-      hora_inicio:
+      room_name: "" as Sala,
+      date: "",
+      start_time:
         horarioConfig.horaApertura,
-      hora_final: "",
-      titulo: "",
-      observaciones: "",
-      participantes: [],
+      end_time: "",
+      meeting_title: "",
+      observations: "",
+      participants: [],
     },
   });
 
@@ -371,7 +371,7 @@ const DialogEditarReserva: React.FC<
     remove,
   } = useFieldArray({
     control,
-    name: "participantes",
+    name: "participants",
   });
 
 
@@ -380,13 +380,13 @@ const DialogEditarReserva: React.FC<
   // ================================
 
   const horaInicioWatch =
-    watch("hora_inicio");
+    watch("start_time");
 
   const horaFinalWatch =
-    watch("hora_final");
+    watch("end_time");
 
   const observacionesWatch =
-    watch("observaciones");
+    watch("observations");
 
 
   // ================================
@@ -405,14 +405,14 @@ const DialogEditarReserva: React.FC<
           if (config) {
             setHorarioConfig({
               horaApertura:
-                config.hora_apertura?.substring(
+                config.opening_time?.substring(
                   0,
                   5,
                 ) ||
                 HORARIO_INICIO,
 
               horaCierre:
-                config.hora_cierre?.substring(
+                config.closing_time?.substring(
                   0,
                   5,
                 ) ||
@@ -450,13 +450,13 @@ const DialogEditarReserva: React.FC<
         if (
           !fields.some(
             (f) =>
-              f.correo ===
+              (f as any).email ===
               tempCorreo,
           )
         ) {
           append({
-            nombre: tempNombre,
-            correo: tempCorreo,
+            name: tempNombre,
+            email: tempCorreo,
           });
 
           setTempNombre("");
@@ -519,7 +519,7 @@ const DialogEditarReserva: React.FC<
   ) => {
     if (newSala) {
       setValue(
-        "nombre_sala",
+        "room_name",
         newSala,
       );
     }
@@ -530,7 +530,7 @@ const DialogEditarReserva: React.FC<
   ) => {
     if (date) {
       setValue(
-        "fecha",
+        "date",
         format(
           date,
           "yyyy-MM-dd",
@@ -557,10 +557,10 @@ const DialogEditarReserva: React.FC<
         ) {
           const hayConflicto =
             await verificarConflicto(
-              data.nombre_sala,
-              data.fecha,
-              data.hora_inicio,
-              data.hora_final,
+              data.room_name,
+              data.date,
+              data.start_time,
+              data.end_time,
               reserva.id,
             );
 
@@ -582,20 +582,20 @@ const DialogEditarReserva: React.FC<
         await onSubmit(
           reserva.id,
           {
-            nombre_sala:
-              data.nombre_sala,
-            fecha: data.fecha,
-            hora_inicio:
-              data.hora_inicio,
-            hora_final:
-              data.hora_final,
-            titulo_reunion:
-              data.titulo,
-            observaciones:
-              data.observaciones?.trim() ||
+            room_name:
+              data.room_name,
+            date: data.date,
+            start_time:
+              data.start_time,
+            end_time:
+              data.end_time,
+            meeting_title:
+              data.meeting_title,
+            observations:
+              data.observations?.trim() ||
               "",
-            participantes:
-              data.participantes,
+            participants:
+              data.participants,
           },
         );
 
