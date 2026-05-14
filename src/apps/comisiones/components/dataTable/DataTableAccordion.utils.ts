@@ -74,23 +74,23 @@ export const compareValues = (a: any, b: any, field: SortField, order: Order): n
 // --- PROCESAMIENTO Y COLORES (TU LÓGICA ORIGINAL) ---
 export const getRowBackgroundColor = (pct: number, thresholdConfig?: CommissionThreshold[]): string => {
   if (!thresholdConfig || thresholdConfig.length === 0) return grey[100];
-  const umbralesOrdenados = [...thresholdConfig].sort((a, b) => a.cumplimiento_min - b.cumplimiento_min);
+  const umbralesOrdenados = [...thresholdConfig].sort((a, b) => a.min_compliance - b.min_compliance);
   const pctValue = pct * 100;
   const isWithinThresholds = umbralesOrdenados.some((umbral) => {
     const nextUmbral = umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
-    return pctValue >= umbral.cumplimiento_min && (!nextUmbral || pctValue < nextUmbral.cumplimiento_min);
+    return pctValue >= umbral.min_compliance && (!nextUmbral || pctValue < nextUmbral.min_compliance);
   });
   if (!isWithinThresholds) return grey[100];
   const backgroundColorMap: Record<string, string> = { red: red[50], pink: pink[50], orange: orange[50], blue: blue[50], green: green[50], purple: "#f3e5f5", yellow: "#fff9c4" };
   for (let i = 0; i < umbralesOrdenados.length; i++) {
     const umbral = umbralesOrdenados[i];
     const nextUmbral = umbralesOrdenados[i + 1];
-    if (pctValue >= umbral.cumplimiento_min && (!nextUmbral || pctValue < nextUmbral.cumplimiento_min)) {
+    if (pctValue >= umbral.min_compliance && (!nextUmbral || pctValue < nextUmbral.min_compliance)) {
       if (umbral.color && backgroundColorMap[umbral.color]) return backgroundColorMap[umbral.color];
-      if (umbral.cumplimiento_min >= 85 && umbral.cumplimiento_min < 90) return red[50];
-      else if (umbral.cumplimiento_min >= 90 && umbral.cumplimiento_min < 95) return pink[50];
-      else if (umbral.cumplimiento_min >= 95 && umbral.cumplimiento_min < 100) return orange[50];
-      else if (umbral.cumplimiento_min >= 100 && umbral.cumplimiento_min < 110) return blue[50];
+      if (umbral.min_compliance >= 85 && umbral.min_compliance < 90) return red[50];
+      else if (umbral.min_compliance >= 90 && umbral.min_compliance < 95) return pink[50];
+      else if (umbral.min_compliance >= 95 && umbral.min_compliance < 100) return orange[50];
+      else if (umbral.min_compliance >= 100 && umbral.min_compliance < 110) return blue[50];
       else return green[50];
     }
   }
@@ -99,23 +99,23 @@ export const getRowBackgroundColor = (pct: number, thresholdConfig?: CommissionT
 
 export const getRowHoverColor = (pct: number, thresholdConfig?: CommissionThreshold[]): string => {
   if (!thresholdConfig || thresholdConfig.length === 0) return grey[200];
-  const umbralesOrdenados = [...thresholdConfig].sort((a, b) => a.cumplimiento_min - b.cumplimiento_min);
+  const umbralesOrdenados = [...thresholdConfig].sort((a, b) => a.min_compliance - b.min_compliance);
   const pctValue = pct * 100;
   const isWithinThresholds = umbralesOrdenados.some((umbral) => {
     const nextUmbral = umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
-    return pctValue >= umbral.cumplimiento_min && (!nextUmbral || pctValue < nextUmbral.cumplimiento_min);
+    return pctValue >= umbral.min_compliance && (!nextUmbral || pctValue < nextUmbral.min_compliance);
   });
   if (!isWithinThresholds) return grey[200];
   const hoverColorMap: Record<string, string> = { red: red[100], pink: pink[100], orange: orange[100], blue: blue[100], green: green[100], purple: "#e1bee7", yellow: "#fff59d" };
   for (let i = 0; i < umbralesOrdenados.length; i++) {
     const umbral = umbralesOrdenados[i];
     const nextUmbral = umbralesOrdenados[i + 1];
-    if (pctValue >= umbral.cumplimiento_min && (!nextUmbral || pctValue < nextUmbral.cumplimiento_min)) {
+    if (pctValue >= umbral.min_compliance && (!nextUmbral || pctValue < nextUmbral.min_compliance)) {
       if (umbral.color && hoverColorMap[umbral.color]) return hoverColorMap[umbral.color];
-      if (umbral.cumplimiento_min >= 85 && umbral.cumplimiento_min < 90) return red[100];
-      else if (umbral.cumplimiento_min >= 90 && umbral.cumplimiento_min < 95) return pink[100];
-      else if (umbral.cumplimiento_min >= 95 && umbral.cumplimiento_min < 100) return orange[100];
-      else if (umbral.cumplimiento_min >= 100 && umbral.cumplimiento_min < 110) return blue[100];
+      if (umbral.min_compliance >= 85 && umbral.min_compliance < 90) return red[100];
+      else if (umbral.min_compliance >= 90 && umbral.min_compliance < 95) return pink[100];
+      else if (umbral.min_compliance >= 95 && umbral.min_compliance < 100) return orange[100];
+      else if (umbral.min_compliance >= 100 && umbral.min_compliance < 110) return blue[100];
       else return green[100];
     }
   }

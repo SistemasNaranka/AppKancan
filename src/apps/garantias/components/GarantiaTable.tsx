@@ -17,7 +17,7 @@ import {
 import ViewIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { EstadoChip } from "./GarantiaStatsCards";
+import { StatusChip } from "./GarantiaStatsCards";
 
 interface DirectusGarantia {
   id: number;
@@ -198,7 +198,7 @@ export const GarantiaTable: React.FC<GarantiaTableProps> = ({
                   <TableCell>{garantia.numero_factura || "-"}</TableCell>
                   <TableCell>{formatDate(garantia.fecha_solicitud)}</TableCell>
                   <TableCell>
-                    <EstadoChip estado={garantia.estado} />
+                    <StatusChip estado={garantia.estado} />
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip title="Ver detalle">

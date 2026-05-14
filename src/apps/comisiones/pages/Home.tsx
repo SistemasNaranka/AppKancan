@@ -80,7 +80,7 @@ export default function Home() {
                 
                 {budgetValidation.validationCompleted &&
                 budgetValidation.hasBudgetData === false &&
-                hasPolicy("readComisionesTienda") ? (
+                hasPolicy("crud_commission_stores") ? (
                   <section className="space-y-6">
                     <div className="text-center py-12">
                       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>

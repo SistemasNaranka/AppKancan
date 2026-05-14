@@ -167,10 +167,10 @@ export const getNextCommission = (
   thresholdConfig?: CommissionThreshold[]
 ): number | string => {
   const DEFAULT_THRESHOLDS = [
-    { cumplimiento_min: 90, comision_pct: 0.0035, nombre: "Muy Regular" },
-    { cumplimiento_min: 95, comision_pct: 0.005, nombre: "Regular" },
-    { cumplimiento_min: 100, comision_pct: 0.007, nombre: "Buena" },
-    { cumplimiento_min: 110, comision_pct: 0.01, nombre: "Excelente" },
+    { min_compliance: 90, pct_commission: 0.0035, name: "Muy Regular" },
+    { min_compliance: 95, pct_commission: 0.005, name: "Regular" },
+    { min_compliance: 100, pct_commission: 0.007, name: "Buena" },
+    { min_compliance: 110, pct_commission: 0.01, name: "Excelente" },
   ];
 
   const umbrales =
@@ -179,28 +179,28 @@ export const getNextCommission = (
       : DEFAULT_THRESHOLDS;
 
   const umbralesOrdenados = [...umbrales].sort(
-    (a, b) => a.comision_pct - b.comision_pct
+    (a, b) => a.pct_commission - b.pct_commission
   );
 
   const currentIndex = umbralesOrdenados.findIndex(
-    (u) => Math.abs(u.comision_pct - comisionActual) < 0.0001
+    (u) => Math.abs(u.pct_commission - comisionActual) < 0.0001
   );
 
   if (currentIndex === -1) {
     const closestIndex = umbralesOrdenados.findIndex(
-      (u) => u.comision_pct > comisionActual
+      (u) => u.pct_commission > comisionActual
     );
     if (closestIndex > 0) {
-      return umbralesOrdenados[closestIndex - 1].comision_pct;
+      return umbralesOrdenados[closestIndex - 1].pct_commission;
     }
-    return umbralesOrdenados[0]?.comision_pct ?? "NN";
+    return umbralesOrdenados[0]?.pct_commission ?? "NN";
   }
 
   if (currentIndex >= umbralesOrdenados.length - 1) {
     return "NN";
   }
 
-  return umbralesOrdenados[currentIndex + 1].comision_pct;
+  return umbralesOrdenados[currentIndex + 1].pct_commission;
 };
 
 /**
@@ -239,10 +239,10 @@ export const getNextBudget = (
   }
 
   const DEFAULT_THRESHOLDS = [
-    { cumplimiento_min: 90, comision_pct: 0.0035, nombre: "Muy Regular" },
-    { cumplimiento_min: 95, comision_pct: 0.005, nombre: "Regular" },
-    { cumplimiento_min: 100, comision_pct: 0.007, nombre: "Buena" },
-    { cumplimiento_min: 110, comision_pct: 0.01, nombre: "Excelente" },
+    { min_compliance: 90, pct_commission: 0.0035, name: "Muy Regular" },
+    { min_compliance: 95, pct_commission: 0.005, name: "Regular" },
+    { min_compliance: 100, pct_commission: 0.007, name: "Buena" },
+    { min_compliance: 110, pct_commission: 0.01, name: "Excelente" },
   ];
 
   const umbrales =
@@ -251,18 +251,18 @@ export const getNextBudget = (
       : DEFAULT_THRESHOLDS;
 
   const umbralesOrdenados = [...umbrales].sort(
-    (a, b) => a.comision_pct - b.comision_pct
+    (a, b) => a.pct_commission - b.pct_commission
   );
 
   const nextIndex = umbralesOrdenados.findIndex(
-    (u) => Math.abs(u.comision_pct - proximaComision) < 0.0001
+    (u) => Math.abs(u.pct_commission - proximaComision) < 0.0001
   );
 
   if (nextIndex === -1) {
     return null;
   }
 
-  const factor = umbralesOrdenados[nextIndex].cumplimiento_min / 100;
+  const factor = umbralesOrdenados[nextIndex].min_compliance / 100;
 
   return Math.round(presupuestoActual * factor * 100) / 100;
 };

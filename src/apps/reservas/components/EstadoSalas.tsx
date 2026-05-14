@@ -57,24 +57,24 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
       
       const reservasSala = reservas.filter(
         (r) =>
-          r.nombre_sala === sala &&
-          ((r.estadoCalculado || r.estado)?.toLowerCase() === "vigente" ||
-            (r.estadoCalculado || r.estado)?.toLowerCase() === "en curso"),
+          r.room_name === sala &&
+          ((r.estadoCalculado || r.status)?.toLowerCase() === "vigente" ||
+            (r.estadoCalculado || r.status)?.toLowerCase() === "en curso"),
       );
 
      
-      const reservasSalaHoy = reservasSala.filter((r) => r.fecha === hoy);
+      const reservasSalaHoy = reservasSala.filter((r) => r.date === hoy);
 
       
       const hayReservasHoy = reservasSalaHoy.some(
         (r) =>
-          r.hora_inicio > horaActual ||
-          (r.hora_inicio <= horaActual && r.hora_final > horaActual),
+          r.start_time > horaActual ||
+          (r.start_time <= horaActual && r.end_time > horaActual),
       );
 
       
       const reunionActual = reservasSalaHoy.find((r) => {
-        return r.hora_inicio <= horaActual && r.hora_final > horaActual;
+        return r.start_time <= horaActual && r.end_time > horaActual;
       });
 
       
@@ -84,22 +84,22 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
       if (hayReservasHoy) {
         // Hay reservas hoy: mostrar próximas reservas de hoy ordenadas cronológicamente
         proximasReservas = reservasSalaHoy
-          .filter((r) => r.hora_inicio > horaActual)
-          .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+          .filter((r) => r.start_time > horaActual)
+          .sort((a, b) => a.start_time.localeCompare(b.start_time));
         esReservaFutura = false;
       } else {
       
         const reservasFuturas = reservasSala
           .filter(
             (r) =>
-              r.fecha > hoy || (r.fecha === hoy && r.hora_inicio > horaActual),
+              r.date > hoy || (r.date === hoy && r.start_time > horaActual),
           )
           .sort((a, b) => {
            
-            if (a.fecha !== b.fecha) {
-              return a.fecha.localeCompare(b.fecha);
+            if (a.date !== b.date) {
+              return a.date.localeCompare(b.date);
             }
-            return a.hora_inicio.localeCompare(b.hora_inicio);
+            return a.start_time.localeCompare(b.start_time);
           });
 
         if (reservasFuturas.length > 0) {
@@ -159,11 +159,32 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
 
     if (esFutura) {
      
-      const fechaReserva = parseISO(reserva.fecha);
+      const fechaReserva = parseISO(reserva.date);
       return format(fechaReserva, "EEEE d 'de' MMMM", { locale: es });
     }
 
     return "Próxima reserva";
+  };
+
+  // Calcula los días faltantes hasta la fecha de la reserva (a las 00:00).
+  // Devuelve etiqueta amigable: "Hoy" / "Mañana" / "Faltan N días".
+  const obtenerDiasFaltantesLabel = (reserva: Reserva | null): string | null => {
+    if (!reserva) return null;
+    try {
+      const fechaReserva = parseISO(reserva.date);
+      fechaReserva.setHours(0, 0, 0, 0);
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const diff = Math.round(
+        (fechaReserva.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      if (diff < 0) return null;
+      if (diff === 0) return "Hoy";
+      if (diff === 1) return "Mañana";
+      return `Faltan ${diff} días`;
+    } catch {
+      return null;
+    }
   };
 
   return (
@@ -282,8 +303,8 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         ORGANIZADOR ACTUAL
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {estado.reunionActual.usuario_id
-                          ? `${estado.reunionActual.usuario_id.first_name} ${estado.reunionActual.usuario_id.last_name}`
+                        {estado.reunionActual.user_id
+                          ? `${estado.reunionActual.user_id.first_name} ${estado.reunionActual.user_id.last_name}`
                           : "Usuario"}
                       </Typography>
                     </Box>
@@ -313,7 +334,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         REUNIÓN ACTUAL
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {estado.reunionActual.titulo_reunion || "Sin título"}
+                        {estado.reunionActual.meeting_title || "Sin título"}
                       </Typography>
                     </Box>
                   </Box>
@@ -344,7 +365,7 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         }}
                       >
                         {calcularTiempoRestante(
-                          estado.reunionActual.hora_final,
+                          estado.reunionActual.end_time,
                         )}
                       </Typography>
                     </Box>
@@ -471,26 +492,54 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                       sx={{ color: "#004680", fontSize: 20, mt: 0.25 }}
                     />
                     <Box>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "#004680",
-                          display: "block",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {estado.proximaReserva
-                          ? estado.esReservaFutura
-                            ? `PRÓXIMA RESERVA · ${obtenerEtiquetaFechaReserva(estado.proximaReserva, estado.esReservaFutura)}`
-                            : "PRÓXIMA RESERVA"
-                          : "SIN RESERVAS"}
-                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#004680",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {estado.proximaReserva
+                            ? estado.esReservaFutura
+                              ? `PRÓXIMA RESERVA · ${obtenerEtiquetaFechaReserva(estado.proximaReserva, estado.esReservaFutura)}`
+                              : "PRÓXIMA RESERVA"
+                            : "SIN RESERVAS"}
+                        </Typography>
+                        {estado.proximaReserva && (() => {
+                          const label = obtenerDiasFaltantesLabel(estado.proximaReserva);
+                          if (!label) return null;
+                          // Color según urgencia
+                          const isHoy = label === "Hoy";
+                          const isManana = label === "Mañana";
+                          const bg = isHoy ? "#16a34a" : isManana ? "#d97706" : "#e8f0f9";
+                          const fg = isHoy || isManana ? "#fff" : "#004680";
+                          return (
+                            <Box
+                              sx={{
+                                px: 0.9,
+                                py: 0.15,
+                                borderRadius: 10,
+                                bgcolor: bg,
+                                color: fg,
+                                fontSize: "0.65rem",
+                                fontWeight: 700,
+                                letterSpacing: "0.02em",
+                                lineHeight: 1.5,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {label}
+                            </Box>
+                          );
+                        })()}
+                      </Box>
                       <Typography
                         variant="body2"
                         sx={{ fontWeight: 500, color: "#6f7073" }}
                       >
                         {estado.proximaReserva
-                          ? `${formatearHora(estado.proximaReserva.hora_inicio)} - ${estado.proximaReserva.titulo_reunion || "Sin título"}`
+                          ? `${formatearHora(estado.proximaReserva.start_time)} - ${estado.proximaReserva.meeting_title || "Sin título"}`
                           : estado.esReservaFutura
                             ? "Sin reservas programadas para hoy"
                             : "Sin reservas programadas"}

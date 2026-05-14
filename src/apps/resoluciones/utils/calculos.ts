@@ -132,16 +132,16 @@ export function DaysRemaining(
  * a un formato plano para la UI
  */
 export function flattenResolution(r: DirectusResolucion): Resolution {
-  const prefijo = r.prefijo_id || {};
-  const caja = prefijo?.caja_id || {};
-  const tienda = typeof caja?.tienda_id === "object" ? caja.tienda_id : null;
+  const prefix = r.prefix_id;
+  const pos = prefix?.pos_id;
+  const tienda = typeof pos?.store_id === "object" ? pos.store_id : null;
 
-  const ultima_factura = Number(prefijo.ultima_factura) || 0;
-  const desde_numero = Number(r.desde_numero) || 1;
-  const hasta_numero = Number(r.hasta_numero) || 0;
-  const vigencia = Number(r.vigencia) || 12;
-  const fecha_creacion = r.fecha_creacion || "";
-  const estadoOriginal = r.estado || "Pendiente";
+  const ultima_factura = Number(prefix?.last_invoice) || 0;
+  const desde_numero = Number(r.start_number) || 1;
+  const hasta_numero = Number(r.end_number) || 0;
+  const vigencia = Number(r.validity) || 12;
+  const fecha_creacion = r.creation_date || "";
+  const estadoOriginal = r.status || "Pendiente";
 
   const estadoCalculado = calculateStatus(
     hasta_numero,
@@ -159,21 +159,24 @@ export function flattenResolution(r: DirectusResolucion): Resolution {
 
   return {
     id: r.id,
-    numero_formulario: r.numero_formulario,
-    razon_social: r.razon_social,
-    prefijo: r.prefijo,
+    numero_formulario: r.form_number,
+    razon_social: r.business_name,
+    prefijo: r.prefix,
     desde_numero: desde_numero,
     hasta_numero: hasta_numero,
     vigencia: vigencia,
-    tipo_solicitud: r.tipo_solicitud,
+    tipo_solicitud: r.request_type,
     fecha_creacion: fecha_creacion,
     fecha_vencimiento: fecha_vencimiento,
     ultima_factura: ultima_factura,
-    ente_facturador: prefijo.ente_facturador || "Principal",
+    ente_facturador: prefix?.billing_entity || "Principal",
     estado: estadoCalculado,
-    tienda_nombre: tienda?.nombre || "",
-    empresa: caja.empresa || "",
+    tienda_nombre: tienda?.name || "",
+    id_ultra: pos?.ultra_id || 0,
+    empresa: pos?.company || "",
     facturas_disponibles: infoFacturas.disponibles,
     facturas_restantes: infoFacturas.restantes,
   };
 }
+
+

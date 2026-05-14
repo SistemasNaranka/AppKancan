@@ -1,13 +1,7 @@
 /**
  * Tutorial interactivo del módulo de Curvas (basado en react-joyride)
  *
- * - Provee un Context (`useCurvasTour`) para iniciar/detener el tour desde
- *   cualquier punto del módulo (típicamente el botón "?" del AppBar).
- * - Recorre las cuatro páginas (Carga, Dashboard, Envíos, Análisis) navegando
- *   automáticamente entre rutas según el rol del usuario.
- * - Persiste en localStorage si el tour ya fue completado para no reabrirlo.
- *
- * Targets esperados en el DOM (clases / ids ya añadidos):
+ * Targets esperados en el DOM:
  *  - #tour-curvas-tabs            → Tabs de navegación (CurvasRouteLayout)
  *  - #tour-load-type              → Toggle GENERAL/PRODUCTOS (UploadPage)
  *  - #tour-referencia             → Input de referencia (UploadPage)
@@ -51,6 +45,11 @@ import { useTutorial } from "@/shared/hooks/TutorialContext";
 const STORAGE_KEY = "curvas:tour:completed:v1";
 const BRAND_DARK = "#004680";
 const BRAND_PRIMARY = "#006ACC";
+
+// Tiempo máximo esperando que aparezca un target tras nav/render.
+const TARGET_WAIT_MS = 8000;
+// Pequeño delay extra después de navegación antes de empezar a observar.
+const POST_NAV_SETTLE_MS = 250;
 
 type CurvasStep = Step & { route?: string };
 
@@ -378,6 +377,56 @@ const STEPS_BODEGA: CurvasStep[] = [
 ];
 
 // ════════════════════════════════════════════════════════════
+// HELPER: esperar a que aparezca un elemento en el DOM
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Espera a que aparezca un elemento que matchea el selector.
+ * Usa MutationObserver para detectar la inserción inmediatamente.
+ * Devuelve true si encontró, false si timeout. Resolve cancelable.
+ */
+const waitForElement = (
+  selector: string,
+  timeoutMs: number,
+  abortRef: { aborted: boolean },
+): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // "body" siempre existe — atajo.
+    if (selector === "body") {
+      resolve(true);
+      return;
+    }
+
+    if (document.querySelector(selector)) {
+      resolve(true);
+      return;
+    }
+
+    let resolved = false;
+    const finish = (found: boolean) => {
+      if (resolved) return;
+      resolved = true;
+      observer.disconnect();
+      clearTimeout(timeoutId);
+      clearInterval(abortChecker);
+      resolve(found);
+    };
+
+    const observer = new MutationObserver(() => {
+      if (document.querySelector(selector)) finish(true);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    const timeoutId = window.setTimeout(() => finish(false), timeoutMs);
+
+    // Polling barato (200ms) para cancelar si el caller abortó.
+    const abortChecker = window.setInterval(() => {
+      if (abortRef.aborted) finish(false);
+    }, 200);
+  });
+};
+
+// ════════════════════════════════════════════════════════════
 // CONTEXT
 // ════════════════════════════════════════════════════════════
 
@@ -499,8 +548,6 @@ interface CurvasTourProviderProps {
 export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  // Usamos debeAterrizarEnDespacho() — misma lógica que el layout usa para
-  // redirigir a Bodega. Así Admin/Producción siempre ven el tour completo.
   const { debeAterrizarEnDespacho } = useCurvasPolicies();
 
   const steps: CurvasStep[] = useMemo(
@@ -510,85 +557,94 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
 
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const navigatingRef = useRef(false);
-  // Refs para timeouts que deben sobrevivir a re-ejecuciones del useEffect
-  const navTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Cuenta reintentos cuando TARGET_NOT_FOUND ocurre en la ruta correcta
-  const notFoundRetriesRef = useRef(0);
+  // Flag global para que la operación actual pueda cancelarse si stopTour fires.
+  const abortRef = useRef({ aborted: false });
 
-  // Iniciar el tour: navega al primer paso y arranca
+  // Núcleo: dado un stepIndex deseado, navega si hace falta y espera target.
+  const transitionToStep = useCallback(
+    async (targetIndex: number) => {
+      // Si pasamos del último paso, terminar el tour.
+      if (targetIndex >= steps.length) {
+        try { localStorage.setItem(STORAGE_KEY, "1"); } catch {}
+        abortRef.current.aborted = true;
+        abortRef.current = { aborted: false };
+        setRun(false);
+        setStepIndex(0);
+        return;
+      }
+      const step = steps[targetIndex];
+      if (!step) return;
+
+      // Cancelar operación anterior.
+      abortRef.current.aborted = true;
+      const myAbort = { aborted: false };
+      abortRef.current = myAbort;
+
+      // Oculta el tooltip mientras transicionamos (sin desmontar Joyride por completo).
+      setRun(false);
+
+      // Navega si la ruta es distinta.
+      if (step.route && location.pathname !== step.route) {
+        navigate(step.route);
+      }
+
+      // Pequeño settle para que React haga el primer commit post-nav.
+      await new Promise((r) => setTimeout(r, POST_NAV_SETTLE_MS));
+      if (myAbort.aborted) return;
+
+      // Espera a que el target real exista.
+      const selector =
+        typeof step.target === "string" ? step.target : "body";
+      const found = await waitForElement(selector, TARGET_WAIT_MS, myAbort);
+      if (myAbort.aborted) return;
+
+      if (!found) {
+        // Target nunca apareció — saltar paso (a menos que sea el último).
+        if (targetIndex < steps.length - 1) {
+          setStepIndex(targetIndex + 1);
+        } else {
+          // Si era el último, terminar el tour.
+          try { localStorage.setItem(STORAGE_KEY, "1"); } catch {}
+          setRun(false);
+        }
+        return;
+      }
+
+      // Target listo — fija índice y arranca Joyride.
+      setStepIndex(targetIndex);
+      // Microtask delay para que stepIndex llegue antes de run=true.
+      await new Promise((r) => setTimeout(r, 30));
+      if (myAbort.aborted) return;
+      setRun(true);
+    },
+    [steps, location.pathname, navigate],
+  );
+
   const startTour = useCallback(() => {
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
-    // Cancelar cualquier timeout de navegación/reintento pendiente
-    if (navTimeoutRef.current) { clearTimeout(navTimeoutRef.current); navTimeoutRef.current = null; }
-    if (retryTimeoutRef.current) { clearTimeout(retryTimeoutRef.current); retryTimeoutRef.current = null; }
-    notFoundRetriesRef.current = 0;
-    // Partir desde cero (run=false primero para reiniciar Joyride limpiamente)
-    setRun(false);
+    abortRef.current.aborted = true;
+    abortRef.current = { aborted: false };
     setStepIndex(0);
-
-    const firstRoute = steps[0]?.route;
-    const alreadyThere = !firstRoute || location.pathname === firstRoute;
-
-    if (!alreadyThere) {
-      // Navegar a la primera ruta y esperar montaje (lazy + Suspense)
-      navigatingRef.current = true;
-      navigate(firstRoute!);
-      setTimeout(() => {
-        navigatingRef.current = false;
-        setRun(true);
-      }, 1500);
-    } else {
-      // Ya estamos en la ruta correcta — pequeño delay para que React
-      // confirme el nuevo stepIndex antes de que Joyride busque el target
-      setTimeout(() => setRun(true), 80);
-    }
-  }, [navigate, location.pathname, steps]);
+    void transitionToStep(0);
+  }, [transitionToStep]);
 
   const stopTour = useCallback(() => {
-    if (navTimeoutRef.current) { clearTimeout(navTimeoutRef.current); navTimeoutRef.current = null; }
-    if (retryTimeoutRef.current) { clearTimeout(retryTimeoutRef.current); retryTimeoutRef.current = null; }
-    notFoundRetriesRef.current = 0;
+    abortRef.current.aborted = true;
+    abortRef.current = { aborted: false };
     setRun(false);
     setStepIndex(0);
   }, []);
 
-  // Integración con PeekButton: inicia el tour cuando el panel lateral
+  // Integración con PeekButton — dispara el tour cuando el panel lateral
   // de "Mis aplicaciones" solicita el tutorial de Curvas.
   const { activeTutorial, endTutorial } = useTutorial();
   useEffect(() => {
     if (activeTutorial !== "curvas") return;
-    endTutorial(); // Limpiar el flag global de inmediato para evitar doble disparo
+    endTutorial();
     startTour();
   }, [activeTutorial, endTutorial, startTour]);
 
-  // Sincronizar la ruta con el paso actual (navegación entre páginas)
-  useEffect(() => {
-    if (!run) return;
-    const step = steps[stepIndex];
-    if (!step?.route) return;
-    if (location.pathname === step.route) return;
-
-    // Pausar joyride mientras navegamos para evitar parpadeo
-    navigatingRef.current = true;
-    notFoundRetriesRef.current = 0;
-    // Cancelar timeout anterior si hubiera uno pendiente
-    if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
-    setRun(false);
-    navigate(step.route);
-    // IMPORTANTE: el timeout se guarda en un ref externo para que la limpieza
-    // del useEffect NO lo cancele cuando el efecto se re-ejecuta por cambios
-    // en 'run' o 'location.pathname' (que ocurren justo tras navigate/setRun).
-    navTimeoutRef.current = setTimeout(() => {
-      navTimeoutRef.current = null;
-      navigatingRef.current = false;
-      setRun(true);
-    }, 1500);
-    // Sin return cleanup → el timeout persiste aunque el efecto se re-ejecute
-  }, [stepIndex, run, location.pathname, navigate, steps]);
-
-  // Callback de Joyride
+  // Callback de Joyride: solo escucha eventos de navegación del usuario.
   const handleCallback = useCallback(
     (data: CallBackProps) => {
       const { status, action, type, index } = data;
@@ -604,50 +660,38 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
         return;
       }
 
-      // TARGET_NOT_FOUND: el elemento aún no está en el DOM.
-      // Puede ocurrir porque (a) la página está cargando datos, o (b) el elemento
-      // genuinamente no existe. Usamos reintentos para distinguir ambos casos.
+      // TARGET_NOT_FOUND: no debería pasar porque waitForElement ya garantizó
+      // que existía. Si pasa (elemento removido entre el wait y el render),
+      // saltamos al siguiente paso.
       if (type === EVENTS.TARGET_NOT_FOUND) {
-        const step = steps[index] as CurvasStep;
-        const onCorrectRoute = !step?.route || location.pathname === step.route;
-
-        if (!onCorrectRoute) {
-          // La ruta es diferente: el useEffect de sync ya está navegando, no hacer nada
-          return;
-        }
-
-        // Estamos en la ruta correcta pero el target no apareció todavía.
-        // Reintentar hasta MAX_RETRIES veces antes de saltar el paso.
-        const MAX_RETRIES = 4;
-        if (notFoundRetriesRef.current < MAX_RETRIES) {
-          notFoundRetriesRef.current += 1;
-          // Pausar brevemente y reanudar — el timeout va en un ref para que
-          // no sea cancelado por el cleanup del useEffect de sincronización.
-          if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
-          setRun(false);
-          retryTimeoutRef.current = setTimeout(() => {
-            retryTimeoutRef.current = null;
-            setRun(true);
-          }, 600);
+        if (index < steps.length - 1) {
+          void transitionToStep(index + 1);
         } else {
-          // Agotados los reintentos → el elemento realmente no existe, saltar paso
-          notFoundRetriesRef.current = 0;
-          setStepIndex((i) => i + 1);
+          stopTour();
         }
         return;
       }
 
+      // Usuario presionó Siguiente.
       if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT) {
-        notFoundRetriesRef.current = 0; // Reiniciar contador al avanzar manualmente
-        setStepIndex(index + 1);
+        void transitionToStep(index + 1);
+        return;
       }
+      // Usuario presionó Atrás.
       if (type === EVENTS.STEP_AFTER && action === ACTIONS.PREV) {
-        notFoundRetriesRef.current = 0;
-        setStepIndex(Math.max(0, index - 1));
+        void transitionToStep(Math.max(0, index - 1));
+        return;
       }
     },
-    [stopTour, steps, location.pathname],
+    [stopTour, transitionToStep, steps.length],
   );
+
+  // Cleanup al desmontar.
+  useEffect(() => {
+    return () => {
+      abortRef.current.aborted = true;
+    };
+  }, []);
 
   const value = useMemo<CurvasTourContextValue>(
     () => ({ startTour, stopTour, isRunning: run }),

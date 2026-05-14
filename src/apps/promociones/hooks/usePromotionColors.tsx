@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { obtenerTiposPromocion } from "../api/directus/read";
+import { getPromotionTypes } from "../api/directus/read";
+
 import { PromotionType } from "../types/promotion";
 
 // Colores por defecto como fallback
@@ -20,9 +21,10 @@ const DEFAULT_COLORS: Record<string, string> = {
 export const usePromotionColors = () => {
   const { data: tiposPromocion, isLoading } = useQuery({
     queryKey: ["tipos_promocion"],
-    queryFn: obtenerTiposPromocion,
+    queryFn: getPromotionTypes,
     staleTime: 1000 * 60 * 60, // 1 hora
   });
+
 
   // Crear mapa de colores desde Directus con fallback
   const colors = useMemo(() => {
@@ -30,11 +32,12 @@ export const usePromotionColors = () => {
 
     if (tiposPromocion) {
       tiposPromocion.forEach((tipo) => {
-        if (tipo.color) {
-          colorMap[tipo.nombre] = tipo.color;
+        if (tipo.color_code) {
+          colorMap[tipo.name] = tipo.color_code;
         }
       });
     }
+
 
     return colorMap;
   }, [tiposPromocion]);

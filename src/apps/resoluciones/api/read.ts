@@ -6,27 +6,27 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
 export interface DirectusResolucion {
   id: number;
-  numero_formulario: string;
-  razon_social: string;
-  prefijo: string;
-  desde_numero: number;
-  hasta_numero: number;
-  vigencia: number;
-  tipo_solicitud: string;
-  fecha_creacion: string;
-  fecha_vencimiento: string;
-  estado: string;
-  prefijo_id: {
-    ultima_factura: number;
-    ente_facturador: string;
-    caja_id: {
-      empresa: string;
-      id_ultra: number;
-      tienda_id:
+  form_number: string;
+  business_name: string;
+  prefix: string;
+  start_number: number;
+  end_number: number;
+  validity: number;
+  request_type: string;
+  creation_date: string;
+  expiration_date: string;
+  status: string;
+  prefix_id: {
+    last_invoice: number;
+    billing_entity: string;
+    pos_id: {
+      company: string;
+      ultra_id: number;
+      store_id:
       | number
       | {
         id: number;
-        nombre: string;
+        name: string;
       }
       | null;
     } | null;
@@ -43,19 +43,19 @@ export async function getResolutions(): Promise<DirectusResolucion[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("resoluciones", {
+        readItems("acc_resolutions", {
           fields: [
             "*",
             {
-              prefijo_id: [
-                "ultima_factura",
-                "ente_facturador",
+              prefix_id: [
+                "last_invoice",
+                "billing_entity",
                 {
-                  caja_id: [
-                    "empresa",
-                    "id_ultra",
+                  pos_id: [
+                    "company",
+                    "ultra_id",
                     {
-                      tienda_id: ["id", "nombre"],
+                      store_id: ["id", "name"],
                     },
                   ],
                 },
@@ -63,7 +63,7 @@ export async function getResolutions(): Promise<DirectusResolucion[]> {
             },
           ],
           filter: {
-            estado: {
+            status: {
               _in: ["Activo", "Pendiente"],
             },
           },
@@ -78,3 +78,4 @@ export async function getResolutions(): Promise<DirectusResolucion[]> {
     throw error;
   }
 }
+

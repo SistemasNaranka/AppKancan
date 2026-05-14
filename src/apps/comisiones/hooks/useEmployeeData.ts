@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  DirectusAsesor,
-  DirectusCargo,
+  DirectusStaff,
+  DirectusPosition,
   EmpleadoAsignado,
   ROLES_EXCLUSIVOS,
 } from "../types/modal";
@@ -9,12 +9,12 @@ import { obtenerAsesores, obtenerCargos } from "../api/directus/read";
 
 interface UseEmployeeDataReturn {
   // Estados
-  asesoresDisponibles: DirectusAsesor[];
-  cargosDisponibles: DirectusCargo[];
-  cargosFiltrados: DirectusCargo[];
+  asesoresDisponibles: DirectusStaff[];
+  cargosDisponibles: DirectusPosition[];
+  cargosFiltrados: DirectusPosition[];
   loading: boolean;
   error: string | null;
-  empleadoEncontrado: DirectusAsesor | null;
+  empleadoEncontrado: DirectusStaff | null;
 
   // Handlers
   loadAsesoresDisponibles: () => Promise<void>;
@@ -33,16 +33,16 @@ export const useEmployeeData = (
   tiendaUsuario?: { id: number } | null,
 ): UseEmployeeDataReturn => {
   const [asesoresDisponibles, setAsesoresDisponibles] = useState<
-    DirectusAsesor[]
+    DirectusStaff[]
   >([]);
-  const [cargosDisponibles, setCargosDisponibles] = useState<DirectusCargo[]>(
+  const [cargosDisponibles, setCargosDisponibles] = useState<DirectusPosition[]>(
     [],
   );
-  const [cargosFiltrados, setCargosFiltrados] = useState<DirectusCargo[]>([]);
+  const [cargosFiltrados, setCargosFiltrados] = useState<DirectusPosition[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [empleadoEncontrado, setEmpleadoEncontrado] =
-    useState<DirectusAsesor | null>(null);
+    useState<DirectusStaff | null>(null);
 
   // ✅ FIX: Memoizar el ID de la tienda para evitar bucles infinitos
   const tiendaId = useMemo(() => {
@@ -95,7 +95,7 @@ export const useEmployeeData = (
     // Filtrar roles exclusivos ya asignados
     if (cargosExclusivosUsados.length > 0) {
       cargosFiltrados = cargosFiltrados.filter((cargo) => {
-        const cargoLower = cargo.nombre.toLowerCase();
+        const cargoLower = cargo.name.toLowerCase();
         return !cargosExclusivosUsados.includes(cargoLower);
       });
     }
@@ -106,7 +106,7 @@ export const useEmployeeData = (
 
     if (tiendaIdNum && tiendaIdNum !== 5) {
       cargosFiltrados = cargosFiltrados.filter((cargo) => {
-        const cargoLower = cargo.nombre.toLowerCase();
+        const cargoLower = cargo.name.toLowerCase();
         const isGerenteOnline =
           cargoLower.includes("gerente") && cargoLower.includes("online");
         return !isGerenteOnline;
@@ -122,7 +122,7 @@ export const useEmployeeData = (
   useEffect(() => {
     if (cargosFiltrados.length > 0) {
       const asesorCargo = cargosFiltrados.find(
-        (c) => c.nombre.toLowerCase() === "asesor",
+        (c) => c.name.toLowerCase() === "asesor",
       );
       if (asesorCargo) {
         // Solo establecer si no hay cargo seleccionado o si está vacío

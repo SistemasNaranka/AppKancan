@@ -6,6 +6,26 @@ import {
 } from "@/auth/services/tokenDirectus";
 import { refreshDirectus, setTokenDirectus } from "@/services/directus/auth";
 
+// Singleton: si ya hay un refresh en vuelo, todas las requests concurrentes
+// esperan al mismo Promise en lugar de disparar refresh duplicados.
+let refreshInFlight: Promise<void> | null = null;
+
+function refreshTokensOnce(refreshToken: string): Promise<void> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const newTokens = await refreshDirectus(refreshToken);
+    guardarTokenStorage(
+      newTokens.access_token,
+      newTokens.refresh_token,
+      newTokens.expires_at
+    );
+    await setTokenDirectus(newTokens.access_token);
+  })().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
 /**
  * Interceptor que verifica y refresca el token antes de cada petición
  */
@@ -24,7 +44,7 @@ export async function ensureValidToken(): Promise<void> {
       guardarTokenStorage(
         newTokens.access_token,
         newTokens.refresh_token,
-        newTokens.expires_at
+        newTokens.expires_at,
       );
 
       // Actualizar el token en el cliente de Directus
@@ -33,7 +53,6 @@ export async function ensureValidToken(): Promise<void> {
       borrarTokenStorage();
       window.location.href = "/";
       console.error("❌ Error al refrescar token:", error);
-      // Manejar sesión expirada (cierra sesión y redirige)
     }
   } else {
     // Si no está expirado, igual nos aseguramos que el cliente de Directus lo tenga (evita 403 en reloads)
@@ -45,7 +64,7 @@ export async function ensureValidToken(): Promise<void> {
  * Wrapper para directus.request que hace refresh automático si es necesario
  */
 export async function requestWithAutoRefresh<T>(
-  requestFn: () => Promise<T>
+  requestFn: () => Promise<T>,
 ): Promise<T> {
   // Verificar y refrescar token si es necesario
   await ensureValidToken();
@@ -67,7 +86,7 @@ export async function requestWithAutoRefresh<T>(
         guardarTokenStorage(
           newTokens.access_token,
           newTokens.refresh_token,
-          newTokens.expires_at
+          newTokens.expires_at,
         );
         await setTokenDirectus(newTokens.access_token);
 
@@ -76,7 +95,7 @@ export async function requestWithAutoRefresh<T>(
       } catch (refreshError) {
         console.error(
           "❌ Error al refrescar token después de 401:",
-          refreshError
+          refreshError,
         );
         // Manejar sesión expirada (cierra sesión y redirige)
       }
@@ -101,7 +120,7 @@ export async function requestWithAutoRefresh<T>(
  * ```
  */
 export async function withAutoRefresh<T>(
-  directusRequest: () => Promise<T>
+  directusRequest: () => Promise<T>,
 ): Promise<T> {
   return requestWithAutoRefresh(directusRequest);
 }

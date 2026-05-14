@@ -104,16 +104,24 @@ export const getDetalleProducto = async (
 };
 
 /**
- * Obtiene la lista de tiendas desde Directus (colección util_tiendas)
+ * Obtiene la lista de tiendas desde Directus (colección core_stores)
  * Ordenadas alfabéticamente
  */
-export const getTiendas = async (): Promise<Tienda[]> => {
+const TIENDAS_TTL_MS = 10 * 60 * 1000;
+let tiendasCache: { data: Tienda[]; expiresAt: number } | null = null;
+let tiendasInFlight: Promise<Tienda[]> | null = null;
+
+export const invalidateTiendasCache = () => {
+  tiendasCache = null;
+};
+
+const fetchTiendasFresh = async (): Promise<Tienda[]> => {
   try {
     const response = await withAutoRefresh(() =>
       directus.request(
-        readItems('util_tiendas', {
-          fields: ['id', 'nombre', 'codigo_ultra'],
-          sort: ['nombre'],
+        readItems('core_stores', {
+          fields: ['id', 'name', 'ultra_code'],
+          sort: ['name'],
         })
       )
     );
@@ -121,16 +129,38 @@ export const getTiendas = async (): Promise<Tienda[]> => {
     if (response && response.length > 0) {
       return response.map((item: any) => ({
         id: String(item.id),
-        codigo: String(item.codigo_ultra || ''),
-        nombre: String(item.nombre || ''),
+        codigo: String(item.ultra_code || ''),
+        nombre: String(item.name || ''),
       }));
     }
 
     return [];
   } catch (error) {
-    console.error('Error fetching tiendas from util_tiendas:', error);
+    console.error('Error fetching tiendas from core_stores:', error);
     return [];
   }
+};
+
+export const getTiendas = async (): Promise<Tienda[]> => {
+  const now = Date.now();
+  if (tiendasCache && tiendasCache.expiresAt > now) {
+    return tiendasCache.data;
+  }
+  if (tiendasInFlight) return tiendasInFlight;
+
+  tiendasInFlight = fetchTiendasFresh()
+    .then((data) => {
+      // Solo cacheamos respuestas válidas (no vacías por error transitorio).
+      if (data.length > 0) {
+        tiendasCache = { data, expiresAt: Date.now() + TIENDAS_TTL_MS };
+      }
+      return data;
+    })
+    .finally(() => {
+      tiendasInFlight = null;
+    });
+
+  return tiendasInFlight;
 };
 
 /**
@@ -337,8 +367,8 @@ export const getEnviosAnalisis = async (
         'usuario_id.first_name',
         'usuario_id.last_name',
         'tienda_id.id',
-        'tienda_id.nombre',
-        'tienda_id.codigo_ultra'
+        'tienda_id.name',
+        'tienda_id.ultra_code'
       ],
     };
 

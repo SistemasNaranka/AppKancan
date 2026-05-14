@@ -84,7 +84,7 @@ interface GarantiaStatsCardsProps {
   isLoading: boolean;
 }
 
-export const GarantiaStatsCards: React.FC<GarantiaStatsCardsProps> = ({ stats, isLoading }) => {
+export const WarrantyStatsCards: React.FC<GarantiaStatsCardsProps> = ({ stats, isLoading }) => {
   const defaultStats = {
     total: 0,
     pendientes: 0,
@@ -158,7 +158,7 @@ export const GarantiaStatsCards: React.FC<GarantiaStatsCardsProps> = ({ stats, i
 };
 
 // Componente de chip de estado para usar en tablas
-export const EstadoChip: React.FC<{ estado: string }> = ({ estado }) => {
+export const StatusChip: React.FC<{ estado: string }> = ({ estado }) => {
   const getChipProps = () => {
     if (estado === "pendiente") {
       return { bgcolor: "#FEF3C7", color: "#92400E", label: "Pendiente" };

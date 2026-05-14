@@ -73,16 +73,16 @@ export async function getCurrentUser() {
       readMe({
         fields: [
           "email",
-          "codigo_ultra",
-          "empresa",
+          "ultra_code",
+          "company",
           "first_name",
           "last_name",
           "role.name",
-          "tienda_id",
+          "store.id",
           "id",
           "requires_password_change",
-          "key_gemini", // API key de Gemini para extracción de facturas
-          "modelo_ia", // Modelo de IA a usar (ej: gemma-3-27b-it)
+          "ia_key",
+          "ia_model",
           // 1. Políticas asignadas directamente al usuario
           {
             policies: [

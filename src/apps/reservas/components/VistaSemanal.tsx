@@ -11,6 +11,7 @@ import { SALAS_DISPONIBLES, CONFIGURACION_POR_DEFECTO } from "../types/reservas.
 import type { Reserva } from "../types/reservas.types";
 import type { VistaSemanalProps } from "./VistaSemanal.types";
 import { generarHorasRango, getReservasEnCelda, formatearHora12h, ESTADOS_EXCLUIDOS } from "./VistaSemanal.utils";
+import { useFestivos } from "../hooks/useFestivos";
 import {
   SelectorSala, SelectorVista, NavegacionSemanal, SelectorFecha, PeriodoActual,
   CargandoHorarios, EncabezadoDia, CeldaHora, PopoverDetalleReserva,
@@ -31,8 +32,8 @@ const useConfiguracionHoras = () => {
       if (isError) console.warn("⚠️ Usando configuración por defecto de horarios");
       return generarHorasRango(CONFIGURACION_POR_DEFECTO.hora_inicio_operacion, CONFIGURACION_POR_DEFECTO.hora_fin_operacion);
     }
-    const horaInicio = data.hora_apertura?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_inicio_operacion;
-    const horaFin = data.hora_cierre?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
+    const horaInicio = data.opening_time?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_inicio_operacion;
+    const horaFin = data.closing_time?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
     return generarHorasRango(horaInicio, horaFin);
   }, [data, isLoading, isError]);
 
@@ -52,6 +53,8 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
 
   const { horas, isLoading: isLoadingConfig, isError: isErrorConfig } = useConfiguracionHoras();
 
+  const { data: festivos = {} } = useFestivos(fechaBase.getFullYear());
+
   const diasSemana = useMemo(() => {
     const inicio = startOfWeek(fechaBase, { weekStartsOn: 1 });
     return Array.from({ length: 5 }, (_, i) => addDays(inicio, i));
@@ -61,10 +64,10 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     const fechaInicio = format(diasSemana[0], "yyyy-MM-dd");
     const fechaFin = format(diasSemana[4], "yyyy-MM-dd");
     return reservas.filter((r) => {
-      const estado = (r.estadoCalculado || r.estado)?.toLowerCase();
+      const estado = (r.estadoCalculado || r.status)?.toLowerCase();
       if (ESTADOS_EXCLUIDOS.includes(estado)) return false;
-      if (r.nombre_sala !== salaSeleccionada) return false;
-      return r.fecha >= fechaInicio && r.fecha <= fechaFin;
+      if (r.room_name !== salaSeleccionada) return false;
+      return r.date >= fechaInicio && r.date <= fechaFin;
     });
   }, [reservas, diasSemana, salaSeleccionada]);
 
@@ -120,7 +123,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 <Box component="span" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase", fontSize: "0.7rem" }}>Hora</Box>
               </Box>
               {diasSemana.map((dia, idx) => (
-                <EncabezadoDia key={dia.toISOString()} dia={dia} idx={idx} hoy={hoy} reservasSemana={reservasSemana} />
+                <EncabezadoDia key={dia.toISOString()} dia={dia} idx={idx} hoy={hoy} reservasSemana={reservasSemana} nombreFestivo={festivos[format(dia, "yyyy-MM-dd")]} />
               ))}
             </Box>
 

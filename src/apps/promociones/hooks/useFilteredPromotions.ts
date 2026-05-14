@@ -45,16 +45,16 @@ export const useFilteredPromotions = (): Promotion[] => {
     return promotions
       .filter((promo) => {
         // 🔹 Filtro por duración
-        if (duracion.length > 0 && !duracion.includes(promo.duracion))
+        if (duracion.length > 0 && !duracion.includes(promo.duration))
           return false;
 
         // 🔹 Filtro por tipos
-        if (tipos.length > 0 && !tipos.includes(promo.tipo)) return false;
+        if (tipos.length > 0 && !tipos.includes(promo.type)) return false;
 
         // 🔹 Filtro por rango de descuento
         if (
-          promo.descuento < descuentoRange.min ||
-          promo.descuento > descuentoRange.max
+          promo.discount < descuentoRange.min ||
+          promo.discount > descuentoRange.max
         )
           return false;
 
@@ -62,9 +62,9 @@ export const useFilteredPromotions = (): Promotion[] => {
         if (tiendas.length > 0) {
           // Verificar si alguna tienda de la promoción está en las seleccionadas
           // Convertir tiendas de la promoción a IDs para comparación
-          const hasMatchingStore = promo.tiendas.some((tiendaNombre) => {
+          const hasMatchingStore = promo.stores.some((tiendaNombre) => {
             // Buscar el ID de la tienda por nombre
-            const store = stores.find((s) => s.nombre === tiendaNombre);
+            const store = stores.find((s) => s.name === tiendaNombre);
             return store && tiendas.includes(store.id);
           });
           if (!hasMatchingStore) return false;
@@ -72,9 +72,9 @@ export const useFilteredPromotions = (): Promotion[] => {
 
         // 🔹 Filtro solo vigentes (activas hoy)
         if (soloVigentes) {
-          const start = dayjs(promo.fecha_inicio, "YYYY-MM-DD", true);
-          const end = promo.fecha_final
-            ? dayjs(promo.fecha_final, "YYYY-MM-DD", true)
+          const start = dayjs(promo.start_date, "YYYY-MM-DD", true);
+          const end = promo.end_date
+            ? dayjs(promo.end_date, "YYYY-MM-DD", true)
             : null;
 
           // Si tiene fecha final, verificar que hoy esté dentro del rango
@@ -95,9 +95,9 @@ export const useFilteredPromotions = (): Promotion[] => {
 
         // 🔹 Filtros automáticos por vista
         if (selectedView === "anual") {
-          const start = dayjs(promo.fecha_inicio, "YYYY-MM-DD", true);
-          const end = promo.fecha_final
-            ? dayjs(promo.fecha_final, "YYYY-MM-DD", true)
+          const start = dayjs(promo.start_date, "YYYY-MM-DD", true);
+          const end = promo.end_date
+            ? dayjs(promo.end_date, "YYYY-MM-DD", true)
             : null;
 
           // Verificar si la promoción toca el año enfocado
@@ -116,9 +116,9 @@ export const useFilteredPromotions = (): Promotion[] => {
             if (start.year() !== focusedYear) return false;
           }
         } else if (selectedView === "mensual") {
-          const start = dayjs(promo.fecha_inicio, "YYYY-MM-DD", true);
-          const end = promo.fecha_final
-            ? dayjs(promo.fecha_final, "YYYY-MM-DD", true)
+          const start = dayjs(promo.start_date, "YYYY-MM-DD", true);
+          const end = promo.end_date
+            ? dayjs(promo.end_date, "YYYY-MM-DD", true)
             : null;
 
           // Verificar si la promoción intersecta con el mes enfocado
@@ -141,9 +141,9 @@ export const useFilteredPromotions = (): Promotion[] => {
               return false;
           }
         } else if (selectedView === "semanal") {
-          const start = dayjs(promo.fecha_inicio, "YYYY-MM-DD", true);
-          const end = promo.fecha_final
-            ? dayjs(promo.fecha_final, "YYYY-MM-DD", true)
+          const start = dayjs(promo.start_date, "YYYY-MM-DD", true);
+          const end = promo.end_date
+            ? dayjs(promo.end_date, "YYYY-MM-DD", true)
             : null;
 
           // Verificar si la promoción intersecta con la semana enfocada
@@ -155,14 +155,14 @@ export const useFilteredPromotions = (): Promotion[] => {
             const startsBeforeWeekEnd =
               start.isBefore(weekEnd) || start.isSame(weekEnd, "day");
             const endsAfterWeekStart =
-              end.isAfter(weekStart) || end.isSame(weekStart, "day");
+              end.isAfter(weekStart) || end.isAfter(weekStart, "day");
             if (!startsBeforeWeekEnd || !endsAfterWeekStart) return false;
           } else {
             // Promoción fija: solo mostrar si inicia en esta semana
             if (!start.isBetween(weekStart, weekEnd, null, "[]")) return false;
           }
         } else if (selectedView === "dia") {
-          const start = dayjs(promo.fecha_inicio, "YYYY-MM-DD", true);
+          const start = dayjs(promo.start_date, "YYYY-MM-DD", true);
 
           // Mostrar solo promociones que iniciaron en el día enfocado
           if (!start.isSame(focusedDate, "day")) {
@@ -172,7 +172,7 @@ export const useFilteredPromotions = (): Promotion[] => {
 
         return true;
       })
-      .sort((a, b) => dayjs(b.fecha_inicio).diff(dayjs(a.fecha_inicio)));
+      .sort((a, b) => dayjs(b.start_date).diff(dayjs(a.start_date)));
   }, [
     promotions,
     stores,

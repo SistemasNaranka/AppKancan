@@ -38,13 +38,13 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
       };
     }
 
-    // Ordenar umbrales por cumplimiento_min ascendente
+    // Ordenar umbrales por min_compliance ascendente
     const umbralesOrdenados = [...umbrales].sort(
-      (a, b) => a.cumplimiento_min - b.cumplimiento_min,
+      (a, b) => a.min_compliance - b.min_compliance,
     );
 
     // Si no alcanza el primer umbral
-    if (cumplimientoPct < umbralesOrdenados[0].cumplimiento_min) {
+    if (cumplimientoPct < umbralesOrdenados[0].min_compliance) {
       // Encontrar al gerente de la tienda
       const gerente = tienda.empleados.find((e) => e.rol === "gerente");
       if (gerente && gerente.proxima_venta) {
@@ -67,7 +67,7 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
     // Determinar el nivel actual basado en los umbrales
     let currentLevel = 0;
     for (let i = 0; i < umbralesOrdenados.length; i++) {
-      if (cumplimientoPct >= umbralesOrdenados[i].cumplimiento_min) {
+      if (cumplimientoPct >= umbralesOrdenados[i].min_compliance) {
         currentLevel = i;
       } else {
         break;
@@ -75,7 +75,7 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
     }
 
     // Mensajes basados en el nivel actual
-    const messages = umbralesOrdenados.map((umbral) => umbral.nombre);
+    const messages = umbralesOrdenados.map((umbral) => umbral.name);
 
     // Mapa de colores MUI a nombres de colores
     const colorMap: Record<string, string> = {
@@ -95,8 +95,8 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
         const nextUmbral =
           umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
         return (
-          pct >= umbral.cumplimiento_min &&
-          (!nextUmbral || pct < nextUmbral.cumplimiento_min)
+          pct >= umbral.min_compliance &&
+          (!nextUmbral || pct < nextUmbral.min_compliance)
         );
       });
 
@@ -111,8 +111,8 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
         const nextUmbral = umbralesOrdenados[i + 1];
 
         if (
-          pct >= umbral.cumplimiento_min &&
-          (!nextUmbral || pct < nextUmbral.cumplimiento_min)
+          pct >= umbral.min_compliance &&
+          (!nextUmbral || pct < nextUmbral.min_compliance)
         ) {
           // Si el umbral tiene un color configurado, usarlo
           if (umbral.color && colorMap[umbral.color]) {
@@ -120,21 +120,21 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
           }
 
           // Si no, usar la lógica de color por defecto
-          if (umbral.cumplimiento_min >= 85 && umbral.cumplimiento_min < 90) {
+          if (umbral.min_compliance >= 85 && umbral.min_compliance < 90) {
             return red[300]; // Rojo para umbrales 85-89%
           } else if (
-            umbral.cumplimiento_min >= 90 &&
-            umbral.cumplimiento_min < 95
+            umbral.min_compliance >= 90 &&
+            umbral.min_compliance < 95
           ) {
             return pink[300]; // Rosa para umbrales 90-94%
           } else if (
-            umbral.cumplimiento_min >= 95 &&
-            umbral.cumplimiento_min < 100
+            umbral.min_compliance >= 95 &&
+            umbral.min_compliance < 100
           ) {
             return orange[600]; // Naranja para umbrales 95-99%
           } else if (
-            umbral.cumplimiento_min >= 100 &&
-            umbral.cumplimiento_min < 110
+            umbral.min_compliance >= 100 &&
+            umbral.min_compliance < 110
           ) {
             return blue[600]; // Azul para umbrales 100-109%
           } else {

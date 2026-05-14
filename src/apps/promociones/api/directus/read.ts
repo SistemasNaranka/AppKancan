@@ -6,36 +6,37 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
 export interface DirectusPromo {
   id: number;
-  nombre: string;
-  fecha_inicio: string;
-  fecha_final: string | null;
-  hora_inicio: string;
-  hora_fin: string | null;
-  descuento: number;
-  tipo_id: number | DirectusPromoTipo;
-  observaciones: string | null;
+  name: string;
+  start_date: string;
+  end_date: string | null;
+  start_time: string;
+  end_time: string | null;
+  discount_value: number;
+  type_id: number | DirectusPromoTipo;
+  notes: string | null;
 }
 
 export interface DirectusPromoTipo {
   id: number;
-  nombre: string;
-  duracion: "temporal" | "fija";
-  color: string;
+  name: string;
+  duration: "temporal" | "fija";
+  color_code: string;
 }
 
 export interface DirectusPromoTienda {
   id: number;
-  tiendas_id: number | DirectusTienda;
-  promo_id: number | DirectusPromo;
-  estado: string;
+  store_id: number | DirectusTienda;
+  promotion_id: number | DirectusPromo;
+  status: string;
 }
 
 export interface DirectusTienda {
   id: number;
-  nombre: string;
-  codigo_ultra: number;
-  empresa: string;
+  name: string;
+  ultra_code: number;
+  company: string;
 }
+
 function formatDisplayTime(hora: string | null | undefined): string | null {
   if (!hora) return null;
 
@@ -62,11 +63,11 @@ export async function getStores(): Promise<DirectusTienda[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("util_tiendas", {
-          fields: ["id", "nombre", "codigo_ultra", "empresa"],
-          sort: ["nombre"],
-        })
-      )
+        readItems("core_stores", {
+          fields: ["id", "name", "ultra_code", "company"],
+          sort: ["name"],
+        }),
+      ),
     );
 
     return data as DirectusTienda[];
@@ -83,11 +84,11 @@ export async function getPromotionTypes(): Promise<DirectusPromoTipo[]> {
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("promo_tipo", {
-          fields: ["id", "nombre", "duracion", "color"],
-          sort: ["nombre"],
-        })
-      )
+        readItems("com_promotion_types", {
+          fields: ["id", "name", "duration", "color_code"],
+          sort: ["name"],
+        }),
+      ),
     );
 
     return data as DirectusPromoTipo[];
@@ -105,52 +106,56 @@ export async function getPromotions(): Promise<Promotion[]> {
     // 1. Obtener todas las promociones con el tipo expandido
     const promos = await withAutoRefresh(() =>
       directus.request(
-        readItems("promo", {
+        readItems("com_promotions", {
           fields: [
             "id",
-            "nombre",
-            "fecha_inicio",
-            "fecha_final",
-            "hora_inicio",
-            "hora_fin",
-            "descuento",
-            "observaciones",
-            "tipo_id.id",
-            "tipo_id.nombre",
-            "tipo_id.duracion",
-            "tipo_id.color",
+            "name",
+            "start_date",
+            "end_date",
+            "start_time",
+            "end_time",
+            "discount_value",
+            "notes",
+            "type_id.id",
+            "type_id.name",
+            "type_id.duration",
+            "type_id.color_code",
           ],
-          sort: ["-fecha_inicio"],
-        })
-      )
+          sort: ["-start_date"],
+        }),
+      ),
     );
 
     // 2. Obtener todas las relaciones promo-tiendas
-    const promoTiendas = await directus.request(
-      readItems("promo_tiendas", {
-        fields: [
-          "id",
-          "promo_id",
-          "estado",
-          "tiendas_id.id",
-          "tiendas_id.nombre",
-        ],
-        filter: {
-          estado: {
-            _eq: "Activo",
+    const promoTiendas = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_promotion_stores", {
+          fields: [
+            "id",
+            "promotion_id",
+            "status",
+            "store_id.id",
+            "store_id.name",
+          ],
+          filter: {
+            status: {
+              _eq: "Activo",
+            },
           },
-        },
-        limit: -1, // Obtener todos los registros, no solo los primeros 100
-      })
+          limit: -1, // Obtener todos los registros, no solo los primeros 100
+        }),
+      ),
     );
 
-    // 3. Crear un mapa de promo_id -> tiendas
+    // 3. Crear un mapa de promotion_id -> stores
     const tiendasPorPromo = new Map<number, string[]>();
 
     promoTiendas.forEach((pt: any) => {
       const promoId =
-        typeof pt.promo_id === "number" ? pt.promo_id : pt.promo_id?.id;
-      const tiendaNombre = pt.tiendas_id?.nombre || "Sin nombre";
+        typeof pt.promotion_id === "number"
+          ? pt.promotion_id
+          : pt.promotion_id?.id;
+      const tiendaNombre = pt.store_id?.name || "Sin nombre";
 
       if (!tiendasPorPromo.has(promoId)) {
         tiendasPorPromo.set(promoId, []);
@@ -160,22 +165,22 @@ export async function getPromotions(): Promise<Promotion[]> {
 
     // 4. Mapear a formato de Promotion
     const promociones: Promotion[] = promos.map((promo: any) => {
-      const tipo = promo.tipo_id;
+      const tipo = promo.type_id;
       const tiendas = tiendasPorPromo.get(promo.id) || [];
 
       return {
         id: promo.id,
-        tipo: tipo?.nombre as PromotionType,
-        descripcion: promo.nombre,
-        observaciones: promo.observaciones,
-        tiendas: tiendas,
-        fecha_inicio: promo.fecha_inicio,
-        fecha_final: promo.fecha_final,
-        hora_inicio: formatDisplayTime(promo.hora_inicio) || "",
-        hora_fin: formatDisplayTime(promo.hora_fin),
-        descuento: promo.descuento,
-        duracion: tipo?.duracion || "temporal",
-        color: tipo?.color || "#888",
+        type: tipo?.name as string,
+        name: promo.name,
+        notes: promo.notes,
+        stores: tiendas,
+        start_date: promo.start_date,
+        end_date: promo.end_date,
+        start_time: formatDisplayTime(promo.start_time) || "",
+        end_time: formatDisplayTime(promo.end_time),
+        discount: promo.discount_value,
+        duration: tipo?.duration || "temporal",
+        color: tipo?.color_code || "#888",
       };
     });
 
@@ -189,27 +194,25 @@ export async function getPromotions(): Promise<Promotion[]> {
 /**
  * Obtener una promoción por ID con sus relaciones
  */
-export async function getPromotionById(
-  id: number
-): Promise<Promotion | null> {
+export async function getPromotionById(id: number): Promise<Promotion | null> {
   try {
     // 1. Obtener la promoción con el tipo expandido
     const promo = await withAutoRefresh(() =>
       directus.request(
-        readItems("promo", {
+        readItems("com_promotions", {
           fields: [
             "id",
-            "nombre",
-            "fecha_inicio",
-            "fecha_final",
-            "hora_inicio",
-            "hora_fin",
-            "descuento",
-            "observaciones",
-            "tipo_id.id",
-            "tipo_id.nombre",
-            "tipo_id.duracion",
-            "tipo_id.color",
+            "name",
+            "start_date",
+            "end_date",
+            "start_time",
+            "end_time",
+            "discount_value",
+            "notes",
+            "type_id.id",
+            "type_id.name",
+            "type_id.duration",
+            "type_id.color_code",
           ],
           filter: {
             id: {
@@ -217,8 +220,8 @@ export async function getPromotionById(
             },
           },
           limit: 1,
-        })
-      )
+        }),
+      ),
     );
 
     if (!promo || promo.length === 0) {
@@ -230,40 +233,40 @@ export async function getPromotionById(
     // 2. Obtener las tiendas asociadas
     const promoTiendas = await withAutoRefresh(() =>
       directus.request(
-        readItems("promo_tiendas", {
-          fields: ["tiendas_id.id", "tiendas_id.nombre"],
+        readItems("com_promotion_stores", {
+          fields: ["store_id.id", "store_id.name"],
           filter: {
-            promo_id: {
+            promotion_id: {
               _eq: id,
             },
-            estado: {
+            status: {
               _eq: "Activo",
             },
           },
           limit: -1, // Obtener todos los registros
-        })
-      )
+        }),
+      ),
     );
 
     const tiendas = promoTiendas.map(
-      (pt: any) => pt.tiendas_id?.nombre || "Sin nombre"
+      (pt: any) => pt.store_id?.name || "Sin nombre",
     );
 
-    const tipo = promoData.tipo_id;
+    const tipo = promoData.type_id;
 
     return {
       id: promoData.id,
-      tipo: tipo?.nombre as PromotionType,
-      descripcion: promoData.nombre,
-      observaciones: promoData.observaciones,
-      tiendas: tiendas,
-      fecha_inicio: promoData.fecha_inicio,
-      fecha_final: promoData.fecha_final,
-      hora_inicio: formatDisplayTime(promoData.hora_inicio) || "",
-      hora_fin: formatDisplayTime(promoData.hora_fin),
-      descuento: promoData.descuento,
-      duracion: tipo?.duracion || "temporal",
-      color: tipo?.color || "#888",
+      type: tipo?.name as string,
+      name: promoData.name,
+      notes: promoData.notes,
+      stores: tiendas,
+      start_date: promoData.start_date,
+      end_date: promoData.end_date,
+      start_time: formatDisplayTime(promoData.start_time) || "",
+      end_time: formatDisplayTime(promoData.end_time),
+      discount: promoData.discount_value,
+      duration: tipo?.duration || "temporal",
+      color: tipo?.color_code || "#888",
     };
   } catch (error) {
     console.error("❌ Error al obtener promoción por ID:", error);
@@ -275,29 +278,31 @@ export async function getPromotionById(
  * Obtener tiendas asociadas a una promoción específica
  */
 export async function getPromotionStores(
-  promoId: number
+  promoId: number,
 ): Promise<DirectusTienda[]> {
   try {
-    const promoTiendas = await directus.request(
-      readItems("promo_tiendas", {
-        fields: [
-          "tiendas_id.id",
-          "tiendas_id.nombre",
-          "tiendas_id.codigo_ultra",
-          "tiendas_id.empresa",
-        ],
-        filter: {
-          promo_id: {
-            _eq: promoId,
+    const promoTiendas = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_promotion_stores", {
+          fields: [
+            "store_id.id",
+            "store_id.name",
+            "store_id.ultra_code",
+            "store_id.company",
+          ],
+          filter: {
+            promotion_id: {
+              _eq: promoId,
+            },
+            status: {
+              _eq: "Activo",
+            },
           },
-          estado: {
-            _eq: "Activo",
-          },
-        },
-      })
+        }),
+      ),
     );
 
-    return promoTiendas.map((pt: any) => pt.tiendas_id) as DirectusTienda[];
+    return promoTiendas.map((pt: any) => pt.store_id) as DirectusTienda[];
   } catch (error) {
     console.error("❌ Error al obtener tiendas de la promoción:", error);
     throw error;

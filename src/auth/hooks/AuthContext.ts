@@ -12,14 +12,14 @@ export type User = {
   id: string;
   nombre: string;
   apellido: string;
-  empresa: string;
-  codigo_ultra: string;
+  company: string;
+  ultra_code: string;
   rol?: string;
-  tienda_id?: number;
+  store_id?: string | number;
   policies?: string[];
   requires_password_change?: boolean;
-  key_gemini?: string; // API key de Gemini para extracción de facturas (encriptada en Directus)
-  modelo_ia?: string; // Modelo de IA a usar para extracción de facturas (ej: gemma-3-27b-it)
+  ia_key?: string; // API key de Gemini para extracción de facturas (encriptada en Directus)
+  ia_model?: string; // Modelo de IA a usar para extracción de facturas (ej: gemma-3-27b-it)
 } | null;
 /**
  *  Tipado de los valores que otorgara el Provider a sus hijos

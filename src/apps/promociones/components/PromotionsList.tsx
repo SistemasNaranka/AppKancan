@@ -14,9 +14,9 @@ import {
 
 import { useFilteredPromotions } from "../hooks/useFilteredPromotions";
 import { usePromotionsFilter } from "../hooks/usePromotionsFilter";
-import CalendarToday from '@mui/icons-material/CalendarToday';
-import LocalOffer from '@mui/icons-material/LocalOffer';
-import Store from '@mui/icons-material/Store';
+import CalendarToday from "@mui/icons-material/CalendarToday";
+import LocalOffer from "@mui/icons-material/LocalOffer";
+import Store from "@mui/icons-material/Store";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { ViewType } from "../hooks/PromotionsFilterContext";
@@ -39,17 +39,17 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
         return `No hay promociones disponibles para el año ${date.year()}`;
       case "mensual":
         return `No hay promociones disponibles para ${date.format(
-          "MMMM YYYY"
+          "MMMM YYYY",
         )}`;
       case "semanal":
         const weekStart = date.startOf("week");
         const weekEnd = date.endOf("week");
         return `No hay promociones disponibles para la semana del ${weekStart.format(
-          "DD/MM"
+          "DD/MM",
         )} al ${weekEnd.format("DD/MM/YYYY")}`;
       case "dia":
         return `No hay promociones disponibles para el ${date.format(
-          "DD/MM/YYYY"
+          "DD/MM/YYYY",
         )}`;
       default:
         return "No hay promociones que coincidan con los filtros";
@@ -59,7 +59,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
   // ✅ Fechas simplificadas sin errores de zona horaria
   const formatSimplifiedDate = (
     fechaInicio: string,
-    fechaFinal: string | null
+    fechaFinal: string | null,
   ) => {
     const formatDate = (dateStr: string) => {
       const [year, month, day] = dateStr.split("-").map(Number);
@@ -159,11 +159,11 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                       fontSize: "1.25rem",
                     }}
                   >
-                    {promo.descuento}% OFF
+                    {promo.discount}% OFF
                   </Typography>
                 </Box>
                 <Chip
-                  label={promo.tipo}
+                  label={promo.type}
                   size="small"
                   sx={{
                     backgroundColor: color,
@@ -185,7 +185,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                   mt: 0.5,
                 }}
               >
-                {promo.descripcion}
+                {promo.name}
               </Typography>
 
               {/* Fechas */}
@@ -199,7 +199,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                   color="text.secondary"
                   fontWeight="500"
                 >
-                  {formatSimplifiedDate(promo.fecha_inicio, promo.fecha_final)}
+                  {formatSimplifiedDate(promo.start_date, promo.end_date)}
                 </Typography>
               </Box>
 
@@ -214,8 +214,8 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                   color="text.secondary"
                   fontWeight="500"
                 >
-                  {promo.tiendas.length} tienda
-                  {promo.tiendas.length !== 1 ? "s" : ""}
+                  {promo.stores.length} tienda
+                  {promo.stores.length !== 1 ? "s" : ""}
                 </Typography>
               </Box>
 
@@ -292,10 +292,10 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                         color="primary"
                         sx={{ fontSize: { xs: "2rem", sm: "2.5rem" } }}
                       >
-                        {selectedPromo.descuento}% OFF
+                        {selectedPromo.discount}% OFF
                       </Typography>
                       <Chip
-                        label={selectedPromo.tipo}
+                        label={selectedPromo.type}
                         size="medium"
                         sx={{
                           backgroundColor: color,
@@ -315,7 +315,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                         color="text.primary"
                         sx={{ mb: 1 }}
                       >
-                        {selectedPromo.descripcion}
+                        {selectedPromo.name}
                       </Typography>
                       <Typography
                         variant="body2"
@@ -328,7 +328,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                           backgroundColor: `${color}08`,
                         }}
                       >
-                        {selectedPromo.duracion === "temporal"
+                        {selectedPromo.duration === "temporal"
                           ? "Promoción Temporal"
                           : "Promoción Fija"}
                       </Typography>
@@ -351,14 +351,14 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                       </Box>
                       <Typography variant="body1" color="text.primary">
                         {formatSimplifiedDate(
-                          selectedPromo.fecha_inicio,
-                          selectedPromo.fecha_final
+                          selectedPromo.start_date,
+                          selectedPromo.end_date,
                         )}
                       </Typography>
                     </Box>
 
                     {/* Observaciones */}
-                    {selectedPromo.observaciones && (
+                    {selectedPromo.notes && (
                       <Box
                         sx={{
                           p: 2,
@@ -380,7 +380,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                           color="text.primary"
                           lineHeight={1.6}
                         >
-                          {selectedPromo.observaciones}
+                          {selectedPromo.notes}
                         </Typography>
                       </Box>
                     )}
@@ -390,7 +390,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                       <Box display="flex" alignItems="center" gap={1} mb={2}>
                         <Store color="action" />
                         <Typography variant="subtitle1" fontWeight="600">
-                          Tiendas participantes ({selectedPromo.tiendas.length})
+                          Tiendas participantes ({selectedPromo.stores.length})
                         </Typography>
                       </Box>
 
@@ -406,7 +406,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                         }}
                       >
                         {/* Indicador de scroll superior (sombra) */}
-                        {selectedPromo.tiendas.length > 9 && (
+                        {selectedPromo.stores.length > 9 && (
                           <Box
                             sx={{
                               position: "absolute",
@@ -464,7 +464,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                             } rgba(0, 0, 0, 0.05)`,
                           }}
                         >
-                          {selectedPromo.tiendas.map(
+                          {selectedPromo.stores.map(
                             (tienda: string, index: number) => (
                               <Paper
                                 key={`${tienda}-${index}`}
@@ -496,12 +496,12 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
                                   {tienda}
                                 </Typography>
                               </Paper>
-                            )
+                            ),
                           )}
                         </Box>
 
                         {/* Indicador de scroll inferior */}
-                        {selectedPromo.tiendas.length > 9 && (
+                        {selectedPromo.stores.length > 9 && (
                           <Box
                             sx={{
                               position: "absolute",

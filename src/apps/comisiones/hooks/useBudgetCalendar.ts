@@ -33,13 +33,13 @@ export const useBudgetCalendar = (tiendaSeleccionada: number | "", fecha: string
       }
 
       const diasConMetaValida = new Set(
-        presupuestosCasa.filter((p: any) => (p.presupuesto || 0) > 0).map((p: any) => p.fecha)
+        presupuestosCasa.filter((p: any) => (p.budget || 0) > 0).map((p: any) => p.date)
       );
 
       const restrictedDays = diasDelMes.filter((dia: string) => !diasConMetaValida.has(dia));
       setDiasConPresupuestoCero(restrictedDays);
 
-      const diasConAsignacionSet = new Set(presupuestosMes.map((p: any) => p.fecha));
+      const diasConAsignacionSet = new Set(presupuestosMes.map((p: any) => p.date));
       setDiasConAsignacion(Array.from(diasConAsignacionSet));
 
       const diasSinPresupuestoCalculado = diasDelMes.filter(

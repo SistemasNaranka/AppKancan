@@ -39,27 +39,27 @@ export const calculateBaseSale = (
 const DEFAULT_THRESHOLDS = [
   {
     id: "default-1",
-    cumplimiento_min: 90,
-    comision_pct: 0.0035,
-    nombre: "Muy Regular",
+    min_compliance: 90,
+    pct_commission: 0.0035,
+    name: "Muy Regular",
   },
   {
     id: "default-2",
-    cumplimiento_min: 95,
-    comision_pct: 0.005,
-    nombre: "Regular",
+    min_compliance: 95,
+    pct_commission: 0.005,
+    name: "Regular",
   },
   {
     id: "default-3",
-    cumplimiento_min: 100,
-    comision_pct: 0.007,
-    nombre: "Buena",
+    min_compliance: 100,
+    pct_commission: 0.007,
+    name: "Buena",
   },
   {
     id: "default-4",
-    cumplimiento_min: 110,
-    comision_pct: 0.01,
-    nombre: "Excelente",
+    min_compliance: 110,
+    pct_commission: 0.01,
+    name: "Excelente",
   },
 ];
 
@@ -79,12 +79,12 @@ export const getCommissionPercentage = (
       ? thresholdConfig
       : DEFAULT_THRESHOLDS;
 
-  // Ordenar por cumplimiento_min descendente para encontrar el umbral correcto
+  // Ordenar por min_compliance descendente para encontrar el umbral correcto
   const umbral = umbrales
-    .sort((a, b) => b.cumplimiento_min - a.cumplimiento_min)
-    .find((u) => compliance >= u.cumplimiento_min);
+    .sort((a, b) => b.min_compliance - a.min_compliance)
+    .find((u) => compliance >= u.min_compliance);
 
-  return umbral?.comision_pct || 0;
+  return umbral?.pct_commission || 0;
 };
 
 /**

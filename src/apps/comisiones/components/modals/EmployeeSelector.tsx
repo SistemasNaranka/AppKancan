@@ -14,17 +14,17 @@ import {
 import Person from '@mui/icons-material/Person';
 import Search from '@mui/icons-material/Search';
 import { EmployeeInfoCard } from "./EmployeeInfoCard";
-import { DirectusCargo, DirectusAsesor } from "../../types/modal";
+import { DirectusPosition, DirectusStaff } from "../../types/modal";
 
 interface EmployeeSelectorProps {
   codigoInput: string;
   cargoSeleccionado: string;
-  cargosDisponibles: DirectusCargo[];
-  cargosFiltrados: DirectusCargo[];
+  cargosDisponibles: DirectusPosition[];
+  cargosFiltrados: DirectusPosition[];
   loading: boolean;
   saving: boolean;
   codigoInputRef: React.RefObject<HTMLInputElement>;
-  empleadoEncontrado: DirectusAsesor | null;
+  empleadoEncontrado: DirectusStaff | null;
   onCodigoInputChange: (value: string) => void;
   onCargoSeleccionadoChange: (value: string) => void;
   onAddEmpleado: () => void;
@@ -63,12 +63,12 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
   useEffect(() => {
     if (cargosFiltrados.length > 0 && !cargoSeleccionado) {
       const asesorCargo = cargosFiltrados.find(
-        (c) => c.nombre.toLowerCase() === "asesor"
+        (c) => c.name.toLowerCase() === "asesor"
       );
       if (asesorCargo) {
         onCargoSeleccionadoChange("asesor");
       } else {
-        onCargoSeleccionadoChange(cargosFiltrados[0].nombre.toLowerCase());
+        onCargoSeleccionadoChange(cargosFiltrados[0].name.toLowerCase());
       }
     }
   }, [cargosFiltrados, cargoSeleccionado, onCargoSeleccionadoChange]);
@@ -168,7 +168,7 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
                 .map((cargo) => (
                   <MenuItem
                     key={cargo.id}
-                    value={cargo.nombre.toLowerCase()}
+                    value={cargo.name.toLowerCase()}
                     sx={{ py: 1.5 }}
                   >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -180,7 +180,7 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
                           backgroundColor: theme.palette.primary.main,
                         }}
                       />
-                      {cargo.nombre}
+                      {cargo.name}
                     </Box>
                   </MenuItem>
                 ))}

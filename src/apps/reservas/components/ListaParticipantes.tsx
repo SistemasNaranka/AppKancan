@@ -11,8 +11,8 @@ import {
 import { buscarUsuarios } from "../services/reservas";
 
 interface Participante {
-  nombre: string;
-  correo: string;
+  name: string;
+  email: string;
 }
 
 interface ListaParticipantesProps {
@@ -31,8 +31,8 @@ export const ListaParticipantes: React.FC<ListaParticipantesProps> = ({ fields, 
 
   const handleAddParticipante = () => {
     if (tempNombre.trim() && tempCorreo.trim()) {
-      if (!fields.some(f => f.correo === tempCorreo)) {
-        append({ nombre: tempNombre, correo: tempCorreo });
+      if (!fields.some(f => f.email === tempCorreo)) {
+        append({ name: tempNombre, email: tempCorreo });
         setTempNombre("");
         setTempCorreo("");
       }
@@ -128,8 +128,8 @@ export const ListaParticipantes: React.FC<ListaParticipantesProps> = ({ fields, 
               <PersonIcon sx={{ fontSize: 18 }} />
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem", color: "#1f2937" }} noWrap>{field.nombre}</Typography>
-              <Typography variant="caption" sx={{ color: "#6b7280" }} noWrap>{field.correo}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem", color: "#1f2937" }} noWrap>{field.name}</Typography>
+              <Typography variant="caption" sx={{ color: "#6b7280" }} noWrap>{field.email}</Typography>
             </Box>
             <IconButton size="small" onClick={() => remove(index)} disabled={loading} sx={{ color: "#9ca3af", "&:hover": { color: "#ef4444" } }}>
               <DeleteIcon sx={{ fontSize: 18 }} />

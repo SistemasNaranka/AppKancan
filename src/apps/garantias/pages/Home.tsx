@@ -23,84 +23,26 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 
-import { GarantiaStatsCards } from "../components/GarantiaStatsCards";
+import { WarrantyStatsCards } from "../components/GarantiaStatsCards";
 import { GarantiaTable } from "../components/GarantiaTable";
 import { GarantiaForm } from "../components/GarantiaForm";
 import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
-import { GarantiaDetail } from "../components/GarantiaDetail";
+import { WarrantyDetail } from "../components/GarantiaDetail";
 
 import {
-  useGarantias,
-  useGarantiaStats,
-  useCrearGarantia,
-  useActualizarGarantia,
-  useEliminarGarantia,
+  useWarranties,
+  useWarrantyStats,
+  useCreateWarranty,
+  useUpdateWarranty,
+  useDeleteWarranty,
 } from "../hooks/useGarantias";
-
-// ── Types ────────────────────────────────────────────────────────────────────
-interface GarantiaFilters {
-  estado?: string[];
-  tipo_garantia?: string[];
-  fecha_inicio?: string;
-  fecha_fin?: string;
-  search?: string;
-  tienda_id?: number;
-}
-
-interface PaginationParams {
-  page: number;
-  limit: number;
-  sort?: string;
-  order?: "asc" | "desc";
-}
-
-interface DirectusGarantia {
-  id: number;
-  cliente_nombre: string;
-  cliente_documento: string;
-  cliente_telefono: string;
-  cliente_email?: string;
-  cliente_direccion?: string;
-  producto_nombre: string;
-  producto_referencia: string;
-  producto_sku?: string;
-  producto_tienda_id?: number;
-  producto_tienda_nombre?: string;
-  numero_factura?: string;
-  fecha_compra?: string;
-  valor_compra?: number;
-  tipo_garantia: string;
-  descripcion_problema: string;
-  fecha_solicitud: string;
-  fecha_vence_garantia?: string;
-  estado: string;
-  nota_interna?: string;
-  resolucion?: string;
-  fecha_resolucion?: string;
-}
-
-interface CreateGarantia {
-  cliente_nombre: string;
-  cliente_documento: string;
-  cliente_telefono: string;
-  cliente_email?: string;
-  cliente_direccion?: string;
-  producto_nombre: string;
-  producto_referencia: string;
-  producto_sku?: string;
-  numero_factura?: string;
-  fecha_compra?: string;
-  valor_compra?: number;
-  tipo_garantia: string;
-  descripcion_problema: string;
-  fecha_solicitud: string;
-  fecha_vence_garantia?: string;
-  estado: string;
-}
-
-interface UpdateGarantia {
-  [key: string]: string | number | undefined;
-}
+import type {
+  GarantiaFilters,
+  PaginationParams,
+  Garantia as DirectusGarantia,
+  CreateGarantia,
+  UpdateGarantia,
+} from "../types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DEFAULT_PAGE = 0;
@@ -150,14 +92,14 @@ export default function Home() {
   // ── Active tab state ───────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState(0);
 
-  // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: garantiasData, isLoading: isLoadingGarantias } = useGarantias(filters, pagination);
-  const { data: stats, isLoading: isLoadingStats } = useGarantiaStats(filters);
+   // ── Queries ────────────────────────────────────────────────────────────────
+   const { data: garantiasData, isLoading: isLoadingGarantias } = useWarranties(filters, pagination);
+   const { data: stats, isLoading: isLoadingStats } = useWarrantyStats(filters);
 
   // ── Mutations ──────────────────────────────────────────────────────────────
-  const crearGarantia      = useCrearGarantia();
-  const actualizarGarantia = useActualizarGarantia();
-  const eliminarGarantia   = useEliminarGarantia();
+  const crearGarantia      = useCreateWarranty();
+  const actualizarGarantia = useUpdateWarranty();
+  const eliminarGarantia   = useDeleteWarranty();
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -277,7 +219,7 @@ export default function Home() {
       </Box>
 
       {/* ── Stat Cards (componente existente) ───────────────────────────────── */}
-      <GarantiaStatsCards stats={stats} isLoading={isLoadingStats} />
+      <WarrantyStatsCards stats={stats} isLoading={isLoadingStats} />
 
       {/* ── Segmented Tabs ──────────────────────────────────────────────────── */}
       <Box
@@ -572,7 +514,7 @@ export default function Home() {
         isLoading={eliminarGarantia.isPending}
       />
 
-      <GarantiaDetail
+      <WarrantyDetail
         open={detailModalOpen}
         garantia={selectedGarantia}
         onClose={() => setDetailModalOpen(false)}

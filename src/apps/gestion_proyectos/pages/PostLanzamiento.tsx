@@ -1,3 +1,4 @@
+// src/apps/gestion_proyectos/pages/PostLanzamiento.tsx
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -23,7 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import {  getProjectById } from "../hooks/useProyectos";
+import { useProjectById } from "../hooks/useProjects";
 import {
   createFeedback,
   updateFeedback,
@@ -32,7 +33,7 @@ import {
 import type { Feedback, CreateFeedbackInput } from "../types";
 import { useGlobalSnackbar } from "../../../shared/components/SnackbarsPosition/SnackbarContext";
 
-// Header container con margen y border-radius
+// Header container with margin and border-radius
 const HeaderContainer = styled(Box)({
   margin: '24px 0',
   padding: '20px 24px',
@@ -43,105 +44,104 @@ const HeaderContainer = styled(Box)({
 
 interface FeedbackForm {
   id?: string;
-  autor: string;
-  descripcion: string;
+  author: string;
+  description: string;
 }
 
-export default function PostLanzamiento() {
+export default function PostLaunch() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { proyecto, loading, error, recargar } =  getProjectById(id!);
+  const { project, loading, error, reload } = useProjectById(id!);
   const { showSnackbar } = useGlobalSnackbar();
 
   const [formData, setFormData] = useState<FeedbackForm>({
-    autor: "",
-    descripcion: "",
+    author: "",
+    description: "",
   });
-  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Función helper para actualizar el formData manteniendo los valores existentes
   const updateFormField = <K extends keyof FeedbackForm>(field: K, value: FeedbackForm[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
-  const [guardando, setGuardando] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [beneficioToDelete, setBeneficioToDelete] = useState<string | null>(null);
+  const [feedbackToDelete, setFeedbackToDelete] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !formData.descripcion.trim()) return;
+    if (!id || !formData.description.trim()) return;
 
-    setGuardando(true);
+    setIsSaving(true);
 
     try {
-      if (editandoId) {
-        const ok = await updateFeedback(editandoId, {
-          autor: formData.autor,
-          descripcion: formData.descripcion,
+      if (editingId) {
+        const ok = await updateFeedback(editingId, {
+          author: formData.author,
+          description: formData.description,
         });
         if (!ok) throw new Error("No se pudo actualizar");
         showSnackbar("¡Feedback actualizado exitosamente!", "success");
       } else {
-        const data: CreateFeedbackInput = {
-          proyecto_id: id,
-          autor: formData.autor,
-          descripcion: formData.descripcion,
+        const inputData: CreateFeedbackInput = {
+          project_id: id,
+          author: formData.author,
+          description: formData.description,
         };
-        const result = await createFeedback(data);
+        const result = await createFeedback(inputData);
         if (!result) throw new Error("No se pudo crear");
         showSnackbar("¡Feedback agregado exitosamente!", "success");
       }
 
-      setFormData({ autor: "", descripcion: "" });
-      setEditandoId(null);
-      recargar();
+      setFormData({ author: "", description: "" });
+      setEditingId(null);
+      reload();
     } catch (err) {
       console.error("Error:", err);
       showSnackbar("Error al guardar el feedback", "error");
     } finally {
-      setGuardando(false);
+      setIsSaving(false);
     }
   };
 
-  const handleEditar = (feedback: Feedback) => {
+  const handleEdit = (feedback: Feedback) => {
     setFormData({
       id: feedback.id,
-      autor: feedback.autor,
-      descripcion: feedback.descripcion,
+      author: feedback.author,
+      description: feedback.description,
     });
-    setEditandoId(feedback.id);
+    setEditingId(feedback.id);
   };
 
-  const handleEliminar = async () => {
-    if (!beneficioToDelete) return;
+  const handleRemove = async () => {
+    if (!feedbackToDelete) return;
 
     try {
-      const ok = await deleteFeedback(beneficioToDelete);
+      const ok = await deleteFeedback(feedbackToDelete);
       if (!ok) throw new Error("No se pudo eliminar");
       showSnackbar("Feedback eliminado exitosamente", "success");
-      recargar();
+      reload();
     } catch (err) {
       console.error("Error:", err);
       showSnackbar("Error al eliminar el feedback", "error");
     } finally {
       setModalOpen(false);
-      setBeneficioToDelete(null);
+      setFeedbackToDelete(null);
     }
   };
 
-  const handleOpenDeleteModal = (beneficioId: string) => {
-    setBeneficioToDelete(beneficioId);
+  const handleOpenDeleteModal = (feedbackId: string) => {
+    setFeedbackToDelete(feedbackId);
     setModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setModalOpen(false);
-    setBeneficioToDelete(null);
+    setFeedbackToDelete(null);
   };
 
-  const handleCancelar = () => {
-    setFormData({ autor: "", descripcion: "" });
-    setEditandoId(null);
+  const handleCancel = () => {
+    setFormData({ author: "", description: "" });
+    setEditingId(null);
   };
 
   if (loading) {
@@ -157,7 +157,7 @@ export default function PostLanzamiento() {
     );
   }
 
-  if (error || !proyecto) {
+  if (error || !project) {
     return (
       <Box p={3}>
         <Alert severity="error">Error al cargar el proyecto</Alert>
@@ -185,15 +185,15 @@ export default function PostLanzamiento() {
             Post-Lanzamiento
           </Typography>
           <Typography variant="subtitle2" color="text.secondary">
-            {proyecto.nombre}
+            {project.name}
           </Typography>
         </Box>
       </HeaderContainer>
 
-      {/* Formulario */}
-      <Paper sx={{ p: 3, mb: 3, }}>
+      {/* Form */}
+      <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          {editandoId
+          {editingId
             ? "Editar Feedback"
             : "Agregar Feedback"}
         </Typography>
@@ -201,8 +201,8 @@ export default function PostLanzamiento() {
           <TextField
             fullWidth
             label="Autor"
-            value={formData.autor}
-            onChange={(e) => updateFormField('autor', e.target.value)}
+            value={formData.author}
+            onChange={(e) => updateFormField('author', e.target.value)}
             sx={{ mb: 2 }}
             required
           />
@@ -211,8 +211,8 @@ export default function PostLanzamiento() {
             label="Descripción del feedback"
             multiline
             rows={3}
-            value={formData.descripcion}
-            onChange={(e) => updateFormField('descripcion', e.target.value)}
+            value={formData.description}
+            onChange={(e) => updateFormField('description', e.target.value)}
             sx={{ mb: 2 }}
             required
           />
@@ -221,18 +221,18 @@ export default function PostLanzamiento() {
               type="submit"
               variant="contained"
               startIcon={
-                guardando ? (
+                isSaving ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : (
                   <AddIcon />
                 )
               }
-              disabled={guardando || !formData.autor.trim() || !formData.descripcion.trim()}
+              disabled={isSaving || !formData.author.trim() || !formData.description.trim()}
             >
-              {editandoId ? "Actualizar" : "Agregar"}
+              {editingId ? "Actualizar" : "Agregar"}
             </Button>
-            {editandoId && (
-              <Button variant="outlined" onClick={handleCancelar}>
+            {editingId && (
+              <Button variant="outlined" onClick={handleCancel}>
                 Cancelar
               </Button>
             )}
@@ -240,29 +240,28 @@ export default function PostLanzamiento() {
         </form>
       </Paper>
 
-      {/* Lista de feedbacks */}
+      {/* Feedback list */}
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
-        Feedback ({proyecto.feedbacks?.length || 0})
+        Feedback ({project.feedbacks?.length || 0})
         </Typography>
-        {proyecto.feedbacks && proyecto.feedbacks.length > 0 ? (
+        {project.feedbacks && project.feedbacks.length > 0 ? (
           <List>
-            {proyecto.feedbacks.map((feedback, ) => (
-              <ListItem sx={{ backgroundColor: "#f3f4f6", boxShadow: "none", borderRadius: 2, }}
-                key={feedback.id}
-                divider
+            {project.feedbacks.map((f) => (
+              <ListItem sx={{ backgroundColor: "#f3f4f6", boxShadow: "none", borderRadius: 2, mb: 1 }}
+                key={f.id}
                 secondaryAction={
                   <Box>
                     <IconButton
                       edge="end"
-                      onClick={() => handleEditar(feedback)}
+                      onClick={() => handleEdit(f)}
                       sx={{ mr: 1 }}
                     >
                       <EditIcon />
                     </IconButton>
                     <IconButton
                       edge="end"
-                      onClick={() => handleOpenDeleteModal(feedback.id)}
+                      onClick={() => handleOpenDeleteModal(f.id)}
                       color="error"
                     >
                       <DeleteIcon />
@@ -271,8 +270,8 @@ export default function PostLanzamiento() {
                 }
               >
                 <ListItemText
-                  primary={feedback.descripcion}
-                  secondary={`Por: ${feedback.autor}`}
+                  primary={f.description}
+                  secondary={`Por: ${f.author}`}
                 />
               </ListItem>
             ))}
@@ -284,7 +283,7 @@ export default function PostLanzamiento() {
         )}
       </Paper>
 
-      {/* Modal de confirmación de eliminación */}
+      {/* Delete confirmation modal */}
       <Dialog
         open={modalOpen}
         onClose={handleCloseModal}
@@ -303,7 +302,7 @@ export default function PostLanzamiento() {
           <Button onClick={handleCloseModal} color="primary">
             Cancelar
           </Button>
-          <Button onClick={handleEliminar} color="error" variant="contained">
+          <Button onClick={handleRemove} color="error" variant="contained">
             Eliminar
           </Button>
         </DialogActions>

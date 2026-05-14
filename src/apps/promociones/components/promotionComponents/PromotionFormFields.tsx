@@ -59,7 +59,8 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
   onObservacionesChange,
 }) => {
   const availablePromotionTypes = useMemo(
-    () => tiposPromocion.filter((tipo) => tipo.duracion === duracion),
+    () => tiposPromocion.filter((tipo) => tipo.duration === duracion),
+
     [tiposPromocion, duracion]
   );
 
@@ -109,10 +110,12 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
                       width: 16,
                       height: 16,
                       borderRadius: "50%",
-                      bgcolor: tipo.color || "#cccccc",
+                      bgcolor: tipo.color_code || "#cccccc",
+
                     }}
                   />
-                  {tipo.nombre}
+                  {tipo.name}
+
                 </Box>
               </MenuItem>
             ))
@@ -126,7 +129,8 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
         label="Nombre de la Promoción"
         value={nombre}
         onChange={(e) => onNombreChange(e.target.value)}
-        placeholder={`Ej: Promoción ${tipoSeleccionado?.nombre || ""} 2025`}
+        placeholder={`Ej: Promoción ${tipoSeleccionado?.name || ""} 2025`}
+
         required
         autoFocus
       />
@@ -136,7 +140,9 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
         <DatePicker
           label="Fecha de Inicio"
           value={fechaInicio}
-          onChange={onFechaInicioChange}
+          onChange={(value) => onFechaInicioChange(value as Dayjs | null)}
+
+
           slotProps={{
             textField: {
               fullWidth: true,
@@ -149,7 +155,9 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
         <DatePicker
           label="Fecha Final"
           value={fechaFinal}
-          onChange={onFechaFinalChange}
+          onChange={(value) => onFechaFinalChange(value as Dayjs | null)}
+
+
           disabled={duracion === "fija"}
           minDate={fechaInicio ? fechaInicio.add(0, "day") : dayjs()}
           slotProps={{
@@ -170,7 +178,9 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
         <TimePicker
           label="Hora de Inicio"
           value={horaInicio}
-          onChange={onHoraInicioChange}
+          onChange={(value) => onHoraInicioChange(value as Dayjs | null)}
+
+
           slotProps={{
             textField: {
               fullWidth: true,
@@ -182,7 +192,9 @@ export const PromotionFormFields: React.FC<PromotionFormFieldsProps> = ({
         <TimePicker
           label="Hora Final"
           value={horaFinal}
-          onChange={onHoraFinalChange}
+          onChange={(value) => onHoraFinalChange(value as Dayjs | null)}
+
+
           disabled={duracion === "fija"}
           slotProps={{
             textField: {

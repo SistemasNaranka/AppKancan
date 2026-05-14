@@ -131,7 +131,7 @@ const TABS = [
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
-export default function GestionGarantias() {
+export default function WarrantyManagement() {
   const [activeTab, setActiveTab] = useState(1);
   const [priority, setPriority] = useState("Media");
   const [dateRange, setDateRange] = useState("30d");

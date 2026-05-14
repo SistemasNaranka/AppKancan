@@ -22,6 +22,8 @@ import {
   IconButton,
   CircularProgress,
   Avatar,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import {
   Schedule as ScheduleIcon,
@@ -55,6 +57,8 @@ import {
   getConfiguracionReserva,
   buscarUsuarios,
 } from "../services/reservas";
+
+import { notificarCorreoReserva } from "../services/correoReservas";
 
 
 // ================================
@@ -223,6 +227,9 @@ const DialogEditarReserva: React.FC<
   const searchTimeout =
     useRef<NodeJS.Timeout | null>(null);
 
+  // Toggle: enviar correo de actualización al editar reserva (default ON).
+  const [enviarCorreo, setEnviarCorreo] = useState<boolean>(true);
+
 
   // ================================
   // MEMOS
@@ -270,31 +277,31 @@ const DialogEditarReserva: React.FC<
   const schema = useMemo(
     () =>
       yup.object({
-        nombre_sala: yup
+        room_name: yup
           .string()
           .required(
             "Selecciona una sala",
           ),
 
-        fecha: yup
+        date: yup
           .string()
           .required(
             "Selecciona una fecha",
           ),
 
-        hora_inicio: yup
+        start_time: yup
           .string()
           .required(
             "Selecciona hora de inicio",
           ),
 
-        hora_final: yup
+        end_time: yup
           .string()
           .required(
             "Selecciona hora de fin",
           ),
 
-        titulo: yup
+        meeting_title: yup
           .string()
           .required(
             "El título es obligatorio",
@@ -308,22 +315,22 @@ const DialogEditarReserva: React.FC<
             "Máximo 100 caracteres",
           ),
 
-        observaciones: yup
+        observations: yup
           .string()
           .max(
             500,
             "Máximo 500 caracteres",
           ),
 
-        participantes: yup.array().of(
+        participants: yup.array().of(
           yup.object({
-            nombre: yup
+            name: yup
               .string()
               .required(
                 "El nombre es obligatorio",
               ),
 
-            correo: yup
+            email: yup
               .string()
               .matches(
                 EMAIL_REGEX,
@@ -354,14 +361,14 @@ const DialogEditarReserva: React.FC<
     resolver:
       yupResolver(schema),
     defaultValues: {
-      nombre_sala: "" as Sala,
-      fecha: "",
-      hora_inicio:
+      room_name: "" as Sala,
+      date: "",
+      start_time:
         horarioConfig.horaApertura,
-      hora_final: "",
-      titulo: "",
-      observaciones: "",
-      participantes: [],
+      end_time: "",
+      meeting_title: "",
+      observations: "",
+      participants: [],
     },
   });
 
@@ -371,7 +378,7 @@ const DialogEditarReserva: React.FC<
     remove,
   } = useFieldArray({
     control,
-    name: "participantes",
+    name: "participants",
   });
 
 
@@ -380,13 +387,24 @@ const DialogEditarReserva: React.FC<
   // ================================
 
   const horaInicioWatch =
-    watch("hora_inicio");
+    watch("start_time");
 
   const horaFinalWatch =
-    watch("hora_final");
+    watch("end_time");
 
   const observacionesWatch =
-    watch("observaciones");
+    watch("observations");
+
+  const caracteresObservaciones = observacionesWatch?.length || 0;
+  const caracteresRestantes = 500 - caracteresObservaciones;
+  const aproximandoLimite = caracteresObservaciones >= 450;
+
+  const shouldDisableDate = (day: Date | any) => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const date = day instanceof Date ? day : (day?.toDate?.() ?? new Date(day));
+    return date < hoy;
+  };
 
 
   // ================================
@@ -405,14 +423,14 @@ const DialogEditarReserva: React.FC<
           if (config) {
             setHorarioConfig({
               horaApertura:
-                config.hora_apertura?.substring(
+                config.opening_time?.substring(
                   0,
                   5,
                 ) ||
                 HORARIO_INICIO,
 
               horaCierre:
-                config.hora_cierre?.substring(
+                config.closing_time?.substring(
                   0,
                   5,
                 ) ||
@@ -436,6 +454,32 @@ const DialogEditarReserva: React.FC<
     }
   }, [open]);
 
+  // FIX: cargar los datos de la reserva en el formulario al abrir el modal.
+  // Sin este effect, el form quedaba con los defaultValues (vacíos) y el modal
+  // parecía no funcionar.
+  useEffect(() => {
+    if (!open || !reserva) return;
+
+    // Normalizar participantes: aceptar tanto {nombre, correo} como {nombre, email}
+    const participantesNormalizados = Array.isArray(reserva.participants)
+      ? reserva.participants.map((p: any) => ({
+          name: p?.name ?? "",
+          email: p?.email ?? p?.email ?? "",
+        }))
+      : [];
+
+    reset({
+      date: reserva.date,
+      start_time: (reserva.start_time || "").substring(0, 5),
+      end_time: (reserva.end_time || "").substring(0, 5),
+      meeting_title: reserva.meeting_title ?? "",
+      observations  : reserva.observations ?? "",
+      participants: participantesNormalizados,
+    });
+    setHoraInicioSeleccionada((reserva.start_time || "").substring(0, 5));
+    setError(null);
+  }, [open, reserva, reset]);
+
 
   // ================================
   // HANDLERS
@@ -450,13 +494,13 @@ const DialogEditarReserva: React.FC<
         if (
           !fields.some(
             (f) =>
-              f.correo ===
+              (f as any).email ===
               tempCorreo,
           )
         ) {
           append({
-            nombre: tempNombre,
-            correo: tempCorreo,
+            name: tempNombre,
+            email: tempCorreo,
           });
 
           setTempNombre("");
@@ -519,7 +563,7 @@ const DialogEditarReserva: React.FC<
   ) => {
     if (newSala) {
       setValue(
-        "nombre_sala",
+        "room_name",
         newSala,
       );
     }
@@ -530,7 +574,7 @@ const DialogEditarReserva: React.FC<
   ) => {
     if (date) {
       setValue(
-        "fecha",
+        "date",
         format(
           date,
           "yyyy-MM-dd",
@@ -557,10 +601,10 @@ const DialogEditarReserva: React.FC<
         ) {
           const hayConflicto =
             await verificarConflicto(
-              data.nombre_sala,
-              data.fecha,
-              data.hora_inicio,
-              data.hora_final,
+              data.room_name,
+              data.date,
+              data.start_time,
+              data.end_time,
               reserva.id,
             );
 
@@ -579,25 +623,53 @@ const DialogEditarReserva: React.FC<
           }
         }
 
-        await onSubmit(
-          reserva.id,
-          {
-            nombre_sala:
-              data.nombre_sala,
-            fecha: data.fecha,
-            hora_inicio:
-              data.hora_inicio,
-            hora_final:
-              data.hora_final,
-            titulo_reunion:
-              data.titulo,
-            observaciones:
-              data.observaciones?.trim() ||
-              "",
-            participantes:
-              data.participantes,
-          },
-        );
+        const payloadActualizacion = {
+          room_name: data.room_name,
+          date: data.date,
+          start_time: data.start_time,
+          end_time: data.end_time,
+          meeting_title: data.meeting_title,
+          observations: data.observations?.trim() || "",
+          participantes: data.participants,
+        };
+
+        await onSubmit(reserva.id, payloadActualizacion);
+
+        // Notificación n8n post-edición. Solo si el toggle está activo.
+        // No bloquea: si falla, solo logea (la edición ya quedó en BD).
+        if (enviarCorreo) {
+          // Detectar qué cambió respecto a la reserva original.
+          const cambios = {
+            sala: reserva.meeting_title !== data.meeting_title,
+            fecha: reserva.date !== data.date,
+            hora_inicio: (reserva.start_time || "").substring(0, 5) !== data.start_time,
+            hora_final: (reserva.end_time || "").substring(0, 5) !== data.end_time,
+            titulo: (reserva.meeting_title || "") !== data.meeting_title,
+          };
+          try {
+            const result = await notificarCorreoReserva({
+              evento: "reserva_actualizada",
+              reserva: payloadActualizacion,
+              // Campos extra fuera del type para que n8n los reciba
+              ...({
+                reserva_anterior: {
+                  nombre_sala: reserva.meeting_title,
+                  fecha: reserva.date,
+                  hora_inicio: (reserva.start_time || "").substring(0, 5),
+                  hora_final: (reserva.end_time || "").substring(0, 5),
+                  titulo_reunion: reserva.meeting_title,
+                },
+                cambios,
+                reserva_id: reserva.id,
+              } as any),
+            });
+            console.info("[n8n] correo edición enviado OK:", result);
+          } catch (err) {
+            console.warn("[n8n] correo edición NO enviado:", err);
+          }
+        } else {
+          console.info("[n8n] envío de correo de edición desactivado");
+        }
 
         handleClose();
       } catch (err: any) {
@@ -626,14 +698,486 @@ const DialogEditarReserva: React.FC<
     >
       <Dialog
         open={open}
-        onClose={
-          handleClose
-        }
-        maxWidth="lg"
+        onClose={handleClose}
+        maxWidth="md"
         fullWidth
+        PaperProps={{ sx: { borderRadius: 3, maxWidth: 900 } }}
       >
-        <DialogContent>
-          {/* Mantener JSX original exacto */}
+        <DialogContent sx={{ p: 0 }}>
+          {/* Header */}
+          <Box sx={{ p: 3, pb: 2 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}>
+              Editar Reservación
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#6b7280" }}>
+              <ScheduleIcon sx={{ fontSize: 16 }} />
+              <Typography variant="body2">
+                Modifique los detalles de su reservación.
+              </Typography>
+            </Box>
+          </Box>
+
+          <form onSubmit={handleSubmit(onFormSubmit)}>
+            <Box sx={{ px: 3, pb: 3 }}>
+              {error && (
+                <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
+              )}
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", md: "1.2fr 1fr" },
+                  gap: 3,
+                  p: 3,
+                  backgroundColor: "#f9fafb",
+                  borderRadius: 2,
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                {/* Columna izquierda */}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {/* Título */}
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                      Título de la Reunión *
+                    </Typography>
+                    <Controller
+                      name="meeting_title"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          placeholder="ej. Sincronización Semanal"
+                          error={!!errors.meeting_title}
+                          helperText={errors.meeting_title?.message}
+                          disabled={loading}
+                          size="small"
+                          sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "white" } }}
+                        />
+                      )}
+                    />
+                  </Box>
+
+                  {/* Sala */}
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                      Seleccionar Sala *
+                    </Typography>
+                    <Controller
+                      name="room_name"
+                      control={control}
+                      render={({ field }) => (
+                        <ToggleButtonGroup
+                          value={field.value}
+                          exclusive
+                          onChange={handleSalaChange}
+                          fullWidth
+                          sx={{
+                            "& .MuiToggleButton-root": {
+                              flex: 1,
+                              py: 1,
+                              textTransform: "none",
+                              fontWeight: 500,
+                              fontSize: "0.875rem",
+                              border: "1px solid #d1d5db",
+                              backgroundColor: "white",
+                              "&.Mui-selected": {
+                                backgroundColor: "#EFF6FF",
+                                borderColor: "#3B82F6",
+                                color: "#1D4ED8",
+                                "&:hover": { backgroundColor: "#DBEAFE" },
+                              },
+                              "&:hover": { backgroundColor: "#f9fafb" },
+                            },
+                          }}
+                        >
+                          {SALAS_DISPONIBLES.map((sala) => (
+                            <ToggleButton key={sala} value={sala} disabled={loading}>
+                              {sala} ({INFO_SALAS[sala]})
+                            </ToggleButton>
+                          ))}
+                        </ToggleButtonGroup>
+                      )}
+                    />
+                    {errors.meeting_title && (
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+                        {errors.meeting_title.message}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {/* Horas */}
+                  <Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 2,
+                        p: 1.5,
+                        backgroundColor: "#EFF6FF",
+                        borderRadius: 1,
+                        border: "1px solid #BFDBFE",
+                      }}
+                    >
+                      <InfoIcon sx={{ color: "#3B82F6", fontSize: 20 }} />
+                      <Typography variant="body2" sx={{ color: "#1E40AF" }}>
+                        Horario disponible:{" "}
+                        <strong>{formatearHoraLegible(horarioConfig.horaApertura)}</strong> a{" "}
+                        <strong>{formatearHoraLegible(horarioConfig.horaCierre)}</strong>
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                          Hora de Inicio *
+                        </Typography>
+                        <Controller
+                          name="start_time"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth error={!!errors.start_time}>
+                              <Select
+                                {...field}
+                                disabled={loading || configCargando}
+                                size="small"
+                                sx={{ backgroundColor: "white" }}
+                              >
+                                {opcionesHora.map((opcion) => (
+                                  <MenuItem key={opcion.value} value={opcion.value}>
+                                    {opcion.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              {errors.start_time && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                                  {errors.start_time.message}
+                                </Typography>
+                              )}
+                            </FormControl>
+                          )}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                          Hora de Fin *
+                        </Typography>
+                        <Controller
+                          name="end_time"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth error={!!errors.start_time}>
+                              <Select
+                                {...field}
+                                disabled={loading || configCargando}
+                                size="small"
+                                sx={{ backgroundColor: "white" }}
+                              >
+                                {opcionesHoraFinal.map((opcion) => (
+                                  <MenuItem key={opcion.value} value={opcion.value}>
+                                    {opcion.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              {errors.start_time && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                                  {errors.start_time.message}
+                                </Typography>
+                              )}
+                            </FormControl>
+                          )}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Participantes */}
+                  <Box>
+                    <Box sx={{ p: 1.8, bgcolor: "#F9FAFB", borderRadius: 2, border: "1px solid #E5E7EB", mb: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#374151", mb: 1.2, fontSize: "0.85rem" }}>
+                        Editar Participantes
+                      </Typography>
+
+                      <Box sx={{ display: "flex", gap: 2, mb: 0.5, alignItems: "flex-end" }}>
+                        <TextField
+                          placeholder="Nombre"
+                          variant="standard"
+                          size="small"
+                          fullWidth
+                          value={tempNombre}
+                          onChange={(e) => setTempNombre(e.target.value)}
+                          sx={{ flex: 1 }}
+                        />
+                        <Autocomplete
+                          freeSolo
+                          options={usuariosSugeridos}
+                          getOptionLabel={(option) =>
+                            typeof option === "string" ? option : option.email
+                          }
+                          loading={buscandoUsuarios}
+                          onInputChange={(_, valor) => {
+                            setTempCorreo(valor);
+                            handleBuscarUsuarios(valor);
+                          }}
+                          onChange={(_, data) => {
+                            if (data && typeof data !== "string") {
+                              // Sobreescribir nombre + correo siempre que se elija
+                              // un usuario del dropdown (corrige bug de nombre stale).
+                              setTempCorreo(data.email);
+                              setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
+                            } else if (typeof data === "string") {
+                              setTempCorreo(data);
+                            } else if (data === null) {
+                              setTempCorreo("");
+                              setTempNombre("");
+                            }
+                          }}
+                          value={tempCorreo}
+                          sx={{ flex: 2 }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Correo"
+                              variant="standard"
+                              size="small"
+                              fullWidth
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {buscandoUsuarios ? <CircularProgress color="inherit" size={16} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={handleAddParticipante}
+                          disabled={!tempNombre || !tempCorreo}
+                          sx={{
+                            minWidth: "auto",
+                            px: 3,
+                            textTransform: "none",
+                            bgcolor: "#3B82F6",
+                            "&:hover": { bgcolor: "#2563EB" },
+                            boxShadow: "none",
+                            borderRadius: 1.5,
+                            height: 32,
+                          }}
+                        >
+                          Agregar
+                        </Button>
+                      </Box>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        maxHeight: 200,
+                        overflowY: "auto",
+                        pr: 1,
+                        "::-webkit-scrollbar": { width: "6px" },
+                        "::-webkit-scrollbar-thumb": {
+                          backgroundColor: "#e5e7eb",
+                          borderRadius: "10px",
+                        },
+                      }}
+                    >
+                      {fields.map((field, index) => (
+                        <Box
+                          key={field.id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.5,
+                            py: 0.8,
+                            borderBottom: "1px solid #f3f4f6",
+                            "&:last-child": { borderBottom: "none" },
+                          }}
+                        >
+                          <Avatar sx={{ width: 30, height: 30, bgcolor: "#EFF6FF", color: "#3B82F6" }}>
+                            <PersonIcon sx={{ fontSize: 18 }} />
+                          </Avatar>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#1f2937", fontSize: "0.85rem", lineHeight: 1.2 }} noWrap>
+                              {(field as any).nombre}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.75rem", display: "block" }} noWrap>
+                              {(field as any).correo}
+                            </Typography>
+                          </Box>
+                          <IconButton
+                            size="small"
+                            onClick={() => remove(index)}
+                            sx={{ color: "#9ca3af", p: 0.5, "&:hover": { color: "#ef4444" } }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Box>
+                      ))}
+                      {fields.length === 0 && (
+                        <Box sx={{ py: 3, textAlign: "center", bgcolor: "#f9fafb", borderRadius: 2, border: "1px dashed #d1d5db" }}>
+                          <Typography variant="body2" sx={{ color: "#9ca3af", fontStyle: "italic", fontSize: "0.8rem" }}>
+                            No hay invitados en la lista
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Columna derecha - Calendario */}
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                    Fecha *
+                  </Typography>
+                  <Box
+                    sx={{
+                      backgroundColor: "white",
+                      borderRadius: 2,
+                      border: "1px solid #d1d5db",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Controller
+                      name="date"
+                      control={control}
+                      render={({ field }) => (
+                        <StaticDatePicker
+                          value={
+                            field.value
+                              ? parse(field.value, "yyyy-MM-dd", new Date())
+                              : null
+                          }
+                          onChange={(date: any) => {
+                            if (date) {
+                              const d = date instanceof Date ? date : (date?.toDate?.() ?? new Date(date));
+                              field.onChange(format(d, "yyyy-MM-dd"));
+                            }
+                          }}
+                          shouldDisableDate={shouldDisableDate}
+                          disabled={loading}
+                          displayStaticWrapperAs="desktop"
+                          slotProps={{ actionBar: { actions: [] } }}
+                          sx={{
+                            "& .MuiPickersCalendarHeader-root": { paddingLeft: 2, paddingRight: 2 },
+                            "& .MuiDayCalendar-root": { width: "100%" },
+                          }}
+                        />
+                      )}
+                    />
+                  </Box>
+                  {errors.date && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+                      {errors.date.message}
+                    </Typography>
+                  )}
+
+                  {/* Observaciones (debajo del calendario) */}
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
+                      Observaciones
+                    </Typography>
+                    <Controller
+                      name="observations"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          multiline
+                          rows={3}
+                          placeholder="Detalles adicionales..."
+                          error={!!errors.observations}
+                          helperText={
+                            errors.observations?.message || (
+                              <Typography
+                                component="span"
+                                sx={{
+                                  color: aproximandoLimite
+                                    ? caracteresObservaciones >= 500
+                                      ? "#ef4444"
+                                      : "#f59e0b"
+                                    : "#6b7280",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                {caracteresObservaciones >= 500
+                                  ? "Límite alcanzado"
+                                  : `Opcional - ${caracteresRestantes} caracteres restantes`}
+                              </Typography>
+                            )
+                          }
+                          disabled={loading}
+                          sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "white" } }}
+                        />
+                      )}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Botones */}
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, mt: 3, flexWrap: "wrap" }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={enviarCorreo}
+                      onChange={(e) => setEnviarCorreo(e.target.checked)}
+                      disabled={loading}
+                      sx={{
+                        "& .MuiSwitch-switchBase.Mui-checked": { color: "#004680" },
+                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                          backgroundColor: "#004680",
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: "#374151" }}>
+                      Notificar cambios a los participantes
+                    </Typography>
+                  }
+                  sx={{ ml: 0 }}
+                />
+                <Box sx={{ display: "flex", gap: 2 }}>
+                <Button
+                  onClick={handleClose}
+                  disabled={loading}
+                  sx={{ textTransform: "none", fontWeight: 500, color: "#374151" }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={loading}
+                  startIcon={
+                    loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />
+                  }
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 600,
+                    backgroundColor: "#004680",
+                    borderRadius: 2,
+                    px: 3,
+                    boxShadow: "none",
+                    "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" },
+                  }}
+                >
+                  Guardar Cambios
+                </Button>
+                </Box>
+              </Box>
+            </Box>
+          </form>
         </DialogContent>
       </Dialog>
     </LocalizationProvider>
