@@ -630,7 +630,7 @@ const DialogEditarReserva: React.FC<
           end_time: data.end_time,
           meeting_title: data.meeting_title,
           observations: data.observations?.trim() || "",
-          participantes: data.participants,
+          participants: data.participants,
         };
 
         await onSubmit(reserva.id, payloadActualizacion);
