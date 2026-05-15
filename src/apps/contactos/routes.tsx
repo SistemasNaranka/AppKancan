@@ -1,11 +1,12 @@
-import { RouteObject } from "react-router-dom";
-import Home from "./pages/Home";
+import { RouteObject } from 'react-router-dom';
+import ContactDirectory from './pages/ContactDirectory';
 
 const routes: RouteObject[] = [
   {
-    path: "/contactos",
-    element: <Home />,
-  },
+    // Cambia el "/" por el nombre exacto de la ruta en tu navegador
+    path: "/contactos", 
+    element: <ContactDirectory />,
+  }
 ];
 
 export default routes;

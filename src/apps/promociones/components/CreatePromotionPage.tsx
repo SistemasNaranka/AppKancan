@@ -18,7 +18,6 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStores, getPromotionTypes } from "../api/directus/read";
 import { createCompletePromotion } from "../api/directus/create";
-
 import { usePromotionForm } from "../hooks/usePromotionForm";
 import { PromotionFormFields } from "./promotionComponents/PromotionFormFields";
 import { PromotionStoresSection } from "./promotionComponents/PromotionStoresSection";
