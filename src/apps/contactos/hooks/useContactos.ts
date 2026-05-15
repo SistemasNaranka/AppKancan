@@ -86,17 +86,15 @@ export const useContactos = () => {
     );
   }, [contactos, busqueda]);
 
-  return {
-    contactos: filtrados,
-    busqueda,
-    setBusqueda,
-    total: contactos.length,
-    handleSort,
-    cargando,
-    error,
-    crear,
-    actualizar,
-    eliminar,
-    recargar: cargar,
-  };
+ return {
+  contactos: filtrados,
+  busqueda,
+  setBusqueda,
+  total: contactos.length,
+  handleSort,
+  cargando,
+  error,
+  eliminar,
+  recargar: cargar // <--- Añade esto para poder refrescar la tabla
 };
+  };
