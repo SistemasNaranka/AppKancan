@@ -28,7 +28,7 @@ export const ContactTable: React.FC<Props> = ({ contactos }) => {
         <TableHead sx={{ bgcolor: 'rgba(241,245,249,0.8)' }}>
           <TableRow>
             <TableCell sx={{ fontWeight: 700 }}>Personal</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Departamento</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Área</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Teléfono</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Visualización</TableCell>

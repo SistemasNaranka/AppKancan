@@ -1,15 +1,22 @@
-export interface CreateContactoInput {
+// src/apps/contactos/types/contact.ts
+
+export interface Contactos {
+  id: number;
+  date_created?: string;    // ← agregado
   full_name: string;
   phone_number: string;
   email: string;
   department: string;
-  // Actualiza esto para que coincida con el Modal y la Tabla
-  visibility_type: 'Universal' | 'Restringido' | 'Inactivo' | 'Public' | 'Internal' | 'Private'; 
+  department_id?: number;
+  visibility_type: 'Universal' | 'Restringido' | 'Inactivo';
+  iniciales?: string;
+  color?: string;
 }
 
-export interface Contactos extends CreateContactoInput {
-  id: number;
-  color?: string;
-  iniciales?: string;
-  date_created?: string;
+export interface CreateContactoInput {
+  full_name: string;
+  phone_number: string;
+  email: string;
+  department_id: number | null;
+  visibility_type: 'Universal' | 'Restringido' | 'Inactivo';
 }
