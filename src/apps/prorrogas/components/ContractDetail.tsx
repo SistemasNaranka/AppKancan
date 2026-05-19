@@ -33,8 +33,8 @@ import CambiarCargoModal from './CambiarCargoModal';
 
 const getCargoName = (cargo: unknown): string => {
   if (!cargo) return 'Sin cargo';
-  if (typeof cargo === 'object' && cargo !== null && 'nombre' in cargo) {
-    return (cargo as { nombre: string }).nombre;
+  if (typeof cargo === 'object' && cargo !== null && 'name' in cargo) {
+    return (cargo as { name: string }).name;
   }
   if (typeof cargo === 'string' && isNaN(Number(cargo)) && cargo.trim() !== '') {
     return cargo;
@@ -67,13 +67,13 @@ const prorrogaCircleColor = (num: number, isActive: boolean, isCompleted: boolea
 
 const getEffectiveEndDate = (prorroga: Prorroga): string => {
   // CORRECCIÓN APLICADA AQUÍ
-  if (prorroga.fecha_final) {
-    return prorroga.fecha_final instanceof Date
-      ? prorroga.fecha_final.toISOString().split('T')[0]
-      : String(prorroga.fecha_final).split('T')[0];
+  if (prorroga.end_date) {
+    return prorroga.end_date instanceof Date
+      ? prorroga.end_date.toISOString().split('T')[0]
+      : String(prorroga.end_date).split('T')[0];
   }
-  const duracion = prorroga.duracion ?? getProrrogaDuration(prorroga.numero ?? 0);
-  return computeEndDate(prorroga.fecha_ingreso, duracion) ?? '';
+  const duracion = prorroga.duration ?? getProrrogaDuration(prorroga.extension_number ?? 0);
+  return computeEndDate(prorroga.start_date, duracion) ?? '';
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,8 +89,8 @@ interface TimelineEntryProps {
 
 const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActive, displayIndex }) => {
   const isCompleted = !isActive;
-  const numero = prorroga.numero ?? displayIndex;
-  const duracion = prorroga.duracion ?? getProrrogaDuration(numero);
+  const numero = prorroga.extension_number ?? displayIndex;
+  const duracion = prorroga.duration ?? getProrrogaDuration(numero);
   const effectiveEndDate = getEffectiveEndDate(prorroga);
   const daysLeft = isActive ? daysUntil(effectiveEndDate) : null;
   const isCritical = daysLeft !== null && isFinite(daysLeft) && daysLeft <= 7;
@@ -171,9 +171,9 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActiv
             ? 'Contrato base firmado'
             : `Extensión aprobada — ${duracion} meses`}
         </Typography>
-        {prorroga.descripcion && (
+        {prorroga.description && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.8 }}>
-            {prorroga.descripcion}
+            {prorroga.description}
           </Typography>
         )}
 
@@ -182,7 +182,7 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActiv
           <Stack direction="row" spacing={0.5} alignItems="center">
             <CalendarTodayOutlinedIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
             <Typography variant="caption" color="text.secondary">
-              Inicio: <strong>{formatDate(prorroga.fecha_ingreso)}</strong> {/* CORRECCIÓN APLICADA AQUÍ */}
+              Inicio: <strong>{formatDate(prorroga.start_date)}</strong> {/* CORRECCIÓN APLICADA AQUÍ */}
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -253,8 +253,8 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
   if (!selectedContrato) return null;
 
   const c = selectedContrato;
-  const prorrogas = [...(c.prorrogas ?? [])]
-    .sort((a, b) => (a.numero ?? 0) - (b.numero ?? 0))
+  const prorrogas = [...(c.extensions ?? [])]
+    .sort((a, b) => (a.extension_number ?? 0) - (b.extension_number ?? 0))
     .filter((p, idx, arr) => arr.findIndex(x => x.id === p.id) === idx);
   const hasProrrogas = prorrogas.length > 0;
   const lastProrroga = hasProrrogas ? prorrogas[prorrogas.length - 1] : null;
@@ -271,7 +271,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
   const isVencido = isFinite(daysLeft) && daysLeft < 0;
 
   const getDur = (p: typeof prorrogas[0]) =>
-    p.duracion ?? getProrrogaDuration(p.numero ?? 0);
+    p.duration ?? getProrrogaDuration(p.extension_number ?? 0);
 
   const totalMeses = prorrogas.reduce((acc, p) => acc + getDur(p), 0);
   const maxMeses = Math.max(...prorrogas.map((p) => getDur(p)), 1);
@@ -279,7 +279,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
   // Progress bar para tiempo restante del contrato
   const timeProgress = (() => {
     if (!lastProrroga || !isFinite(daysLeft)) return 100;
-    const start = new Date(lastProrroga.fecha_ingreso).getTime();  // CORRECCIÓN APLICADA AQUÍ
+    const start = new Date(lastProrroga.start_date).getTime();  // CORRECCIÓN APLICADA AQUÍ
     const end   = new Date(lastEffectiveEnd!).getTime();
     if (isNaN(start) || isNaN(end) || end <= start) return 0;
     const elapsed = Date.now() - start;
@@ -287,7 +287,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
     return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
   })();
 
-  const cargoName = getCargoName(c.cargo);
+  const cargoName = getCargoName(c.position);
 
   return (
     <Box ref={topRef} sx={{ pt: 1 }}>
@@ -305,9 +305,9 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                       <PersonIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.9)' }} />
                     </Avatar>
                     <Box>
-                      <Typography variant="h5" fontWeight={800} mb={0.3}>{`${c.nombre} ${c.apellido || ''}`.trim()}</Typography>
+                      <Typography variant="h5" fontWeight={800} mb={0.3}>{`${c.first_name} ${c.last_name || ''}`.trim()}</Typography>
                       <Typography variant="body2" color="text.secondary" mb={0.5}>
-                        {cargoName} | {c.area || ''}
+                        {cargoName} | {c.department || ''}
                       </Typography>
                       <Stack direction="row" spacing={1.5} flexWrap="wrap">
                       </Stack>
@@ -341,13 +341,13 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                   </Box>
                   <Box>
                     <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Tipo</Typography>
-                    <Typography variant="body2" fontWeight={700}>{formatTipoContrato(c.tipo_contrato)}</Typography>
+                    <Typography variant="body2" fontWeight={700}>{formatTipoContrato(c.contract_type)}</Typography>
                   </Box>
                    <Box>
                     <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Prórroga Actual</Typography>
                     {lastProrroga ? (
                       <Chip
-                        label={lastProrroga.numero === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.numero}`}
+                        label={lastProrroga.extension_number === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.extension_number}`}
                         size="small"
                         sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, bgcolor: '#e8f0fa', color: 'primary.main' }}
                       />
@@ -436,13 +436,13 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                 <Stack direction="row" justifyContent="space-between">
                   <Typography variant="caption" sx={{ color: '#a0c8e8' }}>Fecha de inicio original</Typography>
                   <Typography variant="caption" fontWeight={700} sx={{ color: '#fff' }}>
-                    {firstProrroga ? formatDate(firstProrroga.fecha_ingreso) : (c.fecha_ingreso ? formatDate(c.fecha_ingreso) : '—')} {/* CORRECCIÓN APLICADA AQUÍ */}
+                    {firstProrroga ? formatDate(firstProrroga.start_date) : (c.start_date ? formatDate(c.start_date) : '—')} {/* CORRECCIÓN APLICADA AQUÍ */}
                   </Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
                   <Typography variant="caption" sx={{ color: '#a0c8e8' }}>Fecha de vencimiento actual</Typography>
                   <Typography variant="caption" fontWeight={700} sx={{ color: isCritical ? '#fca5a5' : isVencido ? '#9ca3af' : '#fff' }}>
-                    {lastEffectiveEnd ? formatDate(lastEffectiveEnd) : (c.fecha_final ? formatDate(c.fecha_final) : '—')}
+                    {lastEffectiveEnd ? formatDate(lastEffectiveEnd) : (c.end_date ? formatDate(c.end_date) : '—')}
                   </Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
@@ -461,7 +461,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                   <Typography variant="caption" sx={{ color: '#a0c8e8' }}>Prórroga actual</Typography>
                   {lastProrroga ? (
                     <Chip
-                      label={lastProrroga.numero === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.numero}`}
+                      label={lastProrroga.extension_number === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.extension_number}`}
                       size="small"
                       sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' }}
                     />
@@ -472,7 +472,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography variant="caption" sx={{ color: '#a0c8e8' }}>Área</Typography>
                   <Typography variant="caption" fontWeight={700} sx={{ color: '#fff' }}>
-                    {c. area || '—'}
+                    {c.department || '—'}
                   </Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -615,7 +615,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                       const barColor = isActivePeriod ? '#004680' : barColors[idx % barColors.length];
                       const dur = getDur(p);
                       const pct = Math.round((dur / maxMeses) * 100);
-                      const pNum = p.numero ?? idx;
+                      const pNum = p.extension_number ?? idx;
                       return (
                         <Box key={p.id}>
                           <Stack direction="row" alignItems="center" spacing={1.5}>

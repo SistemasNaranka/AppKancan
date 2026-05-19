@@ -122,24 +122,24 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
   useEffect(() => {
     if (open && initialData) {
       setFormData({
-        documento_identidad: initialData.documento ?? '',
-        nombre: initialData.nombre ?? '',
-        apellido: initialData.apellido ?? '',
-        cargo: typeof initialData.cargo === 'number' ? initialData.cargo : '',
-        tipo_contrato: initialData.tipo_contrato ?? '',
-        area: initialData.area ?? '',
-        fecha_ingreso: initialData.fecha_ingreso ?? '',
-        fecha_fin: initialData.fecha_final ?? '',
+        documento_identidad: initialData.document ?? '',
+        nombre: initialData.first_name ?? '',
+        apellido: initialData.last_name ?? '',
+        cargo: typeof initialData.position === 'number' ? initialData.position : '',
+        tipo_contrato: initialData.contract_type ?? '',
+        area: initialData.department ?? '',
+        fecha_ingreso: initialData.start_date ?? '',
+        fecha_fin: initialData.end_date ?? '',
         duracion_meses: 0,
-        request_status: initialData.request_status,
+        request_status: initialData.status,
       });
       // Si el área no está en la lista predefinida, agregarla
       if (
-        initialData.area &&
-        !AREAS_PREDEFINIDAS.includes(initialData.area)
+        initialData.department &&
+        !AREAS_PREDEFINIDAS.includes(initialData.department)
       ) {
         setAreasExtra((prev) =>
-          prev.includes(initialData.area!) ? prev : [...prev, initialData.area!],
+          prev.includes(initialData.department!) ? prev : [...prev, initialData.department!],
         );
       }
     } else if (open && !initialData) {
@@ -211,15 +211,15 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
     setSaving(true);
     try {
       const contratoData: CreateContrato = {
-        nombre:          formData.nombre,
-        apellido:        formData.apellido,
-        documento:       formData.documento_identidad,
-        cargo:           formData.cargo, // Guardamos como nombre (String)
-        tipo_contrato:   formData.tipo_contrato,
-        area:            formData.area,
-        fecha_ingreso:   formData.fecha_ingreso,
-        fecha_final:     formData.fecha_fin,
-        request_status:  formData.request_status,
+        first_name:    formData.nombre,
+        last_name:     formData.apellido,
+        document:      formData.documento_identidad,
+        position:      formData.cargo, // Guardamos como nombre (String)
+        contract_type: formData.tipo_contrato,
+        department:    formData.area,
+        start_date:    formData.fecha_ingreso,
+        end_date:      formData.fecha_fin,
+        status:        formData.request_status,
         ...(isEditing
           ? {}
           : { numero_contrato: `CTR-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}` }),
@@ -251,7 +251,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
             ? <EditOutlinedIcon sx={{ color: 'primary.main' }} />
             : <BadgeOutlinedIcon sx={{ color: 'primary.main' }} />}
           <Box sx={{ fontWeight: 800, fontSize: '1.15rem' }}>
-            {isEditing ? `Editar Contrato — ${initialData?.nombre}` : 'Nuevo Contrato'}
+            {isEditing ? `Editar Contrato — ${initialData?.first_name}` : 'Nuevo Contrato'}
           </Box>
           {isEditing && (
             <Chip label="Modo edición" size="small" sx={{ bgcolor: '#fef3c7', color: '#92400e', fontWeight: 700, fontSize: '0.7rem', ml: 1 }} />

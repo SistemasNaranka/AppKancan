@@ -166,7 +166,7 @@ const NotificationBell: React.FC = () => {
                     <ListItemText
                       primary={
                         <Typography variant="body2" fontWeight={700} color="text.primary">
-                          {c.nombre} {c.apellido ?? ''}
+                          {c.first_name} {c.last_name ?? ''}
                         </Typography>
                       }
                       secondary={

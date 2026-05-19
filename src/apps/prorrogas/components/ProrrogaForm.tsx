@@ -44,14 +44,14 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
       return;
     }
 
-    const prorrogas = contract.prorrogas ?? [];
-    
+    const prorrogas = contract.extensions ?? [];
+
     if (prorrogas.length === 0) {
       // Tomar exactamente la fecha actual (hoy) localmente.
       setFechaInicio(toLocalDateStr(new Date()));
     } else {
-      const last = [...prorrogas].sort((a, b) => (a.numero ?? 0) - (b.numero ?? 0)).pop();
-      const fechaBase = last?.fecha_final ? String(last.fecha_final) : undefined;
+      const last = [...prorrogas].sort((a, b) => (a.extension_number ?? 0) - (b.extension_number ?? 0)).pop();
+      const fechaBase = last?.end_date ? String(last.end_date) : undefined;
 
       if (!fechaBase) {
         setFechaInicio('');
@@ -69,8 +69,8 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
   }, [contract, open]);
 
   const nextNum = useMemo(() => {
-    const prorrogas = contract?.prorrogas ?? [];
-    return prorrogas.length === 0 ? 0 : Math.max(...prorrogas.map((p) => p.numero ?? 0)) + 1;
+    const prorrogas = contract?.extensions ?? [];
+    return prorrogas.length === 0 ? 0 : Math.max(...prorrogas.map((p) => p.extension_number ?? 0)) + 1;
   }, [contract]);
 
   const duracion = getProrrogaDuration(nextNum);
@@ -112,10 +112,10 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
           <Box>
             <AssignmentOutlinedIcon sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 30, mb: 2 }} />
             <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1.3, mb: 0.5 }}>
-              {contract.nombre}
+              {contract.first_name}
             </Typography>
             <Typography variant="caption" sx={{ color: '#7fb8e8', display: 'block', mb: 2 }}>
-              {contract.cargo}
+              {contract.position}
             </Typography>
             <Typography variant="caption" sx={{ color: '#a0c8e8', lineHeight: 1.7, display: 'block' }}>
               Registro de nueva extensión contractual bajo normativa vigente
