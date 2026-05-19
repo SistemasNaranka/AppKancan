@@ -40,7 +40,7 @@ export default function DetalleModal ({open, onClose, contacto, onEditar}: Props
       {contacto.iniciales}
     </Avatar>
     <Typography variant="h6" fontWeight={700} color="#0f172a">{contacto.full_name}</Typography>
-    <Chip label={contacto.department || 'N/A'} size="small" variant="outlined"
+    <Chip label={contacto.department_id || 'N/A'} size="small" variant="outlined"
       sx={{ mt: 1, borderColor: '#004a99', color: '#004a99', fontWeight: 600 }} />
   </Box>
 

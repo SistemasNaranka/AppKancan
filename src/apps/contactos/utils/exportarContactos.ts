@@ -39,7 +39,7 @@ export const exportarContactosExcel = async (
       full_name: item.full_name,
       email: item.email,
       phone_number: item.phone_number,
-      department: item.department,
+      department: item.department_id,
       visibility_type: item.visibility_type,
       date_created: item.date_created ? new Date(item.date_created).toLocaleDateString() : "N/A",
     });
