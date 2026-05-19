@@ -53,7 +53,7 @@ export const intentarBloquearTienda = async (
     const bloqueoExistente = bloqueosActuales.find(b => String(b.tienda_id) === String(tienda_id));
 
     if (bloqueoExistente) {
-      const existingUserId = typeof bloqueoExistente.usuario_id === 'object' && bloqueoExistente.usuario_id !== null ? bloqueoExistente.usuario_id.id : bloqueoExistente.usuario_id;
+      const existingUserId = typeof bloqueoExistente.usuario_id === 'object' && bloqueoExistente.usuario_id !== null ? bloqueoExistente.usuario_id: bloqueoExistente.usuario_id;
       if (String(existingUserId) === String(usuario_id)) {
         // Ya es nuestro, solo actualizamos el tiempo
         await renovarBloqueo(String(bloqueoExistente.id));
