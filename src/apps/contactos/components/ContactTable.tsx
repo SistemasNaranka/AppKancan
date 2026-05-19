@@ -5,12 +5,12 @@ import {
   Chip, IconButton, Tooltip,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
 // Se eliminó DeleteIcon porque ya no se usará
 import { Contactos } from '../types/contact';
 
 interface Props {
   contactos: Contactos[];
+  onVer: (contacto: Contactos) => void;
   // onEliminar ya no es necesario aquí si vas a quitar la opción
 }
 
@@ -21,14 +21,14 @@ const chipColor = (tipo: string): 'success' | 'warning' | 'default' => {
   return 'default';
 };
 
-export const ContactTable: React.FC<Props> = ({ contactos }) => {
+export const ContactTable: React.FC<Props> = ({ contactos, onVer}) => {
   return (
     <TableContainer>
       <Table>
         <TableHead sx={{ bgcolor: 'rgba(241,245,249,0.8)' }}>
           <TableRow>
             <TableCell sx={{ fontWeight: 700 }}>Personal</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Departamento</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Área</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Teléfono</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Visualización</TableCell>
@@ -61,7 +61,7 @@ export const ContactTable: React.FC<Props> = ({ contactos }) => {
                   </Box>
                 </TableCell>
                 <TableCell>
-                  <Chip label={c.department || 'N/A'} size="small" variant="outlined"
+                  <Chip label={c.department_name || 'N/A'} size="small" variant="outlined"
                     sx={{ borderColor: '#004a99', color: '#004a99', fontWeight: 600 }} />
                 </TableCell>
                 <TableCell>
@@ -77,13 +77,8 @@ export const ContactTable: React.FC<Props> = ({ contactos }) => {
                 <TableCell align="right">
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                     <Tooltip title="Ver">
-                      <IconButton size="small" sx={{ color: '#64748b', '&:hover': { color: '#004a99' } }}>
+                      <IconButton size="small" onClick={() => onVer(c)} sx={{ color: '#64748b', '&:hover': { color: '#004a99' } }}>
                         <VisibilityIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Editar">
-                      <IconButton size="small" sx={{ color: '#64748b', '&:hover': { color: '#f59e0b' } }}>
-                        <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     {/* EL BOTÓN DE ELIMINAR (LA BASURA) HA SIDO BORRADO DE AQUÍ */}

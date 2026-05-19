@@ -12,7 +12,7 @@ export async function getContactos(sortBy: string = '-date_created'): Promise<Co
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems(COLLECTION, {
-          fields: ['id', 'date_created', 'date_updated', 'full_name', 'phone_number', 'email', 'department', 'visibility_type'],
+          fields: ['id', 'date_created', 'date_updated', 'full_name', 'phone_number', 'email', 'department_id.id', 'department_id.name', 'visibility_type'],
           sort: [sortBy], // Aplica el orden seleccionado (ej. '-date_created' para Recientes)
           limit: -1,
         }),
@@ -26,11 +26,31 @@ export async function getContactos(sortBy: string = '-date_created'): Promise<Co
       full_name: item.full_name,
       phone_number: item.phone_number || '',
       email: item.email || '',
-      department: item.department || '',
+      department_id: String(item.department_id?.id) || '',
+      department_name: item.department_id?.name || '',
       visibility_type: item.visibility_type,
     }));
   } catch (error) {
     console.error('❌ Error al cargar contactos:', error);
+    return [];
+  }
+}
+
+const DEPARTAMENTOS_COLLECTION = 'core_departments';
+
+export async function  getDepartamentos(): Promise<{ id: number; name: string} []> {
+  try {
+    const items = await withAutoRefresh(() =>
+    directus.request(
+      readItems(DEPARTAMENTOS_COLLECTION, {
+        fields: ['id', 'name'],
+        limit: -1,
+      }),
+    ),
+  );
+  return items.map((item: any) => ({ id: item.id, name: item.name }));
+  } catch (error) {
+    console.error('❌ Error al cargar departamentos: ', error);
     return [];
   }
 }

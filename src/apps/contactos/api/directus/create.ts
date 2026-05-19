@@ -17,7 +17,7 @@ export async function createContacto(data: CreateContactoInput): Promise<number 
       full_name: data.full_name,
       phone_number: data.phone_number || null,
       email: data.email || null,
-      department: data.department || null,
+      department_id: data.department_id || null,
       // Aquí usamos tus nuevos nombres: Universal, Restringido o Inactivo
       visibility_type: data.visibility_type, 
     };
@@ -42,7 +42,7 @@ export async function updateContacto(id: number, data: Partial<CreateContactoInp
     if (data.full_name)       payload.full_name       = data.full_name;
     if (data.phone_number)    payload.phone_number    = data.phone_number;
     if (data.email)           payload.email           = data.email;
-    if (data.department)      payload.department      = data.department;
+    if (data.department_id)   payload.department_id   = Number(data.department_id);
     if (data.visibility_type) payload.visibility_type = data.visibility_type;
 
     await withAutoRefresh(() =>
