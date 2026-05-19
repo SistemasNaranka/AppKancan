@@ -51,6 +51,9 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
   const handleChange = (field: keyof CreateContactoInput, value: any) => {
     if (field === 'phone_number') {
       setForm((prev) => ({ ...prev, [field]: value.replace(/[^0-9+\s]/g, '') }));
+    } else if (field === 'full_name') {
+      // Bloquea números en el nombre completo
+      setForm((prev) => ({ ...prev, [field]: value.replace(/[0-9]/g, '') }));
     } else {
       setForm((prev) => ({ ...prev, [field]: value }));
     }
@@ -102,7 +105,6 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
 
       <DialogContent sx={{ pt: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-        {/* Nombre */}
         <Box>
           <Typography variant="body2" fontWeight={600} mb={0.8} color="#374151">
             Nombre Completo <span style={{ color: '#ef4444' }}>*</span>
@@ -114,7 +116,6 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
         </Box>
 
-        {/* Teléfono y Email */}
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Box flex={1}>
             <Typography variant="body2" fontWeight={600} mb={0.8} color="#374151">Teléfono</Typography>
@@ -137,7 +138,6 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
           </Box>
         </Box>
 
-        {/* Departamento desde Directus */}
         <Box>
           <Typography variant="body2" fontWeight={600} mb={0.8} color="#374151">Departamento</Typography>
           <FormControl fullWidth size="small">
@@ -157,7 +157,6 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
           </FormControl>
         </Box>
 
-        {/* Visibilidad */}
         <Box>
           <Typography variant="body2" fontWeight={600} mb={0.8} color="#374151">Visibilidad</Typography>
           <RadioGroup row value={form.visibility_type}
