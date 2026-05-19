@@ -12,6 +12,31 @@ dist
 dist-ssr
 *.local
 
+# AI and IDE tools
+.gemini/
+.kilo/
+.kiro/
+.qoder/
+.cursor/
+.zed/
+.mcp.json
+.opencode.json
+.claudeignore
+.cursorrules
+.windsurfrules
+.kilocode
+.claude/
+
+# AI documentation
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+QODER.md
+
+# Junk/Logs
+8dd0132
+temp_report/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -23,12 +48,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
-.kilocode
-.kilo/
 tsconfig.tsbuildinfo
-.claude/
-temp_report/
-test
 
 # Documentos internos de asignación de tareas
 docs/REQUISITOS_GESTION_PROYECTOS.md
