@@ -1,4 +1,3 @@
-// src/apps/contactos/components/ContactTable.tsx
 import React from 'react';
 import {
   Table, TableBody, TableCell, TableContainer,
@@ -6,32 +5,34 @@ import {
   Chip, IconButton, Tooltip,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+// Se eliminó DeleteIcon porque ya no se usará
 import { Contactos } from '../types/contact';
 
 interface Props {
   contactos: Contactos[];
-  onEliminar?: (id: number) => void;
+  onVer: (contacto: Contactos) => void;
+  // onEliminar ya no es necesario aquí si vas a quitar la opción
 }
 
 const chipColor = (tipo: string): 'success' | 'warning' | 'default' => {
-  if (tipo === 'Public')   return 'success';
-  if (tipo === 'Internal') return 'warning';
+  if (tipo === 'Universal')   return 'success';
+  if (tipo === 'Restringido') return 'warning';
+  if (tipo === 'Inactivo')    return 'default';
   return 'default';
 };
 
-export const ContactTable: React.FC<Props> = ({ contactos, onEliminar }) => {
+export const ContactTable: React.FC<Props> = ({ contactos, onVer}) => {
   return (
     <TableContainer>
       <Table>
         <TableHead sx={{ bgcolor: 'rgba(241,245,249,0.8)' }}>
           <TableRow>
             <TableCell sx={{ fontWeight: 700 }}>Personal</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Departamento</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Área</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Teléfono</TableCell>
-             <TableCell sx={{ fontWeight: 700 }} align="right">Acciones</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Visualización</TableCell>
+            <TableCell sx={{ fontWeight: 700 }} align="right">Acciones</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -60,7 +61,7 @@ export const ContactTable: React.FC<Props> = ({ contactos, onEliminar }) => {
                   </Box>
                 </TableCell>
                 <TableCell>
-                  <Chip label={c.department} size="small" variant="outlined"
+                  <Chip label={c.department_name || 'N/A'} size="small" variant="outlined"
                     sx={{ borderColor: '#004a99', color: '#004a99', fontWeight: 600 }} />
                 </TableCell>
                 <TableCell>
@@ -76,21 +77,11 @@ export const ContactTable: React.FC<Props> = ({ contactos, onEliminar }) => {
                 <TableCell align="right">
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                     <Tooltip title="Ver">
-                      <IconButton size="small" sx={{ color: '#64748b', '&:hover': { color: '#004a99' } }}>
+                      <IconButton size="small" onClick={() => onVer(c)} sx={{ color: '#64748b', '&:hover': { color: '#004a99' } }}>
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Editar">
-                      <IconButton size="small" sx={{ color: '#64748b', '&:hover': { color: '#f59e0b' } }}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Eliminar">
-                      <IconButton size="small" sx={{ color: '#64748b', '&:hover': { color: '#ef4444' } }}
-                        onClick={() => onEliminar?.(c.id)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    {/* EL BOTÓN DE ELIMINAR (LA BASURA) HA SIDO BORRADO DE AQUÍ */}
                   </Box>
                 </TableCell>
               </TableRow>

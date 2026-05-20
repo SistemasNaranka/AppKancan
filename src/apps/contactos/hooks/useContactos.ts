@@ -69,7 +69,7 @@ export const useContactos = () => {
       const temp = [...prev];
       if (criterio === 'asc')  temp.sort((a, b) => a.full_name.localeCompare(b.full_name));
       if (criterio === 'desc') temp.sort((a, b) => b.full_name.localeCompare(a.full_name));
-      if (criterio === 'area') temp.sort((a, b) => a.department.localeCompare(b.department));
+      if (criterio === 'area') temp.sort((a, b) => (a.department_name || '').localeCompare(b.department_name || ''));
       return temp;
     });
   };
@@ -81,22 +81,21 @@ export const useContactos = () => {
     return contactos.filter(
       (c) =>
         c.full_name.toLowerCase().includes(t) ||
-        c.department.toLowerCase().includes(t) ||
+        (c.department_id || '').toLowerCase().includes(t) ||
         c.email.toLowerCase().includes(t),
     );
   }, [contactos, busqueda]);
 
-  return {
-    contactos: filtrados,
-    busqueda,
-    setBusqueda,
-    total: contactos.length,
-    handleSort,
-    cargando,
-    error,
-    crear,
-    actualizar,
-    eliminar,
-    recargar: cargar,
-  };
+ return {
+  contactos: filtrados,
+  busqueda,
+  setBusqueda,
+  total: contactos.length,
+  handleSort,
+  cargando,
+  error,
+  eliminar,
+  recargar: cargar, // <--- Añade esto para poder refrescar la tabla
+  actualizar
 };
+  };

@@ -1,15 +1,14 @@
-// src/apps/contactos/types/types.ts
+// src/apps/contactos/types/contact.ts
 
 export interface Contactos {
   id: number;
-  date_created?: string;
-  date_updated?: string;
+  date_created?: string;    // ← agregado
   full_name: string;
   phone_number: string;
   email: string;
-  department: string;
-  visibility_type: 'Public' | 'Private' | 'Internal';
-  // Calculados en frontend
+  department_id?: string;
+  department_name?: string;
+  visibility_type: 'Universal' | 'Restringido' | 'Inactivo';
   iniciales?: string;
   color?: string;
 }
@@ -18,6 +17,6 @@ export interface CreateContactoInput {
   full_name: string;
   phone_number: string;
   email: string;
-  department: string;
-  visibility_type: 'Public' | 'Private' | 'Internal';
+  department_id?: string;
+  visibility_type: 'Universal' | 'Restringido' | 'Inactivo';
 }
