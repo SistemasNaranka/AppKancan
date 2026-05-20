@@ -9,11 +9,7 @@ import SortIcon from '@mui/icons-material/Sort';
 import GroupsIcon from '@mui/icons-material/Groups';
 import SearchIcon from '@mui/icons-material/Search';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import DetalleModal from '../components/DetalleModal';
-import { Contactos } from '../types/contact';
-import { EditarContactoModal } from '../components/EditarContactoModal';
-
-// Importaciones de lógica y componentes
+import { useNavigate } from 'react-router-dom';
 import { ContactTable } from '../components/ContactTable';
 import { useContactos } from '../hooks/useContactos';
 import { AddContactModal } from '../components/AddContactModal';
@@ -27,17 +23,15 @@ const ContactDirectory: React.FC = () => {
   const {
     contactos, busqueda, setBusqueda,
     total, handleSort, cargando, error,
-    recargar, actualizar 
+    recargar,
   } = useContactos();
 
+  const navigate = useNavigate();
   const [modalAbierto, setModalAbierto] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const menuAbierto = Boolean(anchorEl);
-  const [contactoSeleccionado, setContactoSeleccionado] = useState<Contactos | null>(null);
-  const [detalleAbierto, setDetalleAbierto] = useState(false);
-  const [editarAbierto, setEditarAbierto] = useState(false);
-  
+
   const handleGuardarNuevo = async (data: CreateContactoInput) => {
     const ok = await createContacto(data);
     if (ok) {
@@ -168,26 +162,20 @@ const ContactDirectory: React.FC = () => {
       {/* Tabla */}
       {!cargando && !error && (
         <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', bgcolor: 'white' }}>
-          <ContactTable 
-          contactos={paginados} 
-          onVer={(c) => {setContactoSeleccionado(c); setDetalleAbierto(true); }}
+          <ContactTable
+            contactos={paginados}
+            onVer={(c) => navigate(`/contactos/${c.id}`)}
           />
           <Box sx={{ px: 3, py: 2, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'rgba(248,250,252,0.5)', flexWrap: 'wrap', gap: 1 }}>
             <Typography sx={{ color: '#64748b', fontSize: '0.85rem' }}>
               Mostrando <strong>{paginados.length}</strong> de <strong>{contactos.length}</strong> resultados
             </Typography>
-            <Pagination 
-              count={totalPaginas} 
-              page={pagina} 
-              onChange={(_, val) => setPagina(val)} 
+            <Pagination
+              count={totalPaginas}
+              page={pagina}
+              onChange={(_, val) => setPagina(val)}
               shape="rounded"
-              sx={{ '& .MuiPaginationItem-root.Mui-selected': { bgcolor: '#004a99', color: 'white' } }} 
-            />
-            <DetalleModal 
-            open={detalleAbierto}
-            onClose={() => setDetalleAbierto(false)}
-            contacto={contactoSeleccionado}
-            onEditar={() => { setDetalleAbierto(false); setTimeout( () => setEditarAbierto(true), 30); }}
+              sx={{ '& .MuiPaginationItem-root.Mui-selected': { bgcolor: '#004a99', color: 'white' } }}
             />
           </Box>
         </Paper>
@@ -198,21 +186,6 @@ const ContactDirectory: React.FC = () => {
         onClose={() => setModalAbierto(false)}
         onGuardar={handleGuardarNuevo}
       />
-
-      <EditarContactoModal
-        open={editarAbierto}
-        onClose={() => { setEditarAbierto(false); setDetalleAbierto(true); }}
-        onGuardar={async (data) => {
-          if (!contactoSeleccionado) return false;
-          const ok = await actualizar(contactoSeleccionado.id, data);
-          if (ok) {
-          setEditarAbierto(false);
-          setDetalleAbierto(true);
-          }
-          return ok;
-        }}
-        contacto={contactoSeleccionado}
-        />
     </Box>
   );
 };
