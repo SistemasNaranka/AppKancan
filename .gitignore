@@ -49,7 +49,11 @@ temp_report/
 *.sw?
 .env
 tsconfig.tsbuildinfo
+.mcp.json
+.opencode.json
+.claudeignore
 
 # Documentos internos de asignación de tareas
 docs/REQUISITOS_GESTION_PROYECTOS.md
-GUIDE_TECNICA.md
+GUIDE_TECNICA.md
+.code-review-graph
