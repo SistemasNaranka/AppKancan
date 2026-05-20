@@ -12,6 +12,7 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import { CreateContactoInput } from '../types/contact';
 import { getDepartamentos, Departamento } from '../api/directus/readDepartamentos';
+import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
 interface Props {
   open: boolean;
@@ -28,6 +29,7 @@ const INITIAL: CreateContactoInput = {
 };
 
 export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) => {
+  const { showSnackbar } = useGlobalSnackbar();
   const [form, setForm] = useState<CreateContactoInput>(INITIAL);
   const [guardando, setGuardando] = useState(false);
   const [errores, setErrores] = useState<Partial<Record<string, string>>>({});
@@ -81,7 +83,13 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
     setGuardando(true);
     const ok = await onGuardar(form);
     setGuardando(false);
-    if (ok) { setForm(INITIAL); onClose(); }
+    if (ok) {
+      setForm(INITIAL);
+      onClose();
+      showSnackbar('Contacto creado exitosamente', 'success');
+    } else {
+      showSnackbar('Error al crear el contacto', 'error');
+    }
   };
 
   const handleClose = () => {
