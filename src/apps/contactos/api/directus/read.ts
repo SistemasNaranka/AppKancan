@@ -12,7 +12,7 @@ export async function getContactos(): Promise<Contactos[]> {
       directus.request(
         readItems(COLLECTION, {
           fields: ['id', 'date_created', 'date_updated', 'full_name', 'phone_number', 'email', 'department_id.id', 'department_id.name', 'visibility_type'],
-          sort: ['full_name'], // Aplica el orden seleccionado (ej. '-date_created' para Recientes)
+          sort: ['-date_created'],
           limit: -1,
         }),
       ),
@@ -53,6 +53,30 @@ export async function getContactoById(id: number): Promise<Contactos | null> {
   } catch (error) {
     console.error('❌ Error al cargar contacto:', error);
     return null;
+  }
+}
+
+export async function getContactUsers(contactId: number): Promise<{ id: string; first_name: string; last_name: string }[]> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems('adm_user_contacts', {
+          filter: { contact_id: { _eq: contactId } },
+          fields: ['user_id.id', 'user_id.first_name', 'user_id.last_name'],
+          limit: -1,
+        } as any),
+      ),
+    );
+    return (items as any[])
+      .map((r) => r?.user_id)
+      .filter(Boolean)
+      .map((u) => ({
+        id: u.id,
+        first_name: u.first_name || '',
+        last_name: u.last_name || '',
+      }));
+  } catch {
+    return [];
   }
 }
 

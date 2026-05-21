@@ -2,16 +2,20 @@ import React from 'react';
 import {
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Avatar, Box, Typography,
-  Chip, IconButton, Tooltip,
+  Chip, IconButton, Tooltip, TableSortLabel,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-// Se eliminó DeleteIcon porque ya no se usará
+import EditIcon from '@mui/icons-material/Edit';
 import { Contactos } from '../types/contact';
+import type { SortCol, SortDir } from '../pages/ContactDirectory';
 
 interface Props {
   contactos: Contactos[];
   onVer: (contacto: Contactos) => void;
-  // onEliminar ya no es necesario aquí si vas a quitar la opción
+  onEditar: (contacto: Contactos) => void;
+  sortCol: SortCol;
+  sortDir: SortDir;
+  onSort: (col: SortCol) => void;
 }
 
 const chipColor = (tipo: string): 'success' | 'warning' | 'default' => {
@@ -21,20 +25,38 @@ const chipColor = (tipo: string): 'success' | 'warning' | 'default' => {
   return 'default';
 };
 
-export const ContactTable: React.FC<Props> = ({ contactos, onVer}) => {
+const sortLabelSx = {
+  fontWeight: 700,
+  '&.Mui-active': { color: '#004a99' },
+  '& .MuiTableSortLabel-icon': { color: '#004a99 !important' },
+};
+
+export const ContactTable: React.FC<Props> = ({ contactos, onVer, onEditar, sortCol, sortDir, onSort }) => {
+  const col = (label: string, key: SortCol) => (
+    <TableSortLabel
+      active={sortCol === key}
+      direction={sortCol === key ? sortDir : 'asc'}
+      onClick={() => onSort(key)}
+      sx={sortLabelSx}
+    >
+      {label}
+    </TableSortLabel>
+  );
+
   return (
     <TableContainer>
       <Table>
         <TableHead sx={{ bgcolor: 'rgba(241,245,249,0.8)' }}>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Personal</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Área</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Teléfono</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Visualización</TableCell>
+            <TableCell>{col('Personal',      'name')}</TableCell>
+            <TableCell>{col('Área',          'area')}</TableCell>
+            <TableCell>{col('Email',         'email')}</TableCell>
+            <TableCell>{col('Teléfono',      'phone')}</TableCell>
+            <TableCell>{col('Visualización', 'visibility')}</TableCell>
             <TableCell sx={{ fontWeight: 700 }} align="right">Acciones</TableCell>
           </TableRow>
         </TableHead>
+
         <TableBody>
           {contactos.length === 0 ? (
             <TableRow>
@@ -60,28 +82,51 @@ export const ContactTable: React.FC<Props> = ({ contactos, onVer}) => {
                     </Box>
                   </Box>
                 </TableCell>
+
                 <TableCell>
-                  <Chip label={c.department_name || 'N/A'} size="small" variant="outlined"
-                    sx={{ borderColor: '#004a99', color: '#004a99', fontWeight: 600 }} />
+                  <Chip
+                    label={c.department_name || 'N/A'} size="small" variant="outlined"
+                    sx={{ borderColor: '#004a99', color: '#004a99', fontWeight: 600 }}
+                  />
                 </TableCell>
+
                 <TableCell>
                   <Typography variant="body2" color="text.secondary">{c.email}</Typography>
                 </TableCell>
+
                 <TableCell>
                   <Typography variant="body2">{c.phone_number}</Typography>
                 </TableCell>
+
                 <TableCell>
-                  <Chip label={c.visibility_type} size="small"
-                    color={chipColor(c.visibility_type)} variant="outlined" />
+                  <Chip
+                    label={c.visibility_type} size="small"
+                    color={chipColor(c.visibility_type)} variant="outlined"
+                  />
                 </TableCell>
+
                 <TableCell align="right">
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                    <Tooltip title="Ver">
-                      <IconButton size="small" onClick={() => onVer(c)} sx={{ color: '#64748b', '&:hover': { color: '#004a99' } }}>
-                        <VisibilityIcon fontSize="small" />
+                    {c.visibility_type === 'Restringido' && (
+                      <Tooltip title="Ver accesos">
+                        <IconButton
+                          size="small"
+                          onClick={() => onVer(c)}
+                          sx={{ color: '#64748b', '&:hover': { color: '#004a99' } }}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Tooltip title="Editar contacto">
+                      <IconButton
+                        size="small"
+                        onClick={() => onEditar(c)}
+                        sx={{ color: '#64748b', '&:hover': { color: '#004a99' } }}
+                      >
+                        <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    {/* EL BOTÓN DE ELIMINAR (LA BASURA) HA SIDO BORRADO DE AQUÍ */}
                   </Box>
                 </TableCell>
               </TableRow>
