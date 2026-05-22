@@ -389,7 +389,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
 
               {rows.map((c) => {
                 const { text: daysText, color: daysColor } = getDaysLabel(c.daysLeft);
-                const fechaVence = c.lastProrroga?.fecha_final ?? c.fecha_final;
+                const fechaVence = c.lastProrroga?.end_date ?? c.end_date;
                 const venceDate = safeFormatDate(fechaVence?.toString() ?? null);
                 const isUrgent = isFinite(c.daysLeft) && c.daysLeft >= 0 && c.daysLeft <= 30;
 
@@ -412,10 +412,10 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
                         </Avatar>
                         <Box>
                           <Typography variant="body2" fontWeight={700} color="text.primary" fontSize="0.82rem">
-                            {c.nombre ?? `#${c.id}`}
+                            {c.first_name ?? `#${c.id}`}
                           </Typography>
                           <Typography variant="caption" color="text.disabled">
-                            {getCargoLabel(c.cargo)}
+                            {getCargoLabel(c.position)}
                           </Typography>
                         </Box>
                       </Box>
@@ -424,7 +424,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
                     {/* Empresa / Área */}
                     <TableCell>
                       <Typography variant="body2" color="text.secondary" fontSize="0.8rem">
-                        {c.area ?? '—'}
+                        {c.department ?? '—'}
                       </Typography>
                     </TableCell>
 

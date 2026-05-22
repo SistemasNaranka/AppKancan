@@ -134,17 +134,17 @@ const ContractsView: React.FC = () => {
         if (tab !== 'todos' && c.contractStatus !== tab) return false;
         if (!q) return true;
         return (
-          c.nombre.toLowerCase().includes(q) ||
-          c.cargo.toLowerCase().includes(q) ||
-          c.empleado_area.toLowerCase().includes(q) ||
+          c.first_name.toLowerCase().includes(q) ||
+          String(c.position).toLowerCase().includes(q) ||
+          (c.empleado_area?.toLowerCase() ?? '').includes(q) ||
           String(c.id).includes(q)
         );
       })
       .sort((a, b) => {
         let cmp = 0;
         if (sortKey === 'vencimiento') cmp = a.daysLeft - b.daysLeft;
-        if (sortKey === 'nombre') cmp = a.nombre.localeCompare(b.nombre);
-        if (sortKey === 'prorroga') cmp = (b.prorrogas?.length ?? 0) - (a.prorrogas?.length ?? 0);
+        if (sortKey === 'nombre') cmp = a.first_name.localeCompare(b.first_name);
+        if (sortKey === 'prorroga') cmp = (b.extensions?.length ?? 0) - (a.extensions?.length ?? 0);
         return sortDir === 'asc' ? cmp : -cmp;
       });
   }, [allEnriched, search, tab, sortKey, sortDir]);
@@ -306,7 +306,7 @@ const ContractsView: React.FC = () => {
                           </Avatar>
                           <Box>
                             <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.83rem', lineHeight: 1.3 }}>
-                              {c.nombre}
+                              {c.first_name}
                             </Typography>
                             <Typography variant="caption" color="text.disabled">
                               {c.empleado_area}
@@ -324,14 +324,14 @@ const ContractsView: React.FC = () => {
 
                       {/* Nº Prórroga */}
                       <TableCell>
-                        <ProrrogaChip numero={c.lastProrroga?.numero ?? 0} />
+                        <ProrrogaChip numero={c.lastProrroga?.extension_number ?? 0} />
                       </TableCell>
 
                       {/* Fecha Inicio */}
                       <TableCell>
                         <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                          {c.lastProrroga && c.lastProrroga.fecha_ingreso
-                            ? new Date(c.lastProrroga.fecha_ingreso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+                          {c.lastProrroga && c.lastProrroga.start_date
+                            ? new Date(c.lastProrroga.start_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
                             : '—'}
                         </Typography>
                       </TableCell>
@@ -346,8 +346,8 @@ const ContractsView: React.FC = () => {
                             color: st === 'vencido' ? '#dc2626' : st === 'proximo' ? '#d97706' : '#1e293b',
                           }}
                         >
-                          {c.lastProrroga && c.lastProrroga.fecha_final
-                            ? new Date(c.lastProrroga.fecha_final).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+                          {c.lastProrroga && c.lastProrroga.end_date
+                            ? new Date(c.lastProrroga.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
                             : '—'}
                         </Typography>
                         <Typography

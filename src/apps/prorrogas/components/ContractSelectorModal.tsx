@@ -42,11 +42,11 @@ const ContractSelectorModal: React.FC<ContractSelectorModalProps> = ({
     return allEnriched
       .filter((c) => {
         return (
-          (c.nombre && c.nombre.toLowerCase().includes(q)) ||
-          (c.apellido && c.apellido.toLowerCase().includes(q)) ||
-          (c.documento && c.documento.toLowerCase().includes(q)) ||
-          (c.cargo && String(c.cargo).toLowerCase().includes(q)) ||
-          (c.tipo_contrato && c.tipo_contrato.toLowerCase().includes(q)) ||
+          (c.first_name && c.first_name.toLowerCase().includes(q)) ||
+          (c.last_name && c.last_name.toLowerCase().includes(q)) ||
+          (c.document && c.document.toLowerCase().includes(q)) ||
+          (c.position && String(c.position).toLowerCase().includes(q)) ||
+          (c.contract_type && c.contract_type.toLowerCase().includes(q)) ||
           (c.id && String(c.id).includes(q))
         );
       })
@@ -134,7 +134,7 @@ const ContractSelectorModal: React.FC<ContractSelectorModalProps> = ({
                   <ListItemText
                     primary={
                       <Typography variant="body2" fontWeight={700}>
-                        {c.nombre} {c.apellido}
+                        {c.first_name} {c.last_name}
                       </Typography>
                     }
                     secondary={
@@ -143,7 +143,7 @@ const ContractSelectorModal: React.FC<ContractSelectorModalProps> = ({
                         color="text.secondary"
                         noWrap
                       >
-                        ID: {c.documento} — {c.cargo}
+                        ID: {c.document} — {c.position}
                       </Typography>
                     }
                   />

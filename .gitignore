@@ -73,3 +73,14 @@ temp_report/
 # Internal project documentation
 docs/REQUISITOS_GESTION_PROYECTOS.md
 GUIDE_TECNICA.md
+.gemini
+8dd0132
+.mcp.json
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+QODER.md
+.cursor/
+.windsurf/
+.gemini/
+.windsurfrules

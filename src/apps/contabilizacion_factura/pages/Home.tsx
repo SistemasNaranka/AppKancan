@@ -77,8 +77,8 @@ export default function Home() {
 
   // Obtener usuario autenticado para acceder a su API key de Gemini y modelo de IA
   const { user } = useAuth();
-  const geminiApiKey = user?.key_gemini;
-  const modeloIA = user?.modelo_ia;
+  const geminiApiKey = user?.ia_key;
+  const modeloIA = user?.ia_model;
 
   // Hook de extracción híbrido (Gemini + Ollama fallback)
   const hybridExtractor = useHybridExtractor(geminiApiKey, modeloIA);
@@ -129,9 +129,9 @@ export default function Home() {
         // Verificar si el NIT ya tiene un automático asignado
         if (datos.proveedor.nif) {
           const proveedorData = await getAutomaticByNit(datos.proveedor.nif);
-          if (proveedorData && proveedorData.automatico) {
-            datos.automaticoAsignado = proveedorData.automatico;
-            setAutomaticoAsignado(proveedorData.automatico);
+          if (proveedorData && proveedorData.automatic) {
+            datos.automaticoAsignado = proveedorData.automatic;
+            setAutomaticoAsignado(proveedorData.automatic);
           }
         }
 
@@ -178,14 +178,14 @@ export default function Home() {
 
       const proveedorExistente = await getAutomaticByNit(nitString);
 
-      if (proveedorExistente && proveedorExistente.automatico) {
+      if (proveedorExistente && proveedorExistente.automatic) {
         // El proveedor YA EXISTE - usar automático existente sin abrir modal
         console.log(
           "Proveedor encontrado por NIT, usando automático:",
-          proveedorExistente.automatico,
+          proveedorExistente.automatic,
         );
-        datosFactura.automaticoAsignado = proveedorExistente.automatico;
-        setAutomaticoAsignado(proveedorExistente.automatico);
+        datosFactura.automaticoAsignado = proveedorExistente.automatic;
+        setAutomaticoAsignado(proveedorExistente.automatic);
         // Ejecutar directamente sin mostrar snackbar
         executeUpdateResolution(datosFactura);
       } else {

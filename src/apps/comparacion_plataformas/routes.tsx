@@ -4,7 +4,7 @@ import Home from "./pages/home";
 const routes: RouteObject[] = [
   {
     path: "/comparacion_plataformas",
-    element: <Home />,
+    element: <Home/>,
   },
 ];
 
