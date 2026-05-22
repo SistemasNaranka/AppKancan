@@ -1,16 +1,16 @@
 import React from "react";
 import { Tooltip, Box } from "@mui/material";
 import { PickersDay, PickersDayProps } from "@mui/x-date-pickers/PickersDay";
-import { format } from "date-fns";
+import dayjs from "dayjs";
 import type { FestivoMap } from "../hooks/useFestivos";
 
-interface FestivoDayProps extends PickersDayProps<Date> {
+interface FestivoDayProps extends PickersDayProps {
   festivos?: FestivoMap;
 }
 
-export const FestivoDay: React.FC<FestivoDayProps> = (props) => {
+export const FestivoDay = (props: FestivoDayProps) => {
   const { festivos = {}, day, outsideCurrentMonth, ...other } = props;
-  const fechaStr = format(day, "yyyy-MM-dd");
+  const fechaStr = dayjs(day).format("YYYY-MM-DD");
   const nombre = festivos[fechaStr];
   const esFestivo = Boolean(nombre) && !outsideCurrentMonth;
 
@@ -20,13 +20,13 @@ export const FestivoDay: React.FC<FestivoDayProps> = (props) => {
         {...other}
         day={day}
         outsideCurrentMonth={outsideCurrentMonth}
-        sx={{
-          ...(esFestivo && {
+        sx={[
+          esFestivo && {
             backgroundColor: "#fef2f2",
             "&:hover": { backgroundColor: "#fee2e2" },
-          }),
-          ...(other.sx as any),
-        }}
+          },
+          ...(Array.isArray(other.sx) ? other.sx : other.sx ? [other.sx] : []),
+        ]}
       />
       {esFestivo && (
         <Box
@@ -46,7 +46,7 @@ export const FestivoDay: React.FC<FestivoDayProps> = (props) => {
   );
 
   return esFestivo ? (
-    <Tooltip title={nombre} arrow placement="top">
+    <Tooltip title={nombre!} arrow placement="top">
       {dayEl}
     </Tooltip>
   ) : (

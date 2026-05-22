@@ -9,14 +9,14 @@ import { MapeoArchivo, TiendaMapeo } from "../types/mapeo.types";
 /**
  * Estructura tal cual viene de Directus (tabla mapeo_nombres_archivos)
  */
-export interface MapeoNombreArchivo {
-  archivo_origen: string;
-  tienda_archivo: string;
+export interface FileNameMapping {
+  source_file: string;
+  store_file: string;
   terminal: string; // Nuevo campo
-  idadquiriente: string; // Nuevo campo
-  tienda_id: {
+  acquirer_id: string; // Nuevo campo
+  store_id: {
     id: number;
-    nombre: string;
+    name: string;
   };
 }
 
@@ -33,28 +33,28 @@ const asegurarToken = async () => {
 /**
  * Obtiene todos los registros de la tabla Mapeo_Nombres_Archivos
  */
-export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => {
+export const obtenerMapeosArchivos = async (): Promise<FileNameMapping[]> => {
   try {
     // Asegurar que el token esté establecido antes de la petición
     await asegurarToken();
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("mapeo_nombres_archivos", {
+        readItems("acc_file_name_mapping", {
           fields: [
-            "archivo_origen",
-            "tienda_archivo",
+            "source_file",
+            "store_file",
             "terminal",
-            "idadquiriente",
-            "tienda_id.id",
-            "tienda_id.nombre",
+            "acquirer_id",
+            "store_id.id",
+            "store_id.name",
           ],
           limit: -1,
         })
       )
     );
 
-    return data as MapeoNombreArchivo[];
+    return data as FileNameMapping[];
   } catch (error) {
     console.error("❌ Error al obtener mapeos de archivos:", error);
     throw error;
@@ -65,11 +65,11 @@ export const obtenerMapeosArchivos = async (): Promise<MapeoNombreArchivo[]> => 
  * Procesa los datos de Directus y los convierte en las estructuras que necesita el componente
  */
 export const procesarMapeosParaNormalizacion = (
-  mapeos: MapeoNombreArchivo[]
+  mapeos: FileNameMapping[]
 ): { tablasMapeo: MapeoArchivo[]; tiendaMapeos: TiendaMapeo[] } => {
 
   // 1. Agrupar por archivo_origen para obtener los tipos de archivo únicos
-  const archivoOrigenUnicos = [...new Set(mapeos.map(m => m.archivo_origen))];
+  const archivoOrigenUnicos = [...new Set(mapeos.map(m => m.source_file))];
 
   //===========================  LISTA DE COLUMNAS A ELIMINAR  ===========================//
 
@@ -99,7 +99,7 @@ export const procesarMapeosParaNormalizacion = (
       "Ally Slug",
       "Store Slug",
       "ID Crédito",
-      "Canal",    //				
+      "Canal",
       "Estado",
       "Sub-estado",
       "ID Cancelación",
@@ -127,18 +127,18 @@ export const procesarMapeosParaNormalizacion = (
 
   // 3. Crear tablasMapeo con las columnas específicas para cada tipo
   const tablasMapeo: MapeoArchivo[] = archivoOrigenUnicos.map(archivoOrigen => ({
-    archivoOrigen,
+    source_file: archivoOrigen,
     columnasEliminar: columnasEliminarPorTipo[archivoOrigen] || [],
   }));
 
   // 4. Crear tiendaMapeos (mapeo de nombres de tiendas)
   const tiendaMapeos: TiendaMapeo[] = mapeos.map(m => ({
-    archivoOrigen: m.archivo_origen,
-    tiendaArchivo: m.tienda_archivo,
-    tiendaNormalizada: m.tienda_id.nombre,  // Nombre viene de la relación
-    tiendaId: m.tienda_id.id,               // ID viene de la relación
-    terminal: m.terminal,                   // Nuevo campo
-    idadquiriente: m.idadquiriente          // Nuevo campo
+    source_file: m.source_file,
+    store_file: m.store_file,
+    tiendaNormalizada: m.store_id.name,
+    store_id: m.store_id.id,
+    terminal: m.terminal,
+    acquirer_id: m.acquirer_id
   }));
 
   return { tablasMapeo, tiendaMapeos };

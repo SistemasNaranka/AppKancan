@@ -12,7 +12,7 @@ export type RequestStatus =
   | 'completada';
 
 export const requestStatusMap: Record<RequestStatus, {
-  [x: string]: any; label: string; color: string; bg: string; border: string 
+  [x: string]: any; label: string; color: string; bg: string; border: string
 }> = {
   pendiente: { label: 'Pendiente', color: '#b45309', bg: '#fef3c7', border: '#fde047' },
   en_revision: { label: 'En Revisión', color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
@@ -23,61 +23,48 @@ export const requestStatusMap: Record<RequestStatus, {
 
 export type TabValue = 'resumen' | 'contratos' | 'empleados' | 'prorrogas' | RequestStatus | 'activos' | 'vencidos' | 'por_vencer' | 'criticos';
 
-// ── Colección: prorrogas ──────────────────────────────────────────────────
+// ── Colección: adm_extensions ─────────────────────────────────────────────
 
 export interface Prorroga {
   id: number;
-  contrato: number;
-  numero: number;
+  contract_id: number;
+  extension_number: number;
   label: string;
-  descripcion: string;
-  fecha_ingreso: Date | string;
-  fecha_final: Date | string; 
-  duracion: number;
+  description: string;
+  start_date: Date | string;
+  end_date: Date | string;
+  duration: number;
   date_created?: string;
   date_updated?: string;
 }
 
 export type CreateProrroga = Omit<Prorroga, 'id' | 'date_created' | 'date_updated'>;
 export type UpdateProrroga = Partial<
-  Omit<Prorroga, 'id' | 'contrato' | 'date_created' | 'date_updated'>
+  Omit<Prorroga, 'id' | 'contract_id' | 'date_created' | 'date_updated'>
 >;
 
-// ── Colección: documentos ─────────────────────────────────────────────────
-
-export interface Documento {
-  id: number;
-  contrato: number;
-  nombre: string;
-  tipo: 'contrato' | 'evaluacion' | 'otrosi' | 'otro';
-  fecha: string;
-  firmado: boolean;
-  date_created?: string;
-}
-
-export type CreateDocumento = Omit<Documento, 'id' | 'date_created'>;
-
-// ── Colección: contratos ──────────────────────────────────────────────────
+// ── Colección: adm_contracts ──────────────────────────────────────────────
 
 export interface Contrato {
   id: number;
+  contract_id?: string;
   numero_contrato?: string;
   empleado_id?: number;
-  nombre: string;
-  cargo: string | number;
-  tipo_contrato?: string;
-  area?:string;
+  first_name: string;
+  last_name: string;
+  position: string | number;
+  contract_type?: string;
+  department?: string;
+  empleado_area?: string;
   empresa?: string;
-  request_status: RequestStatus;
-  prorrogas?: Prorroga[];
-  documentos?: Documento[];
+  status: RequestStatus;
+  extensions?: Prorroga[];
   date_created?: string;
-  documento: string;
-  apellido: string;
+  document: string;
   prorroga?: boolean | string;
   duracion?: string | number;
-  fecha_ingreso: string; // YYYY-MM-DD
-  fecha_final: string; // YYYY-MM-DD
+  start_date: string; // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
   date_updated?: string;
 }
 
@@ -109,9 +96,9 @@ export interface DashboardStats {
 
 export interface ContratoFilters {
   search?: string;
-  request_status?: RequestStatus[];
-  area?: string;
-  tipo_contrato?: string;
+  status?: RequestStatus[];
+  department?: string;
+  contract_type?: string;
 }
 
 export interface UIFilters {
@@ -156,16 +143,15 @@ export interface Employee {
   empresa?: string;
 }
 
-// ── Historial de Cargos ───────────────────────────────────────────────────
+// ── Historial de Cargos — adm_position_history ────────────────────────────
 
 export interface HistorialCargo {
   id: number;
-  contrato_id: number;
-  cargo_anterior: string | number;
-  cargo_nuevo: string | number;
-  fecha_efectividad: string; // YYYY-MM-DD
+  contract_id: number;
+  previous_position: string | number;
+  new_position: string | number;
+  effective_date: string; // YYYY-MM-DD
   date_created?: string;
 }
 
 export type CreateHistorialCargo = Omit<HistorialCargo, 'id' | 'date_created'>;
-

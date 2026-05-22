@@ -94,13 +94,13 @@ export const getContractStatus = (fechaFin: string): ContractStatus => {
 
 export const getNextProrrogaNumber = (prorrogas: Prorroga[]): number => {
   if (prorrogas.length === 0) return 0;
-  return Math.max(...prorrogas.map((p) => p.numero ?? 0)) + 1;
+  return Math.max(...prorrogas.map((p) => p.extension_number ?? 0)) + 1;
 };
 
 /** Porcentaje de avance de la prórroga activa */
 export const getProrrogaProgress = (entry: Prorroga, effectiveEndDate?: string): number => {
-  const start = new Date(entry.fecha_ingreso).getTime();
-  const endDate = effectiveEndDate || (entry.fecha_final ? (entry.fecha_final instanceof Date ? entry.fecha_final.toISOString().split('T')[0] : String(entry.fecha_final).split('T')[0]) : null);
+  const start = new Date(entry.start_date).getTime();
+  const endDate = effectiveEndDate || (entry.end_date ? (entry.end_date instanceof Date ? entry.end_date.toISOString().split('T')[0] : String(entry.end_date).split('T')[0]) : null);
   if (!endDate) return 0;
   const end = new Date(endDate).getTime();
   if (isNaN(start) || isNaN(end) || end <= start) return 0;

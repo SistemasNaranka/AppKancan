@@ -58,7 +58,6 @@ import {
   buscarUsuarios,
 } from "../services/reservas";
 
-import { notificarCorreoReserva } from "../services/correoReservas";
 
 
 // ================================
@@ -159,13 +158,17 @@ const calcularHoraMinima = (
     .split(":")
     .map(Number);
 
-  let horaMinima = h + 1;
-
+  let horaMinima = h;
+  let minutoMinimo = m + 30;
+  if (minutoMinimo >= 60) {
+    horaMinima += 1;
+    minutoMinimo -= 60;
+  }
   if (horaMinima >= 24) horaMinima = 23;
 
   return `${horaMinima
     .toString()
-    .padStart(2, "0")}:${m
+    .padStart(2, "0")}:${minutoMinimo
     .toString()
     .padStart(2, "0")}`;
 };
@@ -229,45 +232,6 @@ const DialogEditarReserva: React.FC<
 
   // Toggle: enviar correo de actualización al editar reserva (default ON).
   const [enviarCorreo, setEnviarCorreo] = useState<boolean>(true);
-
-
-  // ================================
-  // MEMOS
-  // ================================
-
-  const opcionesHora = useMemo(() => {
-    const inicio = parseInt(
-      horarioConfig.horaApertura.split(":")[0],
-    );
-
-    const fin = parseInt(
-      horarioConfig.horaCierre.split(":")[0],
-    );
-
-    return generarOpcionesHora(
-      inicio,
-      fin,
-    );
-  }, [horarioConfig]);
-
-  const opcionesHoraFinal =
-    useMemo(() => {
-      if (!horaInicioSeleccionada)
-        return opcionesHora;
-
-      const horaMinima =
-        calcularHoraMinima(
-          horaInicioSeleccionada,
-        );
-
-      return opcionesHora.filter(
-        (opcion) =>
-          opcion.value >= horaMinima,
-      );
-    }, [
-      opcionesHora,
-      horaInicioSeleccionada,
-    ]);
 
 
   // ================================
@@ -395,6 +359,44 @@ const DialogEditarReserva: React.FC<
   const observacionesWatch =
     watch("observations");
 
+
+  // ================================
+  // MEMOS
+  // ================================
+
+  const opcionesHora = useMemo(() => {
+    const inicio = parseInt(
+      horarioConfig.horaApertura.split(":")[0],
+    );
+
+    const fin = parseInt(
+      horarioConfig.horaCierre.split(":")[0],
+    );
+
+    return generarOpcionesHora(
+      inicio,
+      fin,
+    );
+  }, [horarioConfig]);
+
+  const opcionesHoraFinal =
+    useMemo(() => {
+      const base = horaInicioWatch || horaInicioSeleccionada;
+      if (!base) return opcionesHora;
+
+      const horaMinima = calcularHoraMinima(base);
+
+      return opcionesHora.filter(
+        (opcion) =>
+          opcion.value >= horaMinima,
+      );
+    }, [
+      opcionesHora,
+      horaInicioWatch,
+      horaInicioSeleccionada,
+    ]);
+
+
   const caracteresObservaciones = observacionesWatch?.length || 0;
   const caracteresRestantes = 500 - caracteresObservaciones;
   const aproximandoLimite = caracteresObservaciones >= 450;
@@ -410,6 +412,17 @@ const DialogEditarReserva: React.FC<
   // ================================
   // EFFECTS
   // ================================
+
+  // Sincronizar horaInicioSeleccionada y corregir end_time si quedó inválido.
+  useEffect(() => {
+    if (!horaInicioWatch) return;
+    setHoraInicioSeleccionada(horaInicioWatch);
+
+    const horaMinimaStr = calcularHoraMinima(horaInicioWatch);
+    if (horaFinalWatch && horaFinalWatch < horaMinimaStr) {
+      setValue("end_time", horaMinimaStr);
+    }
+  }, [horaInicioWatch, horaFinalWatch, setValue]);
 
   useEffect(() => {
     const cargarConfiguracion =
@@ -469,11 +482,12 @@ const DialogEditarReserva: React.FC<
       : [];
 
     reset({
+      room_name: (reserva.room_name as Sala) ?? ("" as Sala),
       date: reserva.date,
       start_time: (reserva.start_time || "").substring(0, 5),
       end_time: (reserva.end_time || "").substring(0, 5),
       meeting_title: reserva.meeting_title ?? "",
-      observations  : reserva.observations ?? "",
+      observations: reserva.observations ?? "",
       participants: participantesNormalizados,
     });
     setHoraInicioSeleccionada((reserva.start_time || "").substring(0, 5));
@@ -630,46 +644,12 @@ const DialogEditarReserva: React.FC<
           end_time: data.end_time,
           meeting_title: data.meeting_title,
           observations: data.observations?.trim() || "",
-          participantes: data.participants,
+          participants: data.participants,
         };
 
+        // El servicio actualizarReserva ya dispara el webhook n8n internamente
+        // con SELECT previo → UPDATE → POST. No se necesita lógica aquí.
         await onSubmit(reserva.id, payloadActualizacion);
-
-        // Notificación n8n post-edición. Solo si el toggle está activo.
-        // No bloquea: si falla, solo logea (la edición ya quedó en BD).
-        if (enviarCorreo) {
-          // Detectar qué cambió respecto a la reserva original.
-          const cambios = {
-            sala: reserva.meeting_title !== data.meeting_title,
-            fecha: reserva.date !== data.date,
-            hora_inicio: (reserva.start_time || "").substring(0, 5) !== data.start_time,
-            hora_final: (reserva.end_time || "").substring(0, 5) !== data.end_time,
-            titulo: (reserva.meeting_title || "") !== data.meeting_title,
-          };
-          try {
-            const result = await notificarCorreoReserva({
-              evento: "reserva_actualizada",
-              reserva: payloadActualizacion,
-              // Campos extra fuera del type para que n8n los reciba
-              ...({
-                reserva_anterior: {
-                  nombre_sala: reserva.meeting_title,
-                  fecha: reserva.date,
-                  hora_inicio: (reserva.start_time || "").substring(0, 5),
-                  hora_final: (reserva.end_time || "").substring(0, 5),
-                  titulo_reunion: reserva.meeting_title,
-                },
-                cambios,
-                reserva_id: reserva.id,
-              } as any),
-            });
-            console.info("[n8n] correo edición enviado OK:", result);
-          } catch (err) {
-            console.warn("[n8n] correo edición NO enviado:", err);
-          }
-        } else {
-          console.info("[n8n] envío de correo de edición desactivado");
-        }
 
         handleClose();
       } catch (err: any) {
@@ -1007,10 +987,10 @@ const DialogEditarReserva: React.FC<
                           </Avatar>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography variant="body2" sx={{ fontWeight: 600, color: "#1f2937", fontSize: "0.85rem", lineHeight: 1.2 }} noWrap>
-                              {(field as any).nombre}
+                              {(field as any).name}
                             </Typography>
                             <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.75rem", display: "block" }} noWrap>
-                              {(field as any).correo}
+                              {(field as any).email}
                             </Typography>
                           </Box>
                           <IconButton

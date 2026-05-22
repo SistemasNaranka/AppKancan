@@ -17,20 +17,20 @@ import type {
 function buildFilter(filters: ContratoFilters) {
   const conditions: object[] = [];
 
-  if (filters.tipo_contrato) {
-    conditions.push({ tipo_contrato: { _eq: filters.tipo_contrato } });
+  if (filters.contract_type) {
+    conditions.push({ contract_type: { _eq: filters.contract_type } });
   }
 
-  if (filters.area) {
-    conditions.push({ empleado_area: { _eq: filters.area } });
+  if (filters.department) {
+    conditions.push({ department: { _eq: filters.department } });
   }
 
   if (filters.search && filters.search.trim() !== "") {
     const q = filters.search.trim();
     conditions.push({
       _or: [
-        { nombre: { _icontains: q } },
-        { empleado_area:   { _icontains: q } },
+        { first_name: { _icontains: q } },
+        { department: { _icontains: q } },
       ],
     });
   }
@@ -39,14 +39,14 @@ function buildFilter(filters: ContratoFilters) {
 }
 
 /**
- * Directus devuelve el campo `cargo` como un objeto { id, nombre } cuando se
- * expande la relación con util_cargo. Aquí normalizamos para que el resto de
- * la app siempre reciba un string con el nombre del cargo.
+ * Directus devuelve el campo `position` como un objeto { id, name } cuando se
+ * expande la relación con core_positions. Aquí normalizamos para que el resto
+ * de la app siempre reciba un string con el nombre del cargo.
  */
 function normalizeCargo(raw: unknown): string {
   if (!raw) return '';
-  if (typeof raw === 'object' && raw !== null && 'nombre' in raw) {
-    return (raw as { nombre: string }).nombre ?? '';
+  if (typeof raw === 'object' && raw !== null && 'name' in raw) {
+    return (raw as { name: string }).name ?? '';
   }
   // Fallback: ya era string (p.ej. en pruebas locales)
   if (typeof raw === 'string') return raw;
@@ -56,9 +56,8 @@ function normalizeCargo(raw: unknown): string {
 function normalizeContrato(item: any): Contrato {
   return {
     ...item,
-    cargo: normalizeCargo(item.cargo),
-    prorrogas:  item.prorrogas  ?? [],
-    documentos: item.documentos ?? [],
+    position: normalizeCargo(item.position),
+    extensions: item.extensions ?? [],
   };
 }
 
@@ -66,15 +65,14 @@ function normalizeContrato(item: any): Contrato {
 // Contratos
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Fields comunes — expandimos cargo → util_cargo para obtener el nombre
+// Fields comunes — expandimos position → core_positions para obtener el nombre
 const CONTRATO_FIELDS = [
   "*",
-  "cargo.id",
-  "cargo.nombre",
-  "tipo_contrato",
-  "fecha_final",
-  "prorrogas.*",
-  "documentos.*",
+  "position.id",
+  "position.name",
+  "contract_type",
+  "end_date",
+  "extensions.*",
 ];
 
 export async function getContratos(
@@ -98,11 +96,11 @@ export async function getContratos(
 
     const [items, countResult] = await Promise.all([
       withAutoRefresh(() =>
-        directus.request(readItems("contratos", readOptions))
+        directus.request(readItems("adm_contracts", readOptions))
       ),
       withAutoRefresh(() =>
         directus.request(
-          aggregate("contratos", {
+          aggregate("adm_contracts", {
             aggregate: { count: ["id"] },
             ...(filter ? { query: { filter } } : {}),
           })
@@ -125,7 +123,7 @@ export async function getContratos(
       console.error("❌ Error 403 al cargar contratos (Permisos):", {
         message: error.message,
         errors: error.errors,
-        collection: "contratos",
+        collection: "adm_contracts",
       });
     } else {
       console.error("❌ Error al cargar contratos:", error);
@@ -143,7 +141,7 @@ export async function getContratoById(id: number): Promise<Contrato | null> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("contratos", {
+        readItems("adm_contracts", {
           fields: CONTRATO_FIELDS,
           filter: { id: { _eq: id } },
           limit: 1,
@@ -171,7 +169,7 @@ export async function getContratoStats(
 
     const result = await withAutoRefresh(() =>
       directus.request(
-        aggregate("contratos", {
+        aggregate("adm_contracts", {
           aggregate: { count: ["id"] },
             ...(filter ? { query: { filter } } : {}),
           })
@@ -219,10 +217,10 @@ export async function getProrrogasByContrato(
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("prorrogas", {
+        readItems("adm_extensions", {
           fields: ["*"],
-          filter: { contrato: { _eq: contratoId } },
-          sort:   ["numero"],
+          filter: { contract_id: { _eq: contratoId } },
+          sort:   ["extension_number"],
         })
       )
     );
@@ -242,9 +240,9 @@ export async function getHistorialCargos(contratoId: number) {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("historial_cargos", {
+        readItems("adm_position_history", {
           fields: ["*"],
-          filter: { contrato_id: { _eq: contratoId } },
+          filter: { contract_id: { _eq: contratoId } },
           sort: ["-date_created"],
         })
       )

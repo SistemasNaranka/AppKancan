@@ -3,21 +3,21 @@
 /**
  * Estructura tal cual viene de Directus (tabla Mapeo_Nombres_Archivos)
  */
-export interface MapeoNombreArchivo {
+export interface FileNameMapping {
   id: number;
-  Archivo_origen: string;   // Nombre del archivo (ej: "Maria Perez - Bco Occidente")
-  Tienda_archivo: string;   // Nombre de tienda en el archivo (ej: "SUPER CENTRO TULUA D")
-  Tienda_ID: number;        // ID de la tienda
-  Nombre: string;           // Nombre normalizado final (ej: "SUPERCENTRO")
-  Terminal: string;         // Nuevo campo: ID de terminal para identificar la tienda
-  Idadquiriente?: string;   // Nuevo campo: ID de adquiriente para identificar la tienda
+  source_file: string;
+  store_file: string;
+  store_id: number;
+  name: string;
+  terminal: string;
+  acquirer_id?: string;
 }
 
 /**
  * Configuración de normalización por tipo de archivo
  */
 export interface MapeoArchivo {
-  archivoOrigen: string;
+  source_file: string;
   columnasEliminar: string[];
 }
 
@@ -25,17 +25,18 @@ export interface MapeoArchivo {
  * Mapeo de nombres de tiendas para reemplazo
  */
 export interface TiendaMapeo {
-  archivoOrigen: string;      // Para filtrar por tipo de archivo
-  tiendaArchivo: string;      // Nombre original en el archivo
-  tiendaNormalizada: string;  // Nombre final normalizado
-  tiendaId: number;           // ID de la tienda
-  terminal?: string;          // ID de terminal (opcional)
-  idadquiriente?: string;     // ID de adquiriente (opcional)
+  source_file: string;
+  store_file: string;
+  tiendaNormalizada: string;
+  store_id: number;
+  terminal?: string;
+  acquirer_id?: string;
 }
 
 /**
  * Archivo subido por el usuario
  */
+
 export interface ArchivoSubido {
   nombre: string;
   tipo: string;

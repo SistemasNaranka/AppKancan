@@ -75,11 +75,11 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
     if (!nuevoCargo || !fechaEfectividad) return;
 
     const cargoAnterior =
-      typeof liveContrato.cargo === 'object' &&
-      liveContrato.cargo !== null &&
-      'nombre' in liveContrato.cargo
-        ? (liveContrato.cargo as any).nombre
-        : getCargoLabel(liveContrato.cargo);
+      typeof liveContrato.position === 'object' &&
+      liveContrato.position !== null &&
+      'name' in (liveContrato.position as any)
+        ? (liveContrato.position as any).name
+        : getCargoLabel(liveContrato.position);
 
     const selectedRole = ROLES_AREAS.find(r => r.nombre === nuevoCargo);
     const nuevaArea = selectedRole ? selectedRole.area : undefined;
@@ -105,10 +105,10 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
       setHistorial(prev => [
         {
           id: Date.now(),
-          contrato_id: contrato.id,
-          cargo_anterior: cargoAnterior,
-          cargo_nuevo: nuevoCargo,
-          fecha_efectividad: fechaEfectividad,
+          contract_id: contrato.id,
+          previous_position: cargoAnterior,
+          new_position: nuevoCargo,
+          effective_date: fechaEfectividad,
           date_created: new Date().toISOString(),
         } as HistorialCargo,
         ...prev,
@@ -126,12 +126,12 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
   };
 
   const currentCargoName = useMemo(() => {
-    const cargo = liveContrato.cargo;
-    if (typeof cargo === 'object' && cargo !== null && 'nombre' in cargo) {
-      return (cargo as any).nombre;
+    const cargo = liveContrato.position;
+    if (typeof cargo === 'object' && cargo !== null && 'name' in cargo) {
+      return (cargo as any).name;
     }
     return getCargoLabel(cargo);
-  }, [liveContrato.cargo]);
+  }, [liveContrato.position]);
 
   return (
     <Dialog 
@@ -228,20 +228,20 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
                               {/* Timeline Content */}
                               <Box sx={{ pb: isLast ? 1 : 4, pt: 0, flex: 1 }}>
                                 <Typography variant="body2" fontWeight={800} color="text.primary">
-                                  {getCargoLabel(h.cargo_nuevo)}
+                                  {getCargoLabel(h.new_position)}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                                  Realizado el <strong>{formatDate(h.fecha_efectividad)}</strong>
+                                  Realizado el <strong>{formatDate(h.effective_date)}</strong>
                                 </Typography>
                                 <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
                                   <Chip 
-                                    label={getCargoLabel(h.cargo_anterior)} 
+                                    label={getCargoLabel(h.previous_position)} 
                                     size="small" 
                                     sx={{ height: 22, fontSize: '0.68rem', bgcolor: '#f1f5f9', color: '#64748b', fontWeight: 600 }} 
                                   />
                                   <ArrowForwardIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
                     <Chip
-                                    label={getCargoLabel(h.cargo_nuevo)} 
+                                    label={getCargoLabel(h.new_position)} 
                       size="small"
                                     sx={{ height: 22, fontSize: '0.68rem', bgcolor: '#eff6ff', color: '#2563eb', fontWeight: 700 }} 
                     />

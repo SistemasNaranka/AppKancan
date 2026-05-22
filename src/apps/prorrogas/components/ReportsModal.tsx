@@ -43,10 +43,10 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
       if (c.contractStatus === 'vigente' || c.contractStatus === 'proximo') activos++;
       if (c.daysLeft >= 0 && c.daysLeft <= 7) criticos++;
       if (c.contractStatus === 'vencido') vencidos++;
-      if (c.request_status === 'pendiente' || c.request_status === 'en_revision') pendientes++;
+      if (c.status === 'pendiente' || c.status === 'en_revision') pendientes++;
 
       // Agrupación por Área
-      const area = c.area || 'Sin Área Asignada';
+      const area = c.department || 'Sin Área Asignada';
       areaCount[area] = (areaCount[area] || 0) + 1;
 
       // Agrupación por Empresa
@@ -168,17 +168,17 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
                 {stats.topProximos.length > 0 ? stats.topProximos.map((emp) => (
                   <Box key={emp.id} sx={{ p: 2.5, '&:hover': { bgcolor: '#fafafa' }, transition: 'background 0.2s' }}>
                     <Typography variant="subtitle2" fontWeight={700} color="text.primary">
-                      {emp.nombre} {emp.apellido || ''}
+                      {emp.first_name} {emp.last_name || ''}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" mb={1}>
-                      {emp.cargo || 'Sin Cargo'}
+                      {emp.position || 'Sin Cargo'}
                     </Typography>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <Typography variant="caption" sx={{ px: 1, py: 0.3, bgcolor: '#fef3c7', color: '#d97706', borderRadius: 1, fontWeight: 700 }}>
                         {emp.daysLeft} días
                       </Typography>
                       <Typography variant="caption" color="text.disabled">
-                        Vence: {emp.fecha_final ? new Date(emp.fecha_final).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                        Vence: {emp.end_date ? new Date(emp.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                       </Typography>
                     </Stack>
                   </Box>

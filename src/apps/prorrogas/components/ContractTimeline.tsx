@@ -42,9 +42,9 @@ const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
       {/* Prorroga entries */}
       {prorrogas.map((p, idx) => {
         const isActive     = idx === lastIdx;
-        const isFinalizado = !isActive && daysUntil(p.fecha_final?.toString() ?? null) < 0;
+        const isFinalizado = !isActive && daysUntil(p.end_date?.toString() ?? null) < 0;
         const progress     = isActive ? getProrrogaProgress(p) : 0;
-        const diasRestantes = daysUntil(p.fecha_final?.toString() ?? null);
+        const diasRestantes = daysUntil(p.end_date?.toString() ?? null);
 
         return (
           <Box key={p.id} sx={{ position: 'relative', mb: 2.5 }}>
@@ -80,7 +80,7 @@ const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
                 <Typography variant="subtitle2" sx={{ color: isActive ? 'primary.main' : 'text.primary', fontWeight: 700 }}>
-                  {p.numero === 0 ? 'Contrato original' : `Prórroga #${p.numero}`}
+                  {p.extension_number === 0 ? 'Contrato original' : `Prórroga #${p.extension_number}`}
                 </Typography>
                 <Stack direction="row" spacing={0.8} alignItems="center">
                   {isActive && (
@@ -98,7 +98,7 @@ const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
                     />
                   )}
                   <Chip
-                    label={`${p.duracion ?? getProrrogaDuration(p.numero ?? idx)} meses`}
+                    label={`${p.duration ?? getProrrogaDuration(p.extension_number ?? idx)} meses`}
                     size="small"
                     sx={{
                       bgcolor: isActive ? 'primary.main' : '#f0f4f8',
@@ -111,9 +111,9 @@ const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
                 </Stack>
               </Stack>
 
-              {p.descripcion && (
+              {p.description && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                  {p.descripcion}
+                  {p.description}
                 </Typography>
               )}
 
@@ -121,13 +121,13 @@ const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
                 <Box>
                   <Typography variant="overline" sx={{ display: 'block', lineHeight: 1.2 }}>Inicio</Typography>
                   <Typography variant="caption" fontWeight={600} color="text.primary">
-                    {formatDate(p.fecha_ingreso)}
+                    {formatDate(p.start_date)}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="overline" sx={{ display: 'block', lineHeight: 1.2 }}>Fin</Typography>
                   <Typography variant="caption" fontWeight={600} color="text.primary">
-                    {formatDate(p.fecha_final)}
+                    {formatDate(p.end_date)}
                   </Typography>
                 </Box>
                 {isActive && (

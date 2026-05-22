@@ -88,10 +88,10 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
 
         {/* Name & role */}
         <Typography variant="body2" fontWeight={800} sx={{ fontSize: '0.9rem', lineHeight: 1.3, mb: 0.2 }}>
-          {c.nombre}
+          {c.first_name}
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-          {c.cargo}
+          {c.position}
         </Typography>
 
         {/* Info rows */}
@@ -105,7 +105,7 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography variant="caption" color="text.disabled">Prórroga vigente</Typography>
             <Chip
-              label={`#${c.lastProrroga?.numero ?? 0}`}
+              label={`#${c.lastProrroga?.extension_number ?? 0}`}
               size="small"
               sx={{
                 height: 18, bgcolor: '#eff6ff', color: '#2563eb',
@@ -120,15 +120,15 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
               fontWeight={700}
               sx={{ color: st === 'vencido' ? '#dc2626' : st === 'proximo' ? '#d97706' : '#16a34a' }}
             >
-              {c.lastProrroga && c.lastProrroga.fecha_final
-                ? new Date(c.lastProrroga.fecha_final).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+              {c.lastProrroga && c.lastProrroga.end_date
+                ? new Date(c.lastProrroga.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
                 : '—'}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography variant="caption" color="text.disabled">Area</Typography>
             <Typography variant="caption" fontWeight={600} sx={{ maxWidth: 110, textAlign: 'right' }}>
-              {c.area}
+              {c.department}
             </Typography>
           </Box>
         </Stack>
@@ -196,13 +196,13 @@ const EmployeesView: React.FC = () => {
         if (statusFilter !== 'todos' && c.contractStatus !== statusFilter) return false;
         if (!q) return true;
         return (
-          c.nombre.toLowerCase().includes(q) ||
-          String(c.cargo).toLowerCase().includes(q) ||
-          (c.area?.toLowerCase() ?? '').includes(q)
+          c.first_name.toLowerCase().includes(q) ||
+          String(c.position).toLowerCase().includes(q) ||
+          (c.department?.toLowerCase() ?? '').includes(q)
         );
       })
       .sort((a, b) => {
-        if (sort === 'nombre') return a.nombre.localeCompare(b.nombre);
+        if (sort === 'nombre') return a.first_name.localeCompare(b.first_name);
         if (sort === 'vencimiento') return a.daysLeft - b.daysLeft;
         return 0;
       });

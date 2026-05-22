@@ -321,6 +321,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
     (datos: RespuestaExtraccion, file: File): DatosFacturaPDF => {
       return {
         numeroFactura: datos.numero_factura || "Sin número",
+        automatico: "",
         fechaEmision: datos.fecha_emision || new Date().toISOString(),
         fechaVencimiento: datos.fecha_vencimiento || undefined,
         proveedor: {
