@@ -1,5 +1,12 @@
+# Node / Build / Dependency directories
+node_modules/
+dist/
+dist-ssr/
+*.local
+tsconfig.tsbuildinfo
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,18 +14,42 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
 
-# AI and IDE tools
+# System Files (macOS / Windows)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDEs & Editors
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.zed/
+.zed
+
+# AI and Developer Tools
 .gemini/
 .kilo/
 .kiro/
 .qoder/
 .cursor/
-.zed/
 .mcp.json
 .opencode.json
 .claudeignore
@@ -26,6 +57,8 @@ dist-ssr
 .windsurfrules
 .kilocode
 .claude/
+.code-review-graph/
+.code-review-graph
 
 # AI documentation
 AGENTS.md
@@ -33,27 +66,10 @@ CLAUDE.md
 GEMINI.md
 QODER.md
 
-# Junk/Logs
+# Junk / Temporary Reports
 8dd0132
 temp_report/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.env
-tsconfig.tsbuildinfo
-.mcp.json
-.opencode.json
-.claudeignore
-
-# Documentos internos de asignación de tareas
+# Internal project documentation
 docs/REQUISITOS_GESTION_PROYECTOS.md
 GUIDE_TECNICA.md
-.code-review-graph
