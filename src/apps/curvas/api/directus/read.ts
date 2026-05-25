@@ -257,24 +257,24 @@ export const getLogCurvas = async (
     if (fecha) {
       // Filtrar por fecha (solo la fecha, sin hora)
       queryFilter.push({
-        fecha: { _gte: `${fecha}T00:00:00`, _lte: `${fecha}T23:59:59` }
+        log_date: { _gte: `${fecha}T00:00:00`, _lte: `${fecha}T23:59:59` }
       });
     }
 
     if (referencia) {
       queryFilter.push({
-        referencia: { _contains: referencia }
+        reference: { _contains: referencia }
       });
     }
 
     if (lastUpdated) {
       queryFilter.push({
-        fecha_creacion: { _gt: lastUpdated }
+        date_created: { _gt: lastUpdated }
       });
     }
 
     const queryOptions: any = {
-      sort: ['-fecha', '-id'],
+      sort: ['-log_date', '-id'],
       limit: 5000,
     };
 
@@ -287,7 +287,7 @@ export const getLogCurvas = async (
 
     const response = await withAutoRefresh(() =>
       directus.request(
-        readItems('log_curvas', queryOptions)
+        readItems('log_curve', queryOptions)
       )
     );
 
@@ -309,16 +309,16 @@ export const getEnviosCurvas = async (
   try {
     const queryFilter: any[] = [];
     if (fecha) {
-      queryFilter.push({ fecha: { _gte: `${fecha}T00:00:00`, _lte: `${fecha}T23:59:59` } });
+      queryFilter.push({ shipment_date: { _gte: `${fecha}T00:00:00`, _lte: `${fecha}T23:59:59` } });
     }
     if (referencia) {
-      queryFilter.push({ referencia: { _contains: referencia } });
+      queryFilter.push({ reference: { _contains: referencia } });
     }
 
     const queryOptions: any = {
-      sort: ['-fecha'],
+      sort: ['-shipment_date'],
       limit: 5000,
-      fields: ['*', 'tienda_id.*']
+      fields: ['*', 'store_id.*']
     };
 
     if (queryFilter.length > 0) {
@@ -326,7 +326,7 @@ export const getEnviosCurvas = async (
     }
 
     const response = await withAutoRefresh(() =>
-      directus.request(readItems('envios_curvas', queryOptions))
+      directus.request(readItems('log_curve_shipments', queryOptions))
     );
     return response || [];
   } catch (error) {
@@ -349,26 +349,26 @@ export const getEnviosAnalisis = async (
 
     if (fechaInicio && fechaFin) {
       queryFilter.push({
-        fecha: { _between: [fechaInicio, fechaFin] }
+        shipment_date: { _between: [fechaInicio, fechaFin] }
       });
     } else if (fechaInicio) {
       queryFilter.push({
-        fecha: { _gte: fechaInicio }
+        shipment_date: { _gte: fechaInicio }
       });
     }
 
     const queryOptions: any = {
-      sort: ['-fecha'],
+      sort: ['-shipment_date'],
       limit: -1,
       // Traemos info del usuario y de la tienda si existe la relación
       fields: [
         '*',
-        'usuario_id.id',
-        'usuario_id.first_name',
-        'usuario_id.last_name',
-        'tienda_id.id',
-        'tienda_id.name',
-        'tienda_id.ultra_code'
+        'user_id.id',
+        'user_id.first_name',
+        'user_id.last_name',
+        'store_id.id',
+        'store_id.name',
+        'store_id.ultra_code'
       ],
     };
 
@@ -380,7 +380,7 @@ export const getEnviosAnalisis = async (
 
     const response = await withAutoRefresh(() =>
       directus.request(
-        readItems('envios_curvas', queryOptions)
+        readItems('log_curve_shipments', queryOptions)
       )
     );
 
@@ -399,9 +399,9 @@ export const getResumenFechasCurvas = async (): Promise<Record<string, 'pendient
   try {
     const response = await withAutoRefresh(() =>
       directus.request(
-        readItems('log_curvas', {
-          fields: ['fecha'],
-          sort: ['-fecha'],
+        readItems('log_curve', {
+          fields: ['log_date'],
+          sort: ['-log_date'],
           limit: 1000,
         })
       )
@@ -409,7 +409,7 @@ export const getResumenFechasCurvas = async (): Promise<Record<string, 'pendient
 
     const fechas: Record<string, 'pendiente' | 'enviado'> = {};
     response.forEach((item: any) => {
-      const fecha = item.fecha?.split('T')[0];
+      const fecha = item.log_date?.split('T')[0];
       if (fecha && !fechas[fecha]) {
         fechas[fecha] = 'enviado';
       }

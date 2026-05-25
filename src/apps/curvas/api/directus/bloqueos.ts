@@ -6,20 +6,20 @@ import type { BloqueoEscaner } from '../../types';
 const COLLECTION = 'log_curve_scans';
 
 /**
- * Obtiene los bloqueos activos para una referencia específica.
+ * Obtiene los bloqueos activos para una reference específica.
  * Filtra los que tienen más de 7 minutos de inactividad.
  */
-export const obtenerBloqueosActivos = async (referencia?: string): Promise<BloqueoEscaner[]> => {
+export const obtenerBloqueosActivos = async (reference?: string): Promise<BloqueoEscaner[]> => {
   try {
     // Calculamos el timestamp de hace 7 minutos
     const sieteMinutosAtras = new Date(Date.now() - 7 * 60 * 1000).toISOString();
 
     const filter: any = {
-      ultima_actividad: { _gte: sieteMinutosAtras } // Solo los activos recientes
+      last_activity_at: { _gte: sieteMinutosAtras } // Solo los activos recientes
     };
     
-    if (referencia) {
-      filter.referencia = { _eq: referencia };
+    if (reference) {
+      filter.reference = { _eq: reference };
     }
 
     const response = await withAutoRefresh(() =>
@@ -39,22 +39,22 @@ export const obtenerBloqueosActivos = async (referencia?: string): Promise<Bloqu
 };
 
 /**
- * Intenta bloquear una tienda para un usuario en una referencia.
+ * Intenta bloquear una tienda para un usuario en una reference.
  * Retorna true si tuvo éxito, false si ya estaba bloqueada por otro.
  */
 export const intentarBloquearTienda = async (
-  referencia: string,
-  tienda_id: string,
-  usuario_id: string
+  reference: string,
+  store_id: string,
+  user_id: string
 ): Promise<boolean> => {
   try {
     // 1. Verificar si ya existe un bloqueo activo para esta tienda
-    const bloqueosActuales = await obtenerBloqueosActivos(referencia);
-    const bloqueoExistente = bloqueosActuales.find(b => String(b.tienda_id) === String(tienda_id));
+    const bloqueosActuales = await obtenerBloqueosActivos(reference);
+    const bloqueoExistente = bloqueosActuales.find(b => String(b.store_id) === String(store_id));
 
     if (bloqueoExistente) {
-      const existingUserId = typeof bloqueoExistente.usuario_id === 'object' && bloqueoExistente.usuario_id !== null ? bloqueoExistente.usuario_id: bloqueoExistente.usuario_id;
-      if (String(existingUserId) === String(usuario_id)) {
+      const existingUserId = typeof bloqueoExistente.user_id === 'object' && bloqueoExistente.user_id !== null ? bloqueoExistente.user_id: bloqueoExistente.user_id;
+      if (String(existingUserId) === String(user_id)) {
         // Ya es nuestro, solo actualizamos el tiempo
         await renovarBloqueo(String(bloqueoExistente.id));
         return true;
@@ -67,10 +67,10 @@ export const intentarBloquearTienda = async (
     await withAutoRefresh(() =>
       directus.request(
         createItems(COLLECTION, {
-          referencia,
-          tienda_id: String(tienda_id),
-          usuario_id: String(usuario_id),
-          ultima_actividad: new Date().toISOString(),
+          reference,
+          store_id: String(store_id),
+          user_id: String(user_id),
+          last_activity_at: new Date().toISOString(),
         } as any)
       )
     );
@@ -90,7 +90,7 @@ export const renovarBloqueo = async (lock_id: string): Promise<void> => {
     await withAutoRefresh(() =>
       directus.request(
         updateItems(COLLECTION, [lock_id], {
-          ultima_actividad: new Date().toISOString(),
+          last_activity_at: new Date().toISOString(),
         })
       )
     );
@@ -103,19 +103,19 @@ export const renovarBloqueo = async (lock_id: string): Promise<void> => {
  * Libera el bloqueo de una tienda específica para un usuario.
  */
 export const liberarTienda = async (
-  referencia: string,
-  tienda_id: string,
-  usuario_id: string
+  reference: string,
+  store_id: string,
+  user_id: string
 ): Promise<void> => {
   try {
-    // Buscar todos los bloqueos de este usuario para esta tienda y referencia
+    // Buscar todos los bloqueos de este usuario para esta tienda y reference
     const response = await withAutoRefresh(() =>
       directus.request(
         readItems(COLLECTION, {
           filter: {
-            referencia: { _eq: referencia },
-            tienda_id: { _eq: String(tienda_id) },
-            usuario_id: { _eq: String(usuario_id) },
+            reference: { _eq: reference },
+            store_id: { _eq: String(store_id) },
+            user_id: { _eq: String(user_id) },
           },
         })
       )
@@ -139,19 +139,19 @@ export const liberarTienda = async (
 };
 
 /**
- * Libera todos los bloqueos de un usuario para una referencia (útil al limpiar todo o salir).
+ * Libera todos los bloqueos de un usuario para una reference (útil al limpiar todo o salir).
  */
 export const liberarTodasLasTiendasDeUsuario = async (
-  referencia: string,
-  usuario_id: string
+  reference: string,
+  user_id: string
 ): Promise<void> => {
   try {
     const response = await withAutoRefresh(() =>
       directus.request(
         readItems(COLLECTION, {
           filter: {
-            referencia: { _eq: referencia },
-            usuario_id: { _eq: String(usuario_id) },
+            reference: { _eq: reference },
+            user_id: { _eq: String(user_id) },
           },
         })
       )
@@ -177,14 +177,14 @@ export const liberarTodasLasTiendasDeUsuario = async (
  * Libera TODOS los bloqueos a nivel global de un usuario (para cuando cierra o limpia todo).
  */
 export const liberarTodosLosBloqueosDeUsuario = async (
-  usuario_id: string
+  user_id: string
 ): Promise<void> => {
   try {
     const response = await withAutoRefresh(() =>
       directus.request(
         readItems(COLLECTION, {
           filter: {
-            usuario_id: { _eq: String(usuario_id) },
+            user_id: { _eq: String(user_id) },
           },
         })
       )

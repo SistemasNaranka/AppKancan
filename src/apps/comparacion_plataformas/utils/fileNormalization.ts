@@ -60,27 +60,19 @@ export const findBestMatch = (
   let bestScore = 0.5; // Umbral mínimo de coincidencia
   let tipoArchivo = "";
 
-  console.log(`🔍 Buscando mapeo para: "${fileName}"`);
 
   mappingTable.forEach((mapping) => {
-    const score = fuzzyMatch(mapping.archivoOrigen, fileName);
-    console.log(
-      `  - "${mapping.archivoOrigen}" → Score: ${(score * 100).toFixed(1)}%`,
-    );
+    const score = fuzzyMatch(mapping.source_file, fileName);
 
     if (score > bestScore) {
       bestScore = score;
       bestMatch = mapping;
-      tipoArchivo = mapping.archivoOrigen;
+      tipoArchivo = mapping.source_file;
     }
   });
 
   if (bestMatch) {
-    console.log(
-      `✓ Mejor coincidencia: "${tipoArchivo}" (${(bestScore * 100).toFixed(1)}%)`,
-    );
   } else {
-    console.log(`✗ No se encontró coincidencia válida (umbral: 50%)`);
   }
 
   return bestMatch ? { mapeo: bestMatch, tipoArchivo } : null;
@@ -151,71 +143,46 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     });
 
     if (esPruebaRBM) {
-      console.log("  🚫 Fila ignorada (contiene 'Prueba RBM'):", fila);
       return false;
     }
 
     if (esFilaTotal) {
-      console.log("  🚫 Fila ignorada (es fila de 'TOTAL'):", fila);
       return false;
     }
 
     if (esRechazada) {
-      console.log("  🚫 Fila ignorada (es 'RECHAZADA/O'):", fila);
       return false;
     }
 
     return true;
   });
 
-  console.log(
-    `ℹ️ Se filtraron ${datos.length - datosFiltrados.length} filas inválidas.`,
-  );
 
   // Filtrar solo los mapeos relevantes para este tipo de archivo
   // Intento 1: Filtrar por tipo de archivo específico
   let mapeosRelevantes = mapeosTienda.filter(
-    (m) => m.archivoOrigen.toLowerCase() === tipoArchivo.toLowerCase(),
+    (m) => m.source_file.toLowerCase() === tipoArchivo.toLowerCase(),
   );
 
   // Intento 2: Si es ARCHIVO EXTERNO o no hay mapeos específicos para este tipo, usar todos los mapeos disponibles
   if (tipoArchivo === "ARCHIVO EXTERNO" || mapeosRelevantes.length === 0) {
     if (mapeosRelevantes.length === 0 && tipoArchivo !== "ARCHIVO EXTERNO") {
-      console.log(
-        `ℹ️ No hay mapeos de tiendas específicos para "${tipoArchivo}". Intentando búsqueda global con todos los mapeos disponibles.`,
-      );
     }
     mapeosRelevantes = mapeosTienda;
   }
 
-  console.log(
-    `📋 Mapeos de tiendas a usar para "${tipoArchivo}" (${mapeosRelevantes.length} disponibles)`,
-  );
 
   if (mapeosRelevantes.length === 0) {
-    console.warn(`⚠ No hay NINGÚN mapeo de tiendas configurado en el sistema.`);
     return datosFiltrados;
   }
 
   // --- DEBUG: Mostrar primeros 5 mapeos para verificar carga de campos ---
-  console.log(
-    `🔍 [DEBUG] Primeros 5 mapeos para ${tipoArchivo}:`,
-    mapeosRelevantes.slice(0, 5).map((m) => ({
-      tienda: m.tiendaArchivo,
-      final: m.tiendaNormalizada,
-      idadquiriente: m.idadquiriente,
-      terminal: m.terminal,
-    })),
-  );
 
   // Estadísticas de mapeo
   let filasMapeadas = 0;
   let filasNoMapeadas = 0;
   const tiendasEncontradas = new Set<string>();
 
-  console.log(
-    `ℹ️ Se filtraron ${datos.length - datosFiltrados.length} filas inválidas.`,
-  );
 
   const datosMapeados = datosFiltrados.map((fila, index) => {
     const filaNueva: any = { ...fila };
@@ -231,7 +198,7 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
       for (const mapeo of mapeosRelevantes) {
         const tiendaNormalizada = normalizarParaComparacion(
-          mapeo.tiendaArchivo,
+          mapeo.store_file,
         );
 
         if (valorNormalizado === tiendaNormalizada) {
@@ -245,9 +212,9 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
           if (esMapeoGenericoNaranka) {
             // Lógica estricta para NARANKA GENÉRICO:
 
-            if (mapeo.idadquiriente) {
+            if (mapeo.acquirer_id) {
               // Normalizar idadquiriente del mapeo para comparación más robusta
-              const idAdquirienteMapeo = String(mapeo.idadquiriente)
+              const idAdquirienteMapeo = String(mapeo.acquirer_id)
                 .trim()
                 .toLowerCase();
 
@@ -265,18 +232,11 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
                 // DEBUG SOLO PARA NARANKA
                 if (valorNormalizado.includes("naranka") && match) {
-                  console.log(
-                    `    ✅ [MATCH IDADQUIRIENTE] Fila ${index + 1}: Celda '${valorCelda}' coincide con mapeo '${idAdquirienteMapeo}'`,
-                  );
                 }
                 return match;
               });
 
               if (!tieneIdAdquiriente) {
-                if (index < 5)
-                  console.log(
-                    `    ❌ Falló validación idadquiriente para '${valor}'. Buscaba '${mapeo.idadquiriente}' en fila.`,
-                  );
                 continue;
               }
             } else {
@@ -286,11 +246,11 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
             }
           } else if (
             valorNormalizado.includes("naranka") &&
-            mapeo.idadquiriente
+            mapeo.acquirer_id
           ) {
             // Caso: Nombre específico (ej. Kan Can) pero TIENE idadquiriente definido en el mapeo.
             // Debemos validar el idadquiriente si existe obligatoriamente.
-            const idAdquirienteMapeo = String(mapeo.idadquiriente)
+            const idAdquirienteMapeo = String(mapeo.acquirer_id)
               .trim()
               .toLowerCase();
             const tieneIdAdquiriente = Object.values(fila).some((v) => {
@@ -308,19 +268,10 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
             if (!tieneIdAdquiriente) continue;
           }
 
-          tiendaIdEncontrado = mapeo.tiendaId;
+          tiendaIdEncontrado = mapeo.store_id;
           tiendaEncontrada = mapeo.tiendaNormalizada;
           filaNueva[columna] = tiendaEncontrada; // ¡REEMPLAZAR EL NOMBRE EN EL ARCHIVO!
 
-          if (index < 3) {
-            console.log(
-              `  ✓ Fila ${index + 1} [Exacto en "${columna}"]: "${valor}" → "${tiendaEncontrada}"`,
-            );
-            if (mapeo.idadquiriente)
-              console.log(
-                `    (Validado con IdAdquiriente: ${mapeo.idadquiriente})`,
-              );
-          }
           break;
         }
       }
@@ -350,7 +301,7 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
         for (const mapeo of mapeosRelevantes) {
           const tiendaNormalizada = normalizarParaComparacion(
-            mapeo.tiendaArchivo,
+            mapeo.store_file,
           );
           // Aumentar estrictez: mínimo 5 caracteres para coincidencia parcial
           if (tiendaNormalizada.length < 5) continue;
@@ -362,8 +313,8 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
               tiendaNormalizada === "naranka";
 
             if (esMapeoGenericoNaranka) {
-              if (mapeo.idadquiriente) {
-                const idAdquirienteMapeo = String(mapeo.idadquiriente)
+              if (mapeo.acquirer_id) {
+                const idAdquirienteMapeo = String(mapeo.acquirer_id)
                   .trim()
                   .toLowerCase();
                 const tieneIdAdquiriente = Object.values(fila).some((v) => {
@@ -384,9 +335,9 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
               }
             } else if (
               valorNormalizado.includes("naranka") &&
-              mapeo.idadquiriente
+              mapeo.acquirer_id
             ) {
-              const idAdquirienteMapeo = String(mapeo.idadquiriente)
+              const idAdquirienteMapeo = String(mapeo.acquirer_id)
                 .trim()
                 .toLowerCase();
               const tieneIdAdquiriente = Object.values(fila).some((v) => {
@@ -405,14 +356,11 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
             }
             // --- FIN LÓGICA DE PROTECCIÓN NARANKA ---
 
-            tiendaIdEncontrado = mapeo.tiendaId;
+            tiendaIdEncontrado = mapeo.store_id;
             tiendaEncontrada = mapeo.tiendaNormalizada;
             filaNueva[columna] = tiendaEncontrada; // ¡REEMPLAZAR EL NOMBRE EN EL ARCHIVO!
 
             if (index < 3) {
-              console.log(
-                `  ≈ Fila ${index + 1} [Parcial en "${columna}"]: "${valor}" ≈ "${tiendaEncontrada}"`,
-              );
             }
             break;
           }
@@ -430,10 +378,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     } else {
       filasNoMapeadas++;
       if (filasNoMapeadas <= 3) {
-        console.warn(
-          `  ⚠ Fila ${index + 1}: No se encontró tienda. Valores:`,
-          Object.values(fila).slice(0, 5),
-        );
       }
     }
 
@@ -441,25 +385,8 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
   });
 
   // Resumen de estadísticas
-  console.log(`\n📊 Estadísticas de mapeo para "${tipoArchivo}":`);
-  console.log(
-    `  ✓ Filas mapeadas: ${filasMapeadas}/${datos.length} (${((filasMapeadas / datos.length) * 100).toFixed(1)}%)`,
-  );
-  console.log(
-    `  ⚠ Filas sin mapear: ${filasNoMapeadas}/${datos.length} (${((filasNoMapeadas / datos.length) * 100).toFixed(1)}%)`,
-  );
-  console.log(
-    `  🏪 Tiendas únicas encontradas: ${tiendasEncontradas.size}`,
-    Array.from(tiendasEncontradas),
-  );
 
   if (filasNoMapeadas > 0) {
-    console.warn(
-      `\n⚠️ ADVERTENCIA: ${filasNoMapeadas} filas no se pudieron mapear a ninguna tienda.`,
-    );
-    console.warn(
-      `   Estas filas aparecerán como "SIN TIENDA" en la agrupación.`,
-    );
   }
 
   return datosMapeados;

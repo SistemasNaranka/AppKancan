@@ -9,12 +9,14 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import GroupsIcon from '@mui/icons-material/Groups';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListOffIcon from '@mui/icons-material/FilterListOff';
+import SettingsIcon from '@mui/icons-material/Settings';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { useNavigate } from 'react-router-dom';
 import { ContactTable } from '../components/ContactTable';
 import { useContactos } from '../hooks/useContactos';
 import { AddContactModal } from '../components/AddContactModal';
 import { EditarContactoModal } from '../components/EditarContactoModal';
+import { ContactoConfigModal } from '../components/ContactoConfigModal';
 import { createContacto } from '../api/directus/create';
 import { Contactos, CreateContactoInput } from '../types/contact';
 import { exportarContactosExcel } from '../utils/exportarContactos';
@@ -32,6 +34,7 @@ const ContactDirectory: React.FC = () => {
 
   const navigate = useNavigate();
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [configAbierto, setConfigAbierto] = useState(false);
   const [contactoEditando, setContactoEditando] = useState<Contactos | null>(null);
   const [pagina, setPagina] = useState(1);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -108,7 +111,16 @@ const ContactDirectory: React.FC = () => {
               <GroupsIcon sx={{ fontSize: 28 }} />
             </Box>
             <Box>
-              <Typography variant="h5" fontWeight={800} color="#0f172a">Directorio de Contactos</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h5" fontWeight={800} color="#0f172a">Directorio de Contactos</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => setConfigAbierto(true)}
+                    sx={{ color: '#94a3b8', '&:hover': { color: '#004a99', bgcolor: '#eff6ff' }, borderRadius: '8px' }}
+                  >
+                    <SettingsIcon fontSize="small" />
+                  </IconButton>
+              </Box>
               <Typography variant="body2" color="text.secondary">
                 {total} contacto{total !== 1 ? 's' : ''} registrados
               </Typography>
@@ -145,7 +157,7 @@ const ContactDirectory: React.FC = () => {
               <Collapse in={searchOpen} orientation="horizontal" unmountOnExit>
                 <TextField
                   inputRef={searchRef}
-                  placeholder="Buscar nombre, área o email..."
+                  placeholder="Buscar nombre, área o correo..."
                   size="small"
                   value={busqueda}
                   onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
@@ -252,6 +264,11 @@ const ContactDirectory: React.FC = () => {
         onClose={() => setContactoEditando(null)}
         onGuardar={handleGuardarEdicion}
         contacto={contactoEditando}
+      />
+
+      <ContactoConfigModal
+        open={configAbierto}
+        onClose={() => setConfigAbierto(false)}
       />
     </Box>
   );

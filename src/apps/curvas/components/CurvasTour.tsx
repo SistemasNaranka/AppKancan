@@ -298,6 +298,100 @@ const STEPS_ADMIN: CurvasStep[] = [
   },
 ];
 
+// Pasos para Tienda / store_transfers (sólo consulta de envíos hacia su tienda)
+const STEPS_TIENDA: CurvasStep[] = [
+  {
+    target: "body",
+    placement: "center",
+    disableBeacon: true,
+    route: "/curvas/envios",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: BRAND_DARK }}>
+          ¡Bienvenido a Envíos! 📦
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Aquí puedes ver en tiempo real los <strong>lotes de mercancía</strong> que están
+          siendo preparados y despachados hacia tu tienda.
+        </Typography>
+      </Box>
+    ),
+  },
+  {
+    target: "#tour-curvas-tabs",
+    placement: "bottom",
+    disableBeacon: true,
+    route: "/curvas/envios",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+          Navegación
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Como usuario de tienda solo tienes acceso a la sección de{" "}
+          <strong>Envíos</strong>, donde puedes consultar el estado de los
+          lotes asignados a tu tienda.
+        </Typography>
+      </Box>
+    ),
+  },
+  {
+    target: ".tour-curvas-tiendas",
+    placement: "bottom",
+    disableBeacon: true,
+    route: "/curvas/envios",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+          Lotes en preparación
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Aquí aparecen los <strong>lotes confirmados</strong> para tu tienda.
+          Cada pestaña corresponde a una referencia distinta.
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Puedes ver la distribución de tallas y cantidades que están siendo
+          alistadas por bodega.
+        </Typography>
+      </Box>
+    ),
+  },
+  {
+    target: ".tour-curvas-scan",
+    placement: "bottom",
+    route: "/curvas/envios",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+          Estado del despacho
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Las celdas muestran el avance del escaneo en tiempo real:{" "}
+          <strong>verde</strong> cuando la cantidad escaneada coincide con
+          lo planificado. Así puedes saber qué tan avanzado va tu envío.
+        </Typography>
+      </Box>
+    ),
+  },
+  {
+    target: "body",
+    placement: "center",
+    route: "/curvas/envios",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: BRAND_DARK }}>
+          ¡Todo listo! 🎉
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Revisa esta sección periódicamente para seguir el progreso de tu
+          envío. Puedes reabrir este tutorial desde el botón{" "}
+          <strong>?</strong> en la barra superior.
+        </Typography>
+      </Box>
+    ),
+  },
+];
+
 // Pasos para Bodega (sólo Sistema de Despacho)
 const STEPS_BODEGA: CurvasStep[] = [
   {
@@ -548,12 +642,13 @@ interface CurvasTourProviderProps {
 export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { debeAterrizarEnDespacho } = useCurvasPolicies();
+  const { debeAterrizarEnDespacho, esTiendaTransfers } = useCurvasPolicies();
 
-  const steps: CurvasStep[] = useMemo(
-    () => (debeAterrizarEnDespacho() ? STEPS_BODEGA : STEPS_ADMIN),
-    [debeAterrizarEnDespacho],
-  );
+  const steps: CurvasStep[] = useMemo(() => {
+    if (!debeAterrizarEnDespacho()) return STEPS_ADMIN;
+    if (esTiendaTransfers()) return STEPS_TIENDA;
+    return STEPS_BODEGA;
+  }, [debeAterrizarEnDespacho, esTiendaTransfers]);
 
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);

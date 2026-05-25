@@ -19,7 +19,7 @@ export const useConfirmedEntries = ({ logCurvasData, sentEntryKeys, validationDa
     if (logCurvasData && logCurvasData.length > 0) {
       const groupedLogs: Record<string, any[]> = {};
       logCurvasData.forEach((log: LogCurvas) => {
-        let rawRef = log.referencia || "SIN REF";
+        let rawRef = log.reference || "SIN REF";
         let colorParsed = "";
         let ref = rawRef.replace(/^REF:\s*/i, "").trim();
         if (ref.includes(" | ")) {
@@ -27,7 +27,7 @@ export const useConfirmedEntries = ({ logCurvasData, sentEntryKeys, validationDa
           ref = parts[0].trim();
           colorParsed = parts[1].trim();
         }
-        const groupKey = `${log.plantilla}|${rawRef}|${colorParsed}`;
+        const groupKey = `${log.template}|${rawRef}|${colorParsed}`;
         if (!groupedLogs[groupKey]) groupedLogs[groupKey] = [];
         (log as any)._color_extraido = colorParsed;
         groupedLogs[groupKey].push(log);
@@ -43,7 +43,7 @@ export const useConfirmedEntries = ({ logCurvasData, sentEntryKeys, validationDa
 
         const lastLog = logs[0];
         const uniqueColumns = Array.from(new Set(logs.flatMap((l) => {
-          const tallasRaw = l.cantidad_talla || "[]";
+          const tallasRaw = l.size_quantity || "[]";
           const parsed = typeof tallasRaw === "string" ? JSON.parse(tallasRaw) : tallasRaw;
           const items = Array.isArray(parsed) ? parsed : [];
           return items.map((p: any) => String(p.talla || p.numero || "").padStart(2, "0"));
@@ -51,15 +51,15 @@ export const useConfirmedEntries = ({ logCurvasData, sentEntryKeys, validationDa
 
         const tiendasProcesadas = new Set<string>();
         const logsDeduplicados = logs.filter((l: any) => {
-          const tId = String(l.tienda_id);
+          const tId = String(l.store_id);
           if (tiendasProcesadas.has(tId)) return false;
           tiendasProcesadas.add(tId);
           return true;
         });
 
         const logsCategorizados = logsDeduplicados.reduce((acc: any, l: any) => {
-          const tId = String(l.tienda_id);
-          const tNombre = tiendasDict[tId] || l.tienda_nombre || `Tienda ${tId}`;
+          const tId = String(l.store_id);
+          const tNombre = tiendasDict[tId] || l.store_name || `Tienda ${tId}`;
 
           if (!acc[tId]) {
             acc[tId] = {
@@ -72,7 +72,7 @@ export const useConfirmedEntries = ({ logCurvasData, sentEntryKeys, validationDa
             };
           }
 
-          const tallasRaw = l.cantidad_talla || "[]";
+          const tallasRaw = l.size_quantity || "[]";
           const parsed = typeof tallasRaw === "string" ? JSON.parse(tallasRaw) : tallasRaw;
           const items = Array.isArray(parsed) ? parsed : [];
 

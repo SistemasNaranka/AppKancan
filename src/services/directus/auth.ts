@@ -181,11 +181,12 @@ export async function resetUserPassword(userId: string, newPassword: string) {
 }
 
 /**
- * Actualiza la contraseña del usuario autenticado y quita la marca de cambio obligatorio
- * @param userId - ID del usuario
+ * Actualiza la contraseña del usuario autenticado y quita la marca de cambio obligatorio.
+ * Usa /users/me para evitar el error 403 (el usuario no necesita permisos de admin).
+ * @param _userId - No se usa (mantenido por compatibilidad de firma)
  * @param newPassword - Nueva contraseña
  */
-export async function updateUserPassword(userId: string, newPassword: string) {
+export async function updateUserPassword(_userId: string, newPassword: string) {
   const directusUrl = import.meta.env.VITE_DIRECTUS_URL?.replace(/\/$/, "");
   const token = getAccessToken();
 
@@ -194,7 +195,7 @@ export async function updateUserPassword(userId: string, newPassword: string) {
   }
 
   return await withAutoRefresh(async () => {
-    const response = await fetch(`${directusUrl}/users/${userId}`, {
+    const response = await fetch(`${directusUrl}/users/me`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,

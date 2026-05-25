@@ -83,16 +83,16 @@ export const useEnviosSubmit = ({
         }
 
         if (cantidadTalla.length > 0) {
-          const matchingLog = logCurvasData.find((l) => String(l.tienda_id) === String(fila?.tienda?.id) && extractRef({ referencia: l.referencia }) === currentRef);
+          const matchingLog = logCurvasData.find((l) => String(l.store_id) === String(fila?.tienda?.id) && extractRef({ referencia: l.reference }) === currentRef);
           logsBatch.push({
-            tienda_id: fila?.tienda?.id,
-            tienda_nombre: fila?.tienda?.nombre,
-            plantilla: matchingLog ? String(matchingLog.id) : sheetLogId,
-            fecha: fechaActual,
-            cantidad_talla: cantidadTalla,
-            referencia: currentRef || "SIN REF",
-            estado: "borrador",
-            usuario_id: user.id,
+            store_id: fila?.tienda?.id,
+            store_name: fila?.tienda?.nombre,
+            template: matchingLog ? String(matchingLog.id) : sheetLogId,
+            shipment_date: fechaActual,
+            size_quantity: cantidadTalla,
+            reference: currentRef || "SIN REF",
+            status: "borrador",
+            user_id: user.id,
           });
         }
       }

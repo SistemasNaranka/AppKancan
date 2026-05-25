@@ -139,7 +139,7 @@ export const EditarContactoModal: React.FC<Props> = ({ open, onClose, onGuardar,
         </Box>
 
         <Box>
-          <Typography variant="body2" fontWeight={600} mb={0.8} color="#374151">Departamento</Typography>
+          <Typography variant="body2" fontWeight={600} mb={0.8} color="#374151">Área</Typography>
           <FormControl fullWidth size="small">
             <Select displayEmpty value={form.department_id}
               onChange={(e) => handleChange('department_id', e.target.value)}

@@ -19,6 +19,7 @@ import {
   InputAdornment,
   CircularProgress,
   Avatar,
+  IconButton,
 } from "@mui/material";
 import Search from '@mui/icons-material/Search';
 import Refresh from '@mui/icons-material/Refresh';
@@ -26,6 +27,8 @@ import Person from '@mui/icons-material/Person';
 import Warning from '@mui/icons-material/Warning';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import LockReset from '@mui/icons-material/LockReset';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { getAllUsers, resetUserPassword } from "@/services/directus/auth";
 import { useSnackbar } from "@/auth/hooks/useSnackbar";
 
@@ -47,11 +50,11 @@ export const PasswordAdminPanel = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   const { showSnackbar } = useSnackbar();
-
-  const currentYear = new Date().getFullYear();
-  const defaultPassword = `${currentYear}`;
 
   const fetchUsers = async () => {
     try {
@@ -88,15 +91,23 @@ export const PasswordAdminPanel = () => {
   const handleResetPassword = async () => {
     if (!selectedUser) return;
 
+    if (!newPassword.trim()) {
+      setPasswordError('La contraseña no puede estar vacía');
+      return;
+    }
+    if (newPassword.trim().length < 4) {
+      setPasswordError('Mínimo 4 caracteres');
+      return;
+    }
+
     try {
       setResetLoading(true);
-      await resetUserPassword(selectedUser.id, defaultPassword);
+      await resetUserPassword(selectedUser.id, newPassword.trim());
       showSnackbar(
-        `clave reestablecida para ${selectedUser.first_name} ${selectedUser.last_name}`,
+        `Clave reestablecida para ${selectedUser.first_name} ${selectedUser.last_name}`,
         "success",
       );
-      setResetDialogOpen(false);
-      setSelectedUser(null);
+      closeResetDialog();
       fetchUsers();
     } catch (error: any) {
       console.error("Error al reestablecer clave:", error);
@@ -108,7 +119,17 @@ export const PasswordAdminPanel = () => {
 
   const openResetDialog = (user: User) => {
     setSelectedUser(user);
+    setNewPassword('');
+    setShowPassword(false);
+    setPasswordError('');
     setResetDialogOpen(true);
+  };
+
+  const closeResetDialog = () => {
+    setResetDialogOpen(false);
+    setSelectedUser(null);
+    setNewPassword('');
+    setPasswordError('');
   };
 
   return (
@@ -120,9 +141,6 @@ export const PasswordAdminPanel = () => {
         </Typography>
       </Box>
 
-      <Typography variant="body2" color="text.secondary" mb={2}>
-        clave generica: <strong>{defaultPassword}</strong>
-      </Typography>
 
       <TextField
         fullWidth
@@ -246,37 +264,58 @@ export const PasswordAdminPanel = () => {
 
       <Dialog
         open={resetDialogOpen}
-        onClose={() => setResetDialogOpen(false)}
+        onClose={closeResetDialog}
         maxWidth="xs"
         fullWidth
       >
         <DialogTitle>Reestablecer clave</DialogTitle>
         <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <strong>
-              {selectedUser?.first_name} {selectedUser?.last_name}
-            </strong>
+          <Alert severity="info" sx={{ mb: 2.5 }}>
+            <strong>{selectedUser?.first_name} {selectedUser?.last_name}</strong>
             <br />
-            Nueva clave: <strong>{defaultPassword}</strong>
+            <Typography variant="caption" color="text.secondary">
+              El usuario deberá cambiar su clave al iniciar sesión.
+            </Typography>
           </Alert>
-          <Typography variant="body2">
-            El usuario debera cambiar su clave al iniciar sesion.
-          </Typography>
+
+          <TextField
+            label="Nueva contraseña"
+            fullWidth
+            size="small"
+            type={showPassword ? 'text' : 'password'}
+            value={newPassword}
+            onChange={(e) => { setNewPassword(e.target.value); setPasswordError(''); }}
+            error={!!passwordError}
+            helperText={passwordError || ' '}
+            autoComplete="new-password"
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setShowPassword((v) => !v)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setResetDialogOpen(false)}
-            disabled={resetLoading}
-          >
+          <Button onClick={closeResetDialog} disabled={resetLoading}>
             Cancelar
           </Button>
           <Button
             variant="contained"
             onClick={handleResetPassword}
-            disabled={resetLoading}
-            startIcon={<Refresh />}
+            disabled={resetLoading || !newPassword.trim()}
+            startIcon={<LockReset />}
           >
-            {resetLoading ? "..." : "Confirmar"}
+            {resetLoading ? "Guardando..." : "Reestablecer"}
           </Button>
         </DialogActions>
       </Dialog>
