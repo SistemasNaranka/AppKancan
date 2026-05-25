@@ -50,7 +50,6 @@ export const useFileProcessor = () => {
             setTablasMapeo(tablasMapeo);
             setTiendaMapeos(tiendaMapeos);
         } catch (error) {
-            console.error('❌ Error al cargar mapeos:', error);
             setErrorMapeos('Error al cargar los mapeos desde Directus.');
         } finally {
             setCargandoMapeos(false);
@@ -139,7 +138,6 @@ export const useFileProcessor = () => {
                     }
                     return nuevoArchivo;
                 } catch (error) {
-                    console.error(`Error al leer ${file.name}:`, error);
                     return null;
                 }
             }));
@@ -172,7 +170,6 @@ export const useFileProcessor = () => {
                 }
             }
         } catch (error) {
-            console.error("Error general al procesar archivos:", error);
         } finally {
             setCargando(false);
         }
@@ -285,10 +282,8 @@ export const useFileProcessor = () => {
 
         // Mostrar resumen de validación en consola
         if (validacion.errores.length > 0) {
-            console.error('❌ Errores:', validacion.errores);
         }
         if (validacion.advertencias.length > 0) {
-            console.warn('⚠️ Advertencias:', validacion.advertencias);
         }
 
         return { ...archivo, datos: datosNormalizados, columnas: columnasFinales, normalizado: true };
@@ -332,7 +327,6 @@ export const useFileProcessor = () => {
                 if (seleccionadoActualizado) setArchivoSeleccionado(seleccionadoActualizado);
             }
         } catch (error) {
-            console.error("Error en normalización masiva:", error);
         } finally { 
             setCargando(false);
             setMostrarConfirmacionDuplicados(false);
@@ -417,16 +411,7 @@ export const useFileProcessor = () => {
 
         // Logging de estadísticas de agrupación
         if (totalFilasProcesadas > 0) {
-
-            // Mostrar detalle de fuentes por tienda
-            Object.entries(grupos).forEach(([tienda, fuentes]) => {
-                Object.entries(fuentes).forEach(([fuente, datos]) => {
-                });
-            });
-
             if (filasSinTienda > 0) {
-                console.warn(`\n  ⚠️ Filas sin tienda asignada: ${filasSinTienda} (${((filasSinTienda / totalFilasProcesadas) * 100).toFixed(1)}%)`);
-                console.warn(`     Estas filas aparecerán en el grupo "SIN TIENDA"`);
             }
         }
 
@@ -595,7 +580,6 @@ export const useFileProcessor = () => {
             saveAs(new Blob([buffer]), `Reporte_Kancan_Agrupado_${new Date().toISOString().split('T')[0]}.xlsx`);
 
         } catch (error) {
-            console.error("Error al exportar Excel con ExcelJS:", error);
         }
     };
 
