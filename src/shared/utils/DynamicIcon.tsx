@@ -76,7 +76,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   DocumentScanner,
   GridView,
   ContactPhone,
-  CircleNotificationsIcon,
+
 
   // 🔸 Categoría: Ventas
   ShoppingCart,
