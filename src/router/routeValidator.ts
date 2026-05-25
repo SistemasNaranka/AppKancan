@@ -144,12 +144,17 @@ export function loadAndValidateRoutes(
     } catch (error) {
       if (error instanceof RouteValidationError) {
         errors.push(error);
+        console.error(`❌ ${error.message}`);
       } else {
+        console.error(`❌ Error inesperado en ${filePath}:`, error);
       }
     }
   }
 
   if (errors.length > 0) {
+    console.group("🚨 SE ENCONTRARON ERRORES EN LAS RUTAS 🚨");
+    errors.forEach((e) => console.error(e.message));
+    console.groupEnd();
     return { routes: validatedRoutes, error: errors };
   }
 

@@ -107,7 +107,13 @@ export async function getWarranties(
     };
   } catch (error: any) {
     if (error?.response?.status === 403) {
+      console.error("❌ Error 403 al cargar garantías (Permisos):", {
+        message: error.message,
+        errors: error.errors,
+        collection: "garantias"
+      });
     } else {
+      console.error("❌ Error al cargar garantías:", error);
     }
     return {
       data: [],
@@ -140,7 +146,14 @@ export async function getWarrantyById(id: number): Promise<Garantia> {
     return (items as Garantia[])[0];
   } catch (error: any) {
     if (error?.response?.status === 403) {
+      console.error(`❌ Error 403 al cargar garantía ${id} (Permisos):`, {
+        message: error.message,
+        errors: error.errors,
+        collection: "garantias",
+        id,
+      });
     } else {
+      console.error(`❌ Error al cargar garantía ${id}:`, error);
     }
     throw error;
   }
@@ -198,7 +211,12 @@ export async function getWarrantyStats(
     return stats;
   } catch (error: any) {
     if (error?.response?.status === 403) {
+      console.error("❌ Error 403 al cargar estadísticas de garantías:", {
+        message: error.message,
+        errors: error.errors
+      });
     } else {
+      console.error("❌ Error al cargar estadísticas de garantías:", error);
     }
     return {
       total: 0,
@@ -240,6 +258,7 @@ export async function searchClients(query: string): Promise<Cliente[]> {
 
     return items as Cliente[];
   } catch (error: any) {
+    console.error("❌ Error al buscar clientes:", error);
     return [];
   }
 }

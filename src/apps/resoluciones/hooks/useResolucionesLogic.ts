@@ -44,6 +44,7 @@ export const useResolutionsLogic = ({
         const resolucionesAplanadas = datos.map(flattenResolution);
         setResoluciones(resolucionesAplanadas);
       } catch (error) {
+        console.error("Error cargando resoluciones:", error);
         showSnackbar("Error al cargar resoluciones", "error");
       } finally {
         setCargandoDatos(false);

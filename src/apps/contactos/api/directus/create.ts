@@ -21,6 +21,7 @@ export async function createContacto(data: CreateContactoInput): Promise<number 
     );
     return result.id;
   } catch (error) {
+    console.error('❌ Error al crear contacto:', error);
     return null;
   }
 }
@@ -38,6 +39,7 @@ export async function updateContacto(id: number, data: Partial<CreateContactoInp
     );
     return true;
   } catch (error) {
+    console.error('❌ Error al actualizar contacto:', error);
     return false;
   }
 }
@@ -49,6 +51,7 @@ export async function deleteContacto(id: number): Promise<boolean> {
     );
     return true;
   } catch (error) {
+    console.error('❌ Error al eliminar contacto:', error);
     return false;
   }
 }

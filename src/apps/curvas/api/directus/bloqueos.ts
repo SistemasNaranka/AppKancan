@@ -33,6 +33,7 @@ export const obtenerBloqueosActivos = async (reference?: string): Promise<Bloque
 
     return (response as any[]) || [];
   } catch (error) {
+    console.error('Error fetching bloqueos:', error);
     return [];
   }
 };
@@ -76,6 +77,7 @@ export const intentarBloquearTienda = async (
 
     return true;
   } catch (error) {
+    console.error('Error al intentar bloquear tienda:', error);
     return false;
   }
 };
@@ -93,6 +95,7 @@ export const renovarBloqueo = async (lock_id: string): Promise<void> => {
       )
     );
   } catch (error) {
+    console.error('Error al renovar bloqueo:', error);
   }
 };
 
@@ -131,6 +134,7 @@ export const liberarTienda = async (
       );
     }
   } catch (error) {
+    console.error('Error al liberar tienda:', error);
   }
 };
 
@@ -165,6 +169,7 @@ export const liberarTodasLasTiendasDeUsuario = async (
       );
     }
   } catch (error) {
+    console.error('Error al liberar todas las tiendas del usuario:', error);
   }
 };
 
@@ -197,6 +202,7 @@ export const liberarTodosLosBloqueosDeUsuario = async (
       );
     }
   } catch (error) {
+    console.error('Error al liberar bloqueos globales del usuario:', error);
   }
 };
 

@@ -167,6 +167,7 @@ export const useNormalizador = () => {
           setArchivoSeleccionado(nuevoArchivo);
         }
       } catch (error) {
+        console.error(`Error al leer ${files[i].name}:`, error);
       }
     }
 
@@ -279,6 +280,7 @@ export const useNormalizador = () => {
         normalizado: true
       };
     } catch (error) {
+      console.error(`Error al normalizar ${archivo.nombre}:`, error);
       return null;
     }
   };
@@ -330,6 +332,7 @@ export const useNormalizador = () => {
         `${errores} archivo(s) sin mapeo`
       ]);
     } catch (error) {
+      console.error("Error al normalizar archivos:", error);
       mostrarModal("error", "Error", "Ocurrió un error al normalizar los archivos");
     } finally {
       setCargando(false);

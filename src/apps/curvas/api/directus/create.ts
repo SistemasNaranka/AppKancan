@@ -41,6 +41,7 @@ export const saveMatrizGeneral = async (
 
     return true;
   } catch (error) {
+    console.error("Error saving matriz general:", error);
     return false;
   }
 };
@@ -76,6 +77,7 @@ export const saveDetalleProducto = async (
 
     return true;
   } catch (error) {
+    console.error("Error saving detalle producto:", error);
     return false;
   }
 };
@@ -110,6 +112,7 @@ export const saveHistorialCarga = async (datos: {
 
     return true;
   } catch (error) {
+    console.error("Error saving historial:", error);
     return false;
   }
 };
@@ -136,6 +139,7 @@ export const saveBatchCurvas = async (
 
     return true;
   } catch (error) {
+    console.error("Error saving batch curvas:", error);
     return false;
   }
 };
@@ -184,6 +188,7 @@ export const saveLogsBatch = async (
 
     return results;
   } catch (error) {
+    console.error("Error saving logs batch:", error);
     return [];
   }
 };
@@ -223,6 +228,7 @@ export const saveEnviosBatch = async (
 
     return true;
   } catch (error) {
+    console.error("Error saving envios batch:", error);
     return false;
   }
 };

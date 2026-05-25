@@ -94,6 +94,7 @@ export async function sendSamples(
       return { mensaje: responseText, success: true };
     }
   } catch (error: any) {
+    console.error("❌ Error en enviarMuestras:", error);
     throw new Error(error.message || "Error de conexión al enviar muestras");
   }
 }

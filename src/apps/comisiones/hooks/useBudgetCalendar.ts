@@ -48,6 +48,7 @@ export const useBudgetCalendar = (tiendaSeleccionada: number | "", fecha: string
 
       setDiasSinPresupuesto(diasSinPresupuestoCalculado);
     } catch (err) {
+      console.error("Error al cargar días sin presupuesto:", err);
     }
   };
 

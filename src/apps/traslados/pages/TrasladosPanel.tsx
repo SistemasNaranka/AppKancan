@@ -224,6 +224,7 @@ const TrasladosPanel: React.FC = () => {
 
       return resultado;
     } catch (err: any) {
+      console.error("❌ Error al aprobar traslados:", err);
       setError(err.message || "Error al aprobar traslados");
       throw err;
     }

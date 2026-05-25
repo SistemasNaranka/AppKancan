@@ -121,6 +121,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
         error?.message ||
           "Ocurrió un error al aprobar los traslados. Intenta nuevamente.",
       );
+      console.error("❌ Error al aprobar traslados:", error);
       await new Promise((resolve) => setTimeout(resolve, 2500));
     } finally {
       setModalCargando(false);

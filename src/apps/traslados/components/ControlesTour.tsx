@@ -37,6 +37,7 @@ const logTourAnalytics = (event: TourAnalytics): void => {
     if (import.meta.env.DEV) {
     }
   } catch (error) {
+    console.error("[Tour Analytics Error]", error);
   }
 };
 
@@ -58,6 +59,7 @@ export const markTourCompleted = (): void => {
   try {
     localStorage.setItem(TOUR_LOCALSTORAGE_KEY, "true");
   } catch (error) {
+    console.error("[Tour] Error marking completed:", error);
   }
 };
 
@@ -68,6 +70,7 @@ export const resetTourState = (): void => {
   try {
     localStorage.removeItem(TOUR_LOCALSTORAGE_KEY);
   } catch (error) {
+    console.error("[Tour] Error resetting state:", error);
   }
 };
 

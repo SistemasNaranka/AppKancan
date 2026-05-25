@@ -56,6 +56,7 @@ export const obtenerMapeosArchivos = async (): Promise<FileNameMapping[]> => {
 
     return data as FileNameMapping[];
   } catch (error) {
+    console.error("❌ Error al obtener mapeos de archivos:", error);
     throw error;
   }
 };

@@ -216,6 +216,7 @@ export const useBudgetValidation = (
 
       setValidationCompleted(true);
     } catch (err) {
+      console.error("Error validando presupuesto diario:", err);
       setError("Error al validar presupuesto diario");
       setHasBudgetData(false);
       setValidationCompleted(true);
@@ -351,6 +352,7 @@ export const useBudgetValidation = (
 
       setValidationCompleted(true);
     } catch (err) {
+      console.error("Error:", err);
       setError("Error al revalidar presupuesto diario");
       setHasBudgetData(false);
       setValidationCompleted(true);

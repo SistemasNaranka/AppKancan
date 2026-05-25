@@ -157,6 +157,7 @@ export default function AppRoutes() {
 
         setModulosComplejosFiltrados(rutasValidadas);
       } catch (err) {
+        console.error("Error cargando rutas:", err);
         setErrorEnRutas(err);
       }
     };

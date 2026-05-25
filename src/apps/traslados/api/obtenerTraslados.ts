@@ -80,7 +80,6 @@ export async function aprobarTraslados(
     clave,
   };
 
-
   // ✅ Hacer la petición al endpoint
   try {
     const resp = await fetch(WEBHOOK_URL_POST, {
@@ -116,6 +115,7 @@ export async function aprobarTraslados(
       return { mensaje: responseText, success: true };
     }
   } catch (error: any) {
+    console.error("❌ Error en aprobarTraslados:", error);
     throw new Error(error.message || "Error de conexión al aprobar traslados");
   }
 }

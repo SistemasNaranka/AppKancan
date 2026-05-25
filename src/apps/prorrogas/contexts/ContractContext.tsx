@@ -470,6 +470,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (e) {
         }
       } catch (err) {
+        console.error('Error setup WS adm_contracts:', err);
       }
     };
 

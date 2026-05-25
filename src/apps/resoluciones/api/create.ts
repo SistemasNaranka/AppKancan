@@ -40,6 +40,7 @@ export async function createResolution(data: {
     if (error?.errors?.[0]?.extensions?.code === "RECORD_NOT_UNIQUE") {
       throw new Error("La resolución ya está registrada");
     }
+    console.error("❌ Error al crear resolución:", error);
     throw new Error("Error al crear la resolución");
   }
 }

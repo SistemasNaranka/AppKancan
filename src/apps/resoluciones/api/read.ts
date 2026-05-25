@@ -74,6 +74,7 @@ export async function getResolutions(): Promise<DirectusResolucion[]> {
     );
     return data as DirectusResolucion[];
   } catch (error) {
+    console.error("❌ Error al obtener resoluciones:", error);
     throw error;
   }
 }

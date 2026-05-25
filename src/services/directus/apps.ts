@@ -38,6 +38,7 @@ export async function getUserBodegas() {
 
     return bodegas;
   } catch (error) {
+    console.error("❌ Error al cargar bodegas del usuario:", error);
     return [];
   }
 }
@@ -77,6 +78,7 @@ export async function getUserBodegas() {
 
     return apps;
   } catch (error) {
+    console.error("❌ Error al cargar apps:", error);
     return [];
   }
 }

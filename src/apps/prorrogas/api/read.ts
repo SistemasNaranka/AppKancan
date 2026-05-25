@@ -120,7 +120,13 @@ export async function getContratos(
     };
   } catch (error: any) {
     if (error?.response?.status === 403) {
+      console.error("❌ Error 403 al cargar contratos (Permisos):", {
+        message: error.message,
+        errors: error.errors,
+        collection: "adm_contracts",
+      });
     } else {
+      console.error("❌ Error al cargar contratos:", error);
     }
     return {
       data: [],
@@ -149,6 +155,7 @@ export async function getContratoById(id: number): Promise<Contrato | null> {
 
     return normalizeContrato((items as any[])[0]);
   } catch (error) {
+      console.error(`❌ Error al cargar contrato ${id}:`, error);
     return null;
   }
 }
@@ -183,7 +190,12 @@ export async function getContratoStats(
     return stats;
   } catch (error: any) {
     if (error?.response?.status === 403) {
+      console.error("❌ Error 403 al cargar estadísticas de contratos:", {
+        message: error.message,
+        errors: error.errors,
+      });
     } else {
+      console.error("❌ Error al cargar estadísticas de contratos:", error);
     }
     return {
       total: 0,
@@ -214,6 +226,7 @@ export async function getProrrogasByContrato(
 
     return items as Prorroga[];
   } catch (error) {
+    console.error(`❌ Error al cargar prórrogas del contrato ${contratoId}:`, error);
     return [];
   }
 }
@@ -235,6 +248,7 @@ export async function getHistorialCargos(contratoId: number) {
     );
     return items;
   } catch (error) {
+    console.error(`❌ Error al cargar historial de cargos del contrato ${contratoId}:`, error);
     return [];
   }
 }

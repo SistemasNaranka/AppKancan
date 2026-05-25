@@ -30,6 +30,7 @@ export const useCurvasDataFetcher = ({
         tiendas.forEach((t) => { dict[t.id] = t.nombre; });
         setTiendasDict(dict);
       } catch (err) {
+        console.error("Error fetching stores:", err);
       }
     };
     fetchStores();
@@ -168,6 +169,7 @@ export const useCurvasDataFetcher = ({
           return nuevosDatos;
         });
       } catch (error) {
+        console.error("Error en hidratación de Dashboard:", error);
       }
     },
     [currentDate, setDatosCurvas]

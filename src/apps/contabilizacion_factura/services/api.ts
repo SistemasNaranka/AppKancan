@@ -39,6 +39,7 @@ export async function checkNitExists(nit: string): Promise<boolean> {
 
         return items && items.length > 0;
     } catch (error) {
+        console.error("Error al verificar existencia de NIT:", error);
         return false;
     }
 }
@@ -70,6 +71,7 @@ export async function getAutomaticByNit(nit: string): Promise<ProveedorContabili
         }
         return null;
     } catch (error) {
+        console.error("Error al obtener automático por NIT:", error);
         return null;
     }
 }
@@ -118,6 +120,7 @@ export async function getProviderByNameAndNit(
         }
         return null;
     } catch (error) {
+        console.error("Error al verificar proveedor por nombre y NIT:", error);
         return null;
     }
 }
@@ -153,6 +156,7 @@ export async function saveNitAutomatic(
 
         return item;
     } catch (error) {
+        console.error("Error al guardar NIT y automático:", error);
         throw error;
     }
 }
@@ -173,6 +177,7 @@ export async function updateAccountingProvider(id: number, data: Partial<Proveed
 
         return item;
     } catch (error) {
+        console.error("Error al actualizar proveedor:", error);
         throw error;
     }
 }

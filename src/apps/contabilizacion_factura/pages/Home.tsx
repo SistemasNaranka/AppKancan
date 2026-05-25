@@ -134,6 +134,7 @@ export default function Home() {
 
         setDatosFactura(datos);
       } catch (err) {
+        console.error("Error procesando archivo:", err);
       }
     },
     [extractData, geminiApiKey, conexionErrorOllama],
@@ -186,6 +187,7 @@ export default function Home() {
         setModalAutomaticoOpen(true);
       }
     } catch (error) {
+      console.error("Error al verificar proveedor:", error);
       // En caso de error de conexión, NO permitir continuar sin validación
       setNotification({
         open: true,
@@ -238,6 +240,7 @@ export default function Home() {
         // Ejecutar el programa corporativo
         executeUpdateResolution(datosFactura);
       } catch (error) {
+        console.error("Error al guardar automático:", error);
         // Mostrar notificación de error
         setNotification({
           open: true,

@@ -75,6 +75,7 @@ export const useAvailableMonths = () => {
           setCurrentMonth(mesActualStr);
         }
       } catch (error) {
+        console.error("Error cargando meses disponibles:", error);
 
         // En caso de error, usar mes actual como fallback
         const mesesNombres = [

@@ -297,6 +297,7 @@ export const useCurvasEditor = ({
         refreshLogs();
         return true;
       } catch (error) {
+        console.error("Error crítico al guardar cambios:", error);
         return false;
       }
     },
@@ -378,6 +379,7 @@ export const useCurvasEditor = ({
         refreshLogs();
         return true;
       } catch (error) {
+        console.error("Error persistiendo lote confirmado:", error);
         return false;
       }
     },
@@ -432,6 +434,7 @@ export const useCurvasEditor = ({
         refreshLogs();
         return true;
       } catch (error) {
+        console.error("Error en reutilizarLote:", error);
         return false;
       }
     },
@@ -448,6 +451,7 @@ export const useCurvasEditor = ({
           reference: data.referencia || "", status: data.estado || "borrador",
         });
       } catch (error) {
+        console.error("Error al guardar log curvas:", error);
         return false;
       }
     },

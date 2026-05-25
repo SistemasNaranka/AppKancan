@@ -116,6 +116,7 @@ export async function guardarPorcentajesMensuales(
       return created[0] as any;
     }
   } catch (error) {
+    console.error("❌ Error al guardar porcentajes mensuales:", error);
     throw error;
   }
 }
@@ -133,6 +134,7 @@ export async function guardarPresupuestosEmpleados(
 
     return created as DirectusStaffDailyBudget[];
   } catch (error) {
+    console.error("❌ Error al guardar presupuestos empleados:", error);
     throw error;
   }
 }
@@ -156,6 +158,7 @@ export async function eliminarPresupuestosEmpleados(
       ),
     );
   } catch (error) {
+    console.error("❌ Error al eliminar presupuestos empleados:", error);
     throw error;
   }
 }
@@ -178,6 +181,7 @@ export async function actualizarPresupuestoEmpleado(
 
     return updated[0] as DirectusStaffDailyBudget;
   } catch (error) {
+    console.error("❌ Error al actualizar presupuesto empleado:", error);
     throw error;
   }
 }
@@ -191,6 +195,7 @@ export async function eliminarPresupuestoEmpleado(id: number): Promise<void> {
       directus.request(deleteItems("com_employee_daily_budgets", [id])),
     );
   } catch (error) {
+    console.error("❌ Error al eliminar presupuesto empleado:", error);
     throw error;
   }
 }
@@ -237,6 +242,7 @@ export async function guardarVentasEmpleados(
 
     return results;
   } catch (error) {
+    console.error("❌ Error al guardar ventas empleados:", error);
     throw error;
   }
 }
@@ -276,6 +282,7 @@ export async function guardarVentasTienda(
       return created[0] as DirectusVentasDiariasTienda;
     }
   } catch (error) {
+    console.error("❌ Error al guardar ventas tienda:", error);
     throw error;
   }
 }
@@ -323,6 +330,7 @@ export async function guardarPresupuestosTienda(
 
     return results;
   } catch (error) {
+    console.error("❌ Error al guardar presupuestos tienda:", error);
     throw error;
   }
 }
@@ -339,6 +347,7 @@ export async function createCargo(
     );
     return created[0] as DirectusPosition;
   } catch (error) {
+    console.error("❌ Error al crear cargo:", error);
     throw error;
   }
 }
@@ -376,7 +385,6 @@ export async function saveRoleBudgetConfiguration(data: {
       const existingFilter = {
         _and: [{ month: { _eq: mesStr } }, { year: { _eq: anioStr } }],
       };
-
 
       const existentes = await withAutoRefresh(() =>
         directus.request(
@@ -416,12 +424,12 @@ export async function saveRoleBudgetConfiguration(data: {
         role_config: finalConfigs,
       };
 
-
       return await withAutoRefresh(() =>
         directus.request(createItem("com_monthly_budget_percentages", payload)),
       );
     }
   } catch (error: any) {
+    console.error("❌ Error en saveRoleBudgetConfiguration:", error);
     const directusError = error.errors?.[0]?.message || error.message;
     throw new Error(
       directusError || "Error desconocido al procesar la configuración.",
@@ -502,6 +510,7 @@ export async function guardarUmbralesComisiones(data: {
       );
     }
   } catch (error: any) {
+    console.error("❌ Error al guardar umbrales de comisiones:", error);
     const directusError = error.errors?.[0]?.message || error.message;
     throw new Error(directusError || "Error desconocido al guardar umbrales.");
   }

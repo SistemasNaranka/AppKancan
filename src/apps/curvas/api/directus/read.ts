@@ -52,6 +52,7 @@ export const getMatrizGeneral = async (
 
     return null;
   } catch (error) {
+    console.error('Error fetching matriz general:', error);
     return null;
   }
 };
@@ -97,6 +98,7 @@ export const getDetalleProducto = async (
 
     return null;
   } catch (error) {
+    console.error('Error fetching detalle producto:', error);
     return null;
   }
 };
@@ -134,6 +136,7 @@ const fetchTiendasFresh = async (): Promise<Tienda[]> => {
 
     return [];
   } catch (error) {
+    console.error('Error fetching tiendas from core_stores:', error);
     return [];
   }
 };
@@ -189,6 +192,7 @@ export const getCurvas = async (): Promise<TipoCurva[]> => {
 
     return [];
   } catch (error) {
+    console.error('Error fetching curvas:', error);
     return [];
   }
 };
@@ -212,6 +216,7 @@ export const getTallas = async (): Promise<Talla[]> => {
 
     return [];
   } catch (error) {
+    console.error('Error fetching tallas:', error);
     return [];
   }
 };
@@ -232,6 +237,7 @@ export const getHistorialCargas = async (limit = 10) => {
 
     return response || [];
   } catch (error) {
+    console.error('Error fetching historial:', error);
     return [];
   }
 };
@@ -287,6 +293,7 @@ export const getLogCurvas = async (
 
     return response || [];
   } catch (error) {
+    console.error('Error fetching log_curvas:', error);
     return [];
   }
 };
@@ -323,6 +330,7 @@ export const getEnviosCurvas = async (
     );
     return response || [];
   } catch (error) {
+    console.error('Error fetching envios_curvas:', error);
     return [];
   }
 };
@@ -378,6 +386,7 @@ export const getEnviosAnalisis = async (
 
     return response || [];
   } catch (error) {
+    console.error('Error fetching envios_analisis:', error);
     return [];
   }
 };
@@ -412,11 +421,10 @@ export const getResumenFechasCurvas = async (): Promise<Record<string, 'pendient
 
     return fechas;
   } catch (err) {
+    console.error('Error fetching resumen fechas:', err);
     return {};
   }
 };
-
-
 
 export default {
   getMatrizGeneral,

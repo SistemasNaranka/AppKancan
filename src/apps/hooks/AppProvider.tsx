@@ -91,6 +91,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     } catch (err) {
+      console.error("❌ Error cargando apps:", err);
       setApps([]);
       setArea(null);
       setLoading(false);

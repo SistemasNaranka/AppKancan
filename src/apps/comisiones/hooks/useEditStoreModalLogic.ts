@@ -225,6 +225,7 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
       setEmpleadoEncontrado(null);
       clearMessages();
     } catch (err) {
+      console.error("Error al recalcular al agregar:", err);
       setEmpleadosAsignados(nuevaLista);
     } finally {
       setLoading(false);
@@ -249,6 +250,7 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
       const { empleados: calculados } = await recalculateBudgets(nuevaLista, fecha);
       setEmpleadosAsignados(calculados);
     } catch (err) {
+      console.error("Error al recalcular al quitar:", err);
       setEmpleadosAsignados(nuevaLista);
     } finally {
       setLoading(false);

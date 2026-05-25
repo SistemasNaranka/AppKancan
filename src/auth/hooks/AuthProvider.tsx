@@ -68,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         ia_model: me.ia_model,
       });
     } catch (error) {
+      console.error("❌ Error en login:", error);
       throw error;
     }
   };
@@ -137,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
             await setTokenDirectus(res.access_token);
           } catch (refreshError: any) {
+            console.error("❌ Error al refrescar tokens:", refreshError);
             // Solo limpiar tokens si es un error de autenticación, no de red
             if (refreshError?.response?.status === 401) {
               borrarTokenStorage();
@@ -169,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           ia_model: me.ia_model,
         });
       } catch (error: any) {
+        console.error("❌ Error al inicializar autenticación:", error);
         // Solo limpiar tokens si es un error de autenticación específico
         if (
           error?.response?.status === 401 ||

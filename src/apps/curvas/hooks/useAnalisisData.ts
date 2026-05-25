@@ -35,6 +35,7 @@ export const useAnalisisData = () => {
         setSelectedRef(null);
       }
     } catch (err) {
+      console.error("Error fetching analysis logs:", err);
     } finally {
       setLoading(false);
     }

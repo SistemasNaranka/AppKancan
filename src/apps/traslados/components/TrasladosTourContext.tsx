@@ -83,6 +83,7 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     try {
       localStorage.setItem(TOUR_LOCALSTORAGE_KEY, "true");
     } catch (error) {
+      console.error("[Tour] Error marking completed:", error);
     }
   }, []);
 
@@ -91,6 +92,7 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     try {
       localStorage.removeItem(TOUR_LOCALSTORAGE_KEY);
     } catch (error) {
+      console.error("[Tour] Error resetting state:", error);
     }
   }, []);
 

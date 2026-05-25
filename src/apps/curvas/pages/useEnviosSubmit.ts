@@ -111,6 +111,7 @@ export const useEnviosSubmit = ({
         if (myScannedTiendasRef.current[sheetKey]) myScannedTiendasRef.current[sheetKey].clear();
       }
     } catch (error) {
+      console.error(error);
       if (type !== "auto") setSnackbar({ open: true, message: "Error al guardar", severity: "error" });
     } finally {
       setIsSending(false);

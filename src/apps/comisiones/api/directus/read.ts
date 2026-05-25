@@ -478,6 +478,7 @@ export async function obtenerEmpleadosPorFechaExacta(
 
     return data as DirectusStaffDailyBudget[];
   } catch (error) {
+    console.error("Error al obtener empleados por fecha exacta:", error);
     return [];
   }
 }
@@ -683,6 +684,7 @@ export async function obtenerUmbralesComisiones(
     if (error.response?.status === 404) {
       return null;
     }
+    console.error("Error al obtener umbrales de comisiones:", error);
     return null;
   }
 }

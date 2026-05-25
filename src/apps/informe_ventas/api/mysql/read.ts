@@ -70,6 +70,7 @@ export async function obtenerZonas(
     const data = await handleResponse<Zona[]>(response);
     return data.map((z) => ({ nombre: z.nombre?.trim() || "" }));
   } catch (error) {
+    console.error("Error al obtener zonas:", error);
     return [];
   }
 }
@@ -95,6 +96,7 @@ export async function obtenerCiudades(
     const data = await handleResponse<Ciudad[]>(response);
     return data.map((c) => ({ nombre: c.nombre?.trim() || "" }));
   } catch (error) {
+    console.error("Error al obtener ciudades:", error);
     return [];
   }
 }
@@ -125,6 +127,7 @@ export async function obtenerTiendas(
       zona: t.zona?.trim() || "",
     }));
   } catch (error) {
+    console.error("Error al obtener tiendas:", error);
     return [];
   }
 }
@@ -147,6 +150,7 @@ export async function obtenerGruposHomogeneos(): Promise<GrupoHomogeneo[]> {
       agrupacion: (item.agrupacion?.trim() || "Sin agrupación") as Agrupacion,
     }));
   } catch (error) {
+    console.error("Error al obtener grupos homogéneos:", error);
     return [];
   }
 }
@@ -191,6 +195,7 @@ export async function obtenerVentas(
       zona: item.zona?.trim() || "Sin zona",
     }));
   } catch (error) {
+    console.error("Error al obtener ventas:", error);
     return [];
   }
 }
@@ -206,6 +211,7 @@ export async function obtenerAsesores(): Promise<string[]> {
     const data = await handleResponse<string[]>(response);
     return data.map((a) => a?.trim() || "").sort();
   } catch (error) {
+    console.error("Error al obtener asesores:", error);
     return [];
   }
 }
@@ -222,6 +228,7 @@ export async function obtenerLineasVenta(): Promise<LineaVenta[]> {
     const data = await handleResponse<any[]>(response);
     return data.map((item: any) => item.id as LineaVenta);
   } catch (error) {
+    console.error("Error al obtener líneas de venta:", error);
     return ["Colección", "Básicos", "Promoción"];
   }
 }
@@ -238,6 +245,7 @@ export async function obtenerAgrupaciones(): Promise<Agrupacion[]> {
     const data = await handleResponse<any[]>(response);
     return data.map((item: any) => item.id as Agrupacion);
   } catch (error) {
+    console.error("Error al obtener agrupaciones:", error);
     return ["Indigo", "Tela Liviana", "Calzado", "Complemento"];
   }
 }
@@ -275,6 +283,7 @@ export async function obtenerResumenPorAsesor(
 
     return resumen;
   } catch (error) {
+    console.error("Error al obtener resumen por asesor:", error);
     return new Map();
   }
 }
@@ -309,6 +318,7 @@ export async function obtenerResumenPorTienda(
 
     return resumen;
   } catch (error) {
+    console.error("Error al obtener resumen por tienda:", error);
     return new Map();
   }
 }
