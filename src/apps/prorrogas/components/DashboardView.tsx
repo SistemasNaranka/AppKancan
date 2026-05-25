@@ -160,18 +160,18 @@ const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrr
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display:'flex', alignItems:'center', gap:1.5 }}>
-                            <Avatar sx={{ width:30, height:30, bgcolor:avatarBg(c.nombre) }}>
+                            <Avatar sx={{ width:30, height:30, bgcolor:avatarBg(c.first_name) }}>
                               <PersonIcon sx={{ fontSize: 18 }} />
                             </Avatar>
                             <Box>
-                              <Typography sx={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{c.nombre}</Typography>
-                              <Typography sx={{ fontSize:11, color:'#94a3b8' }}>{c.cargo}</Typography>
+                              <Typography sx={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{c.first_name}</Typography>
+                              <Typography sx={{ fontSize:11, color:'#94a3b8' }}>{c.position}</Typography>
                             </Box>
                           </Box>
                         </TableCell>
                         <TableCell>
                           <Typography sx={{ fontSize:13, fontWeight:600, color: st==='vencido'?'#b91c1c': st==='proximo'?'#c2410c':'#0f172a' }}>
-                            {c.lastProrroga ? new Date(c.lastProrroga.fecha_final).toLocaleDateString() : '—'}
+                            {c.lastProrroga ? new Date(c.lastProrroga.end_date).toLocaleDateString() : '—'}
                           </Typography>
                           <Typography sx={{ fontSize:11, color:'#94a3b8' }}>
                             {c.daysLeft >= 0 ? `En ${c.daysLeft} días` : `Venció hace ${Math.abs(c.daysLeft)} días`}

@@ -8,8 +8,6 @@ import type {
   Prorroga,
   CreateProrroga,
   UpdateProrroga,
-  Documento,
-  CreateDocumento,
 } from "../types/types";
 import { addMonths, getProrrogaDuration, toLocalDateStr } from "../lib/utils";
 
@@ -19,35 +17,35 @@ import { addMonths, getProrrogaDuration, toLocalDateStr } from "../lib/utils";
 
 /**
  * Crea un nuevo contrato en Directus.
- * El request_status se inicializa en "pendiente" si no se provee.
+ * El status se inicializa en "pendiente" si no se provee.
  */
 export async function crearContrato(data: CreateContrato): Promise<Contrato | null> {
   try {
-    // contratos.cargo es FK a util_cargo. Resolver nombre → id si llega como string.
-    let cargoFk: any = data.cargo;
-    if (typeof data.cargo === "string") {
+    // adm_contracts.position es FK a core_positions. Resolver nombre → id si llega como string.
+    let cargoFk: any = data.position;
+    if (typeof data.position === "string") {
       const cargos: any = await withAutoRefresh(() =>
         directus.request(
-          readItems("util_cargo", {
+          readItems("core_positions", {
             fields: ["id"],
-            filter: { nombre: { _eq: data.cargo } },
+            filter: { name: { _eq: data.position } },
             limit: 1,
           })
         )
       );
       const found = (cargos as any[])?.[0]?.id;
-      if (!found) throw new Error(`util_cargo no encontrado para nombre="${data.cargo}"`);
+      if (!found) throw new Error(`core_positions no encontrado para name="${data.position}"`);
       cargoFk = found;
     }
 
     const payload: any = {
       ...data,
-      cargo: cargoFk,
-      request_status: data.request_status ?? "pendiente",
+      position: cargoFk,
+      status: data.status ?? "pendiente",
     };
 
     const result = await withAutoRefresh(() =>
-      directus.request(createItem("contratos", payload))
+      directus.request(createItem("adm_contracts", payload))
     );
 
     return result as Contrato;
@@ -65,25 +63,25 @@ export async function actualizarContrato(
   updates: UpdateContrato
 ): Promise<Contrato | null> {
   try {
-    // Si cargo viene como string nombre, resolver a FK util_cargo.
+    // Si position viene como string nombre, resolver a FK core_positions.
     let payload: any = { ...updates };
-    if (typeof updates.cargo === "string") {
+    if (typeof updates.position === "string") {
       const cargos: any = await withAutoRefresh(() =>
         directus.request(
-          readItems("util_cargo", {
+          readItems("core_positions", {
             fields: ["id"],
-            filter: { nombre: { _eq: updates.cargo } },
+            filter: { name: { _eq: updates.position } },
             limit: 1,
           })
         )
       );
       const found = (cargos as any[])?.[0]?.id;
-      if (!found) throw new Error(`util_cargo no encontrado para nombre="${updates.cargo}"`);
-      payload.cargo = found;
+      if (!found) throw new Error(`core_positions no encontrado para name="${updates.position}"`);
+      payload.position = found;
     }
 
     const result = await withAutoRefresh(() =>
-      directus.request(updateItem("contratos", id, payload))
+      directus.request(updateItem("adm_contracts", id, payload))
     );
 
     return result as Contrato;
@@ -99,7 +97,7 @@ export async function actualizarContrato(
 export async function eliminarContrato(id: number): Promise<boolean> {
   try {
     await withAutoRefresh(() =>
-      directus.request(deleteItem("contratos", id))
+      directus.request(deleteItem("adm_contracts", id))
     );
     return true;
   } catch (error) {
@@ -109,13 +107,13 @@ export async function eliminarContrato(id: number): Promise<boolean> {
 }
 
 /**
- * Cambia solo el request_status de un contrato.
+ * Cambia solo el status de un contrato.
  */
 export async function cambiarRequestStatus(
   id: number,
-  request_status: Contrato["request_status"]
+  status: Contrato["status"]
 ): Promise<Contrato | null> {
-  return actualizarContrato(id, { request_status });
+  return actualizarContrato(id, { status });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -142,24 +140,22 @@ export async function crearProrroga(
     const duracion_meses = getProrrogaDuration(data.numero);
 
     // Regla de fecha fin: fecha_inicio + N meses - 1 día
-    // Ej: inicio 02/02 + 4 meses = 02/06, pero fecha_final real = 01/06
-    // NOTA: addMonths() ya aplica la resta de 1 día internamente
     const fecha_final = addMonths(data.fecha_inicio, duracion_meses);
 
     const payload: CreateProrroga = {
-      contrato: data.contrato_id,
-      numero:         data.numero,
-      label:          data.numero === 0 ? "Contrato Inicial" : `Prórroga ${data.numero}`,
-      descripcion:    data.descripcion ?? (data.numero >= 4
-                        ? "Renovación anual"
-                        : "Nueva extensión contractual."),
-      fecha_ingreso:   data.fecha_inicio,
-      fecha_final,
-      duracion: duracion_meses,
+      contract_id:      data.contrato_id,
+      extension_number: data.numero,
+      label:            data.numero === 0 ? "Contrato Inicial" : `Prórroga ${data.numero}`,
+      description:      data.descripcion ?? (data.numero >= 4
+                          ? "Renovación anual"
+                          : "Nueva extensión contractual."),
+      start_date:       data.fecha_inicio,
+      end_date:         fecha_final,
+      duration:         duracion_meses,
     };
 
     const result = await withAutoRefresh(() =>
-      directus.request(createItem("prorrogas", payload))
+      directus.request(createItem("adm_extensions", payload))
     );
 
     return result as Prorroga;
@@ -170,43 +166,42 @@ export async function crearProrroga(
 }
 
 /**
- * Actualiza los campos editables de una prorrogga existente.
- * Si se actualiza fecha_ingreso, recalcula fecha_final y duracion_meses.
- * También actualiza la fecha_final del contrato asociado.
+ * Actualiza los campos editables de una prórroga existente.
+ * Si se actualiza start_date, recalcula end_date y duration.
+ * También actualiza el end_date del contrato asociado.
  */
 export async function actualizarProrroga(
   id: number,
-  updates: UpdateProrroga & { numero?: number; contrato?: number }
+  updates: UpdateProrroga & { extension_number?: number; contract_id?: number }
 ): Promise<Prorroga | null> {
   try {
     let payload: UpdateProrroga = { ...updates };
 
-    if (updates.fecha_ingreso && updates.numero !== undefined) {
-      const duracion_meses = getProrrogaDuration(updates.numero);
-      const fechaInicioStr = updates.fecha_ingreso instanceof Date
-        ? toLocalDateStr(updates.fecha_ingreso)
-        : updates.fecha_ingreso;
+    if (updates.start_date && updates.extension_number !== undefined) {
+      const duracion_meses = getProrrogaDuration(updates.extension_number);
+      const fechaInicioStr = updates.start_date instanceof Date
+        ? toLocalDateStr(updates.start_date)
+        : updates.start_date;
       payload = {
         ...payload,
-        duracion: duracion_meses,
-        fecha_final: addMonths(fechaInicioStr, duracion_meses),
+        duration: duracion_meses,
+        end_date: addMonths(fechaInicioStr, duracion_meses),
       };
     }
 
     // 1. Actualizamos SOLO la prórroga
     const result = await withAutoRefresh(() =>
-      directus.request(updateItem("prorrogas", id, payload))
+      directus.request(updateItem("adm_extensions", id, payload))
     );
 
-    // 2. Si se actualizó la fecha_final Y sabemos a qué contrato pertenece, 
+    // 2. Si se actualizó end_date Y sabemos a qué contrato pertenece,
     // hacemos una llamada separada y segura para actualizar el contrato.
-    if (payload.fecha_final) {
-       // Obtenemos el ID del contrato. Puede venir en los updates originales o en el resultado
-       const contratoId = updates.contrato || (result as Prorroga).contrato; 
-       
+    if (payload.end_date) {
+       const contratoId = updates.contract_id || (result as Prorroga).contract_id;
+
        if (contratoId) {
           await withAutoRefresh(() =>
-             directus.request(updateItem("contratos", contratoId, { fecha_final: payload.fecha_final }))
+             directus.request(updateItem("adm_contracts", contratoId, { end_date: payload.end_date }))
           );
        }
     }
@@ -219,57 +214,16 @@ export async function actualizarProrroga(
 }
 
 /**
- * Elimina una prorrogga por su ID.
+ * Elimina una prórroga por su ID.
  */
 export async function eliminarProrroga(id: number): Promise<boolean> {
   try {
     await withAutoRefresh(() =>
-      directus.request(deleteItem("prorrogas", id))
+      directus.request(deleteItem("adm_extensions", id))
     );
     return true;
   } catch (error) {
     console.error(`❌ Error al eliminar prorrogga ${id}:`, error);
-    return false;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DOCUMENTOS
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Adjunta un nuevo documento a un contrato.
- */
-export async function crearDocumento(data: CreateDocumento): Promise<Documento | null> {
-  try {
-    const payload: CreateDocumento = {
-      ...data,
-      fecha: data.fecha ?? new Date().toISOString().split("T")[0],
-      firmado: data.firmado ?? false,
-    };
-
-    const result = await withAutoRefresh(() =>
-      directus.request(createItem("documentos", payload))
-    );
-
-    return result as Documento;
-  } catch (error) {
-    console.error("❌ Error al crear documento:", error);
-    return null;
-  }
-}
-
-/**
- * Elimina un documento por su ID.
- */
-export async function eliminarDocumento(id: number): Promise<boolean> {
-  try {
-    await withAutoRefresh(() =>
-      directus.request(deleteItem("documentos", id))
-    );
-    return true;
-  } catch (error) {
-    console.error(`❌ Error al eliminar documento ${id}:`, error);
     return false;
   }
 }
@@ -285,37 +239,43 @@ export async function crearHistorialCargo(data: {
   fecha_efectividad: string;
   nueva_area?: string;
 }): Promise<boolean> {
-  const { nueva_area, ...historialData } = data;
+  const { nueva_area, contrato_id, cargo_anterior, cargo_nuevo, fecha_efectividad } = data;
   let historialId: number | string | null = null;
   try {
     // 1. Crear historial
+    const historialData = {
+      contract_id:       contrato_id,
+      previous_position: cargo_anterior,
+      new_position:      cargo_nuevo,
+      effective_date:    fecha_efectividad,
+    };
     const created: any = await withAutoRefresh(() =>
-      directus.request(createItem("historial_cargos", historialData))
+      directus.request(createItem("adm_position_history", historialData))
     );
     historialId = created?.id ?? null;
 
-    // 2. Resolver nombre del cargo → id de util_cargo (FK en contratos.cargo)
-    let cargoFk: number | string = data.cargo_nuevo;
-    if (typeof data.cargo_nuevo === "string") {
+    // 2. Resolver nombre del cargo → id de core_positions (FK en adm_contracts.position)
+    let cargoFk: number | string = cargo_nuevo;
+    if (typeof cargo_nuevo === "string") {
       const cargos: any = await withAutoRefresh(() =>
         directus.request(
-          readItems("util_cargo", {
+          readItems("core_positions", {
             fields: ["id"],
-            filter: { nombre: { _eq: data.cargo_nuevo } },
+            filter: { name: { _eq: cargo_nuevo } },
             limit: 1,
           })
         )
       );
       const found = (cargos as any[])?.[0]?.id;
-      if (!found) throw new Error(`util_cargo no encontrado para nombre="${data.cargo_nuevo}"`);
+      if (!found) throw new Error(`core_positions no encontrado para name="${cargo_nuevo}"`);
       cargoFk = found;
     }
 
-    // 3. Actualizar contrato (cargo + área). Si falla, rollback historial.
-    const updates: any = { cargo: cargoFk };
-    if (nueva_area) updates.area = nueva_area;
+    // 3. Actualizar contrato (position + department). Si falla, rollback historial.
+    const updates: any = { position: cargoFk };
+    if (nueva_area) updates.department = nueva_area;
 
-    const updated = await actualizarContrato(data.contrato_id, updates);
+    const updated = await actualizarContrato(contrato_id, updates);
     if (!updated) throw new Error("actualizarContrato devolvió null");
 
     return true;
@@ -324,9 +284,9 @@ export async function crearHistorialCargo(data: {
     if (historialId !== null) {
       try {
         await withAutoRefresh(() =>
-          directus.request(deleteItem("historial_cargos", historialId as any))
+          directus.request(deleteItem("adm_position_history", historialId as any))
         );
-        console.warn("↩️ Rollback historial_cargos id=", historialId);
+        console.warn("↩️ Rollback adm_position_history id=", historialId);
       } catch (rbErr) {
         console.error("⚠️ Rollback historial falló — inconsistencia posible:", rbErr);
       }

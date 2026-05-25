@@ -25,9 +25,9 @@ const LEGACY_ID_MAP: Record<string, string> = {
 export const getCargoLabel = (cargo: unknown): string => {
   if (!cargo) return 'Sin Cargo';
 
-  // Si Directus lo devolvió como objeto con campo nombre
-  if (typeof cargo === 'object' && cargo !== null && 'nombre' in cargo) {
-    return (cargo as { nombre: string }).nombre;
+  // Si Directus lo devolvió como objeto con campo name (core_positions)
+  if (typeof cargo === 'object' && cargo !== null && 'name' in cargo) {
+    return (cargo as { name: string }).name;
   }
 
   const str = String(cargo);

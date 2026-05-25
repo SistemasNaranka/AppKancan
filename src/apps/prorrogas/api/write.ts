@@ -14,13 +14,13 @@ import { addMonths, getProrrogaDuration } from "../lib/utils";
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CreateProrrogaDirectus {
-  contrato:  number;
-  numero:       number;
-  label:        string;
-  descripcion:  string;
-  fecha_ingreso: string;  // YYYY-MM-DD — día de inicio de la prórroga
-  fecha_final:  string;   // YYYY-MM-DD — calculado: fecha_ingreso + duracion
-  duracion:     number;   // ← nombre real del campo en la BD (types.ts: Prorroga.duracion)
+  contract_id:      number;
+  extension_number: number;
+  label:            string;
+  description:      string;
+  start_date:       string;  // YYYY-MM-DD — día de inicio de la prórroga
+  end_date:         string;  // YYYY-MM-DD — calculado: start_date + duration
+  duration:         number;  // ← nombre real del campo en la BD
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,16 +28,11 @@ interface CreateProrrogaDirectus {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Crea un registro en la colección `prorrogas` de Directus.
+ * Crea un registro en la colección `adm_extensions` de Directus.
  *
  * Regla de negocio (aplicada aquí, no en el formulario):
  *   numero 0–3  → duracion = 4  meses
  *   numero ≥ 4  → duracion = 12 meses
- *
- * @param contratoId  ID del contrato al que pertenece la prórroga
- * @param numero      Número de prórroga calculado por el contexto
- * @param fechaIngreso Fecha de inicio en formato YYYY-MM-DD
- * @param descripcion  Descripción opcional
  */
 export async function crearProrroga(params: {
   contrato_id:  number;
@@ -56,17 +51,17 @@ export async function crearProrroga(params: {
     const label       = numero === 0 ? 'Contrato Inicial' : `Prórroga ${numero}`;
 
     const payload: CreateProrrogaDirectus = {
-      contrato: contrato_id,
-      numero,
+      contract_id:      contrato_id,
+      extension_number: numero,
       label,
-      descripcion,
-      fecha_ingreso,
-      fecha_final,
-      duracion,   // ← campo correcto en Directus
+      description:      descripcion,
+      start_date:       fecha_ingreso,
+      end_date:         fecha_final,
+      duration:         duracion,
     };
 
     const created = await withAutoRefresh(() =>
-      directus.request(createItem("prorrogas", payload))
+      directus.request(createItem("adm_extensions", payload))
     );
 
     return created as Prorroga;
@@ -81,14 +76,14 @@ export async function crearProrroga(params: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Crea un nuevo registro en la colección `contratos`.
+ * Crea un nuevo registro en la colección `adm_contracts`.
  */
 export async function crearContrato(
   payload: CreateContrato
 ): Promise<Contrato | null> {
   try {
     const created = await withAutoRefresh(() =>
-      directus.request(createItem("contratos", payload as any))
+      directus.request(createItem("adm_contracts", payload as any))
     );
 
     return created as Contrato;
@@ -99,11 +94,11 @@ export async function crearContrato(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Request status
+// Status
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Actualiza el campo `request_status` de un contrato.
+ * Actualiza el campo `status` de un contrato.
  * Útil para mover un contrato por el flujo de aprobación
  * (pendiente → en_revision → aprobada / rechazada → completada).
  */
@@ -114,13 +109,13 @@ export async function cambiarRequestStatus(
   try {
     await withAutoRefresh(() =>
       directus.request(
-        updateItem("contratos", contratoId, { request_status: nuevoStatus })
+        updateItem("adm_contracts", contratoId, { status: nuevoStatus })
       )
     );
     return true;
   } catch (error) {
     console.error(
-      `❌ Error al cambiar request_status del contrato ${contratoId}:`,
+      `❌ Error al cambiar status del contrato ${contratoId}:`,
       error
     );
     return false;
@@ -132,16 +127,12 @@ export async function cambiarRequestStatus(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Actualiza los campos `cargo` y opcionalmente `area` en la tabla `contratos`.
+ * Actualiza los campos `position` y opcionalmente `department` en `adm_contracts`.
  *
  * Debe llamarse siempre junto con `crearHistorialCargo` para mantener
  * el contrato sincronizado con el historial de movimientos. El WebSocket
  * del ContractContext detectará el UPDATE y hará UPSERT_CONTRATO
  * automáticamente, reflejando el cambio en toda la app sin recargar.
- *
- * @param contratoId  ID del contrato a actualizar
- * @param nuevoCargo  Nombre del nuevo cargo (string)
- * @param nuevaArea   Área correspondiente al nuevo cargo (opcional)
  */
 export async function actualizarCargoEnContrato(
   contratoId: number,
@@ -149,26 +140,26 @@ export async function actualizarCargoEnContrato(
   nuevaArea?: string
 ): Promise<boolean> {
   try {
-    // contratos.cargo es FK a util_cargo. Resolver nombre → id.
+    // adm_contracts.position es FK a core_positions. Resolver nombre → id.
     const cargos: any = await withAutoRefresh(() =>
       directus.request(
-        readItems("util_cargo", {
+        readItems("core_positions", {
           fields: ["id"],
-          filter: { nombre: { _eq: nuevoCargo } },
+          filter: { name: { _eq: nuevoCargo } },
           limit: 1,
         })
       )
     );
     const cargoId = (cargos as any[])?.[0]?.id;
     if (!cargoId) {
-      throw new Error(`util_cargo no encontrado para nombre="${nuevoCargo}"`);
+      throw new Error(`core_positions no encontrado para name="${nuevoCargo}"`);
     }
 
-    const payload: Record<string, any> = { cargo: cargoId };
-    if (nuevaArea) payload.area = nuevaArea;
+    const payload: Record<string, any> = { position: cargoId };
+    if (nuevaArea) payload.department = nuevaArea;
 
     await withAutoRefresh(() =>
-      directus.request(updateItem("contratos", contratoId, payload))
+      directus.request(updateItem("adm_contracts", contratoId, payload))
     );
     return true;
   } catch (error) {

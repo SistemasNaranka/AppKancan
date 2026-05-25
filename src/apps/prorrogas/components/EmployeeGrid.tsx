@@ -35,21 +35,21 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
 
   // Obtener cargos únicos y ordenados alfabéticamente
   const uniqueCargos = Array.from(
-    new Set(allEnriched.map((c) => getCargoLabel(c.cargo)))
+    new Set(allEnriched.map((c) => getCargoLabel(c.position)))
   ).sort((a, b) => a.localeCompare(b));
 
   const filteredEmployees = allEnriched.filter(c => {
     const statusMatch = statusFilter === 'todos' || c.contractStatus === statusFilter;
-    const cargoMatch = cargoFilter === 'todos' || getCargoLabel(c.cargo) === cargoFilter;
+    const cargoMatch = cargoFilter === 'todos' || getCargoLabel(c.position) === cargoFilter;
 
     // Búsqueda global del TopBar
     const q = filters.search.toLowerCase().trim();
     const searchMatch = !q || (
-      c.nombre.toLowerCase().includes(q) ||
-      (c.apellido?.toLowerCase() ?? '').includes(q) ||
-      String(getCargoLabel(c.cargo)).toLowerCase().includes(q) ||
-      (c.area?.toLowerCase() ?? '').includes(q) ||
-      (c.documento?.toLowerCase() ?? '').includes(q) ||
+      c.first_name.toLowerCase().includes(q) ||
+      (c.last_name?.toLowerCase() ?? '').includes(q) ||
+      String(getCargoLabel(c.position)).toLowerCase().includes(q) ||
+      (c.department?.toLowerCase() ?? '').includes(q) ||
+      (c.document?.toLowerCase() ?? '').includes(q) ||
       (c.empresa?.toLowerCase() ?? '').includes(q) ||
       (c.numero_contrato?.toLowerCase() ?? '').includes(q)
     );
@@ -139,11 +139,11 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
                       <PersonIcon sx={{ color: 'rgba(255,255,255,0.9)' }} />
                     </Avatar>
                     <Box sx={{ overflow: 'hidden', pr: 8 }}>
-                      <Typography variant="subtitle2" fontWeight={700} noWrap title={`${emp.nombre} ${emp.apellido || ''}`.trim()}>
-                        {`${emp.nombre} ${emp.apellido || ''}`.trim()}
+                      <Typography variant="subtitle2" fontWeight={700} noWrap title={`${emp.first_name} ${emp.last_name || ''}`.trim()}>
+                        {`${emp.first_name} ${emp.last_name || ''}`.trim()}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" noWrap>
-                        {getCargoLabel(emp.cargo)}
+                        {getCargoLabel(emp.position)}
                       </Typography>
                     </Box>
                     <Box sx={{ position: 'absolute', right: 0, top: 0, display: 'flex', gap: 0.5, alignItems: 'center' }}>
@@ -185,21 +185,21 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary">Prórroga vigente</Typography>
                       <Typography variant="body2" fontWeight={700} sx={{ color: '#004680' }}>
-                        {emp.prorrogas && emp.prorrogas.length > 0
-                          ? `#${Math.max(...emp.prorrogas.map(p => p.numero ?? 0))}`
+                        {emp.extensions && emp.extensions.length > 0
+                          ? `#${Math.max(...emp.extensions.map(p => p.extension_number ?? 0))}`
                           : '—'}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary">Vence</Typography>
                       <Typography variant="body2" fontWeight={700}>
-                        {emp.fecha_final ? formatDate(emp.fecha_final) : '—'}
+                        {emp.end_date ? formatDate(emp.end_date) : '—'}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary">Inicio de contrato</Typography>
                       <Typography variant="body2" fontWeight={700}>
-                        {emp.fecha_ingreso ? formatDate(emp.fecha_ingreso) : '—'}
+                        {emp.start_date ? formatDate(emp.start_date) : '—'}
                       </Typography>
                     </Box>
                   </Stack>

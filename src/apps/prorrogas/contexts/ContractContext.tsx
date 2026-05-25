@@ -39,7 +39,6 @@ interface State {
   saving: boolean;
   error: string | null;
   successMsg: string | null;
-  //fecha_ingreso: Date;
 }
 
 const initialState: State = {
@@ -98,7 +97,7 @@ function reducer(state: State, action: Action): State {
         saving: false,
         contratos: state.contratos.map((c) =>
           c.id === action.payload.contratoId
-            ? { ...c, prorrogas: [...(c.prorrogas ?? []), action.payload.prorroga] }
+            ? { ...c, extensions: [...(c.extensions ?? []), action.payload.prorroga] }
             : c,
         ),
       };
@@ -114,12 +113,11 @@ function reducer(state: State, action: Action): State {
         return { ...state, contratos: [action.payload, ...state.contratos] };
       }
       const next = state.contratos.slice();
-      // Conservar relaciones ya cargadas (prorrogas/documentos) si el payload no las trae
+      // Conservar relaciones ya cargadas (extensions) si el payload no las trae
       next[idx] = {
         ...next[idx],
         ...action.payload,
-        prorrogas: action.payload.prorrogas ?? next[idx].prorrogas,
-        documentos: action.payload.documentos ?? next[idx].documentos,
+        extensions: action.payload.extensions ?? next[idx].extensions,
       };
       return { ...state, contratos: next };
     }
@@ -190,26 +188,24 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     return state.contratos
       .map((c) => ({
         ...c,
-        daysLeft: daysUntil(c.fecha_final),
-        contractStatus: getContractStatus(c.fecha_final),
+        daysLeft: daysUntil(c.end_date),
+        contractStatus: getContractStatus(c.end_date),
       }))
       .filter((c) => {
-        // Tab Filters
         if (state.filters.tab === "activos" && c.contractStatus !== "vigente") return false;
         if (state.filters.tab === "vencidos" && c.contractStatus !== "vencido") return false;
         if (state.filters.tab === "por_vencer" && (c.daysLeft < 0 || c.daysLeft > 30)) return false;
         if (state.filters.tab === "criticos" && (c.daysLeft < 0 || c.daysLeft > 7)) return false;
 
-        // Búsqueda de texto global
         if (q) {
           return (
-            c.nombre.toLowerCase().includes(q) ||
-            c.apellido.toLowerCase().includes(q) ||
-            String(c.cargo).toLowerCase().includes(q) ||
-            c.documento.toLowerCase().includes(q) ||
-            (c.area?.toLowerCase() ?? '').includes(q) ||
+            c.first_name.toLowerCase().includes(q) ||
+            c.last_name.toLowerCase().includes(q) ||
+            String(c.position).toLowerCase().includes(q) ||
+            c.document.toLowerCase().includes(q) ||
+            (c.department?.toLowerCase() ?? '').includes(q) ||
             (c.empresa?.toLowerCase() ?? '').includes(q) ||
-            (c.tipo_contrato?.toLowerCase() ?? '').includes(q) ||
+            (c.contract_type?.toLowerCase() ?? '').includes(q) ||
             (c.numero_contrato?.toLowerCase() ?? '').includes(q) ||
             String(c.id).includes(q)
           );
@@ -220,11 +216,11 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         if (state.filters.sortBy === "vencimiento")
           return a.daysLeft - b.daysLeft;
         if (state.filters.sortBy === "nombre")
-          return `${a.nombre} ${a.apellido}`.localeCompare(
-            `${b.nombre} ${b.apellido}`,
+          return `${a.first_name} ${a.last_name}`.localeCompare(
+            `${b.first_name} ${b.last_name}`,
           );
         if (state.filters.sortBy === "prorroga")
-          return (b.prorrogas?.length ?? 0) - (a.prorrogas?.length ?? 0);
+          return (b.extensions?.length ?? 0) - (a.extensions?.length ?? 0);
         return 0;
       });
   }, [state.contratos, state.filters.search, state.filters.sortBy, state.filters.tab]);
@@ -264,7 +260,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const contrato = state.contratos.find((c) => c.id === payload.contractId);
       if (!contrato) throw new Error('Contrato no encontrado.');
 
-      const numero = getNextProrrogaNumber(contrato.prorrogas ?? []);
+      const numero = getNextProrrogaNumber(contrato.extensions ?? []);
 
       const prorroga = await crearProrroga({
         contrato_id: payload.contractId,
@@ -301,11 +297,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      // Inicializar el contrato con arrays vacíos para prorrogas y documentos
+      // Inicializar el contrato con arrays vacíos para extensions
       const contratoCompleto: Contrato = {
         ...nuevoContrato,
-        prorrogas: [],
-        documentos: [],
+        extensions: [],
       };
 
       dispatch({
@@ -333,10 +328,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         dispatch({ type: 'SET_ERROR', payload: 'Error al actualizar la prórroga.' });
         return;
       }
-      // Actualizar la prórroga en el contrato correspondiente
       dispatch({ type: 'SET_SAVING', payload: false });
       dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga actualizada exitosamente.' });
-      // Recargar contratos para obtener datos actualizados
       await loadContratos();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al actualizar la prórroga.';
@@ -353,7 +346,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         dispatch({ type: 'SET_SAVING', payload: false });
         return false;
       }
-      // Recargar contratos para actualizar la lista
       await loadContratos();
       dispatch({ type: 'SET_SUCCESS', payload: 'Prórroga eliminada exitosamente.' });
       return true;
@@ -376,7 +368,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       dispatch({ type: 'SET_SAVING', payload: false });
       dispatch({ type: 'SET_SUCCESS', payload: 'Contrato actualizado exitosamente.' });
-      // Recargar contratos para obtener datos actualizados
       await loadContratos();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al actualizar el contrato.';
@@ -393,7 +384,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         dispatch({ type: 'SET_SAVING', payload: false });
         return false;
       }
-      // Recargar contratos para actualizar la lista
       await loadContratos();
       dispatch({ type: 'SET_SUCCESS', payload: 'Contrato eliminado exitosamente.' });
       return true;
@@ -405,10 +395,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [loadContratos]);
 
-  // ─── WebSocket: sync contratos en tiempo real (cargo, área, etc.) ────────
-  // Escucha eventos de Directus en la colección `contratos`. Al recibir
-  // create/update/delete, refresca el contrato afectado en el estado global
-  // sin recargar todos los contratos.
+  // ─── WebSocket: sync contratos en tiempo real (position, department, etc.) ──
   useEffect(() => {
     if (authLoading) return;
     const tokens = cargarTokenStorage();
@@ -431,7 +418,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
 
-        const contratosRes = await directus.subscribe('contratos' as any);
+        const contratosRes = await directus.subscribe('adm_contracts' as any);
         unsubContratos = contratosRes.unsubscribe;
 
         (async () => {
@@ -459,9 +446,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           } catch { }
         })();
 
-        // historial_cargos: si llega un cambio de cargo, refrescar contrato_id
+        // adm_position_history: si llega un cambio de cargo, refrescar contract_id
         try {
-          const histRes = await directus.subscribe('historial_cargos' as any);
+          const histRes = await directus.subscribe('adm_position_history' as any);
           unsubHistorial = histRes.unsubscribe;
           (async () => {
             try {
@@ -470,7 +457,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
                 if (msg.type !== 'subscription') continue;
                 if (!['create', 'update', 'delete'].includes(msg.event)) continue;
                 const contratoIds: number[] = Array.isArray((msg as any).data)
-                  ? (msg as any).data.map((d: any) => d?.contrato_id).filter(Boolean)
+                  ? (msg as any).data.map((d: any) => d?.contract_id).filter(Boolean)
                   : [];
                 for (const cid of contratoIds) {
                   const fresh = await getContratoById(cid);
@@ -481,11 +468,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             } catch { }
           })();
         } catch (e) {
-          // historial_cargos suscripción opcional — no romper si permisos faltan
-          console.warn('WS historial_cargos no disponible:', e);
+          console.warn('WS adm_position_history no disponible:', e);
         }
       } catch (err) {
-        console.error('Error setup WS contratos:', err);
+        console.error('Error setup WS adm_contracts:', err);
       }
     };
 
@@ -497,17 +483,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [authLoading]);
 
-  // ─── Esperar a que AuthProvider termine antes de disparar queries ─────────
-  // AuthProvider inicializa el token de forma asíncrona. Si disparamos
-  // queries antes de que termine, salen sin Authorization → 403.
-  // Esperamos a que authLoading sea false (init de AuthProvider completado)
-  // y luego verificamos que haya tokens válidos antes de cargar datos.
   useEffect(() => {
-    if (authLoading) return; // AuthProvider aún inicializando, esperar
+    if (authLoading) return;
 
     const init = async () => {
       const tokens = cargarTokenStorage();
-      if (!tokens) return; // Sin sesión activa, no cargar datos
+      if (!tokens) return;
 
       try {
         await setTokenDirectus(tokens.access);

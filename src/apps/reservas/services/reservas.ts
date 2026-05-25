@@ -291,18 +291,50 @@ export async function crearReserva(datos: NuevaReserva): Promise<Reserva> {
 }
 
 /**
- * Actualiza una reserva existente
+ * Actualiza una reserva existente.
+ * 1. SELECT previo para capturar estado anterior (solo en memoria).
+ * 2. UPDATE con los nuevos datos.
+ * 3. POST al webhook n8n con reserva_anterior, reserva nueva y cambios.
  */
 export async function actualizarReserva(
   id: number,
   datos: ActualizarReserva,
+  skipWebhook = false,
 ): Promise<Reserva> {
   try {
+    // 1. SELECT antes del UPDATE
+    const reserva_anterior = await getReservaById(id);
+
+    // 2. UPDATE
     await withAutoRefresh(() =>
       directus.request(updateItem("adm_meeting_reservations", id, datos)),
     );
 
-    return await getReservaById(id);
+    const reservaActualizada = await getReservaById(id);
+
+    // 3. Notificar webhook n8n (fire-and-forget, no bloquea)
+    // skipWebhook=true cuando la llamada viene de cancelarReserva
+    if (skipWebhook) return reservaActualizada;
+
+    const { notificarCorreoReserva } = await import("./correoReservas");
+    notificarCorreoReserva({
+      evento: "reserva_actualizada",
+      reserva: reservaActualizada as any,
+      ...({
+        reserva_anterior,
+        cambios: {
+          meeting_title: reserva_anterior.meeting_title !== datos.meeting_title,
+          room_name: reserva_anterior.room_name !== datos.room_name,
+          date: reserva_anterior.date !== datos.date,
+          start_time: reserva_anterior.start_time !== datos.start_time,
+          end_time: reserva_anterior.end_time !== datos.end_time,
+        },
+      } as any),
+    }).catch((err: unknown) =>
+      console.warn("⚠️ [n8n] correo actualización NO enviado:", err),
+    );
+
+    return reservaActualizada;
   } catch (error) {
     console.error("❌ Error al actualizar reserva:", error);
     throw error;
@@ -313,7 +345,7 @@ export async function actualizarReserva(
  * Cancela una reserva
  */
 export async function cancelarReserva(id: number): Promise<Reserva> {
-  return await actualizarReserva(id, { status: "Cancelado" });
+  return await actualizarReserva(id, { status: "Cancelado" }, true);
 }
 
 /**
@@ -398,10 +430,19 @@ export interface ConfiguracionReserva {
 }
 
 /**
- * Obtiene la configuración de horarios para reservas desde la BD
- * @returns ConfiguracionReserva o null si no existe configuración
+ * Obtiene la configuración de horarios para reservas desde la BD.
+ * Resultado cacheado en memoria — se reusa mientras la sesión esté activa.
+ * Llama a invalidarCacheConfiguracion() si el admin cambia los horarios.
  */
+let _configCache: ConfiguracionReserva | null | undefined = undefined;
+
+export function invalidarCacheConfiguracion(): void {
+  _configCache = undefined;
+}
+
 export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | null> {
+  if (_configCache !== undefined) return _configCache;
+
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -413,12 +454,14 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
     );
 
     if (items && items.length > 0) {
-      return items[0] as ConfiguracionReserva;
+      _configCache = items[0] as ConfiguracionReserva;
+      return _configCache;
     }
 
     console.warn(
       "⚠️ No se encontró configuración de reservas, usando valores por defecto",
     );
+    _configCache = null;
     return null;
   } catch (error) {
     console.error("❌ Error al cargar configuración de reservas:", error);

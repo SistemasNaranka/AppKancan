@@ -3,19 +3,20 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, createItem, updateItem } from "@directus/sdk";
 
 /**
- * Interface for proveedor contabilidad record
+ * Interface for accounting vendor record (acc_accounting_vendors)
  */
 interface ProveedorContabilidad {
-  id?: number;
-  nit: string;
-  automatico: string;
-  nombre?: string;
-  numero_factura?: string;
-  valor_factura?: number;
+    id?: number;
+    nit: string;
+    automatic: string;
+    name?: string;
+    // ── Orphans (no existen en acc_accounting_vendors, conservados en TS) ──
+    numero_factura?: string;
+    valor_factura?: number;
 }
 
 /**
- * Verifica si un NIT existe en la tabla proveedores_contabilidad
+ * Verifica si un NIT existe en la tabla acc_accounting_vendors
  * @param nit El NIT a verificar
  * @returns true si existe, false si no
  */
@@ -25,7 +26,7 @@ export async function checkNitExists(nit: string): Promise<boolean> {
     try {
         const items = await withAutoRefresh(() =>
             directus.request(
-                readItems("proveedores_contabilidad", {
+                readItems("acc_accounting_vendors", {
                     filter: {
                         nit: {
                             _eq: nit,
@@ -54,7 +55,7 @@ export async function getAutomaticByNit(nit: string): Promise<ProveedorContabili
     try {
         const items = await withAutoRefresh(() =>
             directus.request(
-                readItems("proveedores_contabilidad", {
+                readItems("acc_accounting_vendors", {
                     filter: {
                         nit: {
                             _eq: nit,
@@ -83,19 +84,18 @@ export async function getAutomaticByNit(nit: string): Promise<ProveedorContabili
  * @returns El registro del proveedor si existe coincidencia en ambos campos, null si no
  */
 export async function getProviderByNameAndNit(
-    nit: string, 
+    nit: string,
     nombre: string
 ): Promise<ProveedorContabilidad | null> {
     if (!nit || !nombre) return null;
 
     try {
-        // Convertir a string explícitamente para comparación textual
         const nitString = String(nit).trim();
         const nombreString = String(nombre).trim();
 
         const items = await withAutoRefresh(() =>
             directus.request(
-                readItems("proveedores_contabilidad", {
+                readItems("acc_accounting_vendors", {
                     filter: {
                         _and: [
                             {
@@ -104,7 +104,7 @@ export async function getProviderByNameAndNit(
                                 },
                             },
                             {
-                                nombre: {
+                                name: {
                                     _icase: nombreString,
                                 },
                             },
@@ -130,30 +130,27 @@ export async function getProviderByNameAndNit(
  * @param nit El NIT del proveedor
  * @param automatico El número automático asignado
  * @param nombreProveedor El nombre del proveedor (opcional)
- * @param numeroFactura El número de factura (opcional)
- * @param valorFactura El valor de la factura (opcional)
+ * @param numeroFactura (no se persiste — no existe en acc_accounting_vendors)
+ * @param valorFactura  (no se persiste — no existe en acc_accounting_vendors)
  * @returns El item creado
  */
 export async function saveNitAutomatic(
-    nit: string, 
+    nit: string,
     automatico: string,
     nombreProveedor?: string,
-    numeroFactura?: string,
-    valorFactura?: number
+    _numeroFactura?: string,
+    _valorFactura?: number
 ) {
     try {
-        // Debug: Mostrar datos que se envían al servidor
         const dataToSend = {
-            nit: String(nit).trim(),
-            automatico: String(automatico).trim(),
-            nombre: nombreProveedor ? String(nombreProveedor).trim() : undefined,
-            numero_factura: numeroFactura,
-            valor_factura: valorFactura,
+            nit:       String(nit).trim(),
+            automatic: String(automatico).trim(),
+            name:      nombreProveedor ? String(nombreProveedor).trim() : undefined,
         };
 
         const item = await withAutoRefresh(() =>
             directus.request(
-                createItem("proveedores_contabilidad", dataToSend)
+                createItem("acc_accounting_vendors", dataToSend)
             )
         );
 
@@ -167,14 +164,14 @@ export async function saveNitAutomatic(
 /**
  * Actualiza el registro de un proveedor existente
  * @param id El ID del registro
- * @param data Los datos a actualizar
+ * @param data Los datos a actualizar (claves de acc_accounting_vendors)
  * @returns El item actualizado
  */
 export async function updateAccountingProvider(id: number, data: Partial<ProveedorContabilidad>) {
     try {
         const item = await withAutoRefresh(() =>
             directus.request(
-                updateItem("proveedores_contabilidad", id, data),
+                updateItem("acc_accounting_vendors", id, data),
             ),
         );
 
