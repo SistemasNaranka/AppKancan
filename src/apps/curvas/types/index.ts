@@ -434,21 +434,21 @@ export interface CantidadTallaItem {
 export interface LogCurvas {
   id?: string;
   /** ID de la tienda en la base de datos */
-  tienda_id: string;
+  store_id: string;
   /** Nombre de la tienda (para referencia visual) */
-  tienda_nombre?: string;
+  store_name?: string;
   /** Tipo de plantilla: textil o calzado_bolso */
-  plantilla: TipoPlantillaDB;
+  template: TipoPlantillaDB;
   /** Fecha de registro */
-  fecha: string;
+  log_date: string;
   /** JSON con array de objetos {talla: number, cantidad: number, codigo_barra: string} */
-  cantidad_talla: string;
+  size_quantity: string;
   /** Referencia del producto (opcional) */
-  referencia?: string;
+  reference?: string;
   /** Estado del registro: borrador | confirmado */
-  estado?: 'borrador' | 'confirmado';
+  status?: 'borrador' | 'confirmado';
   /** Fecha de creación en el sistema */
-  fecha_creacion?: string;
+  date_created?: string;
 }
 /**
  * Registro de envío a despacho para guardar en Directus (tabla envios_curvas)
@@ -457,21 +457,21 @@ export interface LogCurvas {
 export interface EnvioCurva {
   id?: string;
   /** ID de la tienda en la base de datos */
-  tienda_id: string;
-  /** ID del registro origen en log_curvas (plantilla) */
-  plantilla: string;
+  store_id: string;
+  /** ID del registro origen en log_curve (template) */
+  template: string;
   /** Fecha de despacho */
-  fecha: string;
+  shipment_date: string;
   /** JSON con array de objetos {talla: number, cantidad: number, codigo_barra: string} */
-  cantidad_talla: string;
+  size_quantity: string;
   /** Referencia del producto */
-  referencia: string;
+  reference: string;
   /** Nombre de la tienda */
-  tienda_nombre?: string;
+  store_name?: string;
   /** ID del usuario que realiza el despacho */
-  usuario_id?: string;
+  user_id?: string;
   /** Estado del envío */
-  estado?: 'borrador' | 'confirmado';
+  status?: 'borrador' | 'confirmado';
 }
 
 /**
@@ -479,8 +479,8 @@ export interface EnvioCurva {
  */
 export interface BloqueoEscaner {
   id?: string;
-  referencia: string;
-  tienda_id: string;
-  usuario_id: string;
-  ultima_actividad: string; // ISO string
+  reference: string;
+  store_id: string;
+  user_id: string;
+  last_activity_at: string; // ISO string
 }

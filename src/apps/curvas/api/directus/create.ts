@@ -148,7 +148,7 @@ export const saveBatchCurvas = async (
  * Guarda un registro de log de curvas en Directus
  */
 export const saveLogCurvas = async (
-  logData: Omit<LogCurvas, "id" | "fecha_creacion">,
+  logData: Omit<LogCurvas, "id" | "date_created">,
 ): Promise<boolean> => {
   const ids = await saveLogsBatch([logData]);
   return ids.length > 0;
@@ -159,32 +159,31 @@ export const saveLogCurvas = async (
  * Devuelve los IDs generados para usar como referencia en envios_curvas
  */
 export const saveLogsBatch = async (
-  logsData: Omit<LogCurvas, "id" | "fecha_creacion">[],
-): Promise<{ tienda_id: string; id: string }[]> => {
+  logsData: Omit<LogCurvas, "id" | "date_created">[],
+): Promise<{ store_id: string; id: string }[]> => {
   if (!logsData || logsData.length === 0) return [];
 
   try {
-    const results: { tienda_id: string; id: string }[] = [];
+    const results: { store_id: string; id: string }[] = [];
 
     for (const log of logsData) {
       // SIEMPRE crear nuevo registro para envíos (no actualizar existentes)
       const item = {
-        tienda_id: log.tienda_id,
-        tienda_nombre: log.tienda_nombre || "",
-        plantilla: log.plantilla,
-        fecha: log.fecha,
-        cantidad_talla: log.cantidad_talla,
-        referencia: log.referencia || "",
-        estado: log.estado || "borrador",
-        fecha_creacion: new Date().toISOString(),
+        store_id: log.store_id,
+        store_name: log.store_name || "",
+        template: log.template,
+        log_date: log.log_date,
+        size_quantity: log.size_quantity,
+        reference: log.reference || "",
+        status: log.status || "borrador",
       };
 
       const response = (await withAutoRefresh(() =>
-        directus.request(createItems("log_curvas", [item])),
+        directus.request(createItems("log_curve", [item])),
       )) as any[];
 
       const newId = response[0]?.id;
-      results.push({ tienda_id: log.tienda_id, id: String(newId) });
+      results.push({ store_id: log.store_id, id: String(newId) });
     }
 
     return results;
@@ -198,7 +197,7 @@ export const saveLogsBatch = async (
  * Guarda un registro de envío a despacho en Directus (tabla envios_curvas)
  */
 export const saveEnvioCurva = async (
-  envioData: Omit<EnvioCurva, "id" | "fecha_creacion">,
+  envioData: Omit<EnvioCurva, "id" | "date_created">,
 ): Promise<boolean> => {
   return saveEnviosBatch([envioData]);
 };
@@ -207,24 +206,24 @@ export const saveEnvioCurva = async (
  * Guarda múltiples registros de envío a despacho en Directus (Batch)
  */
 export const saveEnviosBatch = async (
-  enviosData: Omit<EnvioCurva, "id" | "fecha_creacion">[],
+  enviosData: Omit<EnvioCurva, "id" | "date_created">[],
 ): Promise<boolean> => {
   if (!enviosData || enviosData.length === 0) return true;
 
   try {
     const items = enviosData.map((envio: any) => {
       return {
-        tienda_id: envio.tienda_id,
-        plantilla: envio.plantilla,
-        fecha: envio.fecha,
-        cantidad_talla: envio.cantidad_talla,
-        referencia: envio.referencia,
-        usuario_id: envio.usuario_id,
+        store_id: envio.store_id,
+        template: envio.template,
+        shipment_date: envio.shipment_date,
+        size_quantity: envio.size_quantity,
+        reference: envio.reference,
+        user_id: envio.user_id,
       };
     });
 
     await withAutoRefresh(() =>
-      directus.request(createItems("envios_curvas", items)),
+      directus.request(createItems("log_curve_shipments", items)),
     );
 
     return true;
@@ -244,12 +243,12 @@ export const deleteEnvioDrafts = async (
   try {
     await withAutoRefresh(() =>
       directus.request(
-        deleteItems("envios_curvas", {
+        deleteItems("log_curve_shipments", {
           filter: {
             _and: [
-              { referencia: { _eq: referencia } },
-              { usuario_id: { _eq: usuarioId } },
-              { fecha: { _gte: new Date().toISOString().split("T")[0] } }, // Solo los de hoy
+              { reference: { _eq: referencia } },
+              { user_id: { _eq: usuarioId } },
+              { shipment_date: { _gte: new Date().toISOString().split("T")[0] } }, // Solo los de hoy
             ],
           },
         }),
@@ -276,11 +275,11 @@ export const deleteLogCurvasByRef = async (
   try {
     await withAutoRefresh(() =>
       directus.request(
-        deleteItems("log_curvas", {
+        deleteItems("log_curve", {
           filter: {
             _and: [
-              { referencia: { _eq: referencia } },
-              { plantilla: { _eq: plantilla } },
+              { reference: { _eq: referencia } },
+              { template: { _eq: plantilla } },
             ],
           },
         }),

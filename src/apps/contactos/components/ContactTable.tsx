@@ -48,9 +48,9 @@ export const ContactTable: React.FC<Props> = ({ contactos, onVer, onEditar, sort
       <Table>
         <TableHead sx={{ bgcolor: 'rgba(241,245,249,0.8)' }}>
           <TableRow>
-            <TableCell>{col('Personal',      'name')}</TableCell>
+            <TableCell>{col('Nombre',      'name')}</TableCell>
             <TableCell>{col('Área',          'area')}</TableCell>
-            <TableCell>{col('Email',         'email')}</TableCell>
+            <TableCell>{col('Correo',         'email')}</TableCell>
             <TableCell>{col('Teléfono',      'phone')}</TableCell>
             <TableCell>{col('Visualización', 'visibility')}</TableCell>
             <TableCell sx={{ fontWeight: 700 }} align="right">Acciones</TableCell>

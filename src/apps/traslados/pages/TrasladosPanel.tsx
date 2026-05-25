@@ -29,7 +29,7 @@ const TrasladosPanel: React.FC = () => {
 
   // ✅ Verificar si el usuario tiene la política TrasladosTiendas
   const tienePoliticaTrasladosTiendas =
-    user?.policies?.includes("StoreTransfers") ?? false;
+    user?.policies?.includes("store_transfers") ?? false;
 
   // ✅ Query para cargar traslados con cache automático
   const {

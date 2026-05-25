@@ -107,10 +107,10 @@ export const useEnviosKeyboard = ({
         for (const fila of current.sheet.filas) {
           const rowLock = bloqueosActivos?.find(
             (b: any) =>
-              String(b.tienda_id) === String(fila.tienda?.id) &&
-              String(b.referencia) === currentRef,
+              String(b.store_id) === String(fila.tienda?.id) &&
+              String(b.reference) === currentRef,
           );
-          const lockUserId = rowLock ? String(rowLock.usuario_id) : null;
+          const lockUserId = rowLock ? String(rowLock.user_id) : null;
           const isLockedByOther =
             rowLock && user && String(lockUserId) !== String(user.id);
 

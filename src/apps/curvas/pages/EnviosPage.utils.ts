@@ -184,9 +184,9 @@ export const checkIsLockedByOther = (
   if (!fila) return false;
   
   const rowLock = bloqueosActivos?.find(
-    (b: any) => String(b.tienda_id) === String(fila.tienda?.id) && String(b.referencia) === currentRef
+    (b: any) => String(b.store_id) === String(fila.tienda?.id) && String(b.reference) === currentRef
   );
-  const lockUserId = rowLock ? String(rowLock.usuario_id) : null;
+  const lockUserId = rowLock ? String(rowLock.user_id) : null;
   return !!(rowLock && String(lockUserId) !== String(user?.id));
 };
 
@@ -201,9 +201,9 @@ export const checkIsLockedByMe = (
   if (!fila) return false;
   
   const rowLock = bloqueosActivos?.find(
-    (b: any) => String(b.tienda_id) === String(fila.tienda?.id) && String(b.referencia) === currentRef
+    (b: any) => String(b.store_id) === String(fila.tienda?.id) && String(b.reference) === currentRef
   );
-  const lockUserId = rowLock ? String(rowLock.usuario_id) : null;
+  const lockUserId = rowLock ? String(rowLock.user_id) : null;
   return !!(rowLock && String(lockUserId) === String(user?.id));
 };
 
@@ -217,14 +217,14 @@ export const getRowLockInfo = (
   user: any
 ) => {
   const rowLock = bloqueosActivos?.find(
-    (b: any) => String(b.tienda_id) === String(fila.tienda?.id) && String(b.referencia) === currentRef
+    (b: any) => String(b.store_id) === String(fila.tienda?.id) && String(b.reference) === currentRef
   );
   
   if (!rowLock) {
     return { isLocked: false, isLockedByMe: false, isLockedByOther: false, lockUserName: 'Otro' };
   }
 
-  const lockUserId = String(rowLock.usuario_id);
+  const lockUserId = String(rowLock.user_id);
   const isLockedByMe = String(lockUserId) === String(user?.id);
   const isLockedByOther = !isLockedByMe;
 

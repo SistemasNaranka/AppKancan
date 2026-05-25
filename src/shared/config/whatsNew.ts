@@ -29,7 +29,7 @@ export interface WhatsNewRelease {
  * El parámetro `forceOpen={true}` del componente sigue funcionando aunque esté en false,
  * útil para un botón "Ver novedades" manual o pruebas internas.
  */
-export const WHATS_NEW_ENABLED = true;
+export const WHATS_NEW_ENABLED = false;
 
 export const CATEGORY_META: Record<WhatsNewCategory, { label: string; color: string; bg: string; border: string }> = {
   nuevo:       { label: "Nuevo",      color: "#15803d", bg: "#dcfce7", border: "#86efac" },

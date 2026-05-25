@@ -41,9 +41,9 @@ export const ConfigPanel = ({ open, onClose, user, area }: Props) => {
   const { user: authUser } = useAuth();
   const [tabValue, setTabValue] = useState(0);
 
-  // Verificar si el usuario tiene la politica adminPolitica
+  // Verificar si el usuario tiene la politica crud_password_admin
   const hasAdminPolitica =
-    authUser?.policies?.includes("adminPolitica") || false;
+    authUser?.policies?.includes("crud_password_admin") || false;
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

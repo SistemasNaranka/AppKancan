@@ -31,7 +31,7 @@ export const useCurvasPolicies = () => {
      * - Basado en política explícita o área coordinada
      */
     const esBodega = (): boolean => {
-        return hasPolicy('CurvasBodegaDespacho') || hasPolicy('CurvasBodega') || esAreaBodega();
+        return hasPolicy('read_curves_dispatches') || hasPolicy('read_curves_dispatches') || esAreaBodega();
     };
 
     /**
@@ -43,14 +43,14 @@ export const useCurvasPolicies = () => {
         
         // Exact matches or very specific substrings for legitimate admins
         const esRolPuro = rolName === 'admin' || rolName === 'administrador' || rolName === 'gerencia' || rolName === 'gerente';
-        const tienePoliticaAdmin = hasPolicy('CurvasAdmin') || hasPolicy('CurvasBodegaAdmin');
+        const tienePoliticaAdmin = hasPolicy('crud_curves_admin') || hasPolicy('crud_curves_admin');
         
         // If they have the specific admin policies, they are admins regardless of role
         if (tienePoliticaAdmin) return true;
 
         // If they don't have admin policies, we check the role with a fallback for 'sistemas'
         // 'sistemas' is admin ONLY if they don't have the restricted 'CurvasBodegaDespacho' or 'CurvasBodega' policy
-        const esSistemasAdmin = (rolName === 'sistemas' && !hasPolicy('CurvasBodegaDespacho') && !hasPolicy('CurvasBodega'));
+        const esSistemasAdmin = (rolName === 'sistemas' && !hasPolicy('read_curves_dispatches') && !hasPolicy('read_curves_dispatches'));
 
 
 
@@ -69,11 +69,20 @@ export const useCurvasPolicies = () => {
         return restricted;
     };
 
+    /**
+     * Política: Usuario de Tienda con acceso a traslados
+     * - Usuarios con store_transfers que ven sus envíos en Curvas
+     */
+    const esTiendaTransfers = (): boolean => {
+        return hasPolicy('store_transfers');
+    };
+
     return {
         hasPolicy,
         esBodega,
         esAdmin,
+        esTiendaTransfers,
         debeAterrizarEnDespacho,
-        userRole: esAdmin() ? 'admin' : esBodega() ? 'bodega' : 'produccion'
+        userRole: esAdmin() ? 'admin' : esBodega() ? 'bodega' : esTiendaTransfers() ? 'tienda' : 'produccion'
     };
 };

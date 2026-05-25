@@ -22,15 +22,15 @@ export const useEnviosHydration = ({ current, enviosCurvasData, extractRef, setV
     if (hydratedSheetsRef.current.has(sheetId)) return;
     hydratedSheetsRef.current.add(sheetId);
 
-    const enviosParaRef = enviosCurvasData.filter((log: any) => extractRef({ referencia: log.referencia || log.referenciaBase }) === currentRef);
+    const enviosParaRef = enviosCurvasData.filter((log: any) => extractRef({ referencia: log.reference || log.referenciaBase }) === currentRef);
     if (enviosParaRef.length === 0) return;
 
     const nuevoValidation: Record<string, any> = {};
     enviosParaRef.forEach((log: any) => {
-      const tiendaId = typeof log.tienda_id === "object" && log.tienda_id !== null ? String(log.tienda_id.id || log.tienda_id.codigo) : String(log.tienda_id);
+      const tiendaId = typeof log.store_id === "object" && log.store_id !== null ? String(log.store_id.id || log.store_id.codigo) : String(log.store_id);
       let parsedTallas: any[] = [];
       try {
-        parsedTallas = typeof log.cantidad_talla === "string" ? JSON.parse(log.cantidad_talla) : log.cantidad_talla;
+        parsedTallas = typeof log.size_quantity === "string" ? JSON.parse(log.size_quantity) : log.size_quantity;
       } catch (e) { return; }
 
       if (!Array.isArray(parsedTallas)) return;
@@ -63,7 +63,7 @@ export const useEnviosHydration = ({ current, enviosCurvasData, extractRef, setV
     const currentRef = extractRef(current.sheet);
     const myTiendas = myScannedTiendasRef.current[sheetId] || new Set<string>();
 
-    const enviosParaRef = enviosCurvasData.filter((log: any) => extractRef({ referencia: log.referencia || log.referenciaBase }) === currentRef);
+    const enviosParaRef = enviosCurvasData.filter((log: any) => extractRef({ referencia: log.reference || log.referenciaBase }) === currentRef);
 
     setValidationData((prev) => {
       const prevSheet = { ...(prev[sheetId] || {}) };
@@ -72,13 +72,13 @@ export const useEnviosHydration = ({ current, enviosCurvasData, extractRef, setV
       const dbTiendaIds = new Set<string>();
 
       enviosParaRef.forEach((log: any) => {
-        const tiendaId = typeof log.tienda_id === "object" && log.tienda_id !== null ? String(log.tienda_id.id || log.tienda_id.codigo) : String(log.tienda_id);
+        const tiendaId = typeof log.store_id === "object" && log.store_id !== null ? String(log.store_id.id || log.store_id.codigo) : String(log.store_id);
         dbTiendaIds.add(tiendaId);
 
         if (myTiendas.has(tiendaId)) return;
 
         let parsedTallas: any[] = [];
-        try { parsedTallas = typeof log.cantidad_talla === "string" ? JSON.parse(log.cantidad_talla) : log.cantidad_talla; } 
+        try { parsedTallas = typeof log.size_quantity === "string" ? JSON.parse(log.size_quantity) : log.size_quantity; }
         catch { return; }
 
         if (!Array.isArray(parsedTallas)) return;
