@@ -67,11 +67,9 @@ export async function createPromotion(data: CreatePromocionData) {
     return result;
 
   } catch (error: any) {
-    console.error("❌ Error al crear promoción:", error);
 
     // Mostrar detalles del error si están disponibles
     if (error?.errors) {
-      console.error("Detalles del error:", error.errors);
     }
 
     throw error;
@@ -101,10 +99,8 @@ export async function associateStoresPromotion(
     return result;
 
   } catch (error: any) {
-    console.error("❌ Error al asociar tiendas:", error);
 
     if (error?.errors) {
-      console.error("Detalles del error:", error.errors);
     }
 
     throw error;
@@ -142,7 +138,6 @@ export async function createCompletePromotion(
         await associateStoresPromotion(promocionCreada.id, params.tiendasIds);
       } catch (tiendaError) {
         // Si falla la asociación, intentar eliminar la promoción creada
-        console.error("❌ Error al asociar tiendas, revertiendo creación...");
         // TODO: Implementar eliminación de promoción
         throw new Error(
           "Error al asociar tiendas a la promoción. Por favor, intente nuevamente."
@@ -152,7 +147,6 @@ export async function createCompletePromotion(
 
     return promocionCreada;
   } catch (error: any) {
-    console.error("❌ Error al crear promoción completa:", error);
     throw error;
   }
 }

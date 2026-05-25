@@ -140,7 +140,6 @@ export async function getReservas(
 
     return reservas;
   } catch (error) {
-    console.error("❌ Error al cargar reservas:", error);
     throw error;
   }
 }
@@ -176,7 +175,6 @@ export async function getReservasMes(
 
     return procesarReservas(items as Reserva[]);
   } catch (error) {
-    console.error("❌ Error al cargar reservas del mes:", error);
     throw error;
   }
 }
@@ -225,7 +223,6 @@ export async function getMisReservas(
 
     return reservas;
   } catch (error) {
-    console.error("❌ Error al cargar mis reservas:", error);
     throw error;
   }
 }
@@ -255,7 +252,6 @@ export async function getReservaById(id: number): Promise<Reserva> {
 
     return reserva;
   } catch (error) {
-    console.error("❌ Error al cargar reserva:", error);
     throw error;
   }
 }
@@ -285,7 +281,6 @@ export async function crearReserva(datos: NuevaReserva): Promise<Reserva> {
 
     return await getReservaById(item.id);
   } catch (error) {
-    console.error("❌ Error al crear reserva:", error);
     throw error;
   }
 }
@@ -331,12 +326,11 @@ export async function actualizarReserva(
         },
       } as any),
     }).catch((err: unknown) =>
-      console.warn("⚠️ [n8n] correo actualización NO enviado:", err),
+,
     );
 
     return reservaActualizada;
   } catch (error) {
-    console.error("❌ Error al actualizar reserva:", error);
     throw error;
   }
 }
@@ -357,7 +351,6 @@ export async function eliminarReserva(id: number): Promise<void> {
       directus.request(deleteItem("adm_meeting_reservations", id)),
     );
   } catch (error) {
-    console.error("❌ Error al eliminar reserva:", error);
     throw error;
   }
 }
@@ -415,7 +408,6 @@ export async function verificarConflictoHorario(
 
     return items.length > 0;
   } catch (error) {
-    console.error("❌ Error al verificar conflicto:", error);
     return false;
   }
 }
@@ -458,13 +450,9 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
       return _configCache;
     }
 
-    console.warn(
-      "⚠️ No se encontró configuración de reservas, usando valores por defecto",
-    );
     _configCache = null;
     return null;
   } catch (error) {
-    console.error("❌ Error al cargar configuración de reservas:", error);
     return null;
   }
 }
@@ -523,7 +511,6 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
 
     return reservasAFinalizar.length;
   } catch (error) {
-    console.error("❌ Error al actualizar reservas finalizadas:", error);
     return 0;
   }
 }
@@ -553,7 +540,6 @@ export const buscarUsuarios = async (query: string) => {
     );
     return (result as any[]) || [];
   } catch (error) {
-    console.error("Error al buscar usuarios en Directus:", error);
     return [];
   }
 };

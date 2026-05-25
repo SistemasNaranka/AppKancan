@@ -468,10 +468,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             } catch { }
           })();
         } catch (e) {
-          console.warn('WS adm_position_history no disponible:', e);
         }
       } catch (err) {
-        console.error('Error setup WS adm_contracts:', err);
       }
     };
 

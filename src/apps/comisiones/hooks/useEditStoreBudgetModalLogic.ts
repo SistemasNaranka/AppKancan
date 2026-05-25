@@ -198,7 +198,6 @@ export const useEditStoreBudgetModalLogic = ({
       setCodigoEmpleado("");
       setError(""); // Limpiar error al agregar con éxito
     } catch (err) {
-      console.error("Error al agregar:", err);
       setError("Error al procesar la asignación.");
     } finally {
       setLoading(false);
@@ -216,7 +215,6 @@ export const useEditStoreBudgetModalLogic = ({
       const { empleados } = await recalculateBudgets(nuevaLista, fecha);
       setEmpleadosAsignados(empleados);
     } catch (err) {
-      console.error("Error al quitar:", err);
       setEmpleadosAsignados(nuevaLista);
     } finally {
       setLoading(false);

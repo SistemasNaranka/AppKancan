@@ -30,7 +30,6 @@ export async function createProject(
     );
     return result.id;
   } catch (error) {
-    console.error("❌ Error al crear proyecto:", error);
     return null;
   }
 }
@@ -55,7 +54,6 @@ export async function updateProject(
     );
     return true;
   } catch (error) {
-    console.error("❌ Error al actualizar proyecto:", error);
     return false;
   }
 }
@@ -67,7 +65,6 @@ export async function deleteProject(id: string): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    console.error("❌ Error al eliminar proyecto:", error);
     return false;
   }
 }
@@ -113,7 +110,6 @@ export async function createProcess(
     );
     return result.id;
   } catch (error) {
-    console.error("❌ Error al crear proceso:", error);
     return null;
   }
 }
@@ -136,7 +132,6 @@ export async function updateProcess(
     );
     return true;
   } catch (error) {
-    console.error("❌ Error al actualizar proceso:", error);
     return false;
   }
 }
@@ -146,7 +141,6 @@ export async function deleteProcess(id: string): Promise<boolean> {
     await withAutoRefresh(() => directus.request(deleteItem("sys_processes", id)));
     return true;
   } catch (error) {
-    console.error("❌ Error al eliminar proceso:", error);
     return false;
   }
 }
@@ -164,7 +158,6 @@ export async function createBenefit(
     );
     return result.id;
   } catch (error) {
-    console.error("❌ Error al crear beneficio:", error);
     return null;
   }
 }
@@ -182,7 +175,6 @@ export async function createBenefits(
     );
     return true;
   } catch (error) {
-    console.error("❌ Error al crear beneficios:", error);
     return false;
   }
 }
@@ -199,7 +191,6 @@ export async function updateBenefit(
     );
     return true;
   } catch (error) {
-    console.error("❌ Error al actualizar beneficio:", error);
     return false;
   }
 }
@@ -211,7 +202,6 @@ export async function deleteBenefit(id: string): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    console.error("❌ Error al eliminar beneficio:", error);
     return false;
   }
 }
@@ -232,7 +222,6 @@ export async function createFeedback(
     );
     return result.id;
   } catch (error) {
-    console.error("❌ Error al crear feedback:", error);
     return null;
   }
 }
@@ -250,7 +239,6 @@ export async function updateFeedback(
     );
     return true;
   } catch (error) {
-    console.error("❌ Error al actualizar feedback:", error);
     return false;
   }
 }
@@ -262,7 +250,6 @@ export async function deleteFeedback(id: string): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    console.error("❌ Error al eliminar feedback:", error);
     return false;
   }
 }

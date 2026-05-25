@@ -451,10 +451,6 @@ const DialogEditarReserva: React.FC<
             });
           }
         } catch (err) {
-          console.error(
-            "Error cargando configuración:",
-            err,
-          );
         } finally {
           setConfigCargando(
             false,

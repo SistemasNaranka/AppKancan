@@ -19,7 +19,6 @@ export function guardarTokenStorage(
 ): void {
   // Validar que expires_at sea un timestamp válido
   if (!expires_at || isNaN(expires_at) || expires_at <= 0) {
-    console.error("❌ expires_at inválido:", expires_at);
     throw new Error("expires_at debe ser un timestamp válido en milisegundos");
   }
 
@@ -53,14 +52,12 @@ export function cargarTokenStorage(): StoredTokens | null {
 
     // Validar que tenga todos los campos necesarios
     if (!tokens.access || !tokens.refresh || !tokens.expires_at) {
-      console.warn("⚠️ Tokens inválidos en localStorage, borrando...");
       borrarTokenStorage();
       return null;
     }
 
     return tokens;
   } catch (error) {
-    console.error("❌ Error parseando tokens:", error);
     borrarTokenStorage();
     return null;
   }
@@ -101,7 +98,6 @@ export function normalizeTokenResponse(res: AuthenticationData): LoginResponse {
 export const isExpired = (expiresAt: number): boolean => {
   // Si está vacío o es NaN
   if (!expiresAt || isNaN(expiresAt)) {
-    console.warn("⚠️ expires_at inválido:", expiresAt);
     return true;
   }
 

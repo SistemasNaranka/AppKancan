@@ -466,7 +466,6 @@ const DynamicLoadMatrix = forwardRef<
         const data = await getTiendas();
         setTiendasLista(data);
       } catch (error) {
-        console.error("Error fetching tiendas:", error);
       } finally {
         setLoadingTiendas(false);
       }

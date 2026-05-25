@@ -332,7 +332,6 @@ const UploadPage = () => {
 
       return ok ? dataToSave.id : false;
     } catch (err) {
-      console.error("Error en handleSave:", err);
       if (!isSilent) {
         setConfirmDialog((prev) => ({ ...prev, open: false }));
         setSnackbar({
@@ -484,7 +483,6 @@ const UploadPage = () => {
         });
       }
     } catch (err) {
-      console.error("Error en handleSendToDispatch:", err);
       setConfirmDialog({ open: false, action: "confirm_dispatch" });
       setDispatchStats(null);
       setSnackbar({

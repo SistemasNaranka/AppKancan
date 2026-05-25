@@ -103,7 +103,6 @@ const CreatePromotionPage: React.FC = () => {
 
     } catch (err) {
 
-      console.error("Error en submit:", err);
     }
   };
 

@@ -33,7 +33,6 @@ export function useProjects(): UseProjectsReturn {
       const data = await getProjects();
       setProjects(data);
     } catch (err) {
-      console.error("Error loading projects:", err);
       setError("Error al cargar los proyectos");
     } finally {
       setLoading(false);
@@ -78,7 +77,6 @@ export function useProjectById(id: string): UseProjectByIdReturn {
         setError("Proyecto no encontrado");
       }
     } catch (err) {
-      console.error("Error loading project:", err);
       setError("Error al cargar el proyecto");
     } finally {
       setLoading(false);

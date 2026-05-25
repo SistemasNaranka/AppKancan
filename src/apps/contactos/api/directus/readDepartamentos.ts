@@ -23,7 +23,6 @@ export async function getDepartamentos(): Promise<Departamento[]> {
     );
     return items as Departamento[];
   } catch (error) {
-    console.error('❌ Error al cargar departamentos:', error);
     return [];
   }
 }

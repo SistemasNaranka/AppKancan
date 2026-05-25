@@ -73,7 +73,6 @@ export async function notificarCorreoReserva(
       return { mensaje: responseText, success: true };
     }
   } catch (error: any) {
-    console.error("❌ Error en notificarCorreoReserva:", error);
     throw new Error(error.message || "Error de conexión al enviar correo");
   }
 }

@@ -7,7 +7,6 @@ export default function DateRangeSelector() {
 
   const handleChange = (event: SelectChangeEvent) => {
     setRango(event.target.value);
-    console.log("Filtrar por días:", event.target.value);
   };
 
   return (

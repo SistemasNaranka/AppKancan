@@ -42,7 +42,6 @@ export async function obtenerPresupuestosEmpleados(
 
     return data as PresupuestoDiarioEmpleado[];
   } catch (error) {
-    console.error("Error al obtener presupuestos de empleados:", error);
     return [];
   }
 }
@@ -76,7 +75,6 @@ export async function obtenerPresupuestosEmpleadosPorMes(
 
     const mesNumero = mesMap[mesNombre];
     if (!mesNumero) {
-      console.error("Mes inválido:", mesNombre);
       return [];
     }
 
@@ -91,7 +89,6 @@ export async function obtenerPresupuestosEmpleadosPorMes(
 
     return await obtenerPresupuestosEmpleados(fechaInicio, fechaFin);
   } catch (error) {
-    console.error("Error al obtener presupuestos de empleados por mes:", error);
     return [];
   }
 }
@@ -264,7 +261,6 @@ export async function obtenerUmbralesComisiones(
     if (error.response?.status === 404) {
       return null;
     }
-    console.error("Error al obtener umbrales de comisiones:", error);
     return null;
   }
 }

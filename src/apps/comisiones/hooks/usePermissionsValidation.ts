@@ -64,7 +64,6 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
       setValidationCompleted(true);
       setError(null);
     } catch (err) {
-      console.error("Error validando permisos:", err);
       setError("Error al validar permisos");
     }
   };

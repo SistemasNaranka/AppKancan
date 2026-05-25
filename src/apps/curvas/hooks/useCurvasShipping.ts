@@ -203,7 +203,6 @@ export const useCurvasShipping = ({
           return { success: false, logIds: [] };
         }
       } catch (error) {
-        console.error("❌ Error en guardarEnvioDespacho:", error);
         return { success: false };
       }
     },

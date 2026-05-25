@@ -102,7 +102,6 @@ export async function getProjects(): Promise<Project[]> {
       };
     });
   } catch (error) {
-    console.error("Error al cargar proyectos:", error);
     return [];
   }
 }
@@ -182,7 +181,6 @@ export async function getProjectById(id: string): Promise<Project | null> {
       })),
     };
   } catch (error) {
-    console.error("Error al cargar proyecto:", error);
     return null;
   }
 }
@@ -214,7 +212,6 @@ export async function getProcessesByProject(
       order: item.order ?? item.orden,
     }));
   } catch (error) {
-    console.error("Error al cargar procesos:", error);
     return [];
   }
 }
@@ -238,7 +235,6 @@ export async function getBenefitsByProject(
       description: item.description,
     }));
   } catch (error) {
-    console.error("Error al cargar beneficios:", error);
     return [];
   }
 }

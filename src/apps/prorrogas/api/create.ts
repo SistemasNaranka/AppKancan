@@ -50,7 +50,6 @@ export async function crearContrato(data: CreateContrato): Promise<Contrato | nu
 
     return result as Contrato;
   } catch (error) {
-    console.error("❌ Error al crear contrato:", error);
     return null;
   }
 }
@@ -86,7 +85,6 @@ export async function actualizarContrato(
 
     return result as Contrato;
   } catch (error) {
-    console.error(`❌ Error al actualizar contrato ${id}:`, error);
     return null;
   }
 }
@@ -101,7 +99,6 @@ export async function eliminarContrato(id: number): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    console.error(`❌ Error al eliminar contrato ${id}:`, error);
     return false;
   }
 }
@@ -160,7 +157,6 @@ export async function crearProrroga(
 
     return result as Prorroga;
   } catch (error) {
-    console.error("❌ Error al crear prórroga:", error);
     return null;
   }
 }
@@ -208,7 +204,6 @@ export async function actualizarProrroga(
 
     return result as Prorroga;
   } catch (error) {
-    console.error(`❌ Error al actualizar prorroga ${id}:`, error);
     return null;
   }
 }
@@ -223,7 +218,6 @@ export async function eliminarProrroga(id: number): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    console.error(`❌ Error al eliminar prorrogga ${id}:`, error);
     return false;
   }
 }
@@ -280,15 +274,12 @@ export async function crearHistorialCargo(data: {
 
     return true;
   } catch (error) {
-    console.error("❌ Error al crear historial de cargo:", error);
     if (historialId !== null) {
       try {
         await withAutoRefresh(() =>
           directus.request(deleteItem("adm_position_history", historialId as any))
         );
-        console.warn("↩️ Rollback adm_position_history id=", historialId);
       } catch (rbErr) {
-        console.error("⚠️ Rollback historial falló — inconsistencia posible:", rbErr);
       }
     }
     return false;

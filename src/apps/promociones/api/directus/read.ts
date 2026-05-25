@@ -51,7 +51,6 @@ function formatDisplayTime(hora: string | null | undefined): string | null {
   }
 
   // Caso inesperado
-  console.warn(`⚠️ Formato de hora inesperado: ${hora}`);
   return hora;
 }
 // ==================== FUNCIONES DE LECTURA ====================
@@ -72,7 +71,6 @@ export async function getStores(): Promise<DirectusTienda[]> {
 
     return data as DirectusTienda[];
   } catch (error) {
-    console.error("❌ Error al obtener tiendas:", error);
     throw error;
   }
 }
@@ -93,7 +91,6 @@ export async function getPromotionTypes(): Promise<DirectusPromoTipo[]> {
 
     return data as DirectusPromoTipo[];
   } catch (error) {
-    console.error("❌ Error al obtener tipos de promoción:", error);
     throw error;
   }
 }
@@ -186,7 +183,6 @@ export async function getPromotions(): Promise<Promotion[]> {
 
     return promociones;
   } catch (error) {
-    console.error("❌ Error al obtener promociones:", error);
     throw error;
   }
 }
@@ -269,7 +265,6 @@ export async function getPromotionById(id: number): Promise<Promotion | null> {
       color: tipo?.color_code || "#888",
     };
   } catch (error) {
-    console.error("❌ Error al obtener promoción por ID:", error);
     throw error;
   }
 }
@@ -304,7 +299,6 @@ export async function getPromotionStores(
 
     return promoTiendas.map((pt: any) => pt.store_id) as DirectusTienda[];
   } catch (error) {
-    console.error("❌ Error al obtener tiendas de la promoción:", error);
     throw error;
   }
 }

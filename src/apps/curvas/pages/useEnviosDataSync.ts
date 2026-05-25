@@ -87,7 +87,6 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
           } catch (e) {}
         })();
       } catch (err) {
-        console.error("Error setting up websockets:", err);
       }
     };
 
@@ -119,7 +118,6 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
           setEnviosCurvasData(envios || []);
         }
       } catch (error) {
-        console.error("Error fetching logs in EnviosPage:", error);
       } finally {
         if (isMounted) setLoadingLogCurvas(false);
       }

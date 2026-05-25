@@ -244,7 +244,6 @@ export default function NewProject() {
 
       navigate(`/gestion_proyectos/${projectId}`);
     } catch (err) {
-      console.error("Error guardando proyecto:", err);
       setError("Error al guardar el proyecto. Intente de nuevo.");
     } finally {
       setLoading(false);

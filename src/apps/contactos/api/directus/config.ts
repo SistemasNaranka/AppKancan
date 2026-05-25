@@ -18,7 +18,6 @@ export async function getContactoConfig(): Promise<ContactoConfig | null> {
     if (!items || items.length === 0) return null;
     return { id: (items[0] as any).id, daily_sync_time: (items[0] as any).daily_sync_time };
   } catch (error) {
-    console.error('❌ Error al cargar config de contactos:', error);
     return null;
   }
 }
@@ -30,7 +29,6 @@ export async function updateContactoConfig(id: number, daily_sync_time: string):
     );
     return true;
   } catch (error) {
-    console.error('❌ Error al actualizar config:', error);
     return false;
   }
 }

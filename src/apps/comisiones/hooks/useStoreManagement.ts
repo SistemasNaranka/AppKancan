@@ -157,10 +157,6 @@ export const useStoreManagement = (
               : "0";
           setPresupuesto(presupuestoExistente);
         } catch (budgetError: any) {
-          console.error(
-            "No se encontró presupuesto existente para la fecha:",
-            budgetError.message,
-          );
           setPresupuesto("0");
         }
 
@@ -288,7 +284,6 @@ export const useStoreManagement = (
         onSaveComplete();
       }
     } catch (err: any) {
-      console.error("Error al guardar cambios:", err);
       setError(`Error al guardar cambios: ${err.message}`);
     } finally {
       setSaving(false);
@@ -310,7 +305,6 @@ export const useStoreManagement = (
         parseFloat(presupuesto) / empleadosSeleccionados.length,
     };
 
-    console.log("Datos recalculados:", datosRecalculados);
 
     setSuccess("Datos recalculados correctamente");
   }, [tienda, presupuesto, empleadosSeleccionados, fecha]);

@@ -66,7 +66,6 @@ export async function crearProrroga(params: {
 
     return created as Prorroga;
   } catch (error) {
-    console.error("❌ Error al crear prórroga:", error);
     return null;
   }
 }
@@ -88,7 +87,6 @@ export async function crearContrato(
 
     return created as Contrato;
   } catch (error) {
-    console.error("❌ Error al crear contrato:", error);
     return null;
   }
 }
@@ -114,10 +112,6 @@ export async function cambiarRequestStatus(
     );
     return true;
   } catch (error) {
-    console.error(
-      `❌ Error al cambiar status del contrato ${contratoId}:`,
-      error
-    );
     return false;
   }
 }
@@ -163,10 +157,6 @@ export async function actualizarCargoEnContrato(
     );
     return true;
   } catch (error) {
-    console.error(
-      `❌ Error al actualizar cargo del contrato ${contratoId}:`,
-      error
-    );
     return false;
   }
 }

@@ -28,7 +28,6 @@ export async function getContactos(): Promise<Contactos[]> {
       visibility_type: item.visibility_type,
     }));
   } catch (error) {
-    console.error('❌ Error al cargar contactos:', error);
     return [];
   }
 }
@@ -51,7 +50,6 @@ export async function getContactoById(id: number): Promise<Contactos | null> {
       visibility_type: item.visibility_type || 'Universal',
     };
   } catch (error) {
-    console.error('❌ Error al cargar contacto:', error);
     return null;
   }
 }
@@ -94,7 +92,6 @@ export async function getDepartamentos(): Promise<{ id: number; name: string }[]
     );
     return items.map((item: any) => ({ id: item.id, name: item.name }));
   } catch (error) {
-    console.error('❌ Error al cargar departamentos:', error);
     return [];
   }
 }

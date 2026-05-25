@@ -52,7 +52,6 @@ export async function ensureValidToken(): Promise<void> {
     } catch (error) {
       borrarTokenStorage();
       window.location.href = "/";
-      console.error("❌ Error al refrescar token:", error);
     }
   } else {
     // Si no está expirado, igual nos aseguramos que el cliente de Directus lo tenga (evita 403 en reloads)
@@ -93,10 +92,6 @@ export async function requestWithAutoRefresh<T>(
         // Reintentar la petición
         return await requestFn();
       } catch (refreshError) {
-        console.error(
-          "❌ Error al refrescar token después de 401:",
-          refreshError,
-        );
         // Manejar sesión expirada (cierra sesión y redirige)
       }
     }

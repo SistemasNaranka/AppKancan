@@ -23,7 +23,6 @@ export function useScrollLockGuard() {
   useEffect(() => {
     // Logging SIEMPRE activo mientras debuggeamos. Quitar cuando se resuelva.
     const log = (...args: unknown[]) => {
-      console.warn("[ScrollGuard]", ...args);
     };
 
     log("✅ Hook montado en ruta", location.pathname, "| timestamp:", new Date().toLocaleTimeString());
@@ -133,7 +132,6 @@ export function useScrollLockGuard() {
         }
       });
 
-      console.table(summary);
       return summary;
     };
 

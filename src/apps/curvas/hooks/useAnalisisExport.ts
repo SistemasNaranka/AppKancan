@@ -51,7 +51,6 @@ export const useAnalisisExport = (matrixData: MatrixDataTransformada | null, sel
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       saveAs(blob, `analisis_${selectedRef.replace(/\s+/g, "_")}_${dayjs().format("YYYYMMDD")}.xlsx`);
     } catch (error) {
-      console.error("Error generating Excel:", error);
     }
   }, [matrixData, selectedRef]);
 

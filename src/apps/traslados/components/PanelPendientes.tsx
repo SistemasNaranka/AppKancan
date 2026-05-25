@@ -107,10 +107,6 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
     try {
       if (onEliminarTrasladosAprobados) {
         if (import.meta.env.DEV) {
-          console.log("🔹 Aprobando traslados con clave:", {
-            cantidad: idsSeleccionados.length,
-            ids: idsSeleccionados,
-          });
         }
 
         await onEliminarTrasladosAprobados(idsSeleccionados, clave);
@@ -125,7 +121,6 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
         error?.message ||
           "Ocurrió un error al aprobar los traslados. Intenta nuevamente.",
       );
-      console.error("❌ Error al aprobar traslados:", error);
       await new Promise((resolve) => setTimeout(resolve, 2500));
     } finally {
       setModalCargando(false);

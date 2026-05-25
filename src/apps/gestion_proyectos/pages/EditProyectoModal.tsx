@@ -202,10 +202,8 @@ export default function EditProjectModal({ open, onClose, proyecto, onSuccess, l
         }
         onSuccess();
       } else {
-        console.error("Error al actualizar el proyecto");
       }
     } catch (error) {
-      console.error("Error al guardar cambios:", error);
     } finally {
       setLoading(false);
     }

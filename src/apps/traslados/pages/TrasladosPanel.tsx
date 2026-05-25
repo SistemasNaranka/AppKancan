@@ -204,13 +204,6 @@ const TrasladosPanel: React.FC = () => {
       }
 
       if (import.meta.env.DEV) {
-        console.log(
-          "Informacion enviada",
-          trasladosSeleccionados,
-          user.company,
-          user.ultra_code,
-          clave,
-        );
       }
 
       const resultado = await aprobarTraslados(
@@ -231,7 +224,6 @@ const TrasladosPanel: React.FC = () => {
 
       return resultado;
     } catch (err: any) {
-      console.error("❌ Error al aprobar traslados:", err);
       setError(err.message || "Error al aprobar traslados");
       throw err;
     }

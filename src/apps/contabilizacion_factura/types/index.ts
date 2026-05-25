@@ -182,7 +182,6 @@ function normalizeCurrency(currency: string): string {
   }
 
   // Default a COP si no se reconoce
-  console.warn(`Moneda no reconocida "${currency}", usando COP como default`);
   return "COP";
 }
 

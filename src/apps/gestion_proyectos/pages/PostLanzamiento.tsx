@@ -96,7 +96,6 @@ export default function PostLaunch() {
       setEditingId(null);
       reload();
     } catch (err) {
-      console.error("Error:", err);
       showSnackbar("Error al guardar el feedback", "error");
     } finally {
       setIsSaving(false);
@@ -121,7 +120,6 @@ export default function PostLaunch() {
       showSnackbar("Feedback eliminado exitosamente", "success");
       reload();
     } catch (err) {
-      console.error("Error:", err);
       showSnackbar("Error al eliminar el feedback", "error");
     } finally {
       setModalOpen(false);

@@ -62,7 +62,6 @@ export const PasswordAdminPanel = () => {
       const data = await getAllUsers();
       setUsers(data as User[]);
     } catch (error: any) {
-      console.error("Error al cargar usuarios:", error);
       showSnackbar("Error al cargar usuarios", "error");
     } finally {
       setLoading(false);
@@ -110,7 +109,6 @@ export const PasswordAdminPanel = () => {
       closeResetDialog();
       fetchUsers();
     } catch (error: any) {
-      console.error("Error al reestablecer clave:", error);
       showSnackbar("Error al reestablecer clave", "error");
     } finally {
       setResetLoading(false);

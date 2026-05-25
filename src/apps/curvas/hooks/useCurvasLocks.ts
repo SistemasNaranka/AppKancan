@@ -38,7 +38,6 @@ export const useCurvasLocks = (user: any) => {
           } catch (e) {}
         })();
       } catch (err) {
-        console.error("Error setting up realtime locks:", err);
       }
     };
 

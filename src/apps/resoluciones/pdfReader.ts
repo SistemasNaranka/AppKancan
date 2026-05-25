@@ -100,7 +100,6 @@ export async function LearnPDF(archivo: File): Promise<DataPDF | string> {
       tienda_nombre,
     };
   } catch (error) {
-    console.error("Error al leer PDF:", error);
     return "Error al leer el archivo PDF";
   }
 }

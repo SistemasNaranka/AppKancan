@@ -72,7 +72,6 @@ export const useEmployeeData = (
       setAsesoresDisponibles(asesores);
       setCargosDisponibles(cargos);
     } catch (err) {
-      console.error("Error al cargar empleados y cargos:", err);
       setError("Error al cargar empleados y cargos");
       setAsesoresDisponibles([]);
       setCargosDisponibles([]);

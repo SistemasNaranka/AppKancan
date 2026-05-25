@@ -231,7 +231,6 @@ const DashboardPage = () => {
           }
         }
       } catch (error) {
-        console.error("Error fetching resumen:", error);
       }
     };
     checkDefaultDate();

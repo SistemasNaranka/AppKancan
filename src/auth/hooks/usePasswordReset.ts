@@ -34,7 +34,6 @@ export const usePasswordReset = () => {
         setSuccess(true);
         return true;
       } catch (err: any) {
-        console.error("❌ Error al cambiar contraseña:", err);
         setError(err?.message || "Error al cambiar la contraseña");
         return false;
       } finally {

@@ -71,7 +71,6 @@ export const useBudgetCalculations = (tiendaSeleccionada: number | "") => {
 
       return { empleados: empleadosCalculados, calculated: true };
     } catch (error) {
-      console.error("Error al recalcular presupuestos:", error);
       return { empleados, calculated: false };
     }
   };
