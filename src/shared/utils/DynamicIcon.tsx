@@ -37,6 +37,7 @@ import PendingActions from '@mui/icons-material/PendingActions';
 import Diversity1 from '@mui/icons-material/Diversity1';
 import BackupTable from '@mui/icons-material/BackupTable';
 import ContactPhone from '@mui/icons-material/ContactPhone';
+import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
 /**
  * Mapa de íconos permitidos.
  * Los nombres deben coincidir con los valores en la base de datos.
@@ -70,7 +71,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Aplicación
   Apps,
   Home,
-
+  CircleNotificationsIcon,
   // 🔸 Categoría: Aplicación
   DocumentScanner,
   GridView,
