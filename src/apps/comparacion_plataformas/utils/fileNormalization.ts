@@ -237,7 +237,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
               });
 
               if (!tieneIdAdquiriente) {
-                if (index < 5)
                 continue;
               }
             } else {
@@ -273,9 +272,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
           tiendaEncontrada = mapeo.tiendaNormalizada;
           filaNueva[columna] = tiendaEncontrada; // ¡REEMPLAZAR EL NOMBRE EN EL ARCHIVO!
 
-          if (index < 3) {
-            if (mapeo.acquirer_id)
-          }
           break;
         }
       }

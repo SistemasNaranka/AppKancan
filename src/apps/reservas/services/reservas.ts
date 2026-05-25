@@ -325,9 +325,7 @@ export async function actualizarReserva(
           end_time: reserva_anterior.end_time !== datos.end_time,
         },
       } as any),
-    }).catch((err: unknown) =>
-,
-    );
+    }).catch(() => {});
 
     return reservaActualizada;
   } catch (error) {
