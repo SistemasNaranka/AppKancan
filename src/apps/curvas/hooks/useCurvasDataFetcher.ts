@@ -52,18 +52,18 @@ export const useCurvasDataFetcher = ({
         const groups: Record<string, any> = {};
 
         logs.forEach((log) => {
-          const rawRef = log.referencia || "SIN REF";
+          const rawRef = log.reference || "SIN REF";
           let normalizedRef = rawRef.replace(/^REF:\s*/i, "").trim();
           if (normalizedRef.includes(" | ")) normalizedRef = normalizedRef.split(" | ")[0].trim();
           normalizedRef = normalizedRef.toUpperCase();
 
-          const groupKey = `${log.plantilla}|${normalizedRef}`;
+          const groupKey = `${log.template}|${normalizedRef}`;
 
           if (!groups[groupKey]) {
-            groups[groupKey] = { referencia: rawRef, normalizedRef, plantilla: log.plantilla, logs: [], lastUpdate: 0 };
+            groups[groupKey] = { referencia: rawRef, normalizedRef, plantilla: log.template, logs: [], lastUpdate: 0 };
           }
 
-          const logTime = new Date(log.fecha).getTime();
+          const logTime = new Date(log.log_date).getTime();
           if (logTime > groups[groupKey].lastUpdate) {
             groups[groupKey].lastUpdate = logTime;
             if (rawRef.includes("|") || !groups[groupKey].referencia.includes("|")) {
@@ -71,7 +71,7 @@ export const useCurvasDataFetcher = ({
             }
           }
 
-          const logExistente = groups[groupKey].logs.find((l: any) => l.tienda_id === log.tienda_id);
+          const logExistente = groups[groupKey].logs.find((l: any) => l.store_id === log.store_id);
           if (!logExistente) groups[groupKey].logs.push(log);
         });
 
@@ -84,7 +84,7 @@ export const useCurvasDataFetcher = ({
 
           group.logs.forEach((log: any) => {
             let cantidadTalla: any[] = [];
-            try { cantidadTalla = typeof log.cantidad_talla === "string" ? JSON.parse(log.cantidad_talla) : log.cantidad_talla; } 
+            try { cantidadTalla = typeof log.size_quantity === "string" ? JSON.parse(log.size_quantity) : log.size_quantity; } 
             catch (e) { return; }
 
             if (!Array.isArray(cantidadTalla)) return;
@@ -96,13 +96,13 @@ export const useCurvasDataFetcher = ({
               const col = String(ct.talla || ct.numero || "");
               if (!col) return;
               allColumns.add(col);
-              rowData[col] = { valor: ct.cantidad, esCero: ct.cantidad === 0, esMayorQueCero: ct.cantidad > 0, id: `${log.tienda_id}-${col}` };
+              rowData[col] = { valor: ct.cantidad, esCero: ct.cantidad === 0, esMayorQueCero: ct.cantidad > 0, id: `${log.store_id}-${col}` };
               rowTotal += ct.cantidad;
             });
 
             filas.push({
-              id: `${String(log.tienda_id)}-${group.normalizedRef}`,
-              tienda: { id: log.tienda_id, nombre: tiendasDictRef.current[log.tienda_id] || log.tienda_nombre || "Tienda " + log.tienda_id, codigo: "" },
+              id: `${String(log.store_id)}-${group.normalizedRef}`,
+              tienda: { id: log.store_id, nombre: tiendasDictRef.current[log.store_id] || log.store_name || "Tienda " + log.store_id, codigo: "" },
               [group.plantilla === "textil" ? "curvas" : "tallas"]: rowData,
               total: rowTotal,
             });
@@ -130,7 +130,7 @@ export const useCurvasDataFetcher = ({
             matrizGeneral.push({
               id: String(group.normalizedRef || group.referencia), nombreHoja: group.referencia, referencia: group.referencia,
               filas: filas as FilaMatrizGeneral[], curvas: sortedColumns, totalesPorCurva: colTotals, totalGeneral,
-              estado: group.logs[0]?.estado || "borrador", fechaCarga: group.logs[0]?.fecha ? new Date(group.logs[0].fecha) : undefined,
+              estado: group.logs[0]?.status || "borrador", fechaCarga: group.logs[0]?.log_date ? new Date(group.logs[0].log_date) : undefined,
             });
           } else {
             productos.push({
@@ -142,7 +142,7 @@ export const useCurvasDataFetcher = ({
                 linea: group.plantilla === "calzado_bolso" ? group.referencia.includes("|") ? "CALZADO" : "PRODUCIDO" : "GENERAL",
               },
               filas: filas as FilaDetalleProducto[], tallas: sortedColumns, totalesPorTalla: colTotals, totalGeneral,
-              estado: group.logs[0]?.estado || "borrador", fechaCarga: group.logs[0]?.fecha ? new Date(group.logs[0].fecha) : undefined,
+              estado: group.logs[0]?.status || "borrador", fechaCarga: group.logs[0]?.log_date ? new Date(group.logs[0].log_date) : undefined,
             });
           }
         });

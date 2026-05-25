@@ -22,6 +22,7 @@ import { ListaTraslados } from "./ListaTraslados";
 // Tour imports
 import { TrasladosTourProvider } from "./TrasladosTourContext";
 import { TrasladosTour } from "./TrasladosTour";
+import { StoreTrasladosTour } from "./StoreTrasladosTour";
 
 type PanelPendientesProps = {
   filtroBodegaDestino: string;
@@ -133,8 +134,12 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
     }
   };
 
+  const TourWrapper = tienePoliticaTrasladosTiendas
+    ? StoreTrasladosTour
+    : TrasladosTour;
+
   return (
-    <TrasladosTour>
+    <TourWrapper>
       <Paper
         elevation={10}
         sx={{
@@ -432,7 +437,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
           />
         )}
       </Paper>
-    </TrasladosTour>
+    </TourWrapper>
   );
 };
 

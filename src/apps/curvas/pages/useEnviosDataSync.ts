@@ -66,7 +66,7 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
 
         const logRes = await directus.subscribe("log_curve_scans");
         unsubLog = logRes.unsubscribe;
-        const enviosRes = await directus.subscribe("envios_curvas");
+        const enviosRes = await directus.subscribe("log_curve_shipments");
         unsubEnvios = enviosRes.unsubscribe;
 
         (async () => {

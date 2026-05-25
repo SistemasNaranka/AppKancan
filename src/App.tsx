@@ -14,23 +14,29 @@ import { ForcePasswordChangeModal } from "@/auth/components/ForcePasswordChangeM
 import PeekButtonContainer from "@/shared/components/PeekButtonContainer";
 import WhatsNewModal from "@/shared/components/WhatsNewModal";
 import { useAuth } from "@/auth/hooks/useAuth";
+import { useApps } from "@/apps/hooks/useApps";
 import { useScrollLockGuard } from "@/shared/hooks/useScrollLockGuard";
 
 const AppWithPasswordModal = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { loading: appsLoading } = useApps();
   const [modalOpen, setModalOpen] = useState(false);
 
   // Safety: limpia body lock + overlays huérfanos al navegar
   // (ver shared/hooks/useScrollLockGuard.ts).
   useScrollLockGuard();
 
+  const appReady = !authLoading && !appsLoading;
+
   useEffect(() => {
-    if (isAuthenticated && user?.requires_password_change) {
-      setModalOpen(true);
-    } else {
+    if (!appReady || !isAuthenticated || !user?.requires_password_change) {
       setModalOpen(false);
+      return;
     }
-  }, [isAuthenticated, user]);
+    // Delay intencional: esperar a que la interfaz principal esté visible
+    const timer = setTimeout(() => setModalOpen(true), 1500);
+    return () => clearTimeout(timer);
+  }, [appReady, isAuthenticated, user]);
 
   return (
     <>

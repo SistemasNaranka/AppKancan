@@ -29,9 +29,9 @@ export const useAnalisisData = () => {
       );
       setLogs(data || []);
       if (!selectedRef && !isGlobal && data.length > 0) {
-        const refs = Array.from(new Set(data.map((l: any) => l.referencia))).filter(Boolean) as string[];
+        const refs = Array.from(new Set(data.map((l: any) => l.reference))).filter(Boolean) as string[];
         if (refs.length > 0) setSelectedRef(refs.sort()[0]);
-      } else if (selectedRef && !isGlobal && !data.some((l: any) => l.referencia === selectedRef)) {
+      } else if (selectedRef && !isGlobal && !data.some((l: any) => l.reference === selectedRef)) {
         setSelectedRef(null);
       }
     } catch (err) {
@@ -56,18 +56,18 @@ export const useAnalisisData = () => {
   }, []);
 
   const uniqueReferences = useMemo(() => {
-    return (Array.from(new Set(logs.map((l) => l.referencia))).filter(Boolean) as string[]).sort((a, b) => a.localeCompare(b));
+    return (Array.from(new Set(logs.map((l) => l.reference))).filter(Boolean) as string[]).sort((a, b) => a.localeCompare(b));
   }, [logs]);
 
   const refSummaryItems = useMemo((): SelectionItem[] => {
     return uniqueReferences.map((ref, idx) => {
-      const refLogs = logs.filter((l) => l.referencia === ref);
-      const tiendas = new Set(refLogs.map((l) => typeof l.tienda_id === "object" ? String(l.tienda_id?.id) : String(l.tienda_id))).size;
-      const usuarios = new Set(refLogs.map((l) => typeof l.usuario_id === "object" ? l.usuario_id?.id : String(l.usuario_id))).size;
+      const refLogs = logs.filter((l) => l.reference === ref);
+      const tiendas = new Set(refLogs.map((l) => typeof l.store_id === "object" ? String(l.store_id?.id) : String(l.store_id))).size;
+      const usuarios = new Set(refLogs.map((l) => typeof l.user_id === "object" ? l.user_id?.id : String(l.user_id))).size;
       let total = 0;
       refLogs.forEach((log) => {
         try {
-          const ct = typeof log.cantidad_talla === "string" ? JSON.parse(log.cantidad_talla) : log.cantidad_talla;
+          const ct = typeof log.size_quantity === "string" ? JSON.parse(log.size_quantity) : log.size_quantity;
           if (Array.isArray(ct)) ct.forEach((item: any) => { total += item.cantidad || 0; });
         } catch {}
       });
@@ -82,8 +82,8 @@ export const useAnalisisData = () => {
   const uniqueUsuarios = useMemo((): UsuarioData[] => {
     if (!selectedRef) return [];
     const map = new Map<string, UsuarioData>();
-    logs.filter((l) => l.referencia === selectedRef).forEach((log) => {
-      const uid = log.usuario_id;
+    logs.filter((l) => l.reference === selectedRef).forEach((log) => {
+      const uid = log.user_id;
       if (!uid) return;
       const id = typeof uid === "object" ? uid?.id : String(uid);
       const nombre = typeof uid === "object" ? `${uid?.first_name || ""} ${uid?.last_name || ""}`.trim() : `Usuario ${uid}`;
@@ -96,27 +96,27 @@ export const useAnalisisData = () => {
     if (!selectedRef || !logs || logs.length === 0) return null;
     
     const isGlobal = selectedRef === "ALL_HISTORICAL";
-    const filteredLogs = isGlobal ? logs : logs.filter((l) => l.referencia === selectedRef);
+    const filteredLogs = isGlobal ? logs : logs.filter((l) => l.reference === selectedRef);
     const allTallasSet = new Set<string>();
     const filasMap = new Map<string, FilaAnalisis>();
 
     for (const log of filteredLogs) {
       let ct: any[] = [];
-      try { ct = typeof log.cantidad_talla === "string" ? JSON.parse(log.cantidad_talla) : log.cantidad_talla; } catch { continue; }
+      try { ct = typeof log.size_quantity === "string" ? JSON.parse(log.size_quantity) : log.size_quantity; } catch { continue; }
 
-      const tiendaId = log.tienda_id?.id || String(log.tienda_id || "BODEGA");
-      const tiendaNombre = log.tienda_id?.nombre || tiendasDict[tiendaId] || log.tienda_nombre || `Tienda ${tiendaId}`;
-      const u = log.usuario_id;
+      const tiendaId = log.store_id?.id || String(log.store_id || "BODEGA");
+      const tiendaNombre = log.store_id?.nombre || tiendasDict[tiendaId] || log.store_name || `Tienda ${tiendaId}`;
+      const u = log.user_id;
       const usuarioId = u?.id || String(u || "desconocido");
       const usuarioNombre = u?.first_name ? `${u.first_name} ${u.last_name || ""}`.trim() : `Usuario ${usuarioId}`;
-      const dateKey = log.fecha ? dayjs(log.fecha).format("DD/MM/YYYY") : "—";
-      const filaKey = isGlobal ? `${tiendaId}|${usuarioId}|${log.fecha?.slice(0, 10)}|${log.referencia}` : `${tiendaId}|${usuarioId}`;
+      const dateKey = log.shipment_date ? dayjs(log.shipment_date).format("DD/MM/YYYY") : "—";
+      const filaKey = isGlobal ? `${tiendaId}|${usuarioId}|${log.shipment_date?.slice(0, 10)}|${log.reference}` : `${tiendaId}|${usuarioId}`;
 
       if (!filasMap.has(filaKey)) {
         filasMap.set(filaKey, {
           tiendaId, tiendaNombre, usuarioId, usuarioNombre: usuarioNombre || `Usuario ${usuarioId}`,
           fecha: isGlobal ? dateKey : undefined,
-          referencia: isGlobal ? log.referencia : undefined,
+          referencia: isGlobal ? log.reference : undefined,
           tallas: {}, total: 0,
         });
       }

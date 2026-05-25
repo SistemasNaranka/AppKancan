@@ -151,8 +151,8 @@ export const useCurvasShipping = ({
         const logMap: Record<string, string> = {}; 
 
         logs.forEach((log) => {
-          if (log.referencia === overrideRef || log.referencia === sheetLogId.split("|")[1]) {
-            logMap[String(log.tienda_id)] = String(log.id);
+          if (log.reference === overrideRef || log.reference === sheetLogId.split("|")[1]) {
+            logMap[String(log.store_id)] = String(log.id);
           }
         });
 
@@ -188,8 +188,8 @@ export const useCurvasShipping = ({
 
           if (cantidadTalla.length > 0) {
             enviosBatch.push({
-              tienda_id: String(tiendaIdFinal), plantilla: logIdForTienda, fecha: fechaEnvio,
-              cantidad_talla: JSON.stringify(cantidadTalla), referencia: overrideRef || "SIN_REF", usuario_id: user?.id,
+              store_id: String(tiendaIdFinal), template: logIdForTienda, shipment_date: fechaEnvio,
+              size_quantity: JSON.stringify(cantidadTalla), reference: overrideRef || "SIN_REF", user_id: user?.id,
             });
           }
         }
@@ -198,7 +198,7 @@ export const useCurvasShipping = ({
 
         const saveResult = await saveEnviosBatch(enviosBatch);
         if (saveResult) {
-          return { success: true, logIds: enviosBatch.map((e) => e.plantilla) };
+          return { success: true, logIds: enviosBatch.map((e) => e.template) };
         } else {
           return { success: false, logIds: [] };
         }

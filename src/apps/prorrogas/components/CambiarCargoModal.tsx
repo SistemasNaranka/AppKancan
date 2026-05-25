@@ -17,6 +17,10 @@ import {
   CardContent,
   Slide,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import CloseIcon from '@mui/icons-material/Close';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -283,17 +287,20 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
                       </MenuItem>
                     ))}
                   </TextField>
-                  <TextField
-                    type="date"
-                    label="Fecha de Efectividad"
-                    value={fechaEfectividad}
-                    onChange={(e) => setFechaEfectividad(e.target.value)}
-                    fullWidth
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    disabled={saving}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      label="Fecha de Efectividad"
+                      value={fechaEfectividad ? dayjs(fechaEfectividad) : null}
+                      onChange={(val) => setFechaEfectividad(val ? val.format('YYYY-MM-DD') : '')}
+                      disabled={saving}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true, size: 'small',
+                          sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
                 </CardContent>
               </Box>
             )}

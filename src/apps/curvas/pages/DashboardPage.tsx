@@ -981,6 +981,7 @@ const DashboardPage = () => {
               </Paper>
             ) : totalSheets === 0 ? (
               <Paper
+                className="tour-curvas-datagrid"
                 sx={{
                   p: 10,
                   textAlign: "center",

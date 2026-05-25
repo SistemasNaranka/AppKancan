@@ -14,6 +14,10 @@ import {
   Typography,
   Chip,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import CloseIcon from '@mui/icons-material/Close';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
@@ -409,26 +413,36 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
           <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
             <SectionHeader Icon={CalendarTodayIcon} label="PERÍODO DEL CONTRATO" />
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
-              <TextField
-                label="Fecha de Inicio" type="date"
-                value={formData.fecha_ingreso}
-                onChange={handleChange('fecha_ingreso')}
-                error={!!errors.fecha_ingreso} helperText={errors.fecha_ingreso}
-                fullWidth required disabled={saving} size="small"
-                InputLabelProps={{ shrink: true }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><CalendarTodayIcon fontSize="small" sx={{ color: 'text.secondary' }} /></InputAdornment> }}
-              />
-              <TextField
-                label="Fecha de Finalización" type="date"
-                value={formData.fecha_fin}
-                onChange={handleChange('fecha_fin')}
-                error={!!errors.fecha_fin} helperText={errors.fecha_fin}
-                fullWidth required disabled={saving} size="small"
-                InputLabelProps={{ shrink: true }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><CalendarTodayIcon fontSize="small" sx={{ color: 'text.secondary' }} /></InputAdornment> }}
-              />
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label="Fecha de Inicio"
+                  value={formData.fecha_ingreso ? dayjs(formData.fecha_ingreso) : null}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, fecha_ingreso: val ? val.format('YYYY-MM-DD') : '' }))}
+                  disabled={saving}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true, required: true, size: 'small',
+                      error: !!errors.fecha_ingreso, helperText: errors.fecha_ingreso,
+                      sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label="Fecha de Finalización"
+                  value={formData.fecha_fin ? dayjs(formData.fecha_fin) : null}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, fecha_fin: val ? val.format('YYYY-MM-DD') : '' }))}
+                  disabled={saving}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true, required: true, size: 'small',
+                      error: !!errors.fecha_fin, helperText: errors.fecha_fin,
+                      sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                    },
+                  }}
+                />
+              </LocalizationProvider>
               <TextField
                 label="Duración (meses)" type="number"
                 value={formData.duracion_meses || ''}

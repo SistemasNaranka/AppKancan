@@ -11,6 +11,10 @@ import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import CloseIcon from '@mui/icons-material/Close';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -172,14 +176,15 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
               <Typography variant="overline" display="block" mb={0.8}>
                 Fecha de Inicio
               </Typography>
-              <TextField
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                fullWidth
-                size="small"
-                InputLabelProps={{ shrink: true }}
-              />
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  value={fechaInicio ? dayjs(fechaInicio) : null}
+                  onChange={(val) => setFechaInicio(val ? val.format('YYYY-MM-DD') : '')}
+                  slotProps={{
+                    textField: { fullWidth: true, size: 'small' },
+                  }}
+                />
+              </LocalizationProvider>
             </Box>
 
             {/* Descripción */}

@@ -71,6 +71,7 @@ export const StoreTrasladosFilters: React.FC<StoreTrasladosFiltersProps> = ({
       }}
     >
       <Box
+        data-tour="store-filtro-tipo"
         sx={{
           flex: "0 0 auto",
           minWidth: "fit-content",
@@ -152,7 +153,7 @@ export const StoreTrasladosFilters: React.FC<StoreTrasladosFiltersProps> = ({
       </Box>
 
       {/* BODEGA DESTINO */}
-      <Box sx={{ width: "240px" }}>
+      <Box data-tour="store-filtro-bodega" sx={{ width: "240px" }}>
         <Typography
           variant="caption"
           sx={{
@@ -229,7 +230,7 @@ export const StoreTrasladosFilters: React.FC<StoreTrasladosFiltersProps> = ({
       </Box>
 
       {/* FECHA */}
-      <Box sx={{ width: "180px" }}>
+      <Box data-tour="store-filtro-fecha" sx={{ width: "180px" }}>
         <Typography
           variant="caption"
           sx={{
@@ -304,7 +305,7 @@ export const StoreTrasladosFilters: React.FC<StoreTrasladosFiltersProps> = ({
       </Box>
 
       {/* BUSCAR */}
-      <Box sx={{ width: "280px" }}>
+      <Box data-tour="store-filtro-nombre" sx={{ width: "280px" }}>
         <Typography
           variant="caption"
           sx={{
@@ -361,6 +362,7 @@ export const StoreTrasladosFilters: React.FC<StoreTrasladosFiltersProps> = ({
 
       {/* LEYENDA DE COLORES */}
       <Box
+        data-tour="store-leyenda"
         sx={{
           ml: "auto",
           display: "flex",

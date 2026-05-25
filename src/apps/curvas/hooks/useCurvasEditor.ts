@@ -205,9 +205,9 @@ export const useCurvasEditor = ({
 
       if (datosLog && datosLog.length > 0) {
         logsToSave = datosLog.map((log) => ({
-          tienda_id: log.tiendaId, tienda_nombre: log.tiendaNombre, plantilla: log.plantilla,
-          fecha: fechaActual, cantidad_talla: JSON.stringify(log.cantidadTalla),
-          referencia: log.referencia || "SIN REF", estado: log.estado || "borrador",
+          store_id: log.tiendaId, store_name: log.tiendaNombre, template: log.plantilla,
+          log_date: fechaActual, size_quantity: JSON.stringify(log.cantidadTalla),
+          reference: log.referencia || "SIN REF", status: log.estado || "borrador",
         }));
       } else if (celdasEditadas.length > 0 && datosCurvas) {
         const affectedSheets = new Set(celdasEditadas.map((e) => e.sheetId));
@@ -236,9 +236,9 @@ export const useCurvasEditor = ({
 
             if (cantidadTalla.length > 0) {
               logsToSave.push({
-                tienda_id: fila.tienda.id, tienda_nombre: fila.tienda.nombre, plantilla,
-                fecha: fechaActual, cantidad_talla: JSON.stringify(cantidadTalla),
-                referencia: refFinal, estado: (sheet as any).estado || "borrador",
+                store_id: fila.tienda.id, store_name: fila.tienda.nombre, template: plantilla,
+                log_date: fechaActual, size_quantity: JSON.stringify(cantidadTalla),
+                reference: refFinal, status: (sheet as any).estado || "borrador",
               });
             }
           });
@@ -246,16 +246,16 @@ export const useCurvasEditor = ({
       }
 
       try {
-        let logIds: { tienda_id: string; id: string }[] = [];
+        let logIds: { store_id: string; id: string }[] = [];
         if (logsToSave.length > 0) {
           const convertedLogs = logsToSave.map((log) => ({
-            ...log, plantilla: log.plantilla === "matriz_general" ? "textil" : log.plantilla === "productos" ? "calzado_bolso" : log.plantilla,
+            ...log, template: log.template === "matriz_general" ? "textil" : log.template === "productos" ? "calzado_bolso" : log.template,
           }));
           logIds = await saveLogsBatch(convertedLogs);
           if (logIds.length === 0) throw new Error("Error en saveLogsBatch");
 
           logIds.forEach((result) => {
-            if (result.id && result.id !== "undefined" && result.id !== "null") logIdMap[result.tienda_id] = result.id;
+            if (result.id && result.id !== "undefined" && result.id !== "null") logIdMap[result.store_id] = result.id;
           });
         }
 
@@ -313,7 +313,7 @@ export const useCurvasEditor = ({
   const confirmarLote = useCallback(
     async (tipo: "general" | "producto_a" | "producto_b", sheetId: string): Promise<boolean> => {
       if (!datosCurvas) return false;
-      let logIds: { tienda_id: string; id: string }[] = []; 
+      let logIds: { store_id: string; id: string }[] = [];
       const isAlreadyConfirmed = (tipo === "general" ? datosCurvas.matrizGeneral : datosCurvas.productos).some((s: any) => s.id === sheetId && s.estado === "confirmado");
       if (isAlreadyConfirmed) return true;
 
@@ -360,12 +360,12 @@ export const useCurvasEditor = ({
           });
 
           if (cantidadTalla.length > 0) {
-            logsBatch.push({ tienda_id: fila.tienda.id, tienda_nombre: fila.tienda?.nombre || "", plantilla, fecha: fechaActual, cantidad_talla: JSON.stringify(cantidadTalla), referencia: refFinal || "SIN REF", estado: "confirmado" });
+            logsBatch.push({ store_id: fila.tienda.id, store_name: fila.tienda?.nombre || "", template: plantilla, log_date: fechaActual, size_quantity: JSON.stringify(cantidadTalla), reference: refFinal || "SIN REF", status: "confirmado" });
           }
         }
 
         if (logsBatch.length > 0) {
-          const convertedLogs = logsBatch.map((log) => ({ ...log, plantilla: log.plantilla === "matriz_general" ? "textil" : log.plantilla === "productos" ? "calzado_bolso" : log.plantilla }));
+          const convertedLogs = logsBatch.map((log) => ({ ...log, template: log.template === "matriz_general" ? "textil" : log.template === "productos" ? "calzado_bolso" : log.template }));
           logIds = await saveLogsBatch(convertedLogs);
           if (logIds.length === 0) throw new Error("Error al guardar el lote confirmado");
         }
@@ -424,7 +424,7 @@ export const useCurvasEditor = ({
           });
 
           if (cantidadTalla.length === 0) continue;
-          logsBatch.push({ tienda_id: fila.tienda.id, tienda_nombre: fila.tienda.nombre || "", plantilla: isMatriz ? "textil" : "calzado_bolso", fecha: fechaActual, cantidad_talla: JSON.stringify(cantidadTalla), referencia: baseRef, estado: "borrador" });
+          logsBatch.push({ store_id: fila.tienda.id, store_name: fila.tienda.nombre || "", template: isMatriz ? "textil" : "calzado_bolso", log_date: fechaActual, size_quantity: JSON.stringify(cantidadTalla), reference: baseRef, status: "borrador" });
         }
 
         if (logsBatch.length === 0) return false;
@@ -445,10 +445,10 @@ export const useCurvasEditor = ({
     async (data: { tiendaId: string; tiendaNombre: string; plantilla: "matriz_general" | "productos"; cantidadTalla: { talla: number; cantidad: number }[]; referencia?: string; estado?: "borrador" | "confirmado"; }): Promise<boolean> => {
       try {
         return await saveLogCurvas({
-          tienda_id: data.tiendaId, tienda_nombre: data.tiendaNombre,
-          plantilla: data.plantilla === "matriz_general" ? "textil" : data.plantilla === "productos" ? "calzado_bolso" : data.plantilla,
-          fecha: new Date().toISOString(), cantidad_talla: JSON.stringify(data.cantidadTalla),
-          referencia: data.referencia || "", estado: data.estado || "borrador",
+          store_id: data.tiendaId, store_name: data.tiendaNombre,
+          template: data.plantilla === "matriz_general" ? "textil" : data.plantilla === "productos" ? "calzado_bolso" : data.plantilla,
+          log_date: new Date().toISOString(), size_quantity: JSON.stringify(data.cantidadTalla),
+          reference: data.referencia || "", status: data.estado || "borrador",
         });
       } catch (error) {
         console.error("Error al guardar log curvas:", error);
