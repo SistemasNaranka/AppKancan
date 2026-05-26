@@ -216,7 +216,7 @@ const ResolutionsHome = () => {
         <Dialog
           open={mostrarConfirmacion}
           onClose={() => setMostrarConfirmacion(false)}
-          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+          slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
         >
           <DialogTitle sx={{ fontWeight: "bold" }}>
             Confirmar Integración
@@ -248,7 +248,7 @@ const ResolutionsHome = () => {
         <Dialog
           open={mostrarDialogoYaIntegrada}
           onClose={() => setMostrarDialogoYaIntegrada(false)}
-          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+          slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
         >
           <DialogTitle
             sx={{
@@ -287,7 +287,7 @@ const ResolutionsHome = () => {
         <Dialog
           open={mostrarDialogoOpcionesIntegracion}
           onClose={() => setMostrarDialogoOpcionesIntegracion(false)}
-          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+          slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
         >
           <DialogTitle
             sx={{

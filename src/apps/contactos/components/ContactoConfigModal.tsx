@@ -64,7 +64,7 @@ export const ContactoConfigModal: React.FC<Props> = ({ open, onClose }) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-        PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}>
+        slotProps={{ paper: { sx: { borderRadius: '16px', p: 1 } } }}>
 
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -99,7 +99,7 @@ export const ContactoConfigModal: React.FC<Props> = ({ open, onClose }) => {
               </Typography>
               <TimePicker
                 value={hora}
-                onChange={(val) => setHora(val)}
+                onChange={(val) => setHora(val as Dayjs | null)}
                 ampm
                 slotProps={{
                   textField: {

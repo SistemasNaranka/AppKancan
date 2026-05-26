@@ -12,25 +12,21 @@ export const ordenarTiendasPorCodigo = (
     grupos: Record<string, Record<string, any[]>>,
     tiendaMapeos: TiendaMapeo[]
 ): Record<string, Record<string, any[]>> => {
-    // Crear un mapa de nombre de tienda -> ID de tienda
+    // Crear un mapa de nombre de tienda (en mayúsculas) -> ID de tienda (store_id)
     const tiendaIdMap = new Map<string, number>();
 
     tiendaMapeos.forEach(mapeo => {
-        // Usar el nombre normalizado como clave
-        tiendaIdMap.set(mapeo.tiendaNormalizada, mapeo.tiendaId);
+        if (mapeo.tiendaNormalizada) {
+            tiendaIdMap.set(mapeo.tiendaNormalizada.toUpperCase(), mapeo.store_id);
+        }
     });
-
 
     // Obtener las tiendas y ordenarlas por ID
     const tiendasOrdenadas = Object.keys(grupos).sort((a, b) => {
-        const idA = tiendaIdMap.get(a) ?? Number.MAX_SAFE_INTEGER; // Si no tiene ID, va al final
-        const idB = tiendaIdMap.get(b) ?? Number.MAX_SAFE_INTEGER;
+        const idA = tiendaIdMap.get(a.toUpperCase()) ?? Number.MAX_SAFE_INTEGER; // Si no tiene ID, va al final
+        const idB = tiendaIdMap.get(b.toUpperCase()) ?? Number.MAX_SAFE_INTEGER;
 
         return idA - idB; // Orden ascendente
-    });
-
-    tiendasOrdenadas.forEach(tienda => {
-        const id = tiendaIdMap.get(tienda);
     });
 
     // Crear nuevo objeto con las tiendas ordenadas

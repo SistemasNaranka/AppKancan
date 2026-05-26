@@ -202,7 +202,7 @@ export const useResolutionsLogic = ({
     );
 
     const params = [
-      `caja:${resolucionSeleccionada.id_ultra || 0}`,
+      `caja:2`,
       `prefijo:${resolucionSeleccionada.prefijo}`,
       `resolucion:${resolucionSeleccionada.numero_formulario}`,
       `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
@@ -268,7 +268,7 @@ export const useResolutionsLogic = ({
     );
 
     const params = [
-      `caja:${resolucionSeleccionada.id_ultra || 0}`,
+      `caja:2`,
       `prefijo:${resolucionSeleccionada.prefijo}`,
       `resolucion:${resolucionSeleccionada.numero_formulario}`,
       `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
@@ -370,7 +370,7 @@ export const useResolutionsLogic = ({
     );
 
     const params = [
-      `caja:${resolucionSeleccionada.id_ultra || 0}`,
+      `caja:2`,
       `prefijo:${resolucionSeleccionada.prefijo}`,
       `resolucion:${resolucionSeleccionada.numero_formulario}`,
       `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
