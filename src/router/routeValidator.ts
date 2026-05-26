@@ -152,7 +152,7 @@ export function loadAndValidateRoutes(
   }
 
   if (errors.length > 0) {
-    console.group("🚨 SE ENCONTRARON ERRORES EN LAS RUTAS 🚨");
+    console.group(" SE ENCONTRARON ERRORES EN LAS RUTAS ");
     errors.forEach((e) => console.error(e.message));
     console.groupEnd();
     return { routes: validatedRoutes, error: errors };
