@@ -21,12 +21,8 @@ export function useScrollLockGuard() {
   const location = useLocation();
 
   useEffect(() => {
-    // Logging SIEMPRE activo mientras debuggeamos. Quitar cuando se resuelva.
-    const log = (...args: unknown[]) => {
-      console.warn("[ScrollGuard]", ...args);
-    };
-
-    log("✅ Hook montado en ruta", location.pathname, "| timestamp:", new Date().toLocaleTimeString());
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const log = (..._args: unknown[]) => { /* logging disabled */ };
 
     // Solo overlays que LEGÍTIMAMENTE justifican body.overflow=hidden.
     // EXCLUSIONES IMPORTANTES:

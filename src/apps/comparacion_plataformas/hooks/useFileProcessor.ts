@@ -409,22 +409,7 @@ export const useFileProcessor = () => {
                 grupos[tienda][fuenteNombre].push(fila);
                 filasAgrupadasEnArchivo++;
             });
-
         });
-
-        // Logging de estadísticas de agrupación
-        if (totalFilasProcesadas > 0) {
-
-            // Mostrar detalle de fuentes por tienda
-            Object.entries(grupos).forEach(([tienda, fuentes]) => {
-                Object.entries(fuentes).forEach(([fuente, datos]) => {
-                });
-            });
-
-            if (filasSinTienda > 0) {
-            }
-        }
-
         // Primero ordenar los registros dentro de cada tienda por su código
         const gruposConRegistrosOrdenados = ordenarGruposPorCodigo(grupos);
 
