@@ -1,6 +1,7 @@
 // services/notification.service.ts
 import directus from "@/services/directus/directus";
-import { withAutoRefresh } from "@/auth/services/directusInterceptor";
+import { withAutoRefresh, ensureValidToken } from "@/auth/services/directusInterceptor";
+import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 import { readItems, createItem, deleteItem } from "@directus/sdk";
 import { ICreateNotification, INotification } from "../interfaces/notification.interface";
 
@@ -118,42 +119,62 @@ export const servicioNotificaciones = {
         throw new Error("El mensaje es obligatorio.");
       }
 
-      // Preparar destinatarios (como string separado por comas)
-      let destinatariosStr = "todos";
-      if (payload.destinatarios) {
-        if (Array.isArray(payload.destinatarios)) {
-          destinatariosStr = payload.destinatarios.join(",");
-        } else {
-          destinatariosStr = payload.destinatarios;
-        }
+      // Asegurarse de tener un token de Directus válido
+      await ensureValidToken();
+      const tokens = cargarTokenStorage();
+      if (!tokens?.access) {
+        throw new Error("No se pudo obtener el token de acceso para enviar la notificación.");
       }
 
-      // Construir el objeto que se enviará a Directus
-      const body: Record<string, string | number | boolean | null> = {
-        title: payload.titulo || "Notificación",
-        message: payload.mensaje,
-        notification_type: mapTipoToDirectus(payload.tipo),
-        is_persistent: payload.persistente ?? false,
-        duration_seconds: Number(payload.duracion_seg) || 20,
-        destinations_raw: destinatariosStr,
-        sender_name: "Sistema",
+      // Preparar destinatarios (debe ser un array de strings en FastAPI)
+      const destinatariosArray = Array.isArray(payload.destinatarios)
+        ? payload.destinatarios
+        : payload.destinatarios
+        ? [payload.destinatarios]
+        : ["todos"];
+
+      // Preparar excluidos (debe ser un array de strings en FastAPI)
+      const excluirArray = Array.isArray(payload.excluir)
+        ? payload.excluir
+        : payload.excluir
+        ? [payload.excluir]
+        : [];
+
+      // Construir el objeto para el servidor de notificaciones (puerto 5050)
+      const body = {
+        destinatarios: destinatariosArray,
+        excluir: excluirArray,
+        titulo: payload.titulo || "Notificación",
+        mensaje: payload.mensaje,
+        tipo: payload.tipo || "info",
+        duracion_seg: Number(payload.duracion_seg) || 15,
+        persistente: payload.persistente ?? false,
+        clickeable: payload.clickeable ?? false,
+        mostrar_boton_cerrar: payload.mostrar_boton_cerrar ?? true,
+        pausar_al_hover: payload.pausar_al_hover ?? true,
+        ruta_accion: payload.ruta_accion || null,
+        fecha_programada: payload.fecha_programada || null,
       };
 
-      // Campo opcional: ruta de acción
-      if (payload.ruta_accion?.trim()) {
-        body.action_route = payload.ruta_accion.trim();
+      const response = await fetch("http://192.168.19.245:5050/notify", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${tokens.access}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail ||
+            errorData.message ||
+            `Error ${response.status} en el servidor de notificaciones.`
+        );
       }
 
-      // Campo opcional: fecha programada para más tarde
-      if (payload.fecha_programada) {
-        body.scheduled_at = payload.fecha_programada;
-      }
-
-      // Envío a Directus
-      await withAutoRefresh(() =>
-        directus.request(createItem("core_notifications", body))
-      );
-      console.log("✅ Notificación creada exitosamente");
+      console.log("✅ Notificación enviada exitosamente al servidor");
     } catch (error) {
       console.error("❌ Error en enviarNotificacion:", error);
       throw error;
