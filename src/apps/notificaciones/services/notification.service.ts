@@ -1,4 +1,4 @@
-import { INotification } from '../interfaces/notification.interface';
+import { ICreateNotification, INotification } from '../interfaces/notification.interface';
 
 const demoContactData: INotification[] = [
   { id: '#KM-00148', titulo: 'Presupuesto de Mayo', mensaje: 'Región Norte procesando...', tipo_notificacion: 'EN COLA', progreso: 40, fecha: '21/05/2026', hora: '10:16:55 a.m.' },
@@ -21,5 +21,25 @@ export const servicioNotificaciones = {
       console.warn("Conexión bloqueada por CORS o servidor inaccesible. Cargando base de datos demo.");
       return demoContactData;
     }
-  }
+  },
+  enviarNotificacion: async (playload: ICreateNotification): Promise<any> => {
+    const token = localStorage.getItem('auth_token') ?? '';
+
+    const response = await fetch('http://192.168.19.245:5050/notify', {
+      method: 'POST',
+      headers: {
+        'Authorization':  `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(playload),
+
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Error al enviar la notificación');
+    }
+
+    return  response.json();
+  },
 };

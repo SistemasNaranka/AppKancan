@@ -71,12 +71,12 @@ const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Aplicación
   Apps,
   Home,
-
+  CircleNotificationsIcon,
   // 🔸 Categoría: Aplicación
   DocumentScanner,
   GridView,
   ContactPhone,
-  CircleNotificationsIcon,
+
 
   // 🔸 Categoría: Ventas
   ShoppingCart,
