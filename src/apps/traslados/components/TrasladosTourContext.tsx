@@ -7,6 +7,7 @@ import React, {
   useEffect,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTutorial } from "@/shared/hooks/TutorialContext";
 
 export type TourPhase =
   | "IDLE"
@@ -51,6 +52,7 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
   const [stepIndex, setStepIndex] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
+  const { activeTutorial, endTutorial } = useTutorial();
 
   const isFullTourRunning = tourPhase !== "IDLE" && tourPhase !== "COMPLETED";
 
@@ -68,6 +70,14 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
       startFullTour();
     }
   }, [location.search, location.pathname, navigate, startFullTour, isFullTourRunning]);
+
+  // Integración con PeekButton — dispara el tour cuando el botón flotante
+  // de "?" solicita el tutorial de Traslados.
+  useEffect(() => {
+    if (activeTutorial !== "traslados") return;
+    endTutorial();
+    startFullTour();
+  }, [activeTutorial, endTutorial, startFullTour]);
 
   // Verificar si el tour ya fue completado
   const isTourCompleted = useCallback((): boolean => {

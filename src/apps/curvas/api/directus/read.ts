@@ -426,8 +426,6 @@ export const getResumenFechasCurvas = async (): Promise<Record<string, 'pendient
   }
 };
 
-
-
 export default {
   getMatrizGeneral,
   getDetalleProducto,

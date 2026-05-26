@@ -141,7 +141,6 @@ export const PasswordAdminPanel = () => {
         </Typography>
       </Box>
 
-
       <TextField
         fullWidth
         placeholder="Buscar usuario..."

@@ -55,8 +55,6 @@ import { FestivoDay } from "./FestivoDay";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-
-
 interface DialogNuevaReservaProps {
   open: boolean;
   onClose: () => void;
@@ -1269,8 +1267,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                       </Box>
                     </Box>
                   </Box>
-
-
 
                   {/* Participantes */}
                   <Box ref={participantesRef}>

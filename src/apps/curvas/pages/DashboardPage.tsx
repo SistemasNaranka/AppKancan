@@ -643,8 +643,6 @@ const DashboardPage = () => {
     setSaving(false);
   };
 
-
-
   const isConfirmed = (datosActuales as any)?.estado === "confirmado";
 
   const headerFiltersContent = (
@@ -846,7 +844,6 @@ const DashboardPage = () => {
          )}
        </Box>
 
-
        {/* ── Control: Buscador ── */}
        <TextField
          size="small"
@@ -892,7 +889,6 @@ const DashboardPage = () => {
        >
          {isHistoricalMode ? "MODO HISTÓRICO" : "HISTÓRICO"}
        </Button>
-
 
       {/* ── Botones de acción ── */}
       <Stack

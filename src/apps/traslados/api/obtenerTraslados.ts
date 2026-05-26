@@ -80,7 +80,6 @@ export async function aprobarTraslados(
     clave,
   };
 
-
   // ✅ Hacer la petición al endpoint
   try {
     const resp = await fetch(WEBHOOK_URL_POST, {

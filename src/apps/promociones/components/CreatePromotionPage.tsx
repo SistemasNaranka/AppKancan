@@ -43,13 +43,11 @@ const CreatePromotionPage: React.FC = () => {
     staleTime: 1000 * 60 * 60,
   });
 
-
   const { data: stores = [], isLoading: isLoadingStores } = useQuery({
     queryKey: ["prom_tiendas"],
     queryFn: getStores,
     staleTime: 1000 * 60 * 10,
   });
-
 
   React.useEffect(() => {
     const availableTypes = tiposPromocion.filter(
@@ -62,7 +60,6 @@ const CreatePromotionPage: React.FC = () => {
       updateField("typeId", availableTypes[0].id);
     }
   }, [tiposPromocion, formState.duration, formState.typeId, updateField]);
-
 
   const createPromoMutation = useMutation({
     mutationFn: createCompletePromotion,
@@ -99,7 +96,6 @@ const CreatePromotionPage: React.FC = () => {
         promocionData,
         tiendasIds: formState.selectedStores,
       });
-
 
     } catch (err) {
 
@@ -168,7 +164,6 @@ const CreatePromotionPage: React.FC = () => {
 
               />
 
-
               <PromotionStoresSection
                 stores={stores}
                 tiendasSeleccionadas={formState.selectedStores}
@@ -178,7 +173,6 @@ const CreatePromotionPage: React.FC = () => {
                 }
 
               />
-
 
               <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
                 <Button

@@ -12,18 +12,18 @@ import Apps from "@mui/icons-material/Apps";
 /* ----------------------------- Iconos por app ----------------------------- */
 const APP_ICONS: Record<string, React.ReactNode> = {
   reservas: (
-    <EventAvailable sx={{ width: 16, height: 16, color: "#004680" }} />
+    <EventAvailable sx={{ width: 18, height: 18, color: "#fff" }} />
   ),
   prorrogas: (
-    <AccessTime sx={{ width: 16, height: 16, color: "#004680" }} />
+    <AccessTime sx={{ width: 18, height: 18, color: "#fff" }} />
   ),
   traslados: (
-    <TransferWithinAStation sx={{ width: 16, height: 16, color: "#004680" }} />
+    <TransferWithinAStation sx={{ width: 18, height: 18, color: "#fff" }} />
   ),
 };
 
 const DefaultIcon = (
-  <Apps sx={{ width: 16, height: 16, color: "#004680" }} />
+  <Apps sx={{ width: 18, height: 18, color: "#fff" }} />
 );
 
 /* --------------------------- Helpers de extracción -------------------------- */

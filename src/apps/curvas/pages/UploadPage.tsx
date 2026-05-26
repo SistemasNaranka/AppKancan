@@ -522,8 +522,6 @@ const UploadPage = () => {
     setMatrixReady(true);
   }, [setHasChanges]);
 
-
-
   // Lógica de habilitación de botones: referencia presente + datos con valores
   const hasValidRef = !!(
     pendingMatrixData?.referenciaBase?.trim() ||

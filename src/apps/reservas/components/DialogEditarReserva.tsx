@@ -58,8 +58,6 @@ import {
   buscarUsuarios,
 } from "../services/reservas";
 
-
-
 // ================================
 // CONSTANTES
 // ================================
@@ -71,7 +69,6 @@ const INFO_SALAS: Record<string, string> = {
   "Sala Principal": "Grande",
   "Sala Secundaria": "Compacta",
 };
-
 
 // ================================
 // TYPES
@@ -93,7 +90,6 @@ interface DialogEditarReservaProps {
     reservaIdExcluir: number,
   ) => Promise<boolean>;
 }
-
 
 // ================================
 // HELPERS
@@ -173,7 +169,6 @@ const calcularHoraMinima = (
     .padStart(2, "0")}`;
 };
 
-
 // ================================
 // COMPONENTE PRINCIPAL
 // ================================
@@ -232,7 +227,6 @@ const DialogEditarReserva: React.FC<
 
   // Toggle: enviar correo de actualización al editar reserva (default ON).
   const [enviarCorreo, setEnviarCorreo] = useState<boolean>(true);
-
 
   // ================================
   // VALIDACIÓN
@@ -309,7 +303,6 @@ const DialogEditarReserva: React.FC<
     [horarioConfig],
   );
 
-
   // ================================
   // FORM
   // ================================
@@ -345,7 +338,6 @@ const DialogEditarReserva: React.FC<
     name: "participants",
   });
 
-
   // ================================
   // WATCHERS
   // ================================
@@ -358,7 +350,6 @@ const DialogEditarReserva: React.FC<
 
   const observacionesWatch =
     watch("observations");
-
 
   // ================================
   // MEMOS
@@ -396,7 +387,6 @@ const DialogEditarReserva: React.FC<
       horaInicioSeleccionada,
     ]);
 
-
   const caracteresObservaciones = observacionesWatch?.length || 0;
   const caracteresRestantes = 500 - caracteresObservaciones;
   const aproximandoLimite = caracteresObservaciones >= 450;
@@ -407,7 +397,6 @@ const DialogEditarReserva: React.FC<
     const date = day instanceof Date ? day : (day?.toDate?.() ?? new Date(day));
     return date < hoy;
   };
-
 
   // ================================
   // EFFECTS
@@ -493,7 +482,6 @@ const DialogEditarReserva: React.FC<
     setHoraInicioSeleccionada((reserva.start_time || "").substring(0, 5));
     setError(null);
   }, [open, reserva, reset]);
-
 
   // ================================
   // HANDLERS
@@ -597,7 +585,6 @@ const DialogEditarReserva: React.FC<
     }
   };
 
-
   // ================================
   // SUBMIT
   // ================================
@@ -661,7 +648,6 @@ const DialogEditarReserva: React.FC<
         setLoading(false);
       }
     };
-
 
   // ================================
   // RENDER

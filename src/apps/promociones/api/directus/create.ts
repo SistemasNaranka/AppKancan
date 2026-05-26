@@ -22,7 +22,6 @@ export interface PromoTienda {
   status: string;
 }
 
-
 /**
  * Formatear hora al formato esperado por Directus (HH:MM:SS)
  * Si la hora viene en formato HH:MM, agregar :00

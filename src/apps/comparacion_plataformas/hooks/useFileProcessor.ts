@@ -50,6 +50,7 @@ export const useFileProcessor = () => {
             setTablasMapeo(tablasMapeo);
             setTiendaMapeos(tiendaMapeos);
         } catch (error) {
+            console.error('❌ Error al cargar mapeos:', error);
             setErrorMapeos('Error al cargar los mapeos desde Directus.');
         } finally {
             setCargandoMapeos(false);
@@ -138,6 +139,7 @@ export const useFileProcessor = () => {
                     }
                     return nuevoArchivo;
                 } catch (error) {
+                    console.error(`Error al leer ${file.name}:`, error);
                     return null;
                 }
             }));
@@ -170,6 +172,7 @@ export const useFileProcessor = () => {
                 }
             }
         } catch (error) {
+            console.error("Error general al procesar archivos:", error);
         } finally {
             setCargando(false);
         }
@@ -282,6 +285,7 @@ export const useFileProcessor = () => {
 
         // Mostrar resumen de validación en consola
         if (validacion.errores.length > 0) {
+            console.error('❌ Errores:', validacion.errores);
         }
         if (validacion.advertencias.length > 0) {
         }
@@ -327,6 +331,7 @@ export const useFileProcessor = () => {
                 if (seleccionadoActualizado) setArchivoSeleccionado(seleccionadoActualizado);
             }
         } catch (error) {
+            console.error("Error en normalización masiva:", error);
         } finally { 
             setCargando(false);
             setMostrarConfirmacionDuplicados(false);
@@ -367,7 +372,6 @@ export const useFileProcessor = () => {
             const nombreLower = archivo.nombre.toLowerCase();
             const tipoLower = (archivo.tipoArchivo || "").toLowerCase();
 
-
             // Buscamos coincidencia parcial en el nombre del archivo o en el tipo detectado
             const match = mapeoVisual.find(m =>
                 m.keys.some(k => nombreLower.includes(k) || tipoLower.includes(k))
@@ -384,7 +388,6 @@ export const useFileProcessor = () => {
                 else if (fuenteUpper.includes('REDEBANA') || fuenteUpper.includes('REDEBAN')) fuenteNombre = 'REDEBAN';
                 else if (fuenteUpper.includes('CREDITO') || fuenteUpper.includes('SISTECREDITO')) fuenteNombre = 'SISTECREDITOS';
             }
-
 
             let filasAgrupadasEnArchivo = 0;
             const tiendasVistasEnEsteArchivo = new Set<string>();
@@ -406,15 +409,7 @@ export const useFileProcessor = () => {
                 grupos[tienda][fuenteNombre].push(fila);
                 filasAgrupadasEnArchivo++;
             });
-
         });
-
-        // Logging de estadísticas de agrupación
-        if (totalFilasProcesadas > 0) {
-            if (filasSinTienda > 0) {
-            }
-        }
-
         // Primero ordenar los registros dentro de cada tienda por su código
         const gruposConRegistrosOrdenados = ordenarGruposPorCodigo(grupos);
 
@@ -580,6 +575,7 @@ export const useFileProcessor = () => {
             saveAs(new Blob([buffer]), `Reporte_Kancan_Agrupado_${new Date().toISOString().split('T')[0]}.xlsx`);
 
         } catch (error) {
+            console.error("Error al exportar Excel con ExcelJS:", error);
         }
     };
 

@@ -67,8 +67,9 @@ export async function LearnPDF(archivo: File): Promise<DataPDF | string> {
     const prefijoMatch = texto2.match(/\b([A-Z]{2}\d{1,4})\b/);
     const prefijo = prefijoMatch ? prefijoMatch[1] : "";
 
-    // Extraer desde
-    const desde_numero = 1;
+    // Extraer desde: el número que aparece inmediatamente después del prefijo (ej: LE26 111)
+    const desdeMatch = texto2.match(/\b[A-Z]{2}\d{1,4}\b\s+(\d+)/);
+    const desde_numero = desdeMatch ? parseInt(desdeMatch[1]) : 1;
 
     // Extraer hasta
     const hastaMatch = texto2.match(/(\d{1,3}(?:,\d{3})+)/);
