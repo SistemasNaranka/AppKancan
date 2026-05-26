@@ -427,6 +427,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
           nuevoEstado.errorGemini = errorMsg;
           setEstadoHibrido({ ...nuevoEstado });
 
+          console.warn("Gemini falló, intentando con Ollama:", errorMsg);
 
           // Fallback a Ollama
           setProgress(35);
@@ -532,6 +533,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
       const response = await ollama.list();
       return response.models.map((m) => m.name);
     } catch (error) {
+      console.warn("Error al obtener modelos de Ollama:", error);
       return [];
     }
   }, []);

@@ -310,6 +310,8 @@ export const useStoreManagement = (
         parseFloat(presupuesto) / empleadosSeleccionados.length,
     };
 
+    console.log("Datos recalculados:", datosRecalculados);
+
     setSuccess("Datos recalculados correctamente");
   }, [tienda, presupuesto, empleadosSeleccionados, fecha]);
 

@@ -257,6 +257,10 @@ export const deleteEnvioDrafts = async (
     return true;
   } catch (error) {
     // Es posible que no haya nada que borrar, no lo tratamos como error crítico
+    console.warn(
+      "Info: No se eliminaron borradores previos o error en delete:",
+      error,
+    );
     return true;
   }
 };
@@ -283,6 +287,7 @@ export const deleteLogCurvasByRef = async (
     );
     return true;
   } catch (error) {
+    console.warn("Info: No se eliminaron logs previos o error:", error);
     return true;
   }
 };

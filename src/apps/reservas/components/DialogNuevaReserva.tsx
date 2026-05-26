@@ -1018,9 +1018,12 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
             evento: "reserva_creada",
             reserva: payload,
           });
+          console.info("[n8n] correo enviado OK:", result);
         } catch (err) {
+          console.warn("[n8n] correo NO enviado:", err);
         }
       } else {
+        console.info("[n8n] envío de correo desactivado por el usuario");
       }
 
       handleClose();

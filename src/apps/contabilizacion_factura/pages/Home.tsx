@@ -95,6 +95,9 @@ export default function Home() {
           hybridExtractor.setModelo(modelos[0]);
         }
       } catch {
+        console.log(
+          "No se pudieron cargar los modelos de Ollama - Fallback no disponible",
+        );
         setConexionErrorOllama(true);
       } finally {
         setCargandoModelos(false);
@@ -177,6 +180,10 @@ export default function Home() {
 
       if (proveedorExistente && proveedorExistente.automatic) {
         // El proveedor YA EXISTE - usar automático existente sin abrir modal
+        console.log(
+          "Proveedor encontrado por NIT, usando automático:",
+          proveedorExistente.automatic,
+        );
         datosFactura.automaticoAsignado = proveedorExistente.automatic;
         setAutomaticoAsignado(proveedorExistente.automatic);
         // Ejecutar directamente sin mostrar snackbar
@@ -208,6 +215,13 @@ export default function Home() {
       const nitProveedor = nitActual;
 
       // Debug: verificar que el nombre llega correctamente
+      console.log("Datos a guardar:", {
+        nit: nitProveedor,
+        automatico,
+        nombreProveedor,
+        numeroFactura: datosFactura.numeroFactura,
+        valorFactura: datosFactura.total,
+      });
 
       setGuardandoAutomatico(true);
       try {

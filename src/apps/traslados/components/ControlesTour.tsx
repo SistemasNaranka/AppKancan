@@ -35,6 +35,7 @@ const logTourAnalytics = (event: TourAnalytics): void => {
     
     // Log para desarrollo
     if (import.meta.env.DEV) {
+      console.log("[Tour Analytics]", event);
     }
   } catch (error) {
     console.error("[Tour Analytics Error]", error);

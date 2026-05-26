@@ -473,7 +473,7 @@ function Home() {
                   const c = appColors[i % appColors.length];
                   return (
                     <Paper
-                      key={`${app.id}-${i}`}
+                      key={app.id}
                       elevation={1}
                       onClick={() => navigate(app.ruta)}
                       sx={{

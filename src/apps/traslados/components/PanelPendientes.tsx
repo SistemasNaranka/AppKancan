@@ -107,6 +107,10 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
     try {
       if (onEliminarTrasladosAprobados) {
         if (import.meta.env.DEV) {
+          console.log("🔹 Aprobando traslados con clave:", {
+            cantidad: idsSeleccionados.length,
+            ids: idsSeleccionados,
+          });
         }
 
         await onEliminarTrasladosAprobados(idsSeleccionados, clave);

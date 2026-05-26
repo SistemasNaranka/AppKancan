@@ -51,6 +51,7 @@ function formatDisplayTime(hora: string | null | undefined): string | null {
   }
 
   // Caso inesperado
+  console.warn(`⚠️ Formato de hora inesperado: ${hora}`);
   return hora;
 }
 // ==================== FUNCIONES DE LECTURA ====================

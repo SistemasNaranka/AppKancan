@@ -18,6 +18,7 @@ export const servicioNotificaciones = {
       const resData = await response.json();
       return resData.data && resData.data.length > 0 ? resData.data : demoContactData;
     } catch (error) {
+      console.warn("Conexión bloqueada por CORS o servidor inaccesible. Cargando base de datos demo.");
       return demoContactData;
     }
   }

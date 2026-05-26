@@ -15,6 +15,7 @@ if (!iconName) return <Folder color={color as any} {...props} />;
 const IconComponent = (Icons as Record<string, React.ElementType>)[iconName];
 
 if (!IconComponent) {
+console.warn('⚠️ Icono"${iconName}" no encontrado, usando Folder');
 return <Folder color={color as any} {...props} />;
 }
 

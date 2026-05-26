@@ -159,6 +159,7 @@ export const useNormalizador = () => {
           nuevoArchivo.tipoArchivo = resultado.tipoArchivo;
           nuevoArchivo.columnasEliminar = resultado.mapeo.columnasEliminar;
         } else {
+          console.warn(`No se encontró mapeo para ${nuevoArchivo.nombre}`);
         }
 
         setArchivos((prev) => [...prev, nuevoArchivo]);
@@ -251,6 +252,7 @@ export const useNormalizador = () => {
 
   const normalizarArchivoIndividual = (archivo: ArchivoSubido): ArchivoSubido | null => {
     if (!archivo.tipoArchivo) {
+      console.warn(`⚠ No se puede normalizar ${archivo.nombre}: no hay mapeo definido`);
       return null;
     }
 

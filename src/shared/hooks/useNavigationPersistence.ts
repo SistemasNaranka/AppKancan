@@ -26,6 +26,7 @@ export const useNavigationPersistence = () => {
         return savedRoute;
       }
     } catch (error) {
+      console.warn("Error reading navigation persistence:", error);
     }
     return null;
   }, []);
@@ -51,6 +52,7 @@ export const useNavigationPersistence = () => {
         localStorage.setItem(STORAGE_KEY, location.pathname);
         setLastVisitedRoute(location.pathname);
       } catch (error) {
+        console.warn("Error saving navigation persistence:", error);
       }
     }
   }, [location.pathname]);
@@ -60,6 +62,7 @@ export const useNavigationPersistence = () => {
     try {
       localStorage.setItem(STORAGE_KEY, "/home");
     } catch (error) {
+      console.warn("Error saving home route:", error);
     }
     navigate("/home");
   }, [navigate]);
@@ -80,6 +83,7 @@ export const useNavigationPersistence = () => {
       localStorage.removeItem(STORAGE_KEY);
       setLastVisitedRoute(null);
     } catch (error) {
+      console.warn("Error clearing navigation persistence:", error);
     }
   }, []);
 

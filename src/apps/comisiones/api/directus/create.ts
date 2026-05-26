@@ -386,6 +386,11 @@ export async function saveRoleBudgetConfiguration(data: {
         _and: [{ month: { _eq: mesStr } }, { year: { _eq: anioStr } }],
       };
 
+      console.log(
+        "[saveRoleBudgetConfiguration] Buscando existente con:",
+        JSON.stringify(existingFilter),
+      );
+
       const existentes = await withAutoRefresh(() =>
         directus.request(
           readItems("com_monthly_budget_percentages", {
@@ -410,6 +415,9 @@ export async function saveRoleBudgetConfiguration(data: {
 
     // 3. Guardar cambios
     if (recordId) {
+      console.log(
+        `[saveRoleBudgetConfiguration] Actualizando ID ${recordId} con ${finalConfigs.length} roles.`,
+      );
       return await withAutoRefresh(() =>
         directus.request(
           updateItem("com_monthly_budget_percentages", recordId, {
@@ -423,6 +431,11 @@ export async function saveRoleBudgetConfiguration(data: {
         year: anio.toString(),
         role_config: finalConfigs,
       };
+
+      console.log(
+        "[saveRoleBudgetConfiguration] Creando nuevo registro:",
+        JSON.stringify(payload),
+      );
 
       return await withAutoRefresh(() =>
         directus.request(createItem("com_monthly_budget_percentages", payload)),

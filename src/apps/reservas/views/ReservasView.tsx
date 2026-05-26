@@ -377,9 +377,12 @@ const ReservasViewContent: React.FC = () => {
           // Campo extra fuera del type — n8n lo recibe en data.motivo
           ...({ motivo: motivoCancelacion.trim() } as any),
         });
+        console.info("[n8n] correo cancelación enviado OK:", result);
       } catch (err) {
+        console.warn("[n8n] correo cancelación NO enviado:", err);
       }
     } else {
+      console.info("[n8n] envío de correo de cancelación desactivado");
     }
   };
 

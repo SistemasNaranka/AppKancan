@@ -192,7 +192,7 @@ export default function PeekButton({ apps = [] }: PeekButtonProps) {
             <div className="peek-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-2">
               {apps.map((app, i) => (
                 <button
-                  key={`${app.id}-${i}`}
+                  key={app.id}
                   onClick={app.onTutorialClick}
                   disabled={app.isLoading}
                   className="peek-item peek-anim-slide-in mb-0.5 flex w-full items-center gap-3 rounded-xl border-none bg-transparent px-3 py-2.5 text-left transition-colors duration-150 hover:bg-[#f0f6fc] disabled:cursor-not-allowed"

@@ -150,6 +150,7 @@ export async function getContratoById(id: number): Promise<Contrato | null> {
     );
 
     if (!items || (items as any[]).length === 0) {
+      console.warn(`⚠️ Contrato con ID ${id} no encontrado`);
       return null;
     }
 

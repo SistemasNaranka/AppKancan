@@ -331,7 +331,7 @@ export async function actualizarReserva(
         },
       } as any),
     }).catch((err: unknown) =>
-,
+      console.warn("⚠️ [n8n] correo actualización NO enviado:", err),
     );
 
     return reservaActualizada;
@@ -458,6 +458,9 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
       return _configCache;
     }
 
+    console.warn(
+      "⚠️ No se encontró configuración de reservas, usando valores por defecto",
+    );
     _configCache = null;
     return null;
   } catch (error) {

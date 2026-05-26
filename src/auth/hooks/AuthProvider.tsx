@@ -86,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         await logoutDirectus(tokens.refresh);
       } catch (err) {
+        console.warn("⚠️ No se pudo hacer logout en servidor:", err);
       }
     }
 

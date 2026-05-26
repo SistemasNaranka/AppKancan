@@ -53,6 +53,7 @@ export function cargarTokenStorage(): StoredTokens | null {
 
     // Validar que tenga todos los campos necesarios
     if (!tokens.access || !tokens.refresh || !tokens.expires_at) {
+      console.warn("⚠️ Tokens inválidos en localStorage, borrando...");
       borrarTokenStorage();
       return null;
     }
@@ -100,6 +101,7 @@ export function normalizeTokenResponse(res: AuthenticationData): LoginResponse {
 export const isExpired = (expiresAt: number): boolean => {
   // Si está vacío o es NaN
   if (!expiresAt || isNaN(expiresAt)) {
+    console.warn("⚠️ expires_at inválido:", expiresAt);
     return true;
   }
 

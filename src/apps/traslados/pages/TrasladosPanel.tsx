@@ -204,6 +204,13 @@ const TrasladosPanel: React.FC = () => {
       }
 
       if (import.meta.env.DEV) {
+        console.log(
+          "Informacion enviada",
+          trasladosSeleccionados,
+          user.company,
+          user.ultra_code,
+          clave,
+        );
       }
 
       const resultado = await aprobarTraslados(

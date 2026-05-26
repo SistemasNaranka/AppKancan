@@ -286,6 +286,7 @@ export async function crearHistorialCargo(data: {
         await withAutoRefresh(() =>
           directus.request(deleteItem("adm_position_history", historialId as any))
         );
+        console.warn("↩️ Rollback adm_position_history id=", historialId);
       } catch (rbErr) {
         console.error("⚠️ Rollback historial falló — inconsistencia posible:", rbErr);
       }

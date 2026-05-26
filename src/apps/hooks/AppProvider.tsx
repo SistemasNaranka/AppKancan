@@ -59,6 +59,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       const areaUsuario = await getUserArea();
 
       if (areaUsuario.length < 1) {
+        console.warn("⚠️ Este usuario no tiene rol");
         setArea(null);
         setLoading(false);
         setLoadingStatus({
@@ -67,6 +68,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
             "Tu área de trabajo no está definida. Contacta a soporte para configurar tu rol.",
         });
       } else if (areaUsuario.length > 1) {
+        console.warn("⚠️ Hay más de un area en este usuario");
         setArea(null);
         setLoading(false);
         setLoadingStatus({

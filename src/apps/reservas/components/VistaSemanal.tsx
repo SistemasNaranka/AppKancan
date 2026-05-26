@@ -29,7 +29,8 @@ const useConfiguracionHoras = () => {
 
   const horas = useMemo(() => {
     if (isLoading || isError || !data) {
-      if (isError)      return generarHorasRango(CONFIGURACION_POR_DEFECTO.hora_inicio_operacion, CONFIGURACION_POR_DEFECTO.hora_fin_operacion);
+      if (isError) console.warn("⚠️ Usando configuración por defecto de horarios");
+      return generarHorasRango(CONFIGURACION_POR_DEFECTO.hora_inicio_operacion, CONFIGURACION_POR_DEFECTO.hora_fin_operacion);
     }
     const horaInicio = data.opening_time?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_inicio_operacion;
     const horaFin = data.closing_time?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
