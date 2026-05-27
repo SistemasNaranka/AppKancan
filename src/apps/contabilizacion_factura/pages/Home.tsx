@@ -75,13 +75,13 @@ export default function Home() {
     severity: "info",
   });
 
-  // Obtener usuario autenticado para acceder a su API key de Gemini y modelo de IA
+  // Obtener usuario autenticado para acceder a su API key de Gemini y modelos de IA
   const { user } = useAuth();
   const geminiApiKey = user?.ia_key;
-  const modeloIA = user?.ia_model;
+  const modelosIA = user?.models_ia;
 
   // Hook de extracción híbrido (Gemini + Ollama fallback)
-  const hybridExtractor = useHybridExtractor(geminiApiKey, modeloIA);
+  const hybridExtractor = useHybridExtractor(geminiApiKey, modelosIA);
 
   // Verificar configuración de API keys y cargar modelos Ollama al montar
   useEffect(() => {
@@ -334,7 +334,19 @@ export default function Home() {
             geminiApiKeyConfigured={!!geminiApiKey}
             conexionErrorOllama={conexionErrorOllama}
             modelosDisponibles={modelosDisponibles}
-            modeloIA={modeloIA}
+            modeloIA={(() => {
+              if (!modelosIA) return "gemma-3-27b-it";
+              try {
+                const parsed = typeof modelosIA === "string" ? JSON.parse(modelosIA) : modelosIA;
+                if (Array.isArray(parsed)) {
+                  const names = parsed.map((m: any) => m.name).filter(Boolean);
+                  if (names.length > 0) return names.join(", ");
+                }
+              } catch (e) {
+                console.error("Error parsing models_ia for display:", e);
+              }
+              return "gemma-3-27b-it";
+            })()}
           />
         )}
 

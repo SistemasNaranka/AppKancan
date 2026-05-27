@@ -24,7 +24,13 @@ export function calculateStatus(
 
   const facturasRestantes = hasta - consecutivo_actual;
 
+  if (!fecha_creacion) {
+    return "Pendiente";
+  }
   const fechaCreacion = new Date(fecha_creacion);
+  if (isNaN(fechaCreacion.getTime())) {
+    return "Pendiente";
+  }
   const fechaExpiracion = new Date(fechaCreacion);
   fechaExpiracion.setMonth(fechaExpiracion.getMonth() + vigencia);
 
@@ -88,10 +94,16 @@ export function calculateMaturity(
   fecha_creacion: string,
   vigencia: number,
 ): string {
+  if (!fecha_creacion) return "";
   const fechaCreacion = new Date(fecha_creacion);
+  if (isNaN(fechaCreacion.getTime())) return "";
   const fechaExpiracion = new Date(fechaCreacion);
   fechaExpiracion.setMonth(fechaExpiracion.getMonth() + vigencia);
-  return fechaExpiracion.toISOString().split("T")[0];
+  try {
+    return fechaExpiracion.toISOString().split("T")[0];
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -102,7 +114,9 @@ export function DaysRemaining(
   vigencia: number,
   fecha_creacion: string,
 ): { dias: number; texto: string } {
+  if (!fecha_creacion) return { dias: 0, texto: "Sin fecha de creación" };
   const fechaCreacion = new Date(fecha_creacion);
+  if (isNaN(fechaCreacion.getTime())) return { dias: 0, texto: "Fecha inválida" };
   const fechaExpiracion = new Date(fechaCreacion);
   fechaExpiracion.setMonth(fechaExpiracion.getMonth() + vigencia);
 

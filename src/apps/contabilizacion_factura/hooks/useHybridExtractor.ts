@@ -84,12 +84,26 @@ export interface EstadoHibrido {
   errorOllama: string | null;
 }
 
+function obtenerModelosIA(modelosIA: any): string[] {
+  if (!modelosIA) return [MODELO_POR_DEFECTO];
+  try {
+    const parsed = typeof modelosIA === "string" ? JSON.parse(modelosIA) : modelosIA;
+    if (Array.isArray(parsed)) {
+      const names = parsed.map((m: any) => m.name).filter(Boolean);
+      if (names.length > 0) return names;
+    }
+  } catch (e) {
+    console.error("Error al parsear models_ia:", e);
+  }
+  return [MODELO_POR_DEFECTO];
+}
+
 /**
  * Hook principal para extracción de PDF con Gemini y fallback a Ollama
  * @param geminiApiKey - API key de Gemini obtenida del usuario autenticado (campo key_gemini en Directus)
- * @param modeloIA - Modelo de IA a usar obtenido del usuario autenticado (campo modelo_ia en Directus)
+ * @param modelosIA - Modelos de IA a usar obtenidos del usuario autenticado (campo models_ia en Directus)
  */
-export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
+export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<ErrorProcesamientoPDF | null>(null);
   const [progress, setProgressRaw] = useState(0);
@@ -231,7 +245,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
    * Extrae datos usando Google Gemini
    */
   const extractWithGemini = useCallback(
-    async (file: File): Promise<string> => {
+    async (file: File, modeloAUsar: string): Promise<string> => {
       if (!geminiApiKey) {
         throw new Error("No hay API key de Gemini configurada para el usuario");
       }
@@ -250,8 +264,6 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
         }
         const base64Data = btoa(binary);
 
-        // Usar el modelo configurado en Directus o el modelo por defecto
-        const modeloAUsar = modeloIA || MODELO_POR_DEFECTO;
         const response = await ai.models.generateContent({
           model: modeloAUsar,
           contents: [
@@ -279,7 +291,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
         throw new Error(`Gemini: ${errorMsg}`);
       }
     },
-    [convertPDFToBytes, geminiApiKey, modeloIA],
+    [convertPDFToBytes, geminiApiKey],
   );
 
   /**
@@ -397,37 +409,53 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
 
         // Paso 3: Preparar documento (10-20%)
         setProgress(15);
-        let response: string;
+        let response: string = "";
 
         // Intentar extracción con Gemini primero
-        try {
-          nuevoEstado.intentoGemini = true;
-          setEstadoHibrido({ ...nuevoEstado });
-          setProgress(20);
+        const modelos = obtenerModelosIA(modelosIA);
+        let geminiExitoso = false;
+        let ultimoErrorGemini = "";
 
-          // Paso 4: Conectar con Gemini (20-30%)
-          setProgress(25);
+        if (geminiApiKey) {
+          console.log("Modelos de IA a intentar:", modelos);
+          for (let i = 0; i < modelos.length; i++) {
+            const modeloAUsar = modelos[i];
+            try {
+              nuevoEstado.intentoGemini = true;
+              nuevoEstado.modeloUsado = modeloAUsar;
+              setEstadoHibrido({ ...nuevoEstado });
+              setProgress(20 + i * 2);
 
-          // Paso 5: Enviar PDF a Gemini (30-50%)
-          setProgress(30);
-          response = await extractWithGemini(file);
+              console.log(`Intentando extracción con Gemini usando modelo: ${modeloAUsar}`);
+              response = await extractWithGemini(file, modeloAUsar);
+              
+              if (response) {
+                console.log(`Modelo usado con éxito: ${modeloAUsar}`);
+                nuevoEstado.proveedorUsado = "gemini";
+                nuevoEstado.modeloUsado = modeloAUsar;
+                setEstadoHibrido({ ...nuevoEstado });
+                geminiExitoso = true;
+                break;
+              }
+            } catch (geminiError: any) {
+              const errorMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+              console.error(`Error con el modelo ${modeloAUsar}:`, geminiError);
+              ultimoErrorGemini = errorMsg;
+            }
+          }
+        } else {
+          ultimoErrorGemini = "No hay API key de Gemini configurada para el usuario";
+          console.warn(ultimoErrorGemini);
+        }
 
-          // Paso 6: Recibir respuesta de Gemini (50-60%)
-          setProgress(50);
-          nuevoEstado.proveedorUsado = "gemini";
-          nuevoEstado.modeloUsado = modeloIA || MODELO_POR_DEFECTO;
-          setEstadoHibrido({ ...nuevoEstado });
+        if (geminiExitoso) {
           setProgress(60);
-        } catch (geminiError) {
+        } else {
           // Guardar error de Gemini
-          const errorMsg =
-            geminiError instanceof Error
-              ? geminiError.message
-              : "Error desconocido";
-          nuevoEstado.errorGemini = errorMsg;
+          nuevoEstado.errorGemini = ultimoErrorGemini || "Todos los modelos de Gemini fallaron";
           setEstadoHibrido({ ...nuevoEstado });
 
-          console.warn("Gemini falló, intentando con Ollama:", errorMsg);
+          console.warn("Gemini falló con todos los modelos, intentando con Ollama:", nuevoEstado.errorGemini);
 
           // Fallback a Ollama
           setProgress(35);
@@ -459,7 +487,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
             // Ambos fallaron, lanzar error combinado
             throw createError(
               "extraccion_fallida",
-              `Ambos proveedores fallaron:\n- Gemini: ${errorMsg}\n- Ollama: ${ollamaErrorMsg}`,
+              `Ambos proveedores fallaron:\n- Gemini (todos los modelos): ${nuevoEstado.errorGemini}\n- Ollama: ${ollamaErrorMsg}`,
             );
           }
         }
@@ -499,7 +527,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
         setIsProcessing(false);
       }
     },
-    [extractWithGemini, extractWithOllama, parseResponse, buildInvoiceData],
+    [extractWithGemini, extractWithOllama, parseResponse, buildInvoiceData, modelosIA, geminiApiKey, modeloActual],
   );
 
   /**

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Resolution, StatusResolution } from "../types";
-import { getResolutions } from "../api/read";
+import { getResolutions, checkPrefixExists } from "../api/read";
 import { createResolution } from "../api/create";
+import { updateResolutionStatus } from "../api/update";
 import { flattenResolution, calculateMaturity } from "../utils/calculos";
 import { useResponsiveItems } from "./useResponsiveItems";
 
@@ -25,13 +26,18 @@ export const useResolutionsLogic = ({
   const [paginaActual, setPaginaActual] = useState(1);
   const [resoluciones, setResoluciones] = useState<Resolution[]>([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
-  const [, setCargando] = useState(false);
+  const [cargandoArchivo, setCargando] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarDialogoYaIntegrada, setMostrarDialogoYaIntegrada] =
     useState(false);
   const [
     mostrarDialogoOpcionesIntegracion,
     setMostrarDialogoOpcionesIntegracion,
+  ] = useState(false);
+  const [prefijoInvalido, setPrefijoInvalido] = useState(false);
+  const [
+    mostrarDialogoPrefijoNoEncontrado,
+    setMostrarDialogoPrefijoNoEncontrado,
   ] = useState(false);
 
   const itemsPorPagina = useResponsiveItems();
@@ -130,10 +136,12 @@ export const useResolutionsLogic = ({
 
   const handleSeleccionar = (resolucion: Resolution) => {
     setResolucionSeleccionada(resolucion);
+    setPrefijoInvalido(false);
   };
 
   const handleLimpiar = () => {
     setResolucionSeleccionada(null);
+    setPrefijoInvalido(false);
   };
 
   const handleIntegrar = () => {
@@ -145,6 +153,11 @@ export const useResolutionsLogic = ({
 
     if (yaExiste) {
       setMostrarDialogoYaIntegrada(true);
+      return;
+    }
+
+    if (prefijoInvalido) {
+      setMostrarDialogoPrefijoNoEncontrado(true);
       return;
     }
 
@@ -202,7 +215,7 @@ export const useResolutionsLogic = ({
     );
 
     const params = [
-      `caja:2`,
+      `caja:${resolucionSeleccionada.id_ultra || 2}`,
       `prefijo:${resolucionSeleccionada.prefijo}`,
       `resolucion:${resolucionSeleccionada.numero_formulario}`,
       `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
@@ -268,7 +281,7 @@ export const useResolutionsLogic = ({
     );
 
     const params = [
-      `caja:2`,
+      `caja:${resolucionSeleccionada.id_ultra || 2}`,
       `prefijo:${resolucionSeleccionada.prefijo}`,
       `resolucion:${resolucionSeleccionada.numero_formulario}`,
       `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
@@ -346,6 +359,41 @@ export const useResolutionsLogic = ({
       empresa: "",
     };
 
+    // --- LOG DE PRUEBA DE PARÁMETROS PARA ULTRA ---
+    let empresaLog = "";
+    if (nuevaResolucion.razon_social === "NARANKA SAS") {
+      empresaLog = "naranka";
+    } else if (nuevaResolucion.razon_social === "MARIA FERNANDA PEREZ VELEZ") {
+      empresaLog = "kancan";
+    } else if (nuevaResolucion.razon_social === "KAN CAN JEANS") {
+      empresaLog = "kancanjeans";
+    }
+
+    const fechaSoloNumeros = nuevaResolucion.fecha_creacion.replace(/-/g, "");
+    const paramsLog = [
+      `caja:${nuevaResolucion.id_ultra || 2}`,
+      `prefijo:${nuevaResolucion.prefijo}`,
+      `resolucion:${nuevaResolucion.numero_formulario}`,
+      `enteFacturador:${nuevaResolucion.ente_facturador?.toLowerCase()}`,
+      `desde:${nuevaResolucion.desde_numero}`,
+      `hasta:${nuevaResolucion.hasta_numero}`,
+      `fecha:${fechaSoloNumeros}`,
+      `vigencia:${nuevaResolucion.vigencia}`,
+      `motivo:${nuevaResolucion.tipo_solicitud}`,
+      `empresa:${empresaLog}`,
+    ].join(" ");
+    
+    console.log("==========================================================");
+    console.log("📂 PDF Procesado con Éxito");
+    console.log("🔗 Parámetros para protocolo Ultra:", paramsLog);
+    console.log("🌐 URL Completa del Deep Link:", `ResolucionesUltra://?${encodeURIComponent(paramsLog)}`);
+    console.log("==========================================================");
+    // -----------------------------------------------
+
+    // Verificar si el prefijo existe en la base de datos
+    const existePrefijo = await checkPrefixExists(resultado.prefijo, resultado.razon_social);
+    setPrefijoInvalido(!existePrefijo);
+
     setResolucionSeleccionada(nuevaResolucion);
     setCargando(false);
   };
@@ -370,7 +418,7 @@ export const useResolutionsLogic = ({
     );
 
     const params = [
-      `caja:2`,
+      `caja:${resolucionSeleccionada.id_ultra || 2}`,
       `prefijo:${resolucionSeleccionada.prefijo}`,
       `resolucion:${resolucionSeleccionada.numero_formulario}`,
       `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
@@ -388,6 +436,31 @@ export const useResolutionsLogic = ({
 
     setMostrarDialogoYaIntegrada(false);
     showSnackbar("Aplicación Ultra ejecutada", "info");
+  };
+
+  const handleHabilitar = async () => {
+    if (!resolucionSeleccionada) return;
+
+    try {
+      await updateResolutionStatus(resolucionSeleccionada.id, "Activo");
+      
+      const datos = await getResolutions();
+      const resolucionesAplanadas = datos.map(flattenResolution);
+      setResoluciones(resolucionesAplanadas);
+
+      const actualizada = resolucionesAplanadas.find(
+        (r) => r.id === resolucionSeleccionada.id,
+      );
+      if (actualizada) {
+        setResolucionSeleccionada(actualizada);
+      } else {
+        setResolucionSeleccionada(null);
+      }
+
+      showSnackbar("Estado de la resolución actualizado a Vigente", "success");
+    } catch (error: any) {
+      showSnackbar(error.message || "Error al actualizar estado", "error");
+    }
   };
 
   return {
@@ -413,7 +486,7 @@ export const useResolutionsLogic = ({
     handleBusquedaChange,
     handleRazonSocialChange,
     handleFiltrar,
-    handleSeleccionar,
+        handleSeleccionar,
     handleLimpiar,
     handleIntegrar,
     confirmarIntegracion,
@@ -421,9 +494,14 @@ export const useResolutionsLogic = ({
     handleSubirArchivo,
     integrarSoloGuardar,
     integrarGuardarYSubirUltra,
+    handleHabilitar,
     setPaginaActual,
     setMostrarConfirmacion,
     setMostrarDialogoYaIntegrada,
     setMostrarDialogoOpcionesIntegracion,
+    cargandoArchivo,
+    prefijoInvalido,
+    mostrarDialogoPrefijoNoEncontrado,
+    setMostrarDialogoPrefijoNoEncontrado,
   };
 };

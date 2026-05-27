@@ -79,3 +79,42 @@ export async function getResolutions(): Promise<DirectusResolucion[]> {
   }
 }
 
+/**
+ * Verifica si existe un prefijo para una empresa dada en acc_prefix_resolutions
+ */
+export async function checkPrefixExists(prefix: string, businessName: string): Promise<boolean> {
+  if (!businessName || !prefix) return false;
+
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("acc_prefix_resolutions", {
+          fields: ["id"],
+          filter: {
+            _and: [
+              {
+                prefix_name: {
+                  _eq: prefix,
+                },
+              },
+              {
+                pos_id: {
+                  company: {
+                    _eq: businessName,
+                  },
+                },
+              },
+            ],
+          },
+          limit: 1,
+        })
+      )
+    );
+    return items && items.length > 0;
+  } catch (error) {
+    console.error("❌ Error al verificar existencia de prefijo:", error);
+    return false;
+  }
+}
+
+
