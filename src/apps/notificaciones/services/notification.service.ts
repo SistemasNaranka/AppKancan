@@ -18,16 +18,8 @@ interface IDirectusNotification {
   action_route?: string | null;
 }
 
-// ------------------------------------------------------------
-// Mapeo de tipos de notificación
-// ------------------------------------------------------------
 const mapTipoToDirectus = (tipo: ICreateNotification["tipo"]): string => {
-  const map = {
-    info: "INFO",
-    success: "SUCCESS",
-    warning: "WARNING",
-    error: "ERROR",
-  };
+  const map = { info: "INFO", success: "SUCCESS", warning: "WARNING", error: "ERROR" };
   return map[tipo] ?? "INFO";
 };
 
@@ -40,50 +32,25 @@ const mapTipoToEstado = (raw: string): INotification["tipo_notificacion"] => {
   return "EN COLA";
 };
 
-// ------------------------------------------------------------
-// Formateo de fecha/hora
-// ------------------------------------------------------------
 const formatearFechaHora = (iso?: string) => {
   if (!iso) return { fecha: "", hora: "" };
   const d = new Date(iso);
-  return {
-    fecha: d.toLocaleDateString("es-ES"),
-    hora: d.toLocaleTimeString("es-ES", { hour12: true }),
-  };
+  return { fecha: d.toLocaleDateString("es-ES"), hora: d.toLocaleTimeString("es-ES", { hour12: true }) };
 };
 
-// ------------------------------------------------------------
-// SERVICIO PRINCIPAL
-// ------------------------------------------------------------
 export const servicioNotificaciones = {
-  /**
-   * Obtiene todas las notificaciones ordenadas por fecha descendente
-   */
   async obtenerRegistrosEntrega(): Promise<INotification[]> {
     try {
       const items = await withAutoRefresh(() =>
         directus.request(
           readItems("core_notifications", {
-            fields: [
-              "id",
-              "title",
-              "message",
-              "notification_type",
-              "is_persistent",
-              "duration_seconds",
-              "destinations_raw",
-              "sender_name",
-              "date_created",
-              "action_route",
-            ],
+            fields: ["id", "title", "message", "notification_type", "is_persistent", "duration_seconds", "destinations_raw", "sender_name", "date_created", "action_route"],
             sort: ["-date_created"],
             limit: 500,
           })
         )
       );
-
       if (!items) return [];
-
       return (items as IDirectusNotification[]).map((item) => {
         const { fecha, hora } = formatearFechaHora(item.date_created);
         const estado = mapTipoToEstado(item.notification_type ?? "");
@@ -108,39 +75,33 @@ export const servicioNotificaciones = {
     }
   },
 
-  /**
-   * Crea una nueva notificación en Directus
-   * Solo envía los campos que SÍ existen en la colección core_notifications
-   */
+  async obtenerClientesNotificadores(): Promise<{ id: string | number; code: string; name: string }[]> {
+    try {
+      const items = await withAutoRefresh(() =>
+        directus.request(
+          readItems("core_notifier_clients", {
+            fields: ["id", "code", "name"],
+            sort: ["name"],
+          })
+        )
+      );
+      return items.map((item: any) => ({ id: item.id, code: item.code, name: item.name }));
+    } catch (error) {
+      console.error("❌ Error al cargar clientes notificadores:", error);
+      return [];
+    }
+  },
+
   async enviarNotificacion(payload: ICreateNotification): Promise<void> {
     try {
-      // Validaciones básicas
-      if (!payload.mensaje?.trim()) {
-        throw new Error("El mensaje es obligatorio.");
-      }
-
-      // Asegurarse de tener un token de Directus válido
+      if (!payload.mensaje?.trim()) throw new Error("El mensaje es obligatorio.");
       await ensureValidToken();
       const tokens = cargarTokenStorage();
-      if (!tokens?.access) {
-        throw new Error("No se pudo obtener el token de acceso para enviar la notificación.");
-      }
+      if (!tokens?.access) throw new Error("No se pudo obtener el token de acceso.");
 
-      // Preparar destinatarios (debe ser un array de strings en FastAPI)
-      const destinatariosArray = Array.isArray(payload.destinatarios)
-        ? payload.destinatarios
-        : payload.destinatarios
-        ? [payload.destinatarios]
-        : ["todos"];
+      const destinatariosArray = Array.isArray(payload.destinatarios) ? payload.destinatarios : payload.destinatarios ? [payload.destinatarios] : ["todos"];
+      const excluirArray = Array.isArray(payload.excluir) ? payload.excluir : payload.excluir ? [payload.excluir] : [];
 
-      // Preparar excluidos (debe ser un array de strings en FastAPI)
-      const excluirArray = Array.isArray(payload.excluir)
-        ? payload.excluir
-        : payload.excluir
-        ? [payload.excluir]
-        : [];
-
-      // Construir el objeto para el servidor de notificaciones (puerto 5050)
       const body = {
         destinatarios: destinatariosArray,
         excluir: excluirArray,
@@ -158,38 +119,25 @@ export const servicioNotificaciones = {
 
       const response = await fetch("http://192.168.19.245:5050/notify", {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${tokens.access}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Authorization": `Bearer ${tokens.access}`, "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.detail ||
-            errorData.message ||
-            `Error ${response.status} en el servidor de notificaciones.`
-        );
+        throw new Error(errorData.detail || errorData.message || `Error ${response.status}`);
       }
-
-      console.log("✅ Notificación enviada exitosamente al servidor");
+      console.log("✅ Notificación enviada");
     } catch (error) {
       console.error("❌ Error en enviarNotificacion:", error);
       throw error;
     }
   },
 
-  /**
-   * Elimina una notificación por ID (acepta formato "#KM-123" o solo el número)
-   */
   async eliminarNotificacion(id: string): Promise<void> {
     try {
       const cleanId = id.replace(/^#KM-/, "");
-      await withAutoRefresh(() =>
-        directus.request(deleteItem("core_notifications", cleanId))
-      );
+      await withAutoRefresh(() => directus.request(deleteItem("core_notifications", cleanId)));
       console.log(`✅ Notificación ${id} eliminada`);
     } catch (error) {
       console.error("❌ Error al eliminar notificación:", error);
