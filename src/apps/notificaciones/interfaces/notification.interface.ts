@@ -29,3 +29,8 @@ export interface ICreateNotification {
   ruta_accion?: string | null;
   fecha_programada?: string | null;
 }
+
+export interface INotificationGroup {
+  id: string | number;
+  name: string;
+}

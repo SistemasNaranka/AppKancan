@@ -15,7 +15,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { ICreateNotification } from '../interfaces/notification.interface';
+import { ICreateNotification, INotificationGroup } from '../interfaces/notification.interface';
 import { servicioNotificaciones } from '../services/notification.service';
 
 dayjs.locale("es");
@@ -50,7 +50,9 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
   const [destinatariosSeleccionados, setDestinatariosSeleccionados] = useState<typeof clientesDisponibles>([]);
 
   const [enviarATodos, setEnviarATodos] = useState(false);
-  const [grupoAreaTexto, setGrupoAreaTexto] = useState('');
+  const [grupos, setGrupos] = useState<INotificationGroup[]>([]);
+  const [cargandoGrupos, setCargandoGrupos] = useState(false);
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState<INotificationGroup | null>(null);
   const [usarGrupoArea, setUsarGrupoArea] = useState(false);
 
   const [titulo, setTitulo] = useState('');
@@ -80,13 +82,21 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
       setCargandoClientes(false);
     };
     cargarClientes();
+
+    const cargarGrupos = async () => {
+      setCargandoGrupos(true);
+      const data =await servicioNotificaciones.obtenerGrupos();
+      setGrupos(data);
+      setCargandoGrupos(false);
+    };
+    cargarGrupos();
   }, []);
 
   const resetForm = () => {
     setDestinatariosSeleccionados([]);
     setEnviarATodos(false);
     setUsarGrupoArea(false);
-    setGrupoAreaTexto('');
+    setGrupoSeleccionado(null);
     setTitulo('');
     setMensaje('');
     setProgramar(false);
@@ -120,7 +130,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
         setError('Debes seleccionar al menos un destinatario, usar "Todos" o un grupo/área.');
         return;
       }
-      if (usarGrupoArea && !grupoAreaTexto.trim()) {
+      if (usarGrupoArea && !grupoSeleccionado) {
         setError('Debes escribir el grupo o área (ej: grupo:Tiendas Centro)');
         return;
       }
@@ -137,7 +147,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
       if (enviarATodos) {
         destinatarios = ["todos"];
       } else if (usarGrupoArea) {
-        destinatarios = [grupoAreaTexto.trim()];
+        destinatarios = grupoSeleccionado ? [`grupo:${grupoSeleccionado.name}`] : [];
       } else {
         destinatarios = destinatariosSeleccionados.map(c => String(c.code));
       }
@@ -239,8 +249,25 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
             </Box>
 
             {usarGrupoArea && (
-              <TextField fullWidth size="small" placeholder="Ej: grupo:Tiendas Centro   o   area:Sistemas" value={grupoAreaTexto} onChange={(e) => setGrupoAreaTexto(e.target.value)} sx={{ mb: 2, ...inputStyle }} />
-            )}
+              <Autocomplete
+              options={grupos}
+              loading={cargandoGrupos}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              value={grupoSeleccionado}
+              onChange={(_, newValue) => setGrupoSeleccionado(newValue)}
+              noOptionsText="No hay grupos disponibles"
+              renderInput={(params) => ( 
+                <TextField
+                {...params}
+                placeholder="Selecciona un grupo o área"
+                variant="outlined"
+                size="small"
+                sx={{ mb: 2, ...inputStyle }}
+                />
+              )}
+            />
+          )}
 
             {!enviarATodos && !usarGrupoArea && (
               <Autocomplete

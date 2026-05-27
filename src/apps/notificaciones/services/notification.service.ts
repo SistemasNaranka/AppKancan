@@ -3,7 +3,7 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh, ensureValidToken } from "@/auth/services/directusInterceptor";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 import { readItems, createItem, deleteItem } from "@directus/sdk";
-import { ICreateNotification, INotification } from "../interfaces/notification.interface";
+import { ICreateNotification, INotification, INotificationGroup } from "../interfaces/notification.interface";
 
 interface IDirectusNotification {
   id: string | number;
@@ -88,6 +88,23 @@ export const servicioNotificaciones = {
       return items.map((item: any) => ({ id: item.id, code: item.code, name: item.name }));
     } catch (error) {
       console.error("❌ Error al cargar clientes notificadores:", error);
+      return [];
+    }
+  },
+
+  async obtenerGrupos(): Promise<INotificationGroup[]> {
+    try {
+      const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("core_notification_groups", {
+          fields: ["id", "name"],
+          sort: ["name"],
+        })
+      )
+    );
+    return items.map((item: any) => ({ id: item.id, name: item.name}));
+    } catch (error) {
+      console.error("❌ Error al cargar grupos:", error);
       return [];
     }
   },
