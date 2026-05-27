@@ -5,7 +5,6 @@ import PersonIcon from '@mui/icons-material/Person';
 import TimerIcon from '@mui/icons-material/Timer';
 import { INotification } from '../interfaces/notification.interface';
 
-// Extendemos la interfaz localmente de forma segura para que no te marque error de TypeScript
 interface INotificationExtendida extends INotification {
   sender_name?: string;
   duration_seconds?: number | string;
@@ -23,9 +22,9 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}>
       
-      {/* HEADER DEL MODAL */}
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: '#1e293b' }}>Detalle de Notificación</Typography>
+      {/* HEADER DEL MODAL - CORREGIDO: ya no hay <h6> dentro de <h2> */}
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, fontWeight: 800, fontSize: '1.25rem', color: '#1e293b' }}>
+        Detalle de Notificación
         <IconButton onClick={onClose} sx={{ bgcolor: '#f1f5f9', '&:hover': { bgcolor: '#e2e8f0' } }}>
           <CloseIcon />
         </IconButton>
@@ -58,7 +57,6 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
 
         <Divider sx={{ mb: 3 }} />
 
-        {/* CUERPO DEL MENSAJE */}
         <Typography variant="subtitle2" sx={{ color: '#64748b', mb: 1, fontWeight: 700, textTransform: 'uppercase' }}>
           Mensaje Completo
         </Typography>
@@ -68,10 +66,7 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
           </Typography>
         </Box>
 
-        {/* INFORMACIÓN ADICIONAL DE LA BASE DE DATOS (REMITENTE Y DURACIÓN) */}
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
-          
-          {/* Quién envió la notificación */}
           <Box sx={{ bgcolor: '#f8fafc', p: 2, borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <PersonIcon sx={{ color: '#004a99' }} />
             <Box>
@@ -84,7 +79,6 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
             </Box>
           </Box>
 
-          {/* Cuánto duró */}
           <Box sx={{ bgcolor: '#f8fafc', p: 2, borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <TimerIcon sx={{ color: '#ca8a04' }} />
             <Box>
@@ -96,10 +90,8 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
               </Typography>
             </Box>
           </Box>
-
         </Box>
 
-        {/* METADATOS: FECHA Y HORA */}
         <Box sx={{ bgcolor: '#f1f5f9', p: 2.5, borderRadius: '16px' }}>
           <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, display: 'block', mb: 0.5, letterSpacing: '0.5px' }}>
             REGISTRO DE FECHA Y HORA
@@ -109,7 +101,6 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
           </Typography>
         </Box>
 
-        {/* ACCIONES INFERIORES */}
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
           <Button 
             variant="contained" 
@@ -126,7 +117,6 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
             Cerrar
           </Button>
         </Box>
-
       </DialogContent>
     </Dialog>
   );

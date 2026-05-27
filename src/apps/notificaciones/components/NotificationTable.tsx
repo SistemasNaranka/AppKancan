@@ -3,9 +3,13 @@ import { Paper, Box, Typography, IconButton, Menu, MenuItem } from '@mui/materia
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { INotification } from '../interfaces/notification.interface';
 
+// ✅ Se declaran las props que recibe del padre, todas opcionales excepto registros y onSelect
 interface TableProps {
   registros: INotification[];
   onSelect: (n: INotification | null) => void;
+  cargando?: boolean;      // se recibe pero no se usa (opcional)
+  onEliminar?: (id: string) => void;   // se recibe pero no se usa
+  onRefrescar?: () => void;            // se recibe pero no se usa
 }
 
 export default function NotificationTable({ registros, onSelect }: TableProps) {
@@ -79,7 +83,6 @@ export default function NotificationTable({ registros, onSelect }: TableProps) {
               }}
             >
               <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, alignItems: 'center', gap: 3, p: 2.5, px: 3 }}>
-
                 {/* Asunto */}
                 <Box>
                   <Typography variant="body1" sx={{ fontWeight: 800, color: '#191b23', fontSize: '0.92rem', fontFamily: 'Inter' }}>
@@ -153,7 +156,6 @@ export default function NotificationTable({ registros, onSelect }: TableProps) {
             <Box onClick={() => setPagina(prev => Math.min(prev + 1, totalPaginas))} sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer', border: '1px solid #cbd5e1', bgcolor: '#ffffff', color: '#004a99', fontWeight: 700, fontSize: '0.85rem', userSelect: 'none', '&:hover': { bgcolor: '#f1f5f9' } }}>›</Box>
           </Box>
         </Box>
-
       </Paper>
     </Box>
   );
