@@ -79,17 +79,27 @@ export async function getResolutions(): Promise<DirectusResolucion[]> {
   }
 }
 
+export interface PrefixValidationResult {
+  exists: boolean;
+  ultra_id?: number;
+}
+
 /**
- * Verifica si existe un prefijo para una empresa dada en acc_prefix_resolutions
+ * Verifica si existe un prefijo para una empresa dada en acc_prefix_resolutions y obtiene su ultra_id si existe
  */
-export async function checkPrefixExists(prefix: string, businessName: string): Promise<boolean> {
-  if (!businessName || !prefix) return false;
+export async function checkPrefixExists(prefix: string, businessName: string): Promise<PrefixValidationResult> {
+  if (!businessName || !prefix) return { exists: false };
 
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("acc_prefix_resolutions", {
-          fields: ["id"],
+          fields: [
+            "id",
+            {
+              pos_id: ["ultra_id"],
+            },
+          ],
           filter: {
             _and: [
               {
@@ -110,10 +120,17 @@ export async function checkPrefixExists(prefix: string, businessName: string): P
         })
       )
     );
-    return items && items.length > 0;
+    if (items && items.length > 0) {
+      const item = items[0] as any;
+      return {
+        exists: true,
+        ultra_id: item.pos_id?.ultra_id,
+      };
+    }
+    return { exists: false };
   } catch (error) {
     console.error("❌ Error al verificar existencia de prefijo:", error);
-    return false;
+    return { exists: false };
   }
 }
 

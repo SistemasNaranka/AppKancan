@@ -171,7 +171,6 @@ export async function LearnPDF(
     // Si hay API Key de Gemini, intentar la extracción con IA
     if (geminiApiKey) {
       const modelos = obtenerModelosIA(modelosIA);
-      console.log("Modelos de IA a intentar:", modelos);
 
       const uint8Array = new Uint8Array(arrayBufferCopy);
       // Convertir Uint8Array a base64 de manera segura
@@ -187,7 +186,6 @@ export async function LearnPDF(
       for (let i = 0; i < modelos.length; i++) {
         const modeloAUsar = modelos[i];
         try {
-          console.log(`Intentando extracción con Gemini usando modelo: ${modeloAUsar}`);
           const response = await ai.models.generateContent({
             model: modeloAUsar,
             contents: [
@@ -222,14 +220,12 @@ export async function LearnPDF(
               fecha_creacion: parsed.fecha_creacion || "",
               tienda_nombre: parsed.tienda_nombre || "",
             };
-            console.log(`Modelo usado con éxito: ${modeloAUsar}`);
-            console.log("Extracción con Gemini exitosa:", finalData);
             return finalData;
           } else {
             throw new Error("La respuesta de la IA no contenía el formato JSON esperado o le faltaba el número de resolución.");
           }
         } catch (geminiError: any) {
-          console.error(`Error con el modelo ${modeloAUsar}:`, geminiError);
+          console.error(`Error con modelo: ${modeloAUsar}`);
           geminiErrorDetails = geminiError?.message || String(geminiError);
         }
       }

@@ -13,28 +13,20 @@ import Warning from '@mui/icons-material/Warning';
 
 interface IAStatusBadgeProps {
   geminiApiKeyConfigured: boolean;
-  conexionErrorOllama: boolean;
-  modelosDisponibles: string[];
   modeloIA?: string; // Modelo de IA configurado en Directus
   className?: string; // Para tours interactivos
 }
 
 /**
- * Componente discreto que muestra el estado de conexión de Gemini y Ollama
+ * Componente discreto que muestra el estado de conexión de Gemini
  * Diseño compacto y minimalista
  */
 export function IAStatusBadge({
   geminiApiKeyConfigured,
-  conexionErrorOllama,
-  modelosDisponibles,
   modeloIA,
   className,
 }: IAStatusBadgeProps) {
   const geminiStatus = geminiApiKeyConfigured ? "connected" : "error";
-  const ollamaStatus =
-    !conexionErrorOllama && modelosDisponibles.length > 0
-      ? "connected"
-      : "warning";
 
   return (
     <Box
@@ -84,51 +76,6 @@ export function IAStatusBadge({
           </Typography>
         </Box>
       </Tooltip>
-
-      {/* Separador compacto */}
-      <Box
-        sx={{
-          width: 4,
-          height: 4,
-          borderRadius: "50%",
-          backgroundColor: "#ddd",
-        }}
-      />
-
-      {/* Estado Ollama */}
-      <Tooltip
-        title={
-          ollamaStatus === "connected"
-            ? `Ollama disponible (${modelosDisponibles.length} modelos)`
-            : "Ollama no disponible - Fallback desactivado"
-        }
-        arrow
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            cursor: "pointer",
-          }}
-        >
-          {ollamaStatus === "connected" ? (
-            <CheckCircle sx={{ fontSize: 14, color: "#4caf50" }} />
-          ) : (
-            <Warning sx={{ fontSize: 14, color: "#ff9800" }} />
-          )}
-          <Typography
-            variant="caption"
-            sx={{
-              color: ollamaStatus === "connected" ? "#4caf50" : "#ff9800",
-              fontSize: "0.7rem",
-              fontWeight: 500,
-            }}
-          >
-            Ollama
-          </Typography>
-        </Box>
-      </Tooltip>
     </Box>
   );
 }
@@ -136,19 +83,17 @@ export function IAStatusBadge({
 // ============ PROVEEDOR PROCESAMIENTO ============
 
 interface ProveedorProcesamientoProps {
-  proveedor: "gemini" | "ollama";
+  proveedor: "gemini";
   modelo?: string | null; // Nombre del modelo usado
 }
 
 /**
- * Componente discreto que muestra qué proveedor y modelo procesó la factura
+ * Componente discreto que muestra qué modelo procesó la factura con Gemini
  */
 export function ProviderProcessing({
   proveedor,
   modelo,
 }: ProveedorProcesamientoProps) {
-  const isGemini = proveedor === "gemini";
-
   return (
     <Box
       sx={{
@@ -157,7 +102,7 @@ export function ProviderProcessing({
         gap: 0.5,
         py: 0.25,
         px: 0.75,
-        backgroundColor: isGemini ? "#e8f5e9" : "#fff3e0",
+        backgroundColor: "#e8f5e9",
         borderRadius: 0.5,
         mt: 0.5,
       }}
@@ -167,18 +112,18 @@ export function ProviderProcessing({
           width: 5,
           height: 5,
           borderRadius: "50%",
-          backgroundColor: isGemini ? "#4caf50" : "#ff9800",
+          backgroundColor: "#4caf50",
         }}
       />
       <Typography
         variant="caption"
         sx={{
-          color: isGemini ? "#2e7d32" : "#e65100",
+          color: "#2e7d32",
           fontSize: "0.65rem",
           fontWeight: 500,
         }}
       >
-        {isGemini ? "Google Gemini" : "Ollama (fallback)"}
+        Google Gemini
         {modelo && (
           <Box component="span" sx={{ opacity: 0.8, ml: 0.5 }}>
             • {modelo}

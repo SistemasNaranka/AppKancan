@@ -195,37 +195,36 @@ export const useResolutionsLogic = ({
     }
   };
 
-  const integrarGuardarYSubirUltra = async () => {
-    if (!resolucionSeleccionada) return;
-
+  const ejecutarUltra = (resolucion: Resolution) => {
     let empresa = "";
-    if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
+    if (resolucion.razon_social === "NARANKA SAS") {
       empresa = "naranka";
-    } else if (
-      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
-    ) {
+    } else if (resolucion.razon_social === "MARIA FERNANDA PEREZ VELEZ") {
       empresa = "kancan";
-    } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
+    } else if (resolucion.razon_social === "KAN CAN JEANS") {
       empresa = "kancanjeans";
     }
 
-    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
-      /-/g,
-      "",
-    );
+    const fechaSoloNumeros = resolucion.fecha_creacion.replace(/-/g, "");
 
     const params = [
-      `caja:${resolucionSeleccionada.id_ultra || 2}`,
-      `prefijo:${resolucionSeleccionada.prefijo}`,
-      `resolucion:${resolucionSeleccionada.numero_formulario}`,
-      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
-      `desde:${resolucionSeleccionada.desde_numero}`,
-      `hasta:${resolucionSeleccionada.hasta_numero}`,
+      `caja:${resolucion.id_ultra ?? ""}`,
+      `prefijo:${resolucion.prefijo}`,
+      `resolucion:${resolucion.numero_formulario}`,
+      `enteFacturador:${resolucion.ente_facturador?.toLowerCase()}`,
+      `desde:${resolucion.desde_numero}`,
+      `hasta:${resolucion.hasta_numero}`,
       `fecha:${fechaSoloNumeros}`,
-      `vigencia:${resolucionSeleccionada.vigencia}`,
-      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
+      `vigencia:${resolucion.vigencia}`,
+      `motivo:${resolucion.tipo_solicitud}`,
       `empresa:${empresa}`,
     ].join(" ");
+
+    window.location.href = `ResolucionesUltra://?${encodeURIComponent(params)}`;
+  };
+
+  const integrarGuardarYSubirUltra = async () => {
+    if (!resolucionSeleccionada) return;
 
     setMostrarDialogoOpcionesIntegracion(false);
 
@@ -243,9 +242,8 @@ export const useResolutionsLogic = ({
         status: "Activo",
       });
 
-      // Codificar parámetros para URL
-      const paramsCodificados = encodeURIComponent(params);
-      window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+      // Ejecutar Ultra (lo cual imprime parámetros y link en consola) ahora que está guardada
+      ejecutarUltra(resolucionSeleccionada);
 
       const datos = await getResolutions();
       const resolucionesAplanadas = datos.map(flattenResolution);
@@ -264,35 +262,6 @@ export const useResolutionsLogic = ({
   const confirmarIntegracion = async () => {
     if (!resolucionSeleccionada) return;
 
-    let empresa = "";
-    if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
-      empresa = "naranka";
-    } else if (
-      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
-    ) {
-      empresa = "kancan";
-    } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
-      empresa = "kancanjeans";
-    }
-
-    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
-      /-/g,
-      "",
-    );
-
-    const params = [
-      `caja:${resolucionSeleccionada.id_ultra || 2}`,
-      `prefijo:${resolucionSeleccionada.prefijo}`,
-      `resolucion:${resolucionSeleccionada.numero_formulario}`,
-      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
-      `desde:${resolucionSeleccionada.desde_numero}`,
-      `hasta:${resolucionSeleccionada.hasta_numero}`,
-      `fecha:${fechaSoloNumeros}`,
-      `vigencia:${resolucionSeleccionada.vigencia}`,
-      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
-      `empresa:${empresa}`,
-    ].join(" ");
-
     setMostrarConfirmacion(false);
 
     try {
@@ -309,9 +278,8 @@ export const useResolutionsLogic = ({
         status: "Activo",
       });
 
-      // Codificar parámetros para URL
-      const paramsCodificados = encodeURIComponent(params);
-      window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+      // Ejecutar Ultra (lo cual imprime parámetros y link en consola) ahora que está guardada
+      ejecutarUltra(resolucionSeleccionada);
 
       const datos = await getResolutions();
       const resolucionesAplanadas = datos.map(flattenResolution);
@@ -338,6 +306,10 @@ export const useResolutionsLogic = ({
       return;
     }
 
+    // Verificar si el prefijo existe en la base de datos y obtener el ultra_id
+    const prefixRes = await checkPrefixExists(resultado.prefijo, resultado.razon_social);
+    setPrefijoInvalido(!prefixRes.exists);
+
     const nuevaResolucion: Resolution = {
       id: Date.now(),
       numero_formulario: resultado.numero_formulario,
@@ -357,42 +329,8 @@ export const useResolutionsLogic = ({
       tienda_nombre: resultado.tienda_nombre,
       ente_facturador: "Principal",
       empresa: "",
+      id_ultra: prefixRes.ultra_id || undefined,
     };
-
-    // --- LOG DE PRUEBA DE PARÁMETROS PARA ULTRA ---
-    let empresaLog = "";
-    if (nuevaResolucion.razon_social === "NARANKA SAS") {
-      empresaLog = "naranka";
-    } else if (nuevaResolucion.razon_social === "MARIA FERNANDA PEREZ VELEZ") {
-      empresaLog = "kancan";
-    } else if (nuevaResolucion.razon_social === "KAN CAN JEANS") {
-      empresaLog = "kancanjeans";
-    }
-
-    const fechaSoloNumeros = nuevaResolucion.fecha_creacion.replace(/-/g, "");
-    const paramsLog = [
-      `caja:${nuevaResolucion.id_ultra || 2}`,
-      `prefijo:${nuevaResolucion.prefijo}`,
-      `resolucion:${nuevaResolucion.numero_formulario}`,
-      `enteFacturador:${nuevaResolucion.ente_facturador?.toLowerCase()}`,
-      `desde:${nuevaResolucion.desde_numero}`,
-      `hasta:${nuevaResolucion.hasta_numero}`,
-      `fecha:${fechaSoloNumeros}`,
-      `vigencia:${nuevaResolucion.vigencia}`,
-      `motivo:${nuevaResolucion.tipo_solicitud}`,
-      `empresa:${empresaLog}`,
-    ].join(" ");
-    
-    console.log("==========================================================");
-    console.log("📂 PDF Procesado con Éxito");
-    console.log("🔗 Parámetros para protocolo Ultra:", paramsLog);
-    console.log("🌐 URL Completa del Deep Link:", `ResolucionesUltra://?${encodeURIComponent(paramsLog)}`);
-    console.log("==========================================================");
-    // -----------------------------------------------
-
-    // Verificar si el prefijo existe en la base de datos
-    const existePrefijo = await checkPrefixExists(resultado.prefijo, resultado.razon_social);
-    setPrefijoInvalido(!existePrefijo);
 
     setResolucionSeleccionada(nuevaResolucion);
     setCargando(false);
@@ -401,38 +339,7 @@ export const useResolutionsLogic = ({
   const ejecutarAppUltra = () => {
     if (!resolucionSeleccionada) return;
 
-    let empresa = "";
-    if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
-      empresa = "naranka";
-    } else if (
-      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
-    ) {
-      empresa = "kancan";
-    } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
-      empresa = "kancanjeans";
-    }
-
-    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
-      /-/g,
-      "",
-    );
-
-    const params = [
-      `caja:${resolucionSeleccionada.id_ultra || 2}`,
-      `prefijo:${resolucionSeleccionada.prefijo}`,
-      `resolucion:${resolucionSeleccionada.numero_formulario}`,
-      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
-      `desde:${resolucionSeleccionada.desde_numero}`,
-      `hasta:${resolucionSeleccionada.hasta_numero}`,
-      `fecha:${fechaSoloNumeros}`,
-      `vigencia:${resolucionSeleccionada.vigencia}`,
-      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
-      `empresa:${empresa}`,
-    ].join(" ");
-
-    // Codificar parámetros para URL
-    const paramsCodificados = encodeURIComponent(params);
-    window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+    ejecutarUltra(resolucionSeleccionada);
 
     setMostrarDialogoYaIntegrada(false);
     showSnackbar("Aplicación Ultra ejecutada", "info");
