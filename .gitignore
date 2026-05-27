@@ -46,25 +46,31 @@ desktop.ini
 
 # AI and Developer Tools
 .gemini/
+.gemini
 .kilo/
 .kiro/
 .qoder/
 .cursor/
-.mcp.json
-.opencode.json
-.claudeignore
 .cursorrules
+.windsurf/
 .windsurfrules
 .kilocode
 .claude/
+.claudeignore
 .code-review-graph/
 .code-review-graph
+.mcp.json
+.opencode.json
 
 # AI documentation
 AGENTS.md
+agents.md
 CLAUDE.md
+claude.md
 GEMINI.md
+gemini.md
 QODER.md
+qoder.md
 
 # Junk / Temporary Reports
 8dd0132
@@ -73,14 +79,7 @@ temp_report/
 # Internal project documentation
 docs/REQUISITOS_GESTION_PROYECTOS.md
 GUIDE_TECNICA.md
-.gemini
-8dd0132
-.mcp.json
-AGENTS.md
-CLAUDE.md
-GEMINI.md
-QODER.md
-.cursor/
-.windsurf/
-.gemini/
-.windsurfrules
+
+# Project Exclusions
+src/test/
+docs/Server_notificaciones.md
