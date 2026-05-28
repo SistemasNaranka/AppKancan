@@ -232,7 +232,7 @@ export const useResolutionsLogic = ({
 
       // Codificar parámetros para URL
       const paramsCodificados = encodeURIComponent(params);
-      window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
 
       const datos = await getResolutions();
       const resolucionesAplanadas = datos.map(flattenResolution);
@@ -298,7 +298,7 @@ export const useResolutionsLogic = ({
 
       // Codificar parámetros para URL
       const paramsCodificados = encodeURIComponent(params);
-      window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
 
       const datos = await getResolutions();
       const resolucionesAplanadas = datos.map(flattenResolution);
@@ -384,7 +384,7 @@ export const useResolutionsLogic = ({
 
     // Codificar parámetros para URL
     const paramsCodificados = encodeURIComponent(params);
-    window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
 
     setMostrarDialogoYaIntegrada(false);
     showSnackbar("Aplicación Ultra ejecutada", "info");

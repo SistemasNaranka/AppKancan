@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
-import { Paper, Box, Typography, IconButton, Menu, MenuItem } from '@mui/material';
+import { Paper, Box, Typography, IconButton, Menu, MenuItem, LinearProgress } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { INotification } from '../interfaces/notification.interface';
 
 interface TableProps {
   registros: INotification[];
+  cargando?: boolean;
   onSelect: (n: INotification | null) => void;
+  onEliminar?: (id: string) => Promise<void> | void;
+  onRefrescar?: () => Promise<void> | void;
 }
 
-export default function NotificationTable({ registros, onSelect }: TableProps) {
+export default function NotificationTable({
+  registros,
+  cargando = false,
+  onSelect,
+  onEliminar,
+  onRefrescar
+}: TableProps) {
   const [pagina, setPagina] = useState(1);
   const porPagina = 5;
 
@@ -54,9 +63,23 @@ export default function NotificationTable({ registros, onSelect }: TableProps) {
           border: '1px solid #e2e8f0',
           bgcolor: '#ffffff',
           overflow: 'hidden',
-          boxShadow: '0px 2px 8px rgba(15, 23, 42, 0.02)'
+          boxShadow: '0px 2px 8px rgba(15, 23, 42, 0.02)',
+          position: 'relative'
         }}
       >
+        {cargando && (
+          <LinearProgress
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              bgcolor: 'transparent',
+              '& .MuiLinearProgress-bar': { bgcolor: '#004a99' }
+            }}
+          />
+        )}
         {/* ENCABEZADO DE LA TABLA - dentro del Paper con fondo azul */}
         <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, gap: 3, px: 3, py: 1.5, bgcolor: '#eff6ff' }}>
           <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', fontFamily: 'Inter' }}>ASUNTO</Typography>
@@ -67,62 +90,70 @@ export default function NotificationTable({ registros, onSelect }: TableProps) {
         </Box>
 
         {/* FILAS */}
-        {dataVisible.map((item) => {
-          const badge = getBadgeConfig(item.tipo_notificacion);
-          return (
-            <Box
-              key={item.id}
-              sx={{
-                borderBottom: '1px solid #f1f5f9',
-                '&:hover': { bgcolor: '#f8fafc' },
-                transition: 'background-color 0.2s'
-              }}
-            >
-              <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, alignItems: 'center', gap: 3, p: 2.5, px: 3 }}>
+        {dataVisible.length === 0 ? (
+          <Box sx={{ p: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="body2" sx={{ color: '#64748b', fontFamily: 'Inter', fontWeight: 600 }}>
+              {cargando ? 'Cargando notificaciones...' : 'No se encontraron notificaciones'}
+            </Typography>
+          </Box>
+        ) : (
+          dataVisible.map((item) => {
+            const badge = getBadgeConfig(item.tipo_notificacion);
+            return (
+              <Box
+                key={item.id}
+                sx={{
+                  borderBottom: '1px solid #f1f5f9',
+                  '&:hover': { bgcolor: '#f8fafc' },
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, alignItems: 'center', gap: 3, p: 2.5, px: 3 }}>
 
-                {/* Asunto */}
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 800, color: '#191b23', fontSize: '0.92rem', fontFamily: 'Inter' }}>
-                    {item.titulo}
+                  {/* Asunto */}
+                  <Box>
+                    <Typography variant="body1" sx={{ fontWeight: 800, color: '#191b23', fontSize: '0.92rem', fontFamily: 'Inter' }}>
+                      {item.titulo}
+                    </Typography>
+                  </Box>
+
+                  {/* Mensaje */}
+                  <Typography variant="body2" sx={{ color: '#424754', fontSize: '0.88rem', pr: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'Inter' }}>
+                    {item.mensaje}
                   </Typography>
-                </Box>
 
-                {/* Mensaje */}
-                <Typography variant="body2" sx={{ color: '#424754', fontSize: '0.88rem', pr: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'Inter' }}>
-                  {item.mensaje}
-                </Typography>
+                  {/* Estado Badge */}
+                  <Box sx={{ display: 'flex' }}>
+                    <Box sx={{ bgcolor: badge.bg, color: badge.color, px: 2.2, py: 0.5, borderRadius: '12px', fontSize: '0.72rem', fontWeight: 800, textAlign: 'center', minWidth: '90px', letterSpacing: '0.3px', fontFamily: 'Inter' }}>
+                      {item.tipo_notificacion}
+                    </Box>
+                  </Box>
 
-                {/* Estado Badge */}
-                <Box sx={{ display: 'flex' }}>
-                  <Box sx={{ bgcolor: badge.bg, color: badge.color, px: 2.2, py: 0.5, borderRadius: '12px', fontSize: '0.72rem', fontWeight: 800, textAlign: 'center', minWidth: '90px', letterSpacing: '0.3px', fontFamily: 'Inter' }}>
-                    {item.tipo_notificacion}
+                  {/* Fecha y Hora */}
+                  <Box>
+                    <Typography sx={{ color: '#191b23', fontWeight: 800, fontSize: '0.88rem', fontFamily: 'Inter' }}>
+                      {item.fecha}
+                    </Typography>
+                    <Typography sx={{ color: '#424754', fontWeight: 600, fontSize: '0.75rem', mt: 0.2, fontFamily: 'Inter' }}>
+                      {item.hora}
+                    </Typography>
+                  </Box>
+
+                  {/* Acciones */}
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleOpenMenu(e, item)}
+                      sx={{ color: '#424754', '&:hover': { bgcolor: '#e2e8f0' } }}
+                    >
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton>
                   </Box>
                 </Box>
-
-                {/* Fecha y Hora */}
-                <Box>
-                  <Typography sx={{ color: '#191b23', fontWeight: 800, fontSize: '0.88rem', fontFamily: 'Inter' }}>
-                    {item.fecha}
-                  </Typography>
-                  <Typography sx={{ color: '#424754', fontWeight: 600, fontSize: '0.75rem', mt: 0.2, fontFamily: 'Inter' }}>
-                    {item.hora}
-                  </Typography>
-                </Box>
-
-                {/* Acciones */}
-                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => handleOpenMenu(e, item)}
-                    sx={{ color: '#424754', '&:hover': { bgcolor: '#e2e8f0' } }}
-                  >
-                    <MoreVertIcon fontSize="small" />
-                  </IconButton>
-                </Box>
               </Box>
-            </Box>
-          );
-        })}
+            );
+          })
+        )}
 
         {/* MENÚ FLOTANTE */}
         <Menu
@@ -138,6 +169,17 @@ export default function NotificationTable({ registros, onSelect }: TableProps) {
           <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', py: 1, fontFamily: 'Inter' }}>
             Ver detalles
           </MenuItem>
+          {onEliminar && (
+            <MenuItem
+              onClick={() => {
+                if (selectedRow) onEliminar(selectedRow.id);
+                handleCloseMenu();
+              }}
+              sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#dc2626', py: 1, fontFamily: 'Inter' }}
+            >
+              Eliminar
+            </MenuItem>
+          )}
         </Menu>
 
         {/* PIE DE TABLA */}

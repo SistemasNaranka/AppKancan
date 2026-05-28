@@ -58,45 +58,54 @@ function getOffset(index: number, total: number, open: boolean) {
    ══════════════════════════════════════════════════════════════ */
 
 const css = `
-//   @keyframes fab-spin {
-//     to { transform: rotate(360deg); }
-//   }
+  @keyframes fab-pulse {
+    0%, 100% {
+      box-shadow: 0 4px 20px rgba(0,70,128,0.45), 0 0 0 0 rgba(0,70,128,0.25);
+    }
+    55% {
+      box-shadow: 0 4px 20px rgba(0,70,128,0.45), 0 0 0 10px rgba(0,70,128,0);
+    }
+  }
 
-//   .fab-main {
-//     transition: background 0.3s ease, transform 0.25s ease, filter 0.18s ease !important;
-//   }
-//   .fab-main:hover {
-//     filter: brightness(1.12);
-//     transform: scale(1.06) !important;
-//   }
-//   .fab-main:active {
-//     transform: scale(0.94) !important;
-//   }
+  @keyframes fab-spin {
+    to { transform: rotate(360deg); }
+  }
 
-//   .fab-item-btn {
-//     transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
-//   }
-//   .fab-item-btn:hover {
-//     filter: brightness(1.15);
-//     transform: scale(1.13) !important;
-//     box-shadow: 0 6px 22px rgba(0, 70, 128, 0.5) !important;
-//   }
-//   .fab-item-btn:active {
-//     transform: scale(0.93) !important;
-//   }
+  .fab-main {
+    transition: background 0.3s ease, transform 0.25s ease, filter 0.18s ease !important;
+  }
+  .fab-main:hover {
+    filter: brightness(1.12);
+    transform: scale(1.06) !important;
+  }
+  .fab-main:active {
+    transform: scale(0.94) !important;
+  }
 
-//   /* Label: oculto por defecto, visible al hacer hover sobre el wrapper del ítem */
-//   .fab-item-wrapper .fab-item-label {
-//     opacity: 0;
-//     transform: translateY(-50%) translateX(4px);
-//     transition: opacity 0.18s ease, transform 0.18s ease;
-//     pointer-events: none;
-//   }
-//   .fab-item-wrapper:hover .fab-item-label {
-//     opacity: 1;
-//     transform: translateY(-50%) translateX(0);
-//   }
-// `;
+  .fab-item-btn {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
+  }
+  .fab-item-btn:hover {
+    filter: brightness(1.15);
+    transform: scale(1.13) !important;
+    box-shadow: 0 6px 22px rgba(0, 70, 128, 0.5) !important;
+  }
+  .fab-item-btn:active {
+    transform: scale(0.93) !important;
+  }
+
+  /* Label: oculto por defecto, visible al hacer hover sobre el ítem */
+  .fab-item-wrapper .fab-item-label {
+    opacity: 0;
+    transform: translateY(-50%) translateX(4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: none;
+  }
+  .fab-item-wrapper:hover .fab-item-label {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+`;
 
 /* ══════════════════════════════════════════════════════════════
    COMPONENTE
