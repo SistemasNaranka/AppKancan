@@ -19,7 +19,12 @@ interface IDirectusNotification {
 }
 
 const mapTipoToDirectus = (tipo: ICreateNotification["tipo"]): string => {
-  const map = { info: "INFO", success: "SUCCESS", warning: "WARNING", error: "ERROR" };
+  const map: Record<ICreateNotification["tipo"], string> = { 
+    info: "INFO", 
+    success: "SUCCESS", 
+    warning: "WARNING", 
+    error: "ERROR" 
+  };
   return map[tipo] ?? "INFO";
 };
 
@@ -43,7 +48,7 @@ export const servicioNotificaciones = {
     try {
       const items = await withAutoRefresh(() =>
         directus.request(
-          readItems("core_notifications", {
+          readItems("core_notifications" as any, {
             fields: ["id", "title", "message", "notification_type", "is_persistent", "duration_seconds", "destinations_raw", "sender_name", "date_created", "action_route"],
             sort: ["-date_created"],
             limit: 500,
@@ -79,7 +84,7 @@ export const servicioNotificaciones = {
     try {
       const items = await withAutoRefresh(() =>
         directus.request(
-          readItems("core_notifier_clients", {
+          readItems("core_notifier_clients" as any, {
             fields: ["id", "code", "name"],
             sort: ["name"],
           })
@@ -96,7 +101,7 @@ export const servicioNotificaciones = {
     try {
       const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("core_notification_groups", {
+        readItems("core_notification_groups" as any, {
           fields: ["id", "name"],
           sort: ["name"],
         })
@@ -154,7 +159,7 @@ export const servicioNotificaciones = {
   async eliminarNotificacion(id: string): Promise<void> {
     try {
       const cleanId = id.replace(/^#KM-/, "");
-      await withAutoRefresh(() => directus.request(deleteItem("core_notifications", cleanId)));
+      await withAutoRefresh(() => directus.request(deleteItem("core_notifications" as any, cleanId as any)));
       console.log(`✅ Notificación ${id} eliminada`);
     } catch (error) {
       console.error("❌ Error al eliminar notificación:", error);
