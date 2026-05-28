@@ -71,7 +71,7 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
     }
     if (!form.email.trim()) {
       nuevosErrores.email = 'El correo es obligatorio';
-    } else if (!formatoCorreoValido(form.email)) {
+    } else if (!formatoCorreoValido(form.email.trim())) {
       nuevosErrores.email = 'Ingrese un correo válido (ej: usuario@empresa.com)';
     }
     setErrores(nuevosErrores);
@@ -81,7 +81,11 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
   const handleGuardar = async () => {
     if (!validar()) return;
     setGuardando(true);
-    const ok = await onGuardar(form);
+    const ok = await onGuardar({
+      ...form,
+      full_name: form.full_name.trim(),
+      email: form.email.trim(),
+    });
     setGuardando(false);
     if (ok) {
       setForm(INITIAL);
@@ -100,7 +104,7 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}>
+      slotProps={{ paper: { sx: { borderRadius: '16px', p: 1 } } }}>
 
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
         <Typography variant="h6" fontWeight={700} color="#0f172a">Agregar Contacto</Typography>

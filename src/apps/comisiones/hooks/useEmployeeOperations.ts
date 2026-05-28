@@ -163,7 +163,7 @@ export const useEmployeeOperations = (
       asesor,
       cargoAsignado: cargoSeleccionado,
       presupuesto: 0,
-      tiendaId: typeof asesor.store_id === 'object' ? asesor.store_id.id : asesor.store_id
+      tiendaId: tiendaUsuario?.id || (typeof asesor.store_id === 'object' ? asesor.store_id.id : asesor.store_id)
     };
 
     const nuevaLista = [...empleadosAsignados, nuevoEmpleado];
@@ -247,7 +247,7 @@ export const useEmployeeOperations = (
         } else {
           paraInsertar.push({ 
             advisor_id: emp.asesor.id, date: fecha, budget: emp.presupuesto, 
-            store_id: emp.tiendaId, position_id: cargos.find(c => c.name === emp.cargoAsignado)?.id || 2 
+            store_id: tiendaUsuario?.id || emp.tiendaId, position_id: cargos.find(c => c.name.toLowerCase() === emp.cargoAsignado.toLowerCase())?.id || 2 
           });
         }
       });

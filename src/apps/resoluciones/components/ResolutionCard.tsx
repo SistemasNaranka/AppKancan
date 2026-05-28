@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Card, CardContent, Typography, Divider } from "@mui/material";
+import { Box, Card, CardContent, Typography, Divider, CircularProgress } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { Resolution } from "../types";
 import StatusBadge from "./StatusBadge";
@@ -11,6 +11,8 @@ interface ResolutionCardProps {
   onIntegrar: () => void;
   onLimpiar: () => void;
   onSubirArchivo: (archivo: File) => void;
+  onHabilitar?: () => void;
+  cargando?: boolean;
 }
 
 const ResolutionCard: React.FC<ResolutionCardProps> = ({
@@ -18,6 +20,8 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
   onIntegrar,
   onLimpiar,
   onSubirArchivo,
+  onHabilitar,
+  cargando = false,
 }) => {
   // Calcular días restantes si hay resolución
   const infoVencimiento =
@@ -92,13 +96,51 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
             onClick={() => document.getElementById("input-pdf")?.click()}
             variante="secundario"
             icono={<UploadFileIcon />}
+            disabled={cargando}
           />
         </label>
       </>
 
       <Card sx={{ mt: 2, borderRadius: 3 }}>
         <CardContent>
-          {resolucion ? (
+          {cargando ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                py: 6,
+                gap: 2,
+              }}
+            >
+              <CircularProgress
+                size={48}
+                thickness={4.5}
+                sx={{
+                  color: "#004680",
+                }}
+              />
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: 600,
+                  color: "#1a2a3a",
+                  animation: "pulse 1.5s infinite",
+                  "@keyframes pulse": {
+                    "0%": { opacity: 0.6 },
+                    "50%": { opacity: 1 },
+                    "100%": { opacity: 0.6 },
+                  },
+                }}
+              >
+                Analizando resolución...
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Esto puede tomar unos segundos
+              </Typography>
+            </Box>
+          ) : resolucion ? (
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               <Box>
                 {campos.map((campo) => {
@@ -182,6 +224,13 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
               variante="primario"
               disabled={!resolucion}
             />
+            {resolucion && resolucion.estado === "Pendiente" && onHabilitar && (
+              <Button
+                texto="Vigente"
+                onClick={onHabilitar}
+                variante="exito"
+              />
+            )}
             <Button
               variante="peligro"
               texto="Limpiar"

@@ -21,9 +21,13 @@ import { LearnPDF } from "../pdfReader";
 import { useResolutionsLogic } from "../hooks/useResolucionesLogic";
 import { ExportExcel } from "../utils/exportarExcel";
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
+import { useAuth } from "@/auth/hooks/useAuth";
 
 const ResolutionsHome = () => {
   const { showSnackbar } = useGlobalSnackbar();
+  const { user } = useAuth();
+  const geminiApiKey = user?.ia_key;
+  const modelosIA = user?.models_ia;
 
   const {
     busqueda,
@@ -31,6 +35,7 @@ const ResolutionsHome = () => {
     filtroEstado,
     resolucionSeleccionada,
     paginaActual,
+    resoluciones,
     cargandoDatos,
     mostrarConfirmacion,
     mostrarDialogoYaIntegrada,
@@ -54,18 +59,27 @@ const ResolutionsHome = () => {
     handleSubirArchivo,
     integrarSoloGuardar,
     integrarGuardarYSubirUltra,
+    handleHabilitar,
     setPaginaActual,
     setMostrarConfirmacion,
     setMostrarDialogoYaIntegrada,
     setMostrarDialogoOpcionesIntegracion,
+    cargandoArchivo,
+    prefijoInvalido,
+    mostrarDialogoPrefijoNoEncontrado,
+    setMostrarDialogoPrefijoNoEncontrado,
   } = useResolutionsLogic({ showSnackbar });
+
+  const isSeleccionadaGuardada =
+    resolucionSeleccionada &&
+    resoluciones.some((r) => r.id === resolucionSeleccionada.id);
 
   const handleExportar = async () => {
     await ExportExcel(resolucionesFiltradas, (mensaje, tipo) => { });
   };
 
   const handleSubirArchivoWrapper = (archivo: File) => {
-    handleSubirArchivo(archivo, LearnPDF);
+    handleSubirArchivo(archivo, (f) => LearnPDF(f, geminiApiKey, modelosIA));
   };
 
   return (
@@ -86,6 +100,8 @@ const ResolutionsHome = () => {
           onIntegrar={handleIntegrar}
           onLimpiar={handleLimpiar}
           onSubirArchivo={handleSubirArchivoWrapper}
+          onHabilitar={isSeleccionadaGuardada ? handleHabilitar : undefined}
+          cargando={cargandoArchivo}
         />
       </Box>
 
@@ -216,7 +232,7 @@ const ResolutionsHome = () => {
         <Dialog
           open={mostrarConfirmacion}
           onClose={() => setMostrarConfirmacion(false)}
-          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+          slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
         >
           <DialogTitle sx={{ fontWeight: "bold" }}>
             Confirmar Integración
@@ -248,7 +264,7 @@ const ResolutionsHome = () => {
         <Dialog
           open={mostrarDialogoYaIntegrada}
           onClose={() => setMostrarDialogoYaIntegrada(false)}
-          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+          slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
         >
           <DialogTitle
             sx={{
@@ -287,7 +303,7 @@ const ResolutionsHome = () => {
         <Dialog
           open={mostrarDialogoOpcionesIntegracion}
           onClose={() => setMostrarDialogoOpcionesIntegracion(false)}
-          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+          slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
         >
           <DialogTitle
             sx={{
@@ -319,6 +335,40 @@ const ResolutionsHome = () => {
               texto="Guardar y subir a Ultra"
               variante="primario"
               onClick={integrarGuardarYSubirUltra}
+            />
+          </DialogActions>
+        </Dialog>
+
+        {/* Diálogo - Prefijo no encontrado */}
+        <Dialog
+          open={mostrarDialogoPrefijoNoEncontrado}
+          onClose={() => setMostrarDialogoPrefijoNoEncontrado(false)}
+          slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
+        >
+          <DialogTitle
+            sx={{
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <WarningAmberIcon color="error" />
+            Prefijo no registrado
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              El prefijo <strong>{resolucionSeleccionada?.prefijo}</strong> no está registrado para la empresa <strong>{resolucionSeleccionada?.razon_social}</strong> en la base de datos.
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+              No es posible integrar esta resolución. Por favor, registra primero el prefijo en la base de datos antes de proceder.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button
+              texto="Aceptar"
+              variante="primario"
+              onClick={() => setMostrarDialogoPrefijoNoEncontrado(false)}
             />
           </DialogActions>
         </Dialog>

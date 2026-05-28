@@ -4,7 +4,7 @@ import { Button as MuiButton } from "@mui/material";
 interface ButtonProps {
   texto: string;
   onClick?: () => void | Promise<void>;
-  variante?: "primario" | "secundario" | "peligro";
+  variante?: "primario" | "secundario" | "peligro" | "exito";
   disabled?: boolean;
   icono?: React.ReactNode;
   href?: string;
@@ -52,6 +52,15 @@ const Button: React.FC<ButtonProps> = ({
             backgroundColor: "#cc1d1dff",
             border: "2px solid #transparent",
             boxShadow: "none",
+          },
+        };
+      case "exito":
+        return {
+          backgroundColor: "#2e7d32",
+          color: "white",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            backgroundColor: "#1b5e20",
           },
         };
       default:

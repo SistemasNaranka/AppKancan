@@ -22,9 +22,9 @@ interface PeekButtonProps {
    CONSTANTES
    ══════════════════════════════════════════════════════════════ */
 
-const MAIN = 56;   // diámetro botón principal
-const ITEM = 42;   // diámetro cada acción
-const RADIUS = 92; // radio del arco
+const MAIN = 44;   // diámetro botón principal
+const ITEM = 34;   // diámetro cada acción
+const RADIUS = 78; // radio del arco
 
 /* ══════════════════════════════════════════════════════════════
    HELPERS
@@ -45,9 +45,6 @@ function getAngleDeg(index: number, total: number): number {
 function getOffset(index: number, total: number, open: boolean) {
   const deg = getAngleDeg(index, total);
   const rad = (deg * Math.PI) / 180;
-  // Sistema CSS: x positivo = derecha, y positivo = abajo
-  // cos(θ) positivo → derecha; negativo → izquierda
-  // -sin(θ) negativo → arriba
   const dx = open ? Math.cos(rad) * RADIUS : 0;
   const dy = open ? -Math.sin(rad) * RADIUS : 0;
   return { dx, dy };
@@ -112,7 +109,8 @@ const css = `
    ══════════════════════════════════════════════════════════════ */
 
 export default function PeekButton({ apps = [] }: PeekButtonProps) {
-  const [open, setOpen] = useState(false);
+  const [open,    setOpen]    = useState(false);
+  const [hovered, setHovered] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Cierra el menú al hacer click fuera del contenedor — sin backdrop bloqueante
@@ -140,13 +138,19 @@ export default function PeekButton({ apps = [] }: PeekButtonProps) {
       {/* Contenedor principal — ancla del arco */}
       <div
         ref={containerRef}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
-          position: "fixed",
-          bottom: 28,
-          right: 28,
-          zIndex: 999,
-          width: MAIN,
-          height: MAIN,
+          position  : "fixed",
+          top       : "50%",
+          right     : 16,
+          zIndex    : 999,
+          width     : MAIN,
+          height    : MAIN,
+          // En reposo: casi invisible. En hover/open: completamente visible.
+          opacity   : open || hovered ? 1 : 0.3,
+          transform : open || hovered ? "translateY(-50%) scale(1)" : "translateY(-50%) scale(0.82)",
+          transition: "opacity 0.25s ease, transform 0.25s ease",
         }}
       >
         {/* ── Ítems del arco ── */}
@@ -271,7 +275,7 @@ export default function PeekButton({ apps = [] }: PeekButtonProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            animation: open ? "none" : "fab-pulse 2.8s ease-in-out infinite",
+            animation: "none",
             zIndex: 1002,
             outline: "none",
             padding: 0,
@@ -287,9 +291,9 @@ export default function PeekButton({ apps = [] }: PeekButtonProps) {
             }}
           >
             {open ? (
-              <CloseIcon sx={{ fontSize: 26 }} />
+              <CloseIcon sx={{ fontSize: 20 }} />
             ) : (
-              <HelpOutlineIcon sx={{ fontSize: 30 }} />
+              <HelpOutlineIcon sx={{ fontSize: 22 }} />
             )}
           </div>
         </button>

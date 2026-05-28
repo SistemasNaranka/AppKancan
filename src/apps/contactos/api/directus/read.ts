@@ -1,7 +1,7 @@
 // src/apps/contactos/api/directus/read.ts
 import directus from '@/services/directus/directus';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
-import { readItems, readItem } from '@directus/sdk';
+import { readItems, readItem, readUsers } from '@directus/sdk';
 import type { Contactos } from '../../types/contact';
 
 const COLLECTION = 'adm_contacts';
@@ -56,24 +56,24 @@ export async function getContactoById(id: number): Promise<Contactos | null> {
   }
 }
 
-export async function getContactUsers(contactId: number): Promise<{ id: string; first_name: string; last_name: string }[]> {
+export async function getContactUsers(contactId: number): Promise<{ id: string; first_name: string; last_name: string; status?: string }[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems('adm_user_contacts', {
           filter: { contact_id: { _eq: contactId } },
-          fields: ['user_id.id', 'user_id.first_name', 'user_id.last_name'],
+          fields: ['user_id.id', 'user_id.first_name', 'user_id.last_name', 'status'],
           limit: -1,
         } as any),
       ),
     );
     return (items as any[])
-      .map((r) => r?.user_id)
-      .filter(Boolean)
-      .map((u) => ({
-        id: u.id,
-        first_name: u.first_name || '',
-        last_name: u.last_name || '',
+      .filter((r) => r?.user_id)
+      .map((r) => ({
+        id: r.user_id.id,
+        first_name: r.user_id.first_name || '',
+        last_name: r.user_id.last_name || '',
+        status: r.status || 'Activo',
       }));
   } catch {
     return [];
@@ -95,6 +95,28 @@ export async function getDepartamentos(): Promise<{ id: number; name: string }[]
     return items.map((item: any) => ({ id: item.id, name: item.name }));
   } catch (error) {
     console.error('❌ Error al cargar departamentos:', error);
+    return [];
+  }
+}
+
+export async function getDirectusUsers(): Promise<{ id: string; first_name: string; last_name: string; email: string }[]> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readUsers({
+          fields: ['id', 'first_name', 'last_name', 'email'],
+          limit: -1,
+        }),
+      ),
+    );
+    return (items || []).map((u: any) => ({
+      id: u.id,
+      first_name: u.first_name || '',
+      last_name: u.last_name || '',
+      email: u.email || '',
+    }));
+  } catch (error) {
+    console.error('❌ Error al cargar usuarios de Directus:', error);
     return [];
   }
 }

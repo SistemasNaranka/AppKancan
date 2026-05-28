@@ -4,6 +4,8 @@ import {
   Box, Typography, Button, TextField, Avatar, Chip, Stack,
   Paper, CircularProgress, Alert, Divider, InputAdornment,
   RadioGroup, FormControlLabel, Radio, IconButton,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  FormControl, InputLabel, Select, MenuItem, Autocomplete,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -11,8 +13,11 @@ import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
-import { getContactoById, getContactUsers } from '../api/directus/read';
-import { updateContacto } from '../api/directus/create';
+import AddIcon from '@mui/icons-material/Add';
+import LinkIcon from '@mui/icons-material/Link';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
+import { getContactoById, getContactUsers, getDirectusUsers } from '../api/directus/read';
+import { updateContacto, linkUserToContact, unlinkUserFromContact } from '../api/directus/create';
 import { Contactos } from '../types/contact';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
@@ -41,7 +46,12 @@ export default function ContactoDetallePage() {
   const [guardando, setGuardando] = useState(false);
   const [form, setForm] = useState({ full_name: '', email: '', phone_number: '', visibility_type: 'Universal' as Contactos['visibility_type'] });
   const [errores, setErrores] = useState<Record<string, string>>({});
-  const [usuariosVinculados, setUsuariosVinculados] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
+  const [usuariosVinculados, setUsuariosVinculados] = useState<{ id: string; first_name: string; last_name: string; status?: string }[]>([]);
+  const [openVinculacionModal, setOpenVinculacionModal] = useState(false);
+  const [todosLosUsuarios, setTodosLosUsuarios] = useState<{ id: string; first_name: string; last_name: string; email?: string }[]>([]);
+  const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState('');
+  const [guardandoVinculacion, setGuardandoVinculacion] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -100,6 +110,67 @@ export default function ContactoDetallePage() {
     setEditMode(false);
   };
 
+  const handleOpenVinculacionModal = async () => {
+    setOpenVinculacionModal(true);
+    setCargandoUsuarios(true);
+    const users = await getDirectusUsers();
+    setTodosLosUsuarios(users);
+    setCargandoUsuarios(false);
+  };
+
+  const handleLinkUser = async () => {
+    if (!usuarioSeleccionado || !contacto) return;
+    setGuardandoVinculacion(true);
+    const ok = await linkUserToContact(contacto.id, usuarioSeleccionado);
+    setGuardandoVinculacion(false);
+    if (ok) {
+      const userObj = todosLosUsuarios.find((u) => u.id === usuarioSeleccionado);
+      if (userObj) {
+        setUsuariosVinculados((prev) => {
+          const index = prev.findIndex((u) => u.id === usuarioSeleccionado);
+          if (index !== -1) {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], status: 'Activo' };
+            return updated;
+          } else {
+            return [...prev, { ...userObj, status: 'Activo' }];
+          }
+        });
+      }
+      setUsuarioSeleccionado('');
+      setOpenVinculacionModal(false);
+      showSnackbar('Usuario vinculado exitosamente', 'success');
+    } else {
+      showSnackbar('Error al vincular el usuario', 'error');
+    }
+  };
+
+  const handleUnlinkUser = async (userId: string) => {
+    if (!contacto) return;
+    const ok = await unlinkUserFromContact(contacto.id, userId);
+    if (ok) {
+      setUsuariosVinculados((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: 'Inactivo' } : u))
+      );
+      showSnackbar('Usuario desvinculado exitosamente', 'success');
+    } else {
+      showSnackbar('Error al desvincular el usuario', 'error');
+    }
+  };
+
+  const handleRelinkUser = async (userId: string) => {
+    if (!contacto) return;
+    const ok = await linkUserToContact(contacto.id, userId);
+    if (ok) {
+      setUsuariosVinculados((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: 'Activo' } : u))
+      );
+      showSnackbar('Usuario vinculado exitosamente', 'success');
+    } else {
+      showSnackbar('Error al vincular el usuario', 'error');
+    }
+  };
+
   if (cargando) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -115,6 +186,17 @@ export default function ContactoDetallePage() {
       </Box>
     );
   }
+
+  const usuariosDisponibles = todosLosUsuarios.filter(
+    (u) => !usuariosVinculados.some((uv) => uv.id === u.id && uv.status === 'Activo')
+  );
+
+  const hasChanges = contacto ? (
+    (form.full_name || '').trim() !== (contacto.full_name || '').trim() ||
+    (form.email || '').trim() !== (contacto.email || '').trim() ||
+    (form.phone_number || '').trim() !== (contacto.phone_number || '').trim() ||
+    form.visibility_type !== contacto.visibility_type
+  ) : false;
 
   const displayName = editMode ? form.full_name || contacto.full_name : contacto.full_name;
 
@@ -163,7 +245,7 @@ export default function ContactoDetallePage() {
                   variant="contained"
                   startIcon={<SaveIcon />}
                   onClick={handleSave}
-                  disabled={guardando}
+                  disabled={guardando || !hasChanges}
                   sx={{ bgcolor: '#004a99', borderRadius: '12px', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#003580' } }}
                 >
                   {guardando ? 'Guardando...' : 'Guardar'}
@@ -228,23 +310,77 @@ export default function ContactoDetallePage() {
           </Paper>
 
           {/* Usuarios Vinculados card */}
-          {usuariosVinculados.length > 0 && (
+          {(contacto.visibility_type === 'Restringido' || usuariosVinculados.length > 0) && (
             <Paper elevation={0} sx={{ p: 3, borderRadius: '16px', border: '1px solid #e2e8f0', bgcolor: 'white' }}>
-              <Typography variant="caption" fontWeight={700} color="#64748b" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
-                Usuarios Vinculados
-              </Typography>
-              <Stack spacing={1.5} mt={1.5}>
-                {usuariosVinculados.map((u) => (
-                  <Box key={u.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: '#004a99' }}>
-                      {`${u.first_name?.[0] ?? ''}${u.last_name?.[0] ?? ''}`.toUpperCase()}
-                    </Avatar>
-                    <Typography variant="body2" fontWeight={600} color="#0f172a">
-                      {u.first_name} {u.last_name}
-                    </Typography>
-                  </Box>
-                ))}
+              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                <Typography variant="caption" fontWeight={700} color="#64748b" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Usuarios Vinculados
+                </Typography>
+                {contacto.visibility_type === 'Restringido' && (
+                  <IconButton
+                    size="small"
+                    onClick={handleOpenVinculacionModal}
+                    sx={{
+                      bgcolor: '#f1f5f9',
+                      color: '#004a99',
+                      '&:hover': { bgcolor: '#e2e8f0' },
+                      width: 28,
+                      height: 28
+                    }}
+                  >
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                )}
               </Stack>
+              {usuariosVinculados.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                  Ningún usuario vinculado
+                </Typography>
+              ) : (
+                <Stack spacing={1.5}>
+                  {usuariosVinculados.map((u) => (
+                    <Box key={u.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: '#004a99' }}>
+                          {`${u.first_name?.[0] ?? ''}${u.last_name?.[0] ?? ''}`.toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight={600} color="#0f172a">
+                            {u.first_name} {u.last_name}
+                          </Typography>
+                          {u.status === 'Inactivo' && (
+                            <Typography variant="caption" color="error" sx={{ fontWeight: 600, display: 'block' }}>
+                              Inactivo / Desvinculado
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                      {contacto.visibility_type === 'Restringido' && u.status !== 'Inactivo' && (
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleUnlinkUser(u.id)}
+                          title="Desvincular usuario"
+                          sx={{ '&:hover': { bgcolor: '#fee2e2' } }}
+                        >
+                          <LinkOffIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                      {contacto.visibility_type === 'Restringido' && u.status === 'Inactivo' && (
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleRelinkUser(u.id)}
+                          title="Vincular nuevamente"
+                          sx={{ '&:hover': { bgcolor: '#e0f2fe' } }}
+                        >
+                          <LinkIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              )}
             </Paper>
           )}
         </Box>
@@ -364,6 +500,96 @@ export default function ContactoDetallePage() {
           </Box>
         </Paper>
       </Box>
+
+      {/* Modal para Vincular Usuario */}
+      <Dialog
+        open={openVinculacionModal}
+        onClose={() => setOpenVinculacionModal(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: '16px', p: 1 }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0f172a' }}>
+          Vincular Usuario
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Selecciona un usuario de Directus para vincular a este contacto restringido.
+          </Typography>
+          {cargandoUsuarios ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress size={24} sx={{ color: '#004a99' }} />
+            </Box>
+          ) : usuariosDisponibles.length === 0 ? (
+            <Typography variant="body2" color="error" fontStyle="italic">
+              No hay usuarios disponibles para vincular.
+            </Typography>
+          ) : (
+            <Autocomplete
+              fullWidth
+              size="small"
+              sx={{ mt: 1 }}
+              options={usuariosDisponibles}
+              getOptionLabel={(option) => option.email ? `${option.first_name} ${option.last_name} (${option.email})` : `${option.first_name} ${option.last_name}`}
+              value={usuariosDisponibles.find((u) => u.id === usuarioSeleccionado) || null}
+              onChange={(event, newValue) => {
+                setUsuarioSeleccionado(newValue ? newValue.id : '');
+              }}
+              renderOption={(props, option) => (
+                <li {...props} key={option.id}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {option.first_name} {option.last_name}
+                    </Typography>
+                    {option.email && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        {option.email}
+                      </Typography>
+                    )}
+                  </Box>
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Usuario"
+                  placeholder="Escribe para buscar..."
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                />
+              )}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setOpenVinculacionModal(false)}
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              color: '#475569'
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleLinkUser}
+            disabled={!usuarioSeleccionado || guardandoVinculacion}
+            sx={{
+              bgcolor: '#004a99',
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 700,
+              '&:hover': { bgcolor: '#003580' }
+            }}
+          >
+            {guardandoVinculacion ? 'Vinculando...' : 'Vincular'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

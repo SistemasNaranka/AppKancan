@@ -415,12 +415,13 @@ export async function saveRoleBudgetConfiguration(data: {
 
     // 3. Guardar cambios
     if (recordId) {
+      const idToUpdate = recordId;
       console.log(
-        `[saveRoleBudgetConfiguration] Actualizando ID ${recordId} con ${finalConfigs.length} roles.`,
+        `[saveRoleBudgetConfiguration] Actualizando ID ${idToUpdate} con ${finalConfigs.length} roles.`,
       );
       return await withAutoRefresh(() =>
         directus.request(
-          updateItem("com_monthly_budget_percentages", recordId, {
+          updateItem("com_monthly_budget_percentages", idToUpdate, {
             role_config: finalConfigs,
           }),
         ),
@@ -500,10 +501,11 @@ export async function guardarUmbralesComisiones(data: {
     );
 
     if (recordId) {
+      const idToUpdate = recordId;
       // Actualizar
       return await withAutoRefresh(() =>
         directus.request(
-          updateItem("com_monthly_commission_compliance", recordId, {
+          updateItem("com_monthly_commission_compliance", idToUpdate, {
             compliance_values: valoresOrdenados,
           }),
         ),
