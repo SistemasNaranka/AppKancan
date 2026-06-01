@@ -34,7 +34,6 @@ coverage
 Dockerfile
 docker-compose.yml
 .dockerignore
-package-lock.json
 
 # Documentation
 *.md
