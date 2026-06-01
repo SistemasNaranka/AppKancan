@@ -95,7 +95,7 @@ export const EditarContactoModal: React.FC<Props> = ({ open, onClose, onGuardar,
       slotProps={{ paper: { sx: { borderRadius: '16px', p: 1 } } }}>
 
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-        <Typography variant="h6" fontWeight={700} color="#0f172a">
+        <Typography component="span" variant="h6" fontWeight={700} color="#0f172a">
           Editar Contacto
         </Typography>
         <IconButton onClick={onClose} size="small" sx={{ color: '#64748b' }}>

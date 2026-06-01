@@ -1,53 +1,50 @@
 import React from "react";
 import Joyride, { CallBackProps, STATUS, TooltipRenderProps, Step } from "react-joyride";
-import { useNavigate } from "react-router-dom";
-import { useNotificationsTour } from "./NotificationsTourContext";
+import { useCreateNotificationTour } from "./CreateNotificationTourContext";
 
 // ── Pasos ───────────────────────────────────────────────────────────────────
-// Cada paso define su propio spotlight borderRadius para coincidir
-// con el border-radius real del elemento que apunta.
 
 const STEPS: Step[] = [
   {
-    target: "#notif-header",
-    title: "Historial de Notificaciones",
+    target: "#notif-crear-destinatarios",
+    title: "Destinatarios",
     content:
-      "Bienvenido al módulo de notificaciones. Aquí puedes consultar todas las notificaciones enviadas a las terminales del sistema.",
+      "Elige a quién enviar la notificación: a todas las terminales, a un grupo/área específica o seleccionando manualmente terminales una por una.",
     disableBeacon: true,
-    placement: "bottom",
-    styles: { spotlight: { borderRadius: 16 } },
-  },
-  {
-    target: "#notif-btn-crear",
-    title: "Crear Notificación",
-    content:
-      "Desde este botón puedes redactar y enviar una nueva notificación a terminales individuales, grupos o a toda la red.",
-    placement: "bottom-end",
-    styles: { spotlight: { borderRadius: 10 } },
-  },
-  {
-    target: "#notif-filtros",
-    title: "Filtros de Estado",
-    content:
-      "Filtra las notificaciones por su resultado: Todos, Éxito (entregadas), Advertencia o Error.",
     placement: "bottom",
     styles: { spotlight: { borderRadius: 12 } },
   },
   {
-    target: "#notif-rango-fecha",
-    title: "Filtro de Fecha",
+    target: "#notif-crear-programacion",
+    title: "Programación",
     content:
-      "Filtra el historial por rango de fechas: hoy, ayer, últimos 7 días o últimos 30 días.",
-    placement: "bottom-end",
-    styles: { spotlight: { borderRadius: 10 } },
+      "Decide cuándo se enviará. Puedes enviarla ahora, programarla para más tarde o crearla como recordatorio personal solo para tu terminal.",
+    placement: "left",
+    styles: { spotlight: { borderRadius: 12 } },
   },
   {
-    target: "#notif-tabla",
-    title: "Tabla de Notificaciones",
+    target: "#notif-crear-contenido",
+    title: "Contenido",
     content:
-      "Aquí se listan los registros filtrados. Haz clic en el ícono de cada fila para ver el detalle completo o eliminarlo del historial.",
-    placement: "bottom",
-    styles: { spotlight: { borderRadius: 16 } },
+      "Define el título (opcional) y el mensaje (obligatorio) de la alerta. También puedes elegir el tipo: Informativa, Éxito, Advertencia o Error Crítico.",
+    placement: "right",
+    styles: { spotlight: { borderRadius: 12 } },
+  },
+  {
+    target: "#notif-crear-avanzadas",
+    title: "Opciones Avanzadas",
+    content:
+      "Ajusta la duración en pantalla, marca la alerta como persistente o clickeable, define una ruta de acción y excluye terminales específicas.",
+    placement: "left",
+    styles: { spotlight: { borderRadius: 12 } },
+  },
+  {
+    target: "#notif-crear-enviar",
+    title: "Enviar Notificación",
+    content:
+      "Cuando todo esté listo, pulsa este botón para emitir la notificación a los destinatarios configurados.",
+    placement: "bottom-end",
+    styles: { spotlight: { borderRadius: 12 } },
   },
 ];
 
@@ -77,7 +74,6 @@ function CustomTooltip({
         outline: "none",
       }}
     >
-      {/* Cabecera: badge paso + cerrar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <span style={{
           background: "#eff6ff", color: "#004a99",
@@ -94,19 +90,16 @@ function CustomTooltip({
         </button>
       </div>
 
-      {/* Título */}
       {step.title && (
         <h3 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>
           {step.title as React.ReactNode}
         </h3>
       )}
 
-      {/* Contenido */}
       <p style={{ margin: "0 0 20px", fontSize: 14, color: "#475569", lineHeight: 1.65 }}>
         {step.content as React.ReactNode}
       </p>
 
-      {/* Pie: Saltar | Atrás + Siguiente */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button
           {...skipProps}
@@ -146,30 +139,21 @@ function CustomTooltip({
 
 // ── Componente principal ────────────────────────────────────────────────────
 
-export default function NotificationsTour() {
-  const { isRunning, stopTour } = useNotificationsTour();
-  const navigate = useNavigate();
+export default function CreateNotificationTour() {
+  const { isRunning, stopTour } = useCreateNotificationTour();
 
   const handleCallback = (data: CallBackProps) => {
     const { status } = data;
-    if (status === STATUS.FINISHED) {
-      stopTour();
-      // Encadena con el tour de "Crear Notificación"
-      navigate("/notificaciones/crear?tour=start");
-    } else if (status === STATUS.SKIPPED) {
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       stopTour();
     }
   };
 
-  // Solo montamos Joyride mientras el tour está activo.
-  // Evita el error "Failed to execute 'removeChild' on 'Node'" que se
-  // produce cuando el spotlight/portal de Joyride se monta apuntando a un
-  // elemento dentro de un contenedor sticky y luego intenta limpiarse.
   if (!isRunning) return null;
 
   return (
     <Joyride
-      key="notif-tour"
+      key="notif-crear-tour"
       steps={STEPS}
       run
       continuous
@@ -177,11 +161,10 @@ export default function NotificationsTour() {
       scrollToFirstStep
       disableScrolling={false}
       disableScrollParentFix
-      // Offset para compensar el header sticky (~88px) más margen visual
       scrollOffset={100}
       tooltipComponent={CustomTooltip}
       callback={handleCallback}
-      styles={{ options: { zIndex: 10000 } }}
+      styles={{ options: { zIndex: 10000, overlayColor: "rgba(15, 23, 42, 0.55)" } }}
     />
   );
 }

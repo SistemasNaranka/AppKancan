@@ -17,6 +17,8 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
+import { CreateNotificationTourProvider } from './CreateNotificationTourContext';
+import CreateNotificationTour from './CreateNotificationTour';
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -59,9 +61,9 @@ const inputHoraStyle = { ...inputStyle, width: 175, '& .MuiOutlinedInput-input':
 // ── Sub-componentes de layout ────────────────────────────────────────────────
 
 // Bloque interno sin borde (todo va dentro de un único Paper que envuelve el formulario)
-function SectionCard({ children, title, icon }: { children: ReactNode; title?: string; icon?: ReactNode }) {
+function SectionCard({ id, children, title, icon }: { id?: string; children: ReactNode; title?: string; icon?: ReactNode }) {
   return (
-    <Box sx={{ width: '100%', height: '100%' }}>
+    <Box id={id} sx={{ width: '100%', height: '100%' }}>
       {title && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <Box sx={{ color: '#004a99' }}>{icon}</Box>
@@ -252,6 +254,9 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
     <>
       <style>{`.no-spin::-webkit-outer-spin-button,.no-spin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}`}</style>
 
+      {/* Tour Joyride — auto-arranca la primera vez, o via PeekButton / ?tour=start */}
+      <CreateNotificationTour />
+
       <Box sx={{ bgcolor: 'transparent', minHeight: '100vh', py: 3 }}>
         <Container maxWidth="xl">
 
@@ -291,11 +296,12 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
 
               {/* Botón Enviar */}
               <Button
+                id="notif-crear-enviar"
                 variant="contained"
                 onClick={handleSubmit}
                 disabled={enviando}
                 startIcon={<SendIcon />}
-                sx={{ bgcolor: '#004a99', '&:hover': { bgcolor: '#003366' }, borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontFamily: 'Inter', px: 2.5, py: 1.2, flexShrink: 0 }}
+                sx={{ bgcolor: '#004a99', boxShadow: 'none', '&:hover': { bgcolor: '#003366', boxShadow: 'none' }, '&:active': { boxShadow: 'none' }, '&:focus': { boxShadow: 'none' }, borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontFamily: 'Inter', px: 2.5, py: 1.2, flexShrink: 0 }}
               >
                 {enviando ? 'Enviando...' : 'Enviar Notificación'}
               </Button>
@@ -317,7 +323,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
 
               {/* Row 1, col 1 — Destinatarios (con borde derecho como separador vertical en md+) */}
               <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', borderRight: { md: '1px solid #e2e8f0' }, pr: { md: 2 } }}>
-              <SectionCard title="Destinatarios" icon={<PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}>
+              <SectionCard id="notif-crear-destinatarios" title="Destinatarios" icon={<PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}>
                 <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
                   {[
                     { label: 'Todos', active: enviarATodos, onClick: () => { setEnviarATodos(true); setUsarGrupoArea(false); setDestinatariosSeleccionados([]); } },
@@ -383,7 +389,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
 
               {/* Row 1, col 2 — Programación */}
               <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex' }}>
-              <SectionCard title="Programación" icon={<ScheduleIcon sx={{ fontSize: 18 }} />}>
+              <SectionCard id="notif-crear-programacion" title="Programación" icon={<ScheduleIcon sx={{ fontSize: 18 }} />}>
                 <Tabs
                   value={recordatorio ? 1 : 0}
                   onChange={(_, v) => {
@@ -460,7 +466,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
 
               
               <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', borderRight: { md: '1px solid #e2e8f0' }, pr: { md: 2 } }}>
-              <SectionCard title="Contenido" icon={<EditNoteOutlinedIcon sx={{ fontSize: 18 }} />}>
+              <SectionCard id="notif-crear-contenido" title="Contenido" icon={<EditNoteOutlinedIcon sx={{ fontSize: 18 }} />}>
                 <TextField
                   fullWidth size="small"
                   placeholder="Título (opcional)"
@@ -475,7 +481,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
                     placeholder="Mensaje (obligatorio)"
                     value={mensaje} onChange={(e) => setMensaje(e.target.value)}
                     inputProps={{ maxLength: 600 }}
-                    sx={inputStyle}
+                    sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { ...(inputStyle as any)['& .MuiOutlinedInput-root'], padding: '12px 14px' }, '& .MuiOutlinedInput-input': { padding: 0, color: '#191b23' } }}
                   />
                   <Typography sx={{ position: 'absolute', bottom: 10, right: 12, fontSize: '11px', color: mensaje.length >= 600 ? '#dc2626' : '#94a3b8' }}>
                     {mensaje.length}/600
@@ -517,7 +523,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
 
               {/* Row 2, col 2 — Opciones Avanzadas */}
               <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex' }}>
-              <SectionCard title="Opciones Avanzadas" icon={<TuneIcon sx={{ fontSize: 18 }} />}>
+              <SectionCard id="notif-crear-avanzadas" title="Opciones Avanzadas" icon={<TuneIcon sx={{ fontSize: 18 }} />}>
                 {/* Duración */}
                 <Box sx={{ mb: 2, opacity: persistente ? 0.45 : 1, pointerEvents: persistente ? 'none' : 'auto' }}>
                   <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', mb: 1, fontFamily: 'Inter' }}>
@@ -576,4 +582,10 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
   );
 };
 
-export default CreateNotification;
+export default function CreateNotificationPage(props: CreateNotificationProps) {
+  return (
+    <CreateNotificationTourProvider>
+      <CreateNotification {...props} />
+    </CreateNotificationTourProvider>
+  );
+}
