@@ -10,9 +10,6 @@ COPY package*.json ./
 # Instalar solo lo necesario
 RUN npm install
 
-# Instalar versión nativa de rollup para Alpine Linux debido a bug de npm #4828
-RUN npm install @rollup/rollup-linux-x64-musl
-
 COPY . .
 
 # Construir
