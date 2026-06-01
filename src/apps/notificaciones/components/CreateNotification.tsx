@@ -1,18 +1,28 @@
 // components/CreateNotification.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import {
   Box, Typography, TextField, Chip, Button, Switch,
-  ToggleButton, ToggleButtonGroup, Divider, Paper, Collapse, Autocomplete,
+  ToggleButton, ToggleButtonGroup, Paper, Collapse, Autocomplete, Container,
+  Grid, Tabs, Tab, Divider, IconButton,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import TuneIcon from '@mui/icons-material/Tune';
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
+import ScheduleIcon from '@mui/icons-material/Schedule';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNavigate } from 'react-router-dom';
+import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
+import { CreateNotificationTourProvider } from './CreateNotificationTourContext';
+import CreateNotificationTour from './CreateNotificationTour';
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { ICreateNotification, INotificationGroup } from '../interfaces/notification.interface';
@@ -20,16 +30,20 @@ import { servicioNotificaciones } from '../services/notification.service';
 
 dayjs.locale("es");
 
+// ── Tipos ────────────────────────────────────────────────────────────────────
+
 interface CreateNotificationProps {
   onSuccess?: () => void;
   currentTerminalCode?: string;
 }
 
+// ── Constantes ───────────────────────────────────────────────────────────────
+
 const tiposAlerta = [
-  { value: 'info', label: 'Informativa', icon: <InfoOutlinedIcon fontSize="small" />, color: '#0058be' },
-  { value: 'success', label: 'Éxito', icon: <CheckCircleOutlineIcon fontSize="small" />, color: '#2e7d32' },
-  { value: 'warning', label: 'Advertencia', icon: <WarningAmberIcon fontSize="small" />, color: '#944600' },
-  { value: 'error', label: 'Error Crítico', icon: <ErrorOutlineIcon fontSize="small" />, color: '#ba1a1a' },
+  { value: 'info',    label: 'Informativa',  icon: <InfoOutlinedIcon fontSize="small" />,       color: '#0058be' },
+  { value: 'success', label: 'Éxito',         icon: <CheckCircleOutlineIcon fontSize="small" />, color: '#2e7d32' },
+  { value: 'warning', label: 'Advertencia',   icon: <WarningAmberIcon fontSize="small" />,       color: '#944600' },
+  { value: 'error',   label: 'Error Crítico', icon: <ErrorOutlineIcon fontSize="small" />,       color: '#ba1a1a' },
 ];
 
 const inputStyle = {
@@ -44,35 +58,76 @@ const inputStyle = {
 
 const inputHoraStyle = { ...inputStyle, width: 175, '& .MuiOutlinedInput-input': { padding: '12px 6px' } };
 
+// ── Sub-componentes de layout ────────────────────────────────────────────────
+
+// Bloque interno sin borde (todo va dentro de un único Paper que envuelve el formulario)
+function SectionCard({ id, children, title, icon }: { id?: string; children: ReactNode; title?: string; icon?: ReactNode }) {
+  return (
+    <Box id={id} sx={{ width: '100%', height: '100%' }}>
+      {title && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Box sx={{ color: '#004a99' }}>{icon}</Box>
+          <Typography sx={{ fontWeight: 700, fontSize: '14px', color: '#0f172a', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            {title}
+          </Typography>
+        </Box>
+      )}
+      {children}
+    </Box>
+  );
+}
+
+function ToggleRow({ label, description, checked, onChange, disabled }: {
+  label: string; description?: string;
+  checked: boolean; onChange: (v: boolean) => void; disabled?: boolean;
+}) {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+      <Box>
+        <Typography sx={{ fontWeight: 600, fontSize: '13px', color: '#0f172a', fontFamily: 'Inter' }}>{label}</Typography>
+        {description && <Typography sx={{ fontSize: '12px', color: '#64748b', fontFamily: 'Inter' }}>{description}</Typography>}
+      </Box>
+      <Switch
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+        sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#004a99' } }}
+      />
+    </Box>
+  );
+}
+
+// ── Componente principal ─────────────────────────────────────────────────────
+
 const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificationProps) => {
+  const navigate = useNavigate();
+  const { showSnackbar } = useGlobalSnackbar();
   const [clientesDisponibles, setClientesDisponibles] = useState<{ id: string | number; code: string; name: string }[]>([]);
-  const [cargandoClientes, setCargandoClientes] = useState(false);
+  const [cargandoClientes,    setCargandoClientes]    = useState(false);
   const [destinatariosSeleccionados, setDestinatariosSeleccionados] = useState<typeof clientesDisponibles>([]);
 
-  const [enviarATodos, setEnviarATodos] = useState(false);
-  const [grupos, setGrupos] = useState<INotificationGroup[]>([]);
-  const [cargandoGrupos, setCargandoGrupos] = useState(false);
+  const [enviarATodos,      setEnviarATodos]      = useState(false);
+  const [grupos,            setGrupos]            = useState<INotificationGroup[]>([]);
+  const [cargandoGrupos,    setCargandoGrupos]    = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<INotificationGroup | null>(null);
-  const [usarGrupoArea, setUsarGrupoArea] = useState(false);
+  const [usarGrupoArea,     setUsarGrupoArea]     = useState(false);
 
-  const [titulo, setTitulo] = useState('');
-  const [mensaje, setMensaje] = useState('');
-  const [tipo, setTipo] = useState<ICreateNotification['tipo']>('info');
-  const [programar, setProgramar] = useState(false);
-  const [fechaProgramada, setFechaProgramada] = useState('');
-  const [horaProgramada, setHoraProgramada] = useState('');
-  const [recordatorio, setRecordatorio] = useState(false);
-  const [fechaRecordatorio, setFechaRecordatorio] = useState('');
+  const [titulo,           setTitulo]           = useState('');
+  const [mensaje,          setMensaje]          = useState('');
+  const [tipo,             setTipo]             = useState<ICreateNotification['tipo']>('info');
+  const [programar,        setProgramar]        = useState(false);
+  const [fechaProgramada,  setFechaProgramada]  = useState('');
+  const [horaProgramada,   setHoraProgramada]   = useState('');
+  const [recordatorio,     setRecordatorio]     = useState(false);
+  const [fechaRecordatorio,setFechaRecordatorio]= useState('');
   const [horaRecordatorio, setHoraRecordatorio] = useState('');
-  const [persistente, setPersistente] = useState(false);
-  const [clickeable, setClickeable] = useState(false);
-  const [rutaAccion, setRutaAccion] = useState('');
-  const [excluir, setExcluir] = useState<string[]>([]);
-  const [inputExcluir, setInputExcluir] = useState('');
-  const [duracionSeg, setDuracionSeg] = useState(15);
-  const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [exito, setExito] = useState(false);
+  const [persistente,      setPersistente]      = useState(false);
+  const [clickeable,       setClickeable]       = useState(false);
+  const [rutaAccion,       setRutaAccion]       = useState('');
+  const [excluir,          setExcluir]          = useState<string[]>([]);
+  const [inputExcluir,     setInputExcluir]     = useState('');
+  const [duracionSeg,      setDuracionSeg]      = useState(15);
+  const [enviando,         setEnviando]         = useState(false);
 
   useEffect(() => {
     const cargarClientes = async () => {
@@ -85,7 +140,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
 
     const cargarGrupos = async () => {
       setCargandoGrupos(true);
-      const data =await servicioNotificaciones.obtenerGrupos();
+      const data = await servicioNotificaciones.obtenerGrupos();
       setGrupos(data);
       setCargandoGrupos(false);
     };
@@ -113,30 +168,27 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
   };
 
   const handleSubmit = async () => {
-    setError(null);
-    setExito(false);
-
     if (recordatorio) {
       if (!currentTerminalCode) {
-        setError('No se pudo identificar tu terminal para el recordatorio. Contacta al administrador.');
+        showSnackbar('No se pudo identificar tu terminal para el recordatorio. Contacta al administrador.', 'error');
         return;
       }
       if (!fechaRecordatorio || !horaRecordatorio) {
-        setError('Debes definir fecha y hora para el recordatorio.');
+        showSnackbar('Debes definir fecha y hora para el recordatorio.', 'error');
         return;
       }
     } else {
       if (!enviarATodos && !usarGrupoArea && destinatariosSeleccionados.length === 0) {
-        setError('Debes seleccionar al menos un destinatario, usar "Todos" o un grupo/área.');
+        showSnackbar('Debes seleccionar al menos un destinatario, usar "Todos" o un grupo/área.', 'error');
         return;
       }
       if (usarGrupoArea && !grupoSeleccionado) {
-        setError('Debes escribir el grupo o área (ej: grupo:Tiendas Centro)');
+        showSnackbar('Debes seleccionar el grupo o área.', 'error');
         return;
       }
     }
     if (!mensaje.trim()) {
-      setError('El mensaje no puede estar vacío.');
+      showSnackbar('El mensaje no puede estar vacío.', 'error');
       return;
     }
 
@@ -169,7 +221,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
       clickeable,
       mostrar_boton_cerrar: true,
       pausar_al_hover: true,
-      excluir: excluir,
+      excluir,
       ruta_accion: rutaAccion || null,
       fecha_programada,
     };
@@ -177,11 +229,11 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
     try {
       setEnviando(true);
       await servicioNotificaciones.enviarNotificacion(payload);
-      setExito(true);
+      showSnackbar('Notificación enviada correctamente.', 'success');
       resetForm();
       onSuccess?.();
     } catch (err: any) {
-      setError(err.message || 'Error desconocido al enviar.');
+      showSnackbar(err.message || 'Error desconocido al enviar.', 'error');
     } finally {
       setEnviando(false);
     }
@@ -196,189 +248,344 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
     }
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <>
-      <style>{`.no-spin::-webkit-outer-spin-button, .no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }`}</style>
-      <Box sx={{ width: '100%', maxWidth: 1060, mx: 'auto', bgcolor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', border: '1px solid #e1e2ec', overflow: 'hidden' }}>
-        <Box sx={{ px: 4, py: 3, borderBottom: '1px solid #e1e2ec', bgcolor: '#f9f9ff' }}>
-          <Typography sx={{ fontSize: '24px', fontWeight: 600, color: '#0058be', fontFamily: 'Inter' }}>Envío de Notificaciones</Typography>
-          <Typography sx={{ fontSize: '14px', color: '#424754', fontFamily: 'Inter', mt: 0.5 }}>Configura y emite alertas a través de AppKancan.</Typography>
-        </Box>
+      <style>{`.no-spin::-webkit-outer-spin-button,.no-spin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}`}</style>
 
-        <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {/* Tarjetas Programar / Recordatorio */}
-          <Box sx={{ display: 'flex', gap: 3, width: '100%', alignItems: 'flex-start' }}>
-            <Paper elevation={0} sx={{ p: '12px 16px', bgcolor: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: '14px', flex: 1, opacity: recordatorio ? 0.4 : 1, pointerEvents: recordatorio ? 'none' : 'auto' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box><Typography sx={{ fontWeight: 600 }}>Programar para más tarde</Typography><Typography sx={{ fontSize: '12px', color: '#4b5563' }}>Selecciona fecha y hora de envío</Typography></Box>
-                <Switch checked={programar} onChange={(e) => setProgramar(e.target.checked)} disabled={recordatorio} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#0058be' } }} />
-              </Box>
-              <Collapse in={programar}>
-                <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
-                  <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-                    <DatePicker value={fechaProgramada ? dayjs(fechaProgramada) : null} onChange={(v) => setFechaProgramada(v ? dayjs(v).format("YYYY-MM-DD") : "")} slotProps={{ textField: { size: "small", fullWidth: true, sx: inputStyle } }} />
-                  </LocalizationProvider>
-                  <TextField type="time" size="small" sx={inputHoraStyle} value={horaProgramada} onChange={(e) => setHoraProgramada(e.target.value)} />
+      {/* Tour Joyride — auto-arranca la primera vez, o via PeekButton / ?tour=start */}
+      <CreateNotificationTour />
+
+      <Box sx={{ bgcolor: 'transparent', minHeight: '100vh', py: 3 }}>
+        <Container maxWidth="xl">
+
+          {/* ── Header tipo card con botón de volver ── */}
+          <Paper
+            elevation={0}
+            sx={{ p: 2.5, borderRadius: '16px', border: '1px solid #e2e8f0', bgcolor: 'white', mb: 2.5 }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                {/* Botón Volver */}
+                <IconButton
+                  onClick={() => navigate('/notificaciones')}
+                  aria-label="Volver"
+                  sx={{
+                    color: '#004a99',
+                    bgcolor: '#f1f5f9',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    flexShrink: 0,
+                    '&:hover': { bgcolor: '#e2e8f0' },
+                  }}
+                >
+                  <ArrowBackIcon sx={{ fontSize: 22 }} />
+                </IconButton>
+
+                {/* Título */}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', fontFamily: 'Inter', lineHeight: 1.15 }}>
+                    Envío de Notificaciones
+                  </Typography>
+                  <Typography sx={{ fontSize: '13px', color: '#64748b', fontFamily: 'Inter' }}>
+                    Configura y emite alertas a través de AppKancan.
+                  </Typography>
                 </Box>
-              </Collapse>
-            </Paper>
-
-            <Paper elevation={0} sx={{ p: '12px 16px', bgcolor: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: '14px', flex: 1, opacity: programar ? 0.4 : 1, pointerEvents: programar ? 'none' : 'auto' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box><Typography sx={{ fontWeight: 600 }}>Recordatorio personal</Typography><Typography sx={{ fontSize: '12px', color: '#4b5563' }}>Envíate un recordatorio en una fecha y hora.</Typography></Box>
-                <Switch checked={recordatorio} onChange={(e) => { setRecordatorio(e.target.checked); if (e.target.checked) { setProgramar(false); setEnviarATodos(false); setUsarGrupoArea(false); } }} disabled={programar} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#0058be' } }} />
               </Box>
-              <Collapse in={recordatorio}>
-                <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
-                  <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-                    <DatePicker value={fechaRecordatorio ? dayjs(fechaRecordatorio) : null} onChange={(v) => setFechaRecordatorio(v ? dayjs(v).format("YYYY-MM-DD") : "")} slotProps={{ textField: { size: "small", fullWidth: true, sx: inputStyle } }} />
-                  </LocalizationProvider>
-                  <TextField type="time" size="small" sx={inputHoraStyle} value={horaRecordatorio} onChange={(e) => setHoraRecordatorio(e.target.value)} />
-                </Box>
-              </Collapse>
-            </Paper>
-          </Box>
 
-          {/* Opciones de destinatario */}
-          <Box sx={{ opacity: recordatorio ? 0.5 : 1, pointerEvents: recordatorio ? 'none' : 'auto' }}>
-            <Typography sx={{ fontSize: '14px', fontWeight: 500, mb: 1 }}>Destinatarios</Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-              <Chip label="Todos" variant={enviarATodos ? "filled" : "outlined"} onClick={() => { setEnviarATodos(true); setUsarGrupoArea(false); setDestinatariosSeleccionados([]); }} color={enviarATodos ? "primary" : "default"} />
-              <Chip label="Grupo / Área" variant={usarGrupoArea ? "filled" : "outlined"} onClick={() => { setUsarGrupoArea(true); setEnviarATodos(false); setDestinatariosSeleccionados([]); }} color={usarGrupoArea ? "primary" : "default"} />
-              <Chip label="Seleccionar manualmente" variant={(!enviarATodos && !usarGrupoArea) ? "filled" : "outlined"} onClick={() => { setEnviarATodos(false); setUsarGrupoArea(false); }} color={(!enviarATodos && !usarGrupoArea) ? "primary" : "default"} />
+              {/* Botón Enviar */}
+              <Button
+                id="notif-crear-enviar"
+                variant="contained"
+                onClick={handleSubmit}
+                disabled={enviando}
+                startIcon={<SendIcon />}
+                sx={{ bgcolor: '#004a99', boxShadow: 'none', '&:hover': { bgcolor: '#003366', boxShadow: 'none' }, '&:active': { boxShadow: 'none' }, '&:focus': { boxShadow: 'none' }, borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontFamily: 'Inter', px: 2.5, py: 1.2, flexShrink: 0 }}
+              >
+                {enviando ? 'Enviando...' : 'Enviar Notificación'}
+              </Button>
             </Box>
+          </Paper>
 
-            {usarGrupoArea && (
-              <Autocomplete
-              options={grupos}
-              loading={cargandoGrupos}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              value={grupoSeleccionado}
-              onChange={(_, newValue) => setGrupoSeleccionado(newValue)}
-              noOptionsText="No hay grupos disponibles"
-              renderInput={(params) => ( 
-                <TextField
-                {...params}
-                placeholder="Selecciona un grupo o área"
-                variant="outlined"
-                size="small"
-                sx={{ mb: 2, ...inputStyle }}
-                />
-              )}
-            />
-          )}
+          {/* ── Cuerpo: formulario centrado ── */}
+          <Box sx={{ width: '100%' }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: '16px',
+                  border: '1px solid #e2e8f0',
+                  bgcolor: '#ffffff',
+                  p: { xs: 2.5, md: 3.5 },
+                }}
+              >
+              <Grid container columnSpacing={4} rowSpacing={3}>
 
-            {!enviarATodos && !usarGrupoArea && (
-              <Autocomplete
-                multiple
-                options={clientesDisponibles}
-                loading={cargandoClientes}
-                getOptionLabel={(option) => `${option.name} (${option.code})`}
-                isOptionEqualToValue={(option, value) => option.code === value.code}
-                value={destinatariosSeleccionados}
-                onChange={(_, newValue) => setDestinatariosSeleccionados(newValue)}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => {
-                    const tagProps = getTagProps({ index });
-                    const { key, ...restTagProps } = tagProps; // Extraemos la key
-                    return (
-                      <Chip
-                        key={key} // Key asignada directamente
-                        label={`${option.name} (${option.code})`}
-                        {...restTagProps} // Resto de props (onDelete, etc.)
-                        size="small"
-                        sx={{ bgcolor: '#d8e2ff', color: '#004395', fontFamily: 'Inter', fontSize: '11px' }}
-                      />
-                    );
-                  })
-                }
-                renderInput={(params) => <TextField {...params} placeholder="Selecciona uno o más destinatarios" variant="outlined" size="small" sx={inputStyle} />}
-              />
-            )}
-            <Typography sx={{ fontSize: '11px', color: '#6b7280', mt: 1 }}>
-              {enviarATodos && "Se enviará a todas las terminales activas."}
-              {usarGrupoArea && "Escribe grupo:Nombre o area:Nombre según la guía."}
-              {!enviarATodos && !usarGrupoArea && "Puedes seleccionar múltiples terminales."}
-            </Typography>
-          </Box>
+              {/* Row 1, col 1 — Destinatarios (con borde derecho como separador vertical en md+) */}
+              <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', borderRight: { md: '1px solid #e2e8f0' }, pr: { md: 2 } }}>
+              <SectionCard id="notif-crear-destinatarios" title="Destinatarios" icon={<PeopleAltOutlinedIcon sx={{ fontSize: 18 }} />}>
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
+                  {[
+                    { label: 'Todos', active: enviarATodos, onClick: () => { setEnviarATodos(true); setUsarGrupoArea(false); setDestinatariosSeleccionados([]); } },
+                    { label: 'Grupo / Área', active: usarGrupoArea, onClick: () => { setUsarGrupoArea(true); setEnviarATodos(false); setDestinatariosSeleccionados([]); } },
+                    { label: 'Selección manual', active: !enviarATodos && !usarGrupoArea, onClick: () => { setEnviarATodos(false); setUsarGrupoArea(false); } },
+                  ].map(({ label, active, onClick }) => (
+                    <Chip
+                      key={label}
+                      label={label}
+                      onClick={onClick}
+                      disabled={recordatorio}
+                      sx={{
+                        fontFamily: 'Inter', fontWeight: 600, cursor: 'pointer',
+                        bgcolor: active ? '#004a99' : '#f1f5f9',
+                        color:   active ? '#fff'     : '#64748b',
+                        '&:hover': { bgcolor: active ? '#003366' : '#e2e8f0' },
+                      }}
+                    />
+                  ))}
+                </Box>
 
-          {/* Título */}
-          <TextField fullWidth size="small" placeholder="Título (opcional)" value={titulo} onChange={(e) => setTitulo(e.target.value)} inputProps={{ maxLength: 100 }} sx={inputStyle} />
+                {usarGrupoArea && (
+                  <Autocomplete
+                    options={grupos} loading={cargandoGrupos}
+                    getOptionLabel={(o) => o.name}
+                    isOptionEqualToValue={(o, v) => o.id === v.id}
+                    value={grupoSeleccionado}
+                    onChange={(_, v) => setGrupoSeleccionado(v)}
+                    noOptionsText="No hay grupos disponibles"
+                    renderInput={(params) => (
+                      <TextField {...params} placeholder="Selecciona un grupo o área" variant="outlined" size="small" sx={{ mb: 1, ...inputStyle }} />
+                    )}
+                  />
+                )}
 
-          {/* Mensaje */}
-          <Box sx={{ position: 'relative' }}>
-            <TextField fullWidth multiline rows={4} placeholder="Mensaje (obligatorio)" value={mensaje} onChange={(e) => setMensaje(e.target.value)} inputProps={{ maxLength: 600 }} sx={inputStyle} />
-            <Typography sx={{ position: 'absolute', bottom: 10, right: 12, fontSize: '11px', color: mensaje.length >= 600 ? '#ba1a1a' : '#6b7280' }}>{mensaje.length}/600</Typography>
-          </Box>
+                {!enviarATodos && !usarGrupoArea && (
+                  <Autocomplete
+                    multiple
+                    options={clientesDisponibles} loading={cargandoClientes}
+                    getOptionLabel={(o) => `${o.name} (${o.code})`}
+                    isOptionEqualToValue={(o, v) => o.code === v.code}
+                    value={destinatariosSeleccionados}
+                    onChange={(_, v) => setDestinatariosSeleccionados(v)}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => {
+                        const { key, ...rest } = getTagProps({ index });
+                        return <Chip key={key} label={`${option.name} (${option.code})`} {...rest} size="small" sx={{ bgcolor: '#dbeafe', color: '#1d4ed8', fontFamily: 'Inter', fontSize: '11px' }} />;
+                      })
+                    }
+                    renderInput={(params) => (
+                      <TextField {...params} placeholder="Selecciona uno o más destinatarios" variant="outlined" size="small" sx={inputStyle} />
+                    )}
+                  />
+                )}
 
-          {/* Tipo de alerta */}
-          <Box>
-            <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#0058be', mb: 1.5 }}>Tipo de Alerta</Typography>
-            <ToggleButtonGroup value={tipo} exclusive onChange={(_, val) => val && setTipo(val)} sx={{ flexWrap: 'wrap', gap: 2 }}>
-              {tiposAlerta.map((t) => (
-                <ToggleButton key={t.value} value={t.value} sx={{ borderRadius: '999px !important', border: '1px solid #c2c6d6 !important', px: 2.5, py: 0.8, textTransform: 'none', '&.Mui-selected': { bgcolor: `${t.color}24`, borderColor: `${t.color} !important`, color: t.color } }}>
-                  <Box sx={{ mr: 0.5 }}>{t.icon}</Box>{t.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Box>
+                <Typography sx={{ fontSize: '11px', color: '#94a3b8', mt: 1, fontFamily: 'Inter' }}>
+                  {enviarATodos && 'Se enviará a todas las terminales activas.'}
+                  {usarGrupoArea && 'Selecciona el grupo o área de destino.'}
+                  {!enviarATodos && !usarGrupoArea && 'Puedes seleccionar múltiples terminales.'}
+                </Typography>
+              </SectionCard>
+              </Grid>
 
-          {/* Opciones avanzadas */}
-          <Divider />
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}><TuneIcon sx={{ color: '#424754' }} /><Typography sx={{ fontSize: '16px', fontWeight: 600 }}>Opciones Avanzadas</Typography></Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-              <Box sx={{ opacity: persistente ? 0.5 : 1, pointerEvents: persistente ? 'none' : 'auto' }}>
-                <Typography sx={{ fontSize: '13px', fontWeight: 500, mb: 1.5 }}>Duración en pantalla</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #c2c6d6', borderRadius: '999px', overflow: 'hidden', bgcolor: '#f9f9ff' }}>
-                    <Button onClick={() => setDuracionSeg(Math.max(5, duracionSeg - 5))} disabled={persistente} sx={{ minWidth: 38, height: 38 }}>−</Button>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1 }}>
-                      <input type="number" className="no-spin" value={duracionSeg} onChange={(e) => setDuracionSeg(Math.min(360, Math.max(5, Number(e.target.value))))} disabled={persistente} style={{ width: 48, border: 'none', outline: 'none', background: 'transparent', textAlign: 'center' }} />
-                      <Typography sx={{ fontSize: '12px' }}>seg</Typography>
-                    </Box>
-                    <Button onClick={() => setDuracionSeg(Math.min(360, duracionSeg + 5))} disabled={persistente} sx={{ minWidth: 38, height: 38 }}>+</Button>
+              {/* Row 1, col 2 — Programación */}
+              <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex' }}>
+              <SectionCard id="notif-crear-programacion" title="Programación" icon={<ScheduleIcon sx={{ fontSize: 18 }} />}>
+                <Tabs
+                  value={recordatorio ? 1 : 0}
+                  onChange={(_, v) => {
+                    if (v === 0) {
+                      setRecordatorio(false);
+                    } else {
+                      setRecordatorio(true);
+                      setProgramar(false);
+                      setEnviarATodos(false);
+                      setUsarGrupoArea(false);
+                    }
+                  }}
+                  sx={{
+                    minHeight: 36, mb: 2,
+                    '& .MuiTab-root': { textTransform: 'none', fontFamily: 'Inter', fontWeight: 600, fontSize: '13px', minHeight: 36, py: 0.5 },
+                    '& .Mui-selected': { color: '#004a99 !important' },
+                    '& .MuiTabs-indicator': { backgroundColor: '#004a99' },
+                  }}
+                >
+                  <Tab label="Programar envío" />
+                  <Tab label="Recordatorio personal" />
+                </Tabs>
+
+                {!recordatorio ? (
+                  <Box>
+                    <ToggleRow
+                      label="Programar para más tarde"
+                      description="Selecciona fecha y hora de envío"
+                      checked={programar}
+                      onChange={setProgramar}
+                    />
+                    <Collapse in={programar}>
+                      <Box sx={{ display: 'flex', gap: 1.5, mt: 1.5 }}>
+                        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                          <DatePicker value={fechaProgramada ? dayjs(fechaProgramada) : null} onChange={(v) => setFechaProgramada(v ? dayjs(v).format("YYYY-MM-DD") : "")} slotProps={{ textField: { size: "small", fullWidth: true, sx: inputStyle } }} />
+                          <TimePicker
+                            value={horaProgramada ? dayjs(`2000-01-01T${horaProgramada}`) : null}
+                            onChange={(v) => setHoraProgramada(v ? dayjs(v).format("HH:mm") : "")}
+                            slotProps={{ textField: { size: "small", sx: inputHoraStyle }, actionBar: { actions: ["accept"], sx: { justifyContent: "center" } } }}
+                          />
+                        </LocalizationProvider>
+                      </Box>
+                    </Collapse>
+                    {!programar && (
+                      <Typography sx={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'Inter', mt: 1 }}>
+                        La notificación se enviará inmediatamente.
+                      </Typography>
+                    )}
                   </Box>
-                  {duracionSeg === 15 && <Typography sx={{ fontSize: '11px', color: '#0058be', fontWeight: 500 }}>Recomendado</Typography>}
+                ) : (
+                  <Box>
+                    <Typography sx={{ fontSize: '12px', color: '#64748b', fontFamily: 'Inter', mb: 1.5 }}>
+                      Se enviará solo a tu terminal en la fecha indicada.
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1.5 }}>
+                      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                        <DatePicker value={fechaRecordatorio ? dayjs(fechaRecordatorio) : null} onChange={(v) => setFechaRecordatorio(v ? dayjs(v).format("YYYY-MM-DD") : "")} slotProps={{ textField: { size: "small", fullWidth: true, sx: inputStyle } }} />
+                        <TimePicker
+                          value={horaRecordatorio ? dayjs(`2000-01-01T${horaRecordatorio}`) : null}
+                          onChange={(v) => setHoraRecordatorio(v ? dayjs(v).format("HH:mm") : "")}
+                          slotProps={{ textField: { size: "small", sx: inputHoraStyle }, actionBar: { actions: ["accept"], sx: { justifyContent: "center" } } }}
+                        />
+                      </LocalizationProvider>
+                    </Box>
+                  </Box>
+                )}
+              </SectionCard>
+              </Grid>
+
+              {/* Divider horizontal entre Row 1 y Row 2 */}
+              <Grid size={12}>
+                <Divider sx={{ borderColor: '#e2e8f0' }} />
+              </Grid>
+
+              
+              <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', borderRight: { md: '1px solid #e2e8f0' }, pr: { md: 2 } }}>
+              <SectionCard id="notif-crear-contenido" title="Contenido" icon={<EditNoteOutlinedIcon sx={{ fontSize: 18 }} />}>
+                <TextField
+                  fullWidth size="small"
+                  placeholder="Título (opcional)"
+                  value={titulo} onChange={(e) => setTitulo(e.target.value)}
+                  inputProps={{ maxLength: 100 }}
+                  sx={{ mb: 2, ...inputStyle }}
+                />
+
+                <Box sx={{ position: 'relative', mb: 2.5 }}>
+                  <TextField
+                    fullWidth multiline rows={4}
+                    placeholder="Mensaje (obligatorio)"
+                    value={mensaje} onChange={(e) => setMensaje(e.target.value)}
+                    inputProps={{ maxLength: 600 }}
+                    sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { ...(inputStyle as any)['& .MuiOutlinedInput-root'], padding: '12px 14px' }, '& .MuiOutlinedInput-input': { padding: 0, color: '#191b23' } }}
+                  />
+                  <Typography sx={{ position: 'absolute', bottom: 10, right: 12, fontSize: '11px', color: mensaje.length >= 600 ? '#dc2626' : '#94a3b8' }}>
+                    {mensaje.length}/600
+                  </Typography>
                 </Box>
-              </Box>
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box><Typography sx={{ fontWeight: 500 }}>Persistente</Typography><Typography sx={{ fontSize: '11.5px', color: '#6b7280' }}>El usuario debe cerrar manualmente.</Typography></Box>
-                <Switch checked={persistente} onChange={(e) => setPersistente(e.target.checked)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#0058be' } }} />
-              </Box>
+                {/* Tipo de alerta */}
+                <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', mb: 1.5, fontFamily: 'Inter' }}>
+                  Tipo de Alerta
+                </Typography>
+                <ToggleButtonGroup value={tipo} exclusive onChange={(_, val) => val && setTipo(val)} sx={{ flexWrap: 'wrap', gap: 1.5 }}>
+                  {tiposAlerta.map((t) => (
+                    <ToggleButton
+                      key={t.value} value={t.value}
+                      sx={{
+                        borderRadius: '999px !important',
+                        border: '1px solid #e2e8f0 !important',
+                        px: 2.5, py: 0.8,
+                        textTransform: 'none',
+                        fontFamily: 'Inter', fontWeight: 600, fontSize: '13px',
+                        color: '#64748b',
+                        // Hover uniforme para todos los tipos
+                        '&:hover': { bgcolor: '#f1f5f9' },
+                        '&.Mui-selected': {
+                          bgcolor: `${t.color}18`,
+                          borderColor: `${t.color} !important`,
+                          color: t.color,
+                          '&:hover': { bgcolor: `${t.color}28` },
+                        },
+                      }}
+                    >
+                      <Box sx={{ mr: 0.8, display: 'flex' }}>{t.icon}</Box>
+                      {t.label}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </SectionCard>
+              </Grid>
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box><Typography sx={{ fontWeight: 500 }}>Clickeable</Typography><Typography sx={{ fontSize: '11.5px', color: '#6b7280' }}>Permite hacer clic sobre la alerta.</Typography></Box>
-                <Switch checked={clickeable} onChange={(e) => setClickeable(e.target.checked)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#0058be' } }} />
-              </Box>
-
-              <Box sx={{ opacity: clickeable ? 1 : 0.5, pointerEvents: clickeable ? 'auto' : 'none' }}>
-                <Typography sx={{ fontSize: '13px', fontWeight: 500, mb: 1 }}>Ruta de acción</Typography>
-                <TextField fullWidth size="small" placeholder="Ej: /modulo/detalles" value={rutaAccion} onChange={(e) => setRutaAccion(e.target.value)} disabled={!clickeable} sx={inputStyle} />
-              </Box>
-
-              <Box>
-                <Typography sx={{ fontSize: '13px', fontWeight: 500, mb: 1 }}>Excluir terminales</Typography>
-                <Box sx={{ minHeight: 44, border: '1px solid #c2c6d6', borderRadius: '10px', p: 1, display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', bgcolor: '#ffffff' }}>
-                  {excluir.map((e, i) => (<Chip key={i} label={e} size="small" onDelete={() => setExcluir(excluir.filter((_, j) => j !== i))} sx={{ bgcolor: '#ffdad6', color: '#93000a' }} />))}
-                  <input style={{ flex: 1, border: 'none', outline: 'none', fontFamily: 'Inter', fontSize: '14px', minWidth: 150, background: 'transparent' }} placeholder="Código y Enter (Ej: 31:CF)" value={inputExcluir} onChange={(e) => setInputExcluir(e.target.value)} onKeyDown={handleKeyDownExcluir} />
+              {/* Row 2, col 2 — Opciones Avanzadas */}
+              <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex' }}>
+              <SectionCard id="notif-crear-avanzadas" title="Opciones Avanzadas" icon={<TuneIcon sx={{ fontSize: 18 }} />}>
+                {/* Duración */}
+                <Box sx={{ mb: 2, opacity: persistente ? 0.45 : 1, pointerEvents: persistente ? 'none' : 'auto' }}>
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', mb: 1, fontFamily: 'Inter' }}>
+                    Duración en pantalla
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: '999px', overflow: 'hidden', bgcolor: '#f8fafc' }}>
+                      <Button onClick={() => setDuracionSeg(Math.max(5, duracionSeg - 5))} disabled={persistente} sx={{ minWidth: 36, height: 36 }}>−</Button>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5 }}>
+                        <input type="number" className="no-spin" value={duracionSeg === 0 ? '' : duracionSeg} onChange={(e) => { const v = e.target.value; if (v === '') { setDuracionSeg(0); return; } setDuracionSeg(Math.min(360, Number(v))); }} onBlur={(e) => { const n = Number(e.target.value); if (!n || n < 5) { setDuracionSeg(5); showSnackbar("El tiempo mínimo es de 5 segundos", "warning"); } }} disabled={persistente} style={{ width: 44, border: 'none', outline: 'none', background: 'transparent', textAlign: 'center', fontFamily: 'Inter' }} />
+                        <Typography sx={{ fontSize: '12px', color: '#64748b', fontFamily: 'Inter' }}>seg</Typography>
+                      </Box>
+                      <Button onClick={() => setDuracionSeg(Math.min(360, duracionSeg + 5))} disabled={persistente} sx={{ minWidth: 36, height: 36 }}>+</Button>
+                    </Box>
+                    {duracionSeg === 15 && (
+                      <Chip label="Recomendado" size="small" sx={{ bgcolor: '#dbeafe', color: '#1d4ed8', fontFamily: 'Inter', fontWeight: 600, fontSize: '11px' }} />
+                    )}
+                  </Box>
                 </Box>
-              </Box>
-            </Box>
+
+                <ToggleRow label="Persistente" description="El usuario debe cerrar manualmente." checked={persistente} onChange={setPersistente} />
+                <ToggleRow label="Clickeable" description="Permite hacer clic sobre la alerta." checked={clickeable} onChange={setClickeable} />
+
+                <Collapse in={clickeable}>
+                  <Box sx={{ mt: 1.5 }}>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', mb: 1, fontFamily: 'Inter' }}>Ruta de acción</Typography>
+                    <TextField fullWidth size="small" placeholder="Ej: /modulo/detalles" value={rutaAccion} onChange={(e) => setRutaAccion(e.target.value)} disabled={!clickeable} sx={inputStyle} />
+                  </Box>
+                </Collapse>
+
+                <Box sx={{ mt: 2 }}>
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', mb: 1, fontFamily: 'Inter' }}>Excluir terminales</Typography>
+                  <Box sx={{ minHeight: 44, border: '1px solid #e2e8f0', borderRadius: '10px', p: 1, display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', bgcolor: '#ffffff' }}>
+                    {excluir.map((e, i) => (
+                      <Chip key={i} label={e} size="small" onDelete={() => setExcluir(excluir.filter((_, j) => j !== i))} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontFamily: 'Inter' }} />
+                    ))}
+                    <input
+                      style={{ flex: 1, border: 'none', outline: 'none', fontFamily: 'Inter', fontSize: '14px', minWidth: 150, background: 'transparent' }}
+                      placeholder="Código y Enter (Ej: 31:CF)"
+                      value={inputExcluir}
+                      onChange={(e) => setInputExcluir(e.target.value)}
+                      onKeyDown={handleKeyDownExcluir}
+                    />
+                  </Box>
+                </Box>
+              </SectionCard>
+              </Grid>
+
+              {/* Cierre del sub-grid del formulario */}
+              </Grid>
+              </Paper>
           </Box>
-
-          {error && <Box sx={{ bgcolor: '#ffdad6', border: '1px solid #ba1a1a', borderRadius: '8px', p: 2 }}><Typography sx={{ color: '#93000a' }}>{error}</Typography></Box>}
-          {exito && <Box sx={{ bgcolor: '#e6f4ea', border: '1px solid #2e7d32', borderRadius: '8px', p: 2 }}><Typography sx={{ color: '#2e7d32' }}>✓ Notificación enviada correctamente.</Typography></Box>}
-        </Box>
-
-        <Box sx={{ px: 4, py: 3, borderTop: '1px solid #e1e2ec', bgcolor: '#f9f9ff', display: 'flex', justifyContent: 'flex-end' }}>
-          <Button variant="contained" onClick={handleSubmit} disabled={enviando} startIcon={<SendIcon />} sx={{ bgcolor: '#0058be', '&:hover': { bgcolor: '#004395' }, borderRadius: '999px', textTransform: 'none', px: 4, py: 1.5 }}>{enviando ? 'Enviando...' : 'Enviar Notificación'}</Button>
-        </Box>
+        </Container>
       </Box>
     </>
   );
 };
 
-export default CreateNotification;
+export default function CreateNotificationPage(props: CreateNotificationProps) {
+  return (
+    <CreateNotificationTourProvider>
+      <CreateNotification {...props} />
+    </CreateNotificationTourProvider>
+  );
+}

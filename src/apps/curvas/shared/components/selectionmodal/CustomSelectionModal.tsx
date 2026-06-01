@@ -17,7 +17,7 @@ import {
   Typography,
   Fade,
 } from "@mui/material";
-import { Search as SearchIcon } from "@mui/icons-material";
+import SearchIcon from "@mui/icons-material/Search";
 import { useState, useEffect, useMemo } from "react";
 
 export interface SelectionItem {

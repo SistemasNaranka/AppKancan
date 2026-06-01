@@ -13,7 +13,11 @@ import {
   Autocomplete,
   Paper,
 } from "@mui/material";
-import { Business as BusinessIcon, Close, Save, Add, Delete } from "@mui/icons-material";
+import BusinessIcon from "@mui/icons-material/Business";
+import Close from "@mui/icons-material/Close";
+import Save from "@mui/icons-material/Save";
+import Add from "@mui/icons-material/Add";
+import Delete from "@mui/icons-material/Delete";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
