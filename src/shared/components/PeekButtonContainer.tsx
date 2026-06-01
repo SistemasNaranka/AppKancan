@@ -7,6 +7,7 @@ import PeekButton from "./PeekButton";
 import EventAvailable from "@mui/icons-material/EventAvailable";
 import AccessTime from "@mui/icons-material/AccessTime";
 import TransferWithinAStation from "@mui/icons-material/TransferWithinAStation";
+import NotificationsActive from "@mui/icons-material/NotificationsActive";
 import Apps from "@mui/icons-material/Apps";
 
 /* ----------------------------- Iconos por app ----------------------------- */
@@ -19,6 +20,9 @@ const APP_ICONS: Record<string, React.ReactNode> = {
   ),
   traslados: (
     <TransferWithinAStation sx={{ width: 18, height: 18, color: "#fff" }} />
+  ),
+  notificaciones: (
+    <NotificationsActive sx={{ width: 18, height: 18, color: "#fff" }} />
   ),
 };
 

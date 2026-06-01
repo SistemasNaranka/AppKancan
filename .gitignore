@@ -61,6 +61,7 @@ desktop.ini
 .code-review-graph
 .mcp.json
 .opencode.json
+.serena
 
 # AI documentation
 AGENTS.md

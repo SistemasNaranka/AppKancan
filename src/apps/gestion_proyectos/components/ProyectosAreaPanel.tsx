@@ -10,12 +10,10 @@ import {
   AccordionDetails,
   IconButton,
 } from "@mui/material";
-import {
-  Close as CloseIcon,
-  AutoAwesomeMosaic as AutoAwesomeMosaicICon,
-  ExpandMore as ExpandMoreIcon,
-  ShowChart as ShowChartIcon,
-} from "@mui/icons-material";
+import CloseIcon from "@mui/icons-material/Close";
+import AutoAwesomeMosaicICon from "@mui/icons-material/AutoAwesomeMosaic";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { Bar } from "react-chartjs-2";
 import type { Project } from "../types";

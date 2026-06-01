@@ -21,9 +21,7 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}>
-      
-      {/* HEADER DEL MODAL - CORREGIDO: ya no hay <h6> dentro de <h2> */}
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, fontWeight: 800, fontSize: '1.25rem', color: '#1e293b' }}>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, fontWeight: 800, fontSize: '1.25rem', color: '#1e293b'}}>
         Detalle de Notificación
         <IconButton onClick={onClose} sx={{ bgcolor: '#f1f5f9', '&:hover': { bgcolor: '#e2e8f0' } }}>
           <CloseIcon />
@@ -44,7 +42,7 @@ export default function NotificationDetailModal({ open, onClose, notificacion }:
           <Chip 
             label={notificacion.tipo_notificacion} 
             sx={{ 
-              fontWeight: 700, 
+              fontWeight: 700,
               bgcolor: notificacion.tipo_notificacion?.toUpperCase() === 'ENTREGADO' || notificacion.tipo_notificacion?.toUpperCase() === 'SUCCESS' ? '#e2f4f2' : 
                        notificacion.tipo_notificacion?.toUpperCase() === 'ERROR' ? '#f9e2e4' : 
                        notificacion.tipo_notificacion?.toUpperCase() === 'ADVERTENCIA' ? '#fff6e2' : '#e2ebf8',

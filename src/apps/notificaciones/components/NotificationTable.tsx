@@ -52,10 +52,10 @@ export default function NotificationTable({
     handleCloseMenu();
   };
 
-  const gridLayout = '2fr 5fr 1.5fr 2fr 1fr';
+  const gridLayout = '2fr 3fr 1.5fr 1.5fr 0.8fr';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+    <Box id="notif-tabla" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
       <Paper
         elevation={0}
         sx={{
@@ -111,14 +111,14 @@ export default function NotificationTable({
                 <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, alignItems: 'center', gap: 3, p: 2.5, px: 3 }}>
 
                   {/* Asunto */}
-                  <Box>
-                    <Typography variant="body1" sx={{ fontWeight: 800, color: '#191b23', fontSize: '0.92rem', fontFamily: 'Inter' }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 800, color: '#191b23', fontSize: '0.92rem', fontFamily: 'Inter', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {item.titulo}
                     </Typography>
                   </Box>
 
                   {/* Mensaje */}
-                  <Typography variant="body2" sx={{ color: '#424754', fontSize: '0.88rem', pr: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'Inter' }}>
+                  <Typography variant="body2" sx={{ color: '#424754', fontSize: '0.88rem', pr: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, fontFamily: 'Inter' }}>
                     {item.mensaje}
                   </Typography>
 

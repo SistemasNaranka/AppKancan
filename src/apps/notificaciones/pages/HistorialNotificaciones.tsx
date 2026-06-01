@@ -11,11 +11,13 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import NotificationHeader      from '../components/NotificationHeader';
 import NotificationTable       from '../components/NotificationTable';
 import NotificationDetailModal from '../components/NotificationDetailModal';
+import { NotificationsTourProvider } from '../components/NotificationsTourContext';
+import NotificationsTour           from '../components/NotificationsTour';
 
 import { INotification } from '../interfaces/notification.interface';
 import { servicioNotificaciones } from '../services/notification.service';
 
-export default function HistorialNotificaciones() {
+function HistorialContent() {
   const [registros,     setRegistros]     = useState<INotification[]>([]);
   const [cargando,      setCargando]      = useState(false);
   const [filtroEstado,  setFiltroEstado]  = useState('TODOS');
@@ -79,6 +81,9 @@ export default function HistorialNotificaciones() {
 
   return (
     <Box sx={{ minHeight: '100vh', py: 5 }}>
+      {/* Tour Joyride — se activa via PeekButton o ?tour=start */}
+      <NotificationsTour />
+
       <Container maxWidth="xl">
 
         <NotificationHeader total={dataFiltrada.length} />
@@ -87,31 +92,39 @@ export default function HistorialNotificaciones() {
         <Box sx={{
           display: 'flex', gap: 2, alignItems: 'center',
           bgcolor: '#fff', p: 2, borderRadius: '16px',
-          border: '1px solid #e2e8f0', mb: 4,
+          border: '1px solid #e2e8f0', mb: 2,
         }}>
           <ToggleButtonGroup
+            id="notif-filtros"
             value={filtroEstado}
             exclusive
             onChange={(_, val) => val && setFiltroEstado(val)}
             size="small"
-            sx={{
-              '& .MuiToggleButton-root': {
-                textTransform: 'none', fontWeight: 700, px: 2.5,
-                borderRadius: '10px', mx: 0.5, border: 'none', color: '#64748b',
-                '&.Mui-selected': {
-                  bgcolor: '#004a99', color: '#fff', borderRadius: '10px',
-                  '&:hover': { bgcolor: '#003366' },
-                },
-              },
-            }}
           >
-            <ToggleButton value="TODOS">Todos</ToggleButton>
-            <ToggleButton value="ENTREGADO">Éxito</ToggleButton>
-            <ToggleButton value="ADVERTENCIA">Advertencia</ToggleButton>
-            <ToggleButton value="ERROR">Error</ToggleButton>
+            {([
+              { value: 'TODOS',       label: 'Todos',       color: '#004a99' },
+              { value: 'ENTREGADO',   label: 'Éxito',       color: '#16a34a' },
+              { value: 'ADVERTENCIA', label: 'Advertencia', color: '#d97706' },
+              { value: 'ERROR',       label: 'Error',       color: '#dc2626' },
+            ] as const).map(({ value, label, color }) => (
+              <ToggleButton
+                key={value}
+                value={value}
+                sx={{
+                  textTransform: 'none', fontWeight: 700, px: 2.5,
+                  borderRadius: '10px', mx: 0.5, border: 'none', color: '#64748b',
+                  '&.Mui-selected': {
+                    bgcolor: color, color: '#fff', borderRadius: '10px',
+                    '&:hover': { bgcolor: color, filter: 'brightness(0.88)' },
+                  },
+                }}
+              >
+                {label}
+              </ToggleButton>
+            ))}
           </ToggleButtonGroup>
 
-          <FormControl size="small" sx={{ ml: 'auto', minWidth: 175 }}>
+          <FormControl id="notif-rango-fecha" size="small" sx={{ ml: 'auto', minWidth: 175 }}>
             <Select
               value={rangoFecha}
               onChange={(e) => setRangoFecha(e.target.value)}
@@ -155,5 +168,13 @@ export default function HistorialNotificaciones() {
 
       </Container>
     </Box>
+  );
+}
+
+export default function HistorialNotificaciones() {
+  return (
+    <NotificationsTourProvider>
+      <HistorialContent />
+    </NotificationsTourProvider>
   );
 }

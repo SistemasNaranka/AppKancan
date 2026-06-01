@@ -28,18 +28,16 @@ import {
   type TooltipItem,
   type ChartOptions,
 } from "chart.js";
-import {
-  ArrowBack,
-  PostAdd,
-  AccessTimeFilled,
-  Description,
-  Stars,
-  Edit,
-  ExpandMore,
-  TrendingUp,
-  Speed,
-  ShowChart,
-} from "@mui/icons-material";
+import ArrowBack from "@mui/icons-material/ArrowBack";
+import PostAdd from "@mui/icons-material/PostAdd";
+import AccessTimeFilled from "@mui/icons-material/AccessTimeFilled";
+import Description from "@mui/icons-material/Description";
+import Stars from "@mui/icons-material/Stars";
+import Edit from "@mui/icons-material/Edit";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import TrendingUp from "@mui/icons-material/TrendingUp";
+import Speed from "@mui/icons-material/Speed";
+import ShowChart from "@mui/icons-material/ShowChart";
 import {
   useProjectById,
   getStatusColor,
