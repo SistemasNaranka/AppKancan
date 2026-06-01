@@ -158,6 +158,10 @@ export const useEditStoreBudgetModalLogic = ({
       setError("Debe seleccionar una tienda primero.");
       return;
     }
+    if ((diasConPresupuestoCero || []).includes(fecha)) {
+      setError("No se pueden asignar empleados a un día sin presupuesto configurado.");
+      return;
+    }
     if (!cargoSeleccionado) {
       setError("Debe seleccionar un cargo para el empleado.");
       return;
@@ -238,6 +242,30 @@ export const useEditStoreBudgetModalLogic = ({
     const diasAGuardar = selectedDays.length > 0 ? selectedDays : [fecha];
     try {
       setLoading(true);
+
+      // Validar si existe presupuesto mensual/diario configurado
+      const fechaObj = dayjs(fecha);
+      const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
+      const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");
+      const presupuestosCasa = await obtenerPresupuestosDiarios(
+        tiendaId as number,
+        startOfMonth,
+        endOfMonth
+      );
+
+      if (!presupuestosCasa || presupuestosCasa.length === 0) {
+        setError(`⚠️ No se ha configurado el presupuesto para el mes de ${fechaObj.format("MMMM YYYY")}.`);
+        return false;
+      }
+
+      for (const dia of diasAGuardar) {
+        const presupuestoDia = presupuestosCasa.find(p => p.date === dia);
+        if (!presupuestoDia || (presupuestoDia.budget || 0) <= 0) {
+          setError(`⚠️ No se ha configurado el presupuesto para el día ${dayjs(dia).format("DD/MM/YYYY")}.`);
+          return false;
+        }
+      }
+
       for (const dia of diasAGuardar) {
         await eliminarPresupuestosEmpleados(tiendaId as number, dia);
         const { empleados, calculated } = await recalculateBudgets(

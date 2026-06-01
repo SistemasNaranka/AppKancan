@@ -1,5 +1,6 @@
 // useEmployeeOperations.ts (Versión Mejorada)
 import { useState, useEffect, useRef, useMemo } from "react";
+import dayjs from "dayjs";
 import { DirectusStaff, DirectusPosition, DirectusTienda, EmpleadoAsignado, ROLES_EXCLUSIVOS, RolExclusivo } from "../types/modal";
 import { guardarPresupuestosEmpleados, actualizarPresupuestoEmpleado, eliminarPresupuestoEmpleado } from "../api/directus/create";
 import { obtenerPresupuestosDiarios, obtenerPresupuestosEmpleados, obtenerPorcentajesMensuales, obtenerAsesores, obtenerCargos } from "../api/directus/read";
@@ -77,6 +78,32 @@ export const useEmployeeOperations = (
     if (!tiendaUsuario) return;
     try {
       setLoading(true);
+
+      // Validar si existe presupuesto configurado para el mes de la fecha
+      const fechaObj = dayjs(fecha);
+      const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
+      const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");
+      const presupuestosCasa = await obtenerPresupuestosDiarios(
+        tiendaUsuario.id,
+        startOfMonth,
+        endOfMonth
+      );
+
+      if (!presupuestosCasa || presupuestosCasa.length === 0) {
+        setError(`⚠️ No se ha configurado el presupuesto para el mes de ${fechaObj.format("MMMM YYYY")}.`);
+        setMessageType("error");
+        setCanSave(false);
+        return;
+      }
+
+      const presupuestoDia = presupuestosCasa.find(p => p.date === fecha);
+      if (!presupuestoDia || (presupuestoDia.budget || 0) <= 0) {
+        setError(`⚠️ No se ha configurado el presupuesto para el día ${fechaObj.format("DD/MM/YYYY")}.`);
+        setMessageType("error");
+        setCanSave(false);
+        return;
+      }
+
       const datos = await obtenerPresupuestosEmpleados(tiendaUsuario.id, fecha, mes);
       const hoy = datos.filter(d => d.date === fecha);
 
@@ -171,6 +198,19 @@ export const useEmployeeOperations = (
     try {
       setLoading(true);
       const fecha = getFechaActual(undefined); // O pasar la fecha actual desde props
+
+      // Validar si existe presupuesto diario de tienda configurado (> 0)
+      const presupuestosDiarios = await obtenerPresupuestosDiarios(
+        tiendaUsuario!.id,
+        fecha,
+        fecha
+      );
+      if (!presupuestosDiarios || presupuestosDiarios.length === 0 || (presupuestosDiarios[0].budget || 0) <= 0) {
+        setError("No se pueden asignar empleados a un día sin presupuesto configurado.");
+        setMessageType("error");
+        return;
+      }
+
       const { empleados: calculados } = await recalculateBudgets(
         nuevaLista.map(e => ({ ...e.asesor, cargo_nombre: e.cargoAsignado })),
         fecha
@@ -227,11 +267,35 @@ export const useEmployeeOperations = (
     }
   };
 
-  // ✅ Función de guardado (Lógica compleja de inserts/updates/deletes)[cite: 3]
+  // ✅ Función de guardado (Lógica compleja de inserts/updates/deletes)
   const handleSaveAsignaciones = async (fecha: string, cargos: DirectusPosition[]) => {
     if (!canSave) return;
     try {
       setSaving(true);
+
+      // Validar si existe presupuesto mensual/diario configurado
+      const fechaObj = dayjs(fecha);
+      const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
+      const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");
+      const presupuestosCasa = await obtenerPresupuestosDiarios(
+        tiendaUsuario!.id,
+        startOfMonth,
+        endOfMonth
+      );
+
+      if (!presupuestosCasa || presupuestosCasa.length === 0) {
+        setError(`⚠️ No se ha configurado el presupuesto para el mes de ${fechaObj.format("MMMM YYYY")}.`);
+        setMessageType("error");
+        return;
+      }
+
+      const presupuestoDia = presupuestosCasa.find(p => p.date === fecha);
+      if (!presupuestoDia || (presupuestoDia.budget || 0) <= 0) {
+        setError(`⚠️ No se ha configurado el presupuesto para el día ${fechaObj.format("DD/MM/YYYY")}.`);
+        setMessageType("error");
+        return;
+      }
+
       const existentes = (await obtenerPresupuestosEmpleados(tiendaUsuario!.id, fecha)).filter(e => e.date === fecha);
       const mapaExistentes = new Map(existentes.map(e => [e.advisor_id, e]));
 
