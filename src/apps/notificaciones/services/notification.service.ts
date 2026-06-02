@@ -5,7 +5,7 @@ import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 import { readItems, createItem, deleteItem } from "@directus/sdk";
 import { ICreateNotification, INotification, INotificationGroup } from "../interfaces/notification.interface";
 
-interface IDirectusNotification {
+interface IDirectusNotificationDetail {
   id: string | number;
   title?: string | null;
   message?: string | null;
@@ -16,6 +16,16 @@ interface IDirectusNotification {
   sender_name?: string | null;
   date_created?: string;
   action_route?: string | null;
+}
+
+interface IDirectusNotificationPending {
+  id: string | number;
+  date_created?: string;
+  client_id?: string | number | null;
+  is_delivered?: boolean | null;
+  expiration_date?: string | null;
+  scheduled_date?: string | null;
+  notification_id?: IDirectusNotificationDetail | null;
 }
 
 const mapTipoToDirectus = (tipo: ICreateNotification["tipo"]): string => {
@@ -48,30 +58,49 @@ export const servicioNotificaciones = {
     try {
       const items = await withAutoRefresh(() =>
         directus.request(
-          readItems("core_notifications" as any, {
-            fields: ["id", "title", "message", "notification_type", "is_persistent", "duration_seconds", "destinations_raw", "sender_name", "date_created", "action_route"],
+          readItems("core_notifications_pending" as any, {
+            fields: [
+              "id",
+              "date_created",
+              "client_id",
+              "is_delivered",
+              "expiration_date",
+              "scheduled_date",
+              "notification_id.id",
+              "notification_id.title",
+              "notification_id.message",
+              "notification_id.notification_type",
+              "notification_id.is_persistent",
+              "notification_id.duration_seconds",
+              "notification_id.destinations_raw",
+              "notification_id.sender_name",
+              "notification_id.date_created",
+              "notification_id.action_route",
+            ] as any[],
             sort: ["-date_created"],
             limit: 500,
           })
         )
       );
       if (!items) return [];
-      return (items as IDirectusNotification[]).map((item) => {
-        const { fecha, hora } = formatearFechaHora(item.date_created);
-        const estado = mapTipoToEstado(item.notification_type ?? "");
+      return (items as any[]).map((item: IDirectusNotificationPending) => {
+        const notif = item.notification_id || ({} as Partial<IDirectusNotificationDetail>);
+        const dateCreated = notif.date_created || item.date_created;
+        const { fecha, hora } = formatearFechaHora(dateCreated);
+        const estado = mapTipoToEstado(notif.notification_type ?? "");
         return {
           id: `#KM-${item.id}`,
-          titulo: item.title ?? "Sin título",
-          mensaje: item.message ?? "",
+          titulo: notif.title ?? "Sin título",
+          mensaje: notif.message ?? "",
           tipo_notificacion: estado,
           progreso: estado === "ENTREGADO" ? 100 : estado === "ERROR" ? 10 : 40,
           fecha,
           hora,
-          destinatarios: item.destinations_raw ?? "",
-          persistente: item.is_persistent ?? false,
-          duracion: item.duration_seconds ?? 0,
-          sender_name: item.sender_name ?? "Sistema",
-          duration_seconds: item.duration_seconds ?? 0,
+          destinatarios: notif.destinations_raw ?? "",
+          persistente: notif.is_persistent ?? false,
+          duracion: notif.duration_seconds ?? 0,
+          sender_name: notif.sender_name ?? "Sistema",
+          duration_seconds: notif.duration_seconds ?? 0,
         };
       });
     } catch (error) {
@@ -84,13 +113,43 @@ export const servicioNotificaciones = {
     try {
       const items = await withAutoRefresh(() =>
         directus.request(
-          readItems("core_notifier_clients" as any, {
-            fields: ["id", "code", "name"],
-            sort: ["name"],
+          readItems("core_notification_group_members" as any, {
+            fields: [
+              "notifier_client_id.core_notifier_clients_id.id",
+              "notifier_client_id.core_notifier_clients_id.code",
+              "notifier_client_id.core_notifier_clients_id.name",
+            ] as any[],
+            filter: {
+              group_id: {
+                type: {
+                  _eq: "destinatarios",
+                },
+              },
+            },
+            limit: 500,
           })
         )
       );
-      return items.map((item: any) => ({ id: item.id, code: item.code, name: item.name }));
+      if (!items) return [];
+
+      const clientsMap = new Map<string | number, { id: string | number; code: string; name: string }>();
+      items.forEach((item: any) => {
+        const junctions = item.notifier_client_id;
+        if (Array.isArray(junctions)) {
+          junctions.forEach((junc: any) => {
+            const client = junc.core_notifier_clients_id;
+            if (client && client.id) {
+              clientsMap.set(client.id, {
+                id: client.id,
+                code: client.code || "",
+                name: client.name || "Sin nombre",
+              });
+            }
+          });
+        }
+      });
+
+      return Array.from(clientsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       console.error("❌ Error al cargar clientes notificadores:", error);
       return [];
@@ -159,7 +218,7 @@ export const servicioNotificaciones = {
   async eliminarNotificacion(id: string): Promise<void> {
     try {
       const cleanId = id.replace(/^#KM-/, "");
-      await withAutoRefresh(() => directus.request(deleteItem("core_notifications" as any, cleanId as any)));
+      await withAutoRefresh(() => directus.request(deleteItem("core_notifications_pending" as any, cleanId as any)));
       console.log(`✅ Notificación ${id} eliminada`);
     } catch (error) {
       console.error("❌ Error al eliminar notificación:", error);

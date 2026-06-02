@@ -124,6 +124,30 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
     const diasAGuardar = selectedDays.length > 0 ? selectedDays : [fecha];
     try {
       setLoading(true);
+
+      // Validar si existe presupuesto mensual/diario configurado
+      const fechaObj = dayjs(fecha);
+      const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
+      const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");
+      const presupuestosCasa = await obtenerPresupuestosDiarios(
+        tiendaSeleccionada as number,
+        startOfMonth,
+        endOfMonth
+      );
+
+      if (!presupuestosCasa || presupuestosCasa.length === 0) {
+        setError(`⚠️ No se ha configurado el presupuesto para el mes de ${fechaObj.format("MMMM YYYY")}.`);
+        return false;
+      }
+
+      for (const dia of diasAGuardar) {
+        const presupuestoDia = presupuestosCasa.find(p => p.date === dia);
+        if (!presupuestoDia || (presupuestoDia.budget || 0) <= 0) {
+          setError(`⚠️ No se ha configurado el presupuesto para el día ${dayjs(dia).format("DD/MM/YYYY")}.`);
+          return false;
+        }
+      }
+
       for (const dia of diasAGuardar) {
         await eliminarPresupuestosEmpleados(tiendaSeleccionada as number, dia);
         const res = await recalculateBudgets(empleadosAsignados, dia);
@@ -183,6 +207,10 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
     // ✅ Validación con mensajes claros
     if (!tiendaSeleccionada) {
       setError("Debe seleccionar una tienda primero.");
+      return;
+    }
+    if ((diasConPresupuestoCero || []).includes(fecha)) {
+      setError("No se pueden asignar empleados a un día sin presupuesto configurado.");
       return;
     }
     if (!cargoSeleccionado) {

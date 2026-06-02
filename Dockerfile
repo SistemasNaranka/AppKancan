@@ -1,5 +1,5 @@
 # ===========================
-# Etapa 1: Build (más ligera)
+# Etapa 1: Build 
 # ===========================
 FROM node:22-alpine AS builder
 
@@ -9,6 +9,7 @@ COPY package*.json ./
 
 # Instalar solo lo necesario
 RUN npm install
+RUN npm install @rollup/rollup-linux-x64-musl
 
 COPY . .
 
