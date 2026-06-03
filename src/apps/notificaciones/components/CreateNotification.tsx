@@ -4,6 +4,7 @@ import {
   Box, Typography, TextField, Chip, Button, Switch,
   ToggleButton, ToggleButtonGroup, Paper, Collapse, Autocomplete, Container,
   Grid, Tabs, Tab, Divider, IconButton,
+  Dialog, DialogTitle, DialogContent,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import TuneIcon from '@mui/icons-material/Tune';
@@ -111,7 +112,6 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
   const [cargandoGrupos,    setCargandoGrupos]    = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<INotificationGroup | null>(null);
   const [usarGrupoArea,     setUsarGrupoArea]     = useState(false);
-
   const [titulo,           setTitulo]           = useState('');
   const [mensaje,          setMensaje]          = useState('');
   const [tipo,             setTipo]             = useState<ICreateNotification['tipo']>('info');
@@ -128,6 +128,8 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
   const [inputExcluir,     setInputExcluir]     = useState('');
   const [duracionSeg,      setDuracionSeg]      = useState(15);
   const [enviando,         setEnviando]         = useState(false);
+  const [destinatariosModalOpen, setDestinatariosModalOpen] = useState(false);
+  const MAX_CHIPS_VISIBLES = 3;
 
   useEffect(() => {
     const cargarClientes = async () => {
@@ -362,20 +364,59 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
                 {!enviarATodos && !usarGrupoArea && (
                   <Autocomplete
                     multiple
+                    disabled={recordatorio}
                     options={clientesDisponibles} loading={cargandoClientes}
                     getOptionLabel={(o) => `${o.name} (${o.code})`}
                     isOptionEqualToValue={(o, v) => o.code === v.code}
                     value={destinatariosSeleccionados}
                     onChange={(_, v) => setDestinatariosSeleccionados(v)}
-                    renderTags={(value, getTagProps) =>
-                      value.map((option, index) => {
+                    renderTags={(value, getTagProps) => {
+                      const visibles = value.slice(0, MAX_CHIPS_VISIBLES);
+                      const restantes = value.length - visibles.length;
+                      const chips = visibles.map((option, index) => {
                         const { key, ...rest } = getTagProps({ index });
                         return <Chip key={key} label={`${option.name} (${option.code})`} {...rest} size="small" sx={{ bgcolor: '#dbeafe', color: '#1d4ed8', fontFamily: 'Inter', fontSize: '11px' }} />;
-                      })
-                    }
-                    renderInput={(params) => (
-                      <TextField {...params} placeholder="Selecciona uno o más destinatarios" variant="outlined" size="small" sx={inputStyle} />
-                    )}
+                      });
+                      if (restantes > 0) {
+                        chips.push(
+                          <Chip
+                            key="__resto__"
+                            label={`+${restantes}`}
+                            size="small"
+                            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                            onClick={(e) => { e.stopPropagation(); setDestinatariosModalOpen(true); }}
+                            sx={{ bgcolor: '#004a99', color: '#ffffff', fontFamily: 'Inter', fontSize: '11px', fontWeight: 700, cursor: 'pointer', '&:hover': { bgcolor: '#003366' } }}
+                          />
+                        );
+                      }
+                      return chips;
+                    }}
+                    renderInput={(params) => {
+                      const hayChips = destinatariosSeleccionados.length > 0;
+                      return (
+                        <TextField
+                          {...params}
+                          placeholder={hayChips ? "" : "Selecciona uno o más destinatarios"}
+                          variant="outlined"
+                          size="small"
+                          sx={{
+                            ...inputStyle,
+                            ...(hayChips && {
+                              '& .MuiAutocomplete-input': {
+                                display: 'none !important',
+                              },
+                              // Cuando el usuario hace foco en el contenedor mostramos el input para
+                              // permitir seguir buscando/añadiendo.
+                              '& .MuiOutlinedInput-root.Mui-focused .MuiAutocomplete-input': {
+                                display: 'inline-block !important',
+                                flex: '1 1 60px',
+                                minWidth: '60px',
+                              },
+                            }),
+                          }}
+                        />
+                      );
+                    }}
                   />
                 )}
 
@@ -384,6 +425,23 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
                   {usarGrupoArea && 'Selecciona el grupo o área de destino.'}
                   {!enviarATodos && !usarGrupoArea && 'Puedes seleccionar múltiples terminales.'}
                 </Typography>
+
+                {/* Aviso cuando el modo Recordatorio personal está activo y hay
+                    destinatarios seleccionados: se ignoran al enviar. */}
+                {recordatorio && destinatariosSeleccionados.length > 0 && (
+                  <Box sx={{
+                    mt: 1.5, p: 1.2,
+                    bgcolor: '#fff7ed',
+                    border: '1px solid #fed7aa',
+                    borderRadius: '10px',
+                    display: 'flex', alignItems: 'flex-start', gap: 1,
+                  }}>
+                    <WarningAmberIcon sx={{ fontSize: 16, color: '#c2410c', mt: '1px', flexShrink: 0 }} />
+                    <Typography sx={{ fontSize: '11.5px', color: '#9a3412', fontFamily: 'Inter', lineHeight: 1.5 }}>
+                      <b>Modo Recordatorio personal activo.</b> Los {destinatariosSeleccionados.length} destinatario(s) seleccionado(s) <b>no recibirán</b> esta notificación. Solo se enviará a tu terminal.
+                    </Typography>
+                  </Box>
+                )}
               </SectionCard>
               </Grid>
 
@@ -577,6 +635,43 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
               </Paper>
           </Box>
         </Container>
+
+        {/* Modal con la lista completa de destinatarios */}
+        <Dialog
+          open={destinatariosModalOpen}
+          onClose={() => setDestinatariosModalOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          slotProps={{ paper: { sx: { borderRadius: '16px' } } }}
+        >
+          <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Inter', fontWeight: 800, color: '#0f172a' }}>
+            <Box component="span" sx={{ fontSize: '16px' }}>
+              Destinatarios seleccionados ({destinatariosSeleccionados.length})
+            </Box>
+            <IconButton size="small" onClick={() => setDestinatariosModalOpen(false)} sx={{ color: '#64748b' }}>
+              <Box component="span" sx={{ fontSize: 20, lineHeight: 1 }}>×</Box>
+            </IconButton>
+          </DialogTitle>
+          <DialogContent dividers sx={{ p: 2 }}>
+            {destinatariosSeleccionados.length === 0 ? (
+              <Typography sx={{ color: '#94a3b8', fontFamily: 'Inter', fontSize: '13px', textAlign: 'center', py: 2 }}>
+                No hay destinatarios seleccionados.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {destinatariosSeleccionados.map((d) => (
+                  <Chip
+                    key={d.code}
+                    label={`${d.name} (${d.code})`}
+                    size="small"
+                    onDelete={() => setDestinatariosSeleccionados(prev => prev.filter(x => x.code !== d.code))}
+                    sx={{ bgcolor: '#dbeafe', color: '#1d4ed8', fontFamily: 'Inter', fontSize: '12px' }}
+                  />
+                ))}
+              </Box>
+            )}
+          </DialogContent>
+        </Dialog>
       </Box>
     </>
   );
