@@ -202,7 +202,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
       <Box sx={{ width: '100%', maxWidth: 1060, mx: 'auto', bgcolor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', border: '1px solid #e1e2ec', overflow: 'hidden' }}>
         <Box sx={{ px: 4, py: 3, borderBottom: '1px solid #e1e2ec', bgcolor: '#f9f9ff' }}>
           <Typography sx={{ fontSize: '24px', fontWeight: 600, color: '#0058be', fontFamily: 'Inter' }}>Envío de Notificaciones</Typography>
-          <Typography sx={{ fontSize: '14px', color: '#424754', fontFamily: 'Inter', mt: 0.5 }}>Configura y emite alertas a través de AppKancan.</Typography>
+          <Typography sx={{ fontSize: '14px', color: '#424754', fontFamily: 'Inter', mt: 0.5 }}>Configura y emite alertas a través de AppKancan</Typography>
         </Box>
 
         <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -225,7 +225,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
 
             <Paper elevation={0} sx={{ p: '12px 16px', bgcolor: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: '14px', flex: 1, opacity: programar ? 0.4 : 1, pointerEvents: programar ? 'none' : 'auto' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box><Typography sx={{ fontWeight: 600 }}>Recordatorio personal</Typography><Typography sx={{ fontSize: '12px', color: '#4b5563' }}>Envíate un recordatorio en una fecha y hora.</Typography></Box>
+                <Box><Typography sx={{ fontWeight: 600 }}>Recordatorio personal</Typography><Typography sx={{ fontSize: '12px', color: '#4b5563' }}>Envíate un recordatorio </Typography></Box>
                 <Switch checked={recordatorio} onChange={(e) => { setRecordatorio(e.target.checked); if (e.target.checked) { setProgramar(false); setEnviarATodos(false); setUsarGrupoArea(false); } }} disabled={programar} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#0058be' } }} />
               </Box>
               <Collapse in={recordatorio}>
@@ -345,12 +345,12 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
               </Box>
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box><Typography sx={{ fontWeight: 500 }}>Persistente</Typography><Typography sx={{ fontSize: '11.5px', color: '#6b7280' }}>El usuario debe cerrar manualmente.</Typography></Box>
+                <Box><Typography sx={{ fontWeight: 500 }}>Persistente</Typography><Typography sx={{ fontSize: '11.5px', color: '#6b7280' }}>El usuario debe cerrar manualmente</Typography></Box>
                 <Switch checked={persistente} onChange={(e) => setPersistente(e.target.checked)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#0058be' } }} />
               </Box>
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box><Typography sx={{ fontWeight: 500 }}>Clickeable</Typography><Typography sx={{ fontSize: '11.5px', color: '#6b7280' }}>Permite hacer clic sobre la alerta.</Typography></Box>
+                <Box><Typography sx={{ fontWeight: 500 }}>Clickeable</Typography><Typography sx={{ fontSize: '11.5px', color: '#6b7280' }}>Permite hacer clic sobre la alerta</Typography></Box>
                 <Switch checked={clickeable} onChange={(e) => setClickeable(e.target.checked)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#0058be' } }} />
               </Box>
 
@@ -376,7 +376,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
         <Box sx={{ px: 4, py: 3, borderTop: '1px solid #e1e2ec', bgcolor: '#f9f9ff', display: 'flex', justifyContent: 'flex-end' }}>
           <Button variant="contained" onClick={handleSubmit} disabled={enviando} startIcon={<SendIcon />} sx={{ bgcolor: '#0058be', '&:hover': { bgcolor: '#004395' }, borderRadius: '999px', textTransform: 'none', px: 4, py: 1.5 }}>{enviando ? 'Enviando...' : 'Enviar Notificación'}</Button>
         </Box>
-      </Box>
+      </Box>_
     </>
   );
 };
