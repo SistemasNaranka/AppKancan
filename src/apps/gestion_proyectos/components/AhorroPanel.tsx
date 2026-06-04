@@ -12,16 +12,14 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
-import {
-  Close as CloseIcon,
-  CalendarToday as CalendarTodayIcon,
-  DateRange as DateRangeIcon,
-  ExpandMore as ExpandMoreIcon,
-  Speed as SpeedIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  ShowChart as ShowChartIcon,
-} from "@mui/icons-material";
+import CloseIcon from "@mui/icons-material/Close";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import DateRangeIcon from "@mui/icons-material/DateRange";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SpeedIcon from "@mui/icons-material/Speed";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 import {
   Chart as ChartJS,
   CategoryScale,

@@ -22,9 +22,9 @@ interface PeekButtonProps {
    CONSTANTES
    ══════════════════════════════════════════════════════════════ */
 
-const MAIN = 56;   // diámetro botón principal
-const ITEM = 42;   // diámetro cada acción
-const RADIUS = 92; // radio del arco
+const MAIN = 44;   // diámetro botón principal
+const ITEM = 34;   // diámetro cada acción
+const RADIUS = 78; // radio del arco
 
 /* ══════════════════════════════════════════════════════════════
    HELPERS
@@ -45,9 +45,6 @@ function getAngleDeg(index: number, total: number): number {
 function getOffset(index: number, total: number, open: boolean) {
   const deg = getAngleDeg(index, total);
   const rad = (deg * Math.PI) / 180;
-  // Sistema CSS: x positivo = derecha, y positivo = abajo
-  // cos(θ) positivo → derecha; negativo → izquierda
-  // -sin(θ) negativo → arriba
   const dx = open ? Math.cos(rad) * RADIUS : 0;
   const dy = open ? -Math.sin(rad) * RADIUS : 0;
   return { dx, dy };
@@ -58,52 +55,62 @@ function getOffset(index: number, total: number, open: boolean) {
    ══════════════════════════════════════════════════════════════ */
 
 const css = `
-//   @keyframes fab-spin {
-//     to { transform: rotate(360deg); }
-//   }
+  @keyframes fab-pulse {
+    0%, 100% {
+      box-shadow: 0 4px 20px rgba(0,70,128,0.45), 0 0 0 0 rgba(0,70,128,0.25);
+    }
+    55% {
+      box-shadow: 0 4px 20px rgba(0,70,128,0.45), 0 0 0 10px rgba(0,70,128,0);
+    }
+  }
 
-//   .fab-main {
-//     transition: background 0.3s ease, transform 0.25s ease, filter 0.18s ease !important;
-//   }
-//   .fab-main:hover {
-//     filter: brightness(1.12);
-//     transform: scale(1.06) !important;
-//   }
-//   .fab-main:active {
-//     transform: scale(0.94) !important;
-//   }
+  @keyframes fab-spin {
+    to { transform: rotate(360deg); }
+  }
 
-//   .fab-item-btn {
-//     transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
-//   }
-//   .fab-item-btn:hover {
-//     filter: brightness(1.15);
-//     transform: scale(1.13) !important;
-//     box-shadow: 0 6px 22px rgba(0, 70, 128, 0.5) !important;
-//   }
-//   .fab-item-btn:active {
-//     transform: scale(0.93) !important;
-//   }
+  .fab-main {
+    transition: background 0.3s ease, transform 0.25s ease, filter 0.18s ease !important;
+  }
+  .fab-main:hover {
+    filter: brightness(1.12);
+    transform: scale(1.06) !important;
+  }
+  .fab-main:active {
+    transform: scale(0.94) !important;
+  }
 
-//   /* Label: oculto por defecto, visible al hacer hover sobre el wrapper del ítem */
-//   .fab-item-wrapper .fab-item-label {
-//     opacity: 0;
-//     transform: translateY(-50%) translateX(4px);
-//     transition: opacity 0.18s ease, transform 0.18s ease;
-//     pointer-events: none;
-//   }
-//   .fab-item-wrapper:hover .fab-item-label {
-//     opacity: 1;
-//     transform: translateY(-50%) translateX(0);
-//   }
-// `;
+  .fab-item-btn {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
+  }
+  .fab-item-btn:hover {
+    filter: brightness(1.15);
+    transform: scale(1.13) !important;
+    box-shadow: 0 6px 22px rgba(0, 70, 128, 0.5) !important;
+  }
+  .fab-item-btn:active {
+    transform: scale(0.93) !important;
+  }
+
+  /* Label: oculto por defecto, visible al hacer hover sobre el ítem */
+  .fab-item-wrapper .fab-item-label {
+    opacity: 0;
+    transform: translateY(-50%) translateX(4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: none;
+  }
+  .fab-item-wrapper:hover .fab-item-label {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+`;
 
 /* ══════════════════════════════════════════════════════════════
    COMPONENTE
    ══════════════════════════════════════════════════════════════ */
 
 export default function PeekButton({ apps = [] }: PeekButtonProps) {
-  const [open, setOpen] = useState(false);
+  const [open,    setOpen]    = useState(false);
+  const [hovered, setHovered] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Cierra el menú al hacer click fuera del contenedor — sin backdrop bloqueante
@@ -131,13 +138,19 @@ export default function PeekButton({ apps = [] }: PeekButtonProps) {
       {/* Contenedor principal — ancla del arco */}
       <div
         ref={containerRef}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
-          position: "fixed",
-          bottom: 28,
-          right: 28,
-          zIndex: 999,
-          width: MAIN,
-          height: MAIN,
+          position  : "fixed",
+          top       : "50%",
+          right     : 16,
+          zIndex    : 999,
+          width     : MAIN,
+          height    : MAIN,
+          // En reposo: casi invisible. En hover/open: completamente visible.
+          opacity   : open || hovered ? 1 : 0.3,
+          transform : open || hovered ? "translateY(-50%) scale(1)" : "translateY(-50%) scale(0.82)",
+          transition: "opacity 0.25s ease, transform 0.25s ease",
         }}
       >
         {/* ── Ítems del arco ── */}
@@ -262,7 +275,7 @@ export default function PeekButton({ apps = [] }: PeekButtonProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            animation: open ? "none" : "fab-pulse 2.8s ease-in-out infinite",
+            animation: "none",
             zIndex: 1002,
             outline: "none",
             padding: 0,
@@ -278,9 +291,9 @@ export default function PeekButton({ apps = [] }: PeekButtonProps) {
             }}
           >
             {open ? (
-              <CloseIcon sx={{ fontSize: 26 }} />
+              <CloseIcon sx={{ fontSize: 20 }} />
             ) : (
-              <HelpOutlineIcon sx={{ fontSize: 30 }} />
+              <HelpOutlineIcon sx={{ fontSize: 22 }} />
             )}
           </div>
         </button>

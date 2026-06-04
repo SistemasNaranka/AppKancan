@@ -8,17 +8,15 @@ import {
   Paper,
   CircularProgress,
 } from "@mui/material";
-import {
-  Add as AddIcon,
-  AccessTime as ClockIcon,
-  AutoAwesomeMosaic as AutoAwesomeMosaicICon,
-  CalendarMonth as CalendarIcon,
-  TrendingUp as TrendingUpIcon,
-  SettingsSuggest as SettingsSuggestIcon,
-  Check as CheckIcon,
-  CalendarToday as CalendarTodayIcon,
-  DateRange as DateRangeIcon,
-} from "@mui/icons-material";
+import AddIcon from "@mui/icons-material/Add";
+import ClockIcon from "@mui/icons-material/AccessTime";
+import AutoAwesomeMosaicICon from "@mui/icons-material/AutoAwesomeMosaic";
+import CalendarIcon from "@mui/icons-material/CalendarMonth";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
+import CheckIcon from "@mui/icons-material/Check";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import DateRangeIcon from "@mui/icons-material/DateRange";
 import { useNavigate } from "react-router-dom";
 
 import { formatTime } from "../lib/calculos";

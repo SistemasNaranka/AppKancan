@@ -19,7 +19,7 @@ export type User = {
   policies?: string[];
   requires_password_change?: boolean;
   ia_key?: string; // API key de Gemini para extracción de facturas (encriptada en Directus)
-  ia_model?: string; // Modelo de IA a usar para extracción de facturas (ej: gemma-3-27b-it)
+  models_ia?: any; // Modelos de IA a usar para extracción en formato JSON (ej: [{"name": "gemini-3.1-flash-lite"}, ...])
 } | null;
 /**
  *  Tipado de los valores que otorgara el Provider a sus hijos

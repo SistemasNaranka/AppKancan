@@ -1,11 +1,4 @@
-/**
- * Página principal para carga y visualización de facturas PDF
- * Módulo de Contabilización de Facturas
- * Integrado con Google Gemini y Ollama como fallback
- * La API key y modelo de IA se obtienen del usuario autenticado (campos key_gemini y modelo_ia en Directus)
- */
-
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -17,7 +10,6 @@ import {
 } from "@mui/material";
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import SmartToy from '@mui/icons-material/SmartToy';
-import Description from '@mui/icons-material/Description';
 import ReceiptLong from '@mui/icons-material/ReceiptLong';
 import Cancel from '@mui/icons-material/Cancel';
 import Update from '@mui/icons-material/Update';
@@ -54,13 +46,10 @@ export default function Home() {
   const [datosFactura, setDatosFactura] = useState<DatosFacturaPDF | null>(
     null,
   );
-  const [modelosDisponibles, setModelosDisponibles] = useState<string[]>([]);
-  const [cargandoModelos, setCargandoModelos] = useState(true);
-  const [conexionErrorOllama, setConexionErrorOllama] = useState(false);
   const [modalAutomaticoOpen, setModalAutomaticoOpen] = useState(false);
   const [nitActual, setNitActual] = useState<string | null>(null);
-  const [guardandoAutomatico, setGuardandoAutomatico] = useState(false);
-  const [automaticoAsignado, setAutomaticoAsignado] = useState<string | null>(
+  const [, setGuardandoAutomatico] = useState(false);
+  const [, setAutomaticoAsignado] = useState<string | null>(
     null,
   );
 
@@ -75,36 +64,13 @@ export default function Home() {
     severity: "info",
   });
 
-  // Obtener usuario autenticado para acceder a su API key de Gemini y modelo de IA
+  // Obtener usuario autenticado para acceder a su API key de Gemini y modelos de IA
   const { user } = useAuth();
   const geminiApiKey = user?.ia_key;
-  const modeloIA = user?.ia_model;
+  const modelosIA = user?.models_ia;
 
-  // Hook de extracción híbrido (Gemini + Ollama fallback)
-  const hybridExtractor = useHybridExtractor(geminiApiKey, modeloIA);
-
-  // Verificar configuración de API keys y cargar modelos Ollama al montar
-  useEffect(() => {
-    const inicializar = async () => {
-      setCargandoModelos(true);
-      setConexionErrorOllama(false);
-      try {
-        const modelos = await hybridExtractor.getModelosDisponibles();
-        setModelosDisponibles(modelos);
-        if (modelos.length > 0 && !hybridExtractor.modeloActual) {
-          hybridExtractor.setModelo(modelos[0]);
-        }
-      } catch {
-        console.log(
-          "No se pudieron cargar los modelos de Ollama - Fallback no disponible",
-        );
-        setConexionErrorOllama(true);
-      } finally {
-        setCargandoModelos(false);
-      }
-    };
-    inicializar();
-  }, []);
+  // Hook de extracción (Gemini con fallback entre modelos)
+  const hybridExtractor = useHybridExtractor(geminiApiKey, modelosIA);
 
   const {
     extractData,
@@ -117,9 +83,6 @@ export default function Home() {
 
   const handleFileSelected = useCallback(
     async (file: File) => {
-      if (!geminiApiKey && conexionErrorOllama) {
-        return;
-      }
       try {
         // Limpiar automático asignado previamente
         setAutomaticoAsignado(null);
@@ -140,7 +103,7 @@ export default function Home() {
         console.error("Error procesando archivo:", err);
       }
     },
-    [extractData, geminiApiKey, conexionErrorOllama],
+    [extractData, geminiApiKey],
   );
 
   const handleRetry = useCallback(() => {
@@ -332,9 +295,19 @@ export default function Home() {
         {estado === "idle" && (
           <IAStatusBadge
             geminiApiKeyConfigured={!!geminiApiKey}
-            conexionErrorOllama={conexionErrorOllama}
-            modelosDisponibles={modelosDisponibles}
-            modeloIA={modeloIA}
+            modeloIA={(() => {
+              if (!modelosIA) return "gemma-3-27b-it";
+              try {
+                const parsed = typeof modelosIA === "string" ? JSON.parse(modelosIA) : modelosIA;
+                if (Array.isArray(parsed)) {
+                  const names = parsed.map((m: any) => m.name).filter(Boolean);
+                  if (names.length > 0) return names.join(", ");
+                }
+              } catch (e) {
+                console.error("Error parsing models_ia for display:", e);
+              }
+              return "gemma-3-27b-it";
+            })()}
           />
         )}
 
@@ -365,16 +338,7 @@ export default function Home() {
                 progress={progress}
                 isProcessing={isProcessing}
               />
-              {estadoHibrido.errorGemini && (
-                <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
-                  <Typography variant="caption">
-                    <strong>Gemini no disponible:</strong>{" "}
-                    {estadoHibrido.errorGemini}
-                    <br />
-                    Usando Ollama como fallback...
-                  </Typography>
-                </Alert>
-              )}
+              {/* Los errores de procesamiento se muestran en ErrorDisplay */}
             </Paper>
           )}
 

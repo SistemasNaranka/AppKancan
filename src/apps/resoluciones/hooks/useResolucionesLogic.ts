@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Resolution, StatusResolution } from "../types";
-import { getResolutions } from "../api/read";
+import { getResolutions, checkPrefixExists } from "../api/read";
 import { createResolution } from "../api/create";
+import { updateResolutionStatus } from "../api/update";
 import { flattenResolution, calculateMaturity } from "../utils/calculos";
 import { useResponsiveItems } from "./useResponsiveItems";
 
@@ -25,13 +26,18 @@ export const useResolutionsLogic = ({
   const [paginaActual, setPaginaActual] = useState(1);
   const [resoluciones, setResoluciones] = useState<Resolution[]>([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
-  const [, setCargando] = useState(false);
+  const [cargandoArchivo, setCargando] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarDialogoYaIntegrada, setMostrarDialogoYaIntegrada] =
     useState(false);
   const [
     mostrarDialogoOpcionesIntegracion,
     setMostrarDialogoOpcionesIntegracion,
+  ] = useState(false);
+  const [prefijoInvalido, setPrefijoInvalido] = useState(false);
+  const [
+    mostrarDialogoPrefijoNoEncontrado,
+    setMostrarDialogoPrefijoNoEncontrado,
   ] = useState(false);
 
   const itemsPorPagina = useResponsiveItems();
@@ -130,10 +136,12 @@ export const useResolutionsLogic = ({
 
   const handleSeleccionar = (resolucion: Resolution) => {
     setResolucionSeleccionada(resolucion);
+    setPrefijoInvalido(false);
   };
 
   const handleLimpiar = () => {
     setResolucionSeleccionada(null);
+    setPrefijoInvalido(false);
   };
 
   const handleIntegrar = () => {
@@ -145,6 +153,11 @@ export const useResolutionsLogic = ({
 
     if (yaExiste) {
       setMostrarDialogoYaIntegrada(true);
+      return;
+    }
+
+    if (prefijoInvalido) {
+      setMostrarDialogoPrefijoNoEncontrado(true);
       return;
     }
 
@@ -182,37 +195,36 @@ export const useResolutionsLogic = ({
     }
   };
 
-  const integrarGuardarYSubirUltra = async () => {
-    if (!resolucionSeleccionada) return;
-
+  const ejecutarUltra = (resolucion: Resolution) => {
     let empresa = "";
-    if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
+    if (resolucion.razon_social === "NARANKA SAS") {
       empresa = "naranka";
-    } else if (
-      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
-    ) {
+    } else if (resolucion.razon_social === "MARIA FERNANDA PEREZ VELEZ") {
       empresa = "kancan";
-    } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
+    } else if (resolucion.razon_social === "KAN CAN JEANS") {
       empresa = "kancanjeans";
     }
 
-    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
-      /-/g,
-      "",
-    );
+    const fechaSoloNumeros = resolucion.fecha_creacion.replace(/-/g, "");
 
     const params = [
-      `caja:2`,
-      `prefijo:${resolucionSeleccionada.prefijo}`,
-      `resolucion:${resolucionSeleccionada.numero_formulario}`,
-      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
-      `desde:${resolucionSeleccionada.desde_numero}`,
-      `hasta:${resolucionSeleccionada.hasta_numero}`,
+      `caja:${resolucion.id_ultra ?? ""}`,
+      `prefijo:${resolucion.prefijo}`,
+      `resolucion:${resolucion.numero_formulario}`,
+      `enteFacturador:${resolucion.ente_facturador?.toLowerCase()}`,
+      `desde:${resolucion.desde_numero}`,
+      `hasta:${resolucion.hasta_numero}`,
       `fecha:${fechaSoloNumeros}`,
-      `vigencia:${resolucionSeleccionada.vigencia}`,
-      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
+      `vigencia:${resolucion.vigencia}`,
+      `motivo:${resolucion.tipo_solicitud}`,
       `empresa:${empresa}`,
     ].join(" ");
+
+    window.location.href = `ResolucionesUltra://?${encodeURIComponent(params)}`;
+  };
+
+  const integrarGuardarYSubirUltra = async () => {
+    if (!resolucionSeleccionada) return;
 
     setMostrarDialogoOpcionesIntegracion(false);
 
@@ -230,9 +242,8 @@ export const useResolutionsLogic = ({
         status: "Activo",
       });
 
-      // Codificar parámetros para URL
-      const paramsCodificados = encodeURIComponent(params);
-      window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+      // Ejecutar Ultra (lo cual imprime parámetros y link en consola) ahora que está guardada
+      ejecutarUltra(resolucionSeleccionada);
 
       const datos = await getResolutions();
       const resolucionesAplanadas = datos.map(flattenResolution);
@@ -251,35 +262,6 @@ export const useResolutionsLogic = ({
   const confirmarIntegracion = async () => {
     if (!resolucionSeleccionada) return;
 
-    let empresa = "";
-    if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
-      empresa = "naranka";
-    } else if (
-      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
-    ) {
-      empresa = "kancan";
-    } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
-      empresa = "kancanjeans";
-    }
-
-    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
-      /-/g,
-      "",
-    );
-
-    const params = [
-      `caja:2`,
-      `prefijo:${resolucionSeleccionada.prefijo}`,
-      `resolucion:${resolucionSeleccionada.numero_formulario}`,
-      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
-      `desde:${resolucionSeleccionada.desde_numero}`,
-      `hasta:${resolucionSeleccionada.hasta_numero}`,
-      `fecha:${fechaSoloNumeros}`,
-      `vigencia:${resolucionSeleccionada.vigencia}`,
-      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
-      `empresa:${empresa}`,
-    ].join(" ");
-
     setMostrarConfirmacion(false);
 
     try {
@@ -296,9 +278,8 @@ export const useResolutionsLogic = ({
         status: "Activo",
       });
 
-      // Codificar parámetros para URL
-      const paramsCodificados = encodeURIComponent(params);
-      window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+      // Ejecutar Ultra (lo cual imprime parámetros y link en consola) ahora que está guardada
+      ejecutarUltra(resolucionSeleccionada);
 
       const datos = await getResolutions();
       const resolucionesAplanadas = datos.map(flattenResolution);
@@ -325,6 +306,10 @@ export const useResolutionsLogic = ({
       return;
     }
 
+    // Verificar si el prefijo existe en la base de datos y obtener el ultra_id
+    const prefixRes = await checkPrefixExists(resultado.prefijo, resultado.razon_social);
+    setPrefijoInvalido(!prefixRes.exists);
+
     const nuevaResolucion: Resolution = {
       id: Date.now(),
       numero_formulario: resultado.numero_formulario,
@@ -344,6 +329,7 @@ export const useResolutionsLogic = ({
       tienda_nombre: resultado.tienda_nombre,
       ente_facturador: "Principal",
       empresa: "",
+      id_ultra: prefixRes.ultra_id || undefined,
     };
 
     setResolucionSeleccionada(nuevaResolucion);
@@ -353,41 +339,35 @@ export const useResolutionsLogic = ({
   const ejecutarAppUltra = () => {
     if (!resolucionSeleccionada) return;
 
-    let empresa = "";
-    if (resolucionSeleccionada.razon_social === "NARANKA SAS") {
-      empresa = "naranka";
-    } else if (
-      resolucionSeleccionada.razon_social === "MARIA FERNANDA PEREZ VELEZ"
-    ) {
-      empresa = "kancan";
-    } else if (resolucionSeleccionada.razon_social === "KAN CAN JEANS") {
-      empresa = "kancanjeans";
-    }
-
-    const fechaSoloNumeros = resolucionSeleccionada.fecha_creacion.replace(
-      /-/g,
-      "",
-    );
-
-    const params = [
-      `caja:2`,
-      `prefijo:${resolucionSeleccionada.prefijo}`,
-      `resolucion:${resolucionSeleccionada.numero_formulario}`,
-      `enteFacturador:${resolucionSeleccionada.ente_facturador?.toLowerCase()}`,
-      `desde:${resolucionSeleccionada.desde_numero}`,
-      `hasta:${resolucionSeleccionada.hasta_numero}`,
-      `fecha:${fechaSoloNumeros}`,
-      `vigencia:${resolucionSeleccionada.vigencia}`,
-      `motivo:${resolucionSeleccionada.tipo_solicitud}`,
-      `empresa:${empresa}`,
-    ].join(" ");
-
-    // Codificar parámetros para URL
-    const paramsCodificados = encodeURIComponent(params);
-    window.location.href = `ResolucionesUltra://?${paramsCodificados}`;
+    ejecutarUltra(resolucionSeleccionada);
 
     setMostrarDialogoYaIntegrada(false);
     showSnackbar("Aplicación Ultra ejecutada", "info");
+  };
+
+  const handleHabilitar = async () => {
+    if (!resolucionSeleccionada) return;
+
+    try {
+      await updateResolutionStatus(resolucionSeleccionada.id, "Activo");
+      
+      const datos = await getResolutions();
+      const resolucionesAplanadas = datos.map(flattenResolution);
+      setResoluciones(resolucionesAplanadas);
+
+      const actualizada = resolucionesAplanadas.find(
+        (r) => r.id === resolucionSeleccionada.id,
+      );
+      if (actualizada) {
+        setResolucionSeleccionada(actualizada);
+      } else {
+        setResolucionSeleccionada(null);
+      }
+
+      showSnackbar("Estado de la resolución actualizado a Vigente", "success");
+    } catch (error: any) {
+      showSnackbar(error.message || "Error al actualizar estado", "error");
+    }
   };
 
   return {
@@ -413,7 +393,7 @@ export const useResolutionsLogic = ({
     handleBusquedaChange,
     handleRazonSocialChange,
     handleFiltrar,
-    handleSeleccionar,
+        handleSeleccionar,
     handleLimpiar,
     handleIntegrar,
     confirmarIntegracion,
@@ -421,9 +401,14 @@ export const useResolutionsLogic = ({
     handleSubirArchivo,
     integrarSoloGuardar,
     integrarGuardarYSubirUltra,
+    handleHabilitar,
     setPaginaActual,
     setMostrarConfirmacion,
     setMostrarDialogoYaIntegrada,
     setMostrarDialogoOpcionesIntegracion,
+    cargandoArchivo,
+    prefijoInvalido,
+    mostrarDialogoPrefijoNoEncontrado,
+    setMostrarDialogoPrefijoNoEncontrado,
   };
 };

@@ -4,10 +4,8 @@ import {
   Box, Typography, TextField, Autocomplete, Button, 
   CircularProgress, Avatar, IconButton
 } from "@mui/material";
-import {
-  Person as PersonIcon,
-  Delete as DeleteIcon
-} from "@mui/icons-material";
+import PersonIcon from "@mui/icons-material/Person";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { buscarUsuarios } from "../services/reservas";
 
 interface Participante {

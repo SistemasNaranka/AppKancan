@@ -1,6 +1,13 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Box, useMediaQuery, Chip, TableSortLabel } from "@mui/material";
-import { Person as PersonIcon, Badge as BadgeIcon, AttachMoney as AttachMoneyIcon, TrendingUp as TrendingUpIcon, CheckCircle as CheckCircleIcon, Percent as PercentIcon, CalendarToday as CalendarTodayIcon, VpnKey as VpnKeyIcon } from "@mui/icons-material";
+import PersonIcon from "@mui/icons-material/Person";
+import BadgeIcon from "@mui/icons-material/Badge";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PercentIcon from "@mui/icons-material/Percent";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import { TiendaResumen, CommissionThreshold } from "../../types";
 import { formatCurrency } from "../../lib/utils";
 import { formatProximaComision } from "../../lib/calculations.utils";

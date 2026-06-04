@@ -142,6 +142,14 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
       );
     });
 
+    // 4. Filtrar filas de abandono ("ABANDONADO", "ABANDONADA", "ABANDONO", etc.)
+    const esAbandonada = valores.some((v) => {
+      const val = v.toUpperCase().trim();
+      return (
+        val.includes("ABANDONAD") || val.includes("ABANDONO")
+      );
+    });
+
     if (esPruebaRBM) {
       return false;
     }
@@ -151,6 +159,10 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     }
 
     if (esRechazada) {
+      return false;
+    }
+
+    if (esAbandonada) {
       return false;
     }
 

@@ -95,11 +95,12 @@ const ContactDirectory: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 3, px: { xs: 2, md: 4 }, pb: { xs: 2, md: 4 } }}>
 
+
       {/* ── Header sticky ─────────────────────────────────────────── */}
       <Paper
         elevation={2}
         sx={{
-          p: 3, borderRadius: '16px', border: '1px solid #e2e8f0', bgcolor: 'white',
+          p: 3, borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: 'none', bgcolor: 'white',
           position: 'sticky', top: 0, zIndex: 100,
           mt: { xs: 2, md: 4 },
         }}

@@ -12,7 +12,7 @@ export default function NotificationHeader({ total }: HeaderProps) {
   const navigate = useNavigate();
 
   return (
-    <Paper elevation={2} sx={{ p: 3, borderRadius: '16px', border: '1px solid #e2e8f0', bgcolor: 'white', position: 'sticky', top: 0, zIndex: 100, mb: 4 }}>
+    <Paper id="notif-header" elevation={2} sx={{ p: 3, borderRadius: '16px', border: '1px solid #e2e8f0', bgcolor: 'white', position: 'sticky', top: 0, zIndex: 100, mb: 2, mt: -2, boxShadow: "none" }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
 
         {/* Título */}
@@ -32,13 +32,15 @@ export default function NotificationHeader({ total }: HeaderProps) {
 
         {/* Botón Crear */}
         <Button
+          id="notif-btn-crear"
           variant="contained"
           onClick={() => navigate('/notificaciones/crear')}
           startIcon={<AddAlertIcon />}
           sx={{
             bgcolor: '#004a99',
-            '&:hover': { bgcolor: '#003366' },
+            '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
             borderRadius: '10px',
+            boxShadow: 'none',
             textTransform: 'none',
             fontWeight: 700,
             fontFamily: 'Inter'

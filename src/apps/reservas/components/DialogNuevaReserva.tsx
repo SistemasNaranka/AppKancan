@@ -28,15 +28,13 @@ import {
   Switch,
   FormControlLabel,
 } from "@mui/material";
-import {
-  Schedule as ScheduleIcon,
-  CheckCircle as CheckIcon,
-  Info as InfoIcon,
-  Close as CloseIcon,
-  PersonAdd as PersonAddIcon,
-  Delete as DeleteIcon,
-  Person as PersonIcon,
-} from "@mui/icons-material";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import CheckIcon from "@mui/icons-material/CheckCircle";
+import InfoIcon from "@mui/icons-material/Info";
+import CloseIcon from "@mui/icons-material/Close";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PersonIcon from "@mui/icons-material/Person";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -461,7 +459,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const { data: festivos = {} } = useFestivos(calendarYear);
 
   // Toggle: enviar correo de confirmación al crear reserva.
-  const [enviarCorreo, setEnviarCorreo] = useState<boolean>(true);
+  const [enviarCorreo, setEnviarCorreo] = useState<boolean>(false);
 
   // Tour context
   const { tourPhase, onDialogOpened, onFormSubmitted, stopTour } = useTourContext();
@@ -951,6 +949,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const handleClose = () => {
     reset();
     setError(null);
+    setEnviarCorreo(false);
     setDialogTourActive(false);
     onClose();
   };
@@ -1010,9 +1009,9 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       };
       await onSubmit(payload);
 
-      // Notificación n8n post-creación. Solo si el usuario activó el toggle.
+      // Notificación n8n post-creación. Solo si el usuario activó el toggle y hay participantes.
       // No bloquea: si falla, solo logea (la reserva ya quedó en BD).
-      if (enviarCorreo) {
+      if (enviarCorreo && data.participants && data.participants.length > 0) {
         try {
           const result = await notificarCorreoReserva({
             evento: "reserva_creada",
@@ -1536,9 +1535,9 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                   ref={correoRef}
                   control={
                     <Switch
-                      checked={enviarCorreo}
+                      checked={fields.length > 0 && enviarCorreo}
                       onChange={(e) => setEnviarCorreo(e.target.checked)}
-                      disabled={loading}
+                      disabled={loading || fields.length === 0}
                       sx={{
                         "& .MuiSwitch-switchBase.Mui-checked": { color: "#004680" },
                         "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
@@ -1549,7 +1548,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                   }
                   label={
                     <Typography variant="body2" sx={{ color: "#374151" }}>
-                      Enviar correo de confirmación a los participantes
+                      Enviar correo de notificación
                     </Typography>
                   }
                   sx={{ ml: 0 }}

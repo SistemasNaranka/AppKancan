@@ -1,7 +1,7 @@
 // src/apps/contactos/api/directus/create.ts
 import directus from '@/services/directus/directus';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
-import { createItem, updateItem, deleteItem } from '@directus/sdk';
+import { createItem, updateItem, deleteItem, deleteItems, readItems } from '@directus/sdk';
 import type { CreateContactoInput } from '../../types/contact';
 
 const COLLECTION = 'adm_contacts';
@@ -55,3 +55,73 @@ export async function deleteContacto(id: number): Promise<boolean> {
     return false;
   }
 }
+
+export async function linkUserToContact(contactId: number, userId: string): Promise<boolean> {
+  try {
+    const records = await withAutoRefresh(() =>
+      directus.request(
+        readItems('adm_user_contacts', {
+          filter: {
+            contact_id: { _eq: contactId },
+            user_id: { _eq: userId },
+          },
+          fields: ['id'],
+          limit: 1,
+        } as any),
+      ),
+    ) as any[];
+
+    if (records && records.length > 0) {
+      await withAutoRefresh(() =>
+        directus.request(updateItem('adm_user_contacts', records[0].id, { status: 'Activo' })),
+      );
+    } else {
+      const payload = {
+        contact_id: contactId,
+        user_id: userId,
+        status: 'Activo',
+      };
+      await withAutoRefresh(() =>
+        directus.request(createItem('adm_user_contacts', payload)),
+      );
+    }
+    return true;
+  } catch (error) {
+    console.error('❌ Error al vincular usuario al contacto:', error);
+    return false;
+  }
+}
+
+export async function unlinkUserFromContact(contactId: number, userId: string): Promise<boolean> {
+  try {
+    const records = await withAutoRefresh(() =>
+      directus.request(
+        readItems('adm_user_contacts', {
+          filter: {
+            contact_id: { _eq: contactId },
+            user_id: { _eq: userId },
+          },
+          fields: ['id'],
+          limit: 1,
+        } as any),
+      ),
+    ) as any[];
+
+    if (records && records.length > 0) {
+      const recordId = records[0].id;
+      await withAutoRefresh(() =>
+        directus.request(
+          updateItem('adm_user_contacts', recordId, {
+            status: 'Inactivo',
+          }),
+        ),
+      );
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('❌ Error al desvincular (inactivar) usuario del contacto:', error);
+    return false;
+  }
+}
+

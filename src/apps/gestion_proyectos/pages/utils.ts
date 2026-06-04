@@ -1,11 +1,9 @@
-import {
-  AccountBalance as ContabilidadIcon,
-  People as RRHHIcon,
-  LocalShipping as LogisticaIcon,
-  DesignServices as DisenoIcon,
-  Computer as SistemasIcon,
-  Campaign as MercadeoIcon,
-} from "@mui/icons-material";
+import ContabilidadIcon from "@mui/icons-material/AccountBalance";
+import RRHHIcon from "@mui/icons-material/People";
+import LogisticaIcon from "@mui/icons-material/LocalShipping";
+import DisenoIcon from "@mui/icons-material/DesignServices";
+import SistemasIcon from "@mui/icons-material/Computer";
+import MercadeoIcon from "@mui/icons-material/Campaign";
 
 export const AREAS_PREDEFINIDAS = [
   "Contabilidad",

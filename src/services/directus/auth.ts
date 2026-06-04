@@ -82,7 +82,7 @@ export async function getCurrentUser() {
           "id",
           "requires_password_change",
           "ia_key",
-          "ia_model",
+          "models_ia",
           // 1. Políticas asignadas directamente al usuario
           {
             policies: [

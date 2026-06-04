@@ -1,15 +1,5 @@
-/**
- * Hook híbrido para extracción de datos de facturas PDF
- * Primero intenta con Google Gemini (modelo configurable desde Directus)
- * Si falla, usa Ollama como fallback/contingencia
- *
- * La API key de Gemini se obtiene del usuario autenticado (campo key_gemini en Directus)
- * El modelo de IA se obtiene del usuario autenticado (campo modelo_ia en Directus)
- */
-
 import { useState, useCallback, useRef } from "react";
 import * as pdfjsLib from "pdfjs-dist";
-import ollama from "ollama/browser";
 import { GoogleGenAI } from "@google/genai";
 import { DatosFacturaPDF, ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
 
@@ -37,6 +27,7 @@ const PROMPT_EXTRACCION = `Eres un experto en auditoría contable colombiana. Tu
 
 3. FORMATO DE SALIDA (JSON PURO):
 {
+    "es_factura_valida": Boolean (Indica true si el documento es claramente una factura de venta, factura electrónica, cuenta de cobro o documento equivalente. Pon false si es cualquier otro tipo de documento como un RUT, resolución, cédula, carta, cotización, estado de cuenta, etc.),
     "nit_proveedor": "String",
     "numero_factura": "String",
     "valor_total": Number,
@@ -51,11 +42,13 @@ const PROMPT_EXTRACCION = `Eres un experto en auditoría contable colombiana. Tu
 Restricciones:
 - Sin texto adicional, sin bloques de código \`\`\`json. Solo el objeto.
 - Si un número tiene puntos o comas de miles, conviértelo a formato computacional.
-- Si no encuentras un dato, pon null.`;
+- Si no encuentras un dato, pon null.
+- Si "es_factura_valida" es false, por favor pon todos los demás campos del JSON en null.`;
 /**
  * Respuesta esperada de la IA
  */
 interface RespuestaExtraccion {
+  es_factura_valida: boolean | null;
   nit_proveedor: string | null;
   numero_factura: string | null;
   valor_total: number | null;
@@ -70,26 +63,38 @@ interface RespuestaExtraccion {
 /**
  * Tipo de proveedor de IA utilizado
  */
-export type ProveedorIA = "gemini" | "ollama" | null;
+export type ProveedorIA = "gemini" | null;
 
 /**
- * Estado del procesamiento híbrido
+ * Estado del procesamiento
  */
 export interface EstadoHibrido {
   proveedorUsado: ProveedorIA;
   modeloUsado: string | null; // Nombre del modelo que procesó la factura
   intentoGemini: boolean;
-  intentoOllama: boolean;
   errorGemini: string | null;
-  errorOllama: string | null;
+}
+
+function obtenerModelosIA(modelosIA: any): string[] {
+  if (!modelosIA) return [MODELO_POR_DEFECTO];
+  try {
+    const parsed = typeof modelosIA === "string" ? JSON.parse(modelosIA) : modelosIA;
+    if (Array.isArray(parsed)) {
+      const names = parsed.map((m: any) => m.name).filter(Boolean);
+      if (names.length > 0) return names;
+    }
+  } catch (e) {
+    console.error("Error al parsear models_ia:", e);
+  }
+  return [MODELO_POR_DEFECTO];
 }
 
 /**
  * Hook principal para extracción de PDF con Gemini y fallback a Ollama
  * @param geminiApiKey - API key de Gemini obtenida del usuario autenticado (campo key_gemini en Directus)
- * @param modeloIA - Modelo de IA a usar obtenido del usuario autenticado (campo modelo_ia en Directus)
+ * @param modelosIA - Modelos de IA a usar obtenidos del usuario autenticado (campo models_ia en Directus)
  */
-export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
+export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<ErrorProcesamientoPDF | null>(null);
   const [progress, setProgressRaw] = useState(0);
@@ -112,71 +117,13 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
       setProgressRaw(100);
     }
   }, []);
-  const [modeloActual, setModeloActual] = useState<string>("");
   const [estadoHibrido, setEstadoHibrido] = useState<EstadoHibrido>({
     proveedorUsado: null,
     modeloUsado: null,
     intentoGemini: false,
-    intentoOllama: false,
     errorGemini: null,
-    errorOllama: null,
   });
 
-  /**
-   * Convierte una página del PDF a imagen (base64)
-   */
-  const convertPDFToImage = useCallback(
-    async (file: File): Promise<{ base64: string; numPages: number }> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const arrayBuffer = e.target?.result as ArrayBuffer;
-
-            // Cargar el documento PDF
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer })
-              .promise;
-            const numPages = pdf.numPages;
-
-            // Obtener la primera página
-            const page = await pdf.getPage(1);
-
-            // Configurar escala para buena calidad
-            const scale = 2.0;
-            const viewport = page.getViewport({ scale });
-
-            // Crear canvas para renderizar
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-
-            if (!context) {
-              throw new Error("No se pudo crear el contexto del canvas");
-            }
-
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-
-            // Renderizar la página
-            await page.render({
-              canvasContext: context,
-              viewport: viewport,
-              canvas: canvas,
-            }).promise;
-
-            // Convertir a base64 (sin el prefijo data:image/png;base64,)
-            const base64 = canvas.toDataURL("image/png").split(",")[1];
-
-            resolve({ base64, numPages });
-          } catch (err) {
-            reject(err);
-          }
-        };
-        reader.onerror = () => reject(new Error("Error al leer el archivo"));
-        reader.readAsArrayBuffer(file);
-      });
-    },
-    [],
-  );
 
   /**
    * Convierte un archivo PDF a bytes para Gemini
@@ -231,7 +178,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
    * Extrae datos usando Google Gemini
    */
   const extractWithGemini = useCallback(
-    async (file: File): Promise<string> => {
+    async (file: File, modeloAUsar: string): Promise<string> => {
       if (!geminiApiKey) {
         throw new Error("No hay API key de Gemini configurada para el usuario");
       }
@@ -250,8 +197,6 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
         }
         const base64Data = btoa(binary);
 
-        // Usar el modelo configurado en Directus o el modelo por defecto
-        const modeloAUsar = modeloIA || MODELO_POR_DEFECTO;
         const response = await ai.models.generateContent({
           model: modeloAUsar,
           contents: [
@@ -279,40 +224,9 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
         throw new Error(`Gemini: ${errorMsg}`);
       }
     },
-    [convertPDFToBytes, geminiApiKey, modeloIA],
+    [convertPDFToBytes, geminiApiKey],
   );
 
-  /**
-   * Extrae datos usando Ollama (fallback)
-   */
-  const extractWithOllama = useCallback(
-    async (file: File): Promise<string> => {
-      if (!modeloActual) {
-        throw new Error("No hay un modelo de Ollama seleccionado");
-      }
-
-      // Convertir PDF a imagen para Ollama
-      const { base64 } = await convertPDFToImage(file);
-
-      try {
-        const result = await ollama.generate({
-          model: modeloActual,
-          prompt: PROMPT_EXTRACCION,
-          images: [base64],
-          format: "json",
-          stream: false,
-        });
-        return result.response;
-      } catch (ollamaError) {
-        const errorMsg =
-          ollamaError instanceof Error
-            ? ollamaError.message
-            : "Error desconocido con Ollama";
-        throw new Error(`Ollama: ${errorMsg}`);
-      }
-    },
-    [convertPDFToImage, modeloActual],
-  );
 
   /**
    * Construye el objeto DatosFacturaPDF desde la respuesta parseada
@@ -366,9 +280,7 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
         proveedorUsado: null,
         modeloUsado: null,
         intentoGemini: false,
-        intentoOllama: false,
         errorGemini: null,
-        errorOllama: null,
       };
       setEstadoHibrido(nuevoEstado);
 
@@ -397,71 +309,54 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
 
         // Paso 3: Preparar documento (10-20%)
         setProgress(15);
-        let response: string;
+        let response: string = "";
 
         // Intentar extracción con Gemini primero
-        try {
-          nuevoEstado.intentoGemini = true;
-          setEstadoHibrido({ ...nuevoEstado });
-          setProgress(20);
+        const modelos = obtenerModelosIA(modelosIA);
+        let geminiExitoso = false;
+        let ultimoErrorGemini = "";
 
-          // Paso 4: Conectar con Gemini (20-30%)
-          setProgress(25);
+        if (geminiApiKey) {
+          for (let i = 0; i < modelos.length; i++) {
+            const modeloAUsar = modelos[i];
+            try {
+              nuevoEstado.intentoGemini = true;
+              nuevoEstado.modeloUsado = modeloAUsar;
+              setEstadoHibrido({ ...nuevoEstado });
+              setProgress(20 + i * 2);
 
-          // Paso 5: Enviar PDF a Gemini (30-50%)
-          setProgress(30);
-          response = await extractWithGemini(file);
-
-          // Paso 6: Recibir respuesta de Gemini (50-60%)
-          setProgress(50);
-          nuevoEstado.proveedorUsado = "gemini";
-          nuevoEstado.modeloUsado = modeloIA || MODELO_POR_DEFECTO;
-          setEstadoHibrido({ ...nuevoEstado });
-          setProgress(60);
-        } catch (geminiError) {
-          // Guardar error de Gemini
-          const errorMsg =
-            geminiError instanceof Error
-              ? geminiError.message
-              : "Error desconocido";
-          nuevoEstado.errorGemini = errorMsg;
-          setEstadoHibrido({ ...nuevoEstado });
-
-          console.warn("Gemini falló, intentando con Ollama:", errorMsg);
-
-          // Fallback a Ollama
-          setProgress(35);
-          nuevoEstado.intentoOllama = true;
-          setEstadoHibrido({ ...nuevoEstado });
-
-          try {
-            // Paso 4b: Conectar con Ollama (35-45%)
-            setProgress(40);
-
-            // Paso 5b: Enviar PDF a Ollama (45-55%)
-            setProgress(45);
-            response = await extractWithOllama(file);
-
-            // Paso 6b: Recibir respuesta de Ollama (55-60%)
-            setProgress(55);
-            nuevoEstado.proveedorUsado = "ollama";
-            nuevoEstado.modeloUsado = modeloActual;
-            setEstadoHibrido({ ...nuevoEstado });
-            setProgress(60);
-          } catch (ollamaError) {
-            const ollamaErrorMsg =
-              ollamaError instanceof Error
-                ? ollamaError.message
-                : "Error desconocido";
-            nuevoEstado.errorOllama = ollamaErrorMsg;
-            setEstadoHibrido({ ...nuevoEstado });
-
-            // Ambos fallaron, lanzar error combinado
-            throw createError(
-              "extraccion_fallida",
-              `Ambos proveedores fallaron:\n- Gemini: ${errorMsg}\n- Ollama: ${ollamaErrorMsg}`,
-            );
+              response = await extractWithGemini(file, modeloAUsar);
+              
+              if (response) {
+                console.log(`Modelo usado: ${modeloAUsar}`);
+                nuevoEstado.proveedorUsado = "gemini";
+                nuevoEstado.modeloUsado = modeloAUsar;
+                setEstadoHibrido({ ...nuevoEstado });
+                geminiExitoso = true;
+                break;
+              }
+            } catch (geminiError: any) {
+              const errorMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+              console.error(`Error con modelo: ${modeloAUsar}`);
+              ultimoErrorGemini = errorMsg;
+            }
           }
+        } else {
+          ultimoErrorGemini = "No hay API key de Gemini configurada para el usuario";
+          console.warn(ultimoErrorGemini);
+        }
+
+        if (geminiExitoso) {
+          setProgress(60);
+        } else {
+          // Guardar error de Gemini
+          nuevoEstado.errorGemini = ultimoErrorGemini || "Todos los modelos de Gemini fallaron";
+          setEstadoHibrido({ ...nuevoEstado });
+
+          throw createError(
+            "extraccion_fallida",
+            `El procesamiento con la IA falló: ${nuevoEstado.errorGemini}`,
+          );
         }
 
         // Paso 7: Parsear respuesta JSON (60-75%)
@@ -476,6 +371,13 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
 
         // Paso 9: Validar datos extraídos (85-95%)
         setProgress(90);
+        if (datosExtraidos.es_factura_valida === false) {
+          throw createError(
+            "archivo_invalido",
+            "El archivo PDF enviado no parece ser una factura válida o documento equivalente.",
+          );
+        }
+
         if (
           !datosExtraidos.numero_factura &&
           !datosExtraidos.nit_proveedor &&
@@ -499,15 +401,8 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
         setIsProcessing(false);
       }
     },
-    [extractWithGemini, extractWithOllama, parseResponse, buildInvoiceData],
+    [extractWithGemini, parseResponse, buildInvoiceData, modelosIA, geminiApiKey],
   );
-
-  /**
-   * Cambia el modelo de Ollama a usar (para fallback)
-   */
-  const setModel = useCallback((modelo: string) => {
-    setModeloActual(modelo);
-  }, []);
 
   /**
    * Limpia el error actual
@@ -519,23 +414,8 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
       proveedorUsado: null,
       modeloUsado: null,
       intentoGemini: false,
-      intentoOllama: false,
       errorGemini: null,
-      errorOllama: null,
     });
-  }, []);
-
-  /**
-   * Obtiene la lista de modelos disponibles en Ollama
-   */
-  const getAvailableModels = useCallback(async (): Promise<string[]> => {
-    try {
-      const response = await ollama.list();
-      return response.models.map((m) => m.name);
-    } catch (error) {
-      console.warn("Error al obtener modelos de Ollama:", error);
-      return [];
-    }
   }, []);
 
   return {
@@ -544,9 +424,6 @@ export function useHybridExtractor(geminiApiKey?: string, modeloIA?: string) {
     error,
     progress,
     clearError,
-    modeloActual,
-    setModelo: setModel,
-    getModelosDisponibles: getAvailableModels,
     estadoHibrido,
   };
 }
@@ -581,7 +458,6 @@ function handleError(err: unknown): ErrorProcesamientoPDF {
 
   if (
     errorMessage.includes("Gemini") ||
-    errorMessage.includes("Ollama") ||
     errorMessage.includes("connection")
   ) {
     return createError("error_desconocido", errorMessage);

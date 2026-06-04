@@ -7,8 +7,8 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
  */
 export interface PresupuestoDiarioEmpleado {
   asesor: number; // Código del asesor
-  fecha: string;
-  presupuesto: number;
+  fecha: string;  // Fecha YYYY-MM-DD
+  presupuesto: number; // Presupuesto diario
 }
 
 /**
@@ -27,20 +27,29 @@ export async function obtenerPresupuestosEmpleados(
 
     // Filtrar por rango de fechas si se proporciona
     if (fechaInicio && fechaFin) {
-      filter.fecha = { _between: [fechaInicio, fechaFin] };
+      filter.date = { _between: [fechaInicio, fechaFin] };
     }
 
+    // Obtener presupuestos de empleados
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("presupuesto_diario_empleados", {
-          fields: ["asesor", "fecha", "presupuesto"],
+        readItems("com_employee_daily_budgets", {
+          fields: ["advisor_id", "date", "budget"],
           filter,
           limit: -1,
         }),
       ),
     );
 
-    return data as PresupuestoDiarioEmpleado[];
+    const result: PresupuestoDiarioEmpleado[] = (data || []).map((item: any) => {
+      return {
+        asesor: Number(item.advisor_id) || 0,
+        fecha: item.date,
+        presupuesto: Number(item.budget) || 0,
+      };
+    });
+
+    return result;
   } catch (error) {
     console.error("Error al obtener presupuestos de empleados:", error);
     return [];
@@ -215,17 +224,17 @@ export async function obtenerUmbralesComisiones(
       };
       const mesNumero = mesMap[mesNombre];
       if (mesNumero) {
-        filter.mes = { _eq: mesNumero };
-        filter.anio = { _eq: anio };
+        filter.month = { _eq: mesNumero };
+        filter.year = { _eq: anio };
       }
     }
 
     const data = await withAutoRefresh(() =>
       directus.request(
-        readItems("cumplimiento_mensual_comisiones", {
-          fields: ["id", "mes", "anio", "cumplimiento_valores"],
+        readItems("com_monthly_commission_compliance", {
+          fields: ["id", "month", "year", "compliance_values"],
           filter,
-          sort: ["-anio", "-mes"],
+          sort: ["-year", "-month"],
           limit: 1,
         }),
       ),
@@ -255,9 +264,13 @@ export async function obtenerUmbralesComisiones(
 
     return {
       id: item.id,
-      mes: `${mesesLabels[item.mes]} ${item.anio}`,
-      anio: item.anio,
-      cumplimiento_valores: item.cumplimiento_valores || [],
+      mes: `${mesesLabels[item.month]} ${item.year}`,
+      anio: item.year,
+      cumplimiento_valores: (item.compliance_values || []).map((cv: any) => ({
+        cumplimiento_min: cv.min_compliance,
+        comision_pct: cv.pct_commission,
+        nombre: cv.name,
+      })),
     };
   } catch (error: any) {
     // Si la colección no existe o hay error, retornar null para usar valores por defecto

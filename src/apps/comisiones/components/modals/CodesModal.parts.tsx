@@ -1,6 +1,7 @@
 import React from "react";
 import { DialogTitle, Alert, Typography } from "@mui/material";
-import { Work, Warning } from "@mui/icons-material";
+import Work from "@mui/icons-material/Work";
+import Warning from "@mui/icons-material/Warning";
 import { DirectusTienda } from "../../types";
 
 interface CodesModalHeaderProps {

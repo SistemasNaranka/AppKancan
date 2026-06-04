@@ -1,5 +1,9 @@
 import { Stack, FormControl, InputLabel, Select, MenuItem, Box, Tooltip, Button, Badge, TextField, InputAdornment, IconButton, Typography } from "@mui/material";
-import { Refresh as RefreshIcon, Download as DownloadIcon, Store as StoreIcon, Close as CloseIcon, LibraryBooks as LibraryBooksIcon } from "@mui/icons-material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import DownloadIcon from "@mui/icons-material/Download";
+import StoreIcon from "@mui/icons-material/Store";
+import CloseIcon from "@mui/icons-material/Close";
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
 import dayjs from "dayjs";
 import { StatPill } from "./StatPill";
 
