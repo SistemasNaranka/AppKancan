@@ -9,12 +9,12 @@ import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 // Modelo por defecto si no está configurado en Directus
-const MODELO_POR_DEFECTO = "gemma-3-27b-it";
+const MODELO_POR_DEFECTO = "gemini-3.5-flash";
 
 // Prompt para extracción de datos de factura (igual para ambos proveedores)
 const PROMPT_EXTRACCION = `Eres un experto en auditoría contable colombiana. Tu tarea es extraer datos de facturas electrónicas con precisión absoluta.
 
- REGLAS DE ORO PARA EVITAR CONFUSIONES:
+REGLAS DE ORO PARA EVITAR CONFUSIONES:
 1. IDENTIFICACIÓN DE ROLES: 
    - El EMISOR (Proveedor) es quien vende el producto/servicio. Suele estar en la parte superior.
    - El RECEPTOR (Cliente) SIEMPRE es NARANKA S.A.S (NIT 900335781-7). 
@@ -23,13 +23,19 @@ const PROMPT_EXTRACCION = `Eres un experto en auditoría contable colombiana. Tu
 2. EXTRACCIÓN DE DATOS:
    - nit_proveedor: Extrae el NIT del EMISOR (el que vende). Ignora el NIT de Naranka.
    - valor_total: Busca el valor final después de impuestos. Debe ser un número puro.
-   - numero_factura: Busca el prefijo y número.
+   - numero_factura: Busca el número de factura completo incluyendo su prefijo (Ej: "FE1654895", "FEN441536", "R4RM5947").
 
-3. FORMATO DE SALIDA (JSON PURO):
+3. REGLA PARA MANEJO DE PREFIJOS (numero_sin_prefijo):
+   - El prefijo son las letras iniciales autorizadas por la DIAN que anteceden al número consecutivo de la factura.
+   - En el campo "numero_sin_prefijo", debes limpiar completamente el prefijo de letras y dejar ÚNICAMENTE los dígitos numéricos finales del consecutivo (Ej: Si "numero_factura" es "FE1654895", "numero_sin_prefijo" debe ser "1654895").
+   - Si la factura NO tiene prefijo de letras y su numeración es puramente numérica (Ej: "1111452172"), el valor de "numero_sin_prefijo" será exactamente igual al de "numero_factura" (en formato String de números).
+
+4. FORMATO DE SALIDA (JSON PURO):
 {
-    "es_factura_valida": Boolean (Indica true si el documento es claramente una factura de venta, factura electrónica, cuenta de cobro o documento equivalente. Pon false si es cualquier otro tipo de documento como un RUT, resolución, cédula, carta, cotización, estado de cuenta, etc.),
+    "es_factura_valida": Boolean,
     "nit_proveedor": "String",
     "numero_factura": "String",
+    "numero_sin_prefijo": "String",
     "valor_total": Number,
     "fecha_emision": "YYYY-MM-DD",
     "fecha_vencimiento": "YYYY-MM-DD o null",
@@ -51,6 +57,7 @@ interface RespuestaExtraccion {
   es_factura_valida: boolean | null;
   nit_proveedor: string | null;
   numero_factura: string | null;
+  numero_sin_prefijo: string | null;
   valor_total: number | null;
   fecha_emision: string | null;
   fecha_vencimiento: string | null;
@@ -151,7 +158,6 @@ export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
     // Intentar extraer JSON de la respuesta
     let jsonStr = response.trim();
 
-    // Si la respuesta tiene bloques de código markdown, extraer el contenido
     const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
       jsonStr = jsonMatch[1].trim();
@@ -235,6 +241,7 @@ export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
     (datos: RespuestaExtraccion, file: File): DatosFacturaPDF => {
       return {
         numeroFactura: datos.numero_factura || "Sin número",
+        numeroSinPrefijo: datos.numero_sin_prefijo || datos.numero_factura || "Sin número",
         automatico: "",
         fechaEmision: datos.fecha_emision || new Date().toISOString(),
         fechaVencimiento: datos.fecha_vencimiento || undefined,

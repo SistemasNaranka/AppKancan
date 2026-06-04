@@ -29,6 +29,7 @@ export interface ImpuestosDetalle {
 export interface DatosFacturaPDF {
   // Información general
   numeroFactura: string;
+  numeroSinPrefijo: string;
   automatico: string;
   fechaEmision: string;
   fechaVencimiento?: string;
@@ -74,6 +75,9 @@ export interface DatosFacturaPDF {
 
   // Información de automático asignado (cargado desde BD)
   automaticoAsignado?: string;
+
+  // Número de entrada de mercancía asignado (acc_goods_receipts)
+  entrada?: string;
 }
 
 // ============ ESTADOS DEL PROCESO ============
@@ -229,3 +233,14 @@ export function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
+
+/**
+ * Obtiene el NIT sin el dígito de verificación (número después del guion)
+ */
+export function getNitSinDv(nit?: string): string {
+  if (!nit) return "";
+  const trimmed = nit.trim();
+  const parts = trimmed.split("-");
+  return parts[0].trim();
+}
+

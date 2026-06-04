@@ -181,3 +181,100 @@ export async function updateAccountingProvider(id: number, data: Partial<Proveed
         throw error;
     }
 }
+
+/**
+ * Interface para proveedor de la tabla acc_suppliers
+ */
+export interface AccSupplier {
+    id: number;
+    date_created?: string;
+    nit: string;
+    name?: string;
+    internal_code?: string;
+}
+
+/**
+ * Interface para entrada de mercancía de la tabla acc_goods_receipts
+ */
+export interface AccGoodsReceipt {
+    id: number;
+    date_created?: string;
+    supplier_id: number;
+    document_number: string;
+    quantity?: number;
+    total_cost?: number;
+    date?: string;
+    status: string;
+}
+
+/**
+ * Obtiene un proveedor de la tabla acc_suppliers por su NIT (sin dv)
+ * @param nit El NIT limpio (sin dv)
+ * @returns El proveedor o null si no se encuentra
+ */
+export async function getSupplierByNit(nit: string): Promise<AccSupplier | null> {
+    if (!nit) return null;
+
+    try {
+        const items = await withAutoRefresh(() =>
+            directus.request(
+                readItems("acc_suppliers", {
+                    filter: {
+                        nit: {
+                            _eq: String(nit).trim(),
+                        },
+                    },
+                    limit: 1,
+                })
+            )
+        );
+
+        if (items && items.length > 0) {
+            return items[0] as unknown as AccSupplier;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error al obtener supplier por NIT:", error);
+        return null;
+    }
+}
+
+/**
+ * Obtiene todas las entradas de mercancía de un proveedor con status 'Habilitado'
+ * @param supplierId El ID del proveedor en acc_suppliers
+ * @returns Listado de entradas de mercancía habilitadas
+ */
+export async function getGoodsReceiptsBySupplierId(
+    supplierId: number | string
+): Promise<AccGoodsReceipt[]> {
+    if (!supplierId) return [];
+
+    try {
+        const items = await withAutoRefresh(() =>
+            directus.request(
+                readItems("acc_goods_receipts", {
+                    filter: {
+                        _and: [
+                            {
+                                supplier_id: {
+                                    _eq: Number(supplierId),
+                                },
+                            },
+                            {
+                                status: {
+                                    _eq: "Habilitado",
+                                },
+                            },
+                        ],
+                    },
+                })
+            )
+        );
+
+        return (items || []) as unknown as AccGoodsReceipt[];
+    } catch (error) {
+        console.error("Error al obtener entradas de mercancía por supplierId:", error);
+        return [];
+    }
+}
+

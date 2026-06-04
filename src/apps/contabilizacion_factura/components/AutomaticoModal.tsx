@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import Save from '@mui/icons-material/Save';
 import Cancel from '@mui/icons-material/Cancel';
+import { getNitSinDv } from "../types";
 
 interface AutomaticoModalProps {
     open: boolean;
@@ -69,7 +70,7 @@ export function AutomaticModal({
         className="tour-automatico-modal" // <--- Clase movida aquí para que el spotlight la encuentre
     >
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            El NIT <strong>{nit}</strong> no tiene número asignado.
+            El NIT <strong>{getNitSinDv(nit || "")}</strong>{nit && getNitSinDv(nit) !== nit ? ` (completo: ${nit})` : ""} no tiene número asignado.
         </Typography>
         
         {/* Información del proveedor y factura */}
@@ -93,7 +94,7 @@ export function AutomaticModal({
                 )}
                 {numeroFactura && (
                     <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
-                        Factura: <strong>{numeroFactura}</strong>
+                        Factura con prefijo: <strong>{numeroFactura}</strong>
                     </Typography>
                 )}
             </Box>

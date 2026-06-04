@@ -22,14 +22,107 @@ import Store from '@mui/icons-material/Store';
 import Description from '@mui/icons-material/Description';
 import Receipt from '@mui/icons-material/Receipt';
 import CheckCircle from '@mui/icons-material/CheckCircle';
-import { DatosFacturaPDF, formatCurrency, formatDate } from "../types";
+import Fingerprint from '@mui/icons-material/Fingerprint';
+import LocalShipping from '@mui/icons-material/LocalShipping';
+import { DatosFacturaPDF, formatCurrency, formatDate, getNitSinDv } from "../types";
 
 interface InvoiceInfoCardProps {
   datosFactura: DatosFacturaPDF;
   className?: string; // Para tours interactivos
+  entradas?: any[];
+  entradaSeleccionada?: string;
+  onSelectEntradaClick?: () => void;
 }
 
-export function InvoiceInfoCard({ datosFactura, className }: InvoiceInfoCardProps) {
+interface MiniCardProps {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  onClick?: () => void;
+}
+
+function MiniCard({
+  label,
+  value,
+  icon,
+  onClick,
+}: MiniCardProps) {
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        backgroundColor: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        borderRadius: "8px",
+        px: 2,
+        py: 1,
+        minWidth: { xs: "100%", sm: "calc(50% - 12px)", md: "170px" },
+        cursor: onClick ? "pointer" : "default",
+        transition: "all 0.2s ease",
+        "&:hover": {
+          transform: onClick ? "translateY(-1px)" : "none",
+          boxShadow: onClick ? "0 4px 12px rgba(0, 0, 0, 0.05)" : "none",
+          borderColor: onClick ? "#004680" : "#e2e8f0",
+        },
+      }}
+    >
+      {icon && (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#004680",
+            backgroundColor: "transparent",
+            borderRadius: "50%",
+            p: 0.5,
+          }}
+        >
+          {icon}
+        </Box>
+      )}
+      <Box sx={{ flex: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "#64748b",
+            fontWeight: 700,
+            display: "block",
+            fontSize: "0.68rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            lineHeight: 1.2,
+          }}
+        >
+          {label}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#1e293b",
+            fontWeight: 800,
+            fontSize: "0.9rem",
+            lineHeight: 1.3,
+            mt: 0.25,
+          }}
+        >
+          {value}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+export function InvoiceInfoCard({
+  datosFactura,
+  className,
+  entradas = [],
+  entradaSeleccionada = "",
+  onSelectEntradaClick,
+}: InvoiceInfoCardProps) {
   return (
     <Card
       className={className}
@@ -131,109 +224,88 @@ export function InvoiceInfoCard({ datosFactura, className }: InvoiceInfoCardProp
             >
               {datosFactura.proveedor.nombre}
             </Typography>
-            {/* Badges: Factura + NIF */}
+            {/* Tarjetas de Información Clave */}
             <Box
               sx={{
                 display: "flex",
-                alignItems: "center",
-                gap: 1,
-                mt: 0.5,
+                gap: 1.5,
+                mt: 2.25,
                 flexWrap: "wrap",
+                width: "100%",
               }}
             >
-              {/* Badge Factura */}
-              <Box
-                sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  backgroundColor: "#f0f4f8",
-                  borderRadius: "6px",
-                  px: 1.25,
-                  py: 0.35,
-                  border: "1px solid #e0e6ef",
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "#444", fontWeight: 600, fontSize: "0.75rem" }}
-                >
-                  Factura&nbsp;
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#004680",
-                    fontWeight: 800,
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  {datosFactura.numeroFactura || "Sin número"}
-                </Typography>
-              </Box>
+              {/* Card Factura Completa */}
+              <MiniCard
+                label="Factura con prefijo"
+                value={datosFactura.numeroFactura || "Sin número"}
+                icon={<Receipt sx={{ fontSize: 16 }} />}
+              />
 
-              {/* Badge NIF */}
-              {datosFactura.proveedor.nif && (
-                <Box
-                  sx={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    backgroundColor: "#f0f4f8",
-                    borderRadius: "6px",
-                    px: 1.25,
-                    py: 0.35,
-                    border: "1px solid #e0e6ef",
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#444", fontWeight: 600, fontSize: "0.75rem" }}
-                  >
-                    NIT&nbsp;
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#1a1a1a",
-                      fontWeight: 700,
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    {datosFactura.proveedor.nif}
-                  </Typography>
-                </Box>
+              {/* Card Factura Sin Prefijo */}
+              {datosFactura.numeroSinPrefijo && datosFactura.numeroSinPrefijo !== datosFactura.numeroFactura && (
+                <MiniCard
+                  label="Factura sin prefijo"
+                  value={datosFactura.numeroSinPrefijo}
+                  icon={<CheckCircle sx={{ fontSize: 16 }} />}
+                />
               )}
 
-              {/* Badge Automático Asignado */}
+              {/* Card NIT Completo */}
+              {datosFactura.proveedor.nif && (
+                <>
+                  <MiniCard
+                    label="NIT"
+                    value={datosFactura.proveedor.nif}
+                    icon={<Fingerprint sx={{ fontSize: 16 }} />}
+                  />
+
+                  {/* Card NIT Sin DV */}
+                  {getNitSinDv(datosFactura.proveedor.nif) !== datosFactura.proveedor.nif && (
+                    <MiniCard
+                      label="NIT sin DV"
+                      value={getNitSinDv(datosFactura.proveedor.nif)}
+                      icon={<CheckCircle sx={{ fontSize: 16 }} />}
+                    />
+                  )}
+                </>
+              )}
+
+              {/* Card Código Automático */}
               {datosFactura.automaticoAsignado && (
-                <Box
-                  sx={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    backgroundColor: "#e8f5e9",
-                    borderRadius: "6px",
-                    px: 1.25,
-                    py: 0.35,
-                    border: "1px solid #a5d6a7",
-                  }}
-                >
-                  <CheckCircle sx={{ fontSize: 14, color: "#2e7d32", mr: 0.5 }} />
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#444", fontWeight: 600, fontSize: "0.75rem" }}
-                  >
-                    AUTO&nbsp;
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#2e7d32",
-                      fontWeight: 800,
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    {datosFactura.automaticoAsignado}
-                  </Typography>
-                </Box>
+                <MiniCard
+                  label="Código Auto"
+                  value={datosFactura.automaticoAsignado}
+                  icon={<CheckCircle sx={{ fontSize: 16 }} />}
+                />
+              )}
+
+              {/* Card Entrada Única */}
+              {entradas && entradas.length === 1 && (
+                <MiniCard
+                  label="Número de entrada"
+                  value={entradas[0].document_number}
+                  icon={<LocalShipping sx={{ fontSize: 16 }} />}
+                />
+              )}
+
+              {/* Card Entrada Seleccionada de múltiples */}
+              {entradas && entradas.length > 1 && (datosFactura.entrada || entradaSeleccionada) && (
+                <MiniCard
+                  label="Número de entrada"
+                  value={datosFactura.entrada || entradaSeleccionada}
+                  icon={<LocalShipping sx={{ fontSize: 16 }} />}
+                  onClick={onSelectEntradaClick}
+                />
+              )}
+
+              {/* Card Entrada Sin Seleccionar de múltiples */}
+              {entradas && entradas.length > 1 && !(datosFactura.entrada || entradaSeleccionada) && (
+                <MiniCard
+                  label="Número de entrada"
+                  value="Seleccionar entrada..."
+                  icon={<LocalShipping sx={{ fontSize: 16 }} />}
+                  onClick={onSelectEntradaClick}
+                />
               )}
             </Box>
           </Box>

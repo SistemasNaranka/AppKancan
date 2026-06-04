@@ -126,6 +126,7 @@ export async function getReservas(
           fields: RESERVATION_FIELDS,
           ...(Object.keys(filter).length > 0 && { filter }),
           sort: ["date", "start_time"],
+          limit: -1,
         }),
       ),
     );
@@ -170,6 +171,7 @@ export async function getReservasMes(
             },
           },
           sort: ["date", "start_time"],
+          limit: -1,
         }),
       ),
     );
@@ -213,6 +215,7 @@ export async function getMisReservas(
           fields: RESERVATION_FIELDS,
           filter,
           sort: ["-date", "-start_time"],
+          limit: -1,
         }),
       ),
     );
@@ -490,6 +493,7 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
               { date: { _lte: format(ahora, "yyyy-MM-dd") } },
             ],
           },
+          limit: -1,
         }),
       ),
     );

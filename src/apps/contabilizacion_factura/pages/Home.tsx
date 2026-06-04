@@ -30,17 +30,23 @@ import {
   ProviderProcessing,
 } from "../components/IAStatusBadge";
 import { AutomaticModal } from "../components/AutomaticoModal";
+import { GoodsReceiptModal } from "../components/GoodsReceiptModal";
 import { TourProvider } from "../components/TourContext";
 
 // Utilidades y tipos
-import { DatosFacturaPDF, EstadoProceso } from "../types";
+import { DatosFacturaPDF, EstadoProceso, getNitSinDv } from "../types";
 import {
   ESTADO_CONFIG,
-  executeUpdateResolution,
-} from "../utils/resolucion";
+  executeContabilizarFactura,
+} from "../utils/contabilizacion";
 
 // API
-import { saveNitAutomatic, getAutomaticByNit } from "../services/api";
+import {
+  saveNitAutomatic,
+  getAutomaticByNit,
+  getSupplierByNit,
+  getGoodsReceiptsBySupplierId,
+} from "../services/api";
 
 export default function Home() {
   const [datosFactura, setDatosFactura] = useState<DatosFacturaPDF | null>(
@@ -52,6 +58,20 @@ export default function Home() {
   const [, setAutomaticoAsignado] = useState<string | null>(
     null,
   );
+  const [entradas, setEntradas] = useState<any[]>([]);
+  const [entradaSeleccionada, setEntradaSeleccionada] = useState<string>("");
+  const [modalEntradasOpen, setModalEntradasOpen] = useState(false);
+
+  const handleEntradaChange = useCallback((documentNumber: string) => {
+    setEntradaSeleccionada(documentNumber);
+    setDatosFactura((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        entrada: documentNumber,
+      };
+    });
+  }, []);
 
   // Estados para notificaciones
   const [notification, setNotification] = useState<{
@@ -84,20 +104,50 @@ export default function Home() {
   const handleFileSelected = useCallback(
     async (file: File) => {
       try {
-        // Limpiar automático asignado previamente
+        // Limpiar automático y entradas previas
         setAutomaticoAsignado(null);
+        setEntradas([]);
+        setEntradaSeleccionada("");
 
         const datos = await extractData(file);
+        let entries: any[] = [];
+        let selectedEntry = "";
 
-        // Verificar si el NIT ya tiene un automático asignado
+        // Verificar si el NIT ya tiene un automático asignado y buscar entradas de mercancía
         if (datos.proveedor.nif) {
-          const proveedorData = await getAutomaticByNit(datos.proveedor.nif);
+          const nitSinDv = getNitSinDv(datos.proveedor.nif);
+          
+          // 1. Obtener automático
+          const proveedorData = await getAutomaticByNit(nitSinDv);
           if (proveedorData && proveedorData.automatic) {
             datos.automaticoAsignado = proveedorData.automatic;
             setAutomaticoAsignado(proveedorData.automatic);
           }
+
+          // 2. Buscar en acc_suppliers y luego en acc_goods_receipts
+          try {
+            const supplier = await getSupplierByNit(nitSinDv);
+            if (supplier && supplier.id) {
+              const goodsReceipts = await getGoodsReceiptsBySupplierId(supplier.id);
+              if (goodsReceipts && goodsReceipts.length > 0) {
+                entries = goodsReceipts;
+                if (goodsReceipts.length === 1) {
+                  // Si solo hay una, asignarla por defecto
+                  selectedEntry = goodsReceipts[0].document_number;
+                  datos.entrada = selectedEntry;
+                } else {
+                  // Si hay varias, abrir el modal emergente de selección
+                  setModalEntradasOpen(true);
+                }
+              }
+            }
+          } catch (apiErr) {
+            console.error("Error al buscar proveedor o entradas:", apiErr);
+          }
         }
 
+        setEntradas(entries);
+        setEntradaSeleccionada(selectedEntry);
         setDatosFactura(datos);
       } catch (err) {
         console.error("Error procesando archivo:", err);
@@ -113,11 +163,15 @@ export default function Home() {
   const handleClear = useCallback(() => {
     clearError();
     setDatosFactura(null);
+    setEntradas([]);
+    setEntradaSeleccionada("");
   }, [clearError]);
 
   const handleNewFile = useCallback(() => {
     setDatosFactura(null);
     clearError();
+    setEntradas([]);
+    setEntradaSeleccionada("");
   }, [clearError]);
 
   // Función para manejar el botón Actualizar Resolución con verificación de NIT
@@ -135,27 +189,31 @@ export default function Home() {
       return;
     }
 
-    try {
-      // Verificar si existe un proveedor con ese NIT (el NIT es el identificador único)
-      const nitString = String(datosFactura.proveedor.nif).trim();
+      try {
+        // Verificar si existe un proveedor con ese NIT (el NIT sin DV es el identificador único)
+        const nitString = getNitSinDv(datosFactura.proveedor.nif);
 
-      const proveedorExistente = await getAutomaticByNit(nitString);
+        const proveedorExistente = await getAutomaticByNit(nitString);
 
-      if (proveedorExistente && proveedorExistente.automatic) {
-        // El proveedor YA EXISTE - usar automático existente sin abrir modal
-        console.log(
-          "Proveedor encontrado por NIT, usando automático:",
-          proveedorExistente.automatic,
-        );
-        datosFactura.automaticoAsignado = proveedorExistente.automatic;
-        setAutomaticoAsignado(proveedorExistente.automatic);
-        // Ejecutar directamente sin mostrar snackbar
-        executeUpdateResolution(datosFactura);
-      } else {
-        // El proveedor NO EXISTE - abrir modal para registrar el automático
-        setNitActual(datosFactura.proveedor.nif);
-        setModalAutomaticoOpen(true);
-      }
+        if (proveedorExistente && proveedorExistente.automatic) {
+          // El proveedor YA EXISTE - usar automático existente sin abrir modal
+          console.log(
+            "Proveedor encontrado por NIT sin DV, usando automático:",
+            proveedorExistente.automatic,
+          );
+          const nuevosDatos = {
+            ...datosFactura,
+            automaticoAsignado: proveedorExistente.automatic,
+          };
+          setAutomaticoAsignado(proveedorExistente.automatic);
+          setDatosFactura(nuevosDatos);
+          // Ejecutar directamente sin mostrar snackbar
+          executeContabilizarFactura(nuevosDatos);
+        } else {
+          // El proveedor NO EXISTE - abrir modal para registrar el automático
+          setNitActual(nitString);
+          setModalAutomaticoOpen(true);
+        }
     } catch (error) {
       console.error("Error al verificar proveedor:", error);
       // En caso de error de conexión, NO permitir continuar sin validación
@@ -175,7 +233,7 @@ export default function Home() {
       if (!nitActual || !datosFactura) return;
 
       const nombreProveedor = datosFactura.proveedor.nombre;
-      const nitProveedor = nitActual;
+      const nitProveedor = getNitSinDv(nitActual);
 
       // Debug: verificar que el nombre llega correctamente
       console.log("Datos a guardar:", {
@@ -209,13 +267,14 @@ export default function Home() {
         });
 
         // Actualizar datos factura con el automático asignado
-        setDatosFactura({
+        const nuevosDatos = {
           ...datosFactura,
           automaticoAsignado: automatico,
-        });
+        };
+        setDatosFactura(nuevosDatos);
 
         // Ejecutar el programa corporativo
-        executeUpdateResolution(datosFactura);
+        executeContabilizarFactura(nuevosDatos);
       } catch (error) {
         console.error("Error al guardar automático:", error);
         // Mostrar notificación de error
@@ -354,7 +413,12 @@ export default function Home() {
           {/* Vista de éxito */}
           {datosFactura && !isProcessing && !error && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              <InvoiceInfoCard datosFactura={datosFactura} />
+              <InvoiceInfoCard
+                datosFactura={datosFactura}
+                entradas={entradas}
+                entradaSeleccionada={entradaSeleccionada}
+                onSelectEntradaClick={() => setModalEntradasOpen(true)}
+              />
 
               {estadoHibrido.proveedorUsado && (
                 <ProviderProcessing
@@ -443,6 +507,14 @@ export default function Home() {
           numeroFactura={datosFactura?.numeroFactura}
           onClose={() => setModalAutomaticoOpen(false)}
           onConfirm={handleSaveAutomatic}
+        />
+
+        {/* Modal para seleccionar entrada de mercancía */}
+        <GoodsReceiptModal
+          open={modalEntradasOpen}
+          entradas={entradas}
+          onClose={() => setModalEntradasOpen(false)}
+          onConfirm={handleEntradaChange}
         />
 
         {/* Notificaciones */}
