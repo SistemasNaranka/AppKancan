@@ -61,7 +61,7 @@ function CustomTooltip({
   backProps,
   closeProps,
   primaryProps,
-  skipProps,
+  skipProps,  
   tooltipProps,
 }: TooltipRenderProps) {
   return (

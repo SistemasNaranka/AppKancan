@@ -30,6 +30,17 @@ const DefaultIcon = (
   <Apps sx={{ width: 18, height: 18, color: "#fff" }} />
 );
 
+/* ------------------------- Rutas fijas por tutorial ------------------------ */
+// Garantiza que el menú de tutoriales lleve siempre a la ruta correcta
+// aunque la data del backend (userApps) tenga otra ruta o esté vacía.
+const TUTORIAL_ROUTES: Record<string, string> = {
+  contactos: "/contactos",
+  notificaciones: "/notificaciones",
+  reservas: "/reservas",
+  prorrogas: "/prorrogas",
+  traslados: "/traslados",
+};
+
 /* --------------------------- Helpers de extracción -------------------------- */
 const pick = (obj: Record<string, unknown>, keys: string[]): string | undefined => {
   for (const k of keys) {
@@ -75,7 +86,11 @@ export default function PeekButtonContainer() {
 
       const key = pick(app, ["slug", "codigo", "code"])?.toLowerCase() ?? slugify(label);
 
-      const route = pick(app, ["route", "path", "url"]) ?? `/${key}`;
+      // Prioridad: mapa fijo > data del backend > fallback /{key}
+      const route =
+        TUTORIAL_ROUTES[key] ??
+        pick(app, ["route", "path", "url"]) ??
+        `/${key}`;
 
       return {
         id: String(app.id ?? key),
