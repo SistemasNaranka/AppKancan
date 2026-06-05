@@ -66,6 +66,7 @@ export async function getStores(): Promise<DirectusTienda[]> {
         readItems("core_stores", {
           fields: ["id", "name", "ultra_code", "company"],
           sort: ["name"],
+          limit: -1,
         }),
       ),
     );
@@ -122,6 +123,7 @@ export async function getPromotions(): Promise<Promotion[]> {
             "type_id.color_code",
           ],
           sort: ["-start_date"],
+          limit: -1,
         }),
       ),
     );
@@ -298,6 +300,7 @@ export async function getPromotionStores(
               _eq: "Activo",
             },
           },
+          limit: -1,
         }),
       ),
     );

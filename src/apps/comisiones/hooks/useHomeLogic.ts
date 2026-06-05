@@ -32,10 +32,10 @@ export const useHomeLogic = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (currentMonth && (currentMonth !== selectedMonth || !selectedMonth)) {
+    if (currentMonth && !selectedMonth) {
       setSelectedMonth(currentMonth);
     }
-  }, [currentMonth, selectedMonth]);
+  }, [currentMonth]);
 
   const { data: commissionData, isLoading, isRefetching, isError, error, dataLoadAttempted, hasData, refetch } = useOptimizedCommissionData(selectedMonth);
 

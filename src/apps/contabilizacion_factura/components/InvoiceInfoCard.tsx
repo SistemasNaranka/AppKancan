@@ -15,6 +15,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
 } from "@mui/material";
 import CalendarToday from '@mui/icons-material/CalendarToday';
 import EventBusy from '@mui/icons-material/EventBusy';
@@ -39,6 +40,8 @@ interface MiniCardProps {
   value: string;
   icon?: React.ReactNode;
   onClick?: () => void;
+  disabled?: boolean;
+  tooltipTitle?: string;
 }
 
 function MiniCard({
@@ -46,26 +49,28 @@ function MiniCard({
   value,
   icon,
   onClick,
+  disabled,
+  tooltipTitle,
 }: MiniCardProps) {
-  return (
+  const cardContent = (
     <Box
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       sx={{
         display: "flex",
         alignItems: "center",
         gap: 1.5,
-        backgroundColor: "#f8fafc",
-        border: "1px solid #e2e8f0",
+        backgroundColor: disabled ? "#f1f5f9" : "#f8fafc",
+        border: disabled ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
         borderRadius: "8px",
         px: 2,
         py: 1,
         minWidth: { xs: "100%", sm: "calc(50% - 12px)", md: "170px" },
-        cursor: onClick ? "pointer" : "default",
+        cursor: disabled ? "not-allowed" : (onClick ? "pointer" : "default"),
         transition: "all 0.2s ease",
         "&:hover": {
-          transform: onClick ? "translateY(-1px)" : "none",
-          boxShadow: onClick ? "0 4px 12px rgba(0, 0, 0, 0.05)" : "none",
-          borderColor: onClick ? "#004680" : "#e2e8f0",
+          transform: (onClick && !disabled) ? "translateY(-1px)" : "none",
+          boxShadow: (onClick && !disabled) ? "0 4px 12px rgba(0, 0, 0, 0.05)" : "none",
+          borderColor: disabled ? "#cbd5e1" : ((onClick && !disabled) ? "#004680" : "#e2e8f0"),
         },
       }}
     >
@@ -75,7 +80,7 @@ function MiniCard({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#004680",
+            color: disabled ? "#94a3b8" : "#004680",
             backgroundColor: "transparent",
             borderRadius: "50%",
             p: 0.5,
@@ -88,7 +93,7 @@ function MiniCard({
         <Typography
           variant="caption"
           sx={{
-            color: "#64748b",
+            color: disabled ? "#94a3b8" : "#64748b",
             fontWeight: 700,
             display: "block",
             fontSize: "0.68rem",
@@ -102,7 +107,7 @@ function MiniCard({
         <Typography
           variant="body2"
           sx={{
-            color: "#1e293b",
+            color: disabled ? "#94a3b8" : "#1e293b",
             fontWeight: 800,
             fontSize: "0.9rem",
             lineHeight: 1.3,
@@ -114,6 +119,18 @@ function MiniCard({
       </Box>
     </Box>
   );
+
+  if (tooltipTitle) {
+    return (
+      <Tooltip title={tooltipTitle} arrow placement="top">
+        <Box sx={{ display: "inline-block", minWidth: { xs: "100%", sm: "calc(50% - 12px)", md: "170px" } }}>
+          {cardContent}
+        </Box>
+      </Tooltip>
+    );
+  }
+
+  return cardContent;
 }
 
 export function InvoiceInfoCard({
@@ -305,6 +322,16 @@ export function InvoiceInfoCard({
                   value="Seleccionar entrada..."
                   icon={<LocalShipping sx={{ fontSize: 16 }} />}
                   onClick={onSelectEntradaClick}
+                />
+              )}
+
+              {/* Card Entrada si no hay entradas */}
+              {(!entradas || entradas.length === 0) && (
+                <MiniCard
+                  label="Número de entrada"
+                  value="Sin entradas vinculadas"
+                  icon={<LocalShipping sx={{ fontSize: 16 }} />}
+                  disabled={true}
                 />
               )}
             </Box>

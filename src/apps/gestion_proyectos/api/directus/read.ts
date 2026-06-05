@@ -22,6 +22,7 @@ export async function getProjects(): Promise<Project[]> {
             "date_created",
           ],
           sort: ["-start_date"],
+          limit: -1,
         }),
       ),
     );
@@ -35,6 +36,7 @@ export async function getProjects(): Promise<Project[]> {
         readItems("sys_processes", {
           fields: ["*"],
           sort: ["order"],
+          limit: -1,
         }),
       ),
     );
@@ -43,6 +45,7 @@ export async function getProjects(): Promise<Project[]> {
       directus.request(
         readItems("sys_benefits", {
           fields: ["id", "project_id", "description"],
+          limit: -1,
         }),
       ),
     );

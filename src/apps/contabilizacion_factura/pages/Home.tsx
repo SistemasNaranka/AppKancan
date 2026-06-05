@@ -7,6 +7,7 @@ import {
   Chip,
   Alert,
   Snackbar,
+  Tooltip,
 } from "@mui/material";
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import SmartToy from '@mui/icons-material/SmartToy';
@@ -31,6 +32,7 @@ import {
 } from "../components/IAStatusBadge";
 import { AutomaticModal } from "../components/AutomaticoModal";
 import { GoodsReceiptModal } from "../components/GoodsReceiptModal";
+import { NoEntradasModal } from "../components/NoEntradasModal";
 import { TourProvider } from "../components/TourContext";
 
 // Utilidades y tipos
@@ -46,6 +48,7 @@ import {
   getAutomaticByNit,
   getSupplierByNit,
   getGoodsReceiptsBySupplierId,
+  updateGoodsReceiptStatus,
 } from "../services/api";
 
 export default function Home() {
@@ -61,6 +64,7 @@ export default function Home() {
   const [entradas, setEntradas] = useState<any[]>([]);
   const [entradaSeleccionada, setEntradaSeleccionada] = useState<string>("");
   const [modalEntradasOpen, setModalEntradasOpen] = useState(false);
+  const [modalNoEntradasOpen, setModalNoEntradasOpen] = useState(false);
 
   const handleEntradaChange = useCallback((documentNumber: string) => {
     setEntradaSeleccionada(documentNumber);
@@ -124,6 +128,9 @@ export default function Home() {
             setAutomaticoAsignado(proveedorData.automatic);
           }
 
+          // Guardar NIT actual para posibles avisos
+          setNitActual(nitSinDv);
+
           // 2. Buscar en acc_suppliers y luego en acc_goods_receipts
           try {
             const supplier = await getSupplierByNit(nitSinDv);
@@ -139,10 +146,17 @@ export default function Home() {
                   // Si hay varias, abrir el modal emergente de selección
                   setModalEntradasOpen(true);
                 }
+              } else {
+                // Si existe el proveedor pero no tiene entradas habilitadas
+                setModalNoEntradasOpen(true);
               }
+            } else {
+              // Si no existe el proveedor en acc_suppliers, tampoco tiene entradas vinculadas
+              setModalNoEntradasOpen(true);
             }
           } catch (apiErr) {
             console.error("Error al buscar proveedor o entradas:", apiErr);
+            setModalNoEntradasOpen(true);
           }
         }
 
@@ -165,6 +179,7 @@ export default function Home() {
     setDatosFactura(null);
     setEntradas([]);
     setEntradaSeleccionada("");
+    setModalNoEntradasOpen(false);
   }, [clearError]);
 
   const handleNewFile = useCallback(() => {
@@ -172,7 +187,25 @@ export default function Home() {
     clearError();
     setEntradas([]);
     setEntradaSeleccionada("");
+    setModalNoEntradasOpen(false);
   }, [clearError]);
+
+  // Función auxiliar para actualizar el estado de la entrada de mercancías y luego contabilizar la factura
+  const handleContabilizar = useCallback(async (datos: DatosFacturaPDF) => {
+    const docNumber = datos.entrada || entradaSeleccionada;
+    if (docNumber) {
+      const entryObj = entradas.find((e) => e.document_number === docNumber);
+      if (entryObj && entryObj.id) {
+        try {
+          await updateGoodsReceiptStatus(entryObj.id, "en_proceso");
+          console.log(`Estado de entrada #${docNumber} actualizado a 'en_proceso'`);
+        } catch (err) {
+          console.error("Error al actualizar estado de la entrada:", err);
+        }
+      }
+    }
+    executeContabilizarFactura(datos);
+  }, [entradas, entradaSeleccionada]);
 
   // Función para manejar el botón Actualizar Resolución con verificación de NIT
   const handleUpdateResolution = useCallback(async () => {
@@ -204,11 +237,12 @@ export default function Home() {
           const nuevosDatos = {
             ...datosFactura,
             automaticoAsignado: proveedorExistente.automatic,
+            entrada: datosFactura.entrada || entradaSeleccionada || undefined,
           };
           setAutomaticoAsignado(proveedorExistente.automatic);
           setDatosFactura(nuevosDatos);
           // Ejecutar directamente sin mostrar snackbar
-          executeContabilizarFactura(nuevosDatos);
+          handleContabilizar(nuevosDatos);
         } else {
           // El proveedor NO EXISTE - abrir modal para registrar el automático
           setNitActual(nitString);
@@ -225,7 +259,7 @@ export default function Home() {
       });
       // NO ejecutar la actualización - requiere validación obligatoria
     }
-  }, [datosFactura]);
+  }, [datosFactura, handleContabilizar]);
 
   // Función para guardar el número automático y ejecutar
   const handleSaveAutomatic = useCallback(
@@ -270,11 +304,12 @@ export default function Home() {
         const nuevosDatos = {
           ...datosFactura,
           automaticoAsignado: automatico,
+          entrada: datosFactura.entrada || entradaSeleccionada || undefined,
         };
         setDatosFactura(nuevosDatos);
 
         // Ejecutar el programa corporativo
-        executeContabilizarFactura(nuevosDatos);
+        handleContabilizar(nuevosDatos);
       } catch (error) {
         console.error("Error al guardar automático:", error);
         // Mostrar notificación de error
@@ -288,7 +323,7 @@ export default function Home() {
         setGuardandoAutomatico(false);
       }
     },
-    [nitActual, datosFactura],
+    [nitActual, datosFactura, handleContabilizar],
   );
 
   // Función para cerrar notificaciones
@@ -466,34 +501,49 @@ export default function Home() {
                 >
                   Cancelar
                 </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleUpdateResolution}
-                  startIcon={<Update />}
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
-                    px: 3.5,
-                    py: 1.2,
-                    background:
-                      "linear-gradient(135deg, #004680 0%, #0066cc 100%)",
-                    boxShadow: "0 4px 14px rgba(0, 70, 128, 0.35)",
-                    transition: "all 0.2s ease-in-out",
-                    "&:hover": {
-                      background:
-                        "linear-gradient(135deg, #003d66 0%, #0052a3 100%)",
-                      boxShadow: "0 6px 20px rgba(0, 70, 128, 0.45)",
-                      transform: "translateY(-1px)",
-                    },
-                    "&:active": {
-                      transform: "translateY(0)",
-                    },
-                  }}
+                <Tooltip
+                  title={(!datosFactura.entrada && !entradaSeleccionada) ? "No es posible causar la factura sin una entrada de mercancía vinculada" : ""}
+                  arrow
+                  placement="top"
                 >
-                  Causar factura
-                </Button>
+                  <span style={{ display: "inline-flex", cursor: (!datosFactura.entrada && !entradaSeleccionada) ? "not-allowed" : "pointer" }}>
+                    <Button
+                      variant="contained"
+                      onClick={handleUpdateResolution}
+                      disabled={!datosFactura.entrada && !entradaSeleccionada}
+                      startIcon={<Update />}
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: "0.95rem",
+                        px: 3.5,
+                        py: 1.2,
+                        background:
+                          "linear-gradient(135deg, #004680 0%, #0066cc 100%)",
+                        boxShadow: "0 4px 14px rgba(0, 70, 128, 0.35)",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          background:
+                            "linear-gradient(135deg, #003d66 0%, #0052a3 100%)",
+                          boxShadow: "0 6px 20px rgba(0, 70, 128, 0.45)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:active": {
+                          transform: "translateY(0)",
+                        },
+                        "&.Mui-disabled": {
+                          background: "#e2e8f0",
+                          color: "#94a3b8",
+                          boxShadow: "none",
+                          pointerEvents: "none",
+                        },
+                      }}
+                    >
+                      Causar factura
+                    </Button>
+                  </span>
+                </Tooltip>
               </Box>
             </Box>
           )}
@@ -515,6 +565,14 @@ export default function Home() {
           entradas={entradas}
           onClose={() => setModalEntradasOpen(false)}
           onConfirm={handleEntradaChange}
+        />
+
+        {/* Modal de aviso para cuando no hay entradas vinculadas */}
+        <NoEntradasModal
+          open={modalNoEntradasOpen}
+          nit={nitActual}
+          proveedorNombre={datosFactura?.proveedor.nombre}
+          onClose={() => setModalNoEntradasOpen(false)}
         />
 
         {/* Notificaciones */}

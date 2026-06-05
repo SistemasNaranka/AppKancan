@@ -260,13 +260,10 @@ export async function getGoodsReceiptsBySupplierId(
                                     _eq: Number(supplierId),
                                 },
                             },
-                            {
-                                status: {
-                                    _eq: "Habilitado",
-                                },
-                            },
+
                         ],
                     },
+                    limit: -1,
                 })
             )
         );
@@ -277,4 +274,26 @@ export async function getGoodsReceiptsBySupplierId(
         return [];
     }
 }
+
+/**
+ * Actualiza el estado de una entrada de mercancía (acc_goods_receipts)
+ * @param id El ID del registro de la entrada
+ * @param status El nuevo estado (ej: "en_proceso")
+ * @returns El registro actualizado
+ */
+export async function updateGoodsReceiptStatus(id: number, status: string) {
+    try {
+        const item = await withAutoRefresh(() =>
+            directus.request(
+                updateItem("acc_goods_receipts", id, { status }),
+            ),
+        );
+
+        return item;
+    } catch (error) {
+        console.error("Error al actualizar estado de entrada de mercancía:", error);
+        throw error;
+    }
+}
+
 

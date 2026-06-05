@@ -122,6 +122,7 @@ const fetchTiendasFresh = async (): Promise<Tienda[]> => {
         readItems('core_stores', {
           fields: ['id', 'name', 'ultra_code'],
           sort: ['name'],
+          limit: -1,
         })
       )
     );
