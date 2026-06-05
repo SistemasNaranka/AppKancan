@@ -1,12 +1,6 @@
 import { useState, useCallback, useRef } from "react";
-import * as pdfjsLib from "pdfjs-dist";
-import { GoogleGenAI } from "@google/genai";
 import { DatosFacturaPDF, ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
-
-// Configurar worker de pdfjs-dist usando el worker del paquete
-// @ts-ignore - Vite manejará la importación del worker
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 
 // Modelo por defecto si no está configurado en Directus
 const MODELO_POR_DEFECTO = "gemini-3.5-flash";
@@ -97,11 +91,10 @@ function obtenerModelosIA(modelosIA: any): string[] {
 }
 
 /**
- * Hook principal para extracción de PDF con Gemini y fallback a Ollama
- * @param geminiApiKey - API key de Gemini obtenida del usuario autenticado (campo key_gemini en Directus)
+ * Hook principal para extracción de PDF con Gemini en el servidor local
  * @param modelosIA - Modelos de IA a usar obtenidos del usuario autenticado (campo models_ia en Directus)
  */
-export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
+export function useHybridExtractor(modelosIA?: any) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<ErrorProcesamientoPDF | null>(null);
   const [progress, setProgressRaw] = useState(0);
@@ -118,7 +111,7 @@ export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
     // Solo actualizar si ha pasado el intervalo mínimo Y el valor es mayor que el actual (monotonicidad)
     if (now - lastUpdateRef.current >= THROTTLE_INTERVAL && valueClamped > 0) {
       lastUpdateRef.current = now;
-      setProgressRaw(valueClamped);
+      setProgressRaw((prev) => (valueClamped > prev ? valueClamped : prev));
     } else if (valueClamped >= 100) {
       // Forzar actualización cuando llega a 100%
       setProgressRaw(100);
@@ -133,19 +126,21 @@ export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
 
 
   /**
-   * Convierte un archivo PDF a bytes para Gemini
+   * Convierte un archivo File a base64 usando la API nativa de FileReader
    */
-  const convertPDFToBytes = useCallback(
-    async (file: File): Promise<Uint8Array> => {
+  const convertFileToBase64 = useCallback(
+    async (file: File): Promise<string> => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          resolve(new Uint8Array(arrayBuffer));
+        reader.onload = () => {
+          const result = reader.result as string;
+          // El resultado viene como "data:application/pdf;base64,..."
+          const base64 = result.split(",")[1];
+          resolve(base64);
         };
         reader.onerror = () =>
-          reject(new Error("Error al leer el archivo PDF"));
-        reader.readAsArrayBuffer(file);
+          reject(new Error("Error al convertir el archivo a base64"));
+        reader.readAsDataURL(file);
       });
     },
     [],
@@ -181,47 +176,57 @@ export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
   }, []);
 
   /**
-   * Extrae datos usando Google Gemini
+   * Extrae datos llamando al proxy seguro en el servidor local
    */
   const extractWithGemini = useCallback(
     async (file: File, modeloAUsar: string): Promise<string> => {
-      if (!geminiApiKey) {
-        throw new Error("No hay API key de Gemini configurada para el usuario");
-      }
-
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-
-      // Convertir PDF a bytes
-      const pdfBytes = await convertPDFToBytes(file);
-
       try {
-        // Convertir Uint8Array a base64 de forma segura (evita stack overflow con archivos grandes)
-        let binary = "";
-        const len = pdfBytes.byteLength;
-        for (let i = 0; i < len; i++) {
-          binary += String.fromCharCode(pdfBytes[i]);
-        }
-        const base64Data = btoa(binary);
+        // Convertir PDF a base64 de forma asíncrona y nativa
+        const base64Data = await convertFileToBase64(file);
 
-        const response = await ai.models.generateContent({
-          model: modeloAUsar,
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: PROMPT_EXTRACCION },
-                {
-                  inlineData: {
-                    mimeType: "application/pdf",
-                    data: base64Data,
-                  },
+        // Obtener el token de Directus para autenticar la petición al proxy
+        const tokens = cargarTokenStorage();
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        };
+        if (tokens?.access) {
+          headers["Authorization"] = `Bearer ${tokens.access}`;
+        }
+
+        const API_URL = import.meta.env.VITE_VENTAS_API_URL || "/api";
+        
+        // Preparar payload estructurado para la API
+        const contents = [
+          {
+            role: "user",
+            parts: [
+              { text: PROMPT_EXTRACCION },
+              {
+                inlineData: {
+                  mimeType: "application/pdf",
+                  data: base64Data,
                 },
-              ],
-            },
-          ],
+              },
+            ],
+          },
+        ];
+
+        const response = await fetch(`${API_URL}/contabilizacion/extraer`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: modeloAUsar,
+            contents,
+          }),
         });
 
-        return response.text || "";
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || errData.error || `HTTP ${response.status}`);
+        }
+
+        const resData = await response.json();
+        return resData.text || "";
       } catch (geminiError) {
         const errorMsg =
           geminiError instanceof Error
@@ -230,7 +235,7 @@ export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
         throw new Error(`Gemini: ${errorMsg}`);
       }
     },
-    [convertPDFToBytes, geminiApiKey],
+    [convertFileToBase64],
   );
 
 
@@ -323,34 +328,29 @@ export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
         let geminiExitoso = false;
         let ultimoErrorGemini = "";
 
-        if (geminiApiKey) {
-          for (let i = 0; i < modelos.length; i++) {
-            const modeloAUsar = modelos[i];
-            try {
-              nuevoEstado.intentoGemini = true;
+        for (let i = 0; i < modelos.length; i++) {
+          const modeloAUsar = modelos[i];
+          try {
+            nuevoEstado.intentoGemini = true;
+            nuevoEstado.modeloUsado = modeloAUsar;
+            setEstadoHibrido({ ...nuevoEstado });
+            setProgress(20 + i * 2);
+
+            response = await extractWithGemini(file, modeloAUsar);
+            
+            if (response) {
+              console.log(`Modelo usado: ${modeloAUsar}`);
+              nuevoEstado.proveedorUsado = "gemini";
               nuevoEstado.modeloUsado = modeloAUsar;
               setEstadoHibrido({ ...nuevoEstado });
-              setProgress(20 + i * 2);
-
-              response = await extractWithGemini(file, modeloAUsar);
-              
-              if (response) {
-                console.log(`Modelo usado: ${modeloAUsar}`);
-                nuevoEstado.proveedorUsado = "gemini";
-                nuevoEstado.modeloUsado = modeloAUsar;
-                setEstadoHibrido({ ...nuevoEstado });
-                geminiExitoso = true;
-                break;
-              }
-            } catch (geminiError: any) {
-              const errorMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
-              console.error(`Error con modelo: ${modeloAUsar}`);
-              ultimoErrorGemini = errorMsg;
+              geminiExitoso = true;
+              break;
             }
+          } catch (geminiError: any) {
+            const errorMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+            console.error(`Error con modelo: ${modeloAUsar}`, errorMsg);
+            ultimoErrorGemini = errorMsg;
           }
-        } else {
-          ultimoErrorGemini = "No hay API key de Gemini configurada para el usuario";
-          console.warn(ultimoErrorGemini);
         }
 
         if (geminiExitoso) {
@@ -408,7 +408,7 @@ export function useHybridExtractor(geminiApiKey?: string, modelosIA?: any) {
         setIsProcessing(false);
       }
     },
-    [extractWithGemini, parseResponse, buildInvoiceData, modelosIA, geminiApiKey],
+    [extractWithGemini, parseResponse, buildInvoiceData, modelosIA],
   );
 
   /**

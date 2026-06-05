@@ -266,30 +266,36 @@ export function GoodsReceiptModal({
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
         <Button
+          variant="contained"
           onClick={handleClose}
           startIcon={<Cancel />}
-          sx={{ color: "text.secondary", textTransform: "none", fontWeight: 600 }}
-        >
-          Cancelar
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleConfirm}
-          disabled={!selectedNumber}
           sx={{
-            background: "linear-gradient(135deg, #004680 0%, #0066cc 100%)",
-            color: "#fff",
+            backgroundColor: "#EF5350",
+            color: "#FFFFFF",
             textTransform: "none",
             fontWeight: 600,
             borderRadius: 2,
             boxShadow: "none",
             "&:hover": {
-              background: "linear-gradient(135deg, #003d66 0%, #0052a3 100%)",
+              backgroundColor: "#C62828",
               boxShadow: "none",
             },
-            "&:disabled": {
-              background: "#cbd5e1",
-              color: "#94a3b8",
+          }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleConfirm}
+          disabled={!selectedNumber}
+          sx={{
+            textTransform: "none",
+            fontWeight: 600,
+            borderRadius: 2,
+            boxShadow: "none",
+            "&:hover": {
+              boxShadow: "none",
             },
           }}
         >

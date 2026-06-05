@@ -27,6 +27,21 @@ export const PROTOCOLO_EMPRESA = "empresa://";
 // ============ FUNCIÓN PARA EJECUTAR .EXE ============
 
 /**
+ * Sanitiza un valor para evitar inyecciones de comandos en la llamada del protocolo local.
+ * Permite letras, números, guiones, guiones bajos, puntos y barras diagonales.
+ */
+function sanitizeParam(val: string): string {
+  return String(val).replace(/[^a-zA-Z0-9\-_./]/g, "").trim();
+}
+
+/**
+ * Sanitiza el número automático (debe ser estrictamente numérico y de máximo 4 dígitos).
+ */
+function sanitizeAutomatico(val: string): string {
+  return String(val).replace(/[^0-9]/g, "").slice(0, 4).trim();
+}
+
+/**
  * Ejecuta el programa corporativo de contabilización usando el protocolo URI registrado
  * El protocolo llama a un VBS que ejecuta el .exe
  *
@@ -44,17 +59,21 @@ export function executeContabilizarFactura(
     return;
   }
 
-  // Construir los parámetros de la factura en el orden requerido
+  const numeroRaw = datosFactura.numeroSinPrefijo || datosFactura.numeroFactura;
+  const automaticoRaw = datosFactura.automaticoAsignado || datosFactura.automatico || "";
+  const entradaRaw = datosFactura.entrada || "";
+
+  // Construir los parámetros de la factura sanitizados de forma estricta
   const paramsObj: Record<string, string> = {
-    numero: datosFactura.numeroSinPrefijo || datosFactura.numeroFactura,
-    fechaVencimiento: datosFactura.fechaVencimiento || "",
-    fechaEmision: datosFactura.fechaEmision,
-    automatico: datosFactura.automaticoAsignado || datosFactura.automatico || "",
+    numero: sanitizeParam(numeroRaw),
+    fechaVencimiento: sanitizeParam(datosFactura.fechaVencimiento || ""),
+    fechaEmision: sanitizeParam(datosFactura.fechaEmision),
+    automatico: sanitizeAutomatico(automaticoRaw),
   };
 
   // Añadir la entrada si existe
-  if (datosFactura.entrada) {
-    paramsObj.entrada = datosFactura.entrada;
+  if (entradaRaw) {
+    paramsObj.entrada = sanitizeParam(entradaRaw);
   }
 
   const params = new URLSearchParams(paramsObj);

@@ -5,6 +5,7 @@ import {
   obtenerEmpleadosPorFechaExacta,
   obtenerAsesores,
   obtenerCargos,
+  obtenerPresupuestosDiarios,
 } from "../api/directus/read";
 import {
   guardarPresupuestosEmpleados,
@@ -289,8 +290,10 @@ export const useEditStoreBudgetModalLogic = ({
       await loadDiasSinPresupuesto();
       if (onSaveComplete) await onSaveComplete();
       return true;
-    } catch (err) {
-      setError("Error al guardar en la base de datos.");
+    } catch (err: any) {
+      console.error("❌ Error al guardar presupuesto:", err);
+      const errorDetail = err.errors?.[0]?.message || err.message || "";
+      setError(`Error al guardar en la base de datos. ${errorDetail}`);
       return false;
     } finally {
       setLoading(false);

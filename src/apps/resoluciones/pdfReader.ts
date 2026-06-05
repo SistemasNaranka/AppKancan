@@ -1,5 +1,5 @@
 import * as pdfjsLib from "pdfjs-dist";
-import { GoogleGenAI } from "@google/genai";
+import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
@@ -181,30 +181,51 @@ export async function LearnPDF(
       }
       const base64Data = btoa(binary);
 
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      // Obtener el token de Directus para autenticar la petición al proxy
+      const tokens = cargarTokenStorage();
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (tokens?.access) {
+        headers["Authorization"] = `Bearer ${tokens.access}`;
+      }
+
+      const API_URL = import.meta.env.VITE_VENTAS_API_URL || "/api";
 
       for (let i = 0; i < modelos.length; i++) {
         const modeloAUsar = modelos[i];
         try {
-          const response = await ai.models.generateContent({
-            model: modeloAUsar,
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  { text: PROMPT_RESOLUCIONES },
-                  {
-                    inlineData: {
-                      mimeType: "application/pdf",
-                      data: base64Data,
-                    },
+          const contents = [
+            {
+              role: "user",
+              parts: [
+                { text: PROMPT_RESOLUCIONES },
+                {
+                  inlineData: {
+                    mimeType: "application/pdf",
+                    data: base64Data,
                   },
-                ],
-              },
-            ],
+                },
+              ],
+            },
+          ];
+
+          const response = await fetch(`${API_URL}/ia/gemini/extraer`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              model: modeloAUsar,
+              contents,
+            }),
           });
 
-          const responseText = response.text || "";
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || errData.error || `HTTP ${response.status}`);
+          }
+
+          const resData = await response.json();
+          const responseText = resData.text || "";
           const parsed = parseResponse(responseText);
 
           // Validar que tengamos campos críticos correctos
