@@ -7,6 +7,7 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import EmployeeCard from '../components/EmployeeCard';
 import { useHorarios } from '../hooks/useHorarios';
+import HistorialPage from './HistorialPage';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
@@ -20,7 +21,7 @@ function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
   return (
     <div role="tabpanel" hidden={value !== index} {...other}>
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ mt: -2 }}>{children}</Box>}
     </div>
   );
 }
@@ -166,9 +167,7 @@ export default function RegistrosPage() {
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
-          <Typography variant="h6" color="text.secondary">Historial de Asistencia</Typography>
-        </Paper>
+        <HistorialPage />
       </TabPanel>
 
       <TabPanel value={tabValue} index={3}>
