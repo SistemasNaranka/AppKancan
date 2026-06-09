@@ -2,8 +2,8 @@
 import directus from "@/services/directus/directus";
 import { withAutoRefresh, ensureValidToken } from "@/auth/services/directusInterceptor";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
-import { readItems, createItem, deleteItem } from "@directus/sdk";
-import { ICreateNotification, INotification, INotificationGroup } from "../interfaces/notification.interface";
+import { readItems, createItem, deleteItem, updateItem } from "@directus/sdk";
+import { ICreateNotification, INotification, INotificationGroup, EstadoVisibilidad } from "../interfaces/notification.interface";
 
 interface IDirectusNotificationDetail {
   id: string | number;
@@ -25,6 +25,7 @@ interface IDirectusNotificationPending {
   is_delivered?: boolean | null;
   expiration_date?: string | null;
   scheduled_date?: string | null;
+  status?: string | null;
   notification_id?: IDirectusNotificationDetail | null;
 }
 
@@ -66,6 +67,7 @@ export const servicioNotificaciones = {
               "is_delivered",
               "expiration_date",
               "scheduled_date",
+              "status",
               "notification_id.id",
               "notification_id.title",
               "notification_id.message",
@@ -88,6 +90,8 @@ export const servicioNotificaciones = {
         const dateCreated = notif.date_created || item.date_created;
         const { fecha, hora } = formatearFechaHora(dateCreated);
         const estado = mapTipoToEstado(notif.notification_type ?? "");
+        const rawStatus = (item.status ?? "activo").toString().toLowerCase();
+        const statusNormalizado: EstadoVisibilidad = rawStatus === "inactivo" ? "inactivo" : "activo";
         return {
           id: `#KM-${item.id}`,
           titulo: notif.title ?? "Sin título",
@@ -101,6 +105,7 @@ export const servicioNotificaciones = {
           duracion: notif.duration_seconds ?? 0,
           sender_name: notif.sender_name ?? "Sistema",
           duration_seconds: notif.duration_seconds ?? 0,
+          status: statusNormalizado,
         };
       });
     } catch (error) {
@@ -222,6 +227,25 @@ export const servicioNotificaciones = {
       console.log(`✅ Notificación ${id} eliminada`);
     } catch (error) {
       console.error("❌ Error al eliminar notificación:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Cambia el estado de visibilidad (status) de la notificación en
+   * core_notifications_pending entre 'activo' e 'inactivo'.
+   */
+  async toggleVisibilidadNotificacion(id: string, nuevoStatus: EstadoVisibilidad): Promise<void> {
+    try {
+      const cleanId = id.replace(/^#KM-/, "");
+      await withAutoRefresh(() =>
+        directus.request(
+          updateItem("core_notifications_pending" as any, cleanId as any, { status: nuevoStatus } as any)
+        )
+      );
+      console.log(`✅ Notificación ${id} ahora está ${nuevoStatus}`);
+    } catch (error) {
+      console.error("❌ Error al cambiar visibilidad de notificación:", error);
       throw error;
     }
   },

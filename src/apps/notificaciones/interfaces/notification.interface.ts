@@ -2,6 +2,8 @@
 //  interfaces/notification.interface.ts
 // ─────────────────────────────────────────────────────────
 
+export type EstadoVisibilidad = 'activo' | 'inactivo';
+
 export interface INotification {
   id: string;
   titulo: string;
@@ -13,6 +15,7 @@ export interface INotification {
   destinatarios?: string;
   persistente?: boolean;
   duracion?: number;
+  status: EstadoVisibilidad;
 }
 
 export interface ICreateNotification {

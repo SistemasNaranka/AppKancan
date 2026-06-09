@@ -41,6 +41,18 @@ const TUTORIAL_ROUTES: Record<string, string> = {
   traslados: "/traslados",
 };
 
+/* ----------------- Apps con tutorial implementado ------------------- */
+// Solo las apps cuyo slug esté aquí aparecerán en el PeekButton, aunque
+// el usuario tenga otras apps asignadas. Cuando se implemente un tour
+// nuevo, añadir su slug a este Set.
+const APPS_WITH_TUTORIAL = new Set<string>([
+  "notificaciones",
+  "reservas",
+  "traslados",
+  "curvas",
+  "contabilizacion_factura",
+]);
+
 /* --------------------------- Helpers de extracción -------------------------- */
 const pick = (obj: Record<string, unknown>, keys: string[]): string | undefined => {
   for (const k of keys) {
@@ -79,31 +91,35 @@ export default function PeekButtonContainer() {
   const apps = useMemo(() => {
     if (!userApps?.length) return [];
 
-    return userApps.map((app: Record<string, unknown>) => {
-      const label =
-        pick(app, ["name", "nombre", "title", "label", "display_name", "titulo"]) ??
-        String(app.id ?? "App");
+    return userApps
+      .map((app: Record<string, unknown>) => {
+        const label =
+          pick(app, ["name", "nombre", "title", "label", "display_name", "titulo"]) ??
+          String(app.id ?? "App");
 
-      const key = pick(app, ["slug", "codigo", "code"])?.toLowerCase() ?? slugify(label);
+        const key = pick(app, ["slug", "codigo", "code"])?.toLowerCase() ?? slugify(label);
 
-      // Prioridad: mapa fijo > data del backend > fallback /{key}
-      const route =
-        TUTORIAL_ROUTES[key] ??
-        pick(app, ["route", "path", "url"]) ??
-        `/${key}`;
+        // Prioridad: mapa fijo > data del backend > fallback /{key}
+        const route =
+          TUTORIAL_ROUTES[key] ??
+          pick(app, ["route", "path", "url"]) ??
+          `/${key}`;
 
-      return {
-        id: String(app.id ?? key),
-        label,
-        icon: APP_ICONS[key] ?? DefaultIcon,
-        isLoading: loadingKey === key,
-        onTutorialClick: () => {
-          setLoadingKey(key);
-          startTutorial(key);
-          navigate(route);
-        },
-      };
-    });
+        return {
+          id: String(app.id ?? key),
+          key,
+          label,
+          icon: APP_ICONS[key] ?? DefaultIcon,
+          isLoading: loadingKey === key,
+          onTutorialClick: () => {
+            setLoadingKey(key);
+            startTutorial(key);
+            navigate(route);
+          },
+        };
+      })
+      // Solo apps que tengan un tutorial implementado
+      .filter((app) => APPS_WITH_TUTORIAL.has(app.key));
   }, [userApps, navigate, startTutorial, loadingKey]);
 
   if (!isAuthenticated) return null;
