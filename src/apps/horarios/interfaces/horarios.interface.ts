@@ -10,11 +10,30 @@ export interface RegistrosEmpleado {
   inicioAlmuerzo?: string;
   finAlmuerzo?: string;
   finJornada?: string;
+  observaciones?: {
+    inicioJornada?: string;
+    inicioAlmuerzo?: string;
+    finAlmuerzo?: string;
+    finJornada?: string;
+  };
 }
 
 export interface EmpleadoAsistencia {
   id: string;
   nombre: string;
+  documento?: string;
   estadoActual: EstadoAsistencia;
   registros: RegistrosEmpleado;
+}
+
+export interface Novedad {
+  id: string;
+  empleadoId: string;
+  empleadoNombre: string;
+  empleadoDocumento?: string;
+  tipo: string;
+  fecha: string;
+  description?: string;
+  notes?: string;
+  fechaRegistro: string;
 }

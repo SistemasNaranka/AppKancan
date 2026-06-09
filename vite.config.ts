@@ -273,6 +273,11 @@ export default defineConfig({
       "yup",
       "react-hook-form",
       "@hookform/resolvers",
+      "@mui/icons-material/PlayArrow",
+      "@mui/icons-material/Restaurant",
+      "@mui/icons-material/Dining",
+      "@mui/icons-material/ExitToApp",  
+    
     ],
     exclude: ["ollama"],
   },
