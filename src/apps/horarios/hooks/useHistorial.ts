@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchTimeRecords, TimeRecord } from '../api/read';
+import { fetchTimeRecords, TimeRecord } from '../api/directus/read';
 import { HistorialRow } from '../interfaces/horarios.interface';
 
 const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
