@@ -4,12 +4,14 @@ export interface RegistrosAsistencia {
   finAlmuerzo: string | null;
   finJornada: string | null;
   observaciones: Record<string, string>;
+  ids?: Record<string, number>;
 }
 
 export interface EmpleadoAsistencia {
   id: string;
   documento: string;
   nombre: string;
+  cargo?: string;
   estadoActual: string;
   registros: RegistrosAsistencia;
 }

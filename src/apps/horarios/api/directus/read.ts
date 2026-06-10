@@ -11,7 +11,7 @@ export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[
       directus.request(
         readItems("adm_employees", {
         
-          fields: ["id", "first_name", "last_name", "store_id"],
+          fields: ["id", "first_name", "last_name", "store_id", "position_id.name"],
         })
       )
     );
@@ -20,6 +20,7 @@ export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[
       id: String(emp.id),
       documento: String(emp.id), 
       nombre: `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || "Empleado Sin Nombre",
+      cargo: emp.position_id?.name || "Sin Cargo",
       estadoActual: "entrada_pendiente",
       registros: {
         inicioJornada: null,
@@ -69,7 +70,8 @@ export async function getNovedades(): Promise<any[]> {
             "newness_id.name",
             "employee_id.id",
             "employee_id.first_name",
-            "employee_id.last_name"
+            "employee_id.last_name",
+            "report_date"
           ],
           sort: ["-id"], 
         })
@@ -116,3 +118,23 @@ export const fetchTimeRecords = async (
     )
   ) as TimeRecord[];
 };
+
+export async function getTimeRecords(storeId: number, date: string): Promise<any[]> {
+  try {
+    return await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_time_records', {
+          fields: ['id', 'record_date', 'record_time', 'log_type', 'employee_id.id', 'store_id', 'observations'],
+          filter: {
+            store_id: { _eq: storeId },
+            record_date: { _eq: date }
+          },
+          limit: -1
+        })
+      )
+    );
+  } catch (error) {
+    console.error('❌ Error al obtener registros de tiempo:', error);
+    return [];
+  }
+}

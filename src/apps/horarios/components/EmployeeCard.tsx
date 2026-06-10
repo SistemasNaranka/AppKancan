@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card, Typography, Button, Box, IconButton, Stack, Chip, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, FormControl, InputLabel, Select,
-  Divider, Alert, Snackbar, CircularProgress
+  Divider, Alert, CircularProgress
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -13,6 +13,8 @@ import DiningIcon from '@mui/icons-material/Dining';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { EmpleadoAsistencia } from '../interfaces/horarios.interface';
 import dayjs from 'dayjs';
+import * as yup from 'yup';
+import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
 interface EmployeeCardProps {
   empleado: EmpleadoAsistencia;
@@ -24,7 +26,8 @@ interface EmployeeCardProps {
     empleadoId: string;
     empleadoNombre: string;
     tipo: string;
-    fecha: string;
+    fechaInicio: string;
+    fechaFin: string;
     observaciones: string;
     fechaRegistro: string;
   }) => void;
@@ -51,19 +54,38 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
   }
 
   const { id, nombre, estadoActual, registros } = empleado;
+  const { showSnackbar } = useGlobalSnackbar();
 
   const [novedadModalOpen, setNovedadModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     novedad: '',
-    fecha: dayjs().format('YYYY-MM-DD'), // Formato por defecto de input date nativo
+    fechaInicio: dayjs().format('YYYY-MM-DD'),
+    fechaFin: dayjs().format('YYYY-MM-DD'),
     observaciones: ''
   });
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [obsModalOpen, setObsModalOpen] = useState(false);
   const [eventoActual, setEventoActual] = useState('');
   const [observacionTexto, setObservacionTexto] = useState('');
+
+  useEffect(() => {
+    if (obsModalOpen && eventoActual) {
+      setObservacionTexto(getObservacion(eventoActual));
+    }
+  }, [empleado, obsModalOpen, eventoActual]);
+
+  const novedadSchema = yup.object().shape({
+    novedad: yup.string().required('El tipo de novedad es obligatorio'),
+    fechaInicio: yup.string().required('La fecha de inicio es obligatoria'),
+    fechaFin: yup.string().required('La fecha de fin es obligatoria')
+      .test('is-after-or-equal', 'La fecha fin debe ser igual o posterior a la de inicio', function (value) {
+        const { fechaInicio } = this.parent;
+        if (!fechaInicio || !value) return true;
+        return dayjs(value).isSame(dayjs(fechaInicio), 'day') || dayjs(value).isAfter(dayjs(fechaInicio), 'day');
+      }),
+    observaciones: yup.string().max(500, 'Las observaciones no pueden superar los 500 caracteres')
+  });
 
   const botones = [
     { etiqueta: 'Comenzar Jornada', activo: estadoActual === 'entrada_pendiente', hora: registros.inicioJornada },
@@ -87,39 +109,51 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
   };
 
   const handleOpenNovedadModal = () => {
-    setFormData({ novedad: '', fecha: dayjs().format('YYYY-MM-DD'), observaciones: '' });
+    setFormData({
+      novedad: '',
+      fechaInicio: dayjs().format('YYYY-MM-DD'),
+      fechaFin: dayjs().format('YYYY-MM-DD'),
+      observaciones: ''
+    });
+    setFormErrors({});
     setNovedadModalOpen(true);
   };
 
   const handleCloseNovedadModal = () => setNovedadModalOpen(false);
 
-  const handleGuardarNovedad = () => {
-    if (!formData.novedad) {
-      alert('Seleccione una novedad');
-      return;
+  const handleGuardarNovedad = async () => {
+    try {
+      setFormErrors({});
+      await novedadSchema.validate(formData, { abortEarly: false });
+
+      const fechaRegistro = dayjs().format('DD/MM/YYYY HH:mm:ss');
+
+      const nuevaNovedad = {
+        empleadoId: id,
+        empleadoNombre: nombre,
+        tipo: formData.novedad,
+        fechaInicio: formData.fechaInicio,
+        fechaFin: formData.fechaFin,
+        observaciones: formData.observaciones,
+        fechaRegistro: fechaRegistro,
+      };
+
+      const success = await onAgregarNovedad(nuevaNovedad);
+      if (success) {
+        onEliminarEmpleado(id);
+        handleCloseNovedadModal();
+      }
+    } catch (err: any) {
+      if (err instanceof yup.ValidationError) {
+        const errors: Record<string, string> = {};
+        err.inner.forEach((validationError) => {
+          if (validationError.path) {
+            errors[validationError.path] = validationError.message;
+          }
+        });
+        setFormErrors(errors);
+      }
     }
-    if (!formData.fecha) {
-      alert('Seleccione una fecha');
-      return;
-    }
-
-    const fechaRegistro = dayjs().format('DD/MM/YYYY HH:mm:ss');
-
-    const nuevaNovedad = {
-      empleadoId: id,
-      empleadoNombre: nombre,
-      tipo: formData.novedad,
-      fecha: formData.fecha, // 🚀 CLAVE: Dejamos el string YYYY-MM-DD nativo para que Directus no falle con report_date
-      observaciones: formData.observaciones,
-      fechaRegistro: fechaRegistro,
-    };
-
-    onAgregarNovedad(nuevaNovedad);
-    onEliminarEmpleado(id);
-
-    setSnackbarMessage(`Novedad "${formData.novedad}" registrada`);
-    setSnackbarOpen(true);
-    handleCloseNovedadModal();
   };
 
   const handleOpenObsModal = (evento: string) => {
@@ -134,10 +168,8 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
     setEventoActual('');
   };
 
-  const handleGuardarObservacion = () => {
-    onGuardarObservacion(id, eventoActual, observacionTexto);
-    setSnackbarMessage(`Observación guardada para "${eventoActual}"`);
-    setSnackbarOpen(true);
+  const handleGuardarObservacion = async () => {
+    await onGuardarObservacion(id, eventoActual, observacionTexto);
     handleCloseObsModal();
   };
 
@@ -147,7 +179,14 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
     <>
       <Card sx={{ width: 380, borderRadius: 3, overflow: 'hidden', boxShadow: finalizado ? 'none' : '0 4px 12px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
         <Box sx={{ bgcolor: '#004a99', color: 'white', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '1rem', textTransform: 'capitalize' }}>{nombre}</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '1rem', textTransform: 'capitalize', lineHeight: 1.2 }}>{nombre}</Typography>
+            {empleado.cargo && (
+              <Typography sx={{ fontWeight: 500, fontSize: '0.7rem', opacity: 0.85, textTransform: 'uppercase', mt: 0.3, letterSpacing: '0.5px' }}>
+                {empleado.cargo}
+              </Typography>
+            )}
+          </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Tooltip title={novedadActiva ? 'Registrar novedad' : 'No disponible'}>
               <span>
@@ -225,9 +264,10 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
         <DialogTitle sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Novedad</InputLabel>
+            <FormControl fullWidth error={!!formErrors.novedad}>
+              <InputLabel id="novedad-select-label">Novedad</InputLabel>
               <Select
+                labelId="novedad-select-label"
                 value={formData.novedad}
                 label="Novedad"
                 onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}
@@ -237,9 +277,45 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
                   <MenuItem key={tipo.id} value={tipo.name}>{tipo.name}</MenuItem>
                 ))}
               </Select>
+              {formErrors.novedad && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                  {formErrors.novedad}
+                </Typography>
+              )}
             </FormControl>
-            <TextField label="Hasta el día" type="date" fullWidth value={formData.fecha} onChange={(e) => setFormData({ ...formData, fecha: e.target.value })} InputLabelProps={{ shrink: true }} />
-            <TextField label="Observaciones" multiline rows={3} fullWidth value={formData.observaciones} onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })} placeholder="Detalle adicional..." />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Desde el día"
+                type="date"
+                fullWidth
+                value={formData.fechaInicio}
+                onChange={(e) => setFormData({ ...formData, fechaInicio: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                error={!!formErrors.fechaInicio}
+                helperText={formErrors.fechaInicio}
+              />
+              <TextField
+                label="Hasta el día"
+                type="date"
+                fullWidth
+                value={formData.fechaFin}
+                onChange={(e) => setFormData({ ...formData, fechaFin: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                error={!!formErrors.fechaFin}
+                helperText={formErrors.fechaFin}
+              />
+            </Box>
+            <TextField
+              label="Observaciones"
+              multiline
+              rows={3}
+              fullWidth
+              value={formData.observaciones}
+              onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+              placeholder="Detalle adicional..."
+              error={!!formErrors.observaciones}
+              helperText={formErrors.observaciones}
+            />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
@@ -250,9 +326,9 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
 
       {/* Modal de Observaciones */}
       <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, boxShadow: '0 20px 35px rgba(0,0,0,0.1)' } }}>
-        <DialogTitle sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>Observaciones del evento</Typography>
-          <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>{eventoActual} • {nombre}</Typography>
+        <DialogTitle component="div" sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>
+          <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Observaciones del evento</Typography>
+          <Typography component="span" variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>{eventoActual} • {nombre}</Typography>
         </DialogTitle>
         <Divider />
         <DialogContent sx={{ p: 3 }}>
@@ -265,7 +341,9 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
             value={observacionTexto}
             onChange={(e) => setObservacionTexto(e.target.value.slice(0, maxLength))}
             helperText={`${observacionTexto.length}/${maxLength} caracteres`}
-            FormHelperTextProps={{ sx: { textAlign: 'right', mt: 1, fontWeight: 500 } }}
+            slotProps={{
+              formHelperText: { sx: { textAlign: 'right', mt: 1, fontWeight: 500 } }
+            }}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#fafcff' } }}
           />
         </DialogContent>
@@ -275,9 +353,6 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity="success" sx={{ width: '100%' }}>{snackbarMessage}</Alert>
-      </Snackbar>
     </>
   );
 }
