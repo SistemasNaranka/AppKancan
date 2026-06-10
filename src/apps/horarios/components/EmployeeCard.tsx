@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Card, Typography, Button, Box, IconButton, Stack, Chip, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, FormControl, InputLabel, Select,
-  Divider, Alert, Snackbar
+  Divider, Alert, Snackbar, CircularProgress
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -16,25 +16,19 @@ import dayjs from 'dayjs';
 
 interface EmployeeCardProps {
   empleado: EmpleadoAsistencia;
+  tiposNovedad: { id: number; name: string }[];
   onRegistrarEvento: (idEmpleado: string, tipoEvento: string) => void;
   onEliminarEmpleado: (idEmpleado: string) => void;
   onGuardarObservacion: (idEmpleado: string, evento: string, texto: string) => void;
   onAgregarNovedad: (novedad: {
     empleadoId: string;
     empleadoNombre: string;
-    empleadoDocumento?: string;
     tipo: string;
     fecha: string;
-    description: string;
-    notes: string;
+    observaciones: string;
     fechaRegistro: string;
   }) => void;
 }
-
-const listaNovedades = [
-  'Descanso', 'Ausencia', 'Calamidad', 'Capacitación',
-  'Día de la Familia', 'Incapacidad', 'Permiso', 'Retiro', 'Suspensión', 'Vacaciones'
-];
 
 const getIcon = (etiqueta: string) => {
   switch (etiqueta) {
@@ -46,15 +40,23 @@ const getIcon = (etiqueta: string) => {
   }
 };
 
-export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad }: EmployeeCardProps) {
+export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento, onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad }: EmployeeCardProps) {
+  if (!empleado) {
+    return (
+      <Card sx={{ width: 380, borderRadius: 3, p: 4, textAlign: 'center' }}>
+        <CircularProgress size={40} />
+        <Typography sx={{ mt: 2 }}>Cargando empleado...</Typography>
+      </Card>
+    );
+  }
+
   const { id, nombre, estadoActual, registros } = empleado;
 
   const [novedadModalOpen, setNovedadModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     novedad: '',
-    fecha: dayjs().format('YYYY-MM-DD'),
-    description: '',
-    notes: ''
+    fecha: dayjs().format('YYYY-MM-DD'), // Formato por defecto de input date nativo
+    observaciones: ''
   });
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -85,14 +87,13 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
   };
 
   const handleOpenNovedadModal = () => {
-    setFormData({ novedad: '', fecha: dayjs().format('YYYY-MM-DD'), description: '', notes: '' });
+    setFormData({ novedad: '', fecha: dayjs().format('YYYY-MM-DD'), observaciones: '' });
     setNovedadModalOpen(true);
   };
 
   const handleCloseNovedadModal = () => setNovedadModalOpen(false);
 
   const handleGuardarNovedad = () => {
-    console.log('🔵 handleGuardarNovedad llamado');
     if (!formData.novedad) {
       alert('Seleccione una novedad');
       return;
@@ -107,19 +108,13 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
     const nuevaNovedad = {
       empleadoId: id,
       empleadoNombre: nombre,
-      empleadoDocumento: empleado.documento,
       tipo: formData.novedad,
-      fecha: formData.fecha,
-      description: formData.description,
-      notes: formData.notes,
+      fecha: formData.fecha, // 🚀 CLAVE: Dejamos el string YYYY-MM-DD nativo para que Directus no falle con report_date
+      observaciones: formData.observaciones,
       fechaRegistro: fechaRegistro,
     };
-    console.log('📝 Nueva novedad a guardar:', nuevaNovedad);
 
-    // Llamar a la función del hook
     onAgregarNovedad(nuevaNovedad);
-
-    // Eliminar la tarjeta
     onEliminarEmpleado(id);
 
     setSnackbarMessage(`Novedad "${formData.novedad}" registrada`);
@@ -146,10 +141,6 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
     handleCloseObsModal();
   };
 
-  const handleFechaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, fecha: e.target.value });
-  };
-
   const maxLength = 500;
 
   return (
@@ -159,9 +150,11 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
           <Typography sx={{ fontWeight: 700, fontSize: '1rem', textTransform: 'capitalize' }}>{nombre}</Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Tooltip title={novedadActiva ? 'Registrar novedad' : 'No disponible'}>
-              <IconButton size="small" disabled={!novedadActiva} onClick={handleOpenNovedadModal} sx={{ color: novedadActiva ? '#ffd966' : 'rgba(255,255,255,0.5)' }}>
-                <ReportProblemIcon fontSize="small" />
-              </IconButton>
+              <span>
+                <IconButton size="small" disabled={!novedadActiva} onClick={handleOpenNovedadModal} sx={{ color: novedadActiva ? '#ffd966' : 'rgba(255,255,255,0.5)' }}>
+                  <ReportProblemIcon fontSize="small" />
+                </IconButton>
+              </span>
             </Tooltip>
             <Chip label={estadoActual.replace(/_/g, ' ').toUpperCase()} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 'bold', fontSize: '0.65rem', height: 24 }} />
           </Box>
@@ -174,7 +167,6 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
               const bloqueado = !btn.activo && !yaHecho;
               const observacionGuardada = getObservacion(btn.etiqueta);
               const obsEnabled = yaHecho || btn.activo;
-              const tooltipText = observacionGuardada ? `Observación: ${observacionGuardada.substring(0, 80)}...` : (obsEnabled ? 'Agregar observación' : 'No disponible');
 
               return (
                 <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -204,7 +196,7 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
                     {btn.hora && <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>{btn.hora}</span>}
                   </Button>
 
-                  <Tooltip title={tooltipText} arrow>
+                  <Tooltip title={observacionGuardada ? `Observación: ${observacionGuardada.substring(0, 80)}...` : (obsEnabled ? 'Agregar observación' : 'No disponible')} arrow>
                     <span>
                       <IconButton
                         size="small"
@@ -228,19 +220,26 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
         </Box>
       </Card>
 
+      {/* Modal de Novedad */}
       <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
         <DialogTitle sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth>
               <InputLabel>Novedad</InputLabel>
-              <Select value={formData.novedad} label="Novedad" onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}>
-                {listaNovedades.map(item => <MenuItem key={item} value={item}>{item}</MenuItem>)}
+              <Select
+                value={formData.novedad}
+                label="Novedad"
+                onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}
+              >
+                {/* 🚀 Protegido con cortocircuito en array por seguridad */}
+                {(tiposNovedad || []).map(tipo => (
+                  <MenuItem key={tipo.id} value={tipo.name}>{tipo.name}</MenuItem>
+                ))}
               </Select>
             </FormControl>
-            <TextField label="Hasta el día" type="date" fullWidth size="small" value={formData.fecha} onChange={handleFechaChange} InputLabelProps={{ shrink: true }} />
-            <TextField label="Descripción" multiline rows={2} fullWidth size="small" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Descripción..." />
-            <TextField label="Nota" multiline rows={2} fullWidth size="small" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Notas adicionales..." />
+            <TextField label="Hasta el día" type="date" fullWidth value={formData.fecha} onChange={(e) => setFormData({ ...formData, fecha: e.target.value })} InputLabelProps={{ shrink: true }} />
+            <TextField label="Observaciones" multiline rows={3} fullWidth value={formData.observaciones} onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })} placeholder="Detalle adicional..." />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
@@ -249,6 +248,7 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
         </DialogActions>
       </Dialog>
 
+      {/* Modal de Observaciones */}
       <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, boxShadow: '0 20px 35px rgba(0,0,0,0.1)' } }}>
         <DialogTitle sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Observaciones del evento</Typography>
@@ -266,12 +266,12 @@ export default function EmployeeCard({ empleado, onRegistrarEvento, onEliminarEm
             onChange={(e) => setObservacionTexto(e.target.value.slice(0, maxLength))}
             helperText={`${observacionTexto.length}/${maxLength} caracteres`}
             FormHelperTextProps={{ sx: { textAlign: 'right', mt: 1, fontWeight: 500 } }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#fafcff', '&:hover fieldset': { borderColor: '#004a99' }, '&.Mui-focused fieldset': { borderColor: '#004a99' } } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#fafcff' } }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 2, bgcolor: '#f8fafc' }}>
           <Button onClick={handleCloseObsModal} variant="outlined" color="error" sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}>Cancelar</Button>
-          <Button onClick={handleGuardarObservacion} variant="contained" sx={{ bgcolor: '#004a99', borderRadius: 2, px: 4, fontWeight: 600, '&:hover': { bgcolor: '#003366' } }}>Guardar</Button>
+          <Button onClick={handleGuardarObservacion} variant="contained" sx={{ bgcolor: '#004a99', borderRadius: 2, px: 4, fontWeight: 600 }}>Guardar</Button>
         </DialogActions>
       </Dialog>
 

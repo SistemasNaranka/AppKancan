@@ -513,59 +513,6 @@ export async function deleteProyecto(id: string): Promise<boolean> {
 }
 ```
 
----
-
-## Uso en Componentes React
-
-### Ejemplo con TanStack Query (Recomendado)
-
-```typescript
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProyectos, createProyecto, deleteProyecto } from "./api/directus/read";
-
-// Query para obtener datos
-function useProyectos() {
-  return useQuery({
-    queryKey: ["proyectos"],
-    queryFn: getProyectos,
-  });
-}
-
-// Mutation para crear datos
-function useCreateProyecto() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: createProyecto,
-    onSuccess: () => {
-      // Invalidar cache para recargar datos
-      queryClient.invalidateQueries({ queryKey: ["proyectos"] });
-    },
-  });
-}
-
-// Uso en componente
-function ProyectosPage() {
-  const { data: proyectos, isLoading } = useProyectos();
-  const createMutation = useCreateProyecto();
-
-  const handleCreate = async (data: CreateProyectoInput) => {
-    await createMutation.mutateAsync(data);
-  };
-
-  if (isLoading) return <div>Cargando...</div>;
-
-  return (
-    <div>
-      {proyectos?.map((proyecto) => (
-        <div key={proyecto.id}>{proyecto.nombre}</div>
-      ))}
-    </div>
-  );
-}
-```
-
----
 
 ## Resumen de Funciones SDK Directus
 

@@ -9,7 +9,6 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import HistoryIcon from '@mui/icons-material/History';
 import GridViewIcon from '@mui/icons-material/GridView';
 import EventNoteIcon from '@mui/icons-material/EventNote';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import FreeBreakfastIcon from '@mui/icons-material/FreeBreakfast';
 import BlockIcon from '@mui/icons-material/Block';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -23,7 +22,6 @@ import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 
 import EmployeeCard from '../components/EmployeeCard';
 import { useHorarios } from '../hooks/useHorarios';
-import { Novedad } from '../interfaces/horarios.interface';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
@@ -42,56 +40,50 @@ function TabPanel({ children, value, index }: TabPanelProps) {
   );
 }
 
-// Función de filtrado usando n.fecha
 const filtrarPorFecha = (novedades: any[], filtro: string) => {
   if (filtro === 'todos') return novedades;
   const hoy = dayjs().startOf('day');
   return novedades.filter((n) => {
     if (!n.fecha) return false;
     const fecha = dayjs(n.fecha);
+    if (!fecha.isValid()) return false;
     switch (filtro) {
-      case 'hoy':
-        return fecha.isSame(hoy, 'day');
-      case 'ayer':
-        return fecha.isSame(hoy.subtract(1, 'day'), 'day');
-      case '7dias':
-        return fecha.isAfter(hoy.subtract(7, 'day'));
-      case '30dias':
-        return fecha.isAfter(hoy.subtract(30, 'day'));
-      default:
-        return true;
+      case 'hoy': return fecha.isSame(hoy, 'day');
+      case 'ayer': return fecha.isSame(hoy.subtract(1, 'day'), 'day');
+      case '7dias': return fecha.isAfter(hoy.subtract(7, 'day'));
+      case '30dias': return fecha.isAfter(hoy.subtract(30, 'day'));
+      default: return true;
     }
   });
 };
 
-// Iconos y colores para la tabla (adaptados a los tipos de novedad en inglés/español)
-const getIconForTipo = (tipo: string) => {
-  const tipoLower = tipo.toLowerCase();
-  if (tipoLower.includes('descanso') || tipoLower === 'rest') return <FreeBreakfastIcon fontSize="small" sx={{ color: '#0284c7' }} />;
-  if (tipoLower.includes('ausencia') || tipoLower === 'absence') return <BlockIcon fontSize="small" sx={{ color: '#475569' }} />;
-  if (tipoLower.includes('calamidad') || tipoLower === 'calamity') return <WarningIcon fontSize="small" sx={{ color: '#dc2626' }} />;
-  if (tipoLower.includes('capacitación') || tipoLower === 'training') return <SchoolIcon fontSize="small" sx={{ color: '#3b82f6' }} />;
-  if (tipoLower.includes('familia') || tipoLower === 'family day') return <FamilyRestroomIcon fontSize="small" sx={{ color: '#8b5cf6' }} />;
-  if (tipoLower.includes('incapacidad') || tipoLower === 'medical leave') return <HealthAndSafetyIcon fontSize="small" sx={{ color: '#16a34a' }} />;
-  if (tipoLower.includes('permiso') || tipoLower === 'permission') return <AssignmentTurnedInIcon fontSize="small" sx={{ color: '#f59e0b' }} />;
-  if (tipoLower.includes('retiro') || tipoLower === 'retirement') return <ExitToAppIcon fontSize="small" sx={{ color: '#6b7280' }} />;
-  if (tipoLower.includes('suspensión') || tipoLower === 'suspension') return <GavelIcon fontSize="small" sx={{ color: '#991b1b' }} />;
-  if (tipoLower.includes('vacaciones') || tipoLower === 'vacation') return <BeachAccessIcon fontSize="small" sx={{ color: '#0ea5e9' }} />;
-  return null;
+const getIconForTipo = (tipo: any) => {
+  const tipoLower = String(tipo || '').toLowerCase();
+  if (tipoLower.includes('descanso')) return <FreeBreakfastIcon fontSize="small" sx={{ color: '#0284c7' }} />;
+  if (tipoLower.includes('ausencia')) return <BlockIcon fontSize="small" sx={{ color: '#475569' }} />;
+  if (tipoLower.includes('calamidad')) return <WarningIcon fontSize="small" sx={{ color: '#dc2626' }} />;
+  if (tipoLower.includes('capacitaci')) return <SchoolIcon fontSize="small" sx={{ color: '#3b82f6' }} />;
+  if (tipoLower.includes('familia')) return <FamilyRestroomIcon fontSize="small" sx={{ color: '#8b5cf6' }} />;
+  if (tipoLower.includes('incapacidad')) return <HealthAndSafetyIcon fontSize="small" sx={{ color: '#16a34a' }} />;
+  if (tipoLower.includes('permiso')) return <AssignmentTurnedInIcon fontSize="small" sx={{ color: '#f59e0b' }} />;
+  if (tipoLower.includes('retiro')) return <ExitToAppIcon fontSize="small" sx={{ color: '#6b7280' }} />;
+  if (tipoLower.includes('suspensi')) return <GavelIcon fontSize="small" sx={{ color: '#991b1b' }} />;
+  if (tipoLower.includes('vacaciones')) return <BeachAccessIcon fontSize="small" sx={{ color: '#0ea5e9' }} />;
+  return <AssignmentIcon fontSize="small" sx={{ color: '#64748b' }} />;
 };
 
-const getChipColor = (tipo: string) => {
-  const tipoLower = tipo.toLowerCase();
-  if (tipoLower.includes('descanso') || tipoLower === 'rest') return { bg: '#e0f2fe', text: '#0284c7' };
-  if (tipoLower.includes('ausencia') || tipoLower === 'absence') return { bg: '#f1f5f9', text: '#475569' };
-  if (tipoLower.includes('calamidad') || tipoLower === 'calamity') return { bg: '#fee2e2', text: '#dc2626' };
-  if (tipoLower.includes('capacitación') || tipoLower === 'training') return { bg: '#dbeafe', text: '#3b82f6' };
-  if (tipoLower.includes('familia') || tipoLower === 'family day') return { bg: '#ede9fe', text: '#8b5cf6' };
-  if (tipoLower.includes('incapacidad') || tipoLower === 'medical leave') return { bg: '#dcfce7', text: '#16a34a' };
-  if (tipoLower.includes('permiso') || tipoLower === 'permission') return { bg: '#fef3c7', text: '#f59e0b' };
-  if (tipoLower.includes('retiro') || tipoLower === 'retirement') return { bg: '#f3f4f6', text: '#6b7280' };
-  if (tipoLower.includes('suspensión') || tipoLower === 'suspension') return { bg: '#fecaca', text: '#991b1b' };
-  if (tipoLower.includes('vacaciones') || tipoLower === 'vacation') return { bg: '#e0f2fe', text: '#0ea5e9' };
+const getChipColor = (tipo: any) => {
+  const tipoLower = String(tipo || '').toLowerCase();
+  if (tipoLower.includes('descanso')) return { bg: '#e0f2fe', text: '#0284c7' };
+  if (tipoLower.includes('ausencia')) return { bg: '#f1f5f9', text: '#475569' };
+  if (tipoLower.includes('calamidad')) return { bg: '#fee2e2', text: '#dc2626' };
+  if (tipoLower.includes('capacitaci')) return { bg: '#dbeafe', text: '#3b82f6' };
+  if (tipoLower.includes('familia')) return { bg: '#ede9fe', text: '#8b5cf6' };
+  if (tipoLower.includes('incapacidad')) return { bg: '#dcfce7', text: '#16a34a' };
+  if (tipoLower.includes('permiso')) return { bg: '#fef3c7', text: '#f59e0b' };
+  if (tipoLower.includes('retiro')) return { bg: '#f3f4f6', text: '#6b7280' };
+  if (tipoLower.includes('suspensi')) return { bg: '#fecaca', text: '#991b1b' };
+  if (tipoLower.includes('vacaciones')) return { bg: '#e0f2fe', text: '#0ea5e9' };
   return { bg: '#f8fafc', text: '#64748b' };
 };
 
@@ -99,6 +91,7 @@ export default function RegistrosPage() {
   const {
     empleados,
     novedades,
+    tiposNovedad, // 🚀 Extraemos tiposNovedad del Hook
     loading,
     error,
     registrarEvento,
@@ -116,7 +109,6 @@ export default function RegistrosPage() {
   const fechaHoy = dayjs().format('dddd D [de] MMMM [de] YYYY');
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => setTabValue(newValue);
 
-  // Aplicar filtro y paginación
   const novedadesFiltradas = filtrarPorFecha(novedades, filtroFecha);
   const paginated = novedadesFiltradas.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const totalPages = Math.max(1, Math.ceil(novedadesFiltradas.length / rowsPerPage));
@@ -131,8 +123,9 @@ export default function RegistrosPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress size={50} sx={{ color: '#004a99' }} />
+        <Typography color="#64748b" fontWeight={600}>Cargando datos del servidor...</Typography>
       </Box>
     );
   }
@@ -175,12 +168,18 @@ export default function RegistrosPage() {
             <EmployeeCard
               key={empleado.id}
               empleado={empleado}
+              tiposNovedad={tiposNovedad || []} // 🚀 Pasamos los tipos a la tarjeta para evitar el error .map() de undefined
               onRegistrarEvento={registrarEvento}
               onEliminarEmpleado={eliminarEmpleado}
               onGuardarObservacion={guardarObservacion}
               onAgregarNovedad={agregarNovedad}
             />
           ))}
+          {empleados.length === 0 && (
+            <Typography variant="body1" sx={{ color: '#64748b', mt: 4 }}>
+              No hay empleados pendientes por gestionar.
+            </Typography>
+          )}
         </Box>
       </TabPanel>
 
@@ -200,7 +199,6 @@ export default function RegistrosPage() {
               <Select
                 value={filtroFecha}
                 onChange={(e) => { setFiltroFecha(e.target.value); setPage(0); }}
-                startAdornment={<FilterListIcon sx={{ color: '#ffffff', fontSize: 16, mr: 0.5 }} />}
                 sx={{ borderRadius: 2, bgcolor: '#004a99', color: '#ffffff', fontWeight: 500, fontSize: '0.8rem', '& .MuiSelect-icon': { color: '#ffffff' }, '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, '&:hover': { bgcolor: '#003366' }, height: 32 }}
               >
                 {filtros.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
@@ -214,47 +212,36 @@ export default function RegistrosPage() {
                   <TableCell sx={{ fontWeight: 700, py: 1 }}>Fecha</TableCell>
                   <TableCell sx={{ fontWeight: 700, py: 1 }}>Empleado</TableCell>
                   <TableCell sx={{ fontWeight: 700, py: 1 }}>Tipo de Novedad</TableCell>
-                  <TableCell sx={{ fontWeight: 700, py: 1 }}>Descripción</TableCell>
-                  <TableCell sx={{ fontWeight: 700, py: 1 }}>Nota</TableCell>
+                  <TableCell sx={{ fontWeight: 700, py: 1 }}>Observaciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginated.map((novedad, idx) => {
+                {paginated.map((novedad: any, idx: number) => {
                   const chipColors = getChipColor(novedad.tipo);
+                  const nombreEmpleado = novedad.empleadoNombre || 'Empleado';
+                  const inicial = nombreEmpleado.charAt(0).toUpperCase();
                   return (
-                    <TableRow key={novedad.id} hover sx={{ bgcolor: idx % 2 === 0 ? '#ffffff' : '#fafcff' }}>
-                      <TableCell sx={{ py: 1 }}>{novedad.fecha}</TableCell>
+                    <TableRow key={novedad.id || idx} hover sx={{ bgcolor: idx % 2 === 0 ? '#ffffff' : '#fafcff' }}>
+                      <TableCell>{novedad.fecha ? dayjs(novedad.fecha).format('DD/MM/YYYY') : '—'}</TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Avatar sx={{ width: 28, height: 28, bgcolor: '#004a99', fontSize: '0.75rem' }}>
-                            {novedad.empleadoNombre.charAt(0).toUpperCase()}
+                            {inicial}
                           </Avatar>
-                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{novedad.empleadoNombre}</Typography>
-                            {novedad.empleadoDocumento && (
-                              <Typography variant="caption" sx={{ color: '#64748b' }}>
-                                CC: {novedad.empleadoDocumento}
-                              </Typography>
-                            )}
-                          </Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{nombreEmpleado}</Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          icon={getIconForTipo(novedad.tipo) || undefined}
-                          label={novedad.tipo}
+                          icon={getIconForTipo(novedad.tipo)}
+                          label={novedad.tipo || 'Sin tipo'}
                           size="small"
-                          sx={{ bgcolor: chipColors.bg, color: chipColors.text, fontWeight: 600, fontSize: '0.7rem', '& .MuiChip-icon': { color: chipColors.text, ml: 0.5 } }}
+                          sx={{ bgcolor: chipColors.bg, color: chipColors.text, fontWeight: 600 }}
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ maxWidth: 200, whiteSpace: 'normal', wordBreak: 'break-word', fontSize: '0.8rem' }}>
-                          {novedad.description || '— Sin descripción —'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ maxWidth: 200, whiteSpace: 'normal', wordBreak: 'break-word', fontSize: '0.8rem' }}>
-                          {novedad.notes || '— Sin notas —'}
+                        <Typography variant="body2" sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                          {novedad.observaciones || '— Sin observaciones —'}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -262,7 +249,7 @@ export default function RegistrosPage() {
                 })}
                 {novedadesFiltradas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
                       <Typography variant="body2" color="#94a3b8">No hay novedades registradas con este filtro</Typography>
                     </TableCell>
                   </TableRow>
@@ -270,6 +257,8 @@ export default function RegistrosPage() {
               </TableBody>
             </Table>
           </TableContainer>
+          
+          {/* Paginador */}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', p: 1.5, px: 2, bgcolor: '#f8fafc', borderTop: '1px solid #eef2f6' }}>
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
               <Box onClick={() => setPage(p => Math.max(p - 1, 0))} sx={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1, cursor: 'pointer', border: '1px solid #cbd5e1', bgcolor: '#ffffff', color: '#004a99', fontWeight: 700, fontSize: '0.8rem', userSelect: 'none', opacity: page === 0 ? 0.5 : 1, pointerEvents: page === 0 ? 'none' : 'auto', '&:hover': { bgcolor: '#f1f5f9' } }}>‹</Box>

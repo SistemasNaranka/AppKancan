@@ -1,75 +1,83 @@
 import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems } from "@directus/sdk";
-import dayjs from 'dayjs'; // Importamos dayjs para formatear la fecha que viene de Directus
+import { EmpleadoAsistencia, TipoNovedad } from "../../interfaces/horarios.interface";
 
-export async function getEmpleados() {
+
+
+export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_employees", {
-          fields: ["id", "first_name", "last_name", "*"],
+        
+          fields: ["id", "first_name", "last_name", "store_id"],
         })
       )
     );
-    return items.map((emp: any) => {
-      const docNum = emp.document_number || emp.document || emp.documento || "";
-      return {
-        id: String(emp.id),
-        nombre: `${emp.first_name} ${emp.last_name}`.trim(),
-        documento: String(docNum),
-      };
-    });
+
+    return (items || []).map((emp: any) => ({
+      id: String(emp.id),
+      documento: String(emp.id), 
+      nombre: `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || "Empleado Sin Nombre",
+      estadoActual: "entrada_pendiente",
+      registros: {
+        inicioJornada: null,
+        inicioAlmuerzo: null,
+        finAlmuerzo: null,
+        finJornada: null,
+        observaciones: {},
+      },
+    }));
   } catch (error) {
-    console.error("❌ Error empleados:", error);
+    console.error("❌ Error cargando la tabla adm_employees:", error);
     return [];
   }
 }
 
-export async function getNovedades() {
+export async function getTiposNovedad(): Promise<TipoNovedad[]> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_newness", {
+          fields: ["id", "name"],
+       
+        })
+      )
+    );
+    return (items || []).map((t: any) => ({
+      id: t.id, 
+      nombre: t.name,
+      name: t.name,
+    }));
+  } catch (error) {
+    console.error("❌ Error cargando com_newness:", error);
+    return [];
+  }
+}
+
+export async function getNovedades(): Promise<any[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("com_newness_reports", {
           fields: [
             "id",
-            "newness_id",
-            "report_date",
-            "store_id",
-            "employee_id.*",
-            "description",
-            "notes",
+            "date_created",
+            "observations", 
+            "newness_id.id",
+            "newness_id.name",
+            "employee_id.id",
+            "employee_id.first_name",
+            "employee_id.last_name"
           ],
-          sort: ["-report_date"],
+          sort: ["-id"], 
         })
       )
     );
-    
-    return items.map((n: any) => {
-      let empleadoNombre = "Desconocido";
-      let empleadoDocumento = "";
-      if (n.employee_id && typeof n.employee_id === "object") {
-        const first = n.employee_id.first_name || "";
-        const last = n.employee_id.last_name || "";
-        empleadoNombre = `${first} ${last}`.trim() || "Desconocido";
-        
-        const docNum = n.employee_id.document_number || n.employee_id.document || n.employee_id.documento || "";
-        empleadoDocumento = String(docNum);
-      }
-      
-      return {
-        id: String(n.id),
-        empleadoId: n.employee_id?.id ? String(n.employee_id.id) : '',
-        empleadoNombre,
-        empleadoDocumento,
-        tipo: n.newness_id || 'Desconocido', // 👈 MAPEO CLAVE: Asigna newness_id a 'tipo' para activar los iconos en RegistrosPage
-        fecha: n.report_date ? dayjs(n.report_date).format('YYYY-MM-DD') : '', // 👈 Formatea la fecha limpia
-        description: n.description || '', // 👈 MAPEO CLAVE: Pasa la descripción a la tabla
-        notes: n.notes || '',             // 👈 MAPEO CLAVE: Pasa las notas a la tabla
-      };
-    });
+    return items || [];
   } catch (error) {
-    console.error("❌ Error novedades:", error);
+    console.error("❌ Error cargando la tabla com_newness_reports:", error);
     return [];
   }
 }

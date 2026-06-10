@@ -1,39 +1,29 @@
-export type EstadoAsistencia =
-  | 'entrada_pendiente'
-  | 'jornada_iniciada'
-  | 'en_almuerzo'
-  | 'regreso_almuerzo'
-  | 'jornada_finalizada';
-
-export interface RegistrosEmpleado {
-  inicioJornada?: string;
-  inicioAlmuerzo?: string;
-  finAlmuerzo?: string;
-  finJornada?: string;
-  observaciones?: {
-    inicioJornada?: string;
-    inicioAlmuerzo?: string;
-    finAlmuerzo?: string;
-    finJornada?: string;
-  };
+export interface RegistrosAsistencia {
+  inicioJornada: string | null;
+  inicioAlmuerzo: string | null;
+  finAlmuerzo: string | null;
+  finJornada: string | null;
+  observaciones: Record<string, string>;
 }
 
 export interface EmpleadoAsistencia {
   id: string;
+  documento: string;
   nombre: string;
-  documento?: string;
-  estadoActual: EstadoAsistencia;
-  registros: RegistrosEmpleado;
+  estadoActual: string;
+  registros: RegistrosAsistencia;
 }
 
-export interface Novedad {
-  id: string;
-  empleadoId: string;
-  empleadoNombre: string;
-  empleadoDocumento?: string;
-  tipo: string;
+export interface TipoNovedad {
+  id: number | string;
+  nombre: string;
+  name: string;
+}
+
+export interface NovedadMapeada {
+  id: number | string;
   fecha: string;
-  description?: string;
-  notes?: string;
-  fechaRegistro: string;
+  empleadoNombre: string;
+  tipo: string;
+  observaciones: string;
 }

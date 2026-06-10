@@ -1,33 +1,29 @@
 import directus from "@/services/directus/directus";
-import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { createItem } from "@directus/sdk";
+import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
-export async function createNovedad(data: {
-  employee_id: number;
-  newness_id: string;
-  report_date: string;
-  store_id?: number;
-  description?: string; // 👈 AGREGADO EN EL TIPADO
-  notes?: string;        // 👈 AGREGADO EN EL TIPADO
+export async function createNovedad(data: { 
+  employee_id: number; 
+  newness_id: number; // 🚀 Cambiado a number para evitar el error inesperado (500)
+  report_date: string; 
+  observations?: string; 
+  store_id?: number; 
 }) {
   try {
+    // Sanitizamos todos los datos antes de enviarlos a la BD
     const payload = {
-      employee_id: data.employee_id,
-      newness_id: data.newness_id,
-      report_date: data.report_date,
-      store_id: data.store_id ?? 90,
-      description: data.description || '', // 👈 ENVIAR A DIRECTUS
-      notes: data.notes || '',             // 👈 ENVIAR A DIRECTUS
+      employee_id: Number(data.employee_id),
+      newness_id: Number(data.newness_id), // Forzamos a entero puro
+      report_date: data.report_date,       // Formato exacto YYYY-MM-DD
+      observations: data.observations || '',
+      store_id: Number(data.store_id || 90), 
     };
-    
-    console.log("📤 Enviando a Directus (create):", payload);
-    const result = await withAutoRefresh(() =>
-      directus.request(createItem("com_newness_reports", payload))
+
+    return await withAutoRefresh(() => 
+      directus.request(createItem('com_newness_reports', payload))
     );
-    console.log("✅ Novedad creada:", result);
-    return result;
-  } catch (error) {
-    console.error("❌ Error en createNovedad:", error);
-    throw error;
+  } catch (error: any) {
+    console.error('❌ Error crítico guardando en BD:', error);
+    throw new Error(error?.errors?.[0]?.message || 'Error inesperado al guardar en Directus');
   }
 }
