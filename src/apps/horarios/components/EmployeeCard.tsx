@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   Card, Typography, Button, Box, IconButton, Stack, Chip, Tooltip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, FormControl, InputLabel, Select,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+  FormControl, InputLabel, Select, MenuItem,
   Divider, Alert, CircularProgress
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -11,15 +12,20 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import DiningIcon from '@mui/icons-material/Dining';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { EmpleadoAsistencia } from '../interfaces/horarios.interface';
 import dayjs from 'dayjs';
 import * as yup from 'yup';
-import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import 'dayjs/locale/es';
 
 interface EmployeeCardProps {
   empleado: EmpleadoAsistencia;
   tiposNovedad: { id: number; name: string }[];
-  onRegistrarEvento: (idEmpleado: string, tipoEvento: string) => void;
+  onRegistrarEvento: (idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string) => Promise<void> | void;
   onEliminarEmpleado: (idEmpleado: string) => void;
   onGuardarObservacion: (idEmpleado: string, evento: string, texto: string) => void;
   onAgregarNovedad: (novedad: {
@@ -30,7 +36,7 @@ interface EmployeeCardProps {
     fechaFin: string;
     observaciones: string;
     fechaRegistro: string;
-  }) => void;
+  }) => Promise<boolean> | boolean | any;
 }
 
 const getIcon = (etiqueta: string) => {
@@ -43,7 +49,10 @@ const getIcon = (etiqueta: string) => {
   }
 };
 
-export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento, onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad }: EmployeeCardProps) {
+export default function EmployeeCard({
+  empleado, tiposNovedad, onRegistrarEvento,
+  onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad
+}: EmployeeCardProps) {
   if (!empleado) {
     return (
       <Card sx={{ width: 380, borderRadius: 3, p: 4, textAlign: 'center' }}>
@@ -54,8 +63,8 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
   }
 
   const { id, nombre, estadoActual, registros } = empleado;
-  const { showSnackbar } = useGlobalSnackbar();
 
+  // Estados para modales
   const [novedadModalOpen, setNovedadModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     novedad: '',
@@ -65,16 +74,18 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  // Modales reutilizables para observaciones y hora
   const [obsModalOpen, setObsModalOpen] = useState(false);
-  const [eventoActual, setEventoActual] = useState('');
+  const [eventoActualObs, setEventoActualObs] = useState('');
   const [observacionTexto, setObservacionTexto] = useState('');
 
-  useEffect(() => {
-    if (obsModalOpen && eventoActual) {
-      setObservacionTexto(getObservacion(eventoActual));
-    }
-  }, [empleado, obsModalOpen, eventoActual]);
+  const [horaModalOpen, setHoraModalOpen] = useState(false);
+  const [eventoActualHora, setEventoActualHora] = useState('');
+  const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs>(dayjs());
+  const [horaObservacion, setHoraObservacion] = useState('');
+  const [horaObsError, setHoraObsError] = useState('');
 
+  // Esquema de validación para novedades
   const novedadSchema = yup.object().shape({
     novedad: yup.string().required('El tipo de novedad es obligatorio'),
     fechaInicio: yup.string().required('La fecha de inicio es obligatoria'),
@@ -84,7 +95,7 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
         if (!fechaInicio || !value) return true;
         return dayjs(value).isSame(dayjs(fechaInicio), 'day') || dayjs(value).isAfter(dayjs(fechaInicio), 'day');
       }),
-    observaciones: yup.string().max(500, 'Las observaciones no pueden superar los 500 caracteres')
+    observaciones: yup.string().max(500, 'Máximo 500 caracteres')
   });
 
   const botones = [
@@ -97,6 +108,7 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
   const novedadActiva = estadoActual === 'entrada_pendiente';
   const finalizado = estadoActual === 'jornada_finalizada';
 
+  // Obtener observación para un evento específico
   const getObservacion = (evento: string) => {
     if (!registros.observaciones) return '';
     switch (evento) {
@@ -108,71 +120,92 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
     }
   };
 
+  // Obtener hora actual para un evento específico (si existe)
+  const getHoraEvento = (evento: string): string | null => {
+    switch (evento) {
+      case 'Comenzar Jornada': return registros.inicioJornada;
+      case 'Iniciar Almuerzo': return registros.inicioAlmuerzo;
+      case 'Finalizar Almuerzo': return registros.finAlmuerzo;
+      case 'Terminar Jornada': return registros.finJornada;
+      default: return null;
+    }
+  };
+
+  // ─── Modal de novedad ─────────────────────────────────────
   const handleOpenNovedadModal = () => {
-    setFormData({
-      novedad: '',
-      fechaInicio: dayjs().format('YYYY-MM-DD'),
-      fechaFin: dayjs().format('YYYY-MM-DD'),
-      observaciones: ''
-    });
+    setFormData({ novedad: '', fechaInicio: dayjs().format('YYYY-MM-DD'), fechaFin: dayjs().format('YYYY-MM-DD'), observaciones: '' });
     setFormErrors({});
     setNovedadModalOpen(true);
   };
-
   const handleCloseNovedadModal = () => setNovedadModalOpen(false);
 
   const handleGuardarNovedad = async () => {
     try {
       setFormErrors({});
       await novedadSchema.validate(formData, { abortEarly: false });
-
-      const fechaRegistro = dayjs().format('DD/MM/YYYY HH:mm:ss');
-
-      const nuevaNovedad = {
-        empleadoId: id,
-        empleadoNombre: nombre,
-        tipo: formData.novedad,
-        fechaInicio: formData.fechaInicio,
-        fechaFin: formData.fechaFin,
-        observaciones: formData.observaciones,
-        fechaRegistro: fechaRegistro,
-      };
-
-      const success = await onAgregarNovedad(nuevaNovedad);
-      if (success) {
-        onEliminarEmpleado(id);
-        handleCloseNovedadModal();
-      }
+      const success = await onAgregarNovedad({
+        empleadoId: id, empleadoNombre: nombre, tipo: formData.novedad,
+        fechaInicio: formData.fechaInicio, fechaFin: formData.fechaFin,
+        observaciones: formData.observaciones, fechaRegistro: dayjs().format('DD/MM/YYYY HH:mm:ss'),
+      });
+      if (success) { onEliminarEmpleado(id); handleCloseNovedadModal(); }
     } catch (err: any) {
       if (err instanceof yup.ValidationError) {
         const errors: Record<string, string> = {};
-        err.inner.forEach((validationError) => {
-          if (validationError.path) {
-            errors[validationError.path] = validationError.message;
-          }
-        });
+        err.inner.forEach((e) => { if (e.path) errors[e.path] = e.message; });
         setFormErrors(errors);
       }
     }
   };
 
+  // ─── Modal de observación (libreta) para cualquier evento ─────
   const handleOpenObsModal = (evento: string) => {
-    setEventoActual(evento);
+    setEventoActualObs(evento);
     setObservacionTexto(getObservacion(evento));
     setObsModalOpen(true);
   };
-
   const handleCloseObsModal = () => {
     setObsModalOpen(false);
     setObservacionTexto('');
-    setEventoActual('');
+    setEventoActualObs('');
   };
-
   const handleGuardarObservacion = async () => {
-    await onGuardarObservacion(id, eventoActual, observacionTexto);
+    await onGuardarObservacion(id, eventoActualObs, observacionTexto);
     handleCloseObsModal();
   };
 
+  // ─── Modal de edición de hora (reloj) para cualquier evento ───
+  const handleOpenHoraModal = (evento: string) => {
+    setEventoActualHora(evento);
+    const horaActualStr = getHoraEvento(evento);
+    let horaDayjs = dayjs();
+    if (horaActualStr) {
+      // El formato puede ser "HH:mm" o "hh:mm A"
+      let hora24 = horaActualStr;
+      if (horaActualStr.includes('AM') || horaActualStr.includes('PM')) {
+        hora24 = dayjs(horaActualStr, 'hh:mm A').format('HH:mm');
+      }
+      horaDayjs = dayjs(hora24, 'HH:mm');
+    }
+    setHoraSeleccionada(horaDayjs);
+    const obsActual = getObservacion(evento);
+    setHoraObservacion(obsActual);
+    setHoraObsError('');
+    setHoraModalOpen(true);
+  };
+
+  const handleConfirmarHora = async () => {
+    if (horaObservacion.trim().length < 7) {
+      setHoraObsError('La observación debe tener al menos 7 caracteres');
+      return;
+    }
+    const horaFormateada = horaSeleccionada.format('hh:mm A');
+    await onRegistrarEvento(id, eventoActualHora, horaFormateada, horaObservacion);
+    setHoraModalOpen(false);
+  };
+
+  // Un botón tiene reloj solo si ya existe la hora asociada (o si el evento permite edición)
+  // Para simplificar, mostramos el reloj siempre que el botón esté activo o ya haya hora
   const maxLength = 500;
 
   return (
@@ -205,10 +238,33 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
               const yaHecho = !!btn.hora;
               const bloqueado = !btn.activo && !yaHecho;
               const observacionGuardada = getObservacion(btn.etiqueta);
-              const obsEnabled = yaHecho || btn.activo;
+              const obsEnabled = yaHecho; // solo se puede agregar observación si ya hay hora registrada
+              const relojEnabled = yaHecho; // reloj editable solo si ya existe hora
 
               return (
                 <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
+                  {/* Ícono de reloj (editar hora) - para todos los eventos */}
+                  <Tooltip title={relojEnabled ? 'Editar hora' : 'No disponible'}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        disabled={!relojEnabled}
+                        onClick={() => handleOpenHoraModal(btn.etiqueta)}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: relojEnabled ? '#cbd5e1' : '#e2e8f0',
+                          borderRadius: 1.5,
+                          color: relojEnabled ? '#004a99' : '#cbd5e1',
+                          '&:hover': { bgcolor: relojEnabled ? '#f1f5f9' : 'transparent' }
+                        }}
+                      >
+                        <AccessTimeIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+
+                  {/* Botón principal */}
                   <Button
                     fullWidth
                     variant={btn.activo ? 'contained' : yaHecho ? 'outlined' : 'text'}
@@ -222,7 +278,7 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
                       fontWeight: 700,
                       py: 1,
                       borderRadius: 2,
-                      bgcolor: btn.activo ? '#004a99' : yaHecho ? 'transparent' : 'transparent',
+                      bgcolor: btn.activo ? '#004a99' : 'transparent',
                       color: btn.activo ? '#fff' : yaHecho ? '#16a34a' : '#94a3b8',
                       borderColor: yaHecho ? '#cbd5e1' : 'transparent',
                       '&:hover': {
@@ -235,18 +291,26 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
                     {btn.hora && <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>{btn.hora}</span>}
                   </Button>
 
+                  {/* Ícono de libreta (observación) - para todos los eventos */}
                   <Tooltip title={observacionGuardada ? `Observación: ${observacionGuardada.substring(0, 80)}...` : (obsEnabled ? 'Agregar observación' : 'No disponible')} arrow>
                     <span>
                       <IconButton
                         size="small"
                         disabled={!obsEnabled}
                         onClick={() => obsEnabled && handleOpenObsModal(btn.etiqueta)}
-                        sx={{ border: '1px solid', borderColor: '#cbd5e1', borderRadius: 1.5, color: '#004a99', '&:hover': { bgcolor: '#f1f5f9' } }}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: obsEnabled ? '#cbd5e1' : '#e2e8f0',
+                          borderRadius: 1.5,
+                          color: obsEnabled ? '#004a99' : '#cbd5e1',
+                          '&:hover': { bgcolor: obsEnabled ? '#f1f5f9' : 'transparent' }
+                        }}
                       >
                         <AssignmentIcon fontSize="small" />
                       </IconButton>
                     </span>
                   </Tooltip>
+
                 </Box>
               );
             })}
@@ -259,93 +323,53 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
         </Box>
       </Card>
 
-      {/* Modal de Novedad */}
-      <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-        <DialogTitle sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
-        <DialogContent dividers sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl fullWidth error={!!formErrors.novedad}>
-              <InputLabel id="novedad-select-label">Novedad</InputLabel>
-              <Select
-                labelId="novedad-select-label"
-                value={formData.novedad}
-                label="Novedad"
-                onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}
-              >
-                {/* 🚀 Protegido con cortocircuito en array por seguridad */}
-                {(tiposNovedad || []).map(tipo => (
-                  <MenuItem key={tipo.id} value={tipo.name}>{tipo.name}</MenuItem>
-                ))}
-              </Select>
-              {formErrors.novedad && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
-                  {formErrors.novedad}
-                </Typography>
-              )}
-            </FormControl>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                label="Desde el día"
-                type="date"
-                fullWidth
-                value={formData.fechaInicio}
-                onChange={(e) => setFormData({ ...formData, fechaInicio: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-                error={!!formErrors.fechaInicio}
-                helperText={formErrors.fechaInicio}
+      {/* Modal de edición de hora (reutilizable para cualquier evento) */}
+      <Dialog open={horaModalOpen} onClose={() => setHoraModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+        <DialogTitle component="div" sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Editar Hora - {eventoActualHora}</Typography>
+          <Typography variant="caption" sx={{ opacity: 0.8 }}>{nombre}</Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+              <TimePicker
+                label="Hora"
+                value={horaSeleccionada}
+                onChange={(val) => { if (val) setHoraSeleccionada(val); }}
+                ampm
+                slotProps={{ textField: { fullWidth: true, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
               />
-              <TextField
-                label="Hasta el día"
-                type="date"
-                fullWidth
-                value={formData.fechaFin}
-                onChange={(e) => setFormData({ ...formData, fechaFin: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-                error={!!formErrors.fechaFin}
-                helperText={formErrors.fechaFin}
-              />
-            </Box>
+            </LocalizationProvider>
             <TextField
               label="Observaciones"
               multiline
-              rows={3}
+              rows={4}
               fullWidth
-              value={formData.observaciones}
-              onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-              placeholder="Detalle adicional..."
-              error={!!formErrors.observaciones}
-              helperText={formErrors.observaciones}
+              value={horaObservacion}
+              onChange={(e) => { setHoraObservacion(e.target.value); if (e.target.value.trim().length >= 7) setHoraObsError(''); }}
+              placeholder="Escriba una observación (mínimo 7 caracteres)..."
+              error={!!horaObsError}
+              helperText={horaObsError || `${horaObservacion.length} caracteres (mínimo 7)`}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={handleCloseNovedadModal} variant="outlined" color="error">Cancelar</Button>
-          <Button onClick={handleGuardarNovedad} variant="contained" sx={{ bgcolor: '#004a99' }}>Guardar</Button>
+          <Button onClick={() => setHoraModalOpen(false)} variant="outlined" color="error" sx={{ borderRadius: 2, fontWeight: 600 }}>Cancelar</Button>
+          <Button onClick={handleConfirmarHora} variant="contained" sx={{ bgcolor: '#004a99', borderRadius: 2, fontWeight: 600 }}>Guardar</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Modal de Observaciones */}
-      <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, boxShadow: '0 20px 35px rgba(0,0,0,0.1)' } }}>
+      {/* Modal de observación (libreta) reutilizable */}
+      <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
         <DialogTitle component="div" sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>
           <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Observaciones del evento</Typography>
-          <Typography component="span" variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>{eventoActual} • {nombre}</Typography>
+          <Typography component="span" variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>{eventoActualObs} • {nombre}</Typography>
         </DialogTitle>
         <Divider />
         <DialogContent sx={{ p: 3 }}>
           <Alert severity="info" sx={{ mb: 2, borderRadius: 2, fontSize: '0.8rem' }}>Registre o edite la nota. Máximo {maxLength} caracteres.</Alert>
-          <TextField
-            fullWidth
-            multiline
-            rows={5}
-            placeholder="Escriba aquí la observación..."
-            value={observacionTexto}
-            onChange={(e) => setObservacionTexto(e.target.value.slice(0, maxLength))}
-            helperText={`${observacionTexto.length}/${maxLength} caracteres`}
-            slotProps={{
-              formHelperText: { sx: { textAlign: 'right', mt: 1, fontWeight: 500 } }
-            }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#fafcff' } }}
-          />
+          <TextField fullWidth multiline rows={5} placeholder="Escriba aquí la observación..." value={observacionTexto} onChange={(e) => setObservacionTexto(e.target.value.slice(0, maxLength))} helperText={`${observacionTexto.length}/${maxLength} caracteres`} slotProps={{ formHelperText: { sx: { textAlign: 'right', mt: 1, fontWeight: 500 } } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#fafcff' } }} />
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 2, bgcolor: '#f8fafc' }}>
           <Button onClick={handleCloseObsModal} variant="outlined" color="error" sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}>Cancelar</Button>
@@ -353,6 +377,32 @@ export default function EmployeeCard({ empleado, tiposNovedad, onRegistrarEvento
         </DialogActions>
       </Dialog>
 
+      {/* Modal de novedad */}
+      <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+        <DialogTitle sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+            <FormControl fullWidth error={!!formErrors.novedad}>
+              <InputLabel id="novedad-select-label">Novedad</InputLabel>
+              <Select labelId="novedad-select-label" value={formData.novedad} label="Novedad" onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}>
+                {(tiposNovedad || []).map(tipo => <MenuItem key={tipo.id} value={tipo.name}>{tipo.name}</MenuItem>)}
+              </Select>
+              {formErrors.novedad && <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>{formErrors.novedad}</Typography>}
+            </FormControl>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <DatePicker label="Desde el día" format="DD/MM/YYYY" value={dayjs(formData.fechaInicio)} onChange={(v) => setFormData({ ...formData, fechaInicio: v ? v.format('YYYY-MM-DD') : '' })} slotProps={{ textField: { fullWidth: true, error: !!formErrors.fechaInicio, helperText: formErrors.fechaInicio } }} />
+                <DatePicker label="Hasta el día" format="DD/MM/YYYY" value={dayjs(formData.fechaFin)} onChange={(v) => setFormData({ ...formData, fechaFin: v ? v.format('YYYY-MM-DD') : '' })} slotProps={{ textField: { fullWidth: true, error: !!formErrors.fechaFin, helperText: formErrors.fechaFin } }} />
+              </Box>
+            </LocalizationProvider>
+            <TextField label="Observaciones" multiline rows={3} fullWidth value={formData.observaciones} onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })} placeholder="Detalle adicional..." error={!!formErrors.observaciones} helperText={formErrors.observaciones} />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={handleCloseNovedadModal} variant="outlined" color="error">Cancelar</Button>
+          <Button onClick={handleGuardarNovedad} variant="contained" sx={{ bgcolor: '#004a99' }}>Guardar</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

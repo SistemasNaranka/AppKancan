@@ -14,7 +14,7 @@ export const useHorarios = () => {
   const { showSnackbar } = useGlobalSnackbar();
   const hoy = dayjs().format('YYYY-MM-DD');
 
-  // ─── QUERIES DE REACT QUERY (DATOS EN TIEMPO REAL) ──────────────────
+  // ─── QUERIES ──────────────────────────────────────────────
   const { data: empleadosDB = [], isLoading: loadingEmpleados, error: errorE } = useQuery<EmpleadoAsistencia[]>({
     queryKey: ['empleados', STORE_ID],
     queryFn: () => getEmpleados(STORE_ID),
@@ -33,18 +33,15 @@ export const useHorarios = () => {
     queryFn: getNovedades,
   });
 
-  // Consulta de registros de tiempo del día de hoy
   const { data: timeRecords = [], isLoading: loadingTimeRecords, error: errorTime } = useQuery<any[]>({
     queryKey: ['timeRecords', STORE_ID, hoy],
     queryFn: () => getTimeRecords(STORE_ID, hoy),
   });
 
-  // ─── ADIÓS TODO LO LOCAL: FILTRADO DINÁMICO DESDE LA BD ──────────────
-  // Identificamos qué empleados ya tienen una novedad registrada HOY usando "report_date"
+  // ─── FILTRADO DE EMPLEADOS CON NOVEDAD HOY ────────────────
   const idsConNovedadHoy = (novedadesDB || [])
     .map((nov: any) => {
       const empId = nov.employee_id?.id || nov.employee_id;
-      // Priorizamos report_date de la base de datos mapeado a YYYY-MM-DD
       const fechaReporte = nov.report_date 
         ? dayjs(nov.report_date).format('YYYY-MM-DD')
         : (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : '');
@@ -52,9 +49,8 @@ export const useHorarios = () => {
     })
     .filter(Boolean);
 
-  // Mapeamos los empleados de la base de datos inyectando sus registros de asistencia reales de hoy
+  // ─── MAQUEO DE EMPLEADOS CON REGISTROS DE TIEMPO ──────────
   const empleadosMapeados: EmpleadoAsistencia[] = empleadosDB.map((emp) => {
-    // Filtrar los registros de tiempo de hoy para este empleado
     const records = timeRecords.filter(
       (r) => Number(r.employee_id?.id || r.employee_id) === Number(emp.id)
     );
@@ -70,7 +66,7 @@ export const useHorarios = () => {
 
     records.forEach((r) => {
       const type = r.log_type;
-      const time = r.record_time ? r.record_time.substring(0, 5) : ''; // "HH:mm"
+      const time = r.record_time ? r.record_time.substring(0, 5) : '';
       const obs = r.observations || '';
       
       if (type === 'Comenzar Jornada') {
@@ -92,7 +88,6 @@ export const useHorarios = () => {
       }
     });
 
-    // Determinamos el estadoActual del empleado según qué registros ya tiene
     let estadoActual = 'entrada_pendiente';
     if (registros.finJornada) {
       estadoActual = 'jornada_finalizada';
@@ -111,10 +106,9 @@ export const useHorarios = () => {
     };
   });
 
-  // Lista de empleados reactiva: Se ocultan automáticamente si ya tienen novedades hoy en Directus
   const empleados = empleadosMapeados.filter((emp) => !idsConNovedadHoy.includes(String(emp.id)));
 
-  // ─── MUTACIONES PARA GUARDAR EN BD ────────────────────────────────────
+  // ─── MUTACIONES ───────────────────────────────────────────
   const noveltyMutation = useMutation({
     mutationFn: createNovedades,
     onSuccess: () => {
@@ -140,45 +134,57 @@ export const useHorarios = () => {
     }
   });
 
+  // ✅ Mutación que permite actualizar tanto observación como hora
   const updateTimeRecordMutation = useMutation({
-    mutationFn: ({ id, observations }: { id: number; observations: string }) =>
-      updateTimeRecord(id, { observations }),
+    mutationFn: ({ id, observations, record_time }: { id: number; observations?: string; record_time?: string }) =>
+      updateTimeRecord(id, { observations, record_time }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeRecords', STORE_ID, hoy] });
-      showSnackbar('Observación guardada con éxito', 'success');
+      showSnackbar('Registro actualizado correctamente', 'success');
     },
     onError: (err: any) => {
-      setError(err?.message || 'Error al guardar la observación');
-      showSnackbar(err?.message || 'Error al guardar la observación', 'error');
+      setError(err?.message || 'Error al actualizar el registro');
+      showSnackbar(err?.message || 'Error al actualizar el registro', 'error');
     }
   });
 
-  // ─── FUNCIONES CONECTADAS A LA BD ────────────────────────────────────
-  const getEventKey = (evento: string): string => {
-    switch (evento) {
-      case 'Comenzar Jornada': return 'inicioJornada';
-      case 'Iniciar Almuerzo': return 'inicioAlmuerzo';
-      case 'Finalizar Almuerzo': return 'finAlmuerzo';
-      case 'Terminar Jornada': return 'finJornada';
-      default: return '';
-    }
-  };
-
-  const registrarEvento = async (idEmpleado: string, tipoEvento: string) => {
+  // ─── FUNCIÓN PRINCIPAL: REGISTRAR EVENTO (edita o crea) ───
+  const registrarEvento = async (
+    idEmpleado: string,
+    tipoEvento: string,
+    horaOverride?: string,
+    observacionOverride?: string
+  ) => {
     setError(null);
     try {
-      const ahora = dayjs();
+      const ahora = horaOverride ? dayjs(horaOverride, 'HH:mm A') : dayjs();
       const recordDate = ahora.format('YYYY-MM-DD');
       const recordTime = ahora.format('HH:mm:ss');
-      
-      await createTimeRecordMutation.mutateAsync({
-        employee_id: Number(idEmpleado),
-        store_id: STORE_ID,
-        log_type: tipoEvento,
-        record_date: recordDate,
-        record_time: recordTime,
-        observations: ''
-      });
+      const observacion = observacionOverride || '';
+
+      const existingRecord = timeRecords.find(
+        (r) =>
+          Number(r.employee_id?.id || r.employee_id) === Number(idEmpleado) &&
+          r.log_type === tipoEvento &&
+          r.record_date === recordDate
+      );
+
+      if (existingRecord) {
+        await updateTimeRecordMutation.mutateAsync({
+          id: existingRecord.id,
+          record_time: recordTime,
+          observations: observacion,
+        });
+      } else {
+        await createTimeRecordMutation.mutateAsync({
+          employee_id: Number(idEmpleado),
+          store_id: STORE_ID,
+          log_type: tipoEvento,
+          record_date: recordDate,
+          record_time: recordTime,
+          observations: observacion,
+        });
+      }
     } catch (err: any) {
       console.error('Error al registrar evento:', err);
     }
@@ -190,7 +196,13 @@ export const useHorarios = () => {
       const emp = empleadosMapeados.find(e => String(e.id) === String(idEmpleado));
       if (!emp) return;
       
-      const eventKey = getEventKey(tipoEvento);
+      let eventKey = '';
+      switch (tipoEvento) {
+        case 'Comenzar Jornada': eventKey = 'inicioJornada'; break;
+        case 'Iniciar Almuerzo': eventKey = 'inicioAlmuerzo'; break;
+        case 'Finalizar Almuerzo': eventKey = 'finAlmuerzo'; break;
+        case 'Terminar Jornada': eventKey = 'finJornada'; break;
+      }
       const recordId = emp.registros.ids?.[eventKey];
       
       if (recordId) {
@@ -204,7 +216,7 @@ export const useHorarios = () => {
   };
 
   const eliminarEmpleado = (idEmpleado: string) => {
-    console.log(`[UI] Eliminación local desactivada. Ahora se controla por novedades en la BD. ID: ${idEmpleado}`);
+    console.log(`[UI] Eliminación local desactivada. ID: ${idEmpleado}`);
   };
 
   const resetHorarios = () => {
@@ -214,7 +226,6 @@ export const useHorarios = () => {
     queryClient.invalidateQueries({ queryKey: ['timeRecords', STORE_ID, hoy] });
   };
 
-  // ─── AGREGAR NOVEDAD CON RANGO DE FECHAS ────────────────────────
   const agregarNovedad = async (novedad: {
     empleadoId: string;
     empleadoNombre: string;
@@ -266,7 +277,7 @@ export const useHorarios = () => {
     }
   };
 
-  // ─── MAPEO SEGURO PARA LA TABLA USANDO REPORT_DATE ──────────────────
+  // ─── MAPEO DE NOVEDADES PARA LA TABLA ─────────────────────
   const novedadesMapped: NovedadMapeada[] = (novedadesDB || []).map((nov: any) => {
     const empId = nov.employee_id?.id || nov.employee_id;
     const empLocal = empleadosDB.find((e) => String(e.id) === String(empId));
@@ -290,7 +301,6 @@ export const useHorarios = () => {
 
     return {
       id: nov.id,
-      // 🚀 Priorizamos el report_date para pintar la fecha exacta elegida en la tabla
       fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : new Date().toISOString()),
       empleadoNombre: nombreEmpleado,
       tipo: tipoNovedadName,
@@ -299,7 +309,7 @@ export const useHorarios = () => {
   });
 
   return {
-    empleados, // 🚀 Ahora es una constante filtrada en tiempo real de la BD
+    empleados,
     novedades: novedadesMapped,
     tiposNovedad,
     loading: loadingEmpleados || loadingTimeRecords,

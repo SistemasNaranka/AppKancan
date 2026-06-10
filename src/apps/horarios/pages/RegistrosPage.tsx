@@ -2,7 +2,8 @@ import { useState } from 'react';
 import {
   Box, Typography, IconButton, Tooltip, Tabs, Tab, Paper, Avatar,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  FormControl, Select, MenuItem, Chip, CircularProgress, Alert
+  Chip, CircularProgress, Alert,
+  TextField, InputAdornment
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -19,10 +20,14 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import GavelIcon from '@mui/icons-material/Gavel';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
-import Historialpage from "../pages/HistorialPage"
+import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import Historialpage from "../pages/HistorialPage";
 import EmployeeCard from '../components/EmployeeCard';
 import { useHorarios } from '../hooks/useHorarios';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
 
@@ -39,23 +44,6 @@ function TabPanel({ children, value, index }: TabPanelProps) {
     </div>
   );
 }
-
-const filtrarPorFecha = (novedades: any[], filtro: string) => {
-  if (filtro === 'todos') return novedades;
-  const hoy = dayjs().startOf('day');
-  return novedades.filter((n) => {
-    if (!n.fecha) return false;
-    const fecha = dayjs(n.fecha);
-    if (!fecha.isValid()) return false;
-    switch (filtro) {
-      case 'hoy': return fecha.isSame(hoy, 'day');
-      case 'ayer': return fecha.isSame(hoy.subtract(1, 'day'), 'day');
-      case '7dias': return fecha.isAfter(hoy.subtract(7, 'day'));
-      case '30dias': return fecha.isAfter(hoy.subtract(30, 'day'));
-      default: return true;
-    }
-  });
-};
 
 const getIconForTipo = (tipo: any) => {
   const tipoLower = String(tipo || '').toLowerCase();
@@ -89,37 +77,32 @@ const getChipColor = (tipo: any) => {
 
 export default function RegistrosPage() {
   const {
-    empleados,
-    novedades,
-    tiposNovedad, // 🚀 Extraemos tiposNovedad del Hook
-    loading,
-    error,
-    registrarEvento,
-    resetHorarios,
-    eliminarEmpleado,
-    guardarObservacion,
-    agregarNovedad,
+    empleados, novedades, tiposNovedad, loading, error,
+    registrarEvento, resetHorarios, eliminarEmpleado,
+    guardarObservacion, agregarNovedad,
   } = useHorarios();
 
   const [tabValue, setTabValue] = useState(0);
   const [page, setPage] = useState(0);
   const rowsPerPage = 5;
-  const [filtroFecha, setFiltroFecha] = useState('todos');
+
+  // Filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [fechaFiltro, setFechaFiltro] = useState<Dayjs | null>(null);
 
   const fechaHoy = dayjs().format('dddd D [de] MMMM [de] YYYY');
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => setTabValue(newValue);
 
-  const novedadesFiltradas = filtrarPorFecha(novedades, filtroFecha);
+  const novedadesFiltradas = novedades.filter((n: any) => {
+    const matchNombre = (n.empleadoNombre || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchFecha = fechaFiltro
+      ? dayjs(n.fecha).isSame(fechaFiltro, 'day')
+      : true;
+    return matchNombre && matchFecha;
+  });
+
   const paginated = novedadesFiltradas.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const totalPages = Math.max(1, Math.ceil(novedadesFiltradas.length / rowsPerPage));
-
-  const filtros = [
-    { value: 'todos', label: 'Mostrar Todo' },
-    { value: 'hoy', label: 'Hoy' },
-    { value: 'ayer', label: 'Ayer' },
-    { value: '7dias', label: 'Últimos 7 días' },
-    { value: '30dias', label: 'Últimos 30 días' },
-  ];
 
   if (loading) {
     return (
@@ -132,11 +115,8 @@ export default function RegistrosPage() {
 
   return (
     <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: 'transparent', px: { xs: 2, md: 4 }, pt: 1, pb: 4 }}>
-      {error && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+      {error && <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert>}
+
       <Paper elevation={0} sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mb: 2, bgcolor: '#fff' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, bgcolor: '#fff', p: { xs: 1.5, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
           <Box>
@@ -168,7 +148,7 @@ export default function RegistrosPage() {
             <EmployeeCard
               key={empleado.id}
               empleado={empleado}
-              tiposNovedad={tiposNovedad || []} // 🚀 Pasamos los tipos a la tarjeta para evitar el error .map() de undefined
+              tiposNovedad={tiposNovedad || []}
               onRegistrarEvento={registrarEvento}
               onEliminarEmpleado={eliminarEmpleado}
               onGuardarObservacion={guardarObservacion}
@@ -186,7 +166,7 @@ export default function RegistrosPage() {
       {/* NOVEDADES */}
       <TabPanel value={tabValue} index={1}>
         <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #eef2f6' }}>
-          <Box sx={{ p: 2, bgcolor: '#ffffff', borderBottom: '1px solid #eef2f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+          <Box sx={{ p: 2, bgcolor: '#ffffff', borderBottom: '1px solid #eef2f6', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700, color: '#004a99', fontSize: '1rem' }}>
                 Registro de Novedades
@@ -195,16 +175,73 @@ export default function RegistrosPage() {
                 Gestiona y revisa las incidencias de asistencia en tiempo real.
               </Typography>
             </Box>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <Select
-                value={filtroFecha}
-                onChange={(e) => { setFiltroFecha(e.target.value); setPage(0); }}
-                sx={{ borderRadius: 2, bgcolor: '#004a99', color: '#ffffff', fontWeight: 500, fontSize: '0.8rem', '& .MuiSelect-icon': { color: '#ffffff' }, '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, '&:hover': { bgcolor: '#003366' }, height: 32 }}
-              >
-                {filtros.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
-              </Select>
-            </FormControl>
+
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              {/* Buscador por nombre */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>
+                  Nombre del Empleado
+                </Typography>
+                <TextField
+                  size="small"
+                  placeholder="Buscar por nombre..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <PersonSearchIcon sx={{ color: '#000000' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    width: 220,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2, bgcolor: '#eef4fd', height: 36,
+                      '& fieldset': { borderColor: '#cbd5e1' },
+                      '&:hover fieldset': { borderColor: '#94a3b8' },
+                      '&.Mui-focused fieldset': { borderColor: '#004a99' },
+                    },
+                    '& .MuiOutlinedInput-input': { fontSize: '0.85rem', color: '#475569' }
+                  }}
+                />
+              </Box>
+
+              {/* Filtro por día concreto */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>
+                  Filtrar por Fecha
+                </Typography>
+                <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                  <DatePicker
+                    label=""
+                    format="DD/MM/YYYY"
+                    value={fechaFiltro}
+                    onChange={(newVal) => { setFechaFiltro(newVal); setPage(0); }}
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        placeholder: 'DD/MM/YYYY',
+                        sx: {
+                          width: 160,
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2, bgcolor: '#eef4fd', height: 36,
+                            '& fieldset': { borderColor: '#cbd5e1' },
+                            '&:hover fieldset': { borderColor: '#94a3b8' },
+                            '&.Mui-focused fieldset': { borderColor: '#004a99' },
+                          },
+                          '& .MuiOutlinedInput-input': { fontSize: '0.85rem', color: '#475569' }
+                        }
+                      },
+                      // Botón para limpiar la fecha
+                      field: { clearable: true, onClear: () => { setFechaFiltro(null); setPage(0); } },
+                    }}
+                  />
+                </LocalizationProvider>
+              </Box>
+            </Box>
           </Box>
+
           <TableContainer>
             <Table sx={{ minWidth: 650 }}>
               <TableHead sx={{ bgcolor: '#f8fafd' }}>
@@ -239,9 +276,10 @@ export default function RegistrosPage() {
                           sx={{ bgcolor: chipColors.bg, color: chipColors.text, fontWeight: 600 }}
                         />
                       </TableCell>
+                      {/* CAMBIO: '—' en lugar de '— Sin observaciones —' */}
                       <TableCell>
                         <Typography variant="body2" sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                          {novedad.observaciones || '— Sin observaciones —'}
+                          {novedad.observaciones || '—'}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -250,7 +288,7 @@ export default function RegistrosPage() {
                 {novedadesFiltradas.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
-                      <Typography variant="body2" color="#94a3b8">No hay novedades registradas con este filtro</Typography>
+                      <Typography variant="body2" color="#94a3b8">No hay novedades registradas con este filtro o búsqueda</Typography>
                     </TableCell>
                   </TableRow>
                 )}
@@ -258,7 +296,6 @@ export default function RegistrosPage() {
             </Table>
           </TableContainer>
 
-          {/* Paginador */}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', p: 1.5, px: 2, bgcolor: '#f8fafc', borderTop: '1px solid #eef2f6' }}>
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
               <Box onClick={() => setPage(p => Math.max(p - 1, 0))} sx={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1, cursor: 'pointer', border: '1px solid #cbd5e1', bgcolor: '#ffffff', color: '#004a99', fontWeight: 700, fontSize: '0.8rem', userSelect: 'none', opacity: page === 0 ? 0.5 : 1, pointerEvents: page === 0 ? 'none' : 'auto', '&:hover': { bgcolor: '#f1f5f9' } }}>‹</Box>
@@ -272,7 +309,7 @@ export default function RegistrosPage() {
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
-        < Historialpage />
+        <Historialpage />
       </TabPanel>
       <TabPanel value={tabValue} index={3}>
         <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>

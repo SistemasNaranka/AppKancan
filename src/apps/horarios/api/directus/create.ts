@@ -4,21 +4,19 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
 export async function createNovedad(data: { 
   employee_id: number; 
-  newness_id: number; // 🚀 Cambiado a number para evitar el error inesperado (500)
+  newness_id: number;
   report_date: string; 
   observations?: string; 
   store_id?: number; 
 }) {
   try {
-    // Sanitizamos todos los datos antes de enviarlos a la BD
     const payload = {
       employee_id: Number(data.employee_id),
-      newness_id: Number(data.newness_id), // Forzamos a entero puro
-      report_date: data.report_date,       // Formato exacto YYYY-MM-DD
+      newness_id: Number(data.newness_id),
+      report_date: data.report_date,
       observations: data.observations || '',
       store_id: Number(data.store_id || 90), 
     };
-
     return await withAutoRefresh(() => 
       directus.request(createItem('com_newness_reports', payload))
     );
@@ -43,7 +41,6 @@ export async function createNovedades(items: {
       observations: data.observations || '',
       store_id: Number(data.store_id || 90),
     }));
-
     return await withAutoRefresh(() => 
       directus.request(createItems('com_newness_reports', payloads))
     );
@@ -70,7 +67,6 @@ export async function createTimeRecord(data: {
       record_time: data.record_time,
       observations: data.observations || '',
     };
-
     return await withAutoRefresh(() =>
       directus.request(createItem('com_time_records', payload))
     );
@@ -80,13 +76,17 @@ export async function createTimeRecord(data: {
   }
 }
 
-export async function updateTimeRecord(id: number, data: { observations: string }) {
+// ✅ Corregido: ahora acepta record_time y observations
+export async function updateTimeRecord(id: number, data: { observations?: string; record_time?: string }) {
   try {
+    const payload: any = {};
+    if (data.observations !== undefined) payload.observations = data.observations;
+    if (data.record_time !== undefined) payload.record_time = data.record_time;
     return await withAutoRefresh(() =>
-      directus.request(updateItem('com_time_records', id, data))
+      directus.request(updateItem('com_time_records', id, payload))
     );
   } catch (error: any) {
     console.error('❌ Error al actualizar registro de tiempo:', error);
-    throw new Error(error?.errors?.[0]?.message || 'Error al actualizar observaciones');
+    throw new Error(error?.errors?.[0]?.message || 'Error al actualizar registro de tiempo');
   }
 }
