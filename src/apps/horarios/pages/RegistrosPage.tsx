@@ -19,7 +19,7 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import GavelIcon from '@mui/icons-material/Gavel';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
-
+import Historialpage from "../pages/HistorialPage"
 import EmployeeCard from '../components/EmployeeCard';
 import { useHorarios } from '../hooks/useHorarios';
 import dayjs from 'dayjs';
@@ -257,7 +257,7 @@ export default function RegistrosPage() {
               </TableBody>
             </Table>
           </TableContainer>
-          
+
           {/* Paginador */}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', p: 1.5, px: 2, bgcolor: '#f8fafc', borderTop: '1px solid #eef2f6' }}>
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
@@ -272,9 +272,7 @@ export default function RegistrosPage() {
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
-        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
-          <Typography variant="h6" color="#64748b">Historial de Asistencia</Typography>
-        </Paper>
+        < Historialpage />
       </TabPanel>
       <TabPanel value={tabValue} index={3}>
         <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>

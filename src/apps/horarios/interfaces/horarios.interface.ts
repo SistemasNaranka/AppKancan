@@ -27,3 +27,12 @@ export interface NovedadMapeada {
   tipo: string;
   observaciones: string;
 }
+export interface HistorialRow {
+  fecha: string;
+  empleado: string;
+  inicio_turno: string | null;
+  inicio_almuerzo: string | null;
+  fin_almuerzo: string | null;
+  fin_turno: string | null;
+  observaciones: string | null;
+}
