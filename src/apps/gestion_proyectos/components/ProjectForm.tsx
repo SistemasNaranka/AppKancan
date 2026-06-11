@@ -31,7 +31,6 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { OPTIONS_STATUS } from "../types";
 
-// Predefined options for benefited area
 const AREAS_PREDEFINIDAS = [
   "Contabilidad",
   "Recursos Humanos",
@@ -43,7 +42,6 @@ const AREAS_PREDEFINIDAS = [
   "Administrativa",
 ];
 
-// Icon mapping per area
 const ICONOS_AREA: Record<string, React.ElementType> = {
   "Contabilidad": ContabilidadIcon,
   "Recursos Humanos": RRHHIcon,
@@ -75,10 +73,6 @@ interface ProjectFormProps {
   assigneesList?: string[];
 }
 
-/**
- * Project Data Form
- * Clean and spacious design for better UX
- */
 export function ProjectForm({
   data,
   onChange,

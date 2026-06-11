@@ -1,11 +1,6 @@
-// src/apps/reservas/utils/reservas.utils.ts
-
 import { format, parse, addMinutes, differenceInMinutes } from "date-fns";
 import { es } from "date-fns/locale";
 
-/**
- * Formatea una fecha al formato legible español
- */
 export function formatearFecha(fecha: string | Date): string {
   try {
     const fechaObj = typeof fecha === "string" ? new Date(fecha) : fecha;
@@ -15,9 +10,6 @@ export function formatearFecha(fecha: string | Date): string {
   }
 }
 
-/**
- * Formatea una fecha al formato corto (dd/MM/yyyy)
- */
 export function formatearFechaCorta(fecha: string | Date): string {
   try {
     const fechaObj = typeof fecha === "string" ? new Date(fecha) : fecha;
@@ -27,42 +19,27 @@ export function formatearFechaCorta(fecha: string | Date): string {
   }
 }
 
-/**
- * Formatea una hora de HH:mm:ss a HH:mm
- */
 export function formatearHora(hora: string): string {
   return hora.substring(0, 5);
 }
 
-/**
- * Convierte una hora HH:mm a minutos desde medianoche
- */
 export function horaAMinutos(hora: string): number {
   const [horas, minutos] = hora.split(":").map(Number);
   return horas * 60 + minutos;
 }
 
-/**
- * Convierte minutos desde medianoche a formato HH:mm
- */
 export function minutosAHora(minutos: number): string {
   const horas = Math.floor(minutos / 60);
   const mins = minutos % 60;
   return `${String(horas).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
 }
 
-/**
- * Calcula la duración en minutos entre dos horas
- */
 export function calcularDuracion(horaInicio: string, horaFinal: string): number {
   const minutosInicio = horaAMinutos(horaInicio);
   const minutosFinal = horaAMinutos(horaFinal);
   return minutosFinal - minutosInicio;
 }
 
-/**
- * Valida si una hora está dentro del horario permitido
- */
 export function validarHorario(
   hora: string,
   horarioInicio: string,
@@ -74,9 +51,6 @@ export function validarHorario(
   return minutos >= minutosInicio && minutos <= minutosFin;
 }
 
-/**
- * Verifica si una fecha es hoy
- */
 export function esFechaHoy(fecha: string | Date): boolean {
   const fechaObj = typeof fecha === "string" ? new Date(fecha) : fecha;
   const hoy = new Date();
@@ -87,9 +61,6 @@ export function esFechaHoy(fecha: string | Date): boolean {
   );
 }
 
-/**
- * Verifica si una fecha es futura
- */
 export function esFechaFutura(fecha: string | Date): boolean {
   const fechaObj = typeof fecha === "string" ? new Date(fecha) : fecha;
   const hoy = new Date();
@@ -98,41 +69,26 @@ export function esFechaFutura(fecha: string | Date): boolean {
   return fechaObj > hoy;
 }
 
-/**
- * Verifica si una reunión ya ha iniciado
- */
 export function reunionHaIniciado(fecha: string, horaInicio: string): boolean {
   const ahora = new Date();
   const fechaReunion = new Date(`${fecha}T${horaInicio}`);
   return fechaReunion <= ahora;
 }
 
-/**
- * Verifica si una reunión ya ha finalizado
- */
 export function reunionHaFinalizado(fecha: string, horaFinal: string): boolean {
   const ahora = new Date();
   const fechaReunion = new Date(`${fecha}T${horaFinal}`);
   return fechaReunion <= ahora;
 }
 
-/**
- * Obtiene la fecha actual en formato YYYY-MM-DD
- */
 export function obtenerFechaActual(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-/**
- * Obtiene la hora actual en formato HH:mm
- */
 export function obtenerHoraActual(): string {
   return format(new Date(), "HH:mm");
 }
 
-/**
- * Genera un rango de horas disponibles con intervalos específicos
- */
 export function generarRangoHoras(
   inicio: string,
   fin: string,
@@ -150,9 +106,6 @@ export function generarRangoHoras(
   return horas;
 }
 
-/**
- * Valida si dos rangos de tiempo se solapan
- */
 export function rangosSeSolapan(
   inicio1: string,
   fin1: string,
@@ -164,21 +117,15 @@ export function rangosSeSolapan(
   const min2Inicio = horaAMinutos(inicio2);
   const min2Fin = horaAMinutos(fin2);
 
-  // Caso 1: inicio2 está dentro del rango 1
   if (min2Inicio >= min1Inicio && min2Inicio < min1Fin) return true;
 
-  // Caso 2: fin2 está dentro del rango 1
   if (min2Fin > min1Inicio && min2Fin <= min1Fin) return true;
 
-  // Caso 3: rango 2 contiene completamente al rango 1
   if (min2Inicio <= min1Inicio && min2Fin >= min1Fin) return true;
 
   return false;
 }
 
-/**
- * Formatea la duración en un texto legible (ej: "1 hora 30 minutos")
- */
 export function formatearDuracion(minutos: number): string {
   if (minutos < 60) {
     return `${minutos} minutos`;
@@ -194,19 +141,13 @@ export function formatearDuracion(minutos: number): string {
   return `${horas} ${horas === 1 ? "hora" : "horas"} ${mins} minutos`;
 }
 
-/**
- * Obtiene el nombre del día de la semana en español
- */
 export function obtenerDiaSemana(fecha: string | Date): string {
   const fechaObj = typeof fecha === "string" ? new Date(fecha) : fecha;
   return format(fechaObj, "EEEE", { locale: es });
 }
 
-/**
- * Verifica si una fecha es un fin de semana
- */
 export function esFinDeSemana(fecha: string | Date): boolean {
   const fechaObj = typeof fecha === "string" ? new Date(fecha) : fecha;
   const dia = fechaObj.getDay();
-  return dia === 0 || dia === 6; // 0 = Domingo, 6 = Sábado
+  return dia === 0 || dia === 6;
 }

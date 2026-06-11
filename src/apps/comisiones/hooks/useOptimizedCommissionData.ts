@@ -12,7 +12,6 @@ import {
   obtenerUmbralesComisiones,
 } from "../api/directus/read";
 
-// Función auxiliar para convertir nombre de mes a número
 const getMonthNumber = (monthName: string): string => {
   const months: { [key: string]: string } = {
     Ene: "01",
@@ -31,17 +30,14 @@ const getMonthNumber = (monthName: string): string => {
   return months[monthName] || "01";
 };
 
-// Función para procesar todos los datos de comisiones
 const processCommissionData = async (selectedMonth: string) => {
   const [mesNombre, anio] = selectedMonth.split(" ");
   const mesNumero = getMonthNumber(mesNombre);
 
-  // Obtener último día del mes
   const ultimoDia = new Date(parseInt(anio), parseInt(mesNumero), 0).getDate();
   const fechaInicio = `${anio}-${mesNumero}-01`;
   const fechaFin = `${anio}-${mesNumero}-${ultimoDia}`;
 
-  // Cargar todos los datos en paralelo (incluyendo umbrales de comisiones)
   const [
     tiendas,
     asesores,
@@ -62,7 +58,6 @@ const processCommissionData = async (selectedMonth: string) => {
     obtenerUmbralesComisiones(selectedMonth),
   ]);
 
-  // Convertir presupuestos diarios a BudgetRecord
   const budgets = presupuestosDiarios.map((p: any) => {
     const tienda = tiendas.find((t: any) => t.id === p.store_id);
     const presupuesto = parseFloat(p.budget) || 0;
@@ -75,7 +70,6 @@ const processCommissionData = async (selectedMonth: string) => {
     };
   });
 
-  // Agregar tiendas sin presupuestos diarios con presupuesto 0
   const tiendasConPresupuestos = new Set(
     presupuestosDiarios.map((p: any) => p.store_id),
   );
@@ -92,20 +86,17 @@ const processCommissionData = async (selectedMonth: string) => {
     }
   });
 
-  // Crear staff basado en presupuestos asignados
   const staff: any[] = [];
   const presupuestosDelMes = presupuestosEmpleadosData.filter((pe: any) => {
     return pe.date >= fechaInicio && pe.date <= fechaFin;
   });
 
-  // Crear staff basado en presupuestos asignados
   presupuestosDelMes.forEach((pe: any) => {
     const asesor = asesores.find((a: any) => a.id === pe.advisor_id);
     if (!asesor) return;
 
     const tienda = tiendas.find((t: any) => t.id === pe.store_id);
 
-    // Obtener nombre del cargo
     let cargoNombre = "asesor";
     if (typeof pe.position_id === "string") {
       cargoNombre = pe.position_id.toLowerCase();
@@ -114,7 +105,6 @@ const processCommissionData = async (selectedMonth: string) => {
       cargoNombre = cargo ? cargo.name.toLowerCase() : "asesor";
     }
 
-    // Mapear a roles estándar
     const rol =
       cargoNombre === "gerente"
         ? "gerente"
@@ -139,7 +129,6 @@ const processCommissionData = async (selectedMonth: string) => {
     });
   });
 
-  // Agregar empleados adicionales de todas las tiendas
   const empleadosConPresupuestos = new Set(
     presupuestosDelMes.map((pe: any) => pe.advisor_id.toString()),
   );
@@ -184,7 +173,6 @@ const processCommissionData = async (selectedMonth: string) => {
     }
   });
 
-  // Convertir configuraciones de porcentajes
   const monthConfigs = porcentajesBD.map((p: any) => {
     const [year, month] = p.fecha.split("-");
     const monthNames = [
@@ -213,7 +201,6 @@ const processCommissionData = async (selectedMonth: string) => {
     };
   });
 
-  // Procesar ventas por empleado
   const ventasDelMes = ventasEmpleados.filter((ve: any) => {
     return ve.date >= fechaInicio && ve.date <= fechaFin;
   });
@@ -246,7 +233,6 @@ const processCommissionData = async (selectedMonth: string) => {
 
   const ventas = Array.from(ventasMap.values());
 
-  // Procesar umbrales de comisiones (si existen en BD)
   const thresholdConfig = umbralesData
     ? {
         mes: umbralesData.mes,
@@ -262,7 +248,7 @@ const processCommissionData = async (selectedMonth: string) => {
     ventas,
     presupuestosEmpleados: presupuestosEmpleadosData,
     cargos,
-    thresholdConfig, // ✅ Agregar umbrales de comisiones
+    thresholdConfig,
     metadata: {
       selectedMonth,
       fechaInicio,
@@ -273,13 +259,7 @@ const processCommissionData = async (selectedMonth: string) => {
   };
 };
 
-/**
- * Hook optimizado para cargar datos de comisiones con TanStack Query
- * - Cache automático
- * - Estados de carga optimizados
- * - Invalidación inteligente
- * - Evita recargas innecesarias
- */
+
 export const useOptimizedCommissionData = (selectedMonth: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -288,32 +268,27 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
     queryKey: ["commission-data", selectedMonth, user?.id],
     queryFn: () => processCommissionData(selectedMonth),
     enabled: !!user && !!selectedMonth,
-    staleTime: 1000 * 60 * 5, // 5 minutos - datos frescos
-    gcTime: 1000 * 60 * 30, // 30 minutos - tiempo en caché
-    refetchOnWindowFocus: false, // NO recargar al volver a la ventana - usar caché
-    refetchOnMount: false, // NO recargar al montar - usar caché
-    refetchOnReconnect: false, // NO recargar al reconectar
-    retry: 1, // Menos reintentos para evitar delays
-    retryDelay: 1000, // Delay fijo más corto
-    // ✅ CORRECCIÓN: Configuración para carga más rápida
-    networkMode: "online", // Solo cargar cuando esté online
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    retryDelay: 1000,
+    networkMode: "online",
   });
 
-  // ✅ FUNCIÓN OPTIMIZADA para limpieza completa después del guardado
   const refetch = useCallback(() => {
-    // 🚀 NUEVO: Limpiar TODOS los caches antes de recargar
     queryClient.invalidateQueries({
       queryKey: ["commission-data"],
       exact: false,
     });
 
-    // Limpiar completamente el cache
     queryClient.removeQueries({
       queryKey: ["commission-data"],
       exact: false,
     });
 
-    // Forzar refetch inmediato
     return queryClient
       .refetchQueries({
         queryKey: ["commission-data", selectedMonth],
@@ -322,7 +297,6 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
       .then(() => {});
   }, [queryClient, selectedMonth]);
 
-  // Función para precargar datos de un mes
   const prefetchMonth = useCallback(
     (month: string) => {
       if (!user) return;
@@ -337,7 +311,6 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
     [queryClient, user],
   );
 
-  // Memo para datos transformados
   const data = useMemo(() => {
     if (!query.data) return null;
 
@@ -348,12 +321,11 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
       ventas: query.data.ventas || [],
       presupuestosEmpleados: query.data.presupuestosEmpleados || [],
       cargos: query.data.cargos || [],
-      thresholdConfig: query.data.thresholdConfig || null, // ✅ Agregar umbrales
+      thresholdConfig: query.data.thresholdConfig || null,
       metadata: query.data.metadata,
     };
   }, [query.data]);
 
-  // Memo para estados derivados
   const derivedStates = useMemo(() => {
     const hasData =
       data &&
@@ -367,21 +339,15 @@ export const useOptimizedCommissionData = (selectedMonth: string) => {
       isLoading: query.isLoading,
       isError: query.isError,
       error: query.error,
-      dataLoadAttempted: query.isLoading === false, // true cuando termina de cargar (éxito o error)
+      dataLoadAttempted: query.isLoading === false,
     };
   }, [query.isLoading, query.isError, query.error, data]);
 
   return {
-    // Data
     data,
-
-    // States
     ...derivedStates,
 
-    // Query states
     isRefetching: query.isRefetching,
-
-    // Actions
     refetch,
     prefetchMonth,
   };

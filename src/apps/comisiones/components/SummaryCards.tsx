@@ -5,29 +5,19 @@ import { Card as MuiCard, CardContent as MuiCardContent } from "@mui/material";
 
 interface SummaryCardsProps {
   mesResumen: MesResumen | null;
-  /** Callback para expandir/colapsar todas las tiendas */
   onToggleAllStores: () => void;
-  /** Estado actual de tiendas expandidas */
   expandedTiendas: Set<string>;
 
-  /** Filtros de rol actuales */
   filterRol: Role[];
   /** Función para obtener comisiones filtradas */
   getFilteredComissionsForCards: (mesResumen: MesResumen | null) => {
     total_comisiones: number;
     comisiones_por_rol: Record<string, number>;
   };
-  /** Callback para toggle de filtro de rol */
   onRoleFilterToggle: (role: Role) => void;
-  /** Callback para limpiar filtros de rol */
   onRoleFilterClear: () => void;
 }
 
-/**
- * 🚀 SummaryCards ULTRA-OPTIMIZADO con React.memo agresivo
- */
-
-// Función de formateo memoizada
 const formatCommission = (value: number): string => {
   const rounded = Math.round(value);
   return `$ ${rounded.toLocaleString("en-US", {
@@ -36,7 +26,6 @@ const formatCommission = (value: number): string => {
   })}`;
 };
 
-// Hook optimizado para datos de summary cards
 const useSummaryCardsData = (
   mesResumen: MesResumen | null,
   getFilteredComissionsForCards: (mesResumen: MesResumen | null) => {
@@ -63,10 +52,9 @@ const useSummaryCardsData = (
       comisionCajero: filteredData.comisiones_por_rol.cajero || 0,
       comisionLogistico: filteredData.comisiones_por_rol.logistico || 0,
     };
-  }, [mesResumen, getFilteredComissionsForCards]); // ✅ Agregar dependencia
+  }, [mesResumen, getFilteredComissionsForCards]);
 };
 
-// Componente ultra-memoizado para cada card individual
 const CommissionCard = React.memo<{
   title: string;
   value: number;
@@ -82,7 +70,6 @@ const CommissionCard = React.memo<{
 
   const hasFilterActive = filterRol.length > 0;
 
-  // Memoizar el estilo de la card
   const cardStyle = useMemo(() => {
     if (isCardActive) {
       return {
@@ -149,7 +136,6 @@ const CommissionCard = React.memo<{
 
 CommissionCard.displayName = "CommissionCard";
 
-// Skeleton memoizado
 const SummaryCardsSkeleton = React.memo(() => (
   <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
     {[1, 2, 3, 4, 5].map((i) => (
@@ -165,10 +151,6 @@ const SummaryCardsSkeleton = React.memo(() => (
 
 SummaryCardsSkeleton.displayName = "SummaryCardsSkeleton";
 
-/**
- * SummaryCards principal - SIN MEMO PROBLEMÁTICO
- * Actualización inmediata sin delays
- */
 export const SummaryCards: React.FC<SummaryCardsProps> = ({
   mesResumen,
   onToggleAllStores,
@@ -177,7 +159,6 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
   onRoleFilterToggle,
   onRoleFilterClear,
 }) => {
-  // Memoizar handlers para evitar re-renders innecesarios
   const handleCardClick = useCallback(
     (role: Role | "total") => {
       if (role === "total") {
@@ -197,14 +178,10 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     comisionLogistico,
   } = useSummaryCardsData(mesResumen, getFilteredComissionsForCards);
 
-  // ✅ CORRECCIÓN CRÍTICA: Mostrar datos inmediatamente sin skeleton
-  // Solo mostrar skeleton si NO hay mesResumen o es completamente vacío
   if (!mesResumen || !mesResumen.tiendas) {
     return <SummaryCardsSkeleton />;
   }
 
-  // ✅ NUEVA LÓGICA: Mostrar datos incluso si son 0, pero con datos válidos
-  // Solo mostrar skeleton si la estructura de datos está completamente vacía
   const hasAnyData = mesResumen.tiendas && mesResumen.tiendas.length > 0;
   const hasValidStructure = mesResumen.total_comisiones !== undefined;
 

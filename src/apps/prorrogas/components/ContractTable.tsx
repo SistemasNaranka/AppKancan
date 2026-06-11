@@ -34,10 +34,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
 import { getCargoLabel } from '../config/cargos';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
 const initials = (name: string | undefined | null) => {
   if (!name) return '??';
@@ -64,7 +61,6 @@ const getDaysLabel = (daysLeft: number): { text: string; color: string } => {
   return { text: `En ${daysLeft} días`, color: daysLeft <= 7 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#6b7280' };
 };
 
-// Status chip para la nueva tabla
 const StatusBadge: React.FC<{ daysLeft: number; contractStatus: string }> = ({ daysLeft, contractStatus }) => {
   if (contractStatus === 'vencido' || daysLeft < 0) {
     return (
@@ -98,9 +94,6 @@ const StatusBadge: React.FC<{ daysLeft: number; contractStatus: string }> = ({ d
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sidebar
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
   onNewProrroga: () => void;
@@ -225,10 +218,6 @@ const ResumenSidebar: React.FC<SidebarProps> = ({ onNewProrroga, onNewContract }
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ContractTable
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface Props {
   onOpenForm: (contractId: number) => void;
   onNewContractClick?: () => void;
@@ -249,14 +238,10 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
 
   const itemsPerPage = 6;
 
-  // En Resumen: si hay búsqueda activa, usar filteredContratos para que el buscador funcione
-  // Si no hay búsqueda, mostrar todos ordenados por recientes
   const baseRows = isResumen
     ? (hasSearch ? filteredContratos : [...allEnriched])
     : filteredContratos;
 
-  // Sort local por vencimiento al hacer click en el header.
-  // none = orden por defecto del hook/contexto (recientes / filtro activo).
   const sourceRows = vencSort === 'none'
     ? baseRows
     : [...baseRows].sort((a, b) => {
@@ -412,7 +397,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
                         </Avatar>
                         <Box>
                           <Typography variant="body2" fontWeight={700} color="text.primary" fontSize="0.82rem">
-                            {c.first_name ?? `#${c.id}`}
+                            {formatNombreCompleto(c) || `#${c.id}`}
                           </Typography>
                           <Typography variant="caption" color="text.disabled">
                             {getCargoLabel(c.position)}

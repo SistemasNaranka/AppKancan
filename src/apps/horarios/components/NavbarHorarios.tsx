@@ -7,7 +7,6 @@ export default function NavbarHorarios() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Captura la sub-ruta activa para sincronizar la pestaña de MUI
   const currentTab = location.pathname.split('/').pop() || 'registros';
 
   return (

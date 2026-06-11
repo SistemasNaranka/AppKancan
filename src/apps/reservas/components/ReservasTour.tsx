@@ -11,11 +11,6 @@ import { Box, Button, Typography, Chip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTourContext, TourPhase } from "./TourContext";
 
-// ============================================
-// PASOS POR FASE (Solo fuera del Dialog)
-// ============================================
-
-// Fase 1: Click en Nueva Reserva
 const STEPS_RESERVA_CLICK: Step[] = [
   {
     target: ".tour-nueva-reserva",
@@ -47,7 +42,6 @@ const STEPS_RESERVA_CLICK: Step[] = [
   },
 ];
 
-// Fase 3: Continuar en Pestaña Reserva (después del Dialog)
 const STEPS_RESERVA_CONTINUE: Step[] = [
   {
     target: ".tour-estado-salas",
@@ -83,7 +77,6 @@ const STEPS_RESERVA_CONTINUE: Step[] = [
   },
 ];
 
-// Fase 4: Tour en Mis Reservas
 const STEPS_MIS_RESERVAS: Step[] = [
   {
     target: ".tour-mis-reservas-tabs",
@@ -120,7 +113,6 @@ const STEPS_MIS_RESERVAS: Step[] = [
   },
 ];
 
-// Fase 5: Tour en Calendario
 const STEPS_CALENDARIO: Step[] = [
   {
     target: ".tour-sala-selector",
@@ -215,20 +207,16 @@ const STEPS_CALENDARIO: Step[] = [
   },
 ];
 
-// Mapeo de fases a pasos (DIALOG_TOUR no tiene pasos aquí)
 const STEPS_BY_PHASE: Record<TourPhase, Step[]> = {
   IDLE: [],
   RESERVA_CLICK_BUTTON: STEPS_RESERVA_CLICK,
-  DIALOG_TOUR: [], // El Dialog maneja su propio tour internamente
+  DIALOG_TOUR: [],
   RESERVA_CONTINUE: STEPS_RESERVA_CONTINUE,
   MIS_RESERVAS: STEPS_MIS_RESERVAS,
   CALENDARIO: STEPS_CALENDARIO,
   COMPLETED: [],
 };
 
-// ============================================
-// CUSTOM TOOLTIP
-// ============================================
 
 const CustomTooltip: React.FC<TooltipRenderProps> = ({
   index,
@@ -336,9 +324,6 @@ const CustomTooltip: React.FC<TooltipRenderProps> = ({
   );
 };
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
 
 interface ReservasTourProps {
   children: ReactNode;
@@ -357,13 +342,11 @@ export const ReservasTour: React.FC<ReservasTourProps> = ({ children }) => {
   const [runTour, setRunTour] = useState(false);
   const currentSteps = STEPS_BY_PHASE[tourPhase] || [];
 
-  // Controlar cuándo corre el tour
   useEffect(() => {
-    // Solo correr Joyride si hay pasos para esta fase
     if (
     tourPhase !== "IDLE" &&
     tourPhase !== "COMPLETED" &&
-      tourPhase !== "DIALOG_TOUR" && // El Dialog maneja su propio tour
+      tourPhase !== "DIALOG_TOUR" &&
       currentSteps.length > 0
     ) {
       const timer = setTimeout(() => setRunTour(true), 200);
@@ -373,26 +356,22 @@ export const ReservasTour: React.FC<ReservasTourProps> = ({ children }) => {
     }
   }, [tourPhase, currentSteps.length]);
 
-  // Handle tour callbacks
   const handleJoyrideCallback = useCallback(
     (data: CallBackProps) => {
       const { status, action, type, index } = data;
 
-      // Tour terminado
       if (status === STATUS.FINISHED) {
         setRunTour(false);
         nextPhase();
         return;
       }
 
-      // Tour saltado o cerrado
       if (status === STATUS.SKIPPED || action === ACTIONS.CLOSE) {
         setRunTour(false);
         stopTour();
         return;
       }
 
-      // Actualizar índice del paso
       if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT) {
         setStepIndex(index + 1);
       }
@@ -403,14 +382,12 @@ export const ReservasTour: React.FC<ReservasTourProps> = ({ children }) => {
     [nextPhase, stopTour, setStepIndex]
   );
 
-  // Manejar click en el botón "Nueva reserva" durante el tour
   useEffect(() => {
     if (tourPhase === "RESERVA_CLICK_BUTTON" && runTour) {
       const handleClick = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         if (target.closest(".tour-nueva-reserva")) {
           setRunTour(false);
-          // Pequeño delay antes de abrir el dialog
           setTimeout(() => {
             openDialogForTour();
           }, 100);

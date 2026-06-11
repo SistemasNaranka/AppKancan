@@ -22,10 +22,7 @@ import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import { useContractContext } from '../contexts/ContractContext';
 import { addMonths, formatDate, getNextProrrogaNumber, getProrrogaDuration, toLocalDateStr } from '../lib/utils';
 import { getProrrogasByContrato } from '../api/read';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ProrrogaForm
-// ─────────────────────────────────────────────────────────────────────────────
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
 interface Props {
   contractId: number;
@@ -40,7 +37,6 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
 
   const [fechaInicio, setFechaInicio] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  // Establece los valores al abrir el modal de forma instantánea
   useEffect(() => {
     if (!contract || !open) {
       setFechaInicio('');
@@ -51,7 +47,6 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
     const prorrogas = contract.extensions ?? [];
 
     if (prorrogas.length === 0) {
-      // Tomar exactamente la fecha actual (hoy) localmente.
       setFechaInicio(toLocalDateStr(new Date()));
     } else {
       const last = [...prorrogas].sort((a, b) => (a.extension_number ?? 0) - (b.extension_number ?? 0)).pop();
@@ -63,7 +58,7 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
         const [y, m, d] = fechaBase.split('T')[0].split('-').map(Number);
         const dt = new Date(y, m - 1, d);
         if (!isNaN(dt.getTime())) {
-          dt.setDate(dt.getDate() + 1); // +1 un día después del final de la anterior
+          dt.setDate(dt.getDate() + 1);
           setFechaInicio(toLocalDateStr(dt));
         } else {
           setFechaInicio('');
@@ -116,7 +111,7 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
           <Box>
             <AssignmentOutlinedIcon sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 30, mb: 2 }} />
             <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1.3, mb: 0.5 }}>
-              {contract.first_name}
+              {formatNombreCompleto(contract)}
             </Typography>
             <Typography variant="caption" sx={{ color: '#7fb8e8', display: 'block', mb: 2 }}>
               {contract.position}
@@ -179,7 +174,7 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                   value={fechaInicio ? dayjs(fechaInicio) : null}
-                  onChange={(val) => setFechaInicio(val ? val.format('YYYY-MM-DD') : '')}
+                  onChange={(val) => setFechaInicio(val ? dayjs(val).format('YYYY-MM-DD') : '')}
                   slotProps={{
                     textField: { fullWidth: true, size: 'small' },
                   }}

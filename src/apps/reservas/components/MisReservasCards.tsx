@@ -95,7 +95,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     (r) => getEstado(r) === "cancelado" || getEstado(r) === "cancelada",
   );
 
-  // Filtrar por tab activo
   const baseList =
     tab === "todas"
       ? reservasToShow
@@ -105,7 +104,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
           ? reservasFinalizadas
           : reservasCanceladas;
 
-  // Búsqueda libre
   const filteredList = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return baseList;
@@ -122,7 +120,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     );
   }, [baseList, search]);
 
-  // Reset page al cambiar tab/search
   React.useEffect(() => {
     setPage(1);
   }, [tab, search]);
@@ -164,7 +161,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   const truncarTexto = (texto: string, limite: number) =>
     !texto ? "" : texto.length > limite ? texto.slice(0, limite) + "..." : texto;
 
-  // ── Sub-componentes ──────────────────────────────────────────────────────
 
   const FilterChip: React.FC<{
     label: string;
@@ -213,7 +209,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   };
 
   const EstadoChip: React.FC<{ estado: EstadoReserva }> = ({ estado }) => {
-    // Override: "Vigente"/"En curso" usan verde sólido como el badge del filtro.
     const esVigente = estado === "Vigente" || estado === "En curso";
     const bg = esVigente ? "#16a34a" : (COLORES_ESTADO[estado] ?? "#e5e7eb");
     const color = esVigente ? "#ffffff" : (COLORES_TEXTO_ESTADO[estado] ?? "#374151");
@@ -363,8 +358,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
       </TableRow>
     );
   };
-
-  // ── Render ───────────────────────────────────────────────────────────────
 
   if (loading && !isTourActive) {
     return (

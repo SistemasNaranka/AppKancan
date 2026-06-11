@@ -1,12 +1,8 @@
 import { useMemo } from 'react';
 import { useContractContext } from '../contexts/ContractContext';
 import { Contrato, ContractStatus, DashboardStats, Prorroga } from '../types/types';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Días desde hoy hasta dateStr (negativo = ya expiró) */
 export function daysUntil(dateStr: string): number {
   const target = new Date(dateStr);
   target.setHours(0, 0, 0, 0);
@@ -15,42 +11,24 @@ export function daysUntil(dateStr: string): number {
   return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-/**
- * Estado visual calculado a partir de días restantes:
- *  - vencido : daysLeft < 0
- *  - proximo : 0 – 30 días
- *  - vigente  : > 30 días
- */
 export function computeContractStatus(daysLeft: number): ContractStatus {
   if (daysLeft < 0) return 'vencido';
   if (daysLeft <= 30) return 'proximo';
   return 'vigente';
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tipo enriquecido
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface EnrichedContrato extends Contrato {
-  /** Última prórroga registrada (mayor número) - puede ser null si no hay extensions */
   lastProrroga: Prorroga | null;
-  /** Fecha de vencimiento efectiva (end_date del contrato o última prórroga) */
   fechaVencimiento: string | null;
-  /** Días restantes hasta vencimiento (Infinity si no hay fecha) */
   daysLeft: number;
-  /** Estado visual basado en días restantes */
   contractStatus: ContractStatus;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Hook
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const useContracts = () => {
   const ctx = useContractContext();
   const { contratos, filters } = ctx;
 
-  // ── 1. Enriquecer todos los contratos ───────────────────────────────────
   const enriched = useMemo<EnrichedContrato[]>(() => {
     return contratos
       .map((c) => {
@@ -66,7 +44,6 @@ export const useContracts = () => {
       });
   }, [contratos]);
 
-  // ── 2. Filtrar y ordenar para la vista de Contratos ──────────────────────
   const filteredContratos = useMemo<EnrichedContrato[]>(() => {
     const q = filters.search.toLowerCase().trim();
     const statusFilter = filters.contractStatus ?? 'todos';
@@ -76,8 +53,7 @@ export const useContracts = () => {
         if (statusFilter !== 'todos' && c.contractStatus !== statusFilter) return false;
         if (q) {
           return (
-            c.first_name.toLowerCase().includes(q) ||
-            (c.last_name?.toLowerCase() ?? '').includes(q) ||
+            formatNombreCompleto(c).toLowerCase().includes(q) ||
             String(c.position).toLowerCase().includes(q) ||
             (c.department?.toLowerCase() ?? '').includes(q) ||
             (c.empresa?.toLowerCase() ?? '').includes(q) ||
@@ -90,13 +66,12 @@ export const useContracts = () => {
       })
       .sort((a, b) => {
         if (filters.sortBy === 'vencimiento') return a.daysLeft - b.daysLeft;
-        if (filters.sortBy === 'nombre') return a.first_name.localeCompare(b.first_name);
+        if (filters.sortBy === 'nombre') return formatNombreCompleto(a).localeCompare(formatNombreCompleto(b));
         if (filters.sortBy === 'prorroga') return (b.extensions?.length ?? 0) - (a.extensions?.length ?? 0);
         return 0;
       });
   }, [enriched, filters]);
 
-  // ── 3. Estadísticas del dashboard ────────────────────────────────────────
   const dashboardStats = useMemo<DashboardStats>(() => {
     const now = new Date();
     const msDay = 1000 * 60 * 60 * 24 * 30; // ~30 días en ms
@@ -121,7 +96,6 @@ export const useContracts = () => {
     };
   }, [enriched]);
 
-  // ── 4. Contratos recientes (últimos 10 por id de creación) ───────────────
   const recentContratos = useMemo<EnrichedContrato[]>(
     () =>
       [...enriched]
@@ -130,7 +104,6 @@ export const useContracts = () => {
     [enriched],
   );
 
-  // ── 5. Contratos para la campana (≤ 7 días o vencidos) ──────────────────
   const alertContratos = useMemo(
     () =>
       enriched
@@ -139,7 +112,6 @@ export const useContracts = () => {
     [enriched],
   );
 
-  // ── 6. Conteos por ContractStatus ─────────────────────────────────────────
   const counts = useMemo(
     () => ({
       activos: dashboardStats.activos,

@@ -30,6 +30,9 @@ function buildFilter(filters: ContratoFilters) {
     conditions.push({
       _or: [
         { first_name: { _icontains: q } },
+        { middle_name: { _icontains: q } },
+        { last_name: { _icontains: q } },
+        { second_last_name: { _icontains: q } },
         { department: { _icontains: q } },
       ],
     });

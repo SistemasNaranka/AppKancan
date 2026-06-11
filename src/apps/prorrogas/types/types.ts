@@ -51,7 +51,9 @@ export interface Contrato {
   numero_contrato?: string;
   empleado_id?: number;
   first_name: string;
+  middle_name?: string;
   last_name: string;
+  second_last_name?: string;
   position: string | number;
   contract_type?: string;
   department?: string;

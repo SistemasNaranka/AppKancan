@@ -4,7 +4,6 @@ import { useEmployeeData } from "./useEmployeeData";
 import { useEmployeeOperations } from "./useEmployeeOperations";
 
 interface UseEmployeeManagementReturn {
-  // Estados
   codigoInput: string;
   cargoSeleccionado: string;
   empleadosAsignados: any[];
@@ -19,10 +18,9 @@ interface UseEmployeeManagementReturn {
   canSave: boolean;
   hasExistingData: boolean;
   isUpdateMode: boolean;
-  hasChanges: boolean; // 🔧 NUEVO: Dirty check
+  hasChanges: boolean;
   empleadoEncontrado: any | null;
 
-  // Handlers
   setCodigoInput: (value: string) => void;
   setCargoSeleccionado: (value: string) => void;
   handleAddEmpleado: () => Promise<void>;
@@ -36,18 +34,13 @@ interface UseEmployeeManagementReturn {
   handleKeyPress: (e: React.KeyboardEvent) => void;
   onAssignmentComplete?: (ventasData: any[]) => void;
 
-  // Refs para focus
   codigoInputRef: React.RefObject<HTMLInputElement>;
 
-  // Helpers
   getCargoNombre: (cargoId: any) => string;
   getTiendaNombre: (tiendaId: any) => string;
-  // Funciones de validación
   validateExclusiveRole: (role: string, asesor: any) => string | null;
   hasRequiredRoles: () => boolean;
-  // Función para limpiar mensajes
   clearMessages: () => void;
-  // Función para buscar empleado
   buscarEmpleadoPorCodigo: (codigo: string) => void;
 }
 
@@ -55,7 +48,6 @@ export const useEmployeeManagement = (
   tiendaUsuario: DirectusTienda | null,
   onAssignmentComplete?: (ventasData: any[]) => void,
 ): UseEmployeeManagementReturn => {
-  // Hook para datos
   const {
     asesoresDisponibles,
     cargosDisponibles,
@@ -68,7 +60,6 @@ export const useEmployeeManagement = (
     buscarEmpleadoPorCodigo,
   } = useEmployeeData([], tiendaUsuario);
 
-  // Hook para operaciones
   const {
     codigoInput,
     cargoSeleccionado,
@@ -80,7 +71,7 @@ export const useEmployeeManagement = (
     canSave,
     hasExistingData,
     isUpdateMode,
-    hasChanges, // 🔧 NUEVO: Dirty check
+    hasChanges,
     setCodigoInput,
     setCargoSeleccionado: setCargoSeleccionadoInOperations,
     handleAddEmpleado,
@@ -96,23 +87,19 @@ export const useEmployeeManagement = (
     clearMessages,
   } = useEmployeeOperations(tiendaUsuario, onAssignmentComplete);
 
-  // ✅ NUEVO: Sincronizar cargo seleccionado entre hooks
   const setCargoSeleccionado = (value: string) => {
     setCargoSeleccionadoInData(value);
     setCargoSeleccionadoInOperations(value);
   };
 
-  // ✅ NUEVO: Modificar handleAddEmpleado para incluir datos necesarios
   const handleAddEmpleadoModified = async () => {
     await handleAddEmpleado(asesoresDisponibles, cargosDisponibles, empleadoEncontrado);
   };
 
-  // ✅ NUEVO: Modificar handleSaveAsignaciones para incluir datos necesarios
   const handleSaveAsignacionesModified = async (fechaActual: string) => {
     await handleSaveAsignaciones(fechaActual, cargosDisponibles);
   };
 
-  // ✅ NUEVO: Modificar cargarDatosExistentes para incluir datos necesarios
   const cargarDatosExistentesModified = async (
     fecha: string,
     mesSeleccionado?: string,
@@ -125,36 +112,30 @@ export const useEmployeeManagement = (
     );
   };
 
-  // ✅ NUEVO: Modificar handleKeyPress para incluir la lógica
   const handleKeyPressModified = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleAddEmpleadoModified();
     }
   };
 
-  // Cargar datos cuando cambia la tienda
   useEffect(() => {
     if (tiendaUsuario) {
       loadAsesoresDisponibles();
     }
   }, [tiendaUsuario]);
 
-  // ✅ NUEVO: Buscar empleado automáticamente cuando cambia el código
   useEffect(() => {
     buscarEmpleadoPorCodigo(codigoInput);
   }, [codigoInput, buscarEmpleadoPorCodigo]);
 
 
 
-  // ✅ NUEVO: Obtener mensaje actual (combinando ambos hooks)
   const getCargoNombreWithCargos = (cargoId: any): string => {
     return getCargoNombre(cargoId, cargosDisponibles);
   };
 
-  // ✅ NUEVO: Combinar errores de ambos hooks
   const combinedError = error || dataError;
 
-  // ✅ NUEVO: Sincronizar estados de guardado
   const isLoading = loading || saving;
 
   return {
@@ -172,7 +153,7 @@ export const useEmployeeManagement = (
     canSave,
     hasExistingData,
     isUpdateMode,
-    hasChanges, // 🔧 NUEVO: Dirty check
+    hasChanges,
     empleadoEncontrado,
     setCodigoInput,
     setCargoSeleccionado,

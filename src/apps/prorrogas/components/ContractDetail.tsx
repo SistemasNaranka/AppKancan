@@ -13,6 +13,7 @@ import Avatar from '@mui/material/Avatar';
 import LinearProgress from '@mui/material/LinearProgress';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
@@ -26,10 +27,6 @@ import { useContractContext } from '../contexts/ContractContext';
 import { daysUntil, formatDate, getProrrogaProgress, formatTipoContrato, getProrrogaDuration, computeEndDate } from '../lib/utils';
 import { Prorroga } from '../types/types';
 import CambiarCargoModal from './CambiarCargoModal';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
 
 const getCargoName = (cargo: unknown): string => {
   if (!cargo) return 'Sin cargo';
@@ -66,7 +63,6 @@ const prorrogaCircleColor = (num: number, isActive: boolean, isCompleted: boolea
 };
 
 const getEffectiveEndDate = (prorroga: Prorroga): string => {
-  // CORRECCIÓN APLICADA AQUÍ
   if (prorroga.end_date) {
     return prorroga.end_date instanceof Date
       ? prorroga.end_date.toISOString().split('T')[0]
@@ -75,10 +71,6 @@ const getEffectiveEndDate = (prorroga: Prorroga): string => {
   const duracion = prorroga.duration ?? getProrrogaDuration(prorroga.extension_number ?? 0);
   return computeEndDate(prorroga.start_date, duracion) ?? '';
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Timeline Entry
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface TimelineEntryProps {
   prorroga: Prorroga;
@@ -228,10 +220,6 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActiv
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ContractDetail
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface Props {
   onOpenForm: () => void;
   onEditContract: () => void;
@@ -244,7 +232,6 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
   const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Si el contenedor con scroll real no es `window`, scrollIntoView() fuerza la visualización.
     if (topRef.current) {
       topRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
     }
@@ -260,7 +247,6 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
   const lastProrroga = hasProrrogas ? prorrogas[prorrogas.length - 1] : null;
   const firstProrroga = hasProrrogas ? prorrogas[0] : null;
 
-  // Limit and pagination logic
   const itemsPerPage = 5;
   const reversedProrrogas = [...prorrogas].reverse();
   const totalPages = Math.ceil(reversedProrrogas.length / itemsPerPage);
@@ -276,10 +262,9 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
   const totalMeses = prorrogas.reduce((acc, p) => acc + getDur(p), 0);
   const maxMeses = Math.max(...prorrogas.map((p) => getDur(p)), 1);
 
-  // Progress bar para tiempo restante del contrato
   const timeProgress = (() => {
     if (!lastProrroga || !isFinite(daysLeft)) return 100;
-    const start = new Date(lastProrroga.start_date).getTime();  // CORRECCIÓN APLICADA AQUÍ
+    const start = new Date(lastProrroga.start_date).getTime(); 
     const end   = new Date(lastEffectiveEnd!).getTime();
     if (isNaN(start) || isNaN(end) || end <= start) return 0;
     const elapsed = Date.now() - start;
@@ -305,7 +290,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                       <PersonIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.9)' }} />
                     </Avatar>
                     <Box>
-                      <Typography variant="h5" fontWeight={800} mb={0.3}>{`${c.first_name} ${c.last_name || ''}`.trim()}</Typography>
+                      <Typography variant="h5" fontWeight={800} mb={0.3}>{formatNombreCompleto(c)}</Typography>
                       <Typography variant="body2" color="text.secondary" mb={0.5}>
                         {cargoName} | {c.department || ''}
                       </Typography>

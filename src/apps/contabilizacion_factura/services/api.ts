@@ -2,24 +2,15 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, createItem, updateItem } from "@directus/sdk";
 
-/**
- * Interface for accounting vendor record (acc_accounting_vendors)
- */
 interface ProveedorContabilidad {
     id?: number;
     nit: string;
     automatic: string;
     name?: string;
-    // ── Orphans (no existen en acc_accounting_vendors, conservados en TS) ──
     numero_factura?: string;
     valor_factura?: number;
 }
 
-/**
- * Verifica si un NIT existe en la tabla acc_accounting_vendors
- * @param nit El NIT a verificar
- * @returns true si existe, false si no
- */
 export async function checkNitExists(nit: string): Promise<boolean> {
     if (!nit) return false;
 
@@ -44,11 +35,6 @@ export async function checkNitExists(nit: string): Promise<boolean> {
     }
 }
 
-/**
- * Obtiene el automático asignado a un NIT específico
- * @param nit El NIT del proveedor
- * @returns El registro del proveedor si existe, null si no
- */
 export async function getAutomaticByNit(nit: string): Promise<ProveedorContabilidad | null> {
     if (!nit) return null;
 
@@ -76,13 +62,6 @@ export async function getAutomaticByNit(nit: string): Promise<ProveedorContabili
     }
 }
 
-/**
- * Verifica si existe un proveedor que coincida tanto con el nombre como con el NIT
- * Utiliza comparación textual (string) para el NIT ya que puede contener guiones
- * @param nit El NIT del proveedor (ej: "12345678-9")
- * @param nombre El nombre del proveedor
- * @returns El registro del proveedor si existe coincidencia en ambos campos, null si no
- */
 export async function getProviderByNameAndNit(
     nit: string,
     nombre: string
@@ -125,15 +104,6 @@ export async function getProviderByNameAndNit(
     }
 }
 
-/**
- * Guarda un nuevo proveedor con su NIT y el número automático
- * @param nit El NIT del proveedor
- * @param automatico El número automático asignado
- * @param nombreProveedor El nombre del proveedor (opcional)
- * @param numeroFactura (no se persiste — no existe en acc_accounting_vendors)
- * @param valorFactura  (no se persiste — no existe en acc_accounting_vendors)
- * @returns El item creado
- */
 export async function saveNitAutomatic(
     nit: string,
     automatico: string,
@@ -161,12 +131,6 @@ export async function saveNitAutomatic(
     }
 }
 
-/**
- * Actualiza el registro de un proveedor existente
- * @param id El ID del registro
- * @param data Los datos a actualizar (claves de acc_accounting_vendors)
- * @returns El item actualizado
- */
 export async function updateAccountingProvider(id: number, data: Partial<ProveedorContabilidad>) {
     try {
         const item = await withAutoRefresh(() =>
@@ -182,9 +146,6 @@ export async function updateAccountingProvider(id: number, data: Partial<Proveed
     }
 }
 
-/**
- * Interface para proveedor de la tabla acc_suppliers
- */
 export interface AccSupplier {
     id: number;
     date_created?: string;
@@ -193,9 +154,6 @@ export interface AccSupplier {
     internal_code?: string;
 }
 
-/**
- * Interface para entrada de mercancía de la tabla acc_goods_receipts
- */
 export interface AccGoodsReceipt {
     id: number;
     date_created?: string;
@@ -207,11 +165,6 @@ export interface AccGoodsReceipt {
     status: string;
 }
 
-/**
- * Obtiene un proveedor de la tabla acc_suppliers por su NIT (sin dv)
- * @param nit El NIT limpio (sin dv)
- * @returns El proveedor o null si no se encuentra
- */
 export async function getSupplierByNit(nit: string): Promise<AccSupplier | null> {
     if (!nit) return null;
 
@@ -239,11 +192,6 @@ export async function getSupplierByNit(nit: string): Promise<AccSupplier | null>
     }
 }
 
-/**
- * Obtiene todas las entradas de mercancía de un proveedor con status 'Habilitado'
- * @param supplierId El ID del proveedor en acc_suppliers
- * @returns Listado de entradas de mercancía habilitadas
- */
 export async function getGoodsReceiptsBySupplierId(
     supplierId: number | string
 ): Promise<AccGoodsReceipt[]> {
@@ -275,12 +223,6 @@ export async function getGoodsReceiptsBySupplierId(
     }
 }
 
-/**
- * Actualiza el estado de una entrada de mercancía (acc_goods_receipts)
- * @param id El ID del registro de la entrada
- * @param status El nuevo estado (ej: "en_proceso")
- * @returns El registro actualizado
- */
 export async function updateGoodsReceiptStatus(id: number, status: string) {
     try {
         const item = await withAutoRefresh(() =>

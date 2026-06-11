@@ -1,12 +1,5 @@
 import { Resolution } from "../types";
 import { DirectusResolucion } from "../api/read";
-
-/**
- * Calcula el estado de una resolución basado en varios factores:
- * - Número de facturas restantes
- * - Días restantes de vigencia
- * - Estado original en la base de datos
- */
 export function calculateStatus(
   hasta: number,
   vigencia: number,
@@ -39,24 +32,17 @@ export function calculateStatus(
     (fechaExpiracion.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24),
   );
 
-  // Vencido por facturas (menos de 10 facturas) o por fecha (días agotados)
   if (facturasRestantes <= 10 || diasRestantes < 1) {
     return "Vencido";
   }
 
-  // Por vencer por facturas (menos de 70 facturas) o por fecha (menos de 5 días)
   if (facturasRestantes <= 70 || diasRestantes < 5) {
     return "Por vencer";
   }
 
-  // Vigente
   return "Vigente";
 }
 
-/**
- * Calcula la información de facturas disponibles
- * Retorna el número de facturas restantes y un texto descriptivo
- */
 export function calculateInvoices(
   hasta_numero: number,
   ultima_factura: number,
@@ -86,10 +72,6 @@ export function calculateInvoices(
   return { disponibles, restantes, texto, porcentaje };
 }
 
-/**
- * Calcula la fecha de vencimiento sumando los meses de vigencia
- * a la fecha de creación
- */
 export function calculateMaturity(
   fecha_creacion: string,
   vigencia: number,
@@ -106,10 +88,6 @@ export function calculateMaturity(
   }
 }
 
-/**
- * Calcula los días restantes hasta el vencimiento y genera
- * un texto descriptivo
- */
 export function DaysRemaining(
   vigencia: number,
   fecha_creacion: string,
@@ -141,10 +119,6 @@ export function DaysRemaining(
   return { dias, texto };
 }
 
-/**
- * Transforma una resolución de Directus (estructura anidada)
- * a un formato plano para la UI
- */
 export function flattenResolution(r: DirectusResolucion): Resolution {
   const prefix = r.prefix_id;
   const pos = prefix?.pos_id;

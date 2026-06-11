@@ -1,4 +1,3 @@
-// src/apps/gestion_proyectos/pages/NuevoProyecto.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -29,7 +28,6 @@ import { ProjectForm } from "../components/ProjectForm";
 import { ProcessList } from "../components/ProcessList";
 import { BenefitList } from "../components/BenefitList";
 
-// ─── Styled ───────────────────────────────────────────────────────────────────
 const VolverButton = styled(Button)({
   backgroundColor: "#004680",
   color: "white",
@@ -65,7 +63,6 @@ const TabButton = styled(Button, {
   },
 }));
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface ProcessForm {
   id: string;
   name: string;
@@ -95,7 +92,6 @@ interface ProjectFormData {
 
 type TabId = "info" | "processes" | "benefits";
 
-// ──────────── Componente ───────────────
 export default function NewProject() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -121,7 +117,6 @@ export default function NewProject() {
   const [benefits, setBenefits] = useState<BenefitForm[]>([]);
   const [assigneesList, setAssigneesList] = useState<string[]>([]);
 
-  // ─── Assignees ─────────────────────────────────────────────────────────────
   const handleAddAssignee = (name: string) =>
     setAssigneesList((prev) => [...prev, name]);
   const handleRemoveAssignee = (index: number) =>
@@ -129,7 +124,6 @@ export default function NewProject() {
   const handleProjectChange = (field: keyof ProjectFormData, value: string) =>
     setProjectData((prev) => ({ ...prev, [field]: value }));
 
-  // ─── Global frequency ──────────────────────────────────────────────────────
   const handleWeekdaysChange = (value: string) => {
     setGlobalWeekdays(value);
     setProcesses((prev) =>
@@ -147,7 +141,6 @@ export default function NewProject() {
     );
   };
 
-  // ─── Processes ────────────────────────────────────────────────────────────────
   const addProcess = () =>
     setProcesses((prev) => [
       ...prev,
@@ -168,7 +161,6 @@ export default function NewProject() {
       prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
     );
 
-  // ─── Benefits ──────────────────────────────────────────────────────────────
   const addBenefit = () =>
     setBenefits((prev) => [
       ...prev,
@@ -181,7 +173,6 @@ export default function NewProject() {
       prev.map((b) => (b.id === id ? { ...b, description } : b))
     );
 
-  // ─── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -217,7 +208,6 @@ export default function NewProject() {
       const projectId = await createProject(inputData);
       if (!projectId) throw new Error("Error al crear el proyecto");
 
-      // ✅ Save processes
       if (processes.length > 0) {
         const processesData: CreateProcessInput[] = processes.map((p, index) => ({
           project_id: projectId,
@@ -233,7 +223,6 @@ export default function NewProject() {
         await createProcesses(processesData);
       }
 
-      // ✅ Save benefits
       if (benefits.length > 0) {
         const benefitsData: CreateBenefitInput[] = benefits.map((b) => ({
           project_id: projectId,
@@ -251,14 +240,12 @@ export default function NewProject() {
     }
   };
 
-  // ─── Tabs config ─────────────────────────────────────────────────────────────
   const tabs: { id: TabId; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: "info", label: "Información General", icon: <DescriptionIcon sx={{ fontSize: 16 }} /> },
     { id: "processes", label: "Procesos", icon: <TimerIcon sx={{ fontSize: 16 }} />, badge: processes.length || undefined },
     { id: "benefits", label: "Beneficios", icon: <StarIcon sx={{ fontSize: 16 }} />, badge: benefits.length || undefined },
   ];
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ minHeight: "100vh", p: 3 }}>
       <Box sx={{ maxWidth: "90%", mx: "auto" }}>

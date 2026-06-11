@@ -42,7 +42,6 @@ export const calculateBudgetsWithFixedDistributive = (
 
   let presupuestoRestante = presupuesto_total;
 
-  // 1. Calcular fijos primero
   if (porcentajes.gerente_tipo === "fijo" && empleadosPorRol.gerente > 0) {
     const presupuestoGerente = round(
       (presupuesto_total * porcentajes.gerente_porcentaje) / 100
@@ -70,13 +69,10 @@ export const calculateBudgetsWithFixedDistributive = (
     presupuestoRestante -= presupuestoCajero;
   }
 
-  // Gerente Online: presupuesto fijo de 1 por empleado
   if (empleadosPorRol.gerente_online > 0) {
     presupuestos.gerente_online = empleadosPorRol.gerente_online * 1;
-    // No se resta del presupuesto restante porque es un presupuesto independiente
   }
 
-  // 2. Calcular distributivos con el presupuesto restante
   const distributivos: string[] = [];
 
   if (
@@ -110,7 +106,7 @@ export const calculateBudgetsWithFixedDistributive = (
     distributivos.push("logistico");
   }
 
-  // Distribuir presupuesto restante entre todos los empleados de roles distributivos
+
   let totalEmpleadosDistributivos = 0;
   distributivos.forEach((rol) => {
     totalEmpleadosDistributivos +=
@@ -132,9 +128,6 @@ export const calculateBudgetsWithFixedDistributive = (
   return presupuestos;
 };
 
-/**
- * Calcula el presupuesto para el gerente basado en el porcentaje fijo mensual (LEGACY)
- */
 export const calculateManagerBudget = (
   presupuesto_total: number,
   porcentaje_gerente: number
@@ -142,9 +135,6 @@ export const calculateManagerBudget = (
   return round((presupuesto_total * porcentaje_gerente) / 100);
 };
 
-/**
- * Calcula el presupuesto para cada asesor (LEGACY)
- */
 export const calculateAdvisorBudget = (
   presupuesto_total: number,
   porcentaje_gerente: number,
@@ -156,9 +146,6 @@ export const calculateAdvisorBudget = (
   return round(presupuesto_asesores / cantidad_asesores);
 };
 
-/**
- * Filtra presupuestos por mes
- */
 export const filterBudgetsByMonth = (
   budgets: BudgetRecord[],
   mes: string

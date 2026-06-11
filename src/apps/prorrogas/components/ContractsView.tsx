@@ -19,8 +19,8 @@ import { useContracts, EnrichedContrato } from '../hooks/useContracts';
 import { useContractContext } from '../contexts/ContractContext';
 import { ContratoForm } from './ContratoForm';
 import { CreateContrato, Contrato, Prorroga } from '../types/types';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
-// ─── Constantes ───────────────────────────────────────────────────────────────
 const CARD_RADIUS = 14;
 
 const STATUS_CFG = {
@@ -36,7 +36,6 @@ function initials(name: string) {
   return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
 }
 
-// ─── Status Chip ──────────────────────────────────────────────────────────────
 const StatusChip: React.FC<{ status: keyof typeof STATUS_CFG }> = ({ status }) => {
   const cfg = STATUS_CFG[status];
   return (
@@ -49,7 +48,6 @@ const StatusChip: React.FC<{ status: keyof typeof STATUS_CFG }> = ({ status }) =
   );
 };
 
-// ─── Prorroga Chip ────────────────────────────────────────────────────────────
 const ProrrogaChip: React.FC<{ numero: number }> = ({ numero }) => (
   <Chip
     label={numero === 0 ? 'Original' : `Prórroga #${numero}`}
@@ -65,7 +63,6 @@ const ProrrogaChip: React.FC<{ numero: number }> = ({ numero }) => (
   />
 );
 
-// ─── Sort Header Cell ─────────────────────────────────────────────────────────
 const SortCell: React.FC<{
   label: string;
   field: SortKey;
@@ -94,7 +91,6 @@ const SortCell: React.FC<{
   </TableCell>
 );
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 const ContractsView: React.FC = () => {
   const { allEnriched, counts } = useContracts();
   const { addContrato, updateContrato, deleteContrato } = useContractContext();
@@ -134,7 +130,7 @@ const ContractsView: React.FC = () => {
         if (tab !== 'todos' && c.contractStatus !== tab) return false;
         if (!q) return true;
         return (
-          c.first_name.toLowerCase().includes(q) ||
+          formatNombreCompleto(c).toLowerCase().includes(q) ||
           String(c.position).toLowerCase().includes(q) ||
           (c.empleado_area?.toLowerCase() ?? '').includes(q) ||
           String(c.id).includes(q)
@@ -143,7 +139,7 @@ const ContractsView: React.FC = () => {
       .sort((a, b) => {
         let cmp = 0;
         if (sortKey === 'vencimiento') cmp = a.daysLeft - b.daysLeft;
-        if (sortKey === 'nombre') cmp = a.first_name.localeCompare(b.first_name);
+        if (sortKey === 'nombre') cmp = formatNombreCompleto(a).localeCompare(formatNombreCompleto(b));
         if (sortKey === 'prorroga') cmp = (b.extensions?.length ?? 0) - (a.extensions?.length ?? 0);
         return sortDir === 'asc' ? cmp : -cmp;
       });
@@ -306,7 +302,7 @@ const ContractsView: React.FC = () => {
                           </Avatar>
                           <Box>
                             <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.83rem', lineHeight: 1.3 }}>
-                              {c.first_name}
+                              {formatNombreCompleto(c)}
                             </Typography>
                             <Typography variant="caption" color="text.disabled">
                               {c.empleado_area}

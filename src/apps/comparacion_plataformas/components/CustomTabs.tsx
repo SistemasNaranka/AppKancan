@@ -21,7 +21,7 @@ const CustomTabs: React.FC<CustomTabsProps> = ({ tabs, activeTab, onChange }) =>
         alignItems: "center",
         borderBottom: "1px solid #e0e0e0",
         backgroundColor: "transparent",
-        mt: 0, // Ajustado a 0 para alineación perfecta con botones
+        mt: 0,
       }}
     >
       {tabs.map((tab) => {
@@ -33,7 +33,7 @@ const CustomTabs: React.FC<CustomTabsProps> = ({ tabs, activeTab, onChange }) =>
             key={tab.id}
             onClick={() => !isDisabled && onChange(tab.id)}
             sx={{
-              padding: "10px 80px", // Reducido un poco para mayor elegancia
+              padding: "10px 80px",
               cursor: isDisabled ? "not-allowed" : "pointer",
               borderTopLeftRadius: "8px",
               borderTopRightRadius: "8px",

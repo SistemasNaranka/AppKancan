@@ -7,9 +7,6 @@ import {
   type AppsLoadingStatus,
 } from "@/apps/hooks/AppContext";
 
-/**
- * Provider que otorga a sus hijos las aplicaciones obtenidas de Directus
- */
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -22,11 +19,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     status: "loading",
   });
 
-  /**
-   * Carga las aplicaciones de Directus
-   */
   const cargarApps = useCallback(async () => {
-    // Si el usuario no está autenticado
     if (!isAuthenticated) {
       setArea(null);
       setApps([]);
@@ -41,7 +34,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const data = await getApps();
 
-      // Verificar si el usuario tiene apps asignadas
       if (!data || data.length === 0) {
         setApps([]);
         setArea(null);
@@ -55,7 +47,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setApps(data);
 
-      // Estableciendo area apartir del id del usuario
       const areaUsuario = await getUserArea();
 
       if (areaUsuario.length < 1) {
@@ -81,7 +72,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         setArea(areaValue);
         setLoading(false);
 
-        // Verificar si el área es null o vacía
         if (!areaValue) {
           setLoadingStatus({
             status: "no_area",
@@ -97,14 +87,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       setApps([]);
       setArea(null);
       setLoading(false);
-      setLoadingStatus({ status: "loading" }); // En caso de error, mantiene loading
+      setLoadingStatus({ status: "loading" });
     }
   }, [isAuthenticated]);
 
-  // ✅ FIX: Solo depender de isAuthenticated, NO de area
   useEffect(() => {
     cargarApps();
-  }, [cargarApps]); // Solo se recarga cuando cambia la autenticación
+  }, [cargarApps]);
 
   return (
     <AppContext.Provider

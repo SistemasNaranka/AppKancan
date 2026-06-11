@@ -1,5 +1,3 @@
-// src/apps/reservas/components/TablaReservas.tsx
-
 import React from "react";
 import {
   Box,
@@ -42,7 +40,6 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
   onCancelar,
   loading = false,
 }) => {
-  // Filtrar solo reservas vigentes y en curso (no mostrar finalizadas ni canceladas)
   const reservasFiltradas = reservas.filter((reserva) => {
     const estado =
       (reserva.estadoCalculado || reserva.status)?.toLowerCase() || "";
@@ -54,7 +51,6 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
     if (!reserva.user_id) return false;
     if (reserva.user_id.id !== usuarioActualId) return false;
 
-    // Usar estado calculado para determinar si puede modificarse
     const estadoActual = reserva.estadoCalculado || reserva.status;
     if (!puedeModificarse(estadoActual)) return false;
 
@@ -66,7 +62,6 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
 
   const formatearFecha = (fecha: string): string => {
     try {
-      // Agregar T12:00:00 para evitar problemas de zona horaria
       return format(new Date(fecha + "T12:00:00"), "d MMM yyyy", {
         locale: es,
       });
@@ -86,7 +81,6 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
     return `${reserva.user_id.first_name} ${reserva.user_id.last_name}`;
   };
 
-  // Obtener el estado a mostrar (calculado o guardado)
   const getEstadoMostrar = (reserva: Reserva): EstadoReserva => {
     return (reserva.estadoCalculado || reserva.status) as EstadoReserva;
   };
@@ -135,9 +129,6 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
             <TableCell sx={{ fontWeight: "bold", color: "#1a2a3ae0" }}>
               HORA FIN
             </TableCell>
-            {/* <TableCell sx={{ fontWeight: "bold", color: "#1a2a3ae0" }}>
-              USUARIO
-            </TableCell> */}
             <TableCell sx={{ fontWeight: "bold", color: "#1a2a3ae0" }}>
               ESTADO
             </TableCell>
@@ -200,13 +191,6 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
                     {formatearHora(reserva.end_time)}
                   </Typography>
                 </TableCell>
-
-                {/* Usuario
-                <TableCell>
-                  <Typography variant="body2">
-                    {getNombreUsuario(reserva)}
-                  </Typography>
-                </TableCell> */}
 
                 {/* Estado */}
                 <TableCell>

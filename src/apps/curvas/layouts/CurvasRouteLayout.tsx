@@ -11,14 +11,6 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useCurvasPolicies } from '../hooks/useCurvasPolicies';
 import { CurvasTourProvider, useCurvasTour } from '../components/CurvasTour';
 
-/**
- * Layout principal del módulo de Curvas
- * 
- * Envuelve todas las páginas del módulo con:
- * - AppBar con navegación
- * - Tabs para cambiar entre vistas
- * - Contenedor principal para el contenido
- */
 export const CurvasRouteLayout = () => (
   <CurvasTourProvider>
     <CurvasRouteLayoutInner />
@@ -34,7 +26,6 @@ const CurvasRouteLayoutInner = () => {
 
   const isRestrictedToBodega = debeAterrizarEnDespacho();
 
-  // Redirección para usuarios de bodega - Aterrizaje dentro del módulo
   useEffect(() => {
     const p = location.pathname.toLowerCase();
     if (isRestrictedToBodega && (p === '/curvas' || p === '/curvas/' || p.includes('/upload') || p.includes('/dashboard'))) {
@@ -42,7 +33,6 @@ const CurvasRouteLayoutInner = () => {
     }
   }, [isRestrictedToBodega, location.pathname, navigate]);
 
-  // Determinar el tab activo basado en la ruta y el rol
   const getActiveTab = (): number => {
     if (location.pathname.includes('/envios')) return isRestrictedToBodega ? 0 : 2;
     if (isRestrictedToBodega) return 0;
@@ -152,7 +142,7 @@ const CurvasRouteLayoutInner = () => {
                   color: 'rgba(255,255,255,0.5)',
                   fontWeight: 700,
                   fontSize: '0.65rem',
-                  display: { xs: 'none', sm: 'block' } // Ocultar en móviles muy pequeños para ahorrar espacio
+                  display: { xs: 'none', sm: 'block' } 
                 }}
               >
                 {isRestrictedToBodega ? 'SISTEMA DE DESPACHO' : 'DISTRIBUCIÓN CENTRAL'}
@@ -248,10 +238,6 @@ const CurvasRouteLayoutInner = () => {
     </Box>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Styles Helpers
-// ─────────────────────────────────────────────────────────────────────────────
 
 const tabStyles = (selected: boolean) => ({
   textTransform: 'none',

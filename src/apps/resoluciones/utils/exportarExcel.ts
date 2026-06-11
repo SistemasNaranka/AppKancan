@@ -13,11 +13,9 @@ export const ExportExcel = async (
     return;
   }
 
-  // Crear libro y hoja
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Resoluciones");
 
-  // Definir columnas
   const columnas = [
     { key: "numero_formulario", header: "Resolución" },
     { key: "razon_social", header: "Razón Social" },
@@ -31,14 +29,12 @@ export const ExportExcel = async (
     { key: "estado", header: "Estado" },
   ];
 
-  // Configurar columnas en la hoja
   worksheet.columns = columnas.map((col) => ({
     header: col.header,
     key: col.key,
     width: 20,
   }));
 
-  // Estilo del encabezado
   const headerRow = worksheet.getRow(1);
   headerRow.eachCell((cell) => {
     cell.fill = {
@@ -62,7 +58,6 @@ export const ExportExcel = async (
     };
   });
 
-  // Agregar datos
   dataExportar.forEach((resolucion) => {
     const row = worksheet.addRow({
       numero_formulario: resolucion.numero_formulario,
@@ -77,7 +72,6 @@ export const ExportExcel = async (
       estado: resolucion.estado,
     });
 
-    // Estilo de las celdas de datos
     row.eachCell((cell) => {
       cell.border = {
         top: { style: "thin" },
@@ -91,7 +85,6 @@ export const ExportExcel = async (
     });
   });
 
-  // Auto-ajustar ancho de columnas
   worksheet.columns.forEach((column) => {
     if (column.values) {
       let maxLength = 10;
@@ -107,16 +100,13 @@ export const ExportExcel = async (
     }
   });
 
-  // Agregar filtros
   worksheet.autoFilter = {
     from: "A1",
     to: `J${dataExportar.length + 1}`,
   };
 
-  // Congelar encabezado
   worksheet.views = [{ state: "frozen", ySplit: 1 }];
 
-  // Generar archivo y descargar
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

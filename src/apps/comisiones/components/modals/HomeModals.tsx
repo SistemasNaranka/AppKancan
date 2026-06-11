@@ -5,7 +5,6 @@ import { EditStoreModalSimplified } from "./EditStoreModalSimplified";
 import { EditStoreBudgetModal } from "./EditStoreBudgetModal";
 
 interface HomeModalsProps {
-  // Modal states
   showCodesModal: boolean;
   showEditStoreModal: boolean;
   showEditStoreBudgetModal: boolean;
@@ -14,9 +13,8 @@ interface HomeModalsProps {
   modalMessage: string;
   selectedMonth: string;
   hasSavedData?: boolean;
-  tiendaSeleccionada?: any; // NUEVO: Tienda seleccionada (para Admins)
+  tiendaSeleccionada?: any;
 
-  // Modal actions
   onCloseCodesModal: () => void;
   onCloseEditStoreModal: () => void;
   onCloseEditStoreBudgetModal: () => void;
@@ -35,7 +33,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   modalMessage,
   selectedMonth,
   hasSavedData,
-  tiendaSeleccionada, // NUEVO
+  tiendaSeleccionada,
   onCloseCodesModal,
   onCloseEditStoreModal,
   onCloseEditStoreBudgetModal,
@@ -50,17 +48,11 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
     }
   };
 
-  // 🚀 NUEVO: Wrapper para onSaveComplete que maneja el flujo de guardado de forma unificada
-  // Esto asegura que tanto CodesModal como EditStoreModalSimplified/EditStoreBudgetModal 
-  // pasen por el mismo flujo de loading y actualización del contador
   const handleSaveCompleteWrapper = async () => {
     
     if (onShowSaveLoading) {
-      // Llamar a handleCodesModalSave sin error = guardado exitoso
-      // Esto muestra la pantalla de loading, espera, muestra éxito, y actualiza el contador
       await onShowSaveLoading(undefined);
     } else if (onSaveComplete) {
-      // Fallback: llamar directamente si onShowSaveLoading no existe
       await onSaveComplete();
     }
   };
@@ -75,7 +67,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         }}
         selectedMonth={selectedMonth}
         hasSavedData={hasSavedData}
-        tiendaProp={tiendaSeleccionada} // NUEVO
+        tiendaProp={tiendaSeleccionada}
         onShowSaveLoading={onShowSaveLoading}
         onAssignmentComplete={handleAssignmentComplete}
       />
@@ -94,7 +86,6 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
       <EditStoreModalSimplified
         isOpen={showEditStoreModal}
         onClose={() => {
-          // Limpiar estado antes de cerrar para evitar cargas innecesarias
           onCloseEditStoreModal();
         }}
         selectedMonth={selectedMonth}
@@ -106,11 +97,10 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
       <EditStoreBudgetModal
         isOpen={showEditStoreBudgetModal}
         onClose={() => {
-          // Limpiar estado antes de cerrar para evitar cargas innecesarias
           onCloseEditStoreBudgetModal();
         }}
         selectedMonth={selectedMonth}
-        tiendaProp={tiendaSeleccionada} // NUEVO
+        tiendaProp={tiendaSeleccionada}
         onSaveComplete={handleSaveCompleteWrapper}
       />
     </>

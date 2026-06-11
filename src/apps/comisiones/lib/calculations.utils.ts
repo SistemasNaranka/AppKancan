@@ -1,25 +1,9 @@
-/**
- * Funciones de utilidad para cálculos de comisiones
- * Combina:
- * - Funciones básicas de utilidad (anteriormente calculations.basic.ts)
- * - Funciones de obtención y filtrado de datos (anteriormente calculations.data.ts)
- * - Funciones para cálculo de próxima comisión (anteriormente calculations.next-commission.ts)
- */
-
 import { BudgetRecord, VentasData, CommissionThreshold } from "../types";
 
-// ==================== Funciones básicas de utilidad ====================
-
-/**
- * Redondea un número a 2 decimales
- */
 export const round = (value: number): number => {
   return Math.round(value * 100) / 100;
 };
 
-/**
- * Obtiene el mes y año de una fecha (formato "MMM YYYY")
- */
 export const getMonthYear = (dateStr: string): string => {
   const date = new Date(dateStr + "T00:00:00");
   const months = [
@@ -41,9 +25,6 @@ export const getMonthYear = (dateStr: string): string => {
   return `${month} ${year}`;
 };
 
-/**
- * Convierte un mes en formato "MMM YYYY" a timestamp para comparar
- */
 export const monthToTimestamp = (monthStr: string): number => {
   const [monthName, yearStr] = monthStr.split(" ");
   const monthMap: Record<string, number> = {
@@ -65,9 +46,7 @@ export const monthToTimestamp = (monthStr: string): number => {
   return year * 12 + month;
 };
 
-/**
- * Obtiene la fecha actual en formato YYYY-MM-DD usando la hora local de Colombia
- */
+
 export const getCurrentDate = (): string => {
   const now = new Date();
   const year = now.getFullYear();
@@ -76,9 +55,7 @@ export const getCurrentDate = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-/**
- * Verifica si un mes es el mes actual usando la hora local
- */
+
 export const isCurrentMonth = (mes: string): boolean => {
   const [mesNombre, anioStr] = mes.split(" ");
   const mesesMap: { [key: string]: number } = {
@@ -103,11 +80,6 @@ export const isCurrentMonth = (mes: string): boolean => {
   return ahora.getFullYear() === anio && ahora.getMonth() === mesNumero;
 };
 
-// ==================== Funciones de obtención y filtrado de datos ====================
-
-/**
- * Obtiene ventas para un empleado específico
- */
 export const getEmployeeVentas = (
   ventasData: VentasData[],
   tienda: string,
@@ -124,9 +96,7 @@ export const getEmployeeVentas = (
   return venta.ventas_por_asesor[empleadoId] || 0;
 };
 
-/**
- * Obtiene ventas totales de una tienda
- */
+
 export const getTiendaVentas = (
   ventasData: VentasData[],
   tienda: string,
@@ -141,9 +111,6 @@ export const getTiendaVentas = (
   return venta?.ventas_tienda || 0;
 };
 
-/**
- * Obtiene todos los meses únicos disponibles en los datos ordenados cronológicamente
- */
 export const getAvailableMonths = (budgets: BudgetRecord[]): string[] => {
   const months = new Set<string>();
   budgets.forEach((b) => {
@@ -154,14 +121,6 @@ export const getAvailableMonths = (budgets: BudgetRecord[]): string[] => {
   );
 };
 
-// ==================== Funciones para cálculo de próxima comisión ====================
-
-/**
- * Calcula la próxima comisión basada en la comisión actual y configuración de umbrales
- * @param comisionActual - La comisión actual en formato decimal (ej: 0.0035 para 0.35%)
- * @param thresholdConfig - Configuración de umbrales de comisión (opcional)
- * @returns La próxima comisión en formato decimal o 'NN' si ya está en el máximo
- */
 export const getNextCommission = (
   comisionActual: number,
   thresholdConfig?: CommissionThreshold[]
@@ -203,11 +162,7 @@ export const getNextCommission = (
   return umbralesOrdenados[currentIndex + 1].pct_commission;
 };
 
-/**
- * Formatea la próxima comisión para mostrar en las tablas
- * @param proximaComision - La próxima comisión (número o string)
- * @returns String formateado para mostrar
- */
+
 export const formatProximaComision = (
   proximaComision: number | string
 ): string => {
@@ -222,13 +177,7 @@ export const formatProximaComision = (
   return "-";
 };
 
-/**
- * Calcula el próximo presupuesto basado en la próxima comisión y configuración de umbrales
- * @param proximaComision - La próxima comisión
- * @param presupuestoActual - El presupuesto actual del empleado
- * @param thresholdConfig - Configuración de umbrales de comisión (opcional)
- * @returns El próximo presupuesto o null si no aplica
- */
+
 export const getNextBudget = (
   proximaComision: number | string,
   presupuestoActual: number,
@@ -267,12 +216,7 @@ export const getNextBudget = (
   return Math.round(presupuestoActual * factor * 100) / 100;
 };
 
-/**
- * Calcula la próxima venta basada en el próximo presupuesto y venta actual
- * @param proximoPresupuesto - El próximo presupuesto calculado
- * @param ventaActual - La venta actual del empleado
- * @returns La próxima venta o null si no aplica
- */
+
 export const getNextSale = (
   proximoPresupuesto: number | null,
   ventaActual: number
@@ -285,12 +229,7 @@ export const getNextSale = (
   return Math.max(0, Math.round(proximaVenta * 100) / 100);
 };
 
-/**
- * Calcula el próximo monto de comisión basado en próximo presupuesto y próxima comisión
- * @param proximoPresupuesto - El próximo presupuesto
- * @param proximaComision - La próxima comisión (porcentaje)
- * @returns El próximo monto de comisión o null si no aplica
- */
+
 export const getNextCommissionAmount = (
   proximoPresupuesto: number | null,
   proximaComision: number | string

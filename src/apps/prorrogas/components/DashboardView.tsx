@@ -16,8 +16,8 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PersonIcon from '@mui/icons-material/Person';
 import { useContracts } from '../hooks/useContracts';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
-// ── Design tokens ────────────────────────────────────────────────────────────
 const CARD = {
   borderRadius: '14px',
   boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.06)',
@@ -44,14 +44,12 @@ const StatusDot: React.FC<{ status: keyof typeof S }> = ({ status }) => {
   );
 };
 
-// ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
   onChangeTab?: (tab: string) => void;
   onNewContract?: () => void;
   onNewProrroga?: (contractId: number) => void;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
 const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrroga }) => {
   const { allEnriched, counts } = useContracts();
 
@@ -164,7 +162,7 @@ const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrr
                               <PersonIcon sx={{ fontSize: 18 }} />
                             </Avatar>
                             <Box>
-                              <Typography sx={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{c.first_name}</Typography>
+                              <Typography sx={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{formatNombreCompleto(c)}</Typography>
                               <Typography sx={{ fontSize:11, color:'#94a3b8' }}>{c.position}</Typography>
                             </Box>
                           </Box>

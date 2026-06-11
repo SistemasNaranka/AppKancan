@@ -1,4 +1,3 @@
-// src/apps/gestion_proyectos/contexts/CurvasContext.tsx
 import { createContext, useContext, useEffect, useMemo, ReactNode } from "react";
 import { useCurvasPolicies } from "../hooks/useCurvasPolicies";
 import { useAuth } from "@/auth/hooks/useAuth";

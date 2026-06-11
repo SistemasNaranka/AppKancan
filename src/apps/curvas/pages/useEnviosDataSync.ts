@@ -19,7 +19,6 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
   const [wsTrigger, setWsTrigger] = useState(0);
 
   const initDateChecked = useRef(false);
-  // Coalesce: agrupa ráfagas de eventos WS en un solo refetch (evita loops de 304s).
   const wsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleWsRefetch = () => {
     if (wsDebounceRef.current) clearTimeout(wsDebounceRef.current);
@@ -29,7 +28,6 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
     }, 800);
   };
 
-  // Fetch de fechas con datos
   useEffect(() => {
     let isMounted = true;
     const fetchFechas = async () => {
@@ -40,15 +38,12 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
       if (!initDateChecked.current) {
         initDateChecked.current = true;
         const todayStr = dayjs().format("YYYY-MM-DD");
-        // Nota: Si necesitas que setFiltroFecha se actualice aquí, 
-        // tendrías que pasarlo como prop, pero en el original solo se usaba al inicio.
       }
     };
     fetchFechas();
     return () => { isMounted = false; };
   }, []);
 
-  // WebSockets setup
   useEffect(() => {
     let isMounted = true;
     let unsubLog: (() => void) | undefined;
@@ -103,7 +98,6 @@ export const useEnviosDataSync = ({ filtroFecha, filtroReferencia, userRole, las
     };
   }, []);
 
-  // Fetch de Logs y Envíos
   useEffect(() => {
     let isMounted = true;
     const fetchLogCurvasYTiendas = async () => {

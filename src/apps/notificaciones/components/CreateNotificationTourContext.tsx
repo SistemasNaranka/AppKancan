@@ -9,8 +9,6 @@ import React, {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTutorial } from "@/shared/hooks/TutorialContext";
 
-// ── Tipos ──────────────────────────────────────────────────────────────────
-
 interface CreateNotificationTourContextType {
   isRunning: boolean;
   startTour: () => void;
@@ -21,8 +19,6 @@ const CreateNotificationTourContext = createContext<CreateNotificationTourContex
 
 const TOUR_KEY = "notificaciones-crear-tour-completed-v1";
 
-// ── Provider ────────────────────────────────────────────────────────────────
-
 interface Props { children: ReactNode }
 
 export const CreateNotificationTourProvider: React.FC<Props> = ({ children }) => {
@@ -32,7 +28,6 @@ export const CreateNotificationTourProvider: React.FC<Props> = ({ children }) =>
   const { activeTutorial, endTutorial } = useTutorial();
 
   const startTour = useCallback(() => {
-    // Apaga primero para forzar reset interno de Joyride, luego enciende
     setIsRunning(false);
     setTimeout(() => setIsRunning(true), 50);
   }, []);
@@ -42,7 +37,6 @@ export const CreateNotificationTourProvider: React.FC<Props> = ({ children }) =>
     try { localStorage.setItem(TOUR_KEY, "true"); } catch { /* noop */ }
   }, []);
 
-  // Activación via URL ?tour=start
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("tour") === "start" && !isRunning) {
@@ -51,14 +45,12 @@ export const CreateNotificationTourProvider: React.FC<Props> = ({ children }) =>
     }
   }, [location.search, location.pathname, navigate, startTour, isRunning]);
 
-  // Activación via PeekButton (clave dedicada "notificaciones-crear")
   useEffect(() => {
     if (activeTutorial !== "notificaciones-crear") return;
     endTutorial();
     startTour();
   }, [activeTutorial, endTutorial, startTour]);
 
-  // Auto-arranque la primera vez que el usuario abre la vista
   useEffect(() => {
     let completed = false;
     try { completed = localStorage.getItem(TOUR_KEY) === "true"; } catch { /* noop */ }
@@ -74,8 +66,6 @@ export const CreateNotificationTourProvider: React.FC<Props> = ({ children }) =>
     </CreateNotificationTourContext.Provider>
   );
 };
-
-// ── Hook ────────────────────────────────────────────────────────────────────
 
 export const useCreateNotificationTour = (): CreateNotificationTourContextType => {
   const ctx = useContext(CreateNotificationTourContext);

@@ -13,16 +13,11 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { useContracts } from "../hooks/useContracts";
 import { formatDate } from "../lib/utils";
+import { formatNombreCompleto } from "../lib/nombreCompleto";
 
-// Umbral en días para mostrar alertas en la campana.
-// Un contrato/prórroga aparece desde 60 días antes del vencimiento hasta el día 0.
+
 const ALERT_THRESHOLD_DAYS = 60;
-// Sub-umbral para marcar como urgente (rojo) dentro de la lista.
 const URGENT_THRESHOLD_DAYS = 15;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// NotificationBell
-// ─────────────────────────────────────────────────────────────────────────────
 
 const NotificationBell: React.FC = () => {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
@@ -166,7 +161,7 @@ const NotificationBell: React.FC = () => {
                     <ListItemText
                       primary={
                         <Typography variant="body2" fontWeight={700} color="text.primary">
-                          {c.first_name} {c.last_name ?? ''}
+                          {formatNombreCompleto(c)}
                         </Typography>
                       }
                       secondary={

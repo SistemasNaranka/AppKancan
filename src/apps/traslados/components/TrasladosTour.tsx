@@ -1,7 +1,3 @@
-/**
- * TrasladosTour.tsx
- * Componente principal del tour guiado para el módulo de traslados
- */
 import React, { useCallback, useEffect, useState, ReactNode } from "react";
 import Joyride, {
   CallBackProps,
@@ -16,10 +12,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import { useTrasladosTourContext } from "./TrasladosTourContext";
-
-// ============================================
-// PASOS DEL TOUR
-// ============================================
 
 const TOUR_STEPS: Step[] = [
   {
@@ -121,10 +113,6 @@ const TOUR_STEPS: Step[] = [
     disableBeacon: true,
   },
 ];
-
-// ============================================
-// TOOLTIP PERSONALIZADO
-// ============================================
 
 const CustomTooltip: React.FC<TooltipRenderProps> = ({
   index,
@@ -262,10 +250,6 @@ const CustomTooltip: React.FC<TooltipRenderProps> = ({
   );
 };
 
-// ============================================
-// COMPONENTE PRINCIPAL
-// ============================================
-
 interface TrasladosTourProps {
   children: ReactNode;
 }
@@ -283,10 +267,8 @@ export const TrasladosTour: React.FC<TrasladosTourProps> = ({ children }) => {
 
   const [runTour, setRunTour] = useState(false);
 
-  // Controlar cuándo corre el tour
   useEffect(() => {
     if (isFullTourRunning && tourPhase !== "COMPLETED") {
-      // Pequeño delay para asegurar que el DOM esté listo
       const timer = setTimeout(() => setRunTour(true), 300);
       return () => clearTimeout(timer);
     } else {
@@ -294,26 +276,22 @@ export const TrasladosTour: React.FC<TrasladosTourProps> = ({ children }) => {
     }
   }, [isFullTourRunning, tourPhase]);
 
-  // Handle tour callbacks
   const handleJoyrideCallback = useCallback(
     (data: CallBackProps) => {
       const { status, action, type, index } = data;
 
-      // Tour terminado
       if (status === STATUS.FINISHED) {
         setRunTour(false);
         completeTour();
         return;
       }
 
-      // Tour saltado o cerrado
       if (status === STATUS.SKIPPED || action === ACTIONS.CLOSE) {
         setRunTour(false);
         stopTour();
         return;
       }
 
-      // Actualizar índice del paso
       if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT) {
         setStepIndex(index + 1);
       }

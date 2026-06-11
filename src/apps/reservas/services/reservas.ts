@@ -23,7 +23,6 @@ import {
   estaCancelado,
 } from "../types/reservas.types";
 
-// Campos a traer de cada reserva
 const RESERVATION_FIELDS = [
   "id",
   "date_created",
@@ -47,10 +46,6 @@ const RESERVATION_FIELDS = [
   "departament",
 ];
 
-/**
- * Procesa las reservas para calcular estados dinámicos
- * NO modifica la BD, solo calcula el estado para mostrar
- */
 function procesarReservas(reservas: Reserva[]): Reserva[] {
   return reservas.map((reserva) => ({
     ...reserva,
@@ -58,9 +53,7 @@ function procesarReservas(reservas: Reserva[]): Reserva[] {
   }));
 }
 
-/**
- * Filtra reservas en el cliente basado en el estado calculado
- */
+
 function filtrarPorEstadoCalculado(
   reservas: Reserva[],
   estadoFiltro: string,
@@ -74,7 +67,6 @@ function filtrarPorEstadoCalculado(
       reserva.estadoCalculado || reserva.status
     ).toLowerCase();
 
-    // Mapear variantes
     if (estadoLower === "vigente") {
       return estadoCalculado === "vigente";
     }
@@ -94,31 +86,25 @@ function filtrarPorEstadoCalculado(
   });
 }
 
-/**
- * Obtiene todas las reservas
- */
+
 export async function getReservas(
   filtros?: FiltrosReserva,
 ): Promise<Reserva[]> {
   try {
     const filter: any = {};
 
-    // Filtro por fecha - EXACTO
     if (filtros?.date) {
       filter.date = { _eq: filtros.date };
     }
 
-    // Filtro por sala
     if (filtros?.room_name) {
       filter.room_name = { _eq: filtros.room_name };
     }
 
-    // Filtro por usuario
     if (filtros?.user_id) {
       filter.user_id = { _eq: filtros.user_id };
     }
 
-    // NO filtrar por estado en la BD (se hace después con estado calculado)
 
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -131,10 +117,8 @@ export async function getReservas(
       ),
     );
 
-    // Procesar para calcular estados
     let reservas = procesarReservas(items as Reserva[]);
 
-    // Filtrar por estado calculado en el cliente
     if (filtros?.status) {
       reservas = filtrarPorEstadoCalculado(reservas, filtros.status);
     }
@@ -146,17 +130,13 @@ export async function getReservas(
   }
 }
 
-/**
- * Obtiene reservas de un mes específico (para calendario)
- */
+
 export async function getReservasMes(
   año: number,
   mes: number,
 ): Promise<Reserva[]> {
   try {
-    // Primer día del mes
     const primerDia = `${año}-${String(mes).padStart(2, "0")}-01`;
-    // Último día del mes
     const ultimoDia = new Date(año, mes, 0).getDate();
     const ultimaFecha = `${año}-${String(mes).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
 
@@ -183,9 +163,7 @@ export async function getReservasMes(
   }
 }
 
-/**
- * Obtiene las reservas del usuario autenticado
- */
+
 export async function getMisReservas(
   filtros?: FiltrosReserva,
 ): Promise<Reserva[]> {
@@ -293,30 +271,21 @@ export async function crearReserva(datos: NuevaReserva): Promise<Reserva> {
   }
 }
 
-/**
- * Actualiza una reserva existente.
- * 1. SELECT previo para capturar estado anterior (solo en memoria).
- * 2. UPDATE con los nuevos datos.
- * 3. POST al webhook n8n con reserva_anterior, reserva nueva y cambios.
- */
+
 export async function actualizarReserva(
   id: number,
   datos: ActualizarReserva,
   skipWebhook = false,
 ): Promise<Reserva> {
   try {
-    // 1. SELECT antes del UPDATE
     const reserva_anterior = await getReservaById(id);
 
-    // 2. UPDATE
     await withAutoRefresh(() =>
       directus.request(updateItem("adm_meeting_reservations", id, datos)),
     );
 
     const reservaActualizada = await getReservaById(id);
 
-    // 3. Notificar webhook n8n (fire-and-forget, no bloquea)
-    // skipWebhook=true cuando la llamada viene de cancelarReserva
     if (skipWebhook) return reservaActualizada;
 
     const { notificarCorreoReserva } = await import("./correoReservas");
@@ -344,16 +313,12 @@ export async function actualizarReserva(
   }
 }
 
-/**
- * Cancela una reserva
- */
+
 export async function cancelarReserva(id: number): Promise<Reserva> {
   return await actualizarReserva(id, { status: "Cancelado" }, true);
 }
 
-/**
- * Elimina una reserva
- */
+
 export async function eliminarReserva(id: number): Promise<void> {
   try {
     await withAutoRefresh(() =>
@@ -365,9 +330,7 @@ export async function eliminarReserva(id: number): Promise<void> {
   }
 }
 
-/**
- * Verifica si hay conflicto de horario
- */
+
 export async function verificarConflictoHorario(
   sala: string,
   fecha: string,
@@ -423,20 +386,14 @@ export async function verificarConflictoHorario(
   }
 }
 
-/**
- * Interfaz para la configuración de horarios de reservas
- */
+
 export interface ConfiguracionReserva {
   id: number;
-  opening_time: string; // Ej: "08:00:00"
-  closing_time: string; // Ej: "15:00:00"
+  opening_time: string;
+  closing_time: string; 
 }
 
-/**
- * Obtiene la configuración de horarios para reservas desde la BD.
- * Resultado cacheado en memoria — se reusa mientras la sesión esté activa.
- * Llama a invalidarCacheConfiguracion() si el admin cambia los horarios.
- */
+
 let _configCache: ConfiguracionReserva | null | undefined = undefined;
 
 export function invalidarCacheConfiguracion(): void {
@@ -472,16 +429,12 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
   }
 }
 
-/**
- * Actualiza automáticamente las reservas que ya finalizaron a estado "Finalizado"
- * Esta función debe llamarse al cargar las reservas para mantener la BD actualizada
- */
+
 export async function actualizarReservasFinalizadas(): Promise<number> {
   try {
     const ahora = new Date();
 
-    // Obtener todas las reservas que NO están canceladas ni finalizadas
-    // y cuya fecha/hora final ya pasó
+
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_meeting_reservations", {
@@ -502,7 +455,6 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
       return 0;
     }
 
-    // Filtrar solo las que ya pasaron su hora final
     const reservasAFinalizar = items.filter((reserva: any) => {
       const fechaFin = new Date(`${reserva.date}T${reserva.end_time}`);
       return ahora >= fechaFin;
@@ -512,7 +464,6 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
       return 0;
     }
 
-    // Actualizar cada reserva a "Finalizado"
     const actualizaciones = reservasAFinalizar.map((reserva: any) =>
       withAutoRefresh(() =>
         directus.request(
@@ -531,11 +482,7 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
     return 0;
   }
 }
-/**
- * Busca usuarios en la colección directus_users para el autocompletado
- * @param query Texto a buscar
- * @returns Lista de usuarios sugeridos
- */
+
 export const buscarUsuarios = async (query: string) => {
   if (!query || query.length < 3) return [];
 

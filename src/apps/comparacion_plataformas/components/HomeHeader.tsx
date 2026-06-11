@@ -49,19 +49,16 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   tiendasDisponibles,
   procesarArchivosRaw,
 }) => {
-  // Estado local para debounce de búsqueda
   const [busquedaLocal, setBusquedaLocal] = React.useState(busqueda);
 
-  // Efecto para actualizar la búsqueda global con delay
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setBusqueda(busquedaLocal);
-    }, 300); // 300ms de delay
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [busquedaLocal, setBusqueda]);
 
-  // Sincronizar búsqueda local si cambia desde fuera (ej: limpiar)
   React.useEffect(() => {
     setBusquedaLocal(busqueda);
   }, [busqueda]);
@@ -74,7 +71,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         </Typography>
       </Box>
 
-      {/* Barra de Acciones Sticky - Sin drag/drop ya que se maneja en la página principal */}
+      {/* Barra de Acciones Sticky */}
       <Box
         sx={{
           display: "flex",
@@ -88,7 +85,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           backdropFilter: "blur(10px)",
           py: 2,
           px: 3,
-          mx: -3, // Compensa el padding del padre (Home)
+          mx: -3,
           mb: 3,
           borderBottom: "1px solid rgba(0,0,0,0.08)",
           boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
@@ -155,7 +152,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             cargando
           }
           sx={{
-            backgroundColor: "#10b981", // Verde más moderno
+            backgroundColor: "#10b981",
             boxShadow: "0 2px 4px rgba(16, 185, 129, 0.2)",
             color: "#ffffff",
             height: "40px",

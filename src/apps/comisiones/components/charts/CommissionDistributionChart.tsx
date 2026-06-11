@@ -24,7 +24,6 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface CommissionDistributionChartProps {
   mesResumen: MesResumen | null;
-  // ✅ NUEVO: Para detectar si es una sola tienda
   esUnaSolaTienda?: boolean;
 }
 
@@ -85,12 +84,10 @@ export const CommissionDistributionChart: React.FC<
     );
   }
 
-  // ✅ MEJORADO: Solo mostrar roles que realmente tienen comisiones > 0
   const comisionesPorRolFiltradas = Object.entries(
     mesResumen.comisiones_por_rol,
-  ).filter(([_, amount]) => amount > 0); // Volver al filtro original
+  ).filter(([_, amount]) => amount > 0);
 
-  // Si no hay datos de comisiones en absoluto, mostrar mensaje de no datos
   if (Object.keys(mesResumen.comisiones_por_rol || {}).length === 0) {
     return (
       <Card sx={{ height: 400 }}>
@@ -111,9 +108,6 @@ export const CommissionDistributionChart: React.FC<
     0,
   );
 
-  // Si el total es 0, mostrar todos los roles con 0% pero manteniendo la estructura
-
-  // ✅ MEJORADO: Datos del gráfico filtrados y mejor formateados
   const chartData = {
     labels: comisionesPorRolFiltradas.map(([role]) => {
       const config = roleConfig[role as keyof typeof roleConfig];
@@ -145,10 +139,9 @@ export const CommissionDistributionChart: React.FC<
           pointStyle: "circle",
           padding: isMobile ? 8 : 16,
           font: {
-            size: esUnaSolaTienda ? 11 : 12, // ✅ MEJORADO: Texto más pequeño para una sola tienda
+            size: esUnaSolaTienda ? 11 : 12,
             weight: "bold" as const,
           },
-          // ✅ MEJORADO: Evitar cortes de texto
           boxWidth: 15,
           boxHeight: 15,
         },
@@ -165,7 +158,7 @@ export const CommissionDistributionChart: React.FC<
             const value = context.parsed || 0;
             let percentage;
             if (totalComisiones === 0) {
-              percentage = 0; // Todos los roles tienen 0% cuando no hay comisiones
+              percentage = 0;
             } else {
               percentage = ((value / totalComisiones) * 100).toFixed(1);
             }
@@ -180,7 +173,7 @@ export const CommissionDistributionChart: React.FC<
         },
       },
     },
-    cutout: esUnaSolaTienda ? "65%" : "60%", // ✅ MEJORADO: Más espacio para una sola tienda
+    cutout: esUnaSolaTienda ? "65%" : "60%",
   };
 
   return (
@@ -292,8 +285,8 @@ export const CommissionDistributionChart: React.FC<
           {/* Detalles por rol */}
           <Box
             sx={{
-              width: isMobile ? "100%" : esUnaSolaTienda ? "45%" : "40%", // ✅ MEJORADO: Más espacio para una sola tienda
-              maxHeight: isMobile ? 140 : "auto", // ✅ MEJORADO: Más espacio para una sola tienda
+              width: isMobile ? "100%" : esUnaSolaTienda ? "45%" : "40%",
+              maxHeight: isMobile ? 140 : "auto",
               overflowY: isMobile ? "auto" : "visible",
             }}
           >
@@ -313,7 +306,6 @@ export const CommissionDistributionChart: React.FC<
               )}
             </Typography>
 
-            {/* ✅ MEJORADO: Usar datos filtrados y mejor layout */}
             {comisionesPorRolFiltradas.map(([role, amount]) => {
               const config = roleConfig[role as keyof typeof roleConfig];
               const percentageStr =
@@ -337,11 +329,10 @@ export const CommissionDistributionChart: React.FC<
                       variant={isMobile ? "caption" : "body2"}
                       fontWeight="bold"
                       sx={{
-                        // ✅ MEJORADO: Evitar cortes de texto
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        maxWidth: esUnaSolaTienda ? 120 : 150, // ✅ MEJORADO: Ancho adaptativo
+                        maxWidth: esUnaSolaTienda ? 120 : 150,
                       }}
                     >
                       {config?.label || role}
@@ -359,7 +350,6 @@ export const CommissionDistributionChart: React.FC<
                       variant={isMobile ? "caption" : "body2"}
                       color="text.secondary"
                       sx={{
-                        // ✅ MEJORADO: Formato de moneda adaptativo
                         fontSize: esUnaSolaTienda ? "0.7rem" : "0.75rem",
                       }}
                     >
@@ -381,7 +371,7 @@ export const CommissionDistributionChart: React.FC<
                     variant="determinate"
                     value={totalComisiones === 0 ? 0 : percentageNum}
                     sx={{
-                      height: esUnaSolaTienda ? 3 : 4, // ✅ MEJORADO: Barra más delgada para una sola tienda
+                      height: esUnaSolaTienda ? 3 : 4,
                       borderRadius: 2,
                       backgroundColor: theme.palette.grey[200],
                       "& .MuiLinearProgress-bar": {

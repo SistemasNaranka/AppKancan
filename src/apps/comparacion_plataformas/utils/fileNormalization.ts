@@ -1,34 +1,25 @@
-// src/pruebas/utils/fileNormalization.ts
 import { MapeoArchivo, TiendaMapeo } from "../types/mapeo.types";
 
-/**
- * Calcula similitud entre dos strings usando fuzzy matching
- * Retorna un valor entre 0 y 1
- */
 export const fuzzyMatch = (search: string, target: string): number => {
-  // Normalizar: minúsculas, quitar caracteres especiales y fechas
   const normalize = (str: string) => {
     return str
       .toLowerCase()
-      .replace(/\d{2}[-/]\d{2}[-/]\d{4}/g, "") // Quitar fechas DD-MM-YYYY
-      .replace(/\d{4}[-/]\d{2}[-/]\d{2}/g, "") // Quitar fechas YYYY-MM-DD
-      .replace(/[^a-z0-9\s]/g, " ") // Caracteres especiales -> espacios
-      .replace(/\s+/g, " ") // Múltiples espacios -> uno
+      .replace(/\d{2}[-/]\d{2}[-/]\d{4}/g, "")
+      .replace(/\d{4}[-/]\d{2}[-/]\d{2}/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
   };
 
   const searchNorm = normalize(search);
   const targetNorm = normalize(target);
 
-  // Coincidencia exacta
   if (searchNorm === targetNorm) return 1.0;
 
-  // Uno contiene al otro
   if (targetNorm.includes(searchNorm) || searchNorm.includes(targetNorm)) {
     return 0.9;
   }
 
-  // Comparar palabras clave
   const searchWords = searchNorm.split(" ").filter((w) => w.length > 2);
   const targetWords = targetNorm.split(" ").filter((w) => w.length > 2);
 
@@ -49,15 +40,12 @@ export const fuzzyMatch = (search: string, target: string): number => {
   return matches / Math.max(searchWords.length, targetWords.length);
 };
 
-/**
- * Encuentra el mejor mapeo para un nombre de archivo
- */
 export const findBestMatch = (
   fileName: string,
   mappingTable: MapeoArchivo[],
 ): { mapeo: MapeoArchivo; tipoArchivo: string } | null => {
   let bestMatch: MapeoArchivo | null = null;
-  let bestScore = 0.5; // Umbral mínimo de coincidencia
+  let bestScore = 0.5;
   let tipoArchivo = "";
 
 
@@ -78,9 +66,6 @@ export const findBestMatch = (
   return bestMatch ? { mapeo: bestMatch, tipoArchivo } : null;
 };
 
-/**
- * Elimina columnas específicas de los datos
- */
 export const eliminarColumnasPorNombre = (
   datos: any[],
   columnasEliminar: string[],
@@ -98,43 +83,30 @@ export const eliminarColumnasPorNombre = (
   });
 };
 
-/**
- * Normaliza un string para comparación robusta
- * Elimina acentos, espacios extra, caracteres especiales, y convierte a minúsculas
- */
 const normalizarParaComparacion = (str: string): string => {
   return str
-    .normalize("NFD") // Descomponer caracteres con acentos
-    .replace(/[\u0300-\u036f]/g, "") // Eliminar marcas diacríticas
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, " ") // Reemplazar caracteres especiales con espacios
-    .replace(/\s+/g, " ") // Múltiples espacios a uno solo
+    .replace(/[^a-z0-9]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 };
 
-/**
- * Mapea nombres de tiendas en todas las celdas del archivo
- * Busca coincidencias y reemplaza con el nombre normalizado + agrega tiendaId
- */
 export const mapearNombresTiendasEnTodasLasCeldas = (
   datos: any[],
   mapeosTienda: TiendaMapeo[],
   tipoArchivo: string,
 ): any[] => {
-  // --- FASE 0: Filtrado de filas inválidas (ej. "Prueba RBM" o filas de totales) ---
   const datosFiltrados = datos.filter((fila) => {
     const valores = Object.values(fila).map((v) => String(v || "").trim());
 
-    // 1. Filtrar "Prueba RBM"
     const esPruebaRBM = valores.some((v) =>
       v.toLowerCase().includes("prueba rbm"),
     );
 
-    // 2. Filtrar filas de "TOTAL" (Suma del archivo original, no es una transacción real)
-    // Buscamos coincidencia EXACTA para evitar borrar "TOTAL SPORT" o similares
     const esFilaTotal = valores.some((v) => v.toUpperCase() === "TOTAL");
 
-    // 3. Filtrar filas "RECHAZADA" o "RECHAZADO" (Normalización básica de espacios)
     const esRechazada = valores.some((v) => {
       const val = v.toUpperCase().trim();
       return (
@@ -142,7 +114,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
       );
     });
 
-    // 4. Filtrar filas de abandono ("ABANDONADO", "ABANDONADA", "ABANDONO", etc.)
     const esAbandonada = valores.some((v) => {
       const val = v.toUpperCase().trim();
       return (
@@ -170,13 +141,10 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
   });
 
 
-  // Filtrar solo los mapeos relevantes para este tipo de archivo
-  // Intento 1: Filtrar por tipo de archivo específico
   let mapeosRelevantes = mapeosTienda.filter(
     (m) => m.source_file.toLowerCase() === tipoArchivo.toLowerCase(),
   );
 
-  // Intento 2: Si es ARCHIVO EXTERNO o no hay mapeos específicos para este tipo, usar todos los mapeos disponibles
   if (tipoArchivo === "ARCHIVO EXTERNO" || mapeosRelevantes.length === 0) {
     if (mapeosRelevantes.length === 0 && tipoArchivo !== "ARCHIVO EXTERNO") {
     }
@@ -188,9 +156,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     return datosFiltrados;
   }
 
-  // --- DEBUG: Mostrar primeros 5 mapeos para verificar carga de campos ---
-
-  // Estadísticas de mapeo
   let filasMapeadas = 0;
   let filasNoMapeadas = 0;
   const tiendasEncontradas = new Set<string>();
@@ -201,7 +166,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     let tiendaIdEncontrado: number | null = null;
     let tiendaEncontrada: string | null = null;
 
-    // --- FASE 1: Búsqueda de Coincidencia Exacta de Nombre ---
     for (const columna of Object.keys(fila)) {
       const valor = String(fila[columna] || "").trim();
       if (!valor || valor.length < 2) continue;
@@ -214,27 +178,20 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
         );
 
         if (valorNormalizado === tiendaNormalizada) {
-          // Si encontramos "NARANKA SAS" (Nombre genérico), necesitamos verificar el terminal
-          // Pero si es "KAN CAN JEANS - NARANKA", es un nombre específico y no deberíamos forzar la lógica genérica a menos que tenga terminal.
-
           const esMapeoGenericoNaranka =
             tiendaNormalizada === "naranka sas" ||
             tiendaNormalizada === "naranka";
 
           if (esMapeoGenericoNaranka) {
-            // Lógica estricta para NARANKA GENÉRICO:
 
             if (mapeo.acquirer_id) {
-              // Normalizar idadquiriente del mapeo para comparación más robusta
               const idAdquirienteMapeo = String(mapeo.acquirer_id)
                 .trim()
                 .toLowerCase();
 
-              // Buscar coincidencia en valores de la fila
               const tieneIdAdquiriente = Object.values(fila).some((v) => {
                 if (v === null || v === undefined) return false;
                 const valorCelda = String(v).trim().toLowerCase();
-                // Comparación exacta o si el valor de la celda contiene el ID (flexibilidad)
                 const match =
                   valorCelda === idAdquirienteMapeo ||
                   (valorCelda.includes(idAdquirienteMapeo) &&
@@ -242,7 +199,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
                   (idAdquirienteMapeo.includes(valorCelda) &&
                     valorCelda.length > 3);
 
-                // DEBUG SOLO PARA NARANKA
                 if (valorNormalizado.includes("naranka") && match) {
                 }
                 return match;
@@ -252,16 +208,13 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
                 continue;
               }
             } else {
-              // Es un mapeo de NARANKA SAS sin idadquiriente definido.
-              // AL SER GENÉRICO y no tener idadquiriente para diferenciar, LO IGNORAMOS para evitar agrupación optimista.
               continue;
             }
           } else if (
             valorNormalizado.includes("naranka") &&
             mapeo.acquirer_id
           ) {
-            // Caso: Nombre específico (ej. Kan Can) pero TIENE idadquiriente definido en el mapeo.
-            // Debemos validar el idadquiriente si existe obligatoriamente.
+          
             const idAdquirienteMapeo = String(mapeo.acquirer_id)
               .trim()
               .toLowerCase();
@@ -282,7 +235,7 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
           tiendaIdEncontrado = mapeo.store_id;
           tiendaEncontrada = mapeo.tiendaNormalizada;
-          filaNueva[columna] = tiendaEncontrada; // ¡REEMPLAZAR EL NOMBRE EN EL ARCHIVO!
+          filaNueva[columna] = tiendaEncontrada;
 
           break;
         }
@@ -290,13 +243,9 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
       if (tiendaIdEncontrado) break;
     }
 
-    // --- FASE 2: Búsqueda de Coincidencia Parcial (Último recurso) ---
-    // SOLO ejecutar si NO es un archivo externo genérico.
-    // Para archivos externos, la coincidencia parcial es demasiado arriesgada ("Bancolombia" en una descripción no significa que sea la tienda)
     if (!tiendaIdEncontrado && tipoArchivo !== "ARCHIVO EXTERNO") {
       for (const columna of Object.keys(fila)) {
         const valor = String(fila[columna] || "").trim();
-        // Ignorar celdas con números muy largos o fechas
         if (
           !valor ||
           valor.length < 5 ||
@@ -306,7 +255,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
         )
           continue;
 
-        // Ignorar descripciones muy largas que probablemente sean texto libre y no nombres de tienda
         if (valor.length > 40) continue;
 
         const valorNormalizado = normalizarParaComparacion(valor);
@@ -315,11 +263,9 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
           const tiendaNormalizada = normalizarParaComparacion(
             mapeo.store_file,
           );
-          // Aumentar estrictez: mínimo 5 caracteres para coincidencia parcial
           if (tiendaNormalizada.length < 5) continue;
 
           if (valorNormalizado.includes(tiendaNormalizada)) {
-            // --- INICIO LÓGICA DE PROTECCIÓN NARANKA (FASE 2) ---
             const esMapeoGenericoNaranka =
               tiendaNormalizada === "naranka sas" ||
               tiendaNormalizada === "naranka";
@@ -343,7 +289,7 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
                 if (!tieneIdAdquiriente) continue;
               } else {
-                continue; // Ignorar mapeo genérico en parciales también
+                continue;
               }
             } else if (
               valorNormalizado.includes("naranka") &&
@@ -366,11 +312,10 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
 
               if (!tieneIdAdquiriente) continue;
             }
-            // --- FIN LÓGICA DE PROTECCIÓN NARANKA ---
 
             tiendaIdEncontrado = mapeo.store_id;
             tiendaEncontrada = mapeo.tiendaNormalizada;
-            filaNueva[columna] = tiendaEncontrada; // ¡REEMPLAZAR EL NOMBRE EN EL ARCHIVO!
+            filaNueva[columna] = tiendaEncontrada;
 
             if (index < 3) {
             }
@@ -381,7 +326,6 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
       }
     }
 
-    // Agregar metadatos de tienda a la fila
     if (tiendaIdEncontrado !== null) {
       filaNueva["tiendaId"] = tiendaIdEncontrado;
       filaNueva["_tienda_normalizada"] = tiendaEncontrada;
@@ -396,17 +340,12 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
     return filaNueva;
   });
 
-  // Resumen de estadísticas
-
   if (filasNoMapeadas > 0) {
   }
 
   return datosMapeados;
 };
 
-/**
- * Obtiene las columnas que quedan después de eliminar las especificadas
- */
 export const obtenerColumnasRestantes = (
   columnasOriginales: string[],
   columnasEliminar: string[],
@@ -417,9 +356,6 @@ export const obtenerColumnasRestantes = (
   );
 };
 
-/**
- * Interfaz para resultados de validación
- */
 export interface ResultadoValidacion {
   valido: boolean;
   errores: string[];
@@ -433,9 +369,6 @@ export interface ResultadoValidacion {
   };
 }
 
-/**
- * Valida que los datos normalizados tengan la información de tienda correctamente asignada
- */
 export const validarDatosNormalizados = (
   datos: any[],
   tipoArchivo: string,
@@ -459,7 +392,6 @@ export const validarDatosNormalizados = (
     };
   }
 
-  // Contar filas con y sin tienda
   let filasMapeadas = 0;
   let filasNoMapeadas = 0;
   const tiendasUnicas = new Set<string>();
@@ -478,7 +410,6 @@ export const validarDatosNormalizados = (
 
   const porcentajeMapeado = (filasMapeadas / datos.length) * 100;
 
-  // Validaciones
   if (filasNoMapeadas === datos.length) {
     errores.push(
       `NINGUNA fila fue mapeada a una tienda para "${tipoArchivo}". Verifica la configuración de mapeos en Directus.`,

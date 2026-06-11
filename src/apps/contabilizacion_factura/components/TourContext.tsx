@@ -60,8 +60,6 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   const [hasUploadedFile, setHasUploadedFile] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Callbacks
   const [fileSelectedCallback, setFileSelectedCallback] = useState<(() => void) | null>(null);
   const [invoiceCausedCallback, setInvoiceCausedCallback] = useState<(() => void) | null>(null);
   const [showInvoiceDataCallback, setShowInvoiceDataCallbackState] = useState<(() => void) | null>(null);
@@ -71,7 +69,6 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
 
   const isTourRunning = tourPhase !== "IDLE" && tourPhase !== "COMPLETED";
 
-  // Iniciar el tour — limpiar estado previo y resetear Home
   const startTour = useCallback(() => {
     if (onTourStartCallback) {
       onTourStartCallback();
@@ -81,7 +78,6 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
     setTourPhase("UPLOAD");
   }, [onTourStartCallback]);
 
-  // Auto-iniciar tour si hay ?tour=start en la URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("tour") === "start" && !isTourRunning) {
@@ -90,7 +86,6 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
     }
   }, [location.search, location.pathname, navigate, startTour, isTourRunning]);
 
-  // Avanzar a la siguiente fase
   const nextPhase = useCallback(() => {
     const currentIndex = PHASE_ORDER.indexOf(tourPhase);
     if (currentIndex < 0 || currentIndex >= PHASE_ORDER.length - 1) return;
@@ -118,14 +113,12 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
     }
   }, [tourPhase, showInvoiceDataCallback, showCauseButtonCallback, openAutomaticoModalCallback]);
 
-  // Detener el tour
   const stopTour = useCallback(() => {
     setTourPhase("IDLE");
     setStepIndex(0);
     setHasUploadedFile(false);
   }, []);
 
-  // Completar el tour
   const completeTour = useCallback(() => {
     setTourPhase("COMPLETED");
     setTimeout(() => {
@@ -134,7 +127,6 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
     }, 500);
   }, []);
 
-  // Setters para callbacks
   const setOnFileSelectedCallback = useCallback((callback: () => void) => {
     setFileSelectedCallback(() => callback);
   }, []);

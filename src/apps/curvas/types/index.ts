@@ -1,15 +1,5 @@
-// ============================================
-// TIPOS PARA EL MÓDULO DE CURVAS DE DISTRIBUCIÓN
-// ============================================
-
-/**
- * Roles de usuario en el sistema
- */
 export type UserRole = 'admin' | 'bodega' | 'produccion';
 
-/**
- * Permisos por rol
- */
 export interface RolePermissions {
   canUpload: boolean;
   canEdit: boolean;
@@ -20,10 +10,6 @@ export interface RolePermissions {
   canViewReports: boolean;
   canCompare: boolean;
 }
-
-/**
- * Configuración de permisos por rol
- */
 export const PERMISSIONS: Record<UserRole, RolePermissions> = {
   admin: {
     canUpload: true,
@@ -46,8 +32,8 @@ export const PERMISSIONS: Record<UserRole, RolePermissions> = {
     canCompare: true,
   },
   produccion: {
-    canUpload: true, // Permitir carga para Practicante
-    canEdit: true,   // Habilitar edición para Bug 3
+    canUpload: true,
+    canEdit: true,
     canDelete: false,
     canExport: true,
     canManageShipments: true,
@@ -57,9 +43,6 @@ export const PERMISSIONS: Record<UserRole, RolePermissions> = {
   },
 };
 
-/**
- * Representa una tienda en el sistema
- */
 export interface Tienda {
   id: string;
   codigo: string;
@@ -68,25 +51,15 @@ export interface Tienda {
   ciudad?: string;
 }
 
-/**
- * Tipo de curva de distribución (01, 03, 05, etc.)
- */
 export type TipoCurva = string;
 
-/**
- * Representa una celda en la matriz de curvas
- * con soporte para formato condicional
- */
 export interface CeldaCurva {
   valor: number;
   esCero: boolean;
   esMayorQueCero: boolean;
 }
 
-/**
- * Fila de datos en la Matriz General de Curvas
- * Donde las columnas son las curvas y hay un total
- */
+
 export interface FilaMatrizGeneral {
   id: string;
   tienda: Tienda;
@@ -94,10 +67,6 @@ export interface FilaMatrizGeneral {
   total: number;
 }
 
-/**
- * Matriz General de Curvas (Archivo 1)
- * Filas = Tiendas, Columnas = Curvas (01, 03, 05, etc.) + Total
- */
 export interface MatrizGeneralCurvas {
   id?: string;
   nombreHoja: string;
@@ -109,13 +78,9 @@ export interface MatrizGeneralCurvas {
   fechaCarga?: Date;
   fechaModificacion?: Date;
   usuarioModificacion?: string;
-  /** Estado del lote: borrador | confirmado */
   estado?: 'borrador' | 'confirmado';
 }
 
-/**
- * Metadatos de producto (comunes para archivos 2 y 3)
- */
 export interface MetadatosProducto {
   referencia: string;
   imagen: string;
@@ -129,25 +94,14 @@ export interface MetadatosProducto {
   subcategoria?: string;
 }
 
-/**
- * Tipo de talla (35, 36, 37, etc.)
- */
 export type Talla = string;
 
-/**
- * Representa una celda en el detalle de producto
- * con soporte para formato condicional
- */
 export interface CeldaTalla {
   valor: number;
   esCero: boolean;
   esMayorQueCero: boolean;
 }
 
-/**
- * Fila de datos en el Detalle de Producto
- * Donde las columnas son las tallas y hay un total
- */
 export interface FilaDetalleProducto {
   id: string;
   tienda: Tienda;
@@ -155,10 +109,6 @@ export interface FilaDetalleProducto {
   total: number;
 }
 
-/**
- * Detalle de Producto (Archivos 2 y 3)
- * Metadatos + Filas = Tiendas, Columnas = Tallas + Total
- */
 export interface DetalleProducto {
   id?: string;
   nombreHoja: string;
@@ -171,18 +121,12 @@ export interface DetalleProducto {
   fechaCarga?: Date;
   fechaModificacion?: Date;
   usuarioModificacion?: string;
-  /** Estado del lote: borrador | confirmado */
   estado?: 'borrador' | 'confirmado';
 }
 
-/**
- * Estados posibles de carga de archivos
- */
 export type EstadoCarga = 'vacio' | 'cargando' | 'procesando' | 'exito' | 'error';
 
-/**
- * Resultado de procesamiento de un archivo Excel
- */
+
 export interface ResultadoProcesamiento {
   archivo: string;
   estado: EstadoCarga;
@@ -191,9 +135,7 @@ export interface ResultadoProcesamiento {
   datos?: MatrizGeneralCurvas[] | DetalleProducto[];
 }
 
-/**
- * Error específico en el procesamiento de celdas
- */
+
 export interface ErrorProcesamiento {
   fila: number;
   columna: string;
@@ -202,9 +144,7 @@ export interface ErrorProcesamiento {
   severidad: 'warning' | 'error';
 }
 
-/**
- * Archivo subido con su información de procesamiento
- */
+
 export interface ArchivoSubido {
   id: string;
   nombre: string;
@@ -216,19 +156,14 @@ export interface ArchivoSubido {
   datos?: MatrizGeneralCurvas[] | DetalleProducto[];
 }
 
-/**
- * Datos completos del módulo después de procesar los archivos
- */
+
 export interface DatosCurvas {
   matrizGeneral: MatrizGeneralCurvas[];
   productos: DetalleProducto[];
   fechaCarga: Date;
-  datosValidacion?: Record<string, Record<string, Record<string, number>>>; // { sheetId: { filaId: { columna: valor } } }
+  datosValidacion?: Record<string, Record<string, Record<string, number>>>;
 }
 
-/**
- * Configuración para el DataGrid de curvas
- */
 export interface ConfiguracionDataGrid {
   stickyColumn: boolean;
   stickyHeader: boolean;
@@ -240,9 +175,7 @@ export interface ConfiguracionDataGrid {
   alturaFija?: number;
 }
 
-/**
- * Opciones de exportación
- */
+
 export interface OpcionesExportacion {
   formato: 'pdf' | 'excel' | 'csv';
   incluirTotales: boolean;
@@ -250,9 +183,7 @@ export interface OpcionesExportacion {
   orientation?: 'portrait' | 'landscape';
 }
 
-/**
- * Filtros para el análisis de curvas
- */
+
 export interface FiltrosCurvas {
   referencia?: string;
   tienda?: string;
@@ -262,14 +193,9 @@ export interface FiltrosCurvas {
   soloMayoresQueCero?: boolean;
 }
 
-/**
- * Tipo de análisis seleccionado en los tabs
- */
-export type TipoAnalisis = 'general' | 'producto_a' | 'producto_b';
 
-/**
- * Résumen ejecutivo para tarjetas de métricas
- */
+export type TipoAnalisis = 'general' | 'producto_a' | 'producto_b'
+
 export interface ResumenMetricas {
   totalTiendas: number;
   totalProductos: number;
@@ -280,9 +206,7 @@ export interface ResumenMetricas {
   tallaConMasStock: Talla;
 }
 
-/**
- * Resultado de validación de archivo
- */
+
 export interface ValidacionArchivo {
   valido: boolean;
   errores: string[];
@@ -292,18 +216,10 @@ export interface ValidacionArchivo {
   columnasEncontradas: string[];
 }
 
-// ============================================
-// TIPOS PARA ENVÍOS Y DESPACHOS
-// ============================================
 
-/**
- * Estado de un envío
- */
 export type EstadoEnvio = 'pendiente' | 'en_proceso' | 'despachado' | 'entregado' | 'cancelado';
 
-/**
- * Artículo escaneado para envío
- */
+
 export interface ArticuloEscaneado {
   id: string;
   codigo: string;
@@ -316,9 +232,6 @@ export interface ArticuloEscaneado {
   estado: 'escaneado' | 'confirmado' | 'discrepancia';
 }
 
-/**
- * Registro de envío a tienda
- */
 export interface EnvioTienda {
   id: string;
   tienda: Tienda;
@@ -332,9 +245,6 @@ export interface EnvioTienda {
   observaciones?: string;
 }
 
-/**
- * Comparación entre planificado y escaneado
- */
 export interface ComparacionEnvio {
   id: string;
   tienda: Tienda;
@@ -346,9 +256,6 @@ export interface ComparacionEnvio {
   estado: 'coincide' | 'sobrante' | 'faltante';
 }
 
-/**
- * Reporte de discrepancias
- */
 export interface ReporteDiscrepancias {
   id: string;
   fechaGeneracion: Date;
@@ -360,9 +267,6 @@ export interface ReporteDiscrepancias {
   resumen: string;
 }
 
-/**
- * Filtros para envíos
- */
 export interface FiltrosEnvio {
   tienda?: string;
   estado?: EstadoEnvio;
@@ -371,13 +275,6 @@ export interface FiltrosEnvio {
   referencia?: string;
 }
 
-// ============================================
-// TIPOS PARA EDICIÓN EN DATAGRID
-// ============================================
-
-/**
- * Celda editada en el DataGrid
- */
 export interface CeldaEditada {
   sheetId: string;
   filaId: string;
@@ -388,9 +285,6 @@ export interface CeldaEditada {
   usuarioEdicion: string;
 }
 
-/**
- * Historial de cambios
- */
 export interface HistorialCambios {
   id: string;
   entidad: 'matriz_general' | 'detalle_producto';
@@ -400,87 +294,43 @@ export interface HistorialCambios {
   usuarioModificacion: string;
 }
 
-// ============================================
-// TIPOS PARA LOG DE CURVAS (Tabla log_curvas)
-// ============================================
-
-/**
- * Tipo de plantilla en el sistema de curvas
- */
 export type TipoPlantilla = 'matriz_general' | 'productos';
-
-/**
- * Tipo de plantilla para la base de datos
- */
 export type TipoPlantillaDB = 'textil' | 'calzado_bolso';
-
-/**
- * Item de cantidad_talla con código de barras
- * Se guarda en el campo cantidad_talla de log_curvas y envios_curvas
- */
 export interface CantidadTallaItem {
-  /** Número de talla/curva */
   talla: number;
-  /** Código de barras escaneado */
   codigo_barra: string;
-  /** Cantidad de veces que se escaneó este código */
   cantidad: number;
 }
 
-/**
- * Registro de log de curvas para guardar en Directus
- * Guarda la información de cada aplicación/guardado de plantillas
- */
 export interface LogCurvas {
   id?: string;
-  /** ID de la tienda en la base de datos */
   store_id: string;
-  /** Nombre de la tienda (para referencia visual) */
   store_name?: string;
-  /** Tipo de plantilla: textil o calzado_bolso */
   template: TipoPlantillaDB;
-  /** Fecha de registro */
   log_date: string;
-  /** JSON con array de objetos {talla: number, cantidad: number, codigo_barra: string} */
   size_quantity: string;
-  /** Referencia del producto (opcional) */
   reference?: string;
-  /** Estado del registro: borrador | confirmado */
   status?: 'borrador' | 'confirmado';
-  /** Fecha de creación en el sistema */
   date_created?: string;
 }
-/**
- * Registro de envío a despacho para guardar en Directus (tabla envios_curvas)
- * Guarda lo que bodega "pistoleó" o escaneó
- */
+
 export interface EnvioCurva {
   id?: string;
-  /** ID de la tienda en la base de datos */
   store_id: string;
-  /** ID del registro origen en log_curve (template) */
   template: string;
-  /** Fecha de despacho */
   shipment_date: string;
-  /** JSON con array de objetos {talla: number, cantidad: number, codigo_barra: string} */
   size_quantity: string;
-  /** Referencia del producto */
   reference: string;
-  /** Nombre de la tienda */
   store_name?: string;
-  /** ID del usuario que realiza el despacho */
   user_id?: string;
-  /** Estado del envío */
   status?: 'borrador' | 'confirmado';
 }
 
-/**
- * Registro de bloqueo de concurrencia para la vista de envíos (tabla escaner_curvas)
- */
+
 export interface BloqueoEscaner {
   id?: string;
   reference: string;
   store_id: string;
   user_id: string;
-  last_activity_at: string; // ISO string
+  last_activity_at: string;
 }

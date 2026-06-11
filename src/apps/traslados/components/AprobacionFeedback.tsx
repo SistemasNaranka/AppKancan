@@ -6,15 +6,6 @@ type Props = {
   estado: "idle" | "loading" | "success";
 };
 
-/**
- * Muestra un mensaje de estado de aprobacion de traslados.
- *
- * @param {string} estado - El estado de la aprobacion.
- * - "idle": No muestra nada.
- * - "loading": Muestra un mensaje de aprobacion en curso.
- * - "success": Muestra un mensaje de aprobacion exitosa.
- * @returns {JSX.Element | null} - Un JSX.Elemento o null si el estado es "idle".
- */
 const AprobacionFeedback: React.FC<Props> = ({ estado }) => {
   if (estado === "idle") return null;
 

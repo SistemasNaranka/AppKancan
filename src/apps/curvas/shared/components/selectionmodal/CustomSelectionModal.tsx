@@ -7,6 +7,7 @@ import {
   Button,
   List,
   ListItem,
+  ListItemButton,
   ListItemAvatar,
   Avatar,
   ListItemText,
@@ -105,24 +106,27 @@ const CustomSelectionModal = ({
           {filteredItems.map((item, idx) => (
             <ListItem
               key={item.id}
-              button
-              selected={selected.includes(idx)}
-              onClick={() => handleToggle(idx)}
+              disablePadding
             >
-              <ListItemAvatar>
-                <Avatar sx={{ width: 32, height: 32, bgcolor: "#e2e8f0", fontSize: "0.8rem" }}>
-                  {String(item.label).charAt(0).toUpperCase()}
-                </Avatar>
-              </ListItemAvatar>
-              <ListItemText
-                primary={String(item[labelKey])}
-                secondary={item.description}
-                primaryTypographyProps={{ variant: "body2", fontWeight: 600 }}
-                secondaryTypographyProps={{ variant: "caption" }}
-              />
-              {multiSelect && (
-                <Checkbox checked={selected.includes(idx)} size="small" />
-              )}
+              <ListItemButton
+                selected={selected.includes(idx)}
+                onClick={() => handleToggle(idx)}
+              >
+                <ListItemAvatar>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: "#e2e8f0", fontSize: "0.8rem" }}>
+                    {String(item.label).charAt(0).toUpperCase()}
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={String(item[labelKey])}
+                  secondary={item.description}
+                  primaryTypographyProps={{ variant: "body2", fontWeight: 600 }}
+                  secondaryTypographyProps={{ variant: "caption" }}
+                />
+                {multiSelect && (
+                  <Checkbox checked={selected.includes(idx)} size="small" />
+                )}
+              </ListItemButton>
             </ListItem>
           ))}
           {filteredItems.length === 0 && (

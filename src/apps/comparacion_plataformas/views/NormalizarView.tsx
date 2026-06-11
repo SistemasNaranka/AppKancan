@@ -1,8 +1,6 @@
 import React from "react";
 import { Box, Typography, Button, CircularProgress, Alert } from "@mui/material";
 import ModalConfirmacion from "../components/modals/Modalconfirmacion";
-
-// Importamos el Hook y los sub-componentes (asegúrate de que las rutas coincidan con tu proyecto)
 import { useNormalizador } from "./useNormalizador";
 import PanelVistaPrevia from "./PanelVistaPrevia";
 import PanelNormalizados from "./PanelNormalizados";

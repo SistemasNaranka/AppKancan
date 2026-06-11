@@ -37,19 +37,17 @@ const AccordionHeader = ({
   expanded: boolean;
   onToggle: () => void;
   getCumplimientoColor: (pct: number) => string;
-  empleadosVisibles?: number; // Nuevo prop para el conteo real de empleados visibles
+  empleadosVisibles?: number;
   thresholdConfig?: CommissionThreshold[];
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // Calcular comisión total una sola vez
   const totalComision = tienda.empleados.reduce(
     (t, e) => t + (e.comision_monto || 0),
     0,
   );
 
-  // Determinar el conteo a mostrar
   const conteoEmpleados =
     empleadosVisibles > 0 ? empleadosVisibles : tienda.empleados.length;
 
@@ -351,7 +349,6 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
     handleVentaChange,
     thresholdConfig,
   }) => {
-    // ✅ CALCULAR EMPLEADOS VISIBLES (filtrar 0 presupuesto Y 0 ventas)
     const empleadosVisibles = React.useMemo(() => {
       return tienda.empleados.filter(
         (empleado) => empleado.presupuesto > 0 || empleado.ventas > 0,
@@ -405,7 +402,6 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
     );
   },
   (prevProps: any, nextProps: any) => {
-    // Comparación más estricta para evitar renders innecesarios
     const tiendaChanged =
       prevProps.tienda.tienda !== nextProps.tienda.tienda ||
       prevProps.tienda.fecha !== nextProps.tienda.fecha;
@@ -416,7 +412,6 @@ export const DataTableAccordion = React.memo<DataTableAccordionProps>(
 
     const expandedChanged = prevProps.expanded !== nextProps.expanded;
 
-    // Solo permitir re-render si hay cambios importantes
     return !tiendaChanged && !dataChanged && !expandedChanged;
   },
 );

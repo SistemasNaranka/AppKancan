@@ -37,7 +37,6 @@ import {
 } from "../api/directus/read";
 import { saveRoleBudgetConfiguration } from "../api/directus/create";
 
-// Estilo corregido para ocultar las flechas del input numérico
 const StyledTextField = styled(TextField)({
   "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
     WebkitAppearance: "none",
@@ -123,12 +122,10 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  // Estado para guardar el ID del registro actual (si existe)
   const [currentRecordId, setCurrentRecordId] = useState<
     number | string | undefined
   >(undefined);
 
-  // Inicialización de la primera fila al abrir
   useEffect(() => {
     if (open && roleConfigs.length === 0) {
       setRoleConfigs([createEmptyRow("init")]);
@@ -165,7 +162,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
 
     try {
       setLoadingData(true);
-      setCurrentRecordId(undefined); // Resetear ID al cambiar de mes
+      setCurrentRecordId(undefined);
       const mesNombre =
         MESES.find((m) => m.value === selectedMonth)?.label.substring(0, 3) ||
         "Ene";
@@ -176,7 +173,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
 
       if (data && data.length > 0) {
         const item = data[0] as any;
-        setCurrentRecordId(item.id); // Guardamos el ID del registro encontrado
+        setCurrentRecordId(item.id);
         if (
           item.role_config &&
           Array.isArray(item.role_config) &&
@@ -276,7 +273,7 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
     try {
       setLoading(true);
       await saveRoleBudgetConfiguration({
-        id: currentRecordId, // Le pasamos el ID explícito para que sepa exactamente qué actualizar
+        id: currentRecordId,
         mes: `${selectedYear}-${selectedMonth}`,
         roleConfigs: validConfigs.map((c) => ({
           role: c.rol,
@@ -286,7 +283,6 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
       });
       setSuccess("Configuraciones guardadas exitosamente.");
 
-      // Recargar datos para confirmar que se guardó y refrescar el ID si fuera nuevo
       await loadExistingConfigs();
 
       setTimeout(() => setSuccess(""), 3000);

@@ -6,13 +6,6 @@ type SkeletonCardProps = {
   height?: string | number;
 };
 
-/**
- * Skeleton similar visualmente a la tarjeta de traslados real.
- * Mantiene tus props originales y simula el layout exacto.
- * @param {number} [count=6] - Número de elementos a renderizar.
- * @param {string|number} [height=180] - Altura de cada tarjeta.
- * @returns {React.ReactElement} - Elemento JSX con el skeleton.
- */
 export const SkeletonCard: React.FC<SkeletonCardProps> = ({
   count = 6,
   height = 180,
@@ -50,7 +43,7 @@ export const SkeletonCard: React.FC<SkeletonCardProps> = ({
               p: 2,
             }}
           >
-            {/* 🔹 Encabezado: "Traslado: XXXX" + Chip */}
+
             <Box
               sx={{
                 display: "flex",
@@ -63,16 +56,13 @@ export const SkeletonCard: React.FC<SkeletonCardProps> = ({
               <Skeleton variant="rounded" height={26} width={80} />
             </Box>
 
-            {/* 🔹 Fecha y unidades */}
 
             <Skeleton variant="text" height={18} width="60%" />
             <Skeleton variant="text" height={18} width="50%" />
 
-            {/* 🔹 Espacio visual */}
 
             <Box sx={{ flexGrow: 1 }} />
 
-            {/* 🔹 Línea inferior: Origen →destino */}
 
             <Skeleton variant="text" height={20} width="90%" />
           </CardContent>

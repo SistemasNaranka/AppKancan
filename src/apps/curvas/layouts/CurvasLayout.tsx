@@ -10,14 +10,6 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 
-/**
- * Layout principal del módulo de Curvas
- * 
- * Proporciona la estructura visual general con:
- * - AppBar con navegación
- * - Tabs para cambiar entre vistas
- * - Contenedor principal para el contenido
- */
 interface CurvasLayoutProps {
   children: ReactNode;
   titulo?: string;
@@ -28,7 +20,6 @@ export const CurvasLayout = ({ children, titulo }: CurvasLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Determinar el tab activo basado en la ruta
   const getActiveTab = (): number => {
     if (location.pathname.includes('/upload')) return 0;
     if (location.pathname.includes('/dashboard')) return 1;

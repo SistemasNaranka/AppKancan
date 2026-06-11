@@ -19,11 +19,9 @@ const FloatingHelpButton: React.FC<FloatingHelpButtonProps> = ({
 
   const handleClick = () => {
     if (!isFullTourRunning) {
-      // Ejecutar callback antes de iniciar (ej: cambiar a pestaña Reserva)
       if (onBeforeStart) {
         onBeforeStart();
       }
-      // Pequeño delay para que el cambio de pestaña se complete
       setTimeout(() => {
         startFullTour();
       }, 100);

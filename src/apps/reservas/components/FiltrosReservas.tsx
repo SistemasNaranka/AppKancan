@@ -1,5 +1,3 @@
-// src/apps/reservas/components/FiltrosReservas.tsx
-
 import React, { useState } from "react";
 import {
   Box,

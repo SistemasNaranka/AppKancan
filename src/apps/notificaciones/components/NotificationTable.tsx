@@ -39,7 +39,7 @@ export default function NotificationTable({
   };
 
   const handleToggle = (e: React.MouseEvent, item: INotification) => {
-    e.stopPropagation(); // que el click NO dispare el onSelect de la fila
+    e.stopPropagation();
     if (!onTogglePendiente) return;
     const statusActual: EstadoVisibilidad = pendingChanges[item.id] ?? item.status;
     const nuevoStatus: EstadoVisibilidad = statusActual === 'activo' ? 'inactivo' : 'activo';

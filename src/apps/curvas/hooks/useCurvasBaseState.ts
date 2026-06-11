@@ -1,4 +1,3 @@
-// src/apps/gestion_proyectos/hooks/useCurvasBaseState.ts
 import { useState, useCallback } from "react";
 import { PERMISSIONS as DEFAULT_PERMISSIONS } from "../types";
 import type { RolePermissions, UserRole, DatosCurvas, ArchivoSubido, CeldaEditada } from "../types";

@@ -1,8 +1,3 @@
-/**
- * Componente de área de carga de archivos con drag-and-drop
- * Módulo de Contabilización de Facturas
- */
-
 import { useState, useCallback, useRef } from "react";
 import {
   Box,
@@ -17,18 +12,14 @@ import CloudUpload from '@mui/icons-material/CloudUpload';
 import PictureAsPdf from '@mui/icons-material/PictureAsPdf';
 import Refresh from '@mui/icons-material/Refresh';
 
-// ============ CONSTANTES ============
-
 const MAX_FILE_SIZE_MB = 10;
 const ACCEPTED_TYPES = ["application/pdf", "application/x-pdf"];
-
-// ============ COMPONENTE ============
 
 interface FileUploadAreaProps {
   onFileSelected: (file: File) => void;
   isProcessing: boolean;
   progress: number;
-  className?: string; // Para tours interactivos
+  className?: string;
 }
 
 export function FileUploadArea({
@@ -115,7 +106,6 @@ export function FileUploadArea({
     fileInputRef.current?.click();
   }, []);
 
-  // Handle click on the entire container area
   const handleContainerClick = useCallback(() => {
     if (!isProcessing) {
       fileInputRef.current?.click();

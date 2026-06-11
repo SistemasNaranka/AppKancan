@@ -2,8 +2,6 @@ import React from "react";
 import Joyride, { CallBackProps, STATUS, TooltipRenderProps, Step } from "react-joyride";
 import { useCreateNotificationTour } from "./CreateNotificationTourContext";
 
-// ── Pasos ───────────────────────────────────────────────────────────────────
-
 const STEPS: Step[] = [
   {
     target: "#notif-crear-destinatarios",
@@ -47,8 +45,6 @@ const STEPS: Step[] = [
     styles: { spotlight: { borderRadius: 12 } },
   },
 ];
-
-// ── Tooltip personalizado ───────────────────────────────────────────────────
 
 function CustomTooltip({
   continuous,
@@ -136,8 +132,6 @@ function CustomTooltip({
     </div>
   );
 }
-
-// ── Componente principal ────────────────────────────────────────────────────
 
 export default function CreateNotificationTour() {
   const { isRunning, stopTour } = useCreateNotificationTour();

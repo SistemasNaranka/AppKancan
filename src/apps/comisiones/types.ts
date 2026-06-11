@@ -1,7 +1,3 @@
-/**
- * Tipos TypeScript para la Calculadora de Comisiones por Cumplimiento
- */
-
 export type Role =
   | "gerente"
   | "asesor"
@@ -14,7 +10,7 @@ export interface BudgetRecord {
   tienda: string;
   tienda_id: number;
   empresa: string;
-  fecha: string; // YYYY-MM-DD
+  fecha: string;
   presupuesto_total: number;
   presupuesto_gerente?: number;
   presupuesto_asesores?: number;
@@ -25,27 +21,27 @@ export interface StaffMember {
   nombre: string;
   documento: number;
   tienda: string;
-  fecha: string; // YYYY-MM-DD
+  fecha: string;
   rol: Role;
 }
 
 export interface MonthConfig {
-  mes: string; // "MMM YYYY"
-  porcentaje_gerente: number; // 0-10
+  mes: string;
+  porcentaje_gerente: number;
 }
 
 export interface VentasData {
   tienda: string;
-  fecha: string; // YYYY-MM-DD
+  fecha: string;
   ventas_tienda: number;
-  ventas_por_asesor: Record<string, number>; // id_asesor -> ventas
+  ventas_por_asesor: Record<string, number>;
 }
 
 export interface VentasMensualesData {
   tienda: string;
-  mes: string; // "MMM YYYY"
+  mes: string;
   ventas_tienda_mensual: number;
-  ventas_por_asesor_mensual: Record<string, number>; // id_asesor -> ventas mensuales
+  ventas_por_asesor_mensual: Record<string, number>;
 }
 
 export interface EmployeeCommission {
@@ -53,7 +49,7 @@ export interface EmployeeCommission {
   nombre: string;
   documento: number;
   rol: Role;
-  cargo_id?: number; // ID del cargo para ordenamiento
+  cargo_id?: number;
   tienda: string;
   fecha: string;
   presupuesto: number;
@@ -61,11 +57,11 @@ export interface EmployeeCommission {
   cumplimiento_pct: number;
   comision_pct: number;
   comision_monto: number;
-  proxima_comision: number | string; // Próxima comisión (número) o 'NN' si ya está en el máximo
-  proximo_presupuesto?: number; // Próximo presupuesto calculado (no se muestra en tabla)
-  proxima_venta?: number; // Próxima venta calculada (se muestra en tabla como 'Prox. venta')
-  proximo_monto_comision?: number; // Próximo monto de comisión calculado (se muestra en tabla)
-  dias_laborados: number; // Días únicos laborados por empleado
+  proxima_comision: number | string;
+  proximo_presupuesto?: number;
+  proxima_venta?: number;
+  proximo_monto_comision?: number;
+  dias_laborados: number;
 }
 
 export interface TiendaResumen {
@@ -94,10 +90,9 @@ export interface AppState {
   ventas: VentasData[];
   ventasMensuales: VentasMensualesData[];
   presupuestosEmpleados: any[];
-  thresholdConfig: CommissionThresholdConfig | null; // Configuración actual de umbrales
+  thresholdConfig: CommissionThresholdConfig | null;
 }
 
-// Interfaces para Directus
 export interface DirectusStaff {
   id: number;
   name?: string;
@@ -127,7 +122,7 @@ export interface DirectusStoreDailyBudget {
 
 export interface DirectusPorcentajeMensual {
   id: number;
-  fecha: string; // YYYY-MM
+  fecha: string;
   gerente_tipo: "fijo" | "distributivo";
   gerente_porcentaje: number;
   asesor_tipo: "fijo" | "distributivo";
@@ -175,34 +170,22 @@ export interface DirectusVentasDiariasTienda {
   fecha: string;
 }
 
-// ==================== CONFIGURACIÓN DE UMBRALES DE COMISIONES ====================
-
-/**
- * Un umbral individual de comisión
- * Solo necesita min_compliance, ya que el max es implícito (min del siguiente umbral)
- */
 export interface CommissionThreshold {
-  min_compliance: number; // Porcentaje mínimo de cumplimiento (95, 100, 110...)
-  pct_commission: number; // Porcentaje de comisión en formato decimal (0.0035 = 0.35%)
-  name: string; // Etiqueta para mostrar en UI
-  color?: string; // Color hexadecimal o nombre de color
+  min_compliance: number;
+  pct_commission: number;
+  name: string;
+  color?: string;
 }
 
-/**
- * Configuración de umbrales de comisión por mes
- */
 export interface CommissionThresholdConfig {
-  mes: string; // "MMM YYYY"
-  anio: string; // "YYYY"
-  compliance_values: CommissionThreshold[]; // Array de umbrales ordenados por min_compliance ascendente
+  mes: string;
+  anio: string;
+  compliance_values: CommissionThreshold[];
 }
 
-/**
- * Respuesta de Directus para cumplimiento_mensual_comisiones
- */
 export interface DirectusCommissionCompliance {
   id: number;
-  month: string; // "01"-"12"
-  year: string; // "YYYY"
-  compliance_values: CommissionThreshold[]; // JSON array
+  month: string;
+  year: string;
+  compliance_values: CommissionThreshold[];
 }

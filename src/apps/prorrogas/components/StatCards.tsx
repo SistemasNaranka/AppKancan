@@ -3,9 +3,6 @@ import { Box, Card, CardContent, Grid, Typography, Stack } from '@mui/material';
 import { useContracts } from '../hooks/useContracts';
 import { useContractContext } from '../contexts/ContractContext';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// StatCards
-// ─────────────────────────────────────────────────────────────────────────────
 
 const StatCards: React.FC = () => {
 
@@ -16,7 +13,6 @@ const porVencer     = contratos.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 3
 const criticos      = contratos.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 7).length;
 const vencidos      = contratos.filter((c) => c.contractStatus === 'vencido').length;
 
-  // Contratos creados este mes (usa date_created del contrato)
   const thisMonth = new Date();
   const nuevosEsteMes = contratos.filter((c) => {
     if (!c.date_created) return false;

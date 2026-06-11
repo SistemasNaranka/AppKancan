@@ -71,15 +71,12 @@ export function GoodsReceiptModal({
     }
   };
 
-  // Filtrar entradas
   const entradasFiltradas = entradas.filter((entrada) => {
-    // 1. Filtrar por número (convertido a String para evitar TypeError si document_number es un número)
     const documentNumberStr = entrada.document_number != null ? String(entrada.document_number) : "";
     const cumpleNumero = filtroNumero.trim()
       ? documentNumberStr.toLowerCase().includes(filtroNumero.toLowerCase())
       : true;
 
-    // 2. Filtrar por fecha (comparando año-mes-día)
     let cumpleFecha = true;
     if (filtroFecha && entrada.date) {
       const entradaDateOnly = entrada.date.split("T")[0];

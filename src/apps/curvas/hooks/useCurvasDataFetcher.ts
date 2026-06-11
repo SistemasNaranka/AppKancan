@@ -1,4 +1,3 @@
-// src/apps/gestion_proyectos/hooks/useCurvasDataFetcher.ts
 import { useEffect, useCallback, useRef } from "react";
 import { getTiendas, getLogCurvas } from "../api/directus/read";
 import { extractRef } from "../utils/curvasHelpers";
@@ -16,9 +15,6 @@ interface FetcherProps {
 export const useCurvasDataFetcher = ({
   setTiendasDict, tiendasDict, setDatosCurvas, currentDate, setCurrentDate, lastLogsUpdate
 }: FetcherProps) => {
-
-  // Leemos tiendasDict por ref para que `cargarDatosGuardados` sea estable
-  // y no dispare refetch en cascada cada vez que el provider crea un objeto nuevo.
   const tiendasDictRef = useRef(tiendasDict);
   useEffect(() => { tiendasDictRef.current = tiendasDict; }, [tiendasDict]);
 

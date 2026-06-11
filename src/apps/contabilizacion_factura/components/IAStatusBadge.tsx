@@ -1,26 +1,15 @@
-/**
- * Componentes de estado de IA
- * Incluye: IAStatusBadge, ProveedorProcesamiento
- * Módulo de Contabilización de Facturas
- */
-
 import { Box, Typography, Tooltip } from "@mui/material";
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import Error from '@mui/icons-material/Error';
 import Warning from '@mui/icons-material/Warning';
 
-// ============ IA STATUS BADGE ============
 
 interface IAStatusBadgeProps {
   geminiApiKeyConfigured: boolean;
-  modeloIA?: string; // Modelo de IA configurado en Directus
-  className?: string; // Para tours interactivos
+  modeloIA?: string;
+  className?: string;
 }
 
-/**
- * Componente discreto que muestra el estado de conexión de Gemini
- * Diseño compacto y minimalista
- */
 export function IAStatusBadge({
   geminiApiKeyConfigured,
   modeloIA,
@@ -80,16 +69,12 @@ export function IAStatusBadge({
   );
 }
 
-// ============ PROVEEDOR PROCESAMIENTO ============
 
 interface ProveedorProcesamientoProps {
   proveedor: "gemini";
-  modelo?: string | null; // Nombre del modelo usado
+  modelo?: string | null;
 }
 
-/**
- * Componente discreto que muestra qué modelo procesó la factura con Gemini
- */
 export function ProviderProcessing({
   proveedor,
   modelo,

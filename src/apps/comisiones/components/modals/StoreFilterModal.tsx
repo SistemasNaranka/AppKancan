@@ -27,7 +27,6 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
   const modalOpen = isControlled ? controlledOpen : hookOpen;
   const handleClose = controlledOnClose || closeModal;
 
-  // Convertir las tiendas disponibles al formato esperado por el modal
   const storeItems = useMemo(
     () =>
       availableStores.map((storeName) => ({
@@ -38,23 +37,19 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
     [availableStores]
   );
 
-  // Maneja la confirmación de selección
   const handleConfirmSelection = (selected: (string | number)[]) => {
     onStoresSelected(selected as string[]);
     handleClose();
   };
 
-  // Maneja la cancelación
   const handleCancelSelection = () => {
     handleClose();
   };
 
-  // Crear una key única basada en las tiendas seleccionadas para forzar re-render
   const modalKey = useMemo(() => {
     return `modal-${selectedStores.join("-")}`;
   }, [selectedStores]);
 
-  // Texto del título del modal
   const getModalTitle = () => {
     if (selectedStores.length === 0) {
       return "Seleccionar Tiendas";
@@ -102,7 +97,7 @@ export const StoreFilterModal: React.FC<StoreFilterModalProps> = ({
                   height: 20,
                   minWidth: 20,
                   "& .MuiChip-label": {
-                    fontSize: "1rem", // ← SOLO cambia esto para reducir la letra
+                    fontSize: "1rem",
                     px: 0.5,
                   },
                 }}

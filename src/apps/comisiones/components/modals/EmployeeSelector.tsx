@@ -50,16 +50,14 @@ export const EmployeeSelector: React.FC<EmployeeSelectorProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Buscar empleado automáticamente cuando cambie el código
   useEffect(() => {
     const timer = setTimeout(() => {
       onBuscarEmpleado(codigoInput);
-    }, 300); // Debounce de 300ms
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [codigoInput, onBuscarEmpleado]);
 
-  // Establecer valor por defecto "asesor" al cargar
   useEffect(() => {
     if (cargosFiltrados.length > 0 && !cargoSeleccionado) {
       const asesorCargo = cargosFiltrados.find(

@@ -7,7 +7,6 @@ export const parsePasteData = (text: string, currentColumns: any[]) => {
   if (data.length === 0) return null;
 
   const newColumns = [...currentColumns];
-  // Lógica para detectar si vienen más columnas de las que hay
   const maxColsInPaste = Math.max(...data.map((row) => row.length));
 
   return {

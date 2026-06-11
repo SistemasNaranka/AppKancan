@@ -24,17 +24,14 @@ const PulsatingMeetingIndicator: React.FC<PulsatingMeetingIndicatorProps> = ({
     const now = new Date();
     const today = formatDateToYYYYMMDD(now);
 
-    // Check if meeting is today
     if (meetingDate !== today) return false;
 
-    // Parse times
     const [startHour, startMin] = startTime.split(":").map(Number);
     const [endHour, endMin] = endTime.split(":").map(Number);
 
     const nowHours = now.getHours();
     const nowMinutes = now.getMinutes();
 
-    // Check if current time is within meeting range
     const currentMinutes = nowHours * 60 + nowMinutes;
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;

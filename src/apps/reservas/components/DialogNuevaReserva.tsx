@@ -1,4 +1,4 @@
-// src/apps/reservas/components/DialogNuevaReserva.tsx
+// Diálogo de creación de una nueva reserva con su tour interno opcional y notificación por correo.
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
@@ -7,34 +7,15 @@ import {
   Box,
   Button,
   TextField,
-  Autocomplete,
   Typography,
   Alert,
   CircularProgress,
-  ToggleButton,
-  ToggleButtonGroup,
-  MenuItem,
-  Select,
-  FormControl,
   Chip,
-  Popper,
-  Paper,
-  Fade,
-  ClickAwayListener,
-  IconButton,
-  Divider,
-  Tooltip,
-  Avatar,
   Switch,
   FormControlLabel,
 } from "@mui/material";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import CheckIcon from "@mui/icons-material/CheckCircle";
-import InfoIcon from "@mui/icons-material/Info";
-import CloseIcon from "@mui/icons-material/Close";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import DeleteIcon from "@mui/icons-material/Delete";
-import PersonIcon from "@mui/icons-material/Person";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -43,15 +24,33 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
+
 import type { NuevaReserva, Sala } from "../types/reservas.types";
-import { SALAS_DISPONIBLES, HORARIO_INICIO, HORARIO_FIN } from "../types/reservas.types";
-import { getConfiguracionReserva, buscarUsuarios } from "../services/reservas";
+import { HORARIO_INICIO, HORARIO_FIN } from "../types/reservas.types";
 import { notificarCorreoReserva } from "../services/correoReservas";
 import { useTourContext } from "./TourContext";
 import { useFestivos } from "../hooks/useFestivos";
 import { FestivoDay } from "./FestivoDay";
 
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+import { EMAIL_REGEX } from "./dialogShared/constants";
+import {
+  generarOpcionesHora,
+  formatearHoraLegible,
+  calcularHoraMinima,
+} from "./dialogShared/horaHelpers";
+import { useHorarioConfig } from "./dialogShared/useHorarioConfig";
+import { useParticipantesAutocomplete } from "./dialogShared/useParticipantesAutocomplete";
+import { SalaSelector } from "./dialogShared/SalaSelector";
+import { HorasFields } from "./dialogShared/HorasFields";
+import { ParticipantesSection } from "./dialogShared/ParticipantesSection";
+import { ObservacionesField } from "./dialogShared/ObservacionesField";
+
+import {
+  DIALOG_TOUR_STEPS,
+  DATOS_EJEMPLO_TOUR,
+} from "./dialogTour/DialogTourSteps";
+import { TourTooltip } from "./dialogTour/TourTooltip";
+import { SpotlightOverlay } from "./dialogTour/SpotlightOverlay";
 
 interface DialogNuevaReservaProps {
   open: boolean;
@@ -68,381 +67,6 @@ interface DialogNuevaReservaProps {
   horaInicial?: string;
 }
 
-// ============================================
-// TOUR STEPS CONFIG
-// ============================================
-interface DialogTourStep {
-  target: string;
-  title: string;
-  content: string;
-  placement: "top" | "bottom" | "left" | "right";
-  highlight?: boolean;
-  isLast?: boolean;
-  disableScrolling?: true;
-  disableScrollParentFix?: true;
-  spotlightClicks?: true;
-  spotlightPadding?: number;
-}
-
-const DIALOG_TOUR_STEPS: DialogTourStep[] = [
-  {
-    target: "tour-dialog-titulo",
-    title: "Título de la Reunión",
-    content: 'Escribe un título descriptivo para tu reunión. Por ejemplo: "Sincronización semanal del equipo".',
-    placement: "right",
-    spotlightClicks: true,
-    spotlightPadding: 9,
-  },
-  {
-    target: "tour-dialog-sala",
-    title: "Seleccionar Sala",
-    content: "Elige entre Sala Principal (más grande) o Sala Secundaria (más compacta) según tus necesidades.",
-    placement: "right",
-    //spotlightPadding: 12,
-  },
-  {
-    target: "tour-dialog-horas",
-    title: "Horario de la Reunión",
-    content: "Selecciona la hora de inicio y la hora de fin. La duración mínima es de 30 minutos.",
-    placement: "right",
-    spotlightPadding: 10,
-  },
-  {
-    target: "tour-dialog-fecha",
-    title: "Fecha de la Reserva",
-    content: "Selecciona la fecha en el calendario. No puedes seleccionar fechas pasadas.",
-    placement: "left",
-    spotlightPadding: 20,
-  },
-  {
-    target: "tour-dialog-observaciones",
-    title: "Observaciones (Opcional)",
-    content: "Agrega detalles adicionales como participantes, materiales necesarios o la agenda de la reunión.",
-    placement: "right",
-    spotlightPadding: 16,
-  },
-  {
-    target: "tour-dialog-participantes",
-    title: "Añadir Participantes",
-    content: "Escribe el nombre y correo de cada participante y presiona el botón azul para agregarlos. Puedes buscar usuarios registrados escribiendo en el campo de correo.",
-    placement: "right",
-    spotlightPadding: 12,
-  },
-  {
-    target: "tour-dialog-correo",
-    title: "Notificar por Correo",
-    content: "Si está activado, se enviará automáticamente un correo de confirmación a todos los participantes al crear la reserva.",
-    placement: "top",
-    spotlightPadding: 10,
-  },
-  {
-    target: "tour-dialog-submit",
-    title: "¡Confirma tu Reserva!",
-    content: 'Haz clic en "Confirmar Reservación". Si no llenaste el formulario, se usarán datos de ejemplo automáticamente.',
-    placement: "top",
-    highlight: true,
-    isLast: true,
-    spotlightPadding: 24,
-  },
-];
-
-// ============================================
-// DATOS DE EJEMPLO PARA EL TOUR
-// ============================================
-const DATOS_EJEMPLO_TOUR = {
-  meeting_title: "Reunión de Ejemplo - Tutorial",
-  room_name: "Sala Principal" as Sala,
-  observations: "Esta es una reserva de ejemplo.",
-};
-
-// ============================================
-// TOUR TOOLTIP COMPONENT
-// ============================================
-interface TourTooltipProps {
-  anchorEl: HTMLElement | null;
-  step: DialogTourStep;
-  stepIndex: number;
-  totalSteps: number;
-  onNext: () => void;
-  onPrev: () => void;
-  onClose: () => void;
-  open: boolean;
-}
-
-const TourTooltip: React.FC<TourTooltipProps> = ({
-  anchorEl,
-  step,
-  stepIndex,
-  totalSteps,
-  onNext,
-  onPrev,
-  onClose,
-  open,
-}) => {
-  if (!anchorEl || !open) return null;
-
-  return (
-    <Popper
-      open={open}
-      anchorEl={anchorEl}
-      placement={step.placement}
-      transition
-      modifiers={[
-        {
-          name: "offset",
-          options: {
-            offset: [0, 16],
-          },
-        },
-        {
-          name: "preventOverflow",
-          options: {
-            padding: 20,
-          },
-        },
-        {
-          name: "flip",
-          options: {
-            boundary: "viewport",
-          },
-        },
-      ]}
-      sx={{ zIndex: 9999 }}
-    >
-      {({ TransitionProps }) => (
-        <Fade {...TransitionProps} timeout={350}>
-          <Paper
-            elevation={8}
-            sx={{
-              maxWidth: 280,
-              borderRadius: 2,
-              overflow: "hidden",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-            }}
-          >
-            {/* Header */}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                px: 2,
-                py: 1.5,
-                borderBottom: "1px solid #e0e0e0",
-                backgroundColor: "#f9fafb",
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 600, color: "#004680" }}
-              >
-                Paso {stepIndex + 1} de {totalSteps}
-              </Typography>
-              <Button
-                size="small"
-                onClick={onClose}
-                sx={{
-                  minWidth: "auto",
-                  p: 0.5,
-                  color: "text.secondary",
-                  "&:hover": {
-                    backgroundColor: "transparent",
-                    color: "text.primary",
-                  },
-                }}
-              >
-                <CloseIcon fontSize="small" />
-              </Button>
-            </Box>
-
-            {/* Content */}
-            <Box sx={{ p: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: "1rem" }}>
-                {step.title}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {step.content}
-              </Typography>
-              {step.highlight && (
-                <Chip
-                  label={step.isLast ? 'Haz clic en "Confirmar Reservación"' : "Llena el formulario y haz clic"}
-                  size="small"
-                  sx={{
-                    mt: 1.5,
-                    backgroundColor: "#D1FAE5",
-                    color: "#065F46",
-                    fontWeight: 600,
-                  }}
-                />
-              )}
-            </Box>
-
-            {/* Footer */}
-            {!step.isLast && (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  px: 2,
-                  py: 1.5,
-                  borderTop: "1px solid #e0e0e0",
-                  backgroundColor: "#f9fafb",
-                }}
-              >
-                <Button
-                  variant="text"
-                  size="small"
-                  disabled={stepIndex === 0}
-                  onClick={onPrev}
-                  sx={{
-                    textTransform: "none",
-                    color: stepIndex === 0 ? "text.disabled" : "text.secondary",
-                  }}
-                >
-                  Atrás
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={onNext}
-                  sx={{
-                    backgroundColor: "#004680",
-                    textTransform: "none",
-                    borderRadius: 1,
-                    "&:hover": { backgroundColor: "#005AA3" },
-                  }}
-                >
-                  Siguiente
-                </Button>
-              </Box>
-            )}
-          </Paper>
-        </Fade>
-      )}
-    </Popper>
-  );
-};
-
-// ============================================
-// SPOTLIGHT OVERLAY
-// ============================================
-interface SpotlightOverlayProps {
-  targetEl: HTMLElement | null;
-  open: boolean;
-  padding?: number;
-}
-
-const SpotlightOverlay: React.FC<SpotlightOverlayProps> = ({ targetEl, open }) => {
-  const [rect, setRect] = useState<DOMRect | null>(null);
-
-  useEffect(() => {
-    if (targetEl && open) {
-      const updateRect = () => {
-        setRect(targetEl.getBoundingClientRect());
-      };
-      updateRect();
-      
-      // Actualizar si la ventana cambia
-      window.addEventListener("resize", updateRect);
-      window.addEventListener("scroll", updateRect);
-      
-      return () => {
-        window.removeEventListener("resize", updateRect);
-        window.removeEventListener("scroll", updateRect);
-      };
-    }
-  }, [targetEl, open]);
-
-  if (!open || !rect) return null;
-
-  const padding = 8;
-
-  return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 9998,
-        pointerEvents: "none",
-      }}
-    >
-      {/* Overlay con hueco */}
-      <svg
-        width="100%"
-        height="100%"
-        style={{ position: "absolute", top: 0, left: 0 }}
-      >
-        <defs>
-          <mask id="spotlight-mask">
-            <rect width="100%" height="100%" fill="white" />
-            <rect
-              x={rect.left - padding}
-              y={rect.top - padding}
-              width={rect.width + padding * 2}
-              height={rect.height + padding * 2}
-              rx="12"
-              fill="black"
-            />
-          </mask>
-        </defs>
-        <rect
-          width="100%"
-          height="100%"
-          fill="rgba(0, 0, 0, 0.6)"
-          mask="url(#spotlight-mask)"
-        />
-      </svg>
-
-      {/* Borde del spotlight */}
-      <Box
-        sx={{
-          position: "fixed",
-          top: rect.top - padding,
-          left: rect.left - padding,
-          width: rect.width + padding * 2,
-          height: rect.height + padding * 2,
-          borderRadius: 3,
-          pointerEvents: "none",
-          transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-      />
-    </Box>
-  );
-};
-
-// Generar opciones de hora dinámicamente según configuración
-const generarOpcionesHora = (horaInicio: number = 7, horaFin: number = 17) => {
-  const opciones: { value: string; label: string }[] = [];
-  for (let h = horaInicio; h <= horaFin; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const hora24 = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-      const hora12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
-      const ampm = h >= 12 ? "PM" : "AM";
-      const label = `${hora12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${ampm}`;
-      opciones.push({ value: hora24, label });
-    }
-  }
-  return opciones;
-};
-
-// Función para formatear hora a formato legible (12h)
-const formatearHoraLegible = (hora24: string): string => {
-  const [h, m] = hora24.split(":").map(Number);
-  const hora12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  const ampm = h >= 12 ? "PM" : "AM";
-  return `${hora12}:${m.toString().padStart(2, "0")} ${ampm}`;
-};
-
-// Info de salas
-const INFO_SALAS: Record<string, string> = {
-  "Sala Principal": "Grande",
-  "Sala Secundaria": "Compacta",
-};
-
 const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   open,
   onClose,
@@ -454,23 +78,18 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [configCargando, setConfigCargando] = useState(true);
   const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
   const { data: festivos = {} } = useFestivos(calendarYear);
 
-  // Toggle: enviar correo de confirmación al crear reserva.
   const [enviarCorreo, setEnviarCorreo] = useState<boolean>(false);
 
-  // Tour context
   const { tourPhase, onDialogOpened, onFormSubmitted, stopTour } = useTourContext();
   const isTourMode = tourPhase === "DIALOG_TOUR";
 
-  // Tour interno del dialog
   const [dialogTourStep, setDialogTourStep] = useState(0);
   const [dialogTourActive, setDialogTourActive] = useState(false);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-  // Referencias a los elementos del formulario
   const tituloRef = useRef<HTMLDivElement>(null);
   const salaRef = useRef<HTMLDivElement>(null);
   const horasRef = useRef<HTMLDivElement>(null);
@@ -491,7 +110,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     "tour-dialog-submit": submitRef,
   };
 
-  // Actualizar anchor cuando cambia el paso
   useEffect(() => {
     if (dialogTourActive && DIALOG_TOUR_STEPS[dialogTourStep]) {
       const step = DIALOG_TOUR_STEPS[dialogTourStep];
@@ -502,49 +120,31 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     }
   }, [dialogTourStep, dialogTourActive]);
 
-  // ============================================
-  // AUTO-SCROLL TO TOUR TARGET
-  // ============================================
   useEffect(() => {
     if (dialogTourActive && DIALOG_TOUR_STEPS[dialogTourStep]) {
       const step = DIALOG_TOUR_STEPS[dialogTourStep];
       const ref = refMap[step.target];
       if (ref?.current) {
-        // Scroll suave al elemento objetivo dentro del dialog
-        ref.current.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+        ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }
   }, [dialogTourStep, dialogTourActive]);
 
-  // ============================================
-  // TOUR SCROLL PREVENTION
-  // ============================================
-  // FIX: unificado en un solo useEffect (antes había dos duplicados que se
-  // pisaban entre sí y dejaban el body lockeado). Restaura el valor PREVIO,
-  // no hardcodea "" — para coexistir con MUI Modal y otros modales custom.
   useEffect(() => {
     if (!dialogTourActive) return;
-
     const prevBodyOverflow = document.body.style.overflow;
     const dialogContent = document.querySelector(".MuiDialogContent-root") as HTMLElement | null;
     const prevDialogOverflow = dialogContent?.style.overflow ?? "";
-
     document.body.style.overflow = "hidden";
     if (dialogContent) dialogContent.style.overflow = "hidden";
-
     return () => {
       document.body.style.overflow = prevBodyOverflow;
       if (dialogContent) dialogContent.style.overflow = prevDialogOverflow || "auto";
     };
   }, [dialogTourActive]);
 
-  // Iniciar tour del dialog cuando se abre en modo tour
   useEffect(() => {
     if (open && isTourMode) {
-      // Delay para que el dialog se renderice completamente
       const timer = setTimeout(() => {
         setDialogTourStep(0);
         setDialogTourActive(true);
@@ -556,7 +156,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     }
   }, [open, isTourMode]);
 
-  // Notificar al tour que el diálogo se abrió
   useEffect(() => {
     if (open) {
       onDialogOpened();
@@ -580,10 +179,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     stopTour();
   };
 
-  // Función para manejar el submit durante el tour
-  // Si el formulario está vacío, usa datos de ejemplo automáticamente
   const handleTourSubmit = () => {
-    // Obtener valores actuales del formulario
     const currentTitulo = watch("meeting_title");
     const currentSala = watch("room_name");
     const currentFecha = watch("date");
@@ -591,31 +187,29 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     const currentHoraFinal = watch("end_time");
     const currentObservaciones = watch("observations");
 
-    // Verificar si el formulario tiene datos válidos (al menos título y sala)
     const formularioLleno = currentTitulo && currentTitulo.trim().length >= 3 && currentSala;
 
     if (formularioLleno) {
-      // Usuario llenó el formulario, usar sus datos
       setDialogTourActive(false);
       onFormSubmitted({
         room_name: currentSala,
         date: currentFecha || format(new Date(), "yyyy-MM-dd"),
         start_time: currentHoraInicio || horarioConfig.horaApertura,
-        end_time: currentHoraFinal || `${(parseInt(horarioConfig.horaApertura.split(":")[0]) + 1).toString().padStart(2, "0")}:00`,
+        end_time:
+          currentHoraFinal ||
+          `${(parseInt(horarioConfig.horaApertura.split(":")[0]) + 1).toString().padStart(2, "0")}:00`,
         meeting_title: currentTitulo,
         observations: currentObservaciones?.trim() || "",
       });
     } else {
-      // Formulario vacío, usar datos de ejemplo
       const manana = new Date();
       manana.setDate(manana.getDate() + 1);
       const fechaEjemplo = format(manana, "yyyy-MM-dd");
-      
+
       const [h] = horarioConfig.horaApertura.split(":").map(Number);
       const horaInicioEjemplo = `${(h + 1).toString().padStart(2, "0")}:00`;
       const horaFinEjemplo = `${(h + 1).toString().padStart(2, "0")}:30`;
 
-      // Llenar el formulario visualmente con datos de ejemplo
       setValue("meeting_title", DATOS_EJEMPLO_TOUR.meeting_title);
       setValue("room_name", DATOS_EJEMPLO_TOUR.room_name);
       setValue("date", fechaEjemplo);
@@ -623,7 +217,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       setValue("end_time", horaFinEjemplo);
       setValue("observations", DATOS_EJEMPLO_TOUR.observations);
 
-      // Enviar con datos de ejemplo
       setTimeout(() => {
         setDialogTourActive(false);
         onFormSubmitted({
@@ -638,65 +231,22 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     }
   };
 
-  // Estado para rastrear la hora de inicio seleccionada
   const [horaInicioSeleccionada, setHoraInicioSeleccionada] = useState<string>("");
 
-  // Estado para la configuración de horarios
-  const [horarioConfig, setHorarioConfig] = useState({
-    horaApertura: HORARIO_INICIO,
-    horaCierre: HORARIO_FIN,
-  });
+  const { horarioConfig, configCargando } = useHorarioConfig(open);
 
-  // Generar opciones de hora dinámicamente
   const opcionesHora = useMemo(() => {
     const horaInicioNum = parseInt(horarioConfig.horaApertura.split(":")[0]);
     const horaFinNum = parseInt(horarioConfig.horaCierre.split(":")[0]);
     return generarOpcionesHora(horaInicioNum, horaFinNum);
   }, [horarioConfig]);
 
-  // Filtrar opciones de hora_final para mostrar solo horas >= hora_inicio + 30 minutos
   const opcionesHoraFinal = useMemo(() => {
     if (!horaInicioSeleccionada) return opcionesHora;
-    
-    const [h, m] = horaInicioSeleccionada.split(":").map(Number);
-    // Agregar 30 minutos
-    let horaMinima = h;
-    let minutoMinimo = m + 30;
-    if (minutoMinimo >= 60) {
-      horaMinima += 1;
-      minutoMinimo -= 60;
-    }
-    if (horaMinima >= 24) horaMinima = 23;
-    const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutoMinimo.toString().padStart(2, "0")}`;
-    
+    const horaMinimaStr = calcularHoraMinima(horaInicioSeleccionada);
     return opcionesHora.filter((opcion) => opcion.value >= horaMinimaStr);
   }, [opcionesHora, horaInicioSeleccionada]);
 
-  // Cargar configuración de horarios al abrir el diálogo
-  useEffect(() => {
-    const cargarConfiguracion = async () => {
-      setConfigCargando(true);
-      try {
-        const config = await getConfiguracionReserva();
-        if (config) {
-          const horaApertura =
-            config.opening_time?.substring(0, 5) || HORARIO_INICIO;
-          const horaCierre = config.closing_time?.substring(0, 5) || HORARIO_FIN;
-          setHorarioConfig({ horaApertura, horaCierre });
-        }
-      } catch (err) {
-        console.error("Error cargando configuración:", err);
-      } finally {
-        setConfigCargando(false);
-      }
-    };
-
-    if (open) {
-      cargarConfiguracion();
-    }
-  }, [open]);
-
-  // Schema de validación
   const schema = useMemo(
     () =>
       yup.object({
@@ -720,7 +270,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
             (value) => {
               if (!value) return false;
               return value >= horarioConfig.horaApertura;
-            }
+            },
           )
           .test(
             "horario-maximo",
@@ -728,7 +278,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
             (value) => {
               if (!value) return false;
               return value < horarioConfig.horaCierre;
-            }
+            },
           ),
         end_time: yup
           .string()
@@ -739,18 +289,9 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
             function (value) {
               const { start_time } = this.parent;
               if (!value || !start_time) return false;
-              const [h, m] = start_time.split(":").map(Number);
-              // Agregar 30 minutos
-              let horaMinima = h;
-              let minutoMinimo = m + 30;
-              if (minutoMinimo >= 60) {
-                horaMinima += 1;
-                minutoMinimo -= 60;
-              }
-              if (horaMinima >= 24) horaMinima = 23;
-              const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutoMinimo.toString().padStart(2, "0")}`;
+              const horaMinimaStr = calcularHoraMinima(start_time);
               return value >= horaMinimaStr;
-            }
+            },
           )
           .test(
             "horario-maximo-cierre",
@@ -758,7 +299,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
             (value) => {
               if (!value) return false;
               return value <= horarioConfig.horaCierre;
-            }
+            },
           ),
         meeting_title: yup
           .string()
@@ -773,10 +314,10 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
               .string()
               .matches(EMAIL_REGEX, "Correo no válido")
               .required("El correo es obligatorio"),
-          })
+          }),
         ),
       }),
-    [horarioConfig]
+    [horarioConfig],
   );
 
   const {
@@ -804,34 +345,19 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     name: "participants",
   });
 
-  // Estado para autocompletado de participantes
-  const [usuariosSugeridos, setUsuariosSugeridos] = useState<any[]>([]);
-  const [buscandoUsuarios, setBuscandoUsuarios] = useState(false);
-  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  // Estados locales para el nuevo participante que se está escribiendo
-  const [tempNombre, setTempNombre] = useState("");
-  const [tempCorreo, setTempCorreo] = useState("");
-
-  const handleBuscarUsuarios = (valor: string) => {
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-
-    if (valor.length < 3) {
-      setUsuariosSugeridos([]);
-      return;
-    }
-
-    searchTimeout.current = setTimeout(async () => {
-      setBuscandoUsuarios(true);
-      const resultados = await buscarUsuarios(valor);
-      setUsuariosSugeridos(resultados as any[]);
-      setBuscandoUsuarios(false);
-    }, 500);
-  };
+  const {
+    usuariosSugeridos,
+    buscandoUsuarios,
+    tempNombre,
+    setTempNombre,
+    tempCorreo,
+    setTempCorreo,
+    handleBuscarUsuarios,
+  } = useParticipantesAutocomplete();
 
   const handleAddParticipante = () => {
     if (tempNombre.trim() && tempCorreo.trim()) {
-      if (!fields.some(f => (f as any).email === tempCorreo)) {
+      if (!fields.some((f) => (f as any).email === tempCorreo)) {
         append({ name: tempNombre, email: tempCorreo });
         setTempNombre("");
         setTempCorreo("");
@@ -839,42 +365,29 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     }
   };
 
-  // Actualizar valores cuando cambia la configuración
   useEffect(() => {
     if (!configCargando && opcionesHora.length > 0) {
-      // Usar hora actual redondeada a los 30 minutos más cercanos
       const ahora = new Date();
       let horaActual = ahora.getHours();
       let minutoActual = ahora.getMinutes();
-      
-      // Redondear a los 30 minutos hacia arriba
+
       if (minutoActual > 0 && minutoActual <= 30) {
         minutoActual = 30;
       } else if (minutoActual > 30) {
         minutoActual = 0;
         horaActual += 1;
       }
-      
-      // Formatear hora de inicio
+
       let horaInicioDefault = `${horaActual.toString().padStart(2, "0")}:${minutoActual.toString().padStart(2, "0")}`;
-      
-      // Verificar que esté dentro del horario permitido
+
       if (horaInicioDefault < horarioConfig.horaApertura) {
         horaInicioDefault = horarioConfig.horaApertura;
       } else if (horaInicioDefault >= horarioConfig.horaCierre) {
         horaInicioDefault = horarioConfig.horaApertura;
       }
-      
-      // Calcular hora final (+30 minutos)
-      const [h, m] = horaInicioDefault.split(":").map(Number);
-      let horaFin = h;
-      let minutoFin = m + 30;
-      if (minutoFin >= 60) {
-        horaFin += 1;
-        minutoFin -= 60;
-      }
-      const horaFinDefault = `${horaFin.toString().padStart(2, "0")}:${minutoFin.toString().padStart(2, "0")}`;
-      
+
+      const horaFinDefault = calcularHoraMinima(horaInicioDefault);
+
       setValue("start_time", horaInicioDefault);
       if (horaFinDefault <= horarioConfig.horaCierre) {
         setValue("end_time", horaFinDefault);
@@ -900,15 +413,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
           horaInicial < horarioConfig.horaCierre
         ) {
           setValue("start_time", horaInicial);
-          const [h, m] = horaInicial.split(":").map(Number);
-          // Calcular hora final (+30 minutos)
-          let horaFin = h;
-          let minutoFin = m + 30;
-          if (minutoFin >= 60) {
-            horaFin += 1;
-            minutoFin -= 60;
-          }
-          const horaFinStr = `${horaFin.toString().padStart(2, "0")}:${minutoFin.toString().padStart(2, "0")}`;
+          const horaFinStr = calcularHoraMinima(horaInicial);
           if (horaFinStr <= horarioConfig.horaCierre) {
             setValue("end_time", horaFinStr);
           } else {
@@ -921,25 +426,11 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
 
   const horaInicioWatch = watch("start_time");
   const horaFinalWatch = watch("end_time");
-  const observacionesWatch = watch("observations");
-
-  const caracteresObservaciones = observacionesWatch?.length || 0;
-  const caracteresRestantes = 500 - caracteresObservaciones;
-  const aproximandoLimite = caracteresObservaciones >= 450;
 
   useEffect(() => {
     if (horaInicioWatch) {
       setHoraInicioSeleccionada(horaInicioWatch);
-      const [h, m] = horaInicioWatch.split(":").map(Number);
-      // Agregar 30 minutos
-      let horaMinima = h;
-      let minutoMinimo = m + 30;
-      if (minutoMinimo >= 60) {
-        horaMinima += 1;
-        minutoMinimo -= 60;
-      }
-      if (horaMinima >= 24) horaMinima = 23;
-      const horaMinimaStr = `${horaMinima.toString().padStart(2, "0")}:${minutoMinimo.toString().padStart(2, "0")}`;
+      const horaMinimaStr = calcularHoraMinima(horaInicioWatch);
       if (horaFinalWatch && horaFinalWatch < horaMinimaStr) {
         setValue("end_time", horaMinimaStr);
       }
@@ -954,17 +445,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
     onClose();
   };
 
-  const handleSalaChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newSala: Sala | null
-  ) => {
-    if (newSala) {
-      setValue("room_name", newSala);
-    }
-  };
-
   const onFormSubmit = async (data: any) => {
-    // Si estamos en modo tour, enviar datos al tour context
     if (isTourMode) {
       setDialogTourActive(false);
       onFormSubmitted({
@@ -978,7 +459,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       return;
     }
 
-    // Modo normal
     setLoading(true);
     setError(null);
 
@@ -988,7 +468,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
           data.room_name,
           data.date,
           data.start_time,
-          data.end_time
+          data.end_time,
         );
         if (hayConflicto) {
           setError("Ya existe una reserva en este horario para esta sala");
@@ -1009,8 +489,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
       };
       await onSubmit(payload);
 
-      // Notificación n8n post-creación. Solo si el usuario activó el toggle y hay participantes.
-      // No bloquea: si falla, solo logea (la reserva ya quedó en BD).
       if (enviarCorreo && data.participants && data.participants.length > 0) {
         try {
           const result = await notificarCorreoReserva({
@@ -1048,17 +526,11 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
         onClose={isTourMode ? undefined : handleClose}
         maxWidth="lg"
         fullWidth
-        slotProps={{
-          paper: { sx: { borderRadius: 3, maxWidth: 1100 } }
-        }}
+        slotProps={{ paper: { sx: { borderRadius: 3, maxWidth: 1100 } } }}
       >
         <DialogContent sx={{ p: 0 }}>
-          {/* Header */}
           <Box sx={{ p: 3, pb: 2 }}>
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}
-            >
+            <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}>
               Nueva Reservación
               {isTourMode && (
                 <Chip
@@ -1074,14 +546,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                 />
               )}
             </Typography>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                color: "#6b7280",
-              }}
-            >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#6b7280" }}>
               <ScheduleIcon sx={{ fontSize: 16 }} />
               <Typography variant="body2">
                 Reserve una sala de conferencias para su próxima reunión.
@@ -1109,9 +574,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                   border: "1px solid #e5e7eb",
                 }}
               >
-                {/* Columna izquierda */}
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {/* Título */}
                   <Box ref={tituloRef}>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
                       Título de la Reunión *
@@ -1134,291 +597,63 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                     />
                   </Box>
 
-                  {/* Sala */}
-                  <Box ref={salaRef}>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                      Seleccionar Sala *
-                    </Typography>
-                    <Controller
-                      name="room_name"
-                      control={control}
-                      render={({ field }) => (
-                        <ToggleButtonGroup
-                          value={field.value}
-                          exclusive
-                          onChange={handleSalaChange}
-                          fullWidth
-                          sx={{
-                            "& .MuiToggleButton-root": {
-                              flex: 1,
-                              py: 1,
-                              textTransform: "none",
-                              fontWeight: 500,
-                              fontSize: "0.875rem",
-                              border: "1px solid #d1d5db",
-                              backgroundColor: "white",
-                              "&.Mui-selected": {
-                                backgroundColor: "#EFF6FF",
-                                borderColor: "#3B82F6",
-                                color: "#1D4ED8",
-                                "&:hover": { backgroundColor: "#DBEAFE" },
-                              },
-                              "&:hover": { backgroundColor: "#f9fafb" },
-                            },
-                          }}
-                        >
-                          {SALAS_DISPONIBLES.map((sala) => (
-                            <ToggleButton key={sala} value={sala} disabled={loading}>
-                              {sala} ({INFO_SALAS[sala]})
-                            </ToggleButton>
-                          ))}
-                        </ToggleButtonGroup>
-                      )}
-                    />
-                    {errors.room_name && (
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-                        {errors.room_name.message}
-                      </Typography>
+                  <Controller
+                    name="room_name"
+                    control={control}
+                    render={({ field }) => (
+                      <SalaSelector
+                        value={field.value as Sala | ""}
+                        onChange={(sala) => field.onChange(sala)}
+                        disabled={loading}
+                        errorMessage={errors.room_name?.message}
+                        containerRef={salaRef}
+                      />
                     )}
-                  </Box>
+                  />
 
-                  {/* Horas */}
-                  <Box ref={horasRef}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 2,
-                        p: 1.5,
-                        backgroundColor: "#EFF6FF",
-                        borderRadius: 1,
-                        border: "1px solid #BFDBFE",
-                      }}
-                    >
-                      <InfoIcon sx={{ color: "#3B82F6", fontSize: 20 }} />
-                      <Typography variant="body2" sx={{ color: "#1E40AF" }}>
-                        Horario disponible:{" "}
-                        <strong>{formatearHoraLegible(horarioConfig.horaApertura)}</strong> a{" "}
-                        <strong>{formatearHoraLegible(horarioConfig.horaCierre)}</strong>
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-                      <Box>
-                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                          Hora de Inicio *
-                        </Typography>
-                        <Controller
-                          name="start_time"
-                          control={control}
-                          render={({ field }) => (
-                            <FormControl fullWidth error={!!errors.start_time}>
-                              <Select
-                                {...field}
-                                disabled={loading || configCargando}
-                                size="small"
-                                sx={{ backgroundColor: "white" }}
-                              >
-                                {opcionesHora.map((opcion) => (
-                                  <MenuItem key={opcion.value} value={opcion.value}>
-                                    {opcion.label}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                              {errors.start_time && (
-                                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                  {errors.start_time.message}
-                                </Typography>
-                              )}
-                            </FormControl>
-                          )}
-                        />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                          Hora de Fin *
-                        </Typography>
-                        <Controller
-                          name="end_time"
-                          control={control}
-                          render={({ field }) => (
-                            <FormControl fullWidth error={!!errors.end_time}>
-                              <Select
-                                {...field}
-                                disabled={loading || configCargando}
-                                size="small"
-                                sx={{ backgroundColor: "white" }}
-                              >
-                                {opcionesHoraFinal.map((opcion) => (
-                                  <MenuItem key={opcion.value} value={opcion.value}>
-                                    {opcion.label}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                              {errors.end_time && (
-                                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                  {errors.end_time.message}
-                                </Typography>
-                              )}
-                            </FormControl>
-                          )}
-                        />
-                      </Box>
-                    </Box>
-                  </Box>
+                  <Controller
+                    name="start_time"
+                    control={control}
+                    render={({ field: startField }) => (
+                      <Controller
+                        name="end_time"
+                        control={control}
+                        render={({ field: endField }) => (
+                          <HorasFields
+                            horaApertura={horarioConfig.horaApertura}
+                            horaCierre={horarioConfig.horaCierre}
+                            opcionesInicio={opcionesHora}
+                            opcionesFin={opcionesHoraFinal}
+                            startTime={startField.value}
+                            endTime={endField.value}
+                            onStartChange={(v) => startField.onChange(v)}
+                            onEndChange={(v) => endField.onChange(v)}
+                            disabled={loading || configCargando}
+                            errorStart={errors.start_time?.message}
+                            errorEnd={errors.end_time?.message}
+                            containerRef={horasRef}
+                          />
+                        )}
+                      />
+                    )}
+                  />
 
-                  {/* Participantes */}
-                  <Box ref={participantesRef}>
-                    <Box sx={{ p: 1.8, bgcolor: "#F9FAFB", borderRadius: 2, border: "1px solid #E5E7EB", mb: 1.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#374151", mb: 1.2, fontSize: "0.85rem" }}>
-                        Añadir Participantes
-                      </Typography>
-
-                      <Box sx={{ display: "flex", gap: 2, mb: 0.5, alignItems: "flex-end" }}>
-                        <TextField
-                          placeholder="Nombre"
-                          variant="standard"
-                          size="small"
-                          fullWidth
-                          value={tempNombre}
-                          onChange={(e) => setTempNombre(e.target.value)}
-                          sx={{ flex: 1 }}
-                        />
-                        <Autocomplete
-                          freeSolo
-                          options={usuariosSugeridos}
-                          getOptionLabel={(option) =>
-                            typeof option === "string" ? option : option.email
-                          }
-                          loading={buscandoUsuarios}
-                          onInputChange={(_, valor) => {
-                            setTempCorreo(valor);
-                            handleBuscarUsuarios(valor);
-                          }}
-                          onChange={(_, data) => {
-                            if (data && typeof data !== "string") {
-                              // Usuario elegido del dropdown → sobreescribir SIEMPRE
-                              // nombre + correo (no solo cuando nombre esté vacío),
-                              // así si el usuario cambia de selección, el nombre se
-                              // actualiza al del nuevo usuario.
-                              setTempCorreo(data.email);
-                              setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
-                            } else if (typeof data === "string") {
-                              setTempCorreo(data);
-                            } else if (data === null) {
-                              // Usuario limpió el campo (clic en X) → limpiar también nombre
-                              setTempCorreo("");
-                              setTempNombre("");
-                            }
-                          }}
-                          value={tempCorreo}
-                          sx={{ flex: 2 }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              placeholder="Correo"
-                              variant="standard"
-                              size="small"
-                              fullWidth
-                              InputProps={{
-                                ...params.InputProps,
-                                endAdornment: (
-                                  <React.Fragment>
-                                    {buscandoUsuarios ? <CircularProgress color="inherit" size={16} /> : null}
-                                    {params.InputProps.endAdornment}
-                                  </React.Fragment>
-                                ),
-                              }}
-                            />
-                          )}
-                        />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={handleAddParticipante}
-                          disabled={!tempNombre || !tempCorreo}
-                          sx={{ 
-                            minWidth: "auto", 
-                            px: 3, 
-                            textTransform: "none",
-                            bgcolor: "#3B82F6",
-                            "&:hover": { bgcolor: "#2563EB" },
-                            boxShadow: "none",
-                            borderRadius: 1.5,
-                            height: 32
-                          }}
-                        >
-                          Agregar
-                        </Button>
-                      </Box>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        maxHeight: 200, // Un poco más corto
-                        overflowY: "auto",
-                        pr: 1,
-                        "::-webkit-scrollbar": { width: "6px" },
-                        "::-webkit-scrollbar-thumb": {
-                          backgroundColor: "#e5e7eb",
-                          borderRadius: "10px",
-                        },
-                      }}
-                    >
-                      {fields.map((field, index) => (
-                        <Box
-                          key={field.id}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1.5,
-                            py: 0.8,
-                            borderBottom: "1px solid #f3f4f6",
-                            "&:last-child": { borderBottom: "none" },
-                          }}
-                        >
-                          <Avatar
-                            sx={{
-                              width: 30,
-                              height: 30,
-                              bgcolor: "#EFF6FF",
-                              color: "#3B82F6",
-                            }}
-                          >
-                            <PersonIcon sx={{ fontSize: 18 }} />
-                          </Avatar>
-                          
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#1f2937", fontSize: "0.85rem", lineHeight: 1.2 }} noWrap>
-                              {(field as any).name}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.75rem", display: "block" }} noWrap>
-                              {(field as any).email}
-                            </Typography>
-                          </Box>
-
-                          <IconButton
-                            size="small"
-                            onClick={() => remove(index)}
-                            sx={{ color: "#9ca3af", p: 0.5, "&:hover": { color: "#ef4444" } }}
-                          >
-                            <DeleteIcon sx={{ fontSize: 18 }} />
-                          </IconButton>
-                        </Box>
-                      ))}
-                      {fields.length === 0 && (
-                        <Box sx={{ py: 3, textAlign: "center", bgcolor: "#f9fafb", borderRadius: 2, border: "1px dashed #d1d5db" }}>
-                           <Typography variant="body2" sx={{ color: "#9ca3af", fontStyle: "italic", fontSize: "0.8rem" }}>
-                            No hay invitados en la lista
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                    
-                  </Box>
+                  <ParticipantesSection
+                    titulo="Añadir Participantes"
+                    fields={fields as any}
+                    onRemove={remove}
+                    onAdd={handleAddParticipante}
+                    tempNombre={tempNombre}
+                    tempCorreo={tempCorreo}
+                    setTempNombre={setTempNombre}
+                    setTempCorreo={setTempCorreo}
+                    usuariosSugeridos={usuariosSugeridos}
+                    buscandoUsuarios={buscandoUsuarios}
+                    onBuscarUsuarios={handleBuscarUsuarios}
+                    containerRef={participantesRef}
+                  />
                 </Box>
 
-                {/* Columna derecha - Calendario */}
                 <Box ref={fechaRef}>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
                     Fecha *
@@ -1476,43 +711,18 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                     </Typography>
                   )}
 
-                  {/* Observaciones */}
-                  <Box ref={observacionesRef} sx={{ mt: 2 }}>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                      Observaciones
-                    </Typography>
+                  <Box sx={{ mt: 2 }}>
                     <Controller
                       name="observations"
                       control={control}
                       render={({ field }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          multiline
-                          rows={3}
-                          placeholder="Detalles adicionales, participantes, materiales necesarios..."
-                          error={!!errors.observations}
-                          helperText={
-                            errors.observations?.message || (
-                              <Typography
-                                component="span"
-                                sx={{
-                                  color: aproximandoLimite
-                                    ? caracteresObservaciones >= 500
-                                      ? "#ef4444"
-                                      : "#f59e0b"
-                                    : "#6b7280",
-                                  fontSize: "0.75rem",
-                                }}
-                              >
-                                {caracteresObservaciones >= 500
-                                  ? "Límite alcanzado"
-                                  : `Opcional - ${caracteresRestantes} caracteres restantes`}
-                              </Typography>
-                            )
-                          }
+                        <ObservacionesField
+                          value={field.value || ""}
+                          onChange={(v) => field.onChange(v)}
                           disabled={loading}
-                          sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "white" } }}
+                          errorMessage={errors.observations?.message}
+                          placeholder="Detalles adicionales, participantes, materiales necesarios..."
+                          containerRef={observacionesRef}
                         />
                       )}
                     />
@@ -1520,7 +730,6 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                 </Box>
               </Box>
 
-              {/* Botones */}
               <Box
                 sx={{
                   display: "flex",
@@ -1588,14 +797,12 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
           </form>
         </DialogContent>
 
-        {/* Spotlight overlay */}
-        <SpotlightOverlay 
-          targetEl={anchorEl} 
+        <SpotlightOverlay
+          targetEl={anchorEl}
           open={dialogTourActive}
           padding={currentStep?.spotlightPadding}
         />
 
-        {/* Tour tooltip */}
         {currentStep && (
           <TourTooltip
             anchorEl={anchorEl}

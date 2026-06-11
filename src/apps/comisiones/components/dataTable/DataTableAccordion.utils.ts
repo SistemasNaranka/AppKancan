@@ -1,7 +1,6 @@
 import { grey, green, blue, orange, pink, red } from "@mui/material/colors";
 import { Role, CommissionThreshold } from "../../types";
 
-// --- TIPOS Y ESTADOS INICIALES ---
 export type Order = "asc" | "desc";
 export type SortField =
   | "nombre" | "rol" | "dias_laborados" | "presupuesto" | "ventasActuales"
@@ -26,7 +25,6 @@ export const INITIAL_SORT_STATE: SortState = {
   order: "desc",
 };
 
-// --- FUNCIONES DE ORDENAMIENTO (TU LÓGICA ORIGINAL) ---
 const getSortValue = (employee: any, field: SortField): any => {
   switch (field) {
     case "nombre": return employee.nombre;
@@ -71,7 +69,6 @@ export const compareValues = (a: any, b: any, field: SortField, order: Order): n
   return 0;
 };
 
-// --- PROCESAMIENTO Y COLORES (TU LÓGICA ORIGINAL) ---
 export const getRowBackgroundColor = (pct: number, thresholdConfig?: CommissionThreshold[]): string => {
   if (!thresholdConfig || thresholdConfig.length === 0) return grey[100];
   const umbralesOrdenados = [...thresholdConfig].sort((a, b) => a.min_compliance - b.min_compliance);

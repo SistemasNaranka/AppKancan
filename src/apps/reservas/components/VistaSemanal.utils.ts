@@ -10,7 +10,6 @@ export const AÑOS = Array.from({ length: 7 }, (_, i) => 2024 + i);
 export const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
 export const ESTADOS_EXCLUIDOS = ["cancelado", "cancelada", "finalizado", "finalizada"];
 
-// ─── Estilos ──────────────────────────────────────────────────────────────────
 
 export const LABEL_GRUPO_SX = {
   fontWeight: 700, color: "#303030", fontSize: "0.7rem",
@@ -48,8 +47,6 @@ export const HOVER_INDICATOR_SX = {
   transition: "opacity 0.15s ease", backgroundColor: "rgba(16, 185, 129, 0.9)",
   color: "#fff", borderRadius: "4px", px: 0.75, py: 0.25,
 };
-
-// ─── Utilidades ───────────────────────────────────────────────────────────────
 
 export const generarHorasRango = (horaInicio: string, horaFin: string): string[] => {
   const [horaIni] = horaInicio.split(":").map(Number);

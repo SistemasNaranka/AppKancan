@@ -1,12 +1,3 @@
-/**
- * Tipos e interfaces para el módulo de Contabilización de Facturas
- */
-
-// ============ TIPOS PARA FACTURA EXTRAÍDA DE PDF ============
-
-/**
- * Representa un concepto/ítem de la factura
- */
 export interface ConceptoFactura {
   descripcion: string;
   cantidad: number;
@@ -14,27 +5,19 @@ export interface ConceptoFactura {
   importe: number;
 }
 
-/**
- * Representa un impuesto desglosado
- */
 export interface ImpuestosDetalle {
   base: number;
-  tipo: number; // Porcentaje (ej: 21 para 21%)
+  tipo: number;
   importe: number;
 }
 
-/**
- * Datos extraídos de una factura PDF
- */
 export interface DatosFacturaPDF {
-  // Información general
   numeroFactura: string;
   numeroSinPrefijo: string;
   automatico: string;
   fechaEmision: string;
   fechaVencimiento?: string;
 
-  // Proveedor
   proveedor: {
     nombre: string;
     nif?: string;
@@ -43,54 +26,44 @@ export interface DatosFacturaPDF {
     email?: string;
   };
 
-  // Cliente (si aplica)
   cliente?: {
     nombre: string;
     nif?: string;
     direccion?: string;
   };
 
-  // Conceptos/Items
   conceptos: ConceptoFactura[];
 
-  // Desglose de impuestos
   impuestos: ImpuestosDetalle[];
 
-  // Totales
   subtotal: number;
   totalImpuestos: number;
   total: number;
 
-  // Metadatos
   moneda: string;
   formaPago?: string;
   observaciones?: string;
 
-  // Información del archivo
   archivo: {
     nombre: string;
     tamaño: number;
     fechaCarga: string;
   };
 
-  // Información de automático asignado (cargado desde BD)
   automaticoAsignado?: string;
 
-  // Número de entrada de mercancía asignado (acc_goods_receipts)
   entrada?: string;
 }
 
-// ============ ESTADOS DEL PROCESO ============
 
 export type EstadoProceso =
-  | "idle" // Esperando archivo
-  | "cargando" // Cargando archivo
-  | "procesando" // Extrayendo datos del PDF
-  | "validando" // Validando datos extraídos
-  | "completado" // Datos extraídos exitosamente
-  | "error"; // Error en el proceso
+  | "idle" 
+  | "cargando" 
+  | "procesando"
+  | "validando"
+  | "completado"
+  | "error";
 
-// ============ ERRORES ============
 
 export type TipoErrorPDF =
   | "archivo_invalido"
@@ -106,9 +79,7 @@ export interface ErrorProcesamientoPDF {
   detalles?: string;
 }
 
-// ============ UTILIDADES ============
 
-// Lista de códigos de moneda ISO 4217 más comunes
 const CODIGOS_MONEDA_VALIDOS = [
   "EUR",
   "USD",
@@ -139,7 +110,6 @@ const CODIGOS_MONEDA_VALIDOS = [
   "SVC",
 ];
 
-// Mapa de nombres comunes a códigos ISO
 const MAPA_MONEDAS: Record<string, string> = {
   pesos: "COP",
   peso: "COP",
@@ -159,33 +129,26 @@ const MAPA_MONEDAS: Record<string, string> = {
   "peso mexicano": "MXN",
 };
 
-/**
- * Normaliza un código de moneda a un código ISO 4217 válido
- */
 function normalizeCurrency(currency: string): string {
-  if (!currency) return "COP"; // Default para Colombia
+  if (!currency) return "COP";
 
   const upperCurrency = currency.toUpperCase().trim();
 
-  // Si ya es un código ISO válido, usarlo
   if (CODIGOS_MONEDA_VALIDOS.includes(upperCurrency)) {
     return upperCurrency;
   }
 
-  // Buscar en el mapa de nombres comunes
   const lowerCurrency = currency.toLowerCase().trim();
   if (MAPA_MONEDAS[lowerCurrency]) {
     return MAPA_MONEDAS[lowerCurrency];
   }
 
-  // Buscar coincidencia parcial en el mapa
   for (const [nombre, codigo] of Object.entries(MAPA_MONEDAS)) {
     if (lowerCurrency.includes(nombre) || nombre.includes(lowerCurrency)) {
       return codigo;
     }
   }
 
-  // Default a COP si no se reconoce
   console.warn(`Moneda no reconocida "${currency}", usando COP como default`);
   return "COP";
 }
@@ -203,7 +166,6 @@ export function formatCurrency(
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    // Fallback si aún falla
     return `${amount.toLocaleString("es-CO")} ${monedaNormalizada}`;
   }
 }
@@ -211,8 +173,6 @@ export function formatCurrency(
 export function formatDate(dateString: string | undefined): string {
   if (!dateString) return "-";
   try {
-    // Parse date components directly to avoid UTC conversion issues
-    // This prevents the timezone décalage where dates appear as one day earlier
     const datePart = dateString.split("T")[0];
     const [year, month, day] = datePart.split("-").map(Number);
     const date = new Date(year, month - 1, day);
@@ -234,9 +194,6 @@ export function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
-/**
- * Obtiene el NIT sin el dígito de verificación (número después del guion)
- */
 export function getNitSinDv(nit?: string): string {
   if (!nit) return "";
   const trimmed = nit.trim();

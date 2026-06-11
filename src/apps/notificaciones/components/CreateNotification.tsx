@@ -1,4 +1,3 @@
-// components/CreateNotification.tsx
 import { useState, useEffect, ReactNode } from 'react';
 import {
   Box, Typography, TextField, Chip, Button, Switch,
@@ -31,14 +30,10 @@ import { servicioNotificaciones } from '../services/notification.service';
 
 dayjs.locale("es");
 
-// ── Tipos ────────────────────────────────────────────────────────────────────
-
 interface CreateNotificationProps {
   onSuccess?: () => void;
   currentTerminalCode?: string;
 }
-
-// ── Constantes ───────────────────────────────────────────────────────────────
 
 const tiposAlerta = [
   { value: 'info',    label: 'Informativa',  icon: <InfoOutlinedIcon fontSize="small" />,       color: '#0058be' },
@@ -59,9 +54,6 @@ const inputStyle = {
 
 const inputHoraStyle = { ...inputStyle, width: 175, '& .MuiOutlinedInput-input': { padding: '12px 6px' } };
 
-// ── Sub-componentes de layout ────────────────────────────────────────────────
-
-// Bloque interno sin borde (todo va dentro de un único Paper que envuelve el formulario)
 function SectionCard({ id, children, title, icon }: { id?: string; children: ReactNode; title?: string; icon?: ReactNode }) {
   return (
     <Box id={id} sx={{ width: '100%', height: '100%' }}>
@@ -97,8 +89,6 @@ function ToggleRow({ label, description, checked, onChange, disabled }: {
     </Box>
   );
 }
-
-// ── Componente principal ─────────────────────────────────────────────────────
 
 const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificationProps) => {
   const navigate = useNavigate();
@@ -249,8 +239,6 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
       setInputExcluir('');
     }
   };
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -405,8 +393,6 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
                               '& .MuiAutocomplete-input': {
                                 display: 'none !important',
                               },
-                              // Cuando el usuario hace foco en el contenedor mostramos el input para
-                              // permitir seguir buscando/añadiendo.
                               '& .MuiOutlinedInput-root.Mui-focused .MuiAutocomplete-input': {
                                 display: 'inline-block !important',
                                 flex: '1 1 60px',
@@ -561,7 +547,6 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
                         textTransform: 'none',
                         fontFamily: 'Inter', fontWeight: 600, fontSize: '13px',
                         color: '#64748b',
-                        // Hover uniforme para todos los tipos
                         '&:hover': { bgcolor: '#f1f5f9' },
                         '&.Mui-selected': {
                           bgcolor: `${t.color}18`,

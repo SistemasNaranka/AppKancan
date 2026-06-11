@@ -27,7 +27,6 @@ import {
   formatearHora12h, puedeModificar,
 } from "./VistaSemanal.utils";
 
-// ─── Átomos ───────────────────────────────────────────────────────────────────
 
 export const GrupoLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Typography variant="caption" sx={LABEL_GRUPO_SX}>{children}</Typography>
@@ -50,7 +49,6 @@ export const SegmentedSlider: React.FC<{ left: string; widthCalc?: string }> = (
   }} />
 );
 
-// ─── Barra de filtros ─────────────────────────────────────────────────────────
 
 export const SelectorSala: React.FC<{
   salaSeleccionada: string;
@@ -153,7 +151,6 @@ export const PeriodoActual: React.FC<{ rangoFechas: string }> = ({ rangoFechas }
   </Box>
 );
 
-// ─── Calendario ───────────────────────────────────────────────────────────────
 
 export const CargandoHorarios: React.FC = () => (
   <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 400, gap: 2 }}>
@@ -306,7 +303,6 @@ export const CeldaHora: React.FC<{
   );
 };
 
-// ─── Popover detalle ──────────────────────────────────────────────────────────
 
 const DetalleItem: React.FC<{
   icon: React.ReactNode; children: React.ReactNode;

@@ -47,7 +47,6 @@ const Transition = React.forwardRef(function Transition(
 });
 
 const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoChanged }) => {
-  // Use live context to get the most up-to-date cargo after mutations
   const { selectedContrato } = useContractContext();
   const liveContrato = selectedContrato?.id === contrato.id ? selectedContrato : contrato;
   const [historial, setHistorial] = useState<HistorialCargo[]>([]);
@@ -70,7 +69,6 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
       fetchHistory(true);
       setIsAddingMode(false);
       setNuevoCargo('');
-      // Seleccionar automáticamente la fecha actual
       setFechaEfectividad(new Date().toISOString().split('T')[0]);
     }
   }, [open, contrato.id]);
@@ -88,7 +86,6 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
     const selectedRole = ROLES_AREAS.find(r => r.nombre === nuevoCargo);
     const nuevaArea = selectedRole ? selectedRole.area : undefined;
 
-    // 1️⃣ Crear registro en historial_cargos
     const success = await (crearHistorialCargo as any)({
       contrato_id: contrato.id,
       cargo_anterior: cargoAnterior || 'Desconocido',
@@ -98,14 +95,8 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
     });
 
     if (success) {
-      // 2️⃣ Actualizar cargo (y área) en la tabla contratos
-      // Esto hace que el cambio se refleje en toda la app:
-      // el WebSocket del ContractContext detecta el UPDATE y
-      // ejecuta UPSERT_CONTRATO, re-renderizando todos los
-      // componentes que consumen el contexto.
       await actualizarCargoEnContrato(contrato.id, nuevoCargo, nuevaArea);
 
-      // 3️⃣ Optimizar UI agregando el item localmente sin esperar re-fetch
       setHistorial(prev => [
         {
           id: Date.now(),
@@ -118,11 +109,9 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
         ...prev,
       ]);
 
-      // 4️⃣ Notificar al componente padre para que refresque si es necesario
       await onCargoChanged();
       setIsAddingMode(false);
 
-      // 5️⃣ Sincronizar historial en background sin spinner
       fetchHistory(false);
     }
 
@@ -291,7 +280,7 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
                     <DatePicker
                       label="Fecha de Efectividad"
                       value={fechaEfectividad ? dayjs(fechaEfectividad) : null}
-                      onChange={(val) => setFechaEfectividad(val ? val.format('YYYY-MM-DD') : '')}
+                      onChange={(val) => setFechaEfectividad(val ? dayjs(val).format('YYYY-MM-DD') : '')}
                       disabled={saving}
                       slotProps={{
                         textField: {

@@ -22,9 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
-  /**
-   * Función auxiliar para extraer políticas de Directus (estructura específica)
-   */
+  
   const extractPolicies = (userData: any): string[] => {
     // Extraer políticas directas del usuario
     const directPolicies =
@@ -40,9 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return combined;
   };
 
-  /**
-   * Función de login
-   */
+  
   const login = async (email: string, password: string) => {
     try {
       const res = await loginDirectus(email, password);
@@ -76,9 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Usar el hook de navegación para manejar la persistencia de la ruta
   const { clearSavedRoute, goToHome } = useNavigationPersistence();
 
-  /**
-   * Función de logout mejorada
-   */
+  
   const logout = async () => {
     const tokens = cargarTokenStorage();
 
@@ -107,9 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await setTokenDirectus(null);
   };
 
-  /**
-   * Inicialización: Verificar si hay sesión válida
-   */
+  
   useEffect(() => {
     const init = async () => {
       // Solo inicializar una vez

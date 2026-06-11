@@ -1,4 +1,3 @@
-// src/apps/contactos/api/directus/create.ts
 import directus from '@/services/directus/directus';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
 import { createItem, updateItem, deleteItem, deleteItems, readItems } from '@directus/sdk';
@@ -13,7 +12,6 @@ export async function createContacto(data: CreateContactoInput): Promise<number 
       phone_number: data.phone_number || null,
       email: data.email || null,
       department_id: data.department_id || null,
-      // Aquí usamos tus nuevos nombres: Universal, Restringido o Inactivo
       visibility_type: data.visibility_type, 
     };
     const result = await withAutoRefresh(() =>
@@ -124,4 +122,4 @@ export async function unlinkUserFromContact(contactId: number, userId: string): 
     return false;
   }
 }
-
+

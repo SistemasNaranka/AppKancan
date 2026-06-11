@@ -11,7 +11,6 @@ import { MESES, generarDiasCalendario, formatearHora, truncarTexto } from "./Cal
 import { FilterBar } from "./FilterBar";
 import { DayPopover, DetailPopover } from "./CalendarPopovers";
 
-// INTERFAZ CORREGIDA
 export interface VistaCalendarioProps {
   usuarioActualId: string | null | undefined;
   vistaCalendario?: "semanal" | "mes";
@@ -53,8 +52,6 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
     return (estado === "vigente" || estado === "en curso") && r.room_name === salaSeleccionada;
   }), [reservasRaw, salaSeleccionada]);
 
-  // ... dentro de VistaCalendario.tsx
-
   const getReservasDia = (fecha: Date) => reservas.filter(r => r.date === format(fecha, "yyyy-MM-dd"));
   
   const puedeModificar = (reserva: Reserva) => {
@@ -66,8 +63,6 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
     
     return new Date(`${reserva.date}T${reserva.start_time}`) > new Date();
   };
-
-// ... resto del código
 
   const dias = generarDiasCalendario(fechaActual, mostrarFinesSemana);
   const numColumnas = mostrarFinesSemana ? 7 : 5;

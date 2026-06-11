@@ -102,7 +102,7 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
     );
   }
 
-  // Verificar si hay datos de empleados
+
   const hasEmployeeData =
     mesResumen.tiendas &&
     mesResumen.tiendas.some(
@@ -146,14 +146,11 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
   const roles = Object.keys(roleConfig);
   const currentRole = roles[selectedRole];
   const topSellers = getTop5ByRole(currentRole);
-
-  // Calcular el total para el chip (valor original)
   const roleTotal =
     mesResumen.comisiones_por_rol[
       currentRole as keyof typeof mesResumen.comisiones_por_rol
     ] || 0;
 
-  // Crear etiquetas con truncado para móviles
   const createTruncatedLabels = (labels: string[]) => {
     return labels.map((label) => {
       if (isMobile && label.length > 25) {
@@ -186,7 +183,7 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
   const chartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
-    indexAxis: "y" as const, // Hacer las barras horizontales
+    indexAxis: "y" as const,
     plugins: {
       legend: {
         display: false,
@@ -199,8 +196,8 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
         borderWidth: 1,
         callbacks: {
           label: function (context: any) {
-            const value = context.parsed.x || 0; // Cambiado de y a x para barras horizontales
-            return `Comisión: ${Math.round(value).toLocaleString()}`; // Valor real completo
+            const value = context.parsed.x || 0;
+            return `Comisión: ${Math.round(value).toLocaleString()}`;
           },
         },
       },
@@ -210,7 +207,7 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
         beginAtZero: true,
         ticks: {
           color: theme.palette.text.secondary,
-          maxRotation: 0, // Sin rotación para barras horizontales
+          maxRotation: 0,
           font: {
             size: isMobile ? 8 : 10,
           },
@@ -218,11 +215,11 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
             const numValue =
               typeof value === "string" ? parseFloat(value) : value;
             if (numValue >= 1000000) {
-              return "$" + Math.round(numValue / 1000000) + "M"; // Sin decimales
+              return "$" + Math.round(numValue / 1000000) + "M"; 
             } else if (numValue >= 1000) {
-              return "$" + Math.round(numValue / 1000) + "K"; // Sin decimales
+              return "$" + Math.round(numValue / 1000) + "K";
             } else {
-              return "$" + Math.round(numValue).toLocaleString(); // Sin decimales
+              return "$" + Math.round(numValue).toLocaleString();
             }
           },
         },
@@ -239,7 +236,7 @@ export const TopSellersByRoleChart: React.FC<TopSellersByRoleChartProps> = ({
           },
         },
         grid: {
-          display: false, // Ocultar gridlines para barras horizontales
+          display: false,
         },
       },
     },

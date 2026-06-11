@@ -12,7 +12,6 @@ interface UseEnviosHydrationProps {
 export const useEnviosHydration = ({ current, enviosCurvasData, extractRef, setValidationData, myScannedTiendasRef }: UseEnviosHydrationProps) => {
   const hydratedSheetsRef = useRef<Set<string>>(new Set());
 
-  // Hidratación inicial (Carga una vez por hoja)
   useEffect(() => {
     if (!current || !enviosCurvasData || enviosCurvasData.length === 0) return;
 
@@ -50,10 +49,8 @@ export const useEnviosHydration = ({ current, enviosCurvasData, extractRef, setV
     });
 
     setValidationData((prev) => ({ ...prev, [sheetId]: nuevoValidation }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.sheet?.id, enviosCurvasData, extractRef, setValidationData]);
 
-  // Sincronización en tiempo real (respeta mi myScannedTiendasRef)
   useEffect(() => {
     if (!current || !enviosCurvasData) return;
 

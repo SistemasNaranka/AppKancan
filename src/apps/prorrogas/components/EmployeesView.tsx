@@ -15,8 +15,8 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import PersonIcon from '@mui/icons-material/Person';
 import { useContracts, EnrichedContrato } from '../hooks/useContracts';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const CARD_RADIUS = 14;
 
 const STATUS_CFG = {
@@ -38,7 +38,6 @@ function avatarColors(status: keyof typeof STATUS_CFG) {
   return map[status];
 }
 
-// ─── Employee Card ────────────────────────────────────────────────────────────
 const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c }) => {
   const st = c.contractStatus as keyof typeof STATUS_CFG;
   const cfg = STATUS_CFG[st];
@@ -88,7 +87,7 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
 
         {/* Name & role */}
         <Typography variant="body2" fontWeight={800} sx={{ fontSize: '0.9rem', lineHeight: 1.3, mb: 0.2 }}>
-          {c.first_name}
+          {formatNombreCompleto(c)}
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
           {c.position}
@@ -158,7 +157,6 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
   );
 };
 
-// ─── Stat Mini Card ───────────────────────────────────────────────────────────
 const MiniStat: React.FC<{
   Icon: React.ElementType; iconColor: string; iconBg: string;
   value: number; label: string;
@@ -174,7 +172,6 @@ const MiniStat: React.FC<{
   </Box>
 );
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 const EmployeesView: React.FC = () => {
   const { allEnriched } = useContracts();
   const [search, setSearch] = useState('');
@@ -196,13 +193,13 @@ const EmployeesView: React.FC = () => {
         if (statusFilter !== 'todos' && c.contractStatus !== statusFilter) return false;
         if (!q) return true;
         return (
-          c.first_name.toLowerCase().includes(q) ||
+          formatNombreCompleto(c).toLowerCase().includes(q) ||
           String(c.position).toLowerCase().includes(q) ||
           (c.department?.toLowerCase() ?? '').includes(q)
         );
       })
       .sort((a, b) => {
-        if (sort === 'nombre') return a.first_name.localeCompare(b.first_name);
+        if (sort === 'nombre') return formatNombreCompleto(a).localeCompare(formatNombreCompleto(b));
         if (sort === 'vencimiento') return a.daysLeft - b.daysLeft;
         return 0;
       });

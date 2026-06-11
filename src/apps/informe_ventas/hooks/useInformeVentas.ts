@@ -31,7 +31,6 @@ import {
   CommissionThreshold,
 } from "../api/directus/read";
 interface UseInformeVentasReturn {
-  // Estado
   loading: boolean;
   isFetching: boolean;
   hasLoadedAtLeastOnce: boolean;
@@ -50,12 +49,10 @@ interface UseInformeVentasReturn {
   tiendasFiltradas: { id: number; nombre: string }[];
   asesoresFiltrados: string[];
 
-  // Datos procesados
   ventasPorAsesor: VentaAsesor[];
   ventasPorTienda: VentaTienda[];
   tablaVentas: TablaVentasFila[];
 
-  // Acciones
   actualizarFiltros: (nuevosFiltros: Partial<FiltrosVentas>) => void;
   limpiarFiltros: () => void;
   recargarDatos: () => Promise<void>;
@@ -84,7 +81,6 @@ const resumenVacio: ResumenVentas = {
 };
 
 export function useInformeVentas(): UseInformeVentasReturn {
-  // Estados principales
   const [error] = useState<string | null>(null);
   const [ventas, setVentas] = useState<VentaRegistro[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
@@ -99,7 +95,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
     Map<number, number>
   >(new Map());
 
-  // Estado para umbrales de comisión
   const [umbralesComision, setUmbralesComision] = useState<
     CommissionThreshold[]
   >([]);
@@ -223,7 +218,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
     if (lineasVentaData) setLineasVenta(lineasVentaData);
   }, [lineasVentaData]);
 
-  // Procesar presupuestos cuando cambian los datos
   useEffect(() => {
     if (presupuestosData && presupuestosData.length > 0) {
       const presupuestosMap = new Map<number, number>();
@@ -241,15 +235,12 @@ export function useInformeVentas(): UseInformeVentasReturn {
       setUmbralesComision(umbralesComisionData);
     }
   }, [umbralesComisionData]);
-  // Indicador de que ya hemos recibido respuesta de la API al menos una vez
   const hasLoadedAtLeastOnce = ventasData !== undefined;
 
-  // Loading permanece activo mientras se carga o si no hemos recibido respuesta aún
   const loading = loadingVentas || fetchingVentas || (ventasData === undefined && !error);
 
   useEffect(() => {}, []);
 
-  // Función para normalizar cadenas (quitar espacios múltiples, convertir a mayúsculas y quitar acentos si es necesario)
   const normalizeString = (str: string | undefined | null): string => {
     if (!str) return "";
     return str
@@ -266,7 +257,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
     return isNaN(codigo) ? null : codigo;
   };
 
-  // Mapa de tiendas para búsqueda rápida
   const tiendasMap = useMemo(() => {
     const map = new Map<string, Tienda>();
     tiendas.forEach((t) => {
@@ -278,7 +268,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
   const ventasFiltradas = useMemo(() => {
     let resultado = ventas;
 
-    // Filtrar por fecha
     if (filtros.fecha_desde) {
       resultado = resultado.filter(
         (v) => v.fecha_factura >= filtros.fecha_desde,
@@ -341,16 +330,13 @@ export function useInformeVentas(): UseInformeVentasReturn {
           zona: venta.zona || "",
           total_unidades: 0,
           total_valor: 0,
-          // Agrupaciones
           unidades_indigo: 0,
           unidades_tela_liviana: 0,
           unidades_calzado: 0,
           unidades_complemento: 0,
-          // Líneas de venta - unidades
           unidades_coleccion: 0,
           unidades_basicos: 0,
           unidades_promocion: 0,
-          // Líneas de venta - valores
           valor_coleccion: 0,
           valor_basicos: 0,
           valor_promocion: 0,
@@ -361,7 +347,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
       actual.total_unidades += venta.venta;
       actual.total_valor += venta.valor;
 
-      // Desglose por agrupación (mapeada desde el servidor)
       if (venta.agrupacion === "Indigo") {
         actual.unidades_indigo += venta.venta;
       } else if (venta.agrupacion === "Tela Liviana") {
@@ -372,7 +357,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
         actual.unidades_complemento += venta.venta;
       }
 
-      // Desglose por línea de venta (mapeada desde el servidor)
       if (venta.linea_venta === "Colección") {
         actual.unidades_coleccion += venta.venta;
         actual.valor_coleccion += venta.valor;
@@ -385,13 +369,11 @@ export function useInformeVentas(): UseInformeVentasReturn {
       }
     });
 
-    // Convertir a array y ordenar por total de unidades
     return Array.from(agrupado.values()).sort(
       (a, b) => b.total_unidades - a.total_unidades,
     );
   }, [ventasFiltradas, tiendasMap]);
 
-  // Ventas agregadas por tienda
   const ventasPorTienda = useMemo<VentaTienda[]>(() => {
     const agrupado = new Map<string, VentaTienda>();
 
@@ -415,13 +397,11 @@ export function useInformeVentas(): UseInformeVentasReturn {
       actual.asesores.push(ventaAsesor);
     });
 
-    // Ordenar por total de unidades
     return Array.from(agrupado.values()).sort(
       (a, b) => b.total_unidades - a.total_unidades,
     );
   }, [ventasFiltradas, tiendasMap]);
 
-  // Datos para la tabla
   const tablaVentas = useMemo<TablaVentasFila[]>(() => {
     return ventasPorAsesor.map((v, index) => {
       const codigoAsesor = extraerCodigoAsesor(v.asesor);
@@ -464,7 +444,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
         unidades_tela_liviana: v.unidades_tela_liviana,
         unidades_calzado: v.unidades_calzado,
         unidades_complemento: v.unidades_complemento,
-        // Presupuestos distribuidos por línea de venta
         presupuesto_coleccion: presupuestoDistribuido.presupuesto_coleccion,
         cumplimiento_coleccion: comisionColeccion.cumplimiento,
         comision_coleccion: comisionColeccion.comision,
@@ -569,8 +548,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
     return resultado.map((t) => ({ id: t.id, nombre: t.nombre }));
   }, [tiendas, filtros.zona, filtros.ciudad]);
   const asesoresFiltrados = useMemo(() => {
-    // Importante: No podemos usar ventasFiltradas porque ya tiene el filtro de asesor aplicado
-    // Necesitamos filtrar las ventas base por el contexto actual (zona, ciudad, tienda)
     let ventasContexto = ventas;
 
     if (filtros.zona) {
@@ -593,9 +570,6 @@ export function useInformeVentas(): UseInformeVentasReturn {
     }
 
     if (ventasContexto.length === 0) {
-      // Si no hay ventas en este contexto, mostramos todos los asesores disponibles
-      // pero solo si no hay otros filtros activos. Si hay filtros, devolvemos vacío
-      // para que el usuario sepa que no hay nadie con ventas en esa selección.
       if (!filtros.zona && !filtros.ciudad && !filtros.bodega) {
         return asesores;
       }

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 import {
   Dialog,
   DialogTitle,
@@ -27,7 +28,6 @@ interface ReportsModalProps {
 const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
   const { allEnriched } = useContracts();
 
-  // ── Cálculos Estadísticos ──
   const stats = useMemo(() => {
     let activos = 0;
     let criticos = 0;
@@ -39,37 +39,30 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
     const proximosAVencer: typeof allEnriched = [];
 
     allEnriched.forEach((c) => {
-      // KPIs
       if (c.contractStatus === 'vigente' || c.contractStatus === 'proximo') activos++;
       if (c.daysLeft >= 0 && c.daysLeft <= 7) criticos++;
       if (c.contractStatus === 'vencido') vencidos++;
       if (c.status === 'pendiente' || c.status === 'en_revision') pendientes++;
 
-      // Agrupación por Área
       const area = c.department || 'Sin Área Asignada';
       areaCount[area] = (areaCount[area] || 0) + 1;
 
-      // Agrupación por Empresa
       const empresa = c.empresa || 'Sin Empresa';
       empresaCount[empresa] = (empresaCount[empresa] || 0) + 1;
 
-      // Próximos a vencer (que no estén vencidos)
       if (c.daysLeft >= 0 && c.daysLeft <= 60 && c.contractStatus !== 'vencido') {
         proximosAVencer.push(c);
       }
     });
 
-    // Ordenar Top 5 Áreas
     const topAreas = Object.entries(areaCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    // Ordenar Top 5 Empresas
     const topEmpresas = Object.entries(empresaCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    // Ordenar Próximos a vencer de menor a mayor tiempo restante
     proximosAVencer.sort((a, b) => a.daysLeft - b.daysLeft);
     const topProximos = proximosAVencer.slice(0, 5);
 
@@ -85,7 +78,6 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
     };
   }, [allEnriched]);
 
-  // ── Helper para tarjetas KPI ──
   const KPICard = ({ title, value, icon, color, bg }: any) => (
     <Card sx={{ borderRadius: 3, boxShadow: '0 4px 14px rgba(0,0,0,0.03)', border: '1px solid #e8edf5', height: '100%' }}>
       <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
@@ -168,7 +160,7 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
                 {stats.topProximos.length > 0 ? stats.topProximos.map((emp) => (
                   <Box key={emp.id} sx={{ p: 2.5, '&:hover': { bgcolor: '#fafafa' }, transition: 'background 0.2s' }}>
                     <Typography variant="subtitle2" fontWeight={700} color="text.primary">
-                      {emp.first_name} {emp.last_name || ''}
+                      {formatNombreCompleto(emp)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" mb={1}>
                       {emp.position || 'Sin Cargo'}

@@ -17,7 +17,6 @@ import {
   CargandoHorarios, EncabezadoDia, CeldaHora, PopoverDetalleReserva,
 } from "./VistaSemanal.components";
 
-// ─── Hook de configuración ────────────────────────────────────────────────────
 
 const useConfiguracionHoras = () => {
   const { data, isLoading, isError } = useQuery({
@@ -40,7 +39,6 @@ const useConfiguracionHoras = () => {
   return { horas, isLoading, isError };
 };
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 
 const VistaSemanal: React.FC<VistaSemanalProps> = ({
   reservas, onNuevaReserva, onEditarReserva, onCancelarReserva,
@@ -71,7 +69,6 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     });
   }, [reservas, diasSemana, salaSeleccionada]);
 
-  // Navegación
   const semanaAnterior  = () => setFechaBase(subWeeks(fechaBase, 1));
   const semanaSiguiente = () => setFechaBase(addWeeks(fechaBase, 1));
   const irAHoy          = () => setFechaBase(new Date());
@@ -79,7 +76,6 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
   const handleCambiarMes = (mes: number) => setFechaBase(setMonth(fechaBase, mes));
   const handleCambiarAño = (año: number) => setFechaBase(setYear(fechaBase, año));
 
-  // Popover
   const handleClickReserva = (e: React.MouseEvent<HTMLElement>, reserva: Reserva) => {
     e.stopPropagation();
     setReservaSeleccionada(reserva);

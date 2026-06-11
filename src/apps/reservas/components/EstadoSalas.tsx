@@ -1,5 +1,3 @@
-// src/apps/reservas/components/EstadoSalas.tsx
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Box, Paper, Typography, Button, Chip } from "@mui/material";
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
@@ -82,7 +80,6 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
       let esReservaFutura = false;
 
       if (hayReservasHoy) {
-        // Hay reservas hoy: mostrar próximas reservas de hoy ordenadas cronológicamente
         proximasReservas = reservasSalaHoy
           .filter((r) => r.start_time > horaActual)
           .sort((a, b) => a.start_time.localeCompare(b.start_time));
@@ -103,7 +100,6 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
           });
 
         if (reservasFuturas.length > 0) {
-          // Tomar la primera reserva futura como "próxima"
           proximasReservas = [reservasFuturas[0]];
           esReservaFutura = true;
         }
@@ -166,8 +162,6 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
     return "Próxima reserva";
   };
 
-  // Calcula los días faltantes hasta la fecha de la reserva (a las 00:00).
-  // Devuelve etiqueta amigable: "Hoy" / "Mañana" / "Faltan N días".
   const obtenerDiasFaltantesLabel = (reserva: Reserva | null): string | null => {
     if (!reserva) return null;
     try {
@@ -509,7 +503,6 @@ const EstadoSalas: React.FC<EstadoSalasProps> = ({
                         {estado.proximaReserva && (() => {
                           const label = obtenerDiasFaltantesLabel(estado.proximaReserva);
                           if (!label) return null;
-                          // Color según urgencia
                           const isHoy = label === "Hoy";
                           const isManana = label === "Mañana";
                           const bg = isHoy ? "#16a34a" : isManana ? "#d97706" : "#e8f0f9";

@@ -9,9 +9,7 @@ export interface StoredTokens {
   expires_at: number; // ✅ Nombre corregido para coincidir con Directus
 }
 
-/**
- * Guardar tokens en localStorage
- */
+
 export function guardarTokenStorage(
   access: string,
   refresh: string,
@@ -38,9 +36,7 @@ export function guardarTokenStorage(
   const seconds = diffInSeconds % 60; */
 }
 
-/**
- * Cargar tokens desde localStorage
- */
+
 export function cargarTokenStorage(): StoredTokens | null {
   const tokensStr = localStorage.getItem(STORAGE_KEY);
 
@@ -65,19 +61,13 @@ export function cargarTokenStorage(): StoredTokens | null {
     return null;
   }
 }
-/**
- * Borrar tokens del localStorage
- */
+
 export function borrarTokenStorage(): void {
   localStorage.removeItem(STORAGE_KEY);
   sessionStorage.clear();
 }
 
-/**
- * Convierte la respuesta de Directus a formato con expires_at calculado
- * @param res Respuesta de Directus (tiene expires, puede o no tener expires_at)
- * @returns LoginResponse con expires_at siempre calculado
- */
+
 export function normalizeTokenResponse(res: AuthenticationData): LoginResponse {
   if (!res.access_token || !res.refresh_token || !res.expires) {
     throw new Error("Respuesta inválida: faltan tokens o expiración");
@@ -93,11 +83,7 @@ export function normalizeTokenResponse(res: AuthenticationData): LoginResponse {
     expires: res.expires!,
   };
 }
-/**
- * Valida si el token expiro
- * @param res Respuesta de Directus (tiene expires, puede o no tener expires_at)
- * @returns LoginResponse con expires_at siempre calculado
- */
+
 export const isExpired = (expiresAt: number): boolean => {
   // Si está vacío o es NaN
   if (!expiresAt || isNaN(expiresAt)) {

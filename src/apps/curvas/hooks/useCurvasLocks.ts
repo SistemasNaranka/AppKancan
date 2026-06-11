@@ -1,4 +1,3 @@
-// src/apps/gestion_proyectos/hooks/useCurvasLocks.ts
 import { useState, useEffect, useCallback } from "react";
 import { obtenerBloqueosActivos, intentarBloquearTienda, liberarTienda } from "../api/directus/bloqueos";
 import directus from "@/services/directus/directus";

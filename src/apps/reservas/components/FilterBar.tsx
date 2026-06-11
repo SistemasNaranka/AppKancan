@@ -30,7 +30,6 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
     handleCambiarMes, handleCambiarAño, mostrarFinesSemana, setMostrarFinesSemana, mesActual
   } = props;
 
-  // Refs y lógica de sliders preservada exactamente del original
   const sala1Ref = useRef<HTMLDivElement>(null);
   const sala2Ref = useRef<HTMLDivElement>(null);
   const semanalRef = useRef<HTMLDivElement>(null);

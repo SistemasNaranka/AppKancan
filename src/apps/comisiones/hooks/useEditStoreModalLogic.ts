@@ -9,7 +9,6 @@ import { useBudgetCalculations } from "./useBudgetCalculations";
 import { useBudgetCalendar } from "./useBudgetCalendar";
 
 export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: any) => {
-  // Estados de UI y Datos
   const [fecha, setFecha] = useState<string>(() => localStorage.getItem("modalFecha") || dayjs().format("YYYY-MM-DD"));
   const [tiendaSeleccionada, setTiendaSeleccionada] = useState<number | "">(
     tiendaProp?.id ? Number(tiendaProp.id) : (typeof tiendaProp === 'number' ? tiendaProp : (tiendaProp && !isNaN(Number(tiendaProp)) ? Number(tiendaProp) : ""))
@@ -28,18 +27,15 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Inicializar sub-hooks
   const { recalculateBudgets } = useBudgetCalculations(tiendaSeleccionada);
   const { 
     diasSinPresupuesto, diasConPresupuestoCero, diasConAsignacion, 
     selectedDays, setSelectedDays, loadDiasSinPresupuesto 
   } = useBudgetCalendar(tiendaSeleccionada, fecha);
 
-  // Efectos principales (Carga de catálogos y persistencia)
   useEffect(() => { if (isOpen) loadCatalogos(); }, [isOpen]);
   useEffect(() => { localStorage.setItem("modalFecha", fecha); }, [fecha]);
 
-  // Sincronizar tienda si cambia el prop (cuando el modal está abierto)
   useEffect(() => {
     if (tiendaProp && isOpen) {
       const idRaw = tiendaProp.id || (typeof tiendaProp === 'number' ? tiendaProp : (tiendaProp && !isNaN(Number(tiendaProp)) ? Number(tiendaProp) : ""));
@@ -55,21 +51,18 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
     }
   }, [tiendaProp, isOpen]);
 
-  // Carga de catálogos - Solo una vez al abrir
   useEffect(() => { 
     if (isOpen) {
       loadCatalogos(); 
     }
   }, [isOpen]);
 
-  // Carga de datos del calendario (independiente de catálogos)
   useEffect(() => {
     if (isOpen && tiendaSeleccionada) {
       loadDiasSinPresupuesto();
     }
   }, [isOpen, tiendaSeleccionada, fecha]);
 
-  // Carga de empleados asignados (depende de catálogos)
   useEffect(() => {
     if (isOpen && tiendaSeleccionada && fecha && todosEmpleados.length > 0) {
       loadEmpleadosAsignados();
@@ -86,14 +79,12 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
       const cargoAsesor = cData.find((c: any) => c.name.toLowerCase() === "asesor");
       if (cargoAsesor) setCargoSeleccionado(cargoAsesor.id);
 
-      // Si ya tenemos tienda seleccionada (por prop) pero no el nombre, buscarlo
       if (tiendaSeleccionada) {
         const currentTienda = tData.find(t => Number(t.id) === Number(tiendaSeleccionada));
         if (currentTienda) {
           setTiendaNombre(currentTienda.name);
         }
       } else if (tData.length === 1) {
-        // Caso usuario tienda: seleccionar la única disponible
         setTiendaSeleccionada(Number(tData[0].id));
         setTiendaNombre(tData[0].name);
       }
@@ -125,7 +116,6 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
     try {
       setLoading(true);
 
-      // Validar si existe presupuesto mensual/diario configurado
       const fechaObj = dayjs(fecha);
       const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
       const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");
@@ -174,28 +164,23 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
     return empleadosAsignadosOriginal.some(o => !currentIds.has(o.id));
   }, [empleadosAsignados, empleadosAsignadosOriginal]);
 
-  // Búsqueda automática de empleado por código (EXCLUSIVAMENTE ID EXACTO).
   useEffect(() => {
     if (!codigoEmpleado || codigoEmpleado.length < 1) {
       setEmpleadoEncontrado(null);
       return;
     }
     
-    // Limpiar errores previos al buscar
     if (error && error.includes("no existe")) setError("");
 
-    // Búsqueda por ID exacto solamente
     const found = todosEmpleados.find((e: any) => String(e.id) === String(codigoEmpleado));
     
     setEmpleadoEncontrado(found ?? null);
 
-    // ✅ NUEVO: Avisar si el código no existe (cuando tiene 4 dígitos)
     if (codigoEmpleado.length === 4 && !found) {
       setError(`⚠️ El código ${codigoEmpleado} no existe en la base de datos.`);
     }
   }, [codigoEmpleado, todosEmpleados]);
 
-  // Validacin de roles requeridos (Gerente + Asesor)
   const hasRequiredRoles = useMemo(() => {
     const roles = empleadosAsignados.map(e => e.cargo_nombre.toLowerCase());
     const tieneGerente = roles.some(r => r === "gerente" || r === "coadministrador" || r.includes("gerente"));
@@ -204,7 +189,6 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
   }, [empleadosAsignados]);
 
   const handleAgregarEmpleado = async () => {
-    // ✅ Validación con mensajes claros
     if (!tiendaSeleccionada) {
       setError("Debe seleccionar una tienda primero.");
       return;
@@ -246,7 +230,6 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
     
     setLoading(true);
     try {
-      // Reclculo inmediato para evitar ceros
       const { empleados: calculados } = await recalculateBudgets(nuevaLista, fecha);
       setEmpleadosAsignados(calculados);
       setCodigoEmpleado("");
@@ -318,18 +301,15 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
       setTiendaSeleccionada(numericId);
       const tienda = tiendas.find(t => Number(t.id) === numericId);
       setTiendaNombre(tienda?.name || "");
-      // Limpiar empleados al cambiar de tienda para evitar mezclar datos
       setEmpleadosAsignados([]);
       setEmpleadosAsignadosOriginal([]);
     },
     toggleDaySelection: (dia: string) => {
       if (diasConPresupuestoCero.includes(dia) || dayjs(dia).isAfter(dayjs(), 'day')) return;
       
-      // Si el día ya está seleccionado, lo quitamos
       if (selectedDays.includes(dia)) {
         setSelectedDays(prev => prev.filter(d => d !== dia));
       } else {
-        // Si no está seleccionado, lo agregamos y cambiamos la fecha activa
         setSelectedDays(prev => [...prev, dia]);
         setFecha(dia);
       }

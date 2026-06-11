@@ -234,12 +234,10 @@ export async function LearnPDF(
     }
 
     // Fallback: Si no hay API Key o falla Gemini, usar la lógica Regex
-    console.log("Ejecutando fallback alternativo con expresiones regulares (Regex)...");
     const regexData = extractWithRegex(texto1, texto2);
 
     // Validar que el fallback haya obtenido datos críticos mínimos
     if (regexData.numero_formulario && regexData.fecha_creacion) {
-      console.log("Extracción con Regex exitosa:", regexData);
       return regexData;
     }
 

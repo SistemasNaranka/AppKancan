@@ -1,10 +1,5 @@
 import { useState, useEffect } from "react";
 import { obtenerTodosPresupuestosMeses } from "../api/directus/read";
-
-/**
- * Hook para obtener todos los meses disponibles y manejar el mes actual
- * NO cambia los cálculos existentes, solo la carga inicial de meses
- */
 export const useAvailableMonths = () => {
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [isLoadingMonths, setIsLoadingMonths] = useState(true);
@@ -16,11 +11,8 @@ export const useAvailableMonths = () => {
         setIsLoadingMonths(true);
         const meses = await obtenerTodosPresupuestosMeses();
 
-        // Si hay meses disponibles
         if (meses.length > 0) {
           setAvailableMonths(meses);
-
-          // Determinar el mes actual
           const ahora = new Date();
           const mesesNombres = [
             "Ene",
@@ -36,22 +28,18 @@ export const useAvailableMonths = () => {
             "Nov",
             "Dic",
           ];
-          const mesActual = mesesNombres[ahora.getMonth()]; // Usar hora local
-          const anioActual = ahora.getFullYear(); // Usar hora local
+          const mesActual = mesesNombres[ahora.getMonth()];
+          const anioActual = ahora.getFullYear();
           const mesActualStr = `${mesActual} ${anioActual}`;
 
-          // Verificar si el mes actual está en la lista
           const mesEncontrado = meses.find((m) => m === mesActualStr);
 
           if (mesEncontrado) {
-            // Si el mes actual está disponible, usarlo
             setCurrentMonth(mesEncontrado);
           } else {
-            // Si el mes actual no está disponible, usar el más reciente
             setCurrentMonth(meses[meses.length - 1]);
           }
         } else {
-          // Si no hay meses disponibles, usar un valor por defecto
           const mesesNombres = [
             "Ene",
             "Feb",
@@ -67,8 +55,8 @@ export const useAvailableMonths = () => {
             "Dic",
           ];
           const ahora = new Date();
-          const mesActual = mesesNombres[ahora.getMonth()]; // Usar hora local
-          const anioActual = ahora.getFullYear(); // Usar hora local
+          const mesActual = mesesNombres[ahora.getMonth()];
+          const anioActual = ahora.getFullYear();
           const mesActualStr = `${mesActual} ${anioActual}`;
 
           setAvailableMonths([mesActualStr]);
@@ -77,7 +65,6 @@ export const useAvailableMonths = () => {
       } catch (error) {
         console.error("Error cargando meses disponibles:", error);
 
-        // En caso de error, usar mes actual como fallback
         const mesesNombres = [
           "Ene",
           "Feb",
@@ -93,8 +80,8 @@ export const useAvailableMonths = () => {
           "Dic",
         ];
         const ahora = new Date();
-        const mesActual = mesesNombres[ahora.getMonth()]; // Usar hora local
-        const anioActual = ahora.getFullYear(); // Usar hora local
+        const mesActual = mesesNombres[ahora.getMonth()];
+        const anioActual = ahora.getFullYear();
         const mesActualStr = `${mesActual} ${anioActual}`;
 
         setAvailableMonths([mesActualStr]);
@@ -107,7 +94,6 @@ export const useAvailableMonths = () => {
     loadAllMonths();
   }, []);
 
-  // Función para cambiar el mes seleccionado
   const changeMonth = (month: string) => {
     if (availableMonths.includes(month)) {
       setCurrentMonth(month);
@@ -121,6 +107,6 @@ export const useAvailableMonths = () => {
     currentMonth,
     isLoadingMonths,
     changeMonth,
-    setCurrentMonth, // Para compatibilidad
+    setCurrentMonth,
   };
 };

@@ -11,10 +11,6 @@ import SearchIcon from "@mui/icons-material/Search";
 import NotificationBell from "./NotificationBell";
 import { useContractContext } from "../contexts/ContractContext";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TopBar
-// ─────────────────────────────────────────────────────────────────────────────
-
 const TopBar: React.FC = () => {
   const { filters, setFilter } = useContractContext();
 

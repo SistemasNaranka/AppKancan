@@ -23,14 +23,12 @@ const TrasladoListItem: React.FC<Props> = ({
   const { user } = useAuth();
   const codigoUltra = user?.ultra_code ?? "";
 
-  // Determinar si es enviado (Saliente) o por recibir (Entrante)
   const esEnviado = traslado.bodega_origen === codigoUltra;
 
-  // Definir color de borde dinámico para tienda
   let borderColor = "divider";
 
   if (tienePoliticaTrasladosTiendas) {
-    borderColor = esEnviado ? "#2563EB" : "#F59E0B"; // Azul para Enviados, Ámbar para Por Recibir
+    borderColor = esEnviado ? "#2563EB" : "#F59E0B";
   }
 
   return (
@@ -71,8 +69,7 @@ const TrasladoListItem: React.FC<Props> = ({
           : tienePoliticaTrasladosTiendas
             ? "0 10px 20px -10px rgba(0, 0, 0, 0.15)"
             : theme.shadows[2],
-
-        // 🎨 Color de texto global
+            
         color: theme.palette.text.primary,
 
         cursor: onTrasladoClick ? "pointer" : "default",

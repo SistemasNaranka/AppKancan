@@ -1,4 +1,3 @@
-// src/apps/contactos/api/directus/config.ts
 import directus from '@/services/directus/directus';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
 import { readItems, updateItem } from '@directus/sdk';
@@ -7,7 +6,7 @@ const COLLECTION = 'adm_contacts_config';
 
 export interface ContactoConfig {
   id: number;
-  daily_sync_time: string | null; // formato "HH:MM:SS" o "HH:MM"
+  daily_sync_time: string | null;
 }
 
 export async function getContactoConfig(): Promise<ContactoConfig | null> {

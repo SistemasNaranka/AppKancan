@@ -11,9 +11,6 @@ import { Stack } from "@mui/material";
 import { Chip, LinearProgress } from "@mui/material";
 import { Prorroga } from "../types/types";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ContractTimeline
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface ContractTimelineProps {
   prorrogas: Prorroga[];
@@ -21,7 +18,7 @@ interface ContractTimelineProps {
 
 const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
   const lastIdx      = prorrogas.length - 1;
-  const nextNum      = prorrogas.length;           // la siguiente prórroga que se crearía
+  const nextNum      = prorrogas.length;
   const nextDuration = getProrrogaDuration(nextNum);
 
   return (

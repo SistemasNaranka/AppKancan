@@ -17,18 +17,17 @@ interface ResolutionTableProps {
   onSeleccionar: (resolucion: Resolution) => void;
 }
 
-// Función para obtener el color de fondo según el estado
 const getRowBackgroundColor = (estado: string, index: number): string => {
   switch (estado) {
     case "Vencido":
-      return "#ffebee"; // Rojo claro
+      return "#ffebee";
     case "Por vencer":
-      return "#fff3e0"; // Naranja claro
+      return "#fff3e0";
     case "Pendiente":
-      return "#C2C2C2"; // Gris claro
+      return "#C2C2C2";
     default:
-      // Zebra striping para los demás
-      return index % 2 === 0 ? "#ffffff" : "#f5f5f5";
+
+    return index % 2 === 0 ? "#ffffff" : "#f5f5f5";
   }
 };
 

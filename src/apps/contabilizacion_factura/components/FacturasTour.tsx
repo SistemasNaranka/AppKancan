@@ -1,9 +1,3 @@
-/**
- * Componente de Tours Interactivos para Contabilización de Facturas
- * Implementación basada en Joyride
- * Módulo de Contabilización de Facturas
- */
-
 import React, { useCallback, useEffect, useState, ReactNode } from "react";
 import Joyride, {
   CallBackProps,
@@ -16,12 +10,6 @@ import Joyride, {
 import { Box, Button, Typography, Chip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTourContext, TourPhase } from "./TourContext";
-
-// ============================================
-// DATOS DE EJEMPLO PARA EL TOUR
-// Exportados para que el componente de factura
-// los muestre cuando hasUploadedFile === false
-// ============================================
 
 export const TOUR_MOCK_INVOICE = {
   proveedor: {
@@ -51,11 +39,6 @@ export const TOUR_MOCK_INVOICE = {
   moneda: "COP",
 };
 
-// ============================================
-// PASOS POR FASE
-// ============================================
-
-// Fase 1: Tour en el área de carga de archivos
 const STEPS_UPLOAD: Step[] = [
   {
     target: ".tour-factura-upload",
@@ -88,12 +71,10 @@ const STEPS_UPLOAD: Step[] = [
     disableBeacon: true,
     spotlightClicks: true,
     disableScrolling: true,
-    // Sin hideFooter → el usuario puede avanzar sin subir archivo
   },
 ];
 
 
-// Fase 2: Tour en los datos de la factura extraída
 const STEPS_INVOICE_DATA: Step[] = [
   {
     target: ".tour-factura-info",
@@ -130,7 +111,6 @@ const STEPS_INVOICE_DATA: Step[] = [
   },
 ];
 
-// Fase 4: Tour en el botón de causar factura
 const STEPS_CAUSE_BUTTON: Step[] = [
   {
     target: ".tour-factura-cause",
@@ -155,7 +135,6 @@ const STEPS_CAUSE_BUTTON: Step[] = [
   },
 ];
 
-// Fase: Tour en el modal de asignación de número automático
 const STEPS_AUTOMATICO_MODAL: Step[] = [
   {
     target: ".tour-automatico-modal",
@@ -183,20 +162,15 @@ const STEPS_AUTOMATICO_MODAL: Step[] = [
   },
 ];
 
-// Mapeo de fases a pasos
 const STEPS_BY_PHASE: Record<TourPhase, Step[]> = {
   IDLE: [],
   UPLOAD: STEPS_UPLOAD,
-  IA_STATUS: [], // Sin steps — se auto-salta
+  IA_STATUS: [],
   INVOICE_DATA: STEPS_INVOICE_DATA,
   CAUSE_BUTTON: STEPS_CAUSE_BUTTON,
   AUTOMATICO_MODAL: STEPS_AUTOMATICO_MODAL,
   COMPLETED: [],
 };
-
-// ============================================
-// CUSTOM TOOLTIP
-// ============================================
 
 const CustomTooltip: React.FC<TooltipRenderProps> = ({
   index,
@@ -301,10 +275,6 @@ const CustomTooltip: React.FC<TooltipRenderProps> = ({
   );
 };
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
-
 interface FacturasTourProps {
   children: ReactNode;
 }
@@ -318,14 +288,12 @@ export const InvoicesTour = ({
   const [runTour, setRunTour] = useState(false);
   const currentSteps = STEPS_BY_PHASE[tourPhase] || [];
 
-  // Controlar cuándo corre el tour
   useEffect(() => {
     if (tourPhase === "IDLE" || tourPhase === "COMPLETED") {
       setRunTour(false);
       return;
     }
 
-    // Si la fase activa no tiene pasos, avanzar automáticamente a la siguiente
     if (currentSteps.length === 0) {
       const timer = setTimeout(() => nextPhase(), 100);
       return () => clearTimeout(timer);
@@ -335,26 +303,22 @@ export const InvoicesTour = ({
     return () => clearTimeout(timer);
   }, [tourPhase, currentSteps.length, nextPhase]);
 
-  // Handle tour callbacks
   const handleJoyrideCallback = useCallback(
     (data: CallBackProps) => {
       const { status, action, type, index } = data;
 
-      // Tour terminado (último paso → Siguiente / Continuar)
       if (status === STATUS.FINISHED) {
         setRunTour(false);
         nextPhase();
         return;
       }
 
-      // Tour saltado o cerrado con X
       if (status === STATUS.SKIPPED || action === ACTIONS.CLOSE) {
         setRunTour(false);
         stopTour();
         return;
       }
 
-      // Actualizar índice del paso
       if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT) {
         setStepIndex(index + 1);
       }

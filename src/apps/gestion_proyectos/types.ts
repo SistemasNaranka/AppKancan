@@ -1,19 +1,14 @@
-// Project statuses
 export type ProjectStatus = "en_proceso" | "entregado" | "en_seguimiento";
 
-// Project types
 export type ProjectType = "actualizacion" | "proyecto_nuevo";
 
-// Frequency types
 export type FrequencyType = "diaria" | "semanal" | "mensual";
 
-// Assignee (structure from Directus)
 export interface Assignee {
   name: string;
   id?: number;
 }
 
-// Project process (step)
 export interface Process {
   id: string;
   project_id: string;
@@ -26,14 +21,12 @@ export interface Process {
   order: number;
 }
 
-// Project benefit
 export interface Benefit {
   id: string;
   project_id: string;
   description: string;
 }
 
-// Main Project
 export interface Project {
   id: string;
   name: string;
@@ -47,11 +40,9 @@ export interface Project {
   assignees: Assignee[];
   created_by?: string;
   date_created?: string;
-  // Related fields (optional, loaded separately)
   processes?: Process[];
   benefits?: Benefit[];
   feedbacks?: Feedback[];
-  // Alias for compatibility with PostLanzamiento
   mejoras?: Array<{
     id: string;
     project_id: string;
@@ -63,7 +54,6 @@ export interface Project {
   }>;
 }
 
-// Data to create a project
 export interface CreateProjectInput {
   name: string;
   benefited_area: string;
@@ -76,7 +66,6 @@ export interface CreateProjectInput {
   assignees: Assignee[];
 }
 
-// Data to create a process
 export interface CreateProcessInput {
   project_id: string;
   name: string;
@@ -88,13 +77,11 @@ export interface CreateProcessInput {
   order: number;
 }
 
-// Data to create a benefit
 export interface CreateBenefitInput {
   project_id: string;
   description: string;
 }
 
-// Project feedback (post-launch)
 export interface Feedback {
   id: string;
   project_id: string;
@@ -103,31 +90,27 @@ export interface Feedback {
   date_created?: string;
 }
 
-// Data to create a feedback
 export interface CreateFeedbackInput {
   project_id: string;
   author: string;
   description: string;
 }
 
-// Calculated metrics for a process
 export interface ProcessMetrics {
-  savings_per_execution: number; // seconds
-  daily_savings: number; // seconds
-  weekly_savings: number; // seconds
-  monthly_savings: number; // seconds
-  yearly_savings: number; // seconds
+  savings_per_execution: number; 
+  daily_savings: number; 
+  weekly_savings: number; 
+  monthly_savings: number; 
+  yearly_savings: number; 
 }
 
-// Summary of project metrics
 export interface ProjectMetrics {
   total_processes: number;
-  total_monthly_savings: number; // seconds
-  total_yearly_savings: number; // seconds
+  total_monthly_savings: number; 
+  total_yearly_savings: number; 
   processes_metrics: ProcessMetrics[];
 }
 
-// Selector options
 export const OPTIONS_STATUS: { value: ProjectStatus; label: string }[] = [
   { value: "en_proceso", label: "En Proceso" },
   { value: "entregado", label: "Entregado" },
@@ -145,9 +128,6 @@ export const OPTIONS_FREQUENCY: { value: FrequencyType; label: string }[] = [
   { value: "semanal", label: "Semanal" },
   { value: "mensual", label: "Mensual" },
 ];
-
-// ===== TIPOS PARA COMPATIBILIDAD CON PÁGINA POST-Lanzamiento =====
-// Estos tipos ya no se usan en la nueva estructura pero se mantienen para compatibilidad
 
 export interface Mejora {
   id: string;

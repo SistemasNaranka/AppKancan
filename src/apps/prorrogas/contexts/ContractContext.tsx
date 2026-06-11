@@ -21,6 +21,7 @@ import { getContratos, getContratoStats, getContratoById } from '../api';
 import directus from '@/services/directus/directus';
 import { crearProrroga, crearContrato, cambiarRequestStatus, actualizarProrroga, eliminarProrroga, actualizarContrato, eliminarContrato } from '../api';
 import { getNextProrrogaNumber } from '../lib/utils';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 import { setTokenDirectus } from "@/services/directus/auth";
 import { daysUntil, getContractStatus } from "../lib/utils";
@@ -199,8 +200,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (q) {
           return (
-            c.first_name.toLowerCase().includes(q) ||
-            c.last_name.toLowerCase().includes(q) ||
+            formatNombreCompleto(c).toLowerCase().includes(q) ||
             String(c.position).toLowerCase().includes(q) ||
             c.document.toLowerCase().includes(q) ||
             (c.department?.toLowerCase() ?? '').includes(q) ||
@@ -216,9 +216,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         if (state.filters.sortBy === "vencimiento")
           return a.daysLeft - b.daysLeft;
         if (state.filters.sortBy === "nombre")
-          return `${a.first_name} ${a.last_name}`.localeCompare(
-            `${b.first_name} ${b.last_name}`,
-          );
+          return formatNombreCompleto(a).localeCompare(formatNombreCompleto(b));
         if (state.filters.sortBy === "prorroga")
           return (b.extensions?.length ?? 0) - (a.extensions?.length ?? 0);
         return 0;

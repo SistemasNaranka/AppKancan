@@ -1,7 +1,3 @@
-/**
- * PanelPendientes.tsx
- * Panel principal de traslados pendientes con tour guiado integrado
- */
 import React, { useState } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -18,8 +14,6 @@ import ConfirmacionAprobacion from "./ConfirmacionAprobacion";
 import ContadorPendientesYSeleccionados from "./ContadorPendientesYSeleccionados";
 import { ControlesSuperiores } from "./ControlesSuperiores";
 import { ListaTraslados } from "./ListaTraslados";
-
-// Tour imports
 import { TrasladosTourProvider } from "./TrasladosTourContext";
 import { TrasladosTour } from "./TrasladosTour";
 import { StoreTrasladosTour } from "./StoreTrasladosTour";
@@ -55,7 +49,6 @@ type PanelPendientesProps = {
   tienePoliticaTrasladosTiendas?: boolean;
 };
 
-// Componente interno que usa el contexto del tour
 const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
   filtroBodegaDestino,
   setFiltroBodegaDestino,
@@ -97,7 +90,6 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
       (t) => t.traslado !== undefined && idsSeleccionados.includes(t.traslado),
     );
 
-  // ✅ Función que se ejecuta al confirmar en el modal (recibe la contraseña)
   const iniciarAprobacion = async (clave: string) => {
     setDialogoAprobacionAbierto(false);
     setModalCargando(true);
@@ -106,13 +98,6 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
 
     try {
       if (onEliminarTrasladosAprobados) {
-        if (import.meta.env.DEV) {
-          console.log("🔹 Aprobando traslados con clave:", {
-            cantidad: idsSeleccionados.length,
-            ids: idsSeleccionados,
-          });
-        }
-
         await onEliminarTrasladosAprobados(idsSeleccionados, clave);
       }
 
@@ -291,8 +276,8 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                   display: "flex",
                   flexDirection: "column",
                   width: "100%",
-                  gap: 1, // Reducido de 3
-                  mb: 1, // Reducido de 2
+                  gap: 1,
+                  mb: 1,
                 }}
               >
                 <StoreTrasladosHeader
@@ -441,7 +426,6 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
   );
 };
 
-// Componente principal envuelto con el Provider
 export const PanelPendientes: React.FC<PanelPendientesProps> = (props) => {
   return (
     <TrasladosTourProvider>

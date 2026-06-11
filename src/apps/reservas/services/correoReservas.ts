@@ -1,10 +1,8 @@
 import type { NuevaReserva } from "../types/reservas.types";
 
-// Credenciales y URL del webhook n8n. Mismo patrón que traslados.
 const WEBHOOK_USERNAME = import.meta.env.VITE_WEBHOOK_USERNAME;
 const WEBHOOK_PASSWORD = import.meta.env.VITE_WEBHOOK_PASSWORD;
 
-// URLs separadas por evento. Cada evento tiene su propio webhook n8n.
 const WEBHOOK_URL_CREADA = import.meta.env.VITE_WEBHOOK_URL_ENVIO_CORREO;
 const WEBHOOK_URL_ACTUALIZADA = import.meta.env.VITE_WEBHOOK_URL_RESERVA_ACTUALIZADA;
 const WEBHOOK_URL_CANCELADA = import.meta.env.VITE_WEBHOOK_URL_RESERVA_CANCELADA;
@@ -23,13 +21,6 @@ const URL_POR_EVENTO: Record<EventoReserva, string | undefined> = {
   reserva_cancelada: WEBHOOK_URL_CANCELADA,
 };
 
-/**
- * Envía notificación de correo a través del webhook de n8n.
- * Usa Basic Auth con credenciales VITE_WEBHOOK_USERNAME / VITE_WEBHOOK_PASSWORD.
- *
- * No bloquea el flujo principal: si falla, lanza Error y el caller decide
- * si mostrar al usuario o solo logear.
- */
 export async function notificarCorreoReserva(
   payload: NotificarCorreoReservaPayload,
 ): Promise<any> {

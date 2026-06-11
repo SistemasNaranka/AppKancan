@@ -4,10 +4,6 @@ import { Box, Button, Typography, Paper, useTheme } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 
-// ============================================================================
-// CONSTANTES Y UTILIDADES
-// ============================================================================
-
 const TOUR_LOCALSTORAGE_KEY = "traslados-tour-completed";
 const TOURanalytics_LOCALSTORAGE_KEY = "traslados-tour-analytics";
 
@@ -20,9 +16,6 @@ interface TourAnalytics {
   completed: boolean;
 }
 
-/**
- * Registra eventos de analytics del tour en localStorage
- */
 const logTourAnalytics = (event: TourAnalytics): void => {
   try {
     const existingAnalytics = localStorage.getItem(TOURanalytics_LOCALSTORAGE_KEY);
@@ -33,18 +26,11 @@ const logTourAnalytics = (event: TourAnalytics): void => {
     analytics.push(event);
     localStorage.setItem(TOURanalytics_LOCALSTORAGE_KEY, JSON.stringify(analytics));
     
-    // Log para desarrollo
-    if (import.meta.env.DEV) {
-      console.log("[Tour Analytics]", event);
-    }
   } catch (error) {
     console.error("[Tour Analytics Error]", error);
   }
 };
 
-/**
- * Verifica si el tour ya fue completado
- */
 export const isTourCompleted = (): boolean => {
   try {
     return localStorage.getItem(TOUR_LOCALSTORAGE_KEY) === "true";
@@ -53,9 +39,7 @@ export const isTourCompleted = (): boolean => {
   }
 };
 
-/**
- * Marca el tour como completado
- */
+
 export const markTourCompleted = (): void => {
   try {
     localStorage.setItem(TOUR_LOCALSTORAGE_KEY, "true");
@@ -64,9 +48,7 @@ export const markTourCompleted = (): void => {
   }
 };
 
-/**
- * Reinicia el estado del tour (para重新开始)
- */
+
 export const resetTourState = (): void => {
   try {
     localStorage.removeItem(TOUR_LOCALSTORAGE_KEY);
@@ -75,14 +57,6 @@ export const resetTourState = (): void => {
   }
 };
 
-// ============================================================================
-// COMPONENTES DE UI PERSONALIZADOS
-// ============================================================================
-
-/**
- * Componente tooltip personalizado para el tour
- * Usa estilos del módulo traslados (tonos cyan/teal)
- */
 const TourTooltip = ({
   continuous,
   index,
@@ -223,10 +197,6 @@ const TourTooltip = ({
   );
 };
 
-// ============================================================================
-// PASOS DEL TOUR
-// ============================================================================
-
 const createTourSteps = (): Step[] => [
   {
     target: '[data-tour="filtro-bodega-destino"]',
@@ -270,9 +240,6 @@ const createTourSteps = (): Step[] => [
   },
 ];
 
-// ============================================================================
-// COMPONENTE PRINCIPAL DEL TOUR
-// ============================================================================
 
 interface ControlesTourProps {
   onTourComplete?: () => void;
@@ -283,11 +250,9 @@ export const ControlesTour: React.FC<ControlesTourProps> = ({ onTourComplete }) 
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
-  // Verificar si el tour debe ejecutarse automáticamente
   useEffect(() => {
     const hasCompletedTour = isTourCompleted();
     if (!hasCompletedTour) {
-      // Pequeño delay para asegurar que el DOM esté listo
       const timer = setTimeout(() => {
         setRun(true);
       }, 500);
@@ -295,12 +260,11 @@ export const ControlesTour: React.FC<ControlesTourProps> = ({ onTourComplete }) 
     }
   }, []);
 
-  // Manejar callbacks del tour
+
   const handleCallback = useCallback(
     (data: CallBackProps) => {
       const { status, type, index, step } = data;
 
-      // Registrar inicio del tour
       if (type === "tour:start" && status === "running") {
         logTourAnalytics({
           startedAt: new Date().toISOString(),
@@ -311,7 +275,6 @@ export const ControlesTour: React.FC<ControlesTourProps> = ({ onTourComplete }) 
         });
       }
 
-      // Registrar abandono o completación
       if (STATUS.FINISHED === status || STATUS.SKIPPED === status) {
         const completed = status === STATUS.FINISHED;
         const stepsCompleted = completed ? 5 : index;
@@ -332,7 +295,6 @@ export const ControlesTour: React.FC<ControlesTourProps> = ({ onTourComplete }) 
         setRun(false);
       }
 
-      // Actualizar índice de paso para analytics
       if (type === "step:after") {
         logTourAnalytics({
           startedAt: new Date().toISOString(),

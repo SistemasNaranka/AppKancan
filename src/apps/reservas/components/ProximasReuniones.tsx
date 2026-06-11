@@ -1,5 +1,3 @@
-// src/apps/reservas/components/ProximasReuniones.tsx
-
 import React, { useMemo } from "react";
 import { Box, Paper, Typography, Chip, Link, Tooltip } from "@mui/material";
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -14,7 +12,6 @@ interface ProximasReunionesProps {
   maxReservas?: number;
 }
 
-// Colores para chips de sala
 const COLORES_SALA: Record<string, { bg: string; color: string }> = {
   "Sala Principal": { bg: "#DBEAFE", color: "#1D4ED8" },
   "Sala Secundaria": { bg: "#E0F2FE", color: "#0369A1" },
@@ -28,14 +25,11 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
   const hoy = format(new Date(), "yyyy-MM-dd");
   const horaActual = format(new Date(), "HH:mm");
 
-  // Filtrar y ordenar reservas de hoy
   const { reservasHoy, reservasPendientes } = useMemo(() => {
-    // Filtrar solo reservas de hoy
     const todasHoy = reservas
       .filter((r) => r.date === hoy)
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-    // Contar solo las pendientes (vigentes y en curso, no canceladas ni finalizadas)
     const pendientes = todasHoy.filter((r) => {
       const estado = (r.estadoCalculado || r.status)?.toLowerCase();
       return (
@@ -50,7 +44,6 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     };
   }, [reservas, hoy, horaActual, maxReservas]);
 
-  // Formatear hora para mostrar (12h)
   const formatearHora = (hora: string): string => {
     const [h, m] = hora.split(":");
     const hour = parseInt(h);
@@ -59,7 +52,6 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     return `${hour12}:${m} ${ampm}`;
   };
 
-  // Obtener estado de la reserva para mostrar
   const getEstadoDisplay = (
     reserva: Reserva,
   ): { texto: string; color: string } => {
@@ -81,7 +73,6 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     }
   };
 
-  // Verificar si una reserva está cancelada
   const estaCancelada = (reserva: Reserva): boolean => {
     const estado = (reserva.estadoCalculado || reserva.status)?.toLowerCase();
     return estado === "cancelado" || estado === "cancelada";
