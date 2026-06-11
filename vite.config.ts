@@ -279,8 +279,12 @@ export default defineConfig({
       "@mui/icons-material/PlayArrow",
       "@mui/icons-material/Restaurant",
       "@mui/icons-material/Dining",
-      "@mui/icons-material/ExitToApp",  
-    
+      "@mui/icons-material/ExitToApp",
+      "@mui/icons-material/PersonSearch",
+      "@mui/icons-material/AssignmentLate",
+      "@mui/icons-material/Announcement",
+      "@mui/icons-material/NewReleases",
+      "@mui/icons-material/NotificationImportant"
     ],
     exclude: ["ollama"],
   },
