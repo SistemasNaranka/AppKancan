@@ -2,13 +2,13 @@
 
 import React from "react";
 import { Box, Typography, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import type { Sala } from "../../types/reservas.types";
-import { SALAS_DISPONIBLES } from "../../types/reservas.types";
-import { INFO_SALAS } from "./constants";
+import type { Room } from "../../types/reservas.types";
+import { AVAILABLE_ROOMS } from "../../types/reservas.types";
+import { ROOM_INFO } from "./constants";
 
 interface SalaSelectorProps {
-  value: Sala | "";
-  onChange: (sala: Sala) => void;
+  value: Room | "";
+  onChange: (sala: Room) => void;
   disabled?: boolean;
   errorMessage?: string;
   containerRef?: React.RefObject<HTMLDivElement>;
@@ -29,7 +29,7 @@ export const SalaSelector: React.FC<SalaSelectorProps> = ({
       <ToggleButtonGroup
         value={value}
         exclusive
-        onChange={(_e, newSala) => { if (newSala) onChange(newSala as Sala); }}
+        onChange={(_e, newSala) => { if (newSala) onChange(newSala as Room); }}
         fullWidth
         sx={{
           "& .MuiToggleButton-root": {
@@ -50,9 +50,9 @@ export const SalaSelector: React.FC<SalaSelectorProps> = ({
           },
         }}
       >
-        {SALAS_DISPONIBLES.map((sala) => (
+        {AVAILABLE_ROOMS.map((sala) => (
           <ToggleButton key={sala} value={sala} disabled={disabled}>
-            {sala} ({INFO_SALAS[sala]})
+            {sala} ({ROOM_INFO[sala]})
           </ToggleButton>
         ))}
       </ToggleButtonGroup>

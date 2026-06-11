@@ -1,6 +1,6 @@
 // Configuración de pasos y datos de ejemplo del tour interno del diálogo de nueva reserva.
 
-import type { Sala } from "../../types/reservas.types";
+import type { Room } from "../../types/reservas.types";
 
 export interface DialogTourStep {
   target: string;
@@ -84,6 +84,6 @@ export const DIALOG_TOUR_STEPS: DialogTourStep[] = [
 
 export const DATOS_EJEMPLO_TOUR = {
   meeting_title: "Reunión de Ejemplo - Tutorial",
-  room_name: "Sala Principal" as Sala,
+  room_name: "Sala Principal" as Room,
   observations: "Esta es una reserva de ejemplo.",
 };

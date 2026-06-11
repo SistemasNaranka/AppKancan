@@ -28,7 +28,7 @@ import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import { CreateContrato, Contrato, RequestStatus } from '../types/types';
+import { CreateContract, Contract, RequestStatus } from '../types/types';
 
 const AREAS_PREDEFINIDAS = [
   'Contabilidad',
@@ -85,14 +85,14 @@ const initialFormData: FormData = {
   request_status: 'pendiente',
 };
 
-interface ContratoFormProps {
+interface ContractFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateContrato) => Promise<void>;
-  initialData?: Contrato;
+  onSubmit: (data: CreateContract) => Promise<void>;
+  initialData?: Contract;
 }
 
-export const ContratoForm: React.FC<ContratoFormProps> = ({
+export const ContratoForm: React.FC<ContractFormProps> = ({
   open, onClose, onSubmit, initialData,
 }) => {
   const isEditing = !!initialData;
@@ -162,7 +162,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
       if (errors[field]) setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
     };
 
-  const handleAgregarArea = () => {
+  const handleAddArea = () => {
     const trimmed = nuevaAreaInput.trim();
     if (!trimmed) return;
     if (!todasLasAreas.includes(trimmed)) {
@@ -195,7 +195,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
     if (!validate()) return;
     setSaving(true);
     try {
-      const contratoData: CreateContrato = {
+      const contratoData: CreateContract = {
         first_name:    formData.nombre,
         last_name:     formData.apellido,
         document:      formData.documento_identidad,
@@ -337,14 +337,14 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
                   label="Nombre de la nueva área"
                   value={nuevaAreaInput}
                   onChange={(e) => setNuevaAreaInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAgregarArea()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddArea()}
                   fullWidth size="small" autoFocus
                   helperText="Presiona Enter o haz clic en Agregar"
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
                 <Button
                   variant="contained"
-                  onClick={handleAgregarArea}
+                  onClick={handleAddArea}
                   disabled={!nuevaAreaInput.trim()}
                   sx={{ mt: 0.1, borderRadius: 2, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap',
                     bgcolor: '#2563eb', boxShadow: 'none', '&:hover': { bgcolor: '#1d4ed8', boxShadow: 'none' } }}
@@ -434,22 +434,6 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
               />
             </Box>
           </Box>
-
-          {/* ── Estado ── */}
-          <Box>
-            <SectionHeader Icon={BusinessOutlinedIcon} label="ESTADO DE LA SOLICITUD" />
-            <TextField
-              label="Estado" value={formData.request_status}
-              onChange={handleChange('request_status')}
-              fullWidth select disabled={saving} size="small"
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 220 }}
-            >
-              {statusOptions.map((o) => (
-                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
-              ))}
-            </TextField>
-          </Box>
-
         </Box>
       </DialogContent>
 

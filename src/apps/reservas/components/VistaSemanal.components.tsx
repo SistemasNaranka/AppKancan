@@ -16,15 +16,15 @@ import AreaIcon from "@mui/icons-material/Business";
 import NotesIcon from "@mui/icons-material/Notes";
 import { format, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
-import { SALAS_DISPONIBLES, getReservaColor, capitalize } from "../types/reservas.types";
-import type { Reserva } from "../types/reservas.types";
+import { AVAILABLE_ROOMS, getReservationColor, capitalize } from "../types/reservas.types";
+import type { Reservation } from "../types/reservas.types";
 import type { ReservaEnCelda } from "./VistaSemanal.types";
 import PulsatingMeetingIndicator from "./PulsatingMeetingIndicator";
 import {
   MESES, AÑOS, DIAS,
   LABEL_GRUPO_SX, SELECT_SX, SEGMENTED_CONTAINER_SX, SEGMENTED_ITEM_BASE_SX,
   HOVER_ZONE_SX, HOVER_INDICATOR_SX,
-  formatearHora12h, puedeModificar,
+  formatHour12h, canModify,
 } from "./VistaSemanal.utils";
 
 
@@ -51,16 +51,16 @@ export const SegmentedSlider: React.FC<{ left: string; widthCalc?: string }> = (
 
 
 export const SelectorSala: React.FC<{
-  salaSeleccionada: string;
-  onCambiar: (sala: string) => void;
-}> = ({ salaSeleccionada, onCambiar }) => (
+  selectedRoom: string;
+  onChange: (sala: string) => void;
+}> = ({ selectedRoom, onChange }) => (
   <Box className="tour-sala-selector" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
     <GrupoLabel>Sala</GrupoLabel>
     <Box sx={SEGMENTED_CONTAINER_SX}>
-      <SegmentedSlider left={salaSeleccionada === SALAS_DISPONIBLES[0] ? "4px" : "calc(49.5% + 1px)"} />
-      {SALAS_DISPONIBLES.map((sala) => (
-        <Box key={sala} onClick={() => onCambiar(sala)}
-          sx={{ ...SEGMENTED_ITEM_BASE_SX, color: salaSeleccionada === sala ? "#ffffff" : "#64748b", whiteSpace: "nowrap" }}>
+      <SegmentedSlider left={selectedRoom === AVAILABLE_ROOMS[0] ? "4px" : "calc(49.5% + 1px)"} />
+      {AVAILABLE_ROOMS.map((sala) => (
+        <Box key={sala} onClick={() => onChange(sala)}
+          sx={{ ...SEGMENTED_ITEM_BASE_SX, color: selectedRoom === sala ? "#ffffff" : "#64748b", whiteSpace: "nowrap" }}>
           {sala}
         </Box>
       ))}
@@ -69,19 +69,19 @@ export const SelectorSala: React.FC<{
 );
 
 export const SelectorVista: React.FC<{
-  vistaCalendario: "semanal" | "mes";
-  onCambiarVista: (v: "semanal" | "mes") => void;
-}> = ({ vistaCalendario, onCambiarVista }) => (
+  calendarView: "semanal" | "mes";
+  onViewChange: (v: "semanal" | "mes") => void;
+}> = ({ calendarView, onViewChange }) => (
   <Box className="tour-vista-selector" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
     <GrupoLabel>Vista</GrupoLabel>
     <Box sx={SEGMENTED_CONTAINER_SX}>
       <SegmentedSlider
-        left={vistaCalendario === "semanal" ? "4px" : "calc(50% + 2px)"}
+        left={calendarView === "semanal" ? "4px" : "calc(50% + 2px)"}
         widthCalc="calc(50% - -10px)"
       />
       {(["semanal", "mes"] as const).map((v) => (
-        <Box key={v} onClick={() => onCambiarVista(v)}
-          sx={{ ...SEGMENTED_ITEM_BASE_SX, color: vistaCalendario === v ? (v === "semanal" ? "#ffffff" : "#1e293b") : "#64748b" }}>
+        <Box key={v} onClick={() => onViewChange(v)}
+          sx={{ ...SEGMENTED_ITEM_BASE_SX, color: calendarView === v ? (v === "semanal" ? "#ffffff" : "#1e293b") : "#64748b" }}>
           {v === "semanal" ? "Semanal" : "Mes"}
         </Box>
       ))}
@@ -90,20 +90,20 @@ export const SelectorVista: React.FC<{
 );
 
 export const NavegacionSemanal: React.FC<{
-  onAnterior: () => void;
-  onSiguiente: () => void;
-  onHoy: () => void;
-}> = ({ onAnterior, onSiguiente, onHoy }) => (
+  onPrevious: () => void;
+  onNext: () => void;
+  onToday: () => void;
+}> = ({ onPrevious, onNext, onToday }) => (
   <Box className="tour-navegacion" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
     <GrupoLabel>Navegación</GrupoLabel>
     <Box sx={{ display: "flex", gap: 0.5 }}>
-      <IconButton onClick={onAnterior} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+      <IconButton onClick={onPrevious} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
         <ChevronLeftIcon fontSize="small" />
       </IconButton>
-      <IconButton onClick={onSiguiente} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+      <IconButton onClick={onNext} size="small" sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
         <ChevronRightIcon fontSize="small" />
       </IconButton>
-      <Button variant="outlined" size="small" onClick={onHoy}
+      <Button variant="outlined" size="small" onClick={onToday}
         sx={{ textTransform: "none", borderColor: "#e0e0e0", color: "#374151", fontSize: "0.8rem", px: 1.5, minWidth: "auto" }}>
         Esta semana
       </Button>
@@ -112,26 +112,26 @@ export const NavegacionSemanal: React.FC<{
 );
 
 export const SelectorFecha: React.FC<{
-  fechaBase: Date;
-  onCambiarDia: (d: number) => void;
-  onCambiarMes: (m: number) => void;
-  onCambiarAño: (a: number) => void;
-}> = ({ fechaBase, onCambiarDia, onCambiarMes, onCambiarAño }) => (
+  baseDate: Date;
+  onDayChange: (d: number) => void;
+  onMonthChange: (m: number) => void;
+  onYearChange: (a: number) => void;
+}> = ({ baseDate, onDayChange, onMonthChange, onYearChange }) => (
   <Box className="tour-selector-fecha" sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
     <GrupoLabel>Fecha</GrupoLabel>
     <Box sx={{ display: "flex", gap: 0.5 }}>
       <FormControl size="small" sx={{ minWidth: 60 }}>
-        <Select value={fechaBase.getDate()} onChange={(e) => onCambiarDia(e.target.value as number)} sx={SELECT_SX}>
+        <Select value={baseDate.getDate()} onChange={(e) => onDayChange(e.target.value as number)} sx={SELECT_SX}>
           {DIAS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
         </Select>
       </FormControl>
       <FormControl size="small" sx={{ minWidth: 100 }}>
-        <Select value={fechaBase.getMonth()} onChange={(e) => onCambiarMes(e.target.value as number)} sx={SELECT_SX}>
+        <Select value={baseDate.getMonth()} onChange={(e) => onMonthChange(e.target.value as number)} sx={SELECT_SX}>
           {MESES.map((m, i) => <MenuItem key={m} value={i}>{m}</MenuItem>)}
         </Select>
       </FormControl>
       <FormControl size="small" sx={{ minWidth: 80 }}>
-        <Select value={fechaBase.getFullYear()} onChange={(e) => onCambiarAño(e.target.value as number)} sx={SELECT_SX}>
+        <Select value={baseDate.getFullYear()} onChange={(e) => onYearChange(e.target.value as number)} sx={SELECT_SX}>
           {AÑOS.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
         </Select>
       </FormControl>
@@ -160,15 +160,15 @@ export const CargandoHorarios: React.FC = () => (
 );
 
 export const EncabezadoDia: React.FC<{
-  dia: Date; idx: number; hoy: Date; reservasSemana: Reserva[];
-  nombreFestivo?: string;
-}> = ({ dia, idx, hoy, reservasSemana, nombreFestivo }) => {
-  const esHoy = isSameDay(dia, hoy);
-  const fechaStr = format(dia, "yyyy-MM-dd");
-  const reservaEnCurso = reservasSemana.find(
+  day: Date; idx: number; today: Date; weeklyReservations: Reservation[];
+  holidayName?: string;
+}> = ({ day, idx, today, weeklyReservations, holidayName }) => {
+  const esHoy = isSameDay(day, today);
+  const fechaStr = format(day, "yyyy-MM-dd");
+  const reservaEnCurso = weeklyReservations.find(
     (r) => r.date === fechaStr && r.status?.toLowerCase() === "en curso",
   );
-  const esFestivo = Boolean(nombreFestivo);
+  const esFestivo = Boolean(holidayName);
   const bg = esHoy ? "#EFF6FF" : esFestivo ? "#fef2f2" : "#f9fafb";
   const inner = (
     <Box sx={{
@@ -185,7 +185,7 @@ export const EncabezadoDia: React.FC<{
           fontWeight: 600, color: esHoy ? "#004680" : esFestivo ? "#dc2626" : "#1a2a3a",
           textTransform: "capitalize", fontSize: "0.85rem",
         }}>
-          {format(dia, "EEEE", { locale: es })}
+          {format(day, "EEEE", { locale: es })}
         </Typography>
         {reservaEnCurso && (
           <PulsatingMeetingIndicator
@@ -195,23 +195,23 @@ export const EncabezadoDia: React.FC<{
         )}
       </Box>
       <Typography variant="caption" sx={{ color: esHoy ? "#005AA3" : esFestivo ? "#dc2626" : "#6b7280", fontSize: "0.75rem", fontWeight: esFestivo ? 600 : 400 }}>
-        {format(dia, "d MMM", { locale: es })}
+        {format(day, "d MMM", { locale: es })}
       </Typography>
     </Box>
   );
   return esFestivo ? (
-    <Tooltip title={nombreFestivo!} arrow placement="top">{inner}</Tooltip>
+    <Tooltip title={holidayName!} arrow placement="top">{inner}</Tooltip>
   ) : inner;
 };
 
 export const BloqueReserva: React.FC<{
-  reserva: Reserva; hora: string;
+  reserva: Reservation; hora: string;
   esInicio: boolean; esFin: boolean;
   posicion: { top: number; height: number };
-  onClick: (e: React.MouseEvent<HTMLElement>, r: Reserva) => void;
+  onClick: (e: React.MouseEvent<HTMLElement>, r: Reservation) => void;
 }> = ({ reserva, hora, esInicio, esFin, posicion, onClick }) => {
-  const colorReserva = getReservaColor(reserva.id);
-  const esVigente = (reserva.estadoCalculado || reserva.status)?.toLowerCase() === "vigente";
+  const colorReserva = getReservationColor(reserva.id);
+  const esVigente = (reserva.calculatedStatus || reserva.status)?.toLowerCase() === "vigente";
   const [, minIni] = reserva.start_time.split(":").map(Number);
   const [, minFin] = reserva.end_time.split(":").map(Number);
   const tieneHorasMedias = minIni > 0 || minFin > 0;
@@ -261,15 +261,15 @@ export const BloqueReserva: React.FC<{
 export const CeldaHora: React.FC<{
   dia: Date; hora: string; diaIdx: number; hoy: Date;
   reservasEnCelda: ReservaEnCelda[];
-  salaSeleccionada: string;
-  onNuevaReserva?: (fecha?: string, sala?: string, hora?: string) => void;
-  onClickReserva: (e: React.MouseEvent<HTMLElement>, r: Reserva) => void;
-}> = ({ dia, hora, diaIdx, hoy, reservasEnCelda, salaSeleccionada, onNuevaReserva, onClickReserva }) => {
+  selectedRoom: string;
+  onNewReservation?: (fecha?: string, sala?: string, hora?: string) => void;
+  onClickReserva: (e: React.MouseEvent<HTMLElement>, r: Reservation) => void;
+}> = ({ dia, hora, diaIdx, hoy, reservasEnCelda, selectedRoom, onNewReservation, onClickReserva }) => {
   const esHoy = isSameDay(dia, hoy);
   const fechaStr = format(dia, "yyyy-MM-dd");
   const [h] = hora.split(":");
-  const horaCompleta = formatearHora12h(hora);
-  const horaMedia = formatearHora12h(`${h}:30`);
+  const horaCompleta = formatHour12h(hora);
+  const horaMedia = formatHour12h(`${h}:30`);
   const zonaSuperiorOcupada = reservasEnCelda.some(({ posicion }) => posicion.top < 30 && posicion.top + posicion.height > 0);
   const zonaInferiorOcupada = reservasEnCelda.some(({ posicion }) => posicion.top < 60 && posicion.top + posicion.height > 30);
 
@@ -282,12 +282,12 @@ export const CeldaHora: React.FC<{
       <Box sx={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", borderTop: "1px dashed #d0d0d0", pointerEvents: "none", zIndex: 0 }} />
 
       {!zonaSuperiorOcupada && (
-        <Box onClick={() => onNuevaReserva?.(fechaStr, salaSeleccionada, hora)} sx={{ ...HOVER_ZONE_SX, top: 0 }}>
+        <Box onClick={() => onNewReservation?.(fechaStr, selectedRoom, hora)} sx={{ ...HOVER_ZONE_SX, top: 0 }}>
           <HoverIndicator label={horaCompleta} />
         </Box>
       )}
       {!zonaInferiorOcupada && (
-        <Box onClick={() => onNuevaReserva?.(fechaStr, salaSeleccionada, `${h}:30`)} sx={{ ...HOVER_ZONE_SX, top: 30 }}>
+        <Box onClick={() => onNewReservation?.(fechaStr, selectedRoom, `${h}:30`)} sx={{ ...HOVER_ZONE_SX, top: 30 }}>
           <HoverIndicator label={horaMedia} />
         </Box>
       )}
@@ -315,16 +315,16 @@ const DetalleItem: React.FC<{
 
 export const PopoverDetalleReserva: React.FC<{
   anchorEl: HTMLElement | null;
-  reservaSeleccionada: Reserva | null;
-  usuarioActualId?: string;
+  selectedReservation: Reservation | null;
+  currentUserId?: string;
   onClose: () => void;
-  onEditar?: (r: Reserva) => void;
-  onCancelar?: (r: Reserva) => void;
-}> = ({ anchorEl, reservaSeleccionada, usuarioActualId, onClose, onEditar, onCancelar }) => {
-  if (!reservaSeleccionada) return null;
-  const colorReserva = getReservaColor(reservaSeleccionada.id);
-  const estado = reservaSeleccionada.estadoCalculado || reservaSeleccionada.status;
-  const puedeMod = puedeModificar(reservaSeleccionada, usuarioActualId);
+  onEditar?: (r: Reservation) => void;
+  onCancelar?: (r: Reservation) => void;
+}> = ({ anchorEl, selectedReservation, currentUserId, onClose, onEditar, onCancelar }) => {
+  if (!selectedReservation) return null;
+  const colorReserva = getReservationColor(selectedReservation.id);
+  const estado = selectedReservation.calculatedStatus || selectedReservation.status;
+  const puedeMod = canModify(selectedReservation, currentUserId);
 
   return (
     <Popover open={Boolean(anchorEl)} anchorEl={anchorEl} onClose={onClose} disableScrollLock
@@ -338,7 +338,7 @@ export const PopoverDetalleReserva: React.FC<{
             fontWeight: 600, color: "#ffffff", overflow: "hidden",
             textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
           }}>
-            {reservaSeleccionada.meeting_title || "Sin título"}
+            {selectedReservation.meeting_title || "Sin título"}
           </Typography>
           <Chip label={estado} size="small" sx={{ mt: 0.5, backgroundColor: "rgba(255,255,255,0.25)", color: "#ffffff", fontWeight: 600, fontSize: "0.7rem", height: 20 }} />
         </Box>
@@ -347,14 +347,14 @@ export const PopoverDetalleReserva: React.FC<{
             <>
               {onEditar && (
                 <Tooltip title="Editar">
-                  <IconButton size="small" onClick={() => { onClose(); onEditar(reservaSeleccionada); }} sx={{ color: "#ffffff" }}>
+                  <IconButton size="small" onClick={() => { onClose(); onEditar(selectedReservation); }} sx={{ color: "#ffffff" }}>
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               )}
               {onCancelar && (
                 <Tooltip title="Cancelar">
-                  <IconButton size="small" onClick={() => { onClose(); onCancelar(reservaSeleccionada); }} sx={{ color: "#ffffff" }}>
+                  <IconButton size="small" onClick={() => { onClose(); onCancelar(selectedReservation); }} sx={{ color: "#ffffff" }}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -370,29 +370,29 @@ export const PopoverDetalleReserva: React.FC<{
       <Box sx={{ p: 2 }}>
         <DetalleItem icon={<TimeIcon sx={{ color: "#6b7280", fontSize: 20 }} />}>
           <Typography variant="body2">
-            {reservaSeleccionada.start_time.substring(0, 5)} – {reservaSeleccionada.end_time.substring(0, 5)}
+            {selectedReservation.start_time.substring(0, 5)} – {selectedReservation.end_time.substring(0, 5)}
           </Typography>
         </DetalleItem>
         <DetalleItem icon={<RoomIcon sx={{ color: "#6b7280", fontSize: 20 }} />}>
-          <Typography variant="body2">{reservaSeleccionada.room_name}</Typography>
+          <Typography variant="body2">{selectedReservation.room_name}</Typography>
         </DetalleItem>
-        {reservaSeleccionada.user_id && (
+        {selectedReservation.user_id && (
           <DetalleItem icon={<PersonIcon sx={{ color: "#6b7280", fontSize: 20 }} />}>
             <Typography variant="body2">
-              {reservaSeleccionada.user_id.first_name} {reservaSeleccionada.user_id.last_name}
+              {selectedReservation.user_id.first_name} {selectedReservation.user_id.last_name}
             </Typography>
           </DetalleItem>
         )}
-        {reservaSeleccionada.departament && (
+        {selectedReservation.departament && (
           <DetalleItem icon={<AreaIcon sx={{ color: "#6b7280", fontSize: 20 }} />}>
-            <Typography variant="body2">{capitalize(reservaSeleccionada.departament)}</Typography>
+            <Typography variant="body2">{capitalize(selectedReservation.departament)}</Typography>
           </DetalleItem>
         )}
-        {reservaSeleccionada.observations && (
+        {selectedReservation.observations && (
           <DetalleItem icon={<NotesIcon sx={{ color: "#6b7280", fontSize: 20, mt: 0.25 }} />}
             alignItems="flex-start" sx={{ mb: 0, mt: 2, pt: 2, borderTop: "1px solid #e0e0e0" }}>
             <Typography variant="body2" sx={{ color: "#374151", whiteSpace: "pre-wrap" }}>
-              {reservaSeleccionada.observations}
+              {selectedReservation.observations}
             </Typography>
           </DetalleItem>
         )}

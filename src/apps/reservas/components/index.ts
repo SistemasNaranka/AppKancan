@@ -4,7 +4,7 @@ export { default as FiltrosReservas } from "./FiltrosReservas";
 export { default as DialogNuevaReserva } from "./DialogNuevaReserva";
 export { default as DialogEditarReserva } from "./DialogEditarReserva";
 
-export { default as EstadoSalas } from "./EstadoSalas";
+export { default as RoomStatusDisplay } from "./EstadoSalas";
 export { default as ProximasReuniones } from "./ProximasReuniones";
 export { default as VistaSemanal } from "./VistaSemanal";
 export { default as VistaCalendario } from "./VistaCalendario";

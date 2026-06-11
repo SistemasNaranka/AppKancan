@@ -8,32 +8,32 @@ import { FloatingHelpButton } from "../../components";
 import {
   AnimatedTab,
   TabContainer,
-  TabReservas,
-  TITULOS_PESTANA,
+  ReservationTab,
+  TAB_TITLES,
 } from "./reservasView.styled";
 
-interface ReservasViewHeaderProps {
-  tabActual: TabReservas;
-  onTabChange: (tab: TabReservas) => void;
+interface ReservationViewHeaderProps {
+  currentTab: ReservationTab;
+  onTabChange: (tab: ReservationTab) => void;
   isFullTourRunning: boolean;
   floatingBtnRef: React.RefObject<HTMLDivElement>;
   onStartTutorial: () => void;
-  onAbrirNuevaReserva: () => void;
+  onOpenNewReservation: () => void;
 }
 
-const TABS: { id: TabReservas; label: string }[] = [
+const TABS: { id: ReservationTab; label: string }[] = [
   { id: "Reserva", label: "Reserva" },
   { id: "mis", label: "Mis reservas" },
   { id: "calendario", label: "Calendario" },
 ];
 
-export const ReservasViewHeader: React.FC<ReservasViewHeaderProps> = ({
-  tabActual,
+export const ReservationViewHeader: React.FC<ReservationViewHeaderProps> = ({
+  currentTab,
   onTabChange,
   isFullTourRunning,
   floatingBtnRef,
   onStartTutorial,
-  onAbrirNuevaReserva,
+  onOpenNewReservation,
 }) => {
   return (
     <Box
@@ -68,7 +68,7 @@ export const ReservasViewHeader: React.FC<ReservasViewHeaderProps> = ({
           <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
         </Box>
         <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
-          {TITULOS_PESTANA[tabActual]}
+          {TAB_TITLES[currentTab]}
         </Typography>
       </Box>
 
@@ -77,7 +77,7 @@ export const ReservasViewHeader: React.FC<ReservasViewHeaderProps> = ({
           {TABS.map((tab, index) => {
             const isFirst = index === 0;
             const isLast = index === TABS.length - 1;
-            const isActive = tabActual === tab.id;
+            const isActive = currentTab === tab.id;
 
             const handleClick = () => {
               if (isFullTourRunning) return;
@@ -120,7 +120,7 @@ export const ReservasViewHeader: React.FC<ReservasViewHeaderProps> = ({
           className="tour-nueva-reserva"
           startIcon={<AddIcon />}
           variant="contained"
-          onClick={onAbrirNuevaReserva}
+          onClick={onOpenNewReservation}
           sx={{
             boxShadow: "none",
             textTransform: "none",

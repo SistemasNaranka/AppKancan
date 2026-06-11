@@ -23,21 +23,21 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import type { Reserva } from "../../types/reservas.types";
+import type { Reservation } from "../../types/reservas.types";
 
-interface DialogCancelarReservaProps {
+interface DialogCancelReservationProps {
   open: boolean;
-  reserva: Reserva | null;
-  motivoCancelacion: string;
-  setMotivoCancelacion: (v: string) => void;
-  notificarCancelacion: boolean;
-  setNotificarCancelacion: (v: boolean) => void;
+  reservation: Reservation | null;
+  cancellationReason: string;
+  setCancellationReason: (v: string) => void;
+  notifyCancellation: boolean;
+  setNotifyCancellation: (v: boolean) => void;
   isPending: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
 
-const formatearHora = (h?: string) => {
+const formatReadableHour = (h?: string) => {
   if (!h) return "";
   const [hh, mm] = h.substring(0, 5).split(":").map(Number);
   if (isNaN(hh) || isNaN(mm)) return h;
@@ -46,7 +46,7 @@ const formatearHora = (h?: string) => {
   return `${h12}:${String(mm).padStart(2, "0")} ${ampm}`;
 };
 
-const formatearFecha = (date?: string) => {
+const formatReadableDate = (date?: string) => {
   if (!date) return "";
   try {
     const [y, m, d] = date.split("-").map(Number);
@@ -58,13 +58,13 @@ const formatearFecha = (date?: string) => {
   }
 };
 
-export const DialogCancelarReserva: React.FC<DialogCancelarReservaProps> = ({
+export const DialogCancelReservation: React.FC<DialogCancelReservationProps> = ({
   open,
-  reserva,
-  motivoCancelacion,
-  setMotivoCancelacion,
-  notificarCancelacion,
-  setNotificarCancelacion,
+  reservation,
+  cancellationReason,
+  setCancellationReason,
+  notifyCancellation,
+  setNotifyCancellation,
   isPending,
   onClose,
   onConfirm,
@@ -183,7 +183,7 @@ export const DialogCancelarReserva: React.FC<DialogCancelarReservaProps> = ({
             </Typography>
           </Box>
 
-          {reserva?.meeting_title && (
+          {reservation?.meeting_title && (
             <Box
               sx={{
                 px: 2,
@@ -206,7 +206,7 @@ export const DialogCancelarReserva: React.FC<DialogCancelarReservaProps> = ({
                 variant="body2"
                 sx={{ fontWeight: 600, color: "#111827", mt: 0.3 }}
               >
-                {reserva.meeting_title}
+                {reservation.meeting_title}
               </Typography>
             </Box>
           )}
@@ -238,7 +238,7 @@ export const DialogCancelarReserva: React.FC<DialogCancelarReservaProps> = ({
                 variant="body2"
                 sx={{ fontWeight: 600, color: "#111827", lineHeight: 1.3 }}
               >
-                {reserva?.room_name}
+                {reservation?.room_name}
               </Typography>
             </Box>
           </Box>
@@ -270,7 +270,7 @@ export const DialogCancelarReserva: React.FC<DialogCancelarReservaProps> = ({
                 variant="body2"
                 sx={{ fontWeight: 600, color: "#111827", lineHeight: 1.3 }}
               >
-                {formatearFecha(reserva?.date)}
+                {formatReadableDate(reservation?.date)}
               </Typography>
             </Box>
           </Box>
@@ -301,7 +301,7 @@ export const DialogCancelarReserva: React.FC<DialogCancelarReservaProps> = ({
                 variant="body2"
                 sx={{ fontWeight: 600, color: "#111827", lineHeight: 1.3 }}
               >
-                {`${formatearHora(reserva?.start_time)} — ${formatearHora(reserva?.end_time)}`}
+                {`${formatReadableHour(reservation?.start_time)} — ${formatReadableHour(reservation?.end_time)}`}
               </Typography>
             </Box>
           </Box>
@@ -336,13 +336,13 @@ export const DialogCancelarReserva: React.FC<DialogCancelarReservaProps> = ({
             fullWidth
             multiline
             rows={2}
-            value={motivoCancelacion}
+            value={cancellationReason}
             onChange={(e) =>
-              setMotivoCancelacion(e.target.value.slice(0, 300))
+              setCancellationReason(e.target.value.slice(0, 300))
             }
             placeholder="Ej. La reunión se reprogramará la próxima semana, conflicto de agenda…"
             disabled={isPending}
-            helperText={`${motivoCancelacion.length}/300 — Se incluirá en el correo a los participantes`}
+            helperText={`${cancellationReason.length}/300 — Se incluirá en el correo a los participantes`}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: 2,
@@ -369,8 +369,8 @@ export const DialogCancelarReserva: React.FC<DialogCancelarReservaProps> = ({
           <FormControlLabel
             control={
               <Switch
-                checked={notificarCancelacion}
-                onChange={(e) => setNotificarCancelacion(e.target.checked)}
+                checked={notifyCancellation}
+                onChange={(e) => setNotifyCancellation(e.target.checked)}
                 disabled={isPending}
                 sx={{
                   "& .MuiSwitch-switchBase.Mui-checked": { color: "#004680" },

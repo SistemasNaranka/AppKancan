@@ -18,14 +18,10 @@ import ContractSelectorModal from '../components/ContractSelectorModal';
 import EmployeeGrid from '../components/EmployeeGrid';
 import { useContracts } from '../hooks/useContracts';
 import { useContractContext } from '../contexts/ContractContext';
-import { CreateContrato } from '../types/types';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Inner — consume el contexto (debe estar dentro de ContractProvider)
-// ─────────────────────────────────────────────────────────────────────────────
+import { CreateContract } from '../types/types';
 
 const Inner: React.FC = () => {
-  const { loading, selectedContrato, filters, addContrato } = useContracts();
+  const { loading, selectedContract, filters, addContract } = useContracts();
   const [formContractId, setFormContractId] = useState<number | null>(null);
   const [newContratoOpen, setNewContratoOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -33,19 +29,19 @@ const Inner: React.FC = () => {
   const handleOpenForm  = (id: number) => setFormContractId(id);
   const handleCloseForm = () => setFormContractId(null);
   
-  const handleNewContratoOpen = () => setNewContratoOpen(true);
-  const handleNewContratoClose = () => setNewContratoOpen(false);
-  const handleNewContratoSubmit = async (data: CreateContrato) => {
-    await addContrato(data);
+  const handleNewContractOpen = () => setNewContratoOpen(true);
+  const handleNewContractClose = () => setNewContratoOpen(false);
+  const handleNewContractSubmit = async (data: CreateContract) => {
+    await addContract(data);
     setNewContratoOpen(false);
   };
 
-  const { updateContrato } = useContractContext();
+  const { updateContract } = useContractContext();
   const [editingContract, setEditingContract] = useState<any>(null);
 
-  const handleEditContratoSubmit = async (data: any) => {
+  const handleEditContractSubmit = async (data: any) => {
     if (editingContract) {
-      await updateContrato(editingContract.id, data);
+      await updateContract(editingContract.id, data);
       setEditingContract(null);
     }
   };
@@ -69,7 +65,7 @@ const Inner: React.FC = () => {
       >
         <CircularProgress size={24} />
         <Typography variant="body2" color="text.secondary">
-          Cargando contratos…
+          Cargando contracts…
         </Typography>
       </Box>
     );
@@ -88,10 +84,10 @@ const Inner: React.FC = () => {
       <TabsNav />
 
       <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 3 }, position: 'relative' }}>
-        {selectedContrato ? (
+        {selectedContract ? (
           <ContractDetail
-            onOpenForm={() => handleOpenForm(selectedContrato.id)}
-            onEditContract={() => setEditingContract(selectedContrato)}
+            onOpenForm={() => handleOpenForm(selectedContract.id)}
+            onEditContract={() => setEditingContract(selectedContract)}
           />
         ) : filters.tab === 'empleados' ? (
           <EmployeeGrid onEditContract={(emp) => setEditingContract(emp)} />
@@ -100,7 +96,7 @@ const Inner: React.FC = () => {
             {filters.tab === 'resumen' && <StatCards />}
             <ContractTable 
               onOpenForm={handleOpenForm}
-              onNewContractClick={handleNewContratoOpen}
+              onNewContractClick={handleNewContractOpen}
               onRequestProrrogaClick={handleOpenSelector}
             />
           </>
@@ -110,7 +106,7 @@ const Inner: React.FC = () => {
         <Fab
           color="primary"
           aria-label="add"
-          onClick={handleNewContratoOpen}
+          onClick={handleNewContractOpen}
           sx={{
             position: 'fixed',
             bottom: 24,
@@ -131,15 +127,15 @@ const Inner: React.FC = () => {
 
       <ContratoForm
         open={newContratoOpen}
-        onClose={handleNewContratoClose}
-        onSubmit={handleNewContratoSubmit}
+        onClose={handleNewContractClose}
+        onSubmit={handleNewContractSubmit}
       />
 
       {editingContract && (
         <ContratoForm
           open={!!editingContract}
           onClose={() => setEditingContract(null)}
-          onSubmit={handleEditContratoSubmit}
+          onSubmit={handleEditContractSubmit}
           initialData={editingContract}
         />
       )}
@@ -152,10 +148,6 @@ const Inner: React.FC = () => {
     </Box>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Home — inyecta providers y renderiza Inner
-// ─────────────────────────────────────────────────────────────────────────────
 
 const Home: React.FC = () => (
   <ThemeProvider theme={theme}>

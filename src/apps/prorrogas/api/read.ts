@@ -2,19 +2,19 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, aggregate } from "@directus/sdk";
 import type {
-  Contrato,
-  ContratoFilters,
-  ContratoStats,
+  Contract,
+  ContractFilters,
+  ContractStats,
   PaginationParams,
   PaginatedResponse,
-  Prorroga,
+  Extension,
 } from "../types/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildFilter(filters: ContratoFilters) {
+function buildFilter(filters: ContractFilters) {
   const conditions: object[] = [];
 
   if (filters.contract_type) {
@@ -46,7 +46,7 @@ function buildFilter(filters: ContratoFilters) {
  * expande la relación con core_positions. Aquí normalizamos para que el resto
  * de la app siempre reciba un string con el nombre del cargo.
  */
-function normalizeCargo(raw: unknown): string {
+function normalizePosition(raw: unknown): string {
   if (!raw) return '';
   if (typeof raw === 'object' && raw !== null && 'name' in raw) {
     return (raw as { name: string }).name ?? '';
@@ -56,10 +56,10 @@ function normalizeCargo(raw: unknown): string {
   return '';
 }
 
-function normalizeContrato(item: any): Contrato {
+function normalizeContract(item: any): Contract {
   return {
     ...item,
-    position: normalizeCargo(item.position),
+    position: normalizePosition(item.position),
     extensions: item.extensions ?? [],
   };
 }
@@ -78,10 +78,10 @@ const CONTRATO_FIELDS = [
   "extensions.*",
 ];
 
-export async function getContratos(
-  filters: ContratoFilters = {},
+export async function getContracts(
+  filters: ContractFilters = {},
   pagination: PaginationParams = { page: 0, limit: 25 },
-): Promise<PaginatedResponse<Contrato>> {
+): Promise<PaginatedResponse<Contract>> {
   try {
     const filter = buildFilter(filters);
     const offset = pagination.page * pagination.limit;
@@ -116,7 +116,7 @@ export async function getContratos(
     );
 
     return {
-      data:  (items as any[]).map(normalizeContrato),
+      data:  (items as any[]).map(normalizeContract),
       total,
       page:  pagination.page,
       limit: pagination.limit,
@@ -140,7 +140,7 @@ export async function getContratos(
   }
 }
 
-export async function getContratoById(id: number): Promise<Contrato | null> {
+export async function getContractById(id: number): Promise<Contract | null> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -157,16 +157,16 @@ export async function getContratoById(id: number): Promise<Contrato | null> {
       return null;
     }
 
-    return normalizeContrato((items as any[])[0]);
+    return normalizeContract((items as any[])[0]);
   } catch (error) {
       console.error(`❌ Error al cargar contrato ${id}:`, error);
     return null;
   }
 }
 
-export async function getContratoStats(
-  filters: ContratoFilters = {},
-): Promise<ContratoStats> {
+export async function getContractStats(
+  filters: ContractFilters = {},
+): Promise<ContractStats> {
   try {
     const filter = buildFilter(filters);
 
@@ -184,7 +184,7 @@ export async function getContratoStats(
     );
 
     // Stats básicos - se puede expandir según necesidades
-    const stats: ContratoStats = {
+    const stats: ContractStats = {
       total,
       vigentes: 0,
       proximos: 0,
@@ -214,23 +214,23 @@ export async function getContratoStats(
 // Prórrogas
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getProrrogasByContrato(
-  contratoId: number
-): Promise<Prorroga[]> {
+export async function getExtensionsByContract(
+  contractId: number
+): Promise<Extension[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_extensions", {
           fields: ["*"],
-          filter: { contract_id: { _eq: contratoId } },
+          filter: { contract_id: { _eq: contractId } },
           sort:   ["extension_number"],
         })
       )
     );
 
-    return items as Prorroga[];
+    return items as Extension[];
   } catch (error) {
-    console.error(`❌ Error al cargar prórrogas del contrato ${contratoId}:`, error);
+    console.error(`❌ Error al cargar prórrogas del contrato ${contractId}:`, error);
     return [];
   }
 }
@@ -239,20 +239,20 @@ export async function getProrrogasByContrato(
 // Historial Cargos
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getHistorialCargos(contratoId: number) {
+export async function getPositionHistory(contractId: number) {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_position_history", {
           fields: ["*"],
-          filter: { contract_id: { _eq: contratoId } },
+          filter: { contract_id: { _eq: contractId } },
           sort: ["-date_created"],
         })
       )
     );
     return items;
   } catch (error) {
-    console.error(`❌ Error al cargar historial de cargos del contrato ${contratoId}:`, error);
+    console.error(`❌ Error al cargar historial de cargos del contrato ${contractId}:`, error);
     return [];
   }
 }

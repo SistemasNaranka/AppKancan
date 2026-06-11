@@ -106,7 +106,7 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
             Reportes y Estadísticas
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Visión general de contratos y recursos humanos
+            Visión general de contracts y recursos humanos
           </Typography>
         </Box>
         <IconButton onClick={onClose} sx={{ bgcolor: '#f0f4f8' }}>
@@ -176,7 +176,7 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ open, onClose }) => {
                   </Box>
                 )) : (
                   <Box sx={{ p: 4, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">No hay contratos próximos a vencer.</Typography>
+                    <Typography variant="body2" color="text.secondary">No hay contracts próximos a vencer.</Typography>
                   </Box>
                 )}
               </Stack>

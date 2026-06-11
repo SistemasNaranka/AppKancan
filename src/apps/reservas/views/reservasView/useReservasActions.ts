@@ -2,32 +2,32 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  crearReserva,
-  actualizarReserva,
-  cancelarReserva,
+  createReservation,
+  updateReservation,
+  cancelReservation,
 } from "../../services/reservas";
-import { notificarCorreoReserva } from "../../services/correoReservas";
+import { sendReservationEmailNotification } from "../../services/correoReservas";
 import type {
-  Reserva,
-  NuevaReserva,
-  ActualizarReserva,
+  Reservation,
+  NewReservation,
+  UpdateReservation,
 } from "../../types/reservas.types";
 
-interface UseReservasActionsParams {
+interface UseReservationActionsParams {
   area: string | null | undefined;
   showSnackbar: (msg: string, sev: "success" | "error" | "warning" | "info") => void;
-  onCancelarSuccess: () => void;
+  onCancelSuccess: () => void;
 }
 
-export function useReservasActions({
+export function useReservationActions({
   area,
   showSnackbar,
-  onCancelarSuccess,
-}: UseReservasActionsParams) {
+  onCancelSuccess,
+}: UseReservationActionsParams) {
   const queryClient = useQueryClient();
 
-  const mutationCrear = useMutation({
-    mutationFn: (datos: NuevaReserva) => crearReserva(datos),
+  const createMutation = useMutation({
+    mutationFn: (data: NewReservation) => createReservation(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservas"] });
       showSnackbar("Reserva creada exitosamente", "success");
@@ -37,16 +37,16 @@ export function useReservasActions({
     },
   });
 
-  const mutationActualizar = useMutation({
+  const updateMutation = useMutation({
     mutationFn: ({
       id,
-      datos,
+      data,
       skipWebhook,
     }: {
       id: number;
-      datos: ActualizarReserva;
+      data: UpdateReservation;
       skipWebhook?: boolean;
-    }) => actualizarReserva(id, datos, skipWebhook),
+    }) => updateReservation(id, data, skipWebhook),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservas"] });
       showSnackbar("Reserva actualizada exitosamente", "success");
@@ -56,11 +56,11 @@ export function useReservasActions({
     },
   });
 
-  const mutationCancelar = useMutation({
-    mutationFn: (id: number) => cancelarReserva(id),
+  const cancelMutation = useMutation({
+    mutationFn: (id: number) => cancelReservation(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservas"] });
-      onCancelarSuccess();
+      onCancelSuccess();
       showSnackbar("Reserva cancelada exitosamente", "success");
     },
     onError: (error: any) => {
@@ -68,42 +68,42 @@ export function useReservasActions({
     },
   });
 
-  const handleCrearReserva = async (datos: NuevaReserva) => {
-    const datosConArea = { ...datos, departament: area || undefined };
-    await mutationCrear.mutateAsync(datosConArea);
+  const handleCreateReservation = async (data: NewReservation) => {
+    const dataWithArea = { ...data, departament: area || undefined };
+    await createMutation.mutateAsync(dataWithArea);
   };
 
-  const handleActualizarReserva = async (
+  const handleUpdateReservation = async (
     id: number,
-    datos: ActualizarReserva,
+    data: UpdateReservation,
     skipWebhook?: boolean,
   ) => {
-    await mutationActualizar.mutateAsync({ id, datos, skipWebhook });
+    await updateMutation.mutateAsync({ id, data, skipWebhook });
   };
 
-  const confirmarCancelar = async (
-    reserva: Reserva | null,
-    notificarCancelacion: boolean,
-    motivoCancelacion: string,
+  const confirmCancel = async (
+    reservation: Reservation | null,
+    notifyCancellation: boolean,
+    cancellationReason: string,
   ) => {
-    if (!reserva) return;
+    if (!reservation) return;
 
-    await mutationCancelar.mutateAsync(reserva.id);
+    await cancelMutation.mutateAsync(reservation.id);
 
-    if (notificarCancelacion) {
+    if (notifyCancellation) {
       try {
-        const result = await notificarCorreoReserva({
+        const result = await sendReservationEmailNotification({
           evento: "reserva_cancelada",
           reserva: {
-            room_name: reserva.room_name,
-            date: reserva.date,
-            start_time: (reserva.start_time || "").substring(0, 5),
-            end_time: (reserva.end_time || "").substring(0, 5),
-            meeting_title: reserva.meeting_title || "",
-            observations: reserva.observations || "",
-            participants: (reserva as any).participants || [],
+            room_name: reservation.room_name,
+            date: reservation.date,
+            start_time: (reservation.start_time || "").substring(0, 5),
+            end_time: (reservation.end_time || "").substring(0, 5),
+            meeting_title: reservation.meeting_title || "",
+            observations: reservation.observations || "",
+            participants: (reservation as any).participants || [],
           },
-          ...({ motivo: motivoCancelacion.trim() } as any),
+          ...({ motivo: cancellationReason.trim() } as any),
         });
         console.info("[n8n] correo cancelación enviado OK:", result);
       } catch (err) {
@@ -115,11 +115,11 @@ export function useReservasActions({
   };
 
   return {
-    mutationCrear,
-    mutationActualizar,
-    mutationCancelar,
-    handleCrearReserva,
-    handleActualizarReserva,
-    confirmarCancelar,
+    createMutation,
+    updateMutation,
+    cancelMutation,
+    handleCreateReservation,
+    handleUpdateReservation,
+    confirmCancel,
   };
 }

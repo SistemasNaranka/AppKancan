@@ -7,17 +7,17 @@ import {
   Popover,
 } from "@mui/material";
 import FilterIcon from '@mui/icons-material/FilterList';
-import type { FiltrosReserva } from "../types/reservas.types";
-import { SALAS_DISPONIBLES, ESTADOS_FILTRO } from "../types/reservas.types";
+import type { ReservationFilters } from "../types/reservas.types";
+import { AVAILABLE_ROOMS, FILTER_STATUSES } from "../types/reservas.types";
 
 interface FiltrosReservasProps {
-  filtros: FiltrosReserva;
-  onFiltrosChange: (filtros: FiltrosReserva) => void;
+  filters: ReservationFilters;
+  onFiltersChange: (filters: ReservationFilters) => void;
 }
 
 const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
-  filtros,
-  onFiltrosChange,
+  filters,
+  onFiltersChange,
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
@@ -31,19 +31,19 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
 
   const open = Boolean(anchorEl);
 
-  const handleChange = (campo: keyof FiltrosReserva, valor: string) => {
-    onFiltrosChange({
-      ...filtros,
+  const handleChange = (campo: keyof ReservationFilters, valor: string) => {
+    onFiltersChange({
+      ...filters,
       [campo]: valor,
     });
   };
 
   const handleLimpiar = () => {
-    onFiltrosChange({});
+    onFiltersChange({});
   };
 
-  const tieneFiltrosActivos = () => {
-    return !!(filtros.date || filtros.room_name || filtros.status);
+  const hasActiveFilters = () => {
+    return !!(filters.date || filters.room_name || filters.status);
   };
 
   return (
@@ -53,8 +53,8 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
         startIcon={<FilterIcon />}
         onClick={handleClick}
         sx={{
-          borderColor: tieneFiltrosActivos() ? "#1976d2" : "#e0e0e0",
-          color: tieneFiltrosActivos() ? "#1976d2" : "#004680",
+          borderColor: hasActiveFilters() ? "#1976d2" : "#e0e0e0",
+          color: hasActiveFilters() ? "#1976d2" : "#004680",
           backgroundColor: "#fff",
           textTransform: "none",
           fontWeight: 600,
@@ -95,7 +95,7 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
           <TextField
             type="date"
             label="Fecha"
-            value={filtros.date || ""}
+            value={filters.date || ""}
             onChange={(e) => handleChange("date", e.target.value)}
             InputLabelProps={{ shrink: true }}
             fullWidth
@@ -106,13 +106,13 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
           <TextField
             select
             label="Sala"
-            value={filtros.room_name || ""}
+            value={filters.room_name || ""}
             onChange={(e) => handleChange("room_name", e.target.value)}
             fullWidth
             size="small"
           >
             <MenuItem value="">Todas las salas</MenuItem>
-            {SALAS_DISPONIBLES.map((sala) => (
+            {AVAILABLE_ROOMS.map((sala) => (
               <MenuItem key={sala} value={sala}>
                 {sala}
               </MenuItem>
@@ -123,13 +123,13 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
           <TextField
             select
             label="Estado"
-            value={filtros.status || ""}
+            value={filters.status || ""}
             onChange={(e) => handleChange("status", e.target.value)}
             fullWidth
             size="small"
           >
             <MenuItem value="">Todos los estados</MenuItem>
-            {ESTADOS_FILTRO.map((estado) => (
+            {FILTER_STATUSES.map((estado) => (
               <MenuItem key={estado} value={estado}>
                 {estado}
               </MenuItem>
@@ -137,7 +137,7 @@ const FiltrosReservas: React.FC<FiltrosReservasProps> = ({
           </TextField>
 
           {/* Botón limpiar */}
-          {tieneFiltrosActivos() && (
+          {hasActiveFilters() && (
             <Button
               variant="text"
               onClick={handleLimpiar}

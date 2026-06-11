@@ -80,7 +80,7 @@ const ContractSelectorModal: React.FC<ContractSelectorModalProps> = ({
             autoFocus
             fullWidth
             size="small"
-            placeholder="Buscar empleado o contrato..."
+            placeholder="Buscar empleado o contrato"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             InputProps={{

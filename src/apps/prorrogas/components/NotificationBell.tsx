@@ -175,12 +175,12 @@ const NotificationBell: React.FC = () => {
                                 <strong style={{ color: urgent ? '#c62828' : '#e65100' }}>
                                   {days} {days === 1 ? 'día' : 'días'}
                                 </strong>
-                                {c.lastProrroga ? ' (prórroga vigente)' : ''}
+                                {c.lastExtension ? ' (prórroga vigente)' : ''}
                               </>
                             )}
                           </Typography>
                           <Typography variant="caption" color="text.disabled">
-                            {c.fechaVencimiento ? formatDate(c.fechaVencimiento) : 'Sin fecha'} · #{c.id}
+                            {c.expirationDate ? formatDate(c.expirationDate) : 'Sin fecha'} · #{c.id}
                           </Typography>
                         </>
                       }

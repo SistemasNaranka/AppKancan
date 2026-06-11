@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { format, subDays } from "date-fns";
-import type { Reserva } from "../types/reservas.types";
+import type { Reservation } from "../types/reservas.types";
 
 export type TabReservas = "Reserva" | "mis" | "calendario";
 
@@ -34,10 +34,10 @@ interface TourContextType {
   stopTour: () => void;
   completeTour: () => void;
 
-  userCreatedReservation: Reserva | null;
-  setUserCreatedReservation: (reserva: Reserva | null) => void;
+  userCreatedReservation: Reservation | null;
+  setUserCreatedReservation: (reservation: Reservation | null) => void;
 
-  mockReservasAdicionales: Reserva[];
+  mockAdditionalReservations: Reservation[];
 
   setTabChangeCallback: (callback: (tab: TabReservas) => void) => void;
   getCurrentTab: () => TabReservas;
@@ -51,7 +51,7 @@ interface TourContextType {
 
   onDialogOpened: () => void;
 
-  onFormSubmitted: (datos: any) => void;
+  onFormSubmitted: (data: any) => void;
 }
 
 const TourContext = createContext<TourContextType | undefined>(undefined);
@@ -60,49 +60,49 @@ interface TourProviderProps {
   children: ReactNode;
 }
 
-const generateMockReservasAdicionales = (): Reserva[] => {
-  const hoy = new Date();
-  const fechaAyer = format(subDays(hoy, 1), "yyyy-MM-dd");
-  const fechaHoy = format(hoy, "yyyy-MM-dd");
+const generateMockAdditionalReservations = (): Reservation[] => {
+  const today = new Date();
+  const yesterdayDate = format(subDays(today, 1), "yyyy-MM-dd");
+  const todayDate = format(today, "yyyy-MM-dd");
 
   return [
     {
       id: 99902,
       room_name: "Sala Secundaria",
-      date: fechaAyer,
+      date: yesterdayDate,
       start_time: "14:00",
       end_time: "15:00",
       meeting_title: "Capacitación completada",
       observations: "Sesión de onboarding finalizada",
       departament: "recursos humanos",
       status: "Finalizado",
-      estadoCalculado: "Finalizado",
+      calculatedStatus: "Finalizado",
       user_id: {
         id: "mock-user-id",
         first_name: "Usuario",
         last_name: "Demo",
         email: "demo@example.com",
       },
-      date_created: fechaAyer,
+      date_created: yesterdayDate,
     },
     {
       id: 99903,
       room_name: "Sala Principal",
-      date: fechaHoy,
+      date: todayDate,
       start_time: "16:00",
       end_time: "17:00",
       meeting_title: "Reunión reprogramada",
       observations: "Se moverá para la próxima semana",
       departament: "gerencia",
       status: "Cancelado",
-      estadoCalculado: "Cancelado",
+      calculatedStatus: "Cancelado",
       user_id: {
         id: "mock-user-id",
         first_name: "Usuario",
         last_name: "Demo",
         email: "demo@example.com",
       },
-      date_created: fechaHoy,
+      date_created: todayDate,
     },
   ];
 };
@@ -119,7 +119,7 @@ const PHASE_ORDER: TourPhase[] = [
 export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   const [tourPhase, setTourPhase] = useState<TourPhase>("IDLE");
   const [stepIndex, setStepIndex] = useState(0);
-  const [userCreatedReservation, setUserCreatedReservation] = useState<Reserva | null>(null);
+  const [userCreatedReservation, setUserCreatedReservation] = useState<Reservation | null>(null);
   const [currentTab, setCurrentTab] = useState<TabReservas>("Reserva");
   const location = useLocation();
   const navigate = useNavigate();
@@ -128,7 +128,7 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   const [openDialogCallback, setOpenDialogCallbackState] = useState<(() => void) | null>(null);
   const [closeDialogCallback, setCloseDialogCallbackState] = useState<(() => void) | null>(null);
 
-  const mockReservasAdicionales = useMemo(() => generateMockReservasAdicionales(), []);
+  const mockAdditionalReservations = useMemo(() => generateMockAdditionalReservations(), []);
 
   const isFullTourRunning = tourPhase !== "IDLE" && tourPhase !== "COMPLETED";
 
@@ -235,30 +235,30 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   }, [tourPhase]);
 
   const onFormSubmitted = useCallback(
-    (datos: any) => {
+    (data: any) => {
       if (tourPhase === "DIALOG_TOUR") {
-        const fechaHoy = format(new Date(), "yyyy-MM-dd");
-        const nuevaReserva: Reserva = {
+        const todayDate = format(new Date(), "yyyy-MM-dd");
+        const newReservation: Reservation = {
           id: 99901,
-          room_name: datos.room_name || "Sala Principal",
-          date: datos.date || fechaHoy,
-          start_time: datos.start_time || "09:00",
-          end_time: datos.end_time || "10:00",
-          meeting_title: datos.meeting_title || "Reunión de Ejemplo",
-          observations: datos.observations || "",
+          room_name: data.room_name || "Sala Principal",
+          date: data.date || todayDate,
+          start_time: data.start_time || "09:00",
+          end_time: data.end_time || "10:00",
+          meeting_title: data.meeting_title || "Reunión de Ejemplo",
+          observations: data.observations || "",
           departament: "mi área",
           status: "Vigente",
-          estadoCalculado: "Vigente",
+          calculatedStatus: "Vigente",
           user_id: {
             id: "mock-user-id",
             first_name: "Usuario",
             last_name: "Demo",
             email: "demo@example.com",
           },
-          date_created: fechaHoy,
+          date_created: todayDate,
         };
 
-        setUserCreatedReservation(nuevaReserva);
+        setUserCreatedReservation(newReservation);
 
         if (closeDialogCallback) {
           closeDialogCallback();
@@ -287,7 +287,7 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
         completeTour,
         userCreatedReservation,
         setUserCreatedReservation,
-        mockReservasAdicionales,
+        mockAdditionalReservations,
         setTabChangeCallback,
         getCurrentTab,
         setCurrentTab,

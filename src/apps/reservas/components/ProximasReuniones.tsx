@@ -3,12 +3,12 @@ import { Box, Paper, Typography, Chip, Link, Tooltip } from "@mui/material";
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import PeopleIcon from '@mui/icons-material/People';
 import { format } from "date-fns";
-import type { Reserva } from "../types/reservas.types";
+import type { Reservation } from "../types/reservas.types";
 import { capitalize } from "../types/reservas.types";
 
 interface ProximasReunionesProps {
-  reservas: Reserva[];
-  onVerCalendarioCompleto: () => void;
+  reservations: Reservation[];
+  onViewFullCalendar: () => void;
   maxReservas?: number;
 }
 
@@ -18,31 +18,21 @@ const COLORES_SALA: Record<string, { bg: string; color: string }> = {
 };
 
 const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
-  reservas,
-  onVerCalendarioCompleto,
+  reservations,
+  onViewFullCalendar,
   maxReservas = 10,
 }) => {
   const hoy = format(new Date(), "yyyy-MM-dd");
-  const horaActual = format(new Date(), "HH:mm");
 
-  const { reservasHoy, reservasPendientes } = useMemo(() => {
-    const todasHoy = reservas
+  const { reservasHoy } = useMemo(() => {
+    const todasHoy = reservations
       .filter((r) => r.date === hoy)
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-    const pendientes = todasHoy.filter((r) => {
-      const estado = (r.estadoCalculado || r.status)?.toLowerCase();
-      return (
-        (estado === "vigente" || estado === "en curso") &&
-        r.end_time > horaActual
-      );
-    }).length;
-
     return {
       reservasHoy: todasHoy.slice(0, maxReservas),
-      reservasPendientes: pendientes,
     };
-  }, [reservas, hoy, horaActual, maxReservas]);
+  }, [reservations, hoy, maxReservas]);
 
   const formatearHora = (hora: string): string => {
     const [h, m] = hora.split(":");
@@ -53,9 +43,9 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
   };
 
   const getEstadoDisplay = (
-    reserva: Reserva,
+    reserva: Reservation,
   ): { texto: string; color: string } => {
-    const estado = (reserva.estadoCalculado || reserva.status)?.toLowerCase();
+    const estado = (reserva.calculatedStatus || reserva.status)?.toLowerCase();
 
     switch (estado) {
       case "en curso":
@@ -73,8 +63,8 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
     }
   };
 
-  const estaCancelada = (reserva: Reserva): boolean => {
-    const estado = (reserva.estadoCalculado || reserva.status)?.toLowerCase();
+  const estaCancelada = (reserva: Reservation): boolean => {
+    const estado = (reserva.calculatedStatus || reserva.status)?.toLowerCase();
     return estado === "cancelado" || estado === "cancelada";
   };
 
@@ -102,7 +92,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
         </Typography>
         <Link
           component="button"
-          onClick={onVerCalendarioCompleto}
+          onClick={onViewFullCalendar}
           sx={{
             display: "flex",
             alignItems: "center",
@@ -188,7 +178,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
           const cancelada = estaCancelada(reserva);
           const estadoInfo = getEstadoDisplay(reserva);
           const esFinalizada = ["finalizado", "finalizada"].includes(
-            (reserva.estadoCalculado || reserva.status)?.toLowerCase() || ""
+            (reserva.calculatedStatus || reserva.status)?.toLowerCase() || ""
           );
           const colorSala = COLORES_SALA[reserva.room_name] || {
             bg: "#F3F4F6",
@@ -275,7 +265,7 @@ const ProximasReuniones: React.FC<ProximasReunionesProps> = ({
                   : [];
                 const total = participantes.length;
                 const nombres = participantes
-                  .map((p: any) => p?.nombre)
+                  .map((p: any) => p?.name)
                   .filter(Boolean);
                 const tooltipContent =
                   nombres.length > 0 ? (

@@ -1,4 +1,4 @@
-import type { NuevaReserva } from "../types/reservas.types";
+import type { NewReservation } from "../types/reservas.types";
 
 const WEBHOOK_USERNAME = import.meta.env.VITE_WEBHOOK_USERNAME;
 const WEBHOOK_PASSWORD = import.meta.env.VITE_WEBHOOK_PASSWORD;
@@ -7,24 +7,24 @@ const WEBHOOK_URL_CREADA = import.meta.env.VITE_WEBHOOK_URL_ENVIO_CORREO;
 const WEBHOOK_URL_ACTUALIZADA = import.meta.env.VITE_WEBHOOK_URL_RESERVA_ACTUALIZADA;
 const WEBHOOK_URL_CANCELADA = import.meta.env.VITE_WEBHOOK_URL_RESERVA_CANCELADA;
 
-type EventoReserva = "reserva_creada" | "reserva_actualizada" | "reserva_cancelada";
+type ReservationEvent = "reserva_creada" | "reserva_actualizada" | "reserva_cancelada";
 
-export interface NotificarCorreoReservaPayload {
-  evento: EventoReserva;
-  reserva: NuevaReserva;
+export interface SendReservationEmailNotificationPayload {
+  evento: ReservationEvent;
+  reserva: NewReservation;
   timestamp?: string;
 }
 
-const URL_POR_EVENTO: Record<EventoReserva, string | undefined> = {
+const URL_BY_EVENT: Record<ReservationEvent, string | undefined> = {
   reserva_creada: WEBHOOK_URL_CREADA,
   reserva_actualizada: WEBHOOK_URL_ACTUALIZADA,
   reserva_cancelada: WEBHOOK_URL_CANCELADA,
 };
 
-export async function notificarCorreoReserva(
-  payload: NotificarCorreoReservaPayload,
+export async function sendReservationEmailNotification(
+  payload: SendReservationEmailNotificationPayload,
 ): Promise<any> {
-  const url = URL_POR_EVENTO[payload.evento];
+  const url = URL_BY_EVENT[payload.evento];
   if (!url) {
     throw new Error(`Webhook URL no definida para evento "${payload.evento}". Revisa tu .env`);
   }
@@ -64,7 +64,7 @@ export async function notificarCorreoReserva(
       return { mensaje: responseText, success: true };
     }
   } catch (error: any) {
-    console.error("❌ Error en notificarCorreoReserva:", error);
+    console.error("❌ Error en sendReservationEmailNotification:", error);
     throw new Error(error.message || "Error de conexión al enviar correo");
   }
 }

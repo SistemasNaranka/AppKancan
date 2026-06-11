@@ -54,7 +54,7 @@ const TopBar: React.FC = () => {
         <OutlinedInput
           value={filters.search}
           onChange={(e) => setFilter({ search: e.target.value })}
-          placeholder="Buscar contratos, empleados…"
+          placeholder="Buscar contracts, empleados…"
           size="small"
           startAdornment={
             <InputAdornment position="start">

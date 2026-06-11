@@ -14,7 +14,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import PersonIcon from '@mui/icons-material/Person';
-import { useContracts, EnrichedContrato } from '../hooks/useContracts';
+import { useContracts, EnrichedContract } from '../hooks/useContracts';
 import { formatNombreCompleto } from '../lib/nombreCompleto';
 
 const CARD_RADIUS = 14;
@@ -38,7 +38,7 @@ function avatarColors(status: keyof typeof STATUS_CFG) {
   return map[status];
 }
 
-const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c }) => {
+const EmployeeCard: React.FC<{ contrato: EnrichedContract }> = ({ contrato: c }) => {
   const st = c.contractStatus as keyof typeof STATUS_CFG;
   const cfg = STATUS_CFG[st];
   const av = avatarColors(st);
@@ -104,7 +104,7 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography variant="caption" color="text.disabled">Prórroga vigente</Typography>
             <Chip
-              label={`#${c.lastProrroga?.extension_number ?? 0}`}
+              label={`#${c.lastExtension?.extension_number ?? 0}`}
               size="small"
               sx={{
                 height: 18, bgcolor: '#eff6ff', color: '#2563eb',
@@ -119,8 +119,8 @@ const EmployeeCard: React.FC<{ contrato: EnrichedContrato }> = ({ contrato: c })
               fontWeight={700}
               sx={{ color: st === 'vencido' ? '#dc2626' : st === 'proximo' ? '#d97706' : '#16a34a' }}
             >
-              {c.lastProrroga && c.lastProrroga.end_date
-                ? new Date(c.lastProrroga.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+              {c.lastExtension && c.lastExtension.end_date
+                ? new Date(c.lastExtension.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
                 : '—'}
             </Typography>
           </Box>

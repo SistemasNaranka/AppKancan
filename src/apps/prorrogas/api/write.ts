@@ -2,12 +2,12 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { createItem, updateItem, readItems } from "@directus/sdk";
 import type {
-  Prorroga,
-  Contrato,
-  CreateContrato,
+  Extension,
+  Contract,
+  CreateContract,
   RequestStatus,
 } from "../types/types";
-import { addMonths, getProrrogaDuration } from "../lib/utils";
+import { addMonths, getExtensionDuration } from "../lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Payloads internos (lo que realmente se envía a Directus)
@@ -34,19 +34,19 @@ interface CreateProrrogaDirectus {
  *   numero 0–3  → duracion = 4  meses
  *   numero ≥ 4  → duracion = 12 meses
  */
-export async function crearProrroga(params: {
+export async function createExtension(params: {
   contrato_id:  number;
   numero:       number;
   fecha_ingreso: string;
   descripcion?: string;
-}): Promise<Prorroga | null> {
+}): Promise<Extension | null> {
   try {
     const { contrato_id, numero, fecha_ingreso, descripcion = '' } = params;
 
     // Calcular duración y fecha de fin según regla de negocio
     //   numero 0–3  → 4 meses
     //   numero ≥ 4  → 12 meses
-    const duracion    = getProrrogaDuration(numero);
+    const duracion    = getExtensionDuration(numero);
     const fecha_final = addMonths(fecha_ingreso, duracion);
     const label       = numero === 0 ? 'Contrato Inicial' : `Prórroga ${numero}`;
 
@@ -64,7 +64,7 @@ export async function crearProrroga(params: {
       directus.request(createItem("adm_extensions", payload))
     );
 
-    return created as Prorroga;
+    return created as Extension;
   } catch (error) {
     console.error("❌ Error al crear prórroga:", error);
     return null;
@@ -78,15 +78,15 @@ export async function crearProrroga(params: {
 /**
  * Crea un nuevo registro en la colección `adm_contracts`.
  */
-export async function crearContrato(
-  payload: CreateContrato
-): Promise<Contrato | null> {
+export async function createContract(
+  payload: CreateContract
+): Promise<Contract | null> {
   try {
     const created = await withAutoRefresh(() =>
       directus.request(createItem("adm_contracts", payload as any))
     );
 
-    return created as Contrato;
+    return created as Contract;
   } catch (error) {
     console.error("❌ Error al crear contrato:", error);
     return null;
@@ -102,20 +102,20 @@ export async function crearContrato(
  * Útil para mover un contrato por el flujo de aprobación
  * (pendiente → en_revision → aprobada / rechazada → completada).
  */
-export async function cambiarRequestStatus(
-  contratoId: number,
+export async function changeRequestStatus(
+  contractId: number,
   nuevoStatus: RequestStatus
 ): Promise<boolean> {
   try {
     await withAutoRefresh(() =>
       directus.request(
-        updateItem("adm_contracts", contratoId, { status: nuevoStatus })
+        updateItem("adm_contracts", contractId, { status: nuevoStatus })
       )
     );
     return true;
   } catch (error) {
     console.error(
-      `❌ Error al cambiar status del contrato ${contratoId}:`,
+      `❌ Error al cambiar status del contrato ${contractId}:`,
       error
     );
     return false;
@@ -129,15 +129,15 @@ export async function cambiarRequestStatus(
 /**
  * Actualiza los campos `position` y opcionalmente `department` en `adm_contracts`.
  *
- * Debe llamarse siempre junto con `crearHistorialCargo` para mantener
+ * Debe llamarse siempre junto con `createPositionHistory` para mantener
  * el contrato sincronizado con el historial de movimientos. El WebSocket
- * del ContractContext detectará el UPDATE y hará UPSERT_CONTRATO
+ * del ContractContext detectará el UPDATE y hará UPSERT_CONTRACT
  * automáticamente, reflejando el cambio en toda la app sin recargar.
  */
-export async function actualizarCargoEnContrato(
-  contratoId: number,
-  nuevoCargo: string,
-  nuevaArea?: string
+export async function updatePositionInContract(
+  contractId: number,
+  newPosition: string,
+  newArea?: string
 ): Promise<boolean> {
   try {
     // adm_contracts.position es FK a core_positions. Resolver nombre → id.
@@ -145,26 +145,26 @@ export async function actualizarCargoEnContrato(
       directus.request(
         readItems("core_positions", {
           fields: ["id"],
-          filter: { name: { _eq: nuevoCargo } },
+          filter: { name: { _eq: newPosition } },
           limit: 1,
         })
       )
     );
     const cargoId = (cargos as any[])?.[0]?.id;
     if (!cargoId) {
-      throw new Error(`core_positions no encontrado para name="${nuevoCargo}"`);
+      throw new Error(`core_positions no encontrado para name="${newPosition}"`);
     }
 
     const payload: Record<string, any> = { position: cargoId };
-    if (nuevaArea) payload.department = nuevaArea;
+    if (newArea) payload.department = newArea;
 
     await withAutoRefresh(() =>
-      directus.request(updateItem("adm_contracts", contratoId, payload))
+      directus.request(updateItem("adm_contracts", contractId, payload))
     );
     return true;
   } catch (error) {
     console.error(
-      `❌ Error al actualizar cargo del contrato ${contratoId}:`,
+      `❌ Error al actualizar cargo del contrato ${contractId}:`,
       error
     );
     return false;

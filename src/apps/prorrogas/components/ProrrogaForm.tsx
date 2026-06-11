@@ -20,8 +20,8 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import { useContractContext } from '../contexts/ContractContext';
-import { addMonths, formatDate, getNextProrrogaNumber, getProrrogaDuration, toLocalDateStr } from '../lib/utils';
-import { getProrrogasByContrato } from '../api/read';
+import { addMonths, formatDate, getNextExtensionNumber, getExtensionDuration, toLocalDateStr } from '../lib/utils';
+import { getExtensionsByContract } from '../api/read';
 import { formatNombreCompleto } from '../lib/nombreCompleto';
 
 interface Props {
@@ -31,9 +31,9 @@ interface Props {
 }
 
 const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
-  const { contratos, addProrroga, saving, successMsg, error, clearMessages } = useContractContext();
+  const { contracts, addExtension, saving, successMsg, error, clearMessages } = useContractContext();
 
-  const contract = contratos.find((c) => c.id === Number(contractId));
+  const contract = contracts.find((c) => c.id === Number(contractId));
 
   const [fechaInicio, setFechaInicio] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -72,13 +72,13 @@ const ProrrogaForm: React.FC<Props> = ({ contractId, open, onClose }) => {
     return prorrogas.length === 0 ? 0 : Math.max(...prorrogas.map((p) => p.extension_number ?? 0)) + 1;
   }, [contract]);
 
-  const duracion = getProrrogaDuration(nextNum);
+  const duracion = getExtensionDuration(nextNum);
 
   const fechaFin = fechaInicio ? addMonths(fechaInicio, duracion) : null;
 
   const handleSubmit = async () => {
     if (!fechaInicio) return;
-    const success = await addProrroga({ contractId: Number(contractId), fechaInicio, descripcion: descripcion || undefined });
+    const success = await addExtension({ contractId: Number(contractId), fechaInicio, descripcion: descripcion || undefined });
     if (success) {
       handleClose();
     }

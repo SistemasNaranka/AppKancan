@@ -1,5 +1,5 @@
-import type { Reserva, EstadoReserva } from "../types/reservas.types";
-import { COLORES_ESTADO, COLORES_TEXTO_ESTADO, puedeModificarse } from "../types/reservas.types";
+import type { Reservation, ReservationStatus } from "../types/reservas.types";
+import { STATUS_COLORS, STATUS_TEXT_COLORS, canBeModified } from "../types/reservas.types";
 import type { BloqueHora, ReservaEnCelda } from "./VistaSemanal.types";
 
 export const MESES = [
@@ -48,7 +48,7 @@ export const HOVER_INDICATOR_SX = {
   color: "#fff", borderRadius: "4px", px: 0.75, py: 0.25,
 };
 
-export const generarHorasRango = (horaInicio: string, horaFin: string): string[] => {
+export const generateHoursRange = (horaInicio: string, horaFin: string): string[] => {
   const [horaIni] = horaInicio.split(":").map(Number);
   const [horaFinNum] = horaFin.split(":").map(Number);
   const horas: string[] = [];
@@ -58,27 +58,27 @@ export const generarHorasRango = (horaInicio: string, horaFin: string): string[]
   return horas;
 };
 
-export const formatearHora12h = (hora: string): string => {
+export const formatHour12h = (hora: string): string => {
   const [h, m] = hora.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   return `${h % 12 || 12}:${(m ?? 0).toString().padStart(2, "0")} ${ampm}`;
 };
 
-export const getColorEstado = (reserva: Reserva) => {
-  const estado = (reserva.estadoCalculado || reserva.status) as EstadoReserva;
+export const getStatusColor = (reserva: Reservation) => {
+  const estado = (reserva.calculatedStatus || reserva.status) as ReservationStatus;
   return {
-    bg: COLORES_ESTADO[estado] || "#F3F4F6",
-    text: COLORES_TEXTO_ESTADO[estado] || "#374151",
+    bg: STATUS_COLORS[estado] || "#F3F4F6",
+    text: STATUS_TEXT_COLORS[estado] || "#374151",
   };
 };
 
-export const puedeModificar = (reserva: Reserva, usuarioActualId?: string): boolean => {
+export const canModify = (reserva: Reservation, usuarioActualId?: string): boolean => {
   if (!usuarioActualId || !reserva.user_id) return false;
   if (reserva.user_id.id !== usuarioActualId) return false;
-  return puedeModificarse(reserva.estadoCalculado || reserva.status);
+  return canBeModified(reserva.calculatedStatus || reserva.status);
 };
 
-export const generarBloquesPorHora = (reserva: Reserva): BloqueHora[] => {
+export const generateBlocksPerHour = (reserva: Reservation): BloqueHora[] => {
   const [horaIni, minIni] = reserva.start_time.split(":").map(Number);
   const [horaFin, minFin] = reserva.end_time.split(":").map(Number);
   const ALT = 60;
@@ -106,8 +106,8 @@ export const generarBloquesPorHora = (reserva: Reserva): BloqueHora[] => {
   return bloques;
 };
 
-export const getReservasEnCelda = (
-  reservasSemana: Reserva[],
+export const getReservationsInCell = (
+  reservasSemana: Reservation[],
   dia: Date,
   hora: string,
   formatFn: (d: Date, fmt: string) => string,
@@ -117,7 +117,7 @@ export const getReservasEnCelda = (
   const resultado: ReservaEnCelda[] = [];
   reservasSemana.forEach((r) => {
     if (r.date !== fechaStr) return;
-    const bloque = generarBloquesPorHora(r).find(
+    const bloque = generateBlocksPerHour(r).find(
       (b) => parseInt(b.hora.split(":")[0]) === horaNum,
     );
     if (bloque) resultado.push({ reserva: r, ...bloque });

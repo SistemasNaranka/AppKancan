@@ -19,7 +19,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import IconButton from '@mui/material/IconButton';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
-import { getCargoLabel } from '../config/cargos';
+import { getPositionLabel } from '../config/cargos';
 const avatarColors = ['#004680', '#0284c7', '#4338ca', '#059669', '#d97706', '#dc2626'];
 const avatarColor = (id: number) => avatarColors[id % avatarColors.length];
 
@@ -35,17 +35,17 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
   const itemsPerPage = 12;
 
   const uniqueCargos = Array.from(
-    new Set(allEnriched.map((c) => getCargoLabel(c.position)))
+    new Set(allEnriched.map((c) => getPositionLabel(c.position)))
   ).sort((a, b) => a.localeCompare(b));
 
   const filteredEmployees = allEnriched.filter(c => {
     const statusMatch = statusFilter === 'todos' || c.contractStatus === statusFilter;
-    const cargoMatch = cargoFilter === 'todos' || getCargoLabel(c.position) === cargoFilter;
+    const cargoMatch = cargoFilter === 'todos' || getPositionLabel(c.position) === cargoFilter;
 
     const q = filters.search.toLowerCase().trim();
     const searchMatch = !q || (
       formatNombreCompleto(c).toLowerCase().includes(q) ||
-      String(getCargoLabel(c.position)).toLowerCase().includes(q) ||
+      String(getPositionLabel(c.position)).toLowerCase().includes(q) ||
       (c.department?.toLowerCase() ?? '').includes(q) ||
       (c.document?.toLowerCase() ?? '').includes(q) ||
       (c.empresa?.toLowerCase() ?? '').includes(q) ||
@@ -140,7 +140,7 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
                         {formatNombreCompleto(emp)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" noWrap>
-                        {getCargoLabel(emp.position)}
+                        {getPositionLabel(emp.position)}
                       </Typography>
                     </Box>
                     <Box sx={{ position: 'absolute', right: 0, top: 0, display: 'flex', gap: 0.5, alignItems: 'center' }}>

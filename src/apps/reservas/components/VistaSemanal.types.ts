@@ -1,14 +1,14 @@
-import type { Reserva } from "../types/reservas.types";
+import type { Reservation } from "../types/reservas.types";
 
 export interface VistaSemanalProps {
-  reservas: Reserva[];
-  onNuevaReserva?: (fecha?: string, sala?: string, hora?: string) => void;
-  onEditarReserva?: (reserva: Reserva) => void;
-  onCancelarReserva?: (reserva: Reserva) => void;
-  usuarioActualId?: string;
-  vistaCalendario?: "semanal" | "mes";
-  onCambiarVista?: (vista: "semanal" | "mes") => void;
-  salaInicial?: string;
+  reservations: Reservation[];
+  onNewReservation?: (fecha?: string, sala?: string, hora?: string) => void;
+  onEditReservation?: (reserva: Reservation) => void;
+  onCancelReservation?: (reserva: Reservation) => void;
+  currentUserId?: string;
+  calendarView?: "semanal" | "mes";
+  onViewChange?: (vista: "semanal" | "mes") => void;
+  initialRoom?: string;
 }
 
 export interface BloqueHora {
@@ -19,7 +19,7 @@ export interface BloqueHora {
 }
 
 export interface ReservaEnCelda {
-  reserva: Reserva;
+  reserva: Reservation;
   esInicio: boolean;
   esFin: boolean;
   posicion: { top: number; height: number };

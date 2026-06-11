@@ -1,38 +1,38 @@
-export const generarOpcionesHora = (
-  horaInicio: number = 7,
-  horaFin: number = 17,
+export const generateHourOptions = (
+  startHour: number = 7,
+  endHour: number = 17,
 ) => {
-  const opciones: { value: string; label: string }[] = [];
+  const options: { value: string; label: string }[] = [];
 
-  for (let h = horaInicio; h <= horaFin; h++) {
+  for (let h = startHour; h <= endHour; h++) {
     for (let m = 0; m < 60; m += 30) {
-      const hora24 = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-      const hora12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+      const hour24 = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+      const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
       const ampm = h >= 12 ? "PM" : "AM";
 
-      opciones.push({
-        value: hora24,
-        label: `${hora12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${ampm}`,
+      options.push({
+        value: hour24,
+        label: `${hour12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${ampm}`,
       });
     }
   }
 
-  return opciones;
+  return options;
 };
 
-export const formatearHoraLegible = (hora24: string): string => {
-  const [h, m] = hora24.split(":").map(Number);
-  const hora12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+export const formatReadableHour = (hour24: string): string => {
+  const [h, m] = hour24.split(":").map(Number);
+  const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
   const ampm = h >= 12 ? "PM" : "AM";
 
-  return `${hora12}:${m.toString().padStart(2, "0")} ${ampm}`;
+  return `${hour12}:${m.toString().padStart(2, "0")} ${ampm}`;
 };
 
-export const calcularHoraMinima = (horaInicio: string): string => {
-  const [h, m] = horaInicio.split(":").map(Number);
+export const calculateMinHour = (startTime: string): string => {
+  const [h, m] = startTime.split(":").map(Number);
 
-  let horaMinima = h + 1;
-  if (horaMinima >= 24) horaMinima = 23;
+  let minHour = h + 1;
+  if (minHour >= 24) minHour = 23;
 
-  return `${horaMinima.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  return `${minHour.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 };

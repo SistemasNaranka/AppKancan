@@ -10,29 +10,29 @@ import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/Snackba
 import { useTutorial } from "@/shared/hooks/TutorialContext";
 
 import { ReservasTour, TourProvider, useTourContext } from "../components";
-import EstadoSalas from "../components/EstadoSalas";
+import RoomStatusDisplay from "../components/EstadoSalas";
 import ProximasReuniones from "../components/ProximasReuniones";
 import MisReservasCards from "../components/MisReservasCards";
 import DialogNuevaReserva from "../components/DialogNuevaReserva";
 import DialogEditarReserva from "../components/DialogEditarReserva";
 
 import {
-  getReservas,
-  getMisReservas,
-  verificarConflictoHorario,
-  actualizarReservasFinalizadas,
+  getReservations,
+  getMyReservations,
+  checkScheduleConflict,
+  updateCompletedReservations,
 } from "../services/reservas";
 import type {
-  Reserva,
-  FiltrosReserva,
-  Sala,
+  Reservation,
+  ReservationFilters,
+  Room,
 } from "../types/reservas.types";
 
-import type { TabReservas } from "./reservasView/reservasView.styled";
-import { ReservasViewHeader } from "./reservasView/ReservasViewHeader";
+import type { ReservationTab } from "./reservasView/reservasView.styled";
+import { ReservationViewHeader } from "./reservasView/ReservasViewHeader";
 import { CalendarioTabContent } from "./reservasView/CalendarioTabContent";
-import { DialogCancelarReserva } from "./reservasView/DialogCancelarReserva";
-import { useReservasActions } from "./reservasView/useReservasActions";
+import { DialogCancelReservation } from "./reservasView/DialogCancelarReserva";
+import { useReservationActions } from "./reservasView/useReservasActions";
 
 const ReservasViewContent: React.FC = () => {
   const { user } = useAuth();
@@ -51,43 +51,43 @@ const ReservasViewContent: React.FC = () => {
     userCreatedReservation,
   } = useTourContext();
 
-  const [tabActual, setTabActual] = useState<TabReservas>("Reserva");
-  const [vistaCalendario, setVistaCalendario] = useState<"semanal" | "mes">(
+  const [currentTab, setCurrentTab] = useState<ReservationTab>("Reserva");
+  const [calendarView, setCalendarView] = useState<"semanal" | "mes">(
     "semanal",
   );
-  const [salaInicial, setSalaInicial] = useState<string | undefined>(undefined);
-  const [dialogNueva, setDialogNueva] = useState(false);
-  const [dialogEditar, setDialogEditar] = useState(false);
-  const [dialogCancelar, setDialogCancelar] = useState(false);
-  const [notificarCancelacion, setNotificarCancelacion] = useState<boolean>(true);
-  const [motivoCancelacion, setMotivoCancelacion] = useState<string>("");
-  const [reservaSeleccionada, setReservaSeleccionada] =
-    useState<Reserva | null>(null);
-  const [fechaInicialReserva, setFechaInicialReserva] = useState<string | undefined>(undefined);
-  const [salaInicialReserva, setSalaInicialReserva] = useState<Sala | undefined>(undefined);
-  const [horaInicialReserva, setHoraInicialReserva] = useState<string | undefined>(undefined);
+  const [initialRoom, setInitialRoom] = useState<string | undefined>(undefined);
+  const [newDialog, setNewDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const [cancelDialog, setCancelDialog] = useState(false);
+  const [notifyCancellation, setNotifyCancellation] = useState<boolean>(true);
+  const [cancellationReason, setCancellationReason] = useState<string>("");
+  const [selectedReservation, setSelectedReservation] =
+    useState<Reservation | null>(null);
+  const [initialReservationDate, setInitialReservationDate] = useState<string | undefined>(undefined);
+  const [initialReservationRoom, setInitialReservationRoom] = useState<Room | undefined>(undefined);
+  const [initialReservationHour, setInitialReservationHour] = useState<string | undefined>(undefined);
 
-  const [filtrosMis] = useState<FiltrosReserva>({});
+  const [myFilters] = useState<ReservationFilters>({});
 
   useEffect(() => {
-    setTabChangeCallback((tab: TabReservas) => {
-      setTabActual(tab);
-      if (tab !== "calendario") setSalaInicial(undefined);
+    setTabChangeCallback((tab: ReservationTab) => {
+      setCurrentTab(tab);
+      if (tab !== "calendario") setInitialRoom(undefined);
     });
   }, [setTabChangeCallback]);
 
   useEffect(() => {
-    setOpenDialogCallback(() => setDialogNueva(true));
+    setOpenDialogCallback(() => setNewDialog(true));
   }, [setOpenDialogCallback]);
 
   useEffect(() => {
-    setCloseDialogCallback(() => setDialogNueva(false));
+    setCloseDialogCallback(() => setNewDialog(false));
   }, [setCloseDialogCallback]);
 
   useEffect(() => {
     if (activeTutorial === "reservas") {
-      setTabActual("Reserva");
-      setSalaInicial(undefined);
+      setCurrentTab("Reserva");
+      setInitialRoom(undefined);
       const t = setTimeout(() => {
         const btn = floatingBtnRef.current?.querySelector("button");
         btn?.click();
@@ -97,23 +97,23 @@ const ReservasViewContent: React.FC = () => {
     }
   }, [activeTutorial]);
 
-  const { data: todasReservas = [] } = useQuery({
+  const { data: allReservations = [] } = useQuery({
     queryKey: ["reservas", "todas"],
-    queryFn: () => getReservas({}),
+    queryFn: () => getReservations({}),
     refetchInterval: 30000,
   });
 
-  const { data: misReservas = [], isLoading: loadingMis } = useQuery({
-    queryKey: ["reservas", "mis", filtrosMis],
-    queryFn: () => getMisReservas(filtrosMis),
+  const { data: myReservations = [], isLoading: loadingMis } = useQuery({
+    queryKey: ["reservas", "mis", myFilters],
+    queryFn: () => getMyReservations(myFilters),
     refetchInterval: 30000,
   });
 
   useEffect(() => {
-    actualizarReservasFinalizadas();
-  }, [todasReservas]);
+    updateCompletedReservations();
+  }, [allReservations]);
 
-  const reservasParaCalendario = React.useMemo(() => {
+  const reservationsForCalendar = React.useMemo(() => {
     if (
       isFullTourRunning &&
       tourPhase === "CALENDARIO" &&
@@ -121,200 +121,200 @@ const ReservasViewContent: React.FC = () => {
     ) {
       return [userCreatedReservation];
     }
-    return todasReservas;
-  }, [todasReservas, isFullTourRunning, tourPhase, userCreatedReservation]);
+    return allReservations;
+  }, [allReservations, isFullTourRunning, tourPhase, userCreatedReservation]);
 
   const {
-    mutationCancelar,
-    handleCrearReserva,
-    handleActualizarReserva,
-    confirmarCancelar,
-  } = useReservasActions({
+    cancelMutation,
+    handleCreateReservation,
+    handleUpdateReservation,
+    confirmCancel,
+  } = useReservationActions({
     area,
     showSnackbar,
-    onCancelarSuccess: () => {
-      setDialogCancelar(false);
-      setReservaSeleccionada(null);
+    onCancelSuccess: () => {
+      setCancelDialog(false);
+      setSelectedReservation(null);
     },
   });
 
-  const handleAbrirNuevaReserva = (
+  const handleOpenNewReservation = (
     fecha?: string,
     sala?: string,
     hora?: string,
   ) => {
-    setFechaInicialReserva(fecha);
-    setSalaInicialReserva(sala as Sala | undefined);
-    setHoraInicialReserva(hora);
-    setDialogNueva(true);
+    setInitialReservationDate(fecha);
+    setInitialReservationRoom(sala as Room | undefined);
+    setInitialReservationHour(hora);
+    setNewDialog(true);
   };
 
-  const handleCerrarNuevaReserva = () => {
-    setDialogNueva(false);
-    setFechaInicialReserva(undefined);
-    setSalaInicialReserva(undefined);
-    setHoraInicialReserva(undefined);
+  const handleCloseNewReservation = () => {
+    setNewDialog(false);
+    setInitialReservationDate(undefined);
+    setInitialReservationRoom(undefined);
+    setInitialReservationHour(undefined);
   };
 
-  const handleEditarReserva = (reserva: Reserva) => {
+  const handleEditReservation = (reserva: Reservation) => {
     if (isFullTourRunning) return;
-    setReservaSeleccionada(reserva);
-    setDialogEditar(true);
+    setSelectedReservation(reserva);
+    setEditDialog(true);
   };
 
-  const handleCancelarReserva = (reserva: Reserva) => {
+  const handleCancelReservation = (reserva: Reservation) => {
     if (isFullTourRunning) return;
-    setReservaSeleccionada(reserva);
-    setDialogCancelar(true);
+    setSelectedReservation(reserva);
+    setCancelDialog(true);
   };
 
-  const handleConfirmarCancelar = async () => {
-    await confirmarCancelar(
-      reservaSeleccionada,
-      notificarCancelacion,
-      motivoCancelacion,
+  const handleConfirmCancel = async () => {
+    await confirmCancel(
+      selectedReservation,
+      notifyCancellation,
+      cancellationReason,
     );
   };
 
-  const handleVerificarConflicto = async (
-    sala: string,
-    fecha: string,
-    horaInicio: string,
-    horaFinal: string,
-    reservaIdExcluir?: number,
+  const handleCheckConflict = async (
+    room: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    excludeReservationId?: number,
   ) => {
     if (isFullTourRunning) return false;
-    return await verificarConflictoHorario(
-      sala,
-      fecha,
-      horaInicio,
-      horaFinal,
-      reservaIdExcluir,
+    return await checkScheduleConflict(
+      room,
+      date,
+      startTime,
+      endTime,
+      excludeReservationId,
     );
   };
 
-  const handleVerCronograma = (sala: string) => {
+  const handleViewSchedule = (sala: string) => {
     if (isFullTourRunning) return;
-    setSalaInicial(sala);
-    setVistaCalendario("semanal");
-    setTabActual("calendario");
+    setInitialRoom(sala);
+    setCalendarView("semanal");
+    setCurrentTab("calendario");
   };
 
-  const handleReservarAhora = (sala: string) => {
+  const handleReserveNow = (sala: string) => {
     if (isFullTourRunning) return;
     const hoy = format(new Date(), "yyyy-MM-dd");
-    handleAbrirNuevaReserva(hoy, sala);
+    handleOpenNewReservation(hoy, sala);
   };
 
   const handleStartTutorial = useCallback(() => {
-    setTabActual("Reserva");
-    setSalaInicial(undefined);
+    setCurrentTab("Reserva");
+    setInitialRoom(undefined);
   }, []);
 
-  const handleTabChange = (tab: TabReservas) => {
-    setTabActual(tab);
-    if (tab !== "calendario") setSalaInicial(undefined);
+  const handleTabChange = (tab: ReservationTab) => {
+    setCurrentTab(tab);
+    if (tab !== "calendario") setInitialRoom(undefined);
   };
 
   return (
     <ReservasTour>
       <Box sx={{ mt: -1 }}>
-        <ReservasViewHeader
-          tabActual={tabActual}
+        <ReservationViewHeader
+          currentTab={currentTab}
           onTabChange={handleTabChange}
           isFullTourRunning={isFullTourRunning}
           floatingBtnRef={floatingBtnRef}
           onStartTutorial={handleStartTutorial}
-          onAbrirNuevaReserva={() => handleAbrirNuevaReserva()}
+          onOpenNewReservation={() => handleOpenNewReservation()}
         />
 
-        {tabActual === "Reserva" && (
+        {currentTab === "Reserva" && (
           <Box>
             <Box className="tour-estado-salas">
-              <EstadoSalas
-                reservas={todasReservas}
-                onVerCronograma={handleVerCronograma}
-                onReservarAhora={handleReservarAhora}
+              <RoomStatusDisplay
+                reservations={allReservations}
+                onViewSchedule={handleViewSchedule}
+                onReserveNow={handleReserveNow}
               />
             </Box>
 
             <Box className="tour-proximas-reuniones">
               <ProximasReuniones
-                reservas={todasReservas}
-                onVerCalendarioCompleto={() => {
+                reservations={allReservations}
+                onViewFullCalendar={() => {
                   if (isFullTourRunning) return;
-                  setSalaInicial(undefined);
-                  setTabActual("calendario");
+                  setInitialRoom(undefined);
+                  setCurrentTab("calendario");
                 }}
               />
             </Box>
           </Box>
         )}
 
-        {tabActual === "mis" && (
+        {currentTab === "mis" && (
           <Box className="tour-tabla-reservas">
             <MisReservasCards
-              reservas={misReservas}
-              usuarioActualId={user?.id}
-              onEditar={handleEditarReserva}
-              onCancelar={handleCancelarReserva}
-              onNuevaReserva={() => handleAbrirNuevaReserva()}
+              reservations={myReservations}
+              currentUserId={user?.id}
+              onEdit={handleEditReservation}
+              onCancel={handleCancelReservation}
+              onNewReservation={() => handleOpenNewReservation()}
               loading={loadingMis}
             />
           </Box>
         )}
 
-        {tabActual === "calendario" && (
+        {currentTab === "calendario" && (
           <CalendarioTabContent
-            reservasParaCalendario={reservasParaCalendario}
-            vistaCalendario={vistaCalendario}
-            setVistaCalendario={setVistaCalendario}
-            salaInicial={salaInicial}
-            usuarioActualId={user?.id}
+            reservationsForCalendar={reservationsForCalendar}
+            calendarView={calendarView}
+            setCalendarView={setCalendarView}
+            initialRoom={initialRoom}
+            currentUserId={user?.id}
             isFullTourRunning={isFullTourRunning}
             tourPhase={tourPhase}
             userCreatedReservation={userCreatedReservation}
-            onAbrirNuevaReserva={handleAbrirNuevaReserva}
-            onEditarReserva={handleEditarReserva}
-            onCancelarReserva={handleCancelarReserva}
+            onOpenNewReservation={handleOpenNewReservation}
+            onEditReservation={handleEditReservation}
+            onCancelReservation={handleCancelReservation}
           />
         )}
 
         <DialogNuevaReserva
-          open={dialogNueva}
-          onClose={handleCerrarNuevaReserva}
-          onSubmit={handleCrearReserva}
-          verificarConflicto={handleVerificarConflicto}
-          fechaInicial={fechaInicialReserva}
-          salaInicial={salaInicialReserva}
-          horaInicial={horaInicialReserva}
+          open={newDialog}
+          onClose={handleCloseNewReservation}
+          onSubmit={handleCreateReservation}
+          verificarConflicto={handleCheckConflict}
+          fechaInicial={initialReservationDate}
+          salaInicial={initialReservationRoom}
+          horaInicial={initialReservationHour}
         />
 
         <DialogEditarReserva
-          open={dialogEditar}
-          reserva={reservaSeleccionada}
+          open={editDialog}
+          reserva={selectedReservation}
           onClose={() => {
-            setDialogEditar(false);
-            setReservaSeleccionada(null);
+            setEditDialog(false);
+            setSelectedReservation(null);
           }}
-          onSubmit={handleActualizarReserva}
-          verificarConflicto={handleVerificarConflicto}
+          onSubmit={handleUpdateReservation}
+          verificarConflicto={handleCheckConflict}
         />
 
-        <DialogCancelarReserva
-          open={dialogCancelar}
-          reserva={reservaSeleccionada}
-          motivoCancelacion={motivoCancelacion}
-          setMotivoCancelacion={setMotivoCancelacion}
-          notificarCancelacion={notificarCancelacion}
-          setNotificarCancelacion={setNotificarCancelacion}
-          isPending={mutationCancelar.isPending}
+        <DialogCancelReservation
+          open={cancelDialog}
+          reservation={selectedReservation}
+          cancellationReason={cancellationReason}
+          setCancellationReason={setCancellationReason}
+          notifyCancellation={notifyCancellation}
+          setNotifyCancellation={setNotifyCancellation}
+          isPending={cancelMutation.isPending}
           onClose={() => {
-            if (mutationCancelar.isPending) return;
-            setDialogCancelar(false);
-            setMotivoCancelacion("");
+            if (cancelMutation.isPending) return;
+            setCancelDialog(false);
+            setCancellationReason("");
           }}
-          onConfirm={handleConfirmarCancelar}
+          onConfirm={handleConfirmCancel}
         />
       </Box>
     </ReservasTour>

@@ -15,10 +15,10 @@ import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PersonIcon from '@mui/icons-material/Person';
-import { useContracts, EnrichedContrato } from '../hooks/useContracts';
+import { useContracts, EnrichedContract } from '../hooks/useContracts';
 import { useContractContext } from '../contexts/ContractContext';
 import { ContratoForm } from './ContratoForm';
-import { CreateContrato, Contrato, Prorroga } from '../types/types';
+import { CreateContract, Contract, Extension } from '../types/types';
 import { formatNombreCompleto } from '../lib/nombreCompleto';
 
 const CARD_RADIUS = 14;
@@ -93,28 +93,28 @@ const SortCell: React.FC<{
 
 const ContractsView: React.FC = () => {
   const { allEnriched, counts } = useContracts();
-  const { addContrato, updateContrato, deleteContrato } = useContractContext();
+  const { addContract, updateContract, deleteContract } = useContractContext();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<FilterTab>('todos');
   const [sortKey, setSortKey] = useState<SortKey>('vencimiento');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingContract, setEditingContract] = useState<Contrato | null>(null);
+  const [editingContract, setEditingContract] = useState<Contract | null>(null);
 
-  const handleCreateContrato = async (data: CreateContrato) => {
-    await addContrato(data);
+  const handleCreateContract = async (data: CreateContract) => {
+    await addContract(data);
   };
 
-  const handleUpdateContrato = async (data: CreateContrato) => {
+  const handleUpdateContract = async (data: CreateContract) => {
     if (editingContract) {
-      await updateContrato(editingContract.id, data);
+      await updateContract(editingContract.id, data);
       setEditingContract(null);
     }
   };
 
-  const handleDeleteContrato = async (id: number) => {
+  const handleDeleteContract = async (id: number) => {
     if (window.confirm('¿Está seguro de que desea eliminar este contrato?')) {
-      await deleteContrato(id);
+      await deleteContract(id);
     }
   };
 
@@ -163,7 +163,7 @@ const ContractsView: React.FC = () => {
                 Lista de Contratos
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {counts.total} contratos en total
+                {counts.total} contracts en total
               </Typography>
             </Box>
             <Button
@@ -238,7 +238,7 @@ const ContractsView: React.FC = () => {
           {/* Sub-header */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Typography variant="caption" color="text.secondary">
-              Mostrando <strong>{filtered.length}</strong> de <strong>{counts.total}</strong> contratos
+              Mostrando <strong>{filtered.length}</strong> de <strong>{counts.total}</strong> contracts
               {sortKey === 'vencimiento' && ' | Ordenado por fecha de vencimiento'}
             </Typography>
           </Box>
@@ -272,7 +272,7 @@ const ContractsView: React.FC = () => {
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                       <Typography variant="body2" color="text.secondary">
-                        No se encontraron contratos con los filtros actuales.
+                        No se encontraron contracts con los filtros actuales.
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -320,14 +320,14 @@ const ContractsView: React.FC = () => {
 
                       {/* Nº Prórroga */}
                       <TableCell>
-                        <ProrrogaChip numero={c.lastProrroga?.extension_number ?? 0} />
+                        <ProrrogaChip numero={c.lastExtension?.extension_number ?? 0} />
                       </TableCell>
 
                       {/* Fecha Inicio */}
                       <TableCell>
                         <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                          {c.lastProrroga && c.lastProrroga.start_date
-                            ? new Date(c.lastProrroga.start_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+                          {c.lastExtension && c.lastExtension.start_date
+                            ? new Date(c.lastExtension.start_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
                             : '—'}
                         </Typography>
                       </TableCell>
@@ -342,8 +342,8 @@ const ContractsView: React.FC = () => {
                             color: st === 'vencido' ? '#dc2626' : st === 'proximo' ? '#d97706' : '#1e293b',
                           }}
                         >
-                          {c.lastProrroga && c.lastProrroga.end_date
-                            ? new Date(c.lastProrroga.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+                          {c.lastExtension && c.lastExtension.end_date
+                            ? new Date(c.lastExtension.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
                             : '—'}
                         </Typography>
                         <Typography
@@ -392,13 +392,13 @@ const ContractsView: React.FC = () => {
       <ContratoForm
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={handleCreateContrato}
+        onSubmit={handleCreateContract}
       />
       {/* Modal para editar contrato */}
       <ContratoForm
         open={!!editingContract}
         onClose={() => setEditingContract(null)}
-        onSubmit={handleUpdateContrato}
+        onSubmit={handleUpdateContract}
         initialData={editingContract ?? undefined}
       />
     </Box>

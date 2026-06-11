@@ -17,42 +17,41 @@ import EditIcon from '@mui/icons-material/Edit';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import type { Reserva, EstadoReserva } from "../types/reservas.types";
+import type { Reservation, ReservationStatus } from "../types/reservas.types";
 import {
-  COLORES_ESTADO,
-  COLORES_TEXTO_ESTADO,
-  puedeModificarse,
-  capitalize,
+  STATUS_COLORS,
+  STATUS_TEXT_COLORS,
+  canBeModified,
 } from "../types/reservas.types";
 
 interface TablaReservasProps {
-  reservas: Reserva[];
-  usuarioActualId?: string;
-  onEditar?: (reserva: Reserva) => void;
-  onCancelar?: (reserva: Reserva) => void;
+  reservations: Reservation[];
+  currentUserId?: string;
+  onEdit?: (reserva: Reservation) => void;
+  onCancel?: (reserva: Reservation) => void;
   loading?: boolean;
 }
 
 const TablaReservas: React.FC<TablaReservasProps> = ({
-  reservas,
-  usuarioActualId,
-  onEditar,
-  onCancelar,
+  reservations,
+  currentUserId,
+  onEdit,
+  onCancel,
   loading = false,
 }) => {
-  const reservasFiltradas = reservas.filter((reserva) => {
+  const reservasFiltradas = reservations.filter((reserva) => {
     const estado =
-      (reserva.estadoCalculado || reserva.status)?.toLowerCase() || "";
+      (reserva.calculatedStatus || reserva.status)?.toLowerCase() || "";
     return estado === "vigente" || estado === "en curso";
   });
 
-  const puedeModificar = (reserva: Reserva): boolean => {
-    if (!usuarioActualId) return false;
+  const puedeModificar = (reserva: Reservation): boolean => {
+    if (!currentUserId) return false;
     if (!reserva.user_id) return false;
-    if (reserva.user_id.id !== usuarioActualId) return false;
+    if (reserva.user_id.id !== currentUserId) return false;
 
-    const estadoActual = reserva.estadoCalculado || reserva.status;
-    if (!puedeModificarse(estadoActual)) return false;
+    const estadoActual = reserva.calculatedStatus || reserva.status;
+    if (!canBeModified(estadoActual)) return false;
 
     const ahora = new Date();
     const fechaReserva = new Date(`${reserva.date}T${reserva.start_time}`);
@@ -74,15 +73,10 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
     return hora.substring(0, 5);
   };
 
-  const getNombreUsuario = (reserva: Reserva): string => {
-    if (!reserva.user_id) {
-      return "Usuario no disponible";
-    }
-    return `${reserva.user_id.first_name} ${reserva.user_id.last_name}`;
-  };
 
-  const getEstadoMostrar = (reserva: Reserva): EstadoReserva => {
-    return (reserva.estadoCalculado || reserva.status) as EstadoReserva;
+
+  const getEstadoMostrar = (reserva: Reservation): ReservationStatus => {
+    return (reserva.calculatedStatus || reserva.status) as ReservationStatus;
   };
 
   if (loading) {
@@ -219,8 +213,8 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
                       size="small"
                       sx={{
                         backgroundColor:
-                          COLORES_ESTADO[estadoMostrar] || "#F3F4F6",
-                        color: COLORES_TEXTO_ESTADO[estadoMostrar] || "#374151",
+                          STATUS_COLORS[estadoMostrar] || "#F3F4F6",
+                        color: STATUS_TEXT_COLORS[estadoMostrar] || "#374151",
                         fontWeight: "600",
                       }}
                     />
@@ -233,23 +227,23 @@ const TablaReservas: React.FC<TablaReservasProps> = ({
                     <Box
                       sx={{ display: "flex", gap: 1, justifyContent: "center" }}
                     >
-                      {onEditar && (
+                      {onEdit && (
                         <Tooltip title="Editar reserva">
                           <IconButton
                             size="small"
                             color="primary"
-                            onClick={() => onEditar(reserva)}
+                            onClick={() => onEdit(reserva)}
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       )}
-                      {onCancelar && (
+                      {onCancel && (
                         <Tooltip title="Cancelar reserva">
                           <IconButton
                             size="small"
                             color="error"
-                            onClick={() => onCancelar(reserva)}
+                            onClick={() => onCancel(reserva)}
                           >
                             <CancelIcon fontSize="small" />
                           </IconButton>

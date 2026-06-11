@@ -2,9 +2,9 @@
 
 import { Box, keyframes, styled } from "@mui/material";
 
-export type TabReservas = "Reserva" | "mis" | "calendario";
+export type ReservationTab = "Reserva" | "mis" | "calendario";
 
-export const TITULOS_PESTANA: Record<TabReservas, string> = {
+export const TAB_TITLES: Record<ReservationTab, string> = {
   Reserva: "Reservar Sala",
   mis: "Mis Reservas",
   calendario: "Calendario",

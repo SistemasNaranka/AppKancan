@@ -1,23 +1,23 @@
-export const generarOpcionesHora = (horaInicio = 7, horaFin = 17) => {
-  const opciones = [];
+export const generateHourOptions = (startHour = 7, endHour = 17) => {
+  const options = [];
 
-  for (let h = horaInicio; h <= horaFin; h++) {
+  for (let h = startHour; h <= endHour; h++) {
     for (let m = 0; m < 60; m += 30) {
-      const hora24 = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-      const hora12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+      const hour24 = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+      const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
       const ampm = h >= 12 ? "PM" : "AM";
 
-      opciones.push({
-        value: hora24,
-        label: `${hora12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${ampm}`,
+      options.push({
+        value: hour24,
+        label: `${hour12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${ampm}`,
       });
     }
   }
 
-  return opciones;
+  return options;
 };
 
-export const calcularHoraMinima = (horaInicio: string) => {
-  const [h, m] = horaInicio.split(":").map(Number);
+export const calculateMinHour = (startTime: string) => {
+  const [h, m] = startTime.split(":").map(Number);
   return `${(h + 1).toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 };

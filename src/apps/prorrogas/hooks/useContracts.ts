@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useContractContext } from '../contexts/ContractContext';
-import { Contrato, ContractStatus, DashboardStats, Prorroga } from '../types/types';
+import { Contract, ContractStatus, DashboardStats, Extension } from '../types/types';
 import { formatNombreCompleto } from '../lib/nombreCompleto';
 
 export function daysUntil(dateStr: string): number {
@@ -17,9 +17,9 @@ export function computeContractStatus(daysLeft: number): ContractStatus {
   return 'vigente';
 }
 
-export interface EnrichedContrato extends Contrato {
-  lastProrroga: Prorroga | null;
-  fechaVencimiento: string | null;
+export interface EnrichedContract extends Contract {
+  lastExtension: Extension | null;
+  expirationDate: string | null;
   daysLeft: number;
   contractStatus: ContractStatus;
 }
@@ -27,24 +27,24 @@ export interface EnrichedContrato extends Contrato {
 
 export const useContracts = () => {
   const ctx = useContractContext();
-  const { contratos, filters } = ctx;
+  const { contracts, filters } = ctx;
 
-  const enriched = useMemo<EnrichedContrato[]>(() => {
-    return contratos
+  const enriched = useMemo<EnrichedContract[]>(() => {
+    return contracts
       .map((c) => {
-        const fechaVencimiento = c.end_date ?? null;
-        const daysLeft = fechaVencimiento ? daysUntil(fechaVencimiento) : Infinity;
+        const expirationDate = c.end_date ?? null;
+        const daysLeft = expirationDate ? daysUntil(expirationDate) : Infinity;
         const contractStatus = isFinite(daysLeft) ? computeContractStatus(daysLeft) : 'vigente';
 
-        const lastProrroga = c.extensions && c.extensions.length > 0
+        const lastExtension = c.extensions && c.extensions.length > 0
           ? [...c.extensions].sort((a, b) => a.extension_number - b.extension_number)[c.extensions.length - 1]
           : null;
 
-        return { ...c, lastProrroga, fechaVencimiento, daysLeft, contractStatus };
+        return { ...c, lastExtension, expirationDate, daysLeft, contractStatus };
       });
-  }, [contratos]);
+  }, [contracts]);
 
-  const filteredContratos = useMemo<EnrichedContrato[]>(() => {
+  const filteredContracts = useMemo<EnrichedContract[]>(() => {
     const q = filters.search.toLowerCase().trim();
     const statusFilter = filters.contractStatus ?? 'todos';
 
@@ -96,7 +96,7 @@ export const useContracts = () => {
     };
   }, [enriched]);
 
-  const recentContratos = useMemo<EnrichedContrato[]>(
+  const recentContracts = useMemo<EnrichedContract[]>(
     () =>
       [...enriched]
         .sort((a, b) => b.id - a.id)
@@ -104,7 +104,7 @@ export const useContracts = () => {
     [enriched],
   );
 
-  const alertContratos = useMemo(
+  const alertContracts = useMemo(
     () =>
       enriched
         .filter((c) => c.daysLeft <= 7)
@@ -133,15 +133,13 @@ export const useContracts = () => {
     ...ctx,
 
     allEnriched: enriched,
-    filteredContratos,
-    recentContratos,
-    alertContratos,
+    filteredContracts,
+    recentContracts,
+    alertContracts,
 
     dashboardStats,
     counts,
 
-    filteredContracts: filteredContratos,
-    selectedContract: ctx.selectedContrato,
     selectContract: ctx.select,
   };
 };

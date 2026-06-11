@@ -25,11 +25,10 @@ import * as yup from "yup";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 
-import type { NuevaReserva, Sala } from "../types/reservas.types";
-import { HORARIO_INICIO, HORARIO_FIN } from "../types/reservas.types";
-import { notificarCorreoReserva } from "../services/correoReservas";
+import type { NewReservation, Room } from "../types/reservas.types";
+import { sendReservationEmailNotification } from "../services/correoReservas";
 import { useTourContext } from "./TourContext";
-import { useFestivos } from "../hooks/useFestivos";
+import { useHolidays } from "../hooks/useHolidays";
 import { FestivoDay } from "./FestivoDay";
 
 import { EMAIL_REGEX } from "./dialogShared/constants";
@@ -55,7 +54,7 @@ import { SpotlightOverlay } from "./dialogTour/SpotlightOverlay";
 interface DialogNuevaReservaProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (datos: NuevaReserva) => Promise<void>;
+  onSubmit: (datos: NewReservation) => Promise<void>;
   verificarConflicto?: (
     sala: string,
     fecha: string,
@@ -63,7 +62,7 @@ interface DialogNuevaReservaProps {
     horaFinal: string,
   ) => Promise<boolean>;
   fechaInicial?: string;
-  salaInicial?: Sala;
+  salaInicial?: Room;
   horaInicial?: string;
 }
 
@@ -79,7 +78,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
-  const { data: festivos = {} } = useFestivos(calendarYear);
+  const { data: festivos = {} } = useHolidays(calendarYear);
 
   const [enviarCorreo, setEnviarCorreo] = useState<boolean>(false);
 
@@ -330,7 +329,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      room_name: "" as Sala,
+      room_name: "" as Room,
       date: format(new Date(), "yyyy-MM-dd"),
       start_time: horarioConfig.horaApertura,
       end_time: "",
@@ -491,7 +490,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
 
       if (enviarCorreo && data.participants && data.participants.length > 0) {
         try {
-          const result = await notificarCorreoReserva({
+          const result = await sendReservationEmailNotification({
             evento: "reserva_creada",
             reserva: payload,
           });
@@ -602,7 +601,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                     control={control}
                     render={({ field }) => (
                       <SalaSelector
-                        value={field.value as Sala | ""}
+                        value={field.value as Room | ""}
                         onChange={(sala) => field.onChange(sala)}
                         disabled={loading}
                         errorMessage={errors.room_name?.message}

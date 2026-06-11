@@ -25,9 +25,9 @@ import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 
 import type {
-  Reserva,
-  ActualizarReserva,
-  Sala,
+  Reservation,
+  UpdateReservation,
+  Room,
 } from "../types/reservas.types";
 
 import { EMAIL_REGEX } from "./dialogShared/constants";
@@ -41,11 +41,11 @@ import { ObservacionesField } from "./dialogShared/ObservacionesField";
 
 interface DialogEditarReservaProps {
   open: boolean;
-  reserva: Reserva | null;
+  reserva: Reservation | null;
   onClose: () => void;
   onSubmit: (
     id: number,
-    datos: ActualizarReserva,
+    datos: UpdateReservation,
     skipWebhook?: boolean,
   ) => Promise<void>;
   verificarConflicto?: (
@@ -107,7 +107,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      room_name: "" as Sala,
+      room_name: "" as Room,
       date: "",
       start_time: horarioConfig.horaApertura,
       end_time: "",
@@ -165,7 +165,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
       : [];
 
     reset({
-      room_name: (reserva.room_name as Sala) ?? ("" as Sala),
+      room_name: (reserva.room_name as Room) ?? ("" as Room),
       date: reserva.date,
       start_time: (reserva.start_time || "").substring(0, 5),
       end_time: (reserva.end_time || "").substring(0, 5),
@@ -317,7 +317,7 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                     control={control}
                     render={({ field }) => (
                       <SalaSelector
-                        value={field.value as Sala | ""}
+                        value={field.value as Room | ""}
                         onChange={(sala) => field.onChange(sala)}
                         disabled={loading}
                         errorMessage={errors.meeting_title?.message}

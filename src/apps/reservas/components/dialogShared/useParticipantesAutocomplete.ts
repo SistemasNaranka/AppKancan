@@ -1,7 +1,7 @@
 // Hook con la búsqueda debounced de usuarios y el estado temporal del nuevo participante.
 
 import { useRef, useState } from "react";
-import { buscarUsuarios } from "../../services/reservas";
+import { searchUsers } from "../../services/reservas";
 
 export function useParticipantesAutocomplete() {
   const [usuariosSugeridos, setUsuariosSugeridos] = useState<any[]>([]);
@@ -18,7 +18,7 @@ export function useParticipantesAutocomplete() {
     }
     searchTimeout.current = setTimeout(async () => {
       setBuscandoUsuarios(true);
-      const resultados = await buscarUsuarios(valor);
+      const resultados = await searchUsers(valor);
       setUsuariosSugeridos(resultados as any[]);
       setBuscandoUsuarios(false);
     }, 500);

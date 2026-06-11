@@ -2,38 +2,38 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 import VistaSemanal from "../../components/VistaSemanal";
 import VistaCalendario from "../../components/VistaCalendario";
-import type { Reserva } from "../../types/reservas.types";
+import type { Reservation } from "../../types/reservas.types";
 
-interface CalendarioTabContentProps {
-  reservasParaCalendario: Reserva[];
-  vistaCalendario: "semanal" | "mes";
-  setVistaCalendario: (v: "semanal" | "mes") => void;
-  salaInicial: string | undefined;
-  usuarioActualId?: number | string;
+interface CalendarTabContentProps {
+  reservationsForCalendar: Reservation[];
+  calendarView: "semanal" | "mes";
+  setCalendarView: (v: "semanal" | "mes") => void;
+  initialRoom?: string;
+  currentUserId?: number | string;
   isFullTourRunning: boolean;
   tourPhase: string;
-  userCreatedReservation: Reserva | null | undefined;
-  onAbrirNuevaReserva: (
+  userCreatedReservation: Reservation | null | undefined;
+  onOpenNewReservation: (
     fecha?: string,
     sala?: string,
     hora?: string,
   ) => void;
-  onEditarReserva: (reserva: Reserva) => void;
-  onCancelarReserva: (reserva: Reserva) => void;
+  onEditReservation: (reserva: Reservation) => void;
+  onCancelReservation: (reserva: Reservation) => void;
 }
 
-export const CalendarioTabContent: React.FC<CalendarioTabContentProps> = ({
-  reservasParaCalendario,
-  vistaCalendario,
-  setVistaCalendario,
-  salaInicial,
-  usuarioActualId,
+export const CalendarioTabContent: React.FC<CalendarTabContentProps> = ({
+  reservationsForCalendar,
+  calendarView,
+  setCalendarView,
+  initialRoom,
+  currentUserId,
   isFullTourRunning,
   tourPhase,
   userCreatedReservation,
-  onAbrirNuevaReserva,
-  onEditarReserva,
-  onCancelarReserva,
+  onOpenNewReservation,
+  onEditReservation,
+  onCancelReservation,
 }) => {
   return (
     <Box
@@ -70,26 +70,26 @@ export const CalendarioTabContent: React.FC<CalendarioTabContentProps> = ({
           </Box>
         )}
 
-      {vistaCalendario === "semanal" ? (
+      {calendarView === "semanal" ? (
         <VistaSemanal
-          reservas={reservasParaCalendario}
-          onNuevaReserva={onAbrirNuevaReserva}
-          onEditarReserva={onEditarReserva}
-          onCancelarReserva={onCancelarReserva}
-          usuarioActualId={usuarioActualId?.toString()}
-          vistaCalendario={vistaCalendario}
-          onCambiarVista={setVistaCalendario}
-          salaInicial={salaInicial || userCreatedReservation?.room_name}
+          reservations={reservationsForCalendar}
+          onNewReservation={onOpenNewReservation}
+          onEditReservation={onEditReservation}
+          onCancelReservation={onCancelReservation}
+          currentUserId={currentUserId?.toString()}
+          calendarView={calendarView}
+          onViewChange={setCalendarView}
+          initialRoom={initialRoom || userCreatedReservation?.room_name}
         />
       ) : (
         <VistaCalendario
-          onNuevaReserva={onAbrirNuevaReserva}
-          onEditarReserva={onEditarReserva}
-          onCancelarReserva={onCancelarReserva}
-          usuarioActualId={usuarioActualId?.toString()}
-          vistaCalendario={vistaCalendario}
-          onCambiarVista={setVistaCalendario}
-          salaInicial={salaInicial || userCreatedReservation?.room_name}
+          onNewReservation={onOpenNewReservation}
+          onEditReservation={onEditReservation}
+          onCancelReservation={onCancelReservation}
+          currentUserId={currentUserId?.toString()}
+          calendarView={calendarView}
+          onViewChange={setCalendarView}
+          initialRoom={initialRoom || userCreatedReservation?.room_name}
         />
       )}
     </Box>
