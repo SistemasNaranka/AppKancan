@@ -26,6 +26,12 @@ export interface EmpleadoAsistencia {
   registros: RegistrosEmpleado;
 }
 
+export interface ObservacionEvento {
+  evento: string;
+  hora: string | null;
+  observacion: string;
+}
+
 export interface HistorialRow {
   fecha: string;
   empleado: string;
@@ -33,7 +39,7 @@ export interface HistorialRow {
   inicio_almuerzo: string | null;
   fin_almuerzo: string | null;
   fin_turno: string | null;
-  observaciones: string | null;
+  observaciones_evento: ObservacionEvento[];
 }
 
 export interface Novedad {

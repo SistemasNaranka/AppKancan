@@ -15,21 +15,29 @@ const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
     const buscar = (tipo: string) =>
       registros.find((r) => r.log_type === tipo)?.record_time ?? null;
 
-    const observaciones = registros
-      .map((r) => r.observations)
-      .filter(Boolean)
-      .join(', ');
+    const observaciones_evento = registros
+      .filter((r) => r.observations && r.observations.trim())
+      .map((r) => ({
+        evento: r.log_type,
+        hora: r.record_time,
+        observacion: r.observations!,
+      }));
 
     return {
       fecha: registros[0].record_date,
       empleado: registros[0].employee_id
-  ? `${registros[0].employee_id.first_name} ${registros[0].employee_id.last_name}`
-  : 'Sin nombre',
+        ? [
+            registros[0].employee_id.first_name,
+            registros[0].employee_id.middle_name,
+            registros[0].employee_id.last_name,
+            registros[0].employee_id.second_last_name,
+          ].filter(n => n && n.trim()).join(' ')
+        : 'Sin nombre',
       inicio_turno: buscar('Comenzar Jornada'),
       inicio_almuerzo: buscar('Iniciar Almuerzo'),
       fin_almuerzo: buscar('Finalizar Almuerzo'),
       fin_turno: buscar('Terminar Jornada'),
-      observaciones: observaciones || null,
+      observaciones_evento,
     };
   });
 };

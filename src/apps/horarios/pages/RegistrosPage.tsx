@@ -23,6 +23,7 @@ import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 
 import EmployeeCard from '../components/EmployeeCard';
 import { useHorarios } from '../hooks/useHorarios';
+import Historialpage from '../pages/HistorialPage';
 import { Novedad } from '../interfaces/horarios.interface';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -42,7 +43,6 @@ function TabPanel({ children, value, index }: TabPanelProps) {
   );
 }
 
-// Función de filtrado usando n.fecha
 const filtrarPorFecha = (novedades: any[], filtro: string) => {
   if (filtro === 'todos') return novedades;
   const hoy = dayjs().startOf('day');
@@ -64,7 +64,6 @@ const filtrarPorFecha = (novedades: any[], filtro: string) => {
   });
 };
 
-// Iconos y colores para la tabla (adaptados a los tipos de novedad en inglés/español)
 const getIconForTipo = (tipo: string) => {
   const tipoLower = tipo.toLowerCase();
   if (tipoLower.includes('descanso') || tipoLower === 'rest') return <FreeBreakfastIcon fontSize="small" sx={{ color: '#0284c7' }} />;
@@ -113,10 +112,15 @@ export default function RegistrosPage() {
   const rowsPerPage = 5;
   const [filtroFecha, setFiltroFecha] = useState('todos');
 
-  const fechaHoy = dayjs().format('dddd D [de] MMMM [de] YYYY');
+  const titulosTab = ['Registros de Asistencia', 'Registro de Novedades', 'Historial de Asistencia', 'Malla Horaria'];
+  const subtitulosTab = [
+    'Gestiona las marcaciones de asistencia del día',
+    'Gestiona y revisa las incidencias de asistencia en tiempo real',
+    'Consulta y verifica los registros históricos de la jornada laboral',
+    'Visualiza la planificación de turnos y horarios'
+  ];
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => setTabValue(newValue);
 
-  // Aplicar filtro y paginación
   const novedadesFiltradas = filtrarPorFecha(novedades, filtroFecha);
   const paginated = novedadesFiltradas.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const totalPages = Math.max(1, Math.ceil(novedadesFiltradas.length / rowsPerPage));
@@ -138,20 +142,22 @@ export default function RegistrosPage() {
   }
 
   return (
-    <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: 'transparent', px: { xs: 2, md: 4 }, pt: 1, pb: 4 }}>
+    <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: 'transparent', px: { xs: 2, md: 4 }, pt: 4, pb: 4 }}>
       {error && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
-      <Paper elevation={0} sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mb: 2, bgcolor: '#fff' }}>
+
+      {/* Tarjeta de Tabs: mb: 3 (24px) iguala el respiro vertical con el resto de tarjetas */}
+      <Paper elevation={0} sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 2.5, mb: 3, bgcolor: '#fff' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, bgcolor: '#fff', p: { xs: 1.5, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#004a99', fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
-              Panel de Asistencia
+              {titulosTab[tabValue]}
             </Typography>
-            <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.2, textTransform: 'capitalize' }}>
-              {fechaHoy}
+            <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.2 }}>
+              {subtitulosTab[tabValue]}
             </Typography>
           </Box>
           <Tooltip title="Reiniciar todos los registros">
@@ -168,7 +174,6 @@ export default function RegistrosPage() {
         </Tabs>
       </Paper>
 
-      {/* REGISTROS */}
       <TabPanel value={tabValue} index={0}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
           {empleados.map((empleado) => (
@@ -184,18 +189,9 @@ export default function RegistrosPage() {
         </Box>
       </TabPanel>
 
-      {/* NOVEDADES */}
       <TabPanel value={tabValue} index={1}>
         <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #eef2f6' }}>
-          <Box sx={{ p: 2, bgcolor: '#ffffff', borderBottom: '1px solid #eef2f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#004a99', fontSize: '1rem' }}>
-                Registro de Novedades
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>
-                Gestiona y revisa las incidencias de asistencia en tiempo real.
-              </Typography>
-            </Box>
+          <Box sx={{ p: 2, bgcolor: '#ffffff', borderBottom: '1px solid #eef2f6', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <Select
                 value={filtroFecha}
@@ -283,10 +279,9 @@ export default function RegistrosPage() {
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
-        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
-          <Typography variant="h6" color="#64748b">Historial de Asistencia</Typography>
-        </Paper>
+        <Historialpage />
       </TabPanel>
+
       <TabPanel value={tabValue} index={3}>
         <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
           <Typography variant="h6" color="#64748b">Malla Horaria</Typography>
