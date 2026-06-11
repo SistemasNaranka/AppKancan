@@ -76,12 +76,12 @@ export async function createTimeRecord(data: {
   }
 }
 
-// ✅ Corregido: ahora acepta record_time y observations
-export async function updateTimeRecord(id: number, data: { observations?: string; record_time?: string }) {
+export async function updateTimeRecord(id: number, data: { observations?: string; record_time?: string; updated_record_time?: string }) {
   try {
     const payload: any = {};
     if (data.observations !== undefined) payload.observations = data.observations;
     if (data.record_time !== undefined) payload.record_time = data.record_time;
+    if (data.updated_record_time !== undefined) payload.updated_record_time = data.updated_record_time;
     return await withAutoRefresh(() =>
       directus.request(updateItem('com_time_records', id, payload))
     );
