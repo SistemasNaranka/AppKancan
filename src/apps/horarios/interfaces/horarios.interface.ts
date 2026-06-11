@@ -5,6 +5,8 @@ export interface RegistrosAsistencia {
   finJornada: string | null;
   observaciones: Record<string, string>;
   ids?: Record<string, number>;
+  horasOriginales?: Record<string, string | null>;
+  horasEditadas?: Record<string, string | null>;
 }
 
 export interface EmpleadoAsistencia {

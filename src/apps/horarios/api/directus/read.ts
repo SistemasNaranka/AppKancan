@@ -88,6 +88,7 @@ export interface TimeRecord {
   id: number;
   record_date: string;
   record_time: string;
+  updated_record_time: string | null;
   log_type: string;
   employee_id: { first_name: string; last_name: string };
   store_id: string;
@@ -110,7 +111,7 @@ export const fetchTimeRecords = async (
   return await withAutoRefresh(() =>
     directus.request(
       readItems('com_time_records', {
-        fields: ['id', 'record_date', 'record_time', 'log_type', 'employee_id.first_name', 'employee_id.last_name', 'store_id', 'observations'],
+        fields: ['id', 'record_date', 'record_time', 'updated_record_time', 'log_type', 'employee_id.first_name', 'employee_id.last_name', 'store_id', 'observations'],
         filter,
         sort: ['-record_date'],
         limit: -1,
@@ -124,7 +125,7 @@ export async function getTimeRecords(storeId: number, date: string): Promise<any
     return await withAutoRefresh(() =>
       directus.request(
         readItems('com_time_records', {
-          fields: ['id', 'record_date', 'record_time', 'log_type', 'employee_id.id', 'store_id', 'observations'],
+          fields: ['id', 'record_date', 'record_time', 'updated_record_time', 'log_type', 'employee_id.id', 'store_id', 'observations'],
           filter: {
             store_id: { _eq: storeId },
             record_date: { _eq: date }

@@ -61,30 +61,43 @@ export const useHorarios = () => {
       finAlmuerzo: null,
       finJornada: null,
       observaciones: {},
-      ids: {}
+      ids: {},
+      horasOriginales: {},
+      horasEditadas: {}
     };
 
     records.forEach((r) => {
       const type = r.log_type;
-      const time = r.record_time ? r.record_time.substring(0, 5) : '';
+      const timeVal = r.updated_record_time || r.record_time;
+      const time = timeVal ? timeVal.substring(0, 5) : '';
       const obs = r.observations || '';
       
+      let eventKey = '';
       if (type === 'Comenzar Jornada') {
+        eventKey = 'inicioJornada';
         registros.inicioJornada = time;
         registros.observaciones.inicioJornada = obs;
         registros.ids!.inicioJornada = r.id;
       } else if (type === 'Iniciar Almuerzo') {
+        eventKey = 'inicioAlmuerzo';
         registros.inicioAlmuerzo = time;
         registros.observaciones.inicioAlmuerzo = obs;
         registros.ids!.inicioAlmuerzo = r.id;
       } else if (type === 'Finalizar Almuerzo') {
+        eventKey = 'finAlmuerzo';
         registros.finAlmuerzo = time;
         registros.observaciones.finAlmuerzo = obs;
         registros.ids!.finAlmuerzo = r.id;
       } else if (type === 'Terminar Jornada') {
+        eventKey = 'finJornada';
         registros.finJornada = time;
         registros.observaciones.finJornada = obs;
         registros.ids!.finJornada = r.id;
+      }
+
+      if (eventKey) {
+        registros.horasOriginales![eventKey] = r.record_time ? r.record_time.substring(0, 5) : null;
+        registros.horasEditadas![eventKey] = r.updated_record_time ? r.updated_record_time.substring(0, 5) : null;
       }
     });
 
@@ -136,8 +149,8 @@ export const useHorarios = () => {
 
   // ✅ Mutación que permite actualizar tanto observación como hora
   const updateTimeRecordMutation = useMutation({
-    mutationFn: ({ id, observations, record_time }: { id: number; observations?: string; record_time?: string }) =>
-      updateTimeRecord(id, { observations, record_time }),
+    mutationFn: ({ id, observations, record_time, updated_record_time }: { id: number; observations?: string; record_time?: string; updated_record_time?: string }) =>
+      updateTimeRecord(id, { observations, record_time, updated_record_time }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeRecords', STORE_ID, hoy] });
       showSnackbar('Registro actualizado correctamente', 'success');
@@ -157,7 +170,7 @@ export const useHorarios = () => {
   ) => {
     setError(null);
     try {
-      const ahora = horaOverride ? dayjs(horaOverride, 'HH:mm A') : dayjs();
+      const ahora = horaOverride ? dayjs(horaOverride, 'hh:mm A') : dayjs();
       const recordDate = ahora.format('YYYY-MM-DD');
       const recordTime = ahora.format('HH:mm:ss');
       const observacion = observacionOverride || '';
@@ -172,7 +185,7 @@ export const useHorarios = () => {
       if (existingRecord) {
         await updateTimeRecordMutation.mutateAsync({
           id: existingRecord.id,
-          record_time: recordTime,
+          updated_record_time: recordTime,
           observations: observacion,
         });
       } else {
