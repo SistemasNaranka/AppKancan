@@ -36,6 +36,7 @@ import Diversity1 from '@mui/icons-material/Diversity1';
 import BackupTable from '@mui/icons-material/BackupTable';
 import ContactPhone from '@mui/icons-material/ContactPhone';
 import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
+import MoreTimeIcon from '@mui/icons-material/MoreTime';
 /**
  * Mapa de íconos permitidos.
  * Los nombres deben coincidir con los valores en la base de datos.
@@ -84,6 +85,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   MonetizationOn,
   ShoppingBag,
   WorkspacePremium,
+  MoreTimeIcon,
 
   // 🔸 Logistica
   Warehouse,
