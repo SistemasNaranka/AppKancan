@@ -29,9 +29,7 @@ import {
 interface TablaVentasProps {
   datos: TablaVentasFila[];
   loading?: boolean;
-  // Indica si ya se han cargado datos al menos una vez - evita parpadeo
   hasLoadedAtLeastOnce?: boolean;
-  // Filtros actuales para detectar si el usuario ha filtrado
   filtros?: FiltrosVentas;
   getVisibleColumnsRef?: React.MutableRefObject<(() => string[]) | null>;
 }
@@ -58,7 +56,6 @@ export function TablaVentas({
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
-  // Filtrar datos por búsqueda
   const datosFiltrados = useMemo(() => {
     if (!busqueda) return datos;
     const busquedaLower = busqueda.toLowerCase();
@@ -71,7 +68,6 @@ export function TablaVentas({
     );
   }, [datos, busqueda]);
 
-  // Ordenar datos
   const datosOrdenados = useMemo(() => {
     return [...datosFiltrados].sort((a, b) => {
       const valorA = a[ordenCampo];
@@ -91,7 +87,6 @@ export function TablaVentas({
     });
   }, [datosFiltrados, ordenCampo, ordenDireccion]);
 
-  // Paginación
   const datosPaginados = useMemo(() => {
     return datosOrdenados.slice(
       page * rowsPerPage,
@@ -127,23 +122,18 @@ export function TablaVentas({
     setPage(0);
   };
 
-  // Columnas obligatorias - siempre visibles
   const columnasObligatorias = COLUMNAS_OBLIGATORIAS;
 
-  // Columnas de presupuesto y comisión por línea de venta (obligatorias)
   const columnasPresupuestoComision = COLUMNAS_PRESUPUESTO_COMISION;
 
-  // Columnas opcionales (seleccionables via checkboxes)
   const columnasOpcionalesVisibles = columnasOpcionales.filter(
     (col) => col.visible,
   );
 
-  // Columnas de agrupaciones según selección
   const columnasAgrupaciones = getColumnasAgrupaciones(
     agrupacionesSeleccionadas,
   );
 
-  // Columnas visibles computadas (memoized para rendimiento)
   const columnasVisibles = useMemo(() => {
     return [
       ...COLUMNAS_OBLIGATORIAS.map((c) => c.id),
@@ -159,7 +149,6 @@ export function TablaVentas({
     }
   }, [getVisibleColumnsRef, columnasVisibles]);
 
-  // Función para verificar si el usuario ha aplicado filtros
   const usuarioHaFiltrado = Boolean(
     filtros?.zona ||
     filtros?.ciudad ||
@@ -169,8 +158,6 @@ export function TablaVentas({
     filtros?.agrupacion,
   );
 
-  // Determinar si mostrar mensaje de "no hay datos"
-  // Solo mostrar cuando: NO hay datos Y el usuario ha filtrado
   const noHayDatosYFiltrado =
     !loading &&
     hasLoadedAtLeastOnce &&
@@ -187,7 +174,6 @@ export function TablaVentas({
     );
   }
 
-  // Mostrar mensaje si no hay resultados Y el usuario ha filtrado
   if (noHayDatosYFiltrado) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }}>

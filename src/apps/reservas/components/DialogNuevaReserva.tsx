@@ -690,7 +690,7 @@ const DialogNuevaReserva: React.FC<DialogNuevaReservaProps> = ({
                           slots={{ day: FestivoDay as any }}
                           slotProps={{
                             actionBar: { actions: [] },
-                            day: { festivos } as any,
+                            day: { holidays: festivos } as any,
                           }}
                           sx={{
                             "& .MuiPickersCalendarHeader-root": { paddingLeft: 2, paddingRight: 2 },

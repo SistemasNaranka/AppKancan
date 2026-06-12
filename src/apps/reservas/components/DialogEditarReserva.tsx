@@ -33,6 +33,8 @@ import type {
 import { EMAIL_REGEX } from "./dialogShared/constants";
 import { generarOpcionesHora, calcularHoraMinima } from "./dialogShared/horaHelpers";
 import { useHorarioConfig } from "./dialogShared/useHorarioConfig";
+import { useHolidays } from "../hooks/useHolidays";
+import { FestivoDay } from "./FestivoDay";
 import { useParticipantesAutocomplete } from "./dialogShared/useParticipantesAutocomplete";
 import { SalaSelector } from "./dialogShared/SalaSelector";
 import { HorasFields } from "./dialogShared/HorasFields";
@@ -65,6 +67,8 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   verificarConflicto,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
+  const { data: festivos = {} } = useHolidays(calendarYear);
   const [error, setError] = useState<string | null>(null);
   const [horaInicioSeleccionada, setHoraInicioSeleccionada] = useState("");
   const [enviarCorreo, setEnviarCorreo] = useState<boolean>(false);
@@ -393,13 +397,29 @@ const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
                               field.onChange(format(d, "yyyy-MM-dd"));
                             }
                           }}
+                          onMonthChange={(date: any) => {
+                            const y = (date instanceof Date ? date : new Date(date as any)).getFullYear();
+                            if (!isNaN(y)) setCalendarYear(y);
+                          }}
+                          onYearChange={(date: any) => {
+                            const y = (date instanceof Date ? date : new Date(date as any)).getFullYear();
+                            if (!isNaN(y)) setCalendarYear(y);
+                          }}
                           shouldDisableDate={shouldDisableDate}
                           disabled={loading}
                           displayStaticWrapperAs="desktop"
-                          slotProps={{ actionBar: { actions: [] } }}
+                          slots={{ day: FestivoDay as any }}
+                          slotProps={{
+                            actionBar: { actions: [] },
+                            day: { holidays: festivos } as any,
+                          }}
                           sx={{
                             "& .MuiPickersCalendarHeader-root": { paddingLeft: 2, paddingRight: 2 },
                             "& .MuiDayCalendar-root": { width: "100%" },
+                            "& .MuiPickersDay-root.Mui-disabled": {
+                              color: "#ccc",
+                              backgroundColor: "#f5f5f5",
+                            },
                           }}
                         />
                       )}

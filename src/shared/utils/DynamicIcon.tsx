@@ -1,7 +1,5 @@
 import React from "react";
 import { SvgIconProps } from "@mui/material";
-
-// 🧩 Importa todos los íconos usados en tus categorías y apps
 import Folder from '@mui/icons-material/Folder';
 import Home from '@mui/icons-material/Home';
 import Apps from '@mui/icons-material/Apps';

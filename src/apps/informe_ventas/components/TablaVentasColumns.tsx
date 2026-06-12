@@ -1,14 +1,3 @@
-/**
- * Definiciones de columnas y helpers para la tabla de ventas
- *
- * Contains:
- * - AGRUPACIONES constant
- * - COLUMNAS_POR_DEFECTO constant
- * - ColumnaOpcional interface
- * - Column helpers
- * - Format utilities
- */
-
 import {
   Box,
   TextField,
@@ -26,9 +15,7 @@ import { Agrupacion, TablaVentasFila } from "../types";
 type CampoOrden = keyof TablaVentasFila;
 type OrdenDireccion = "asc" | "desc";
 
-/**
- * Props para celda de encabezado
- */
+
 export interface HeaderCellProps {
   id: keyof TablaVentasFila;
   label: string;
@@ -38,9 +25,7 @@ export interface HeaderCellProps {
   onOrdenar: (campo: CampoOrden) => void;
 }
 
-/**
- * Componente de celda de encabezado
- */
+
 export function TableHeaderCell({
   id,
   label,
@@ -74,9 +59,7 @@ export function TableHeaderCell({
   );
 }
 
-/**
- * Props para celda de datos
- */
+
 export interface DataCellProps {
   value: string | number;
   align?: "left" | "center" | "right";
@@ -84,9 +67,7 @@ export interface DataCellProps {
   color?: "inherit" | "text.primary" | "text.secondary";
 }
 
-/**
- * Componente de celda de datos
- */
+
 export function TableDataCell({
   value,
   align = "left",
@@ -106,9 +87,7 @@ export function TableDataCell({
   );
 }
 
-/**
- * Tipo para definir una columna opcional
- */
+
 export interface ColumnaOpcional {
   id: keyof TablaVentasFila;
   label: string;
@@ -116,9 +95,7 @@ export interface ColumnaOpcional {
   align: "left" | "center" | "right";
 }
 
-/**
- * Props para el componente Toolbar
- */
+
 export interface TableToolbarProps {
   busqueda: string;
   onBusquedaChange: (value: string) => void;
@@ -132,9 +109,7 @@ export interface TableToolbarProps {
   onSelectAllAgrupaciones: (selectAll: boolean) => void;
 }
 
-/**
- * Componente de Toolbar para la tabla
- */
+
 export function TableToolbar({
   busqueda,
   onBusquedaChange,
@@ -302,9 +277,7 @@ export function TableToolbar({
   );
 }
 
-/**
- * Tipo para definir una columna opcional
- */
+
 export interface ColumnaOpcional {
   id: keyof TablaVentasFila;
   label: string;
@@ -312,9 +285,7 @@ export interface ColumnaOpcional {
   align: "left" | "center" | "right";
 }
 
-/**
- * Lista de agrupaciones disponibles
- */
+
 export const AGRUPACIONES: Agrupacion[] = [
   "Indigo",
   "Tela Liviana",
@@ -322,10 +293,7 @@ export const AGRUPACIONES: Agrupacion[] = [
   "Complemento",
 ];
 
-/**
- * Columnas opcionales por defecto (todas ocultas)
- * Incluye columnas de comisión que el usuario puede mostrar si desea
- */
+
 export const COLUMNAS_POR_DEFECTO: ColumnaOpcional[] = [
   { id: "ciudad", label: "Ciudad", visible: false, align: "left" },
   { id: "zona", label: "Zona", visible: false, align: "left" },
@@ -361,7 +329,6 @@ export const COLUMNAS_POR_DEFECTO: ColumnaOpcional[] = [
     visible: false,
     align: "right",
   },
-  // Comisiones (opcionales - el usuario decide si verlas)
   {
     id: "comision_coleccion",
     label: "Comisión Colección",
@@ -382,9 +349,7 @@ export const COLUMNAS_POR_DEFECTO: ColumnaOpcional[] = [
   },
 ];
 
-/**
- * Columnas obligatorias (siempre visibles)
- */
+
 export const COLUMNAS_OBLIGATORIAS: {
   id: keyof TablaVentasFila;
   label: string;
@@ -395,10 +360,7 @@ export const COLUMNAS_OBLIGATORIAS: {
   { id: "valor", label: "Valor Total", align: "right" },
 ];
 
-/**
- * Columnas de presupuesto y cumplimiento (obligatorias)
- * Las columnas de comisión son opcionales
- */
+
 export const COLUMNAS_PRESUPUESTO_COMISION: {
   id: keyof TablaVentasFila;
   label: string;
@@ -418,9 +380,7 @@ export const COLUMNAS_PRESUPUESTO_COMISION: {
   { id: "cumplimiento_promocion", label: "% Cumpl. Promoción", align: "right" },
 ];
 
-/**
- * Obtiene las columnas de agrupaciones basadas en la selección
- */
+
 export function getColumnasAgrupaciones(
   agrupacionesSeleccionadas: Agrupacion[],
 ): { id: keyof TablaVentasFila; label: string; align: "right" }[] {
@@ -436,9 +396,7 @@ export function getColumnasAgrupaciones(
     }));
 }
 
-/**
- * Formatea un valor como moneda COP
- */
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -448,27 +406,17 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
-/**
- * Formatea un número con separador de miles
- */
+
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("es-CO").format(value);
 }
 
-/**
- * Formatea un valor como porcentaje de cumplimiento
- * Muestra el símbolo % y usa color según el valor
- */
+
 export function formatPercentage(value: number): string {
   return `${Math.round(value)}%`;
 }
 
-/**
- * Obtiene el color según el cumplimiento
- * - Verde oscuro: >= 100%
- * - Amarillo: > 95% y < 100%
- * - Rojo: <= 95%
- */
+
 export function getCumplimientoColor(
   cumplimiento: number,
 ): "success.dark" | "warning.main" | "error.main" {

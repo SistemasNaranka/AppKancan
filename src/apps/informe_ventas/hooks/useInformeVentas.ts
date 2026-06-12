@@ -60,7 +60,7 @@ interface UseInformeVentasReturn {
 
 const filtrosIniciales: FiltrosVentas = {
   fecha_desde: new Date(new Date().setDate(1)).toISOString().split("T")[0],
-  fecha_hasta: new Date().toISOString().split("T")[0], // Hoy
+  fecha_hasta: new Date().toISOString().split("T")[0],
 };
 
 const resumenVacio: ResumenVentas = {
@@ -98,7 +98,7 @@ export function useInformeVentas(): UseInformeVentasReturn {
   const [umbralesComision, setUmbralesComision] = useState<
     CommissionThreshold[]
   >([]);
-  const CACHE_TIME = 5 * 60 * 1000; // 5 minutos - datos más frescos
+  const CACHE_TIME = 5 * 60 * 1000;
 
   const { data: zonasData } = useQuery({
     queryKey: ["zonas"],
@@ -175,7 +175,7 @@ export function useInformeVentas(): UseInformeVentasReturn {
     isLoading: loadingVentas,
     isFetching: fetchingVentas,
   } = useQuery({
-    queryKey: ["ventas", filtros], // Incluimos todo el objeto de filtros para re-ejecutar la consulta
+    queryKey: ["ventas", filtros],
     queryFn: () => obtenerVentas(filtros),
     staleTime: CACHE_TIME,
     gcTime: CACHE_TIME,
@@ -246,9 +246,9 @@ export function useInformeVentas(): UseInformeVentasReturn {
     return str
       .trim()
       .toUpperCase()
-      .replace(/\s+/g, " ") // Colapsar múltiples espacios a uno solo
+      .replace(/\s+/g, " ")
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, ""); // Quitar acentos para máxima compatibilidad
+      .replace(/[\u0300-\u036f]/g, "");
   };
 
   const extraerCodigoAsesor = (asesorCompleto: string): number | null => {

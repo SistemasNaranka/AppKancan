@@ -31,7 +31,6 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-// ── Animaciones ────────────────────────────────────────────────────────────
 const shimmer = keyframes`
   0%   { transform: translateX(-120%) skewX(-20deg); opacity: 0; }
   10%  { opacity: 1; }

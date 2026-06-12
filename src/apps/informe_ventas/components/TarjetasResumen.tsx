@@ -1,9 +1,3 @@
-/**
- * Componente de tarjetas de resumen para el Informe de Ventas
- *
- * Muestra métricas en una sola fila horizontal compacta
- */
-
 import { Box, Paper, Typography } from "@mui/material";
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
