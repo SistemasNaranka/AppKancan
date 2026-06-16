@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { Paper, Box, Typography, IconButton, Menu, MenuItem, LinearProgress } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { INotification } from '../interfaces/notification.interface';
+import { Paper, Box, Typography, IconButton, LinearProgress, Tooltip } from '@mui/material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { INotification, EstadoVisibilidad } from '../interfaces/notification.interface';
 
 interface TableProps {
   registros: INotification[];
   cargando?: boolean;
   onSelect: (n: INotification | null) => void;
-  onEliminar?: (id: string) => Promise<void> | void;
+  /** Marca/desmarca un cambio pendiente para la notificación (no llega al backend). */
+  onTogglePendiente?: (id: string, nuevoStatus: EstadoVisibilidad) => void;
+  /** Mapa id → nuevoStatus de cambios aún no confirmados. */
+  pendingChanges?: Record<string, EstadoVisibilidad>;
   onRefrescar?: () => Promise<void> | void;
 }
 
@@ -15,14 +19,11 @@ export default function NotificationTable({
   registros,
   cargando = false,
   onSelect,
-  onEliminar,
-  onRefrescar
+  onTogglePendiente,
+  pendingChanges = {},
 }: TableProps) {
   const [pagina, setPagina] = useState(1);
   const porPagina = 5;
-
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedRow, setSelectedRow] = useState<INotification | null>(null);
 
   const totalPaginas = Math.ceil(registros.length / porPagina) || 1;
   const dataVisible = registros.slice((pagina - 1) * porPagina, pagina * porPagina);
@@ -37,19 +38,12 @@ export default function NotificationTable({
     }
   };
 
-  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>, row: INotification) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedRow(row);
-  };
-
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-    setSelectedRow(null);
-  };
-
-  const handleViewDetails = () => {
-    if (selectedRow) onSelect(selectedRow);
-    handleCloseMenu();
+  const handleToggle = (e: React.MouseEvent, item: INotification) => {
+    e.stopPropagation(); // que el click NO dispare el onSelect de la fila
+    if (!onTogglePendiente) return;
+    const statusActual: EstadoVisibilidad = pendingChanges[item.id] ?? item.status;
+    const nuevoStatus: EstadoVisibilidad = statusActual === 'activo' ? 'inactivo' : 'activo';
+    onTogglePendiente(item.id, nuevoStatus);
   };
 
   const gridLayout = '2fr 3fr 1.5fr 1.5fr 0.8fr';
@@ -80,10 +74,10 @@ export default function NotificationTable({
             }}
           />
         )}
-        {/* ENCABEZADO DE LA TABLA - dentro del Paper con fondo azul */}
+        {/* ENCABEZADO DE LA TABLA */}
         <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, gap: 3, px: 3, py: 1.5, bgcolor: '#eff6ff' }}>
           <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', fontFamily: 'Inter' }}>ASUNTO</Typography>
-          <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', fontFamily: 'Inter' }}>MENSAJE</Typography>
+          <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', fontFamily: 'Inter', textAlign: 'center' }}>MENSAJE</Typography>
           <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', fontFamily: 'Inter' }}>ESTADO</Typography>
           <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', fontFamily: 'Inter' }}>FECHA Y HORA</Typography>
           <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', textAlign: 'center', fontFamily: 'Inter' }}>ACCIONES</Typography>
@@ -99,13 +93,20 @@ export default function NotificationTable({
         ) : (
           dataVisible.map((item) => {
             const badge = getBadgeConfig(item.tipo_notificacion);
+            const statusEfectivo: EstadoVisibilidad = pendingChanges[item.id] ?? item.status;
+            const inactiva = statusEfectivo === 'inactivo';
+            const pendiente = pendingChanges[item.id] !== undefined;
             return (
               <Box
                 key={item.id}
+                onClick={() => onSelect(item)}
                 sx={{
                   borderBottom: '1px solid #f1f5f9',
-                  '&:hover': { bgcolor: '#f8fafc' },
-                  transition: 'background-color 0.2s'
+                  cursor: 'pointer',
+                  opacity: inactiva ? 0.55 : 1,
+                  bgcolor: pendiente ? '#fff7ed' : 'transparent',
+                  '&:hover': { bgcolor: pendiente ? '#ffedd5' : '#f8fafc' },
+                  transition: 'background-color 0.2s, opacity 0.2s'
                 }}
               >
                 <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, alignItems: 'center', gap: 3, p: 2.5, px: 3 }}>
@@ -117,8 +118,24 @@ export default function NotificationTable({
                     </Typography>
                   </Box>
 
-                  {/* Mensaje */}
-                  <Typography variant="body2" sx={{ color: '#424754', fontSize: '0.88rem', pr: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, fontFamily: 'Inter' }}>
+                  {/* Mensaje — multilínea centrado con límite de 4 líneas */}
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: '#424754',
+                      fontSize: '0.88rem',
+                      fontFamily: 'Inter',
+                      minWidth: 0,
+                      textAlign: 'center',
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                      lineHeight: 1.45,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
                     {item.mensaje}
                   </Typography>
 
@@ -139,48 +156,35 @@ export default function NotificationTable({
                     </Typography>
                   </Box>
 
-                  {/* Acciones */}
+                  {/* Acciones — botón único de ojo (marca cambio pendiente) */}
                   <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleOpenMenu(e, item)}
-                      sx={{ color: '#424754', '&:hover': { bgcolor: '#e2e8f0' } }}
+                    <Tooltip
+                      title={
+                        pendiente
+                          ? 'Click para revertir cambio'
+                          : inactiva
+                            ? 'Marcar para mostrar'
+                            : 'Marcar para ocultar'
+                      }
+                      arrow
                     >
-                      <MoreVertIcon fontSize="small" />
-                    </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleToggle(e, item)}
+                        sx={{
+                          color: pendiente ? '#ea580c' : inactiva ? '#94a3b8' : '#004a99',
+                          '&:hover': { bgcolor: pendiente ? '#ffedd5' : inactiva ? '#f1f5f9' : '#eff6ff' },
+                        }}
+                      >
+                        {inactiva ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                      </IconButton>
+                    </Tooltip>
                   </Box>
                 </Box>
               </Box>
             );
           })
         )}
-
-        {/* MENÚ FLOTANTE */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleCloseMenu}
-          elevation={2}
-          onClick={handleCloseMenu}
-          PaperProps={{
-            sx: { borderRadius: '10px', minWidth: '130px', border: '1px solid #e2e8f0', boxShadow: '0px 4px 12px rgba(15, 23, 42, 0.05)' }
-          }}
-        >
-          <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', py: 1, fontFamily: 'Inter' }}>
-            Ver detalles
-          </MenuItem>
-          {onEliminar && (
-            <MenuItem
-              onClick={() => {
-                if (selectedRow) onEliminar(selectedRow.id);
-                handleCloseMenu();
-              }}
-              sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#dc2626', py: 1, fontFamily: 'Inter' }}
-            >
-              Eliminar
-            </MenuItem>
-          )}
-        </Menu>
 
         {/* PIE DE TABLA */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, px: 3, bgcolor: '#f8fafc' }}>

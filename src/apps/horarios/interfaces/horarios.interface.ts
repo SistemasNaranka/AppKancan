@@ -1,0 +1,61 @@
+export interface RegistrosAsistencia {
+  inicioJornada: string | null;
+  inicioAlmuerzo: string | null;
+  finAlmuerzo: string | null;
+  finJornada: string | null;
+  observaciones: Record<string, string>;
+  ids?: Record<string, number>;
+  horasOriginales?: Record<string, string | null>;
+  horasEditadas?: Record<string, string | null>;
+}
+
+export interface EmpleadoAsistencia {
+  id: string;
+  documento: string;
+  nombre: string;
+  cargo?: string;
+  estadoActual: string;
+  registros: RegistrosAsistencia;
+}
+
+export interface ObservacionEvento {
+  evento: string;
+  hora: string | null;
+  observacion: string;
+}
+
+export interface HistorialRow {
+  fecha: string;
+  empleado: string;
+  inicio_turno: string | null;
+  inicio_almuerzo: string | null;
+  fin_almuerzo: string | null;
+  fin_turno: string | null;
+  observaciones_evento: ObservacionEvento[];
+}
+
+export interface Novedad {
+  id: string;
+  empleadoId: string;
+  empleadoNombre: string;
+  empleadoDocumento?: string;
+  tipo: string;
+  fecha: string;
+  description?: string;
+  notes?: string;
+  fechaRegistro: string;
+}
+
+export interface TipoNovedad {
+  id: number;
+  nombre: string;
+  name: string;
+}
+
+export interface NovedadMapeada {
+  id: string | number;
+  fecha: string;
+  empleadoNombre: string;
+  tipo: string;
+  observaciones: string;
+}
