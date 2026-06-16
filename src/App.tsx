@@ -41,7 +41,7 @@ const AppWithPasswordModal = () => {
   return (
     <>
       <AppRoutes />
-      <ForcePasswordChangeModal open={modalOpen} onClose={() => {}} />
+      <ForcePasswordChangeModal open={modalOpen} onClose={() => { }} />
       {isAuthenticated && !user?.requires_password_change && <PeekButtonContainer />}
       {isAuthenticated && !user?.requires_password_change && <WhatsNewModal />}
     </>

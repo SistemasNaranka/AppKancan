@@ -1,5 +1,3 @@
-// Hook que carga la lista de tiendas disponibles desde Directus al montar.
-
 import { useEffect, useState } from "react";
 import { getTiendas } from "../../api/directus/read";
 import type { Tienda } from "../../types";

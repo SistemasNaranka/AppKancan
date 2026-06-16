@@ -5,6 +5,7 @@ import {
   obtenerEmpleadosPorFechaExacta,
   obtenerAsesores,
   obtenerCargos,
+  obtenerPresupuestosDiarios,
 } from "../api/directus/read";
 import {
   guardarPresupuestosEmpleados,

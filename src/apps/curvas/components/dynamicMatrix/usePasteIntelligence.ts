@@ -1,6 +1,3 @@
-// Hook que procesa el paste de texto tabulado, detecta tiendas por nombre/código
-// y propone crear columnas nuevas si los datos exceden las existentes.
-
 import type React from "react";
 import { useState } from "react";
 import type { MatrixRowData, PendingPaste } from "./matrix.types";

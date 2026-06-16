@@ -37,6 +37,7 @@ import BackupTable from '@mui/icons-material/BackupTable';
 import ContactPhone from '@mui/icons-material/ContactPhone';
 import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
 import MoreTimeIcon from '@mui/icons-material/MoreTime';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 /**
  * Mapa de íconos permitidos.
  * Los nombres deben coincidir con los valores en la base de datos.
@@ -86,6 +87,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   ShoppingBag,
   WorkspacePremium,
   MoreTimeIcon,
+  HowToRegIcon,
+  HowToReg: HowToRegIcon,
 
   // 🔸 Logistica
   Warehouse,

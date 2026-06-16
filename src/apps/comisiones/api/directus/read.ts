@@ -72,15 +72,25 @@ export async function obtenerCargos(): Promise<DirectusPosition[]> {
       directus.request(
         readItems("core_positions", {
           fields: ["id", "name"],
+          filter: {
+            id: {
+              _in: [1, 2, 3, 4, 5, 6, "1", "2", "3", "4", "5", "6"]
+            }
+          },
           sort: ["name"],
           limit: -1,
         }),
       ),
     );
-    return (data as any[]).map(item => ({
-      ...item,
-      name: item.name || "Cargo sin nombre"
-    })) as DirectusPosition[];
+    return (data as any[])
+      .filter(item => {
+        const idNum = Number(item.id);
+        return idNum >= 1 && idNum <= 6;
+      })
+      .map(item => ({
+        ...item,
+        name: item.name || "Cargo sin nombre"
+      })) as DirectusPosition[];
   } catch (error) {
     throw error;
   }

@@ -1,5 +1,3 @@
-// Hook que maneja la selección rectangular de celdas estilo Excel mediante mouse drag.
-
 import { useEffect, useState } from "react";
 import type { ActiveCell, SelectionRange } from "./matrix.types";
 
