@@ -206,7 +206,7 @@ const STEPS_HISTORIAL: Step[] = [
         </Typography>
       </Box>
     ),
-    placement: "top",
+    placement: "bottom",
   },
 ];
 
