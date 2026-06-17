@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Card, Typography, Button, Box, IconButton, Stack, Chip, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
@@ -64,6 +64,59 @@ const formatTo12Hour = (timeStr: string | null): string => {
   return `${hoursStr}:${minutes} ${ampm}`;
 };
 
+
+// Nombre del empleado truncado a una línea. Muestra tooltip con el nombre
+// completo SOLO cuando realmente se corta (detecta overflow real, no por
+// número de caracteres, ya que el ancho depende de la fuente).
+function NombreEmpleado({ nombre }: { nombre: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [truncado, setTruncado] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (el) setTruncado(el.scrollWidth > el.clientWidth);
+  }, [nombre]);
+
+  const texto = (
+    <Typography
+      ref={ref}
+      noWrap
+      sx={{ fontWeight: 700, fontSize: '1rem', textTransform: 'capitalize', lineHeight: 1.2 }}
+    >
+      {nombre}
+    </Typography>
+  );
+
+  return truncado ? (
+    <Tooltip
+      title={nombre}
+      arrow
+      placement="top"
+      enterTouchDelay={0}
+      slotProps={{
+        tooltip: {
+          sx: {
+            bgcolor: '#0f2c4a',
+            color: '#fff',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            letterSpacing: '0.2px',
+            textTransform: 'capitalize',
+            px: 1.5,
+            py: 0.875,
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0, 70, 128, 0.28)',
+          },
+        },
+        arrow: { sx: { color: '#0f2c4a' } },
+      }}
+    >
+      {texto}
+    </Tooltip>
+  ) : (
+    texto
+  );
+}
 
 export default function EmployeeCard({
   empleado, tiposNovedad, onRegistrarEvento,
@@ -195,8 +248,8 @@ export default function EmployeeCard({
     <>
       <Card className="tour-employee-card" sx={{ width: '100%', borderRadius: 3, overflow: 'hidden', boxShadow: finalizado ? 'none' : '0 4px 12px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
         <Box sx={{ bgcolor: '#004680', color: 'white', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-            <Typography sx={{ fontWeight: 700, fontSize: '1rem', textTransform: 'capitalize', lineHeight: 1.2 }}>{nombre}</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, pr: 1 }}>
+            <NombreEmpleado nombre={nombre} />
             {empleado.cargo && (
               <Typography sx={{ fontWeight: 500, fontSize: '0.7rem', opacity: 0.85, textTransform: 'uppercase', mt: 0.3, letterSpacing: '0.5px' }}>
                 {empleado.cargo}

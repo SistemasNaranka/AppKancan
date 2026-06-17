@@ -90,3 +90,76 @@ export async function updateTimeRecord(id: number, data: { observations?: string
     throw new Error(error?.errors?.[0]?.message || 'Error al actualizar registro de tiempo');
   }
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Panel administrativo de empleados (adm_employees)
+   ────────────────────────────────────────────────────────────── */
+
+// email/phone_number se llenan con valores estáticos por defecto (acuerdo con el negocio).
+const EMAIL_DEFECTO = 'correo@dominio.com';
+const TELEFONO_DEFECTO = '1';
+
+export async function crearEmpleado(data: {
+  document_type: string;
+  document_number: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  second_last_name?: string;
+  store_id: number;
+  position_id: number;
+}) {
+  try {
+    const payload: any = {
+      document_type: data.document_type,
+      document_number: data.document_number,
+      first_name: data.first_name.trim(),
+      last_name: data.last_name.trim(),
+      store_id: Number(data.store_id),
+      position_id: Number(data.position_id),
+      status: 'Activo',
+      email: EMAIL_DEFECTO,
+      phone_number: TELEFONO_DEFECTO,
+    };
+    if (data.middle_name?.trim()) payload.middle_name = data.middle_name.trim();
+    if (data.second_last_name?.trim()) payload.second_last_name = data.second_last_name.trim();
+
+    return await withAutoRefresh(() =>
+      directus.request(createItem('adm_employees', payload))
+    );
+  } catch (error: any) {
+    console.error('❌ Error al crear empleado:', error);
+    throw new Error(error?.errors?.[0]?.message || 'Error al crear el empleado');
+  }
+}
+
+export async function actualizarEmpleado(
+  id: number,
+  data: {
+    store_id?: number;
+    position_id?: number;
+    status?: string;
+    first_name?: string;
+    middle_name?: string;
+    last_name?: string;
+    second_last_name?: string;
+  }
+) {
+  try {
+    const payload: any = {};
+    if (data.store_id !== undefined) payload.store_id = Number(data.store_id);
+    if (data.position_id !== undefined) payload.position_id = Number(data.position_id);
+    if (data.status !== undefined) payload.status = data.status;
+    if (data.first_name !== undefined) payload.first_name = data.first_name;
+    if (data.middle_name !== undefined) payload.middle_name = data.middle_name;
+    if (data.last_name !== undefined) payload.last_name = data.last_name;
+    if (data.second_last_name !== undefined) payload.second_last_name = data.second_last_name;
+
+    return await withAutoRefresh(() =>
+      directus.request(updateItem('adm_employees', id, payload))
+    );
+  } catch (error: any) {
+    console.error('❌ Error al actualizar empleado:', error);
+    throw new Error(error?.errors?.[0]?.message || 'Error al actualizar el empleado');
+  }
+}

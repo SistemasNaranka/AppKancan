@@ -59,3 +59,43 @@ export interface NovedadMapeada {
   tipo: string;
   observaciones: string;
 }
+
+/* ── Panel administrativo de empleados ── */
+
+export interface Tienda {
+  id: number;
+  name: string;
+  ultra_code?: string | number;
+  company?: string;
+}
+
+export interface Cargo {
+  id: number;
+  name: string;
+}
+
+// Empleado tal como llega de adm_employees al buscar/editar en el panel admin
+export interface EmpleadoAdmin {
+  id: number;
+  document_type: string | null;
+  document_number: string | null;
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
+  second_last_name: string | null;
+  store_id: number | null;
+  position_id: number | null;
+  position_name?: string | null;
+  status: string | null;
+}
+
+export interface NuevoEmpleadoPayload {
+  document_type: string;
+  document_number: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  second_last_name?: string;
+  store_id: number;
+  position_id: number;
+}

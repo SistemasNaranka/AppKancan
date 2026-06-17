@@ -1,7 +1,7 @@
 import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, readMe } from "@directus/sdk";
-import { EmpleadoAsistencia, TipoNovedad } from "../../interfaces/horarios.interface";
+import { EmpleadoAsistencia, TipoNovedad, Tienda, Cargo, EmpleadoAdmin } from "../../interfaces/horarios.interface";
 
 export async function getStoreIdUsuarioActual(): Promise<number | null> {
   try {
@@ -181,6 +181,86 @@ export async function getTimeRecords(storeId: number, date: string): Promise<any
   } catch (error) {
     console.error('❌ Error al obtener registros de tiempo:', error);
     return [];
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Panel administrativo de empleados
+   ────────────────────────────────────────────────────────────── */
+
+// Todas las tiendas (para el selector del admin; no se filtra por la del usuario).
+export async function getStores(): Promise<Tienda[]> {
+  try {
+    const data = await withAutoRefresh(() =>
+      directus.request(
+        readItems("core_stores", {
+          fields: ["id", "name", "ultra_code", "company"],
+          sort: ["name"],
+          limit: -1,
+        })
+      )
+    );
+    return (data || []) as Tienda[];
+  } catch (error) {
+    console.error("❌ Error cargando core_stores:", error);
+    return [];
+  }
+}
+
+// Catálogo de cargos (core_positions).
+export async function getCargos(): Promise<Cargo[]> {
+  try {
+    const data = await withAutoRefresh(() =>
+      directus.request(
+        readItems("core_positions", {
+          fields: ["id", "name"],
+          sort: ["name"],
+          limit: -1,
+        })
+      )
+    );
+    return (data || []).map((c: any) => ({ id: c.id, name: c.name || "Sin nombre" })) as Cargo[];
+  } catch (error) {
+    console.error("❌ Error cargando core_positions:", error);
+    return [];
+  }
+}
+
+// Busca un empleado por número de documento, sin filtrar por estado
+// (debe encontrar Activos e Inactivos para reingreso/cambio de tienda).
+export async function buscarEmpleadoPorDocumento(documentNumber: string): Promise<EmpleadoAdmin | null> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("adm_employees", {
+          fields: [
+            "id", "document_type", "document_number",
+            "first_name", "middle_name", "last_name", "second_last_name",
+            "store_id", "position_id", "position_id.name", "status",
+          ],
+          filter: { document_number: { _eq: documentNumber } },
+          limit: 1,
+        })
+      )
+    );
+    const emp: any = (items || [])[0];
+    if (!emp) return null;
+    return {
+      id: emp.id,
+      document_type: emp.document_type ?? null,
+      document_number: emp.document_number != null ? String(emp.document_number) : null,
+      first_name: emp.first_name ?? null,
+      middle_name: emp.middle_name ?? null,
+      last_name: emp.last_name ?? null,
+      second_last_name: emp.second_last_name ?? null,
+      store_id: emp.store_id != null ? Number(emp.store_id) : null,
+      position_id: emp.position_id?.id != null ? Number(emp.position_id.id) : (emp.position_id != null ? Number(emp.position_id) : null),
+      position_name: emp.position_id?.name ?? null,
+      status: emp.status ?? null,
+    };
+  } catch (error) {
+    console.error("❌ Error buscando empleado por documento:", error);
+    throw error;
   }
 }
 

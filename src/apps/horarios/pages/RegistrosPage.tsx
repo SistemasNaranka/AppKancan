@@ -3,7 +3,7 @@ import {
   Box, Typography, IconButton, Tooltip, Tabs, Tab, Paper, Avatar,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, CircularProgress, Alert,
-  TextField, InputAdornment, Button
+  TextField, InputAdornment, Button, ToggleButton, ToggleButtonGroup
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -37,6 +37,10 @@ import { HorariosTourProvider, useHorariosTour, HorariosTab } from '../component
 import { HorariosTour } from '../components/tour/HorariosTour';
 import TutorialButton from '../components/tour/TutorialButton';
 import { useTutorial } from '@/shared/hooks/TutorialContext';
+import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
+import AdminEmpleadosPage from './AdminEmpleadosPage';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useAuth } from '@/auth/hooks/useAuth';
 
 
@@ -120,7 +124,9 @@ function RegistrosPageContent() {
 
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
   const { activeTutorial, endTutorial } = useTutorial();
+  const { esAdmin } = useHorariosPolicies();
   const [tabValue, setTabValue] = useState(0);
+  const [vistaAdmin, setVistaAdmin] = useState(false);
 
   useEffect(() => {
     setTabChangeCallback((tab: HorariosTab) => setTabValue(tab));
@@ -217,44 +223,80 @@ function RegistrosPageContent() {
                 border: '1px solid #d6e6f7',
               }}
             >
-              {getIconoPrincipal()}
+              {vistaAdmin ? <AdminPanelSettingsIcon sx={{ fontSize: 26 }} /> : getIconoPrincipal()}
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 700, color: '#0f2c4a', lineHeight: 1.2, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
-                {getTituloPrincipal()}{user?.store_name ? ` - ${toTitleCase(user.store_name)}` : ''}
+                {vistaAdmin ? 'Panel Administrativo' : `${getTituloPrincipal()}${user?.store_name ? ` - ${toTitleCase(user.store_name)}` : ''}`}
               </Typography>
               <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mt: 0.4, lineHeight: 1.35 }}>
-                {subtitulosTab[tabValue]}
+                {vistaAdmin ? 'Gestión de empleados de todas las tiendas' : subtitulosTab[tabValue]}
               </Typography>
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <TutorialButton />
-            <Tooltip title="Actualizar registros">
-              <Button
-                className="tour-refresh"
-                onClick={resetHorarios}
-                variant="contained"
-                disableElevation
-                startIcon={<RefreshIcon sx={{ fontSize: 18 }} />}
+            {esAdmin() && (
+              <ToggleButtonGroup
+                value={vistaAdmin ? 'admin' : 'tienda'}
+                exclusive
+                size="small"
+                onChange={(_, v) => { if (v !== null) setVistaAdmin(v === 'admin'); }}
                 sx={{
-                  bgcolor: '#004680',
-                  color: '#fff',
+                  bgcolor: '#f1f7fe',
                   borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 'bold',
-                  px: 2,
-                  py: 0.75,
-                  boxShadow: 'none',
-                  '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
+                  p: 0.5,
+                  '& .MuiToggleButton-root': {
+                    border: 'none',
+                    borderRadius: '8px !important',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    color: '#64748b',
+                    px: 1.5,
+                    gap: 0.5,
+                    '&.Mui-selected': {
+                      bgcolor: '#004680',
+                      color: '#fff',
+                      '&:hover': { bgcolor: '#003a6b' },
+                    },
+                  },
                 }}
               >
-                Actualizar
-              </Button>
-            </Tooltip>
+                <ToggleButton value="tienda"><StorefrontIcon sx={{ fontSize: 16 }} /> Tienda</ToggleButton>
+                <ToggleButton value="admin"><AdminPanelSettingsIcon sx={{ fontSize: 16 }} /> Admin</ToggleButton>
+              </ToggleButtonGroup>
+            )}
+            {!vistaAdmin && (
+              <>
+                <TutorialButton />
+                <Tooltip title="Actualizar registros">
+                  <Button
+                    className="tour-refresh"
+                    onClick={resetHorarios}
+                    variant="contained"
+                    disableElevation
+                    startIcon={<RefreshIcon sx={{ fontSize: 18 }} />}
+                    sx={{
+                      bgcolor: '#004680',
+                      color: '#fff',
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 'bold',
+                      px: 2,
+                      py: 0.75,
+                      boxShadow: 'none',
+                      '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
+                    }}
+                  >
+                    Actualizar
+                  </Button>
+                </Tooltip>
+              </>
+            )}
           </Box>
         </Box>
 
+        {!vistaAdmin && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: { xs: 1, md: 2 } }}>
           <Tabs
             className="tour-tabs"
@@ -316,8 +358,13 @@ function RegistrosPageContent() {
             />
           )}
         </Box>
+        )}
       </Paper>
 
+      {vistaAdmin ? (
+        <AdminEmpleadosPage />
+      ) : (
+      <>
       <TabPanel value={tabValue} index={0}>
         <Box sx={{
           display: 'grid',
@@ -658,6 +705,8 @@ function RegistrosPageContent() {
           <Typography variant="h6" color="#64748b">Malla Horaria</Typography>
         </Paper>
       </TabPanel>
+      </>
+      )}
     </Box>
   );
 }
