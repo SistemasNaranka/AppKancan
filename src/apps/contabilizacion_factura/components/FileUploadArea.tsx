@@ -272,6 +272,7 @@ export function FileUploadArea({
           {!isProcessing && (
             <Button
               variant="contained"
+              color="primary"
               size="large"
               onClick={(e) => {
                 e.stopPropagation();
@@ -286,11 +287,9 @@ export function FileUploadArea({
                 textTransform: "none",
                 fontWeight: 600,
                 fontSize: "0.95rem",
-                backgroundColor: "#004680",
-                boxShadow: "0 4px 12px rgba(0, 70, 128, 0.25)",
+                boxShadow: "none",
                 "&:hover": {
-                  backgroundColor: "#003d66",
-                  boxShadow: "0 6px 16px rgba(0, 70, 128, 0.35)",
+                  boxShadow: "none",
                   transform: "translateY(-1px)",
                 },
                 transition: "all 0.2s ease",

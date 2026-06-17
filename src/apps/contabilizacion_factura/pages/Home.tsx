@@ -1,4 +1,3 @@
-import { useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -15,8 +14,8 @@ import ReceiptLong from '@mui/icons-material/ReceiptLong';
 import Cancel from '@mui/icons-material/Cancel';
 import Update from '@mui/icons-material/Update';
 
-import { useHybridExtractor } from "../hooks/useHybridExtractor";
-import { useAuth } from "@/auth/hooks/useAuth";
+// Hooks
+import { useHomeLogic } from "../hooks/useHomeLogic";
 
 import { FileUploadArea } from "../components/FileUploadArea";
 import { InvoiceInfoCard } from "../components/InvoiceInfoCard";
@@ -31,295 +30,47 @@ import {
 import { AutomaticModal } from "../components/AutomaticoModal";
 import { GoodsReceiptModal } from "../components/GoodsReceiptModal";
 import { NoEntradasModal } from "../components/NoEntradasModal";
+import { ConfirmUltraModal } from "../components/ConfirmUltraModal";
 import { TourProvider } from "../components/TourContext";
 
-import { DatosFacturaPDF, EstadoProceso, getNitSinDv } from "../types";
-import {
-  ESTADO_CONFIG,
-  executeContabilizarFactura,
-} from "../utils/contabilizacion";
-
-import {
-  saveNitAutomatic,
-  getAutomaticByNit,
-  getSupplierByNit,
-  getGoodsReceiptsBySupplierId,
-  updateGoodsReceiptStatus,
-} from "../services/api";
+// Utilidades y tipos
+import { ESTADO_CONFIG } from "../utils/contabilizacion";
 
 export default function Home() {
-  const [datosFactura, setDatosFactura] = useState<DatosFacturaPDF | null>(
-    null,
-  );
-  const [modalAutomaticoOpen, setModalAutomaticoOpen] = useState(false);
-  const [nitActual, setNitActual] = useState<string | null>(null);
-  const [, setGuardandoAutomatico] = useState(false);
-  const [, setAutomaticoAsignado] = useState<string | null>(
-    null,
-  );
-  const [entradas, setEntradas] = useState<any[]>([]);
-  const [entradaSeleccionada, setEntradaSeleccionada] = useState<string>("");
-  const [modalEntradasOpen, setModalEntradasOpen] = useState(false);
-  const [modalNoEntradasOpen, setModalNoEntradasOpen] = useState(false);
-
-  const handleEntradaChange = useCallback((documentNumber: string) => {
-    setEntradaSeleccionada(documentNumber);
-    setDatosFactura((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        entrada: documentNumber,
-      };
-    });
-  }, []);
-
-  const [notification, setNotification] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error" | "info" | "warning";
-  }>({
-    open: false,
-    message: "",
-    severity: "info",
-  });
-
-  const { user } = useAuth();
-  const geminiApiKey = user?.ia_key;
-  const modelosIA = user?.models_ia;
-
-  const hybridExtractor = useHybridExtractor(geminiApiKey, modelosIA);
-
   const {
-    extractData,
+    datosFactura,
+    modalAutomaticoOpen,
+    setModalAutomaticoOpen,
+    nitActual,
+    entradas,
+    entradaSeleccionada,
+    modalEntradasOpen,
+    setModalEntradasOpen,
+    modalNoEntradasOpen,
+    setModalNoEntradasOpen,
+    modalConfirmUltraOpen,
+    setModalConfirmUltraOpen,
+    protocoloLanzado,
+    setProtocoloLanzado,
+    notification,
+    handleCloseNotification,
     isProcessing,
-    error,
     progress,
-    clearError,
+    error,
     estadoHibrido,
-  } = hybridExtractor;
-
-  const handleFileSelected = useCallback(
-    async (file: File) => {
-      try {
-        setAutomaticoAsignado(null);
-        setEntradas([]);
-        setEntradaSeleccionada("");
-
-        const datos = await extractData(file);
-        let entries: any[] = [];
-        let selectedEntry = "";
-
-        if (datos.proveedor.nif) {
-          const nitSinDv = getNitSinDv(datos.proveedor.nif);
-          
-          const proveedorData = await getAutomaticByNit(nitSinDv);
-          if (proveedorData && proveedorData.automatic) {
-            datos.automaticoAsignado = proveedorData.automatic;
-            setAutomaticoAsignado(proveedorData.automatic);
-          }
-
-          setNitActual(nitSinDv);
-
-          try {
-            const supplier = await getSupplierByNit(nitSinDv);
-            if (supplier && supplier.id) {
-              const goodsReceipts = await getGoodsReceiptsBySupplierId(supplier.id);
-              if (goodsReceipts && goodsReceipts.length > 0) {
-                entries = goodsReceipts;
-                if (goodsReceipts.length === 1) {
-                  selectedEntry = goodsReceipts[0].document_number;
-                  datos.entrada = selectedEntry;
-                } else {
-                  setModalEntradasOpen(true);
-                }
-              } else {
-                setModalNoEntradasOpen(true);
-              }
-            } else {
-              setModalNoEntradasOpen(true);
-            }
-          } catch (apiErr) {
-            console.error("Error al buscar proveedor o entradas:", apiErr);
-            setModalNoEntradasOpen(true);
-          }
-        }
-
-        setEntradas(entries);
-        setEntradaSeleccionada(selectedEntry);
-        setDatosFactura(datos);
-      } catch (err) {
-        console.error("Error procesando archivo:", err);
-      }
-    },
-    [extractData, geminiApiKey],
-  );
-
-  const handleRetry = useCallback(() => {
-    clearError();
-  }, [clearError]);
-
-  const handleClear = useCallback(() => {
-    clearError();
-    setDatosFactura(null);
-    setEntradas([]);
-    setEntradaSeleccionada("");
-    setModalNoEntradasOpen(false);
-  }, [clearError]);
-
-  const handleNewFile = useCallback(() => {
-    setDatosFactura(null);
-    clearError();
-    setEntradas([]);
-    setEntradaSeleccionada("");
-    setModalNoEntradasOpen(false);
-  }, [clearError]);
-
-  const handleContabilizar = useCallback(async (datos: DatosFacturaPDF) => {
-    const docNumber = datos.entrada || entradaSeleccionada;
-    if (docNumber) {
-      const entryObj = entradas.find((e) => e.document_number === docNumber);
-      if (entryObj && entryObj.id) {
-        try {
-          await updateGoodsReceiptStatus(entryObj.id, "en_proceso");
-          console.log(`Estado de entrada #${docNumber} actualizado a 'en_proceso'`);
-        } catch (err) {
-          console.error("Error al actualizar estado de la entrada:", err);
-        }
-      }
-    }
-    executeContabilizarFactura(datos);
-  }, [entradas, entradaSeleccionada]);
-
-  const handleUpdateResolution = useCallback(async () => {
-    if (!datosFactura) return;
-
-    if (!datosFactura.proveedor.nif || !datosFactura.proveedor.nombre) {
-      setNotification({
-        open: true,
-        message:
-          "Error: Se requiere NIT y nombre del proveedor para actualizar la resolución",
-        severity: "error",
-      });
-      return;
-    }
-
-      try {
-        const nitString = getNitSinDv(datosFactura.proveedor.nif);
-
-        const proveedorExistente = await getAutomaticByNit(nitString);
-
-        if (proveedorExistente && proveedorExistente.automatic) {
-          console.log(
-            "Proveedor encontrado por NIT sin DV, usando automático:",
-            proveedorExistente.automatic,
-          );
-          const nuevosDatos = {
-            ...datosFactura,
-            automaticoAsignado: proveedorExistente.automatic,
-            entrada: datosFactura.entrada || entradaSeleccionada || undefined,
-          };
-          setAutomaticoAsignado(proveedorExistente.automatic);
-          setDatosFactura(nuevosDatos);
-          handleContabilizar(nuevosDatos);
-        } else {
-          setNitActual(nitString);
-          setModalAutomaticoOpen(true);
-        }
-    } catch (error) {
-      console.error("Error al verificar proveedor:", error);
-      setNotification({
-        open: true,
-        message:
-          "Error de conexión. No se puede proceder sin validar el proveedor en la base de datos.",
-        severity: "error",
-      });
-    }
-  }, [datosFactura, handleContabilizar]);
-
-  const handleSaveAutomatic = useCallback(
-    async (automatico: string) => {
-      if (!nitActual || !datosFactura) return;
-
-      const nombreProveedor = datosFactura.proveedor.nombre;
-      const nitProveedor = getNitSinDv(nitActual);
-
-      console.log("Datos a guardar:", {
-        nit: nitProveedor,
-        automatico,
-        nombreProveedor,
-        numeroFactura: datosFactura.numeroFactura,
-        valorFactura: datosFactura.total,
-      });
-
-      setGuardandoAutomatico(true);
-      try {
-        await saveNitAutomatic(
-          String(nitProveedor).trim(),
-          String(automatico).trim(),
-          String(nombreProveedor).trim(),
-          datosFactura.numeroFactura,
-          datosFactura.total,
-        );
-
-        setAutomaticoAsignado(automatico);
-        setModalAutomaticoOpen(false);
-
-        setNotification({
-          open: true,
-          message: `Proveedor registrado exitosamente con automático: ${automatico}`,
-          severity: "success",
-        });
-
-        const nuevosDatos = {
-          ...datosFactura,
-          automaticoAsignado: automatico,
-          entrada: datosFactura.entrada || entradaSeleccionada || undefined,
-        };
-        setDatosFactura(nuevosDatos);
-
-        handleContabilizar(nuevosDatos);
-      } catch (error) {
-        console.error("Error al guardar automático:", error);
-        setNotification({
-          open: true,
-          message: "Error al guardar el registro. Por favor, intenta de nuevo.",
-          severity: "error",
-        });
-      } finally {
-        setGuardandoAutomatico(false);
-      }
-    },
-    [nitActual, datosFactura, handleContabilizar],
-  );
-
-  const handleCloseNotification = () => {
-    setNotification((prev) => ({ ...prev, open: false }));
-  };
-
-  const getStatus = (): EstadoProceso => {
-    if (isProcessing) {
-      if (progress < 30) return "cargando";
-      if (progress < 70) return "procesando";
-      if (progress < 90) return "validando";
-      return "procesando";
-    }
-    if (error) return "error";
-    if (datosFactura) return "completado";
-    return "idle";
-  };
-
-  const getProcessingMessage = (): string => {
-    if (progress < 15) return "Validando archivo PDF...";
-    if (progress < 25) return "Preparando documento...";
-    if (progress < 35) return "Conectando con Google Gemini...";
-    if (progress < 50) return "Enviando documento a la IA...";
-    if (progress < 65) return "Analizando factura con IA...";
-    if (progress < 80) return "Procesando respuesta JSON...";
-    if (progress < 95) return "Validando datos extraídos...";
-    return "¡Extracción completada!";
-  };
-
-  const estado = getStatus();
+    geminiApiKey,
+    modelosIA,
+    estado,
+    handleEntradaChange,
+    handleFileSelected,
+    handleRetry,
+    handleClear,
+    handleNewFile,
+    handleContabilizar,
+    handleUpdateResolution,
+    handleSaveAutomatic,
+    getProcessingMessage,
+  } = useHomeLogic();
 
   return (
     <TourProvider>
@@ -372,11 +123,20 @@ export default function Home() {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {/* Vista de carga/selección */}
           {estado === "idle" && (
-            <FileUploadArea
-              onFileSelected={handleFileSelected}
-              isProcessing={isProcessing}
-              progress={progress}
-            />
+            <Box>
+              {!geminiApiKey && (
+                <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+                  <strong>Configuración requerida:</strong> No tienes una clave de API de Gemini configurada en tu cuenta de usuario. Configúrala en tu perfil antes de continuar.
+                </Alert>
+              )}
+              <Box sx={!geminiApiKey ? { opacity: 0.5, pointerEvents: "none", cursor: "not-allowed" } : undefined}>
+                <FileUploadArea
+                  onFileSelected={handleFileSelected}
+                  isProcessing={isProcessing}
+                  progress={progress}
+                />
+              </Box>
+            </Box>
           )}
 
           {/* Vista de procesamiento */}
@@ -395,7 +155,6 @@ export default function Home() {
                 progress={progress}
                 isProcessing={isProcessing}
               />
-              {/* Los errores de procesamiento se muestran en ErrorDisplay */}
             </Paper>
           )}
 
@@ -425,89 +184,156 @@ export default function Home() {
                 />
               )}
 
-              {/* Botones de acción */}
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 2,
-                  justifyContent: "flex-end",
-                  pt: 2.5,
-                  pb: 0.5,
-                }}
-              >
-                <Button
-                  variant="contained"
-                  onClick={handleNewFile}
-                  startIcon={<Cancel />}
+              {/* Botones de acción y Confirmación de Protocolo */}
+              {protocoloLanzado ? (
+                <Paper
+                  elevation={0}
                   sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                    color: "#fff",
-                    px: 3,
-                    py: 1.2,
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
-                    background:
-                      "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-                    boxShadow: "0 4px 14px rgba(239, 68, 68, 0.35)",
-                    transition: "all 0.2s ease-in-out",
-                    "&:hover": {
-                      background:
-                        "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
-                      boxShadow: "0 6px 20px rgba(239, 68, 68, 0.45)",
-                      transform: "translateY(-1px)",
-                    },
-                    "&:active": {
-                      transform: "translateY(0)",
-                    },
+                    mt: 3,
+                    p: 2.5,
+                    borderRadius: 3,
+                    border: "1px solid #bae6fd",
+                    backgroundColor: "#f0f9ff",
+                    display: "flex",
+                    flexDirection: { xs: "column", md: "row" },
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    boxShadow: "0 4px 20px rgba(2, 132, 199, 0.08)",
                   }}
                 >
-                  Cancelar
-                </Button>
-                <Tooltip
-                  title={(!datosFactura.entrada && !entradaSeleccionada) ? "No es posible causar la factura sin una entrada de mercancía vinculada" : ""}
-                  arrow
-                  placement="top"
-                >
-                  <span style={{ display: "inline-flex", cursor: (!datosFactura.entrada && !entradaSeleccionada) ? "not-allowed" : "pointer" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: "50%",
+                        backgroundColor: "#e0f2fe",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#0284c7",
+                      }}
+                    >
+                      <SmartToy sx={{ fontSize: 22 }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight={700} color="#0369a1">
+                        Se envió la factura a Ultra
+                      </Typography>
+                      <Typography variant="body2" color="#0369a1" sx={{ opacity: 0.9 }}>
+                        ¿El proceso de causación local finalizó de forma correcta en tu pantalla?
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: "flex", gap: 1.5, width: { xs: "100%", md: "auto" }, justifyContent: "flex-end" }}>
                     <Button
                       variant="contained"
-                      onClick={handleUpdateResolution}
-                      disabled={!datosFactura.entrada && !entradaSeleccionada}
-                      startIcon={<Update />}
+                      onClick={() => setProtocoloLanzado(false)}
                       sx={{
-                        borderRadius: 2,
+                        backgroundColor: "#EF5350",
+                        color: "#FFFFFF",
                         textTransform: "none",
                         fontWeight: 600,
-                        fontSize: "0.95rem",
-                        px: 3.5,
-                        py: 1.2,
-                        background:
-                          "linear-gradient(135deg, #004680 0%, #0066cc 100%)",
-                        boxShadow: "0 4px 14px rgba(0, 70, 128, 0.35)",
-                        transition: "all 0.2s ease-in-out",
+                        borderRadius: 2,
+                        px: 2.5,
+                        py: 1,
+                        boxShadow: "none",
                         "&:hover": {
-                          background:
-                            "linear-gradient(135deg, #003d66 0%, #0052a3 100%)",
-                          boxShadow: "0 6px 20px rgba(0, 70, 128, 0.45)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:active": {
-                          transform: "translateY(0)",
-                        },
-                        "&.Mui-disabled": {
-                          background: "#e2e8f0",
-                          color: "#94a3b8",
+                          backgroundColor: "#C62828",
                           boxShadow: "none",
-                          pointerEvents: "none",
                         },
                       }}
                     >
-                      Causar factura
+                      No / Reintentar
                     </Button>
-                  </span>
-                </Tooltip>
-              </Box>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => {
+                        setProtocoloLanzado(false);
+                        handleNewFile();
+                      }}
+                      sx={{
+                        textTransform: "none",
+                        fontWeight: 600,
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1,
+                        boxShadow: "none",
+                        "&:hover": {
+                          boxShadow: "none",
+                        },
+                      }}
+                    >
+                      Sí, continuar
+                    </Button>
+                  </Box>
+                </Paper>
+              ) : (
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 2,
+                    justifyContent: "flex-end",
+                    pt: 2.5,
+                    pb: 0.5,
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    onClick={handleNewFile}
+                    startIcon={<Cancel />}
+                    sx={{
+                      backgroundColor: "#EF5350",
+                      color: "#FFFFFF",
+                      borderRadius: 2,
+                      textTransform: "none",
+                      px: 3,
+                      py: 1.2,
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                      boxShadow: "none",
+                      "&:hover": {
+                        backgroundColor: "#C62828",
+                        boxShadow: "none",
+                      },
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Tooltip
+                    title={(!datosFactura.entrada && !entradaSeleccionada) ? "No es posible causar la factura sin una entrada de mercancía vinculada" : ""}
+                    arrow
+                    placement="top"
+                  >
+                    <span style={{ display: "inline-flex", cursor: (!datosFactura.entrada && !entradaSeleccionada) ? "not-allowed" : "pointer" }}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleUpdateResolution}
+                        disabled={!datosFactura.entrada && !entradaSeleccionada}
+                        startIcon={<Update />}
+                        sx={{
+                          borderRadius: 2,
+                          textTransform: "none",
+                          fontWeight: 600,
+                          fontSize: "0.95rem",
+                          px: 3.5,
+                          py: 1.2,
+                          boxShadow: "none",
+                          "&:hover": {
+                            boxShadow: "none",
+                          },
+                        }}
+                      >
+                        Causar factura
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </Box>
+              )}
             </Box>
           )}
         </Box>
@@ -536,6 +362,17 @@ export default function Home() {
           nit={nitActual}
           proveedorNombre={datosFactura?.proveedor.nombre}
           onClose={() => setModalNoEntradasOpen(false)}
+        />
+
+        {/* Modal de confirmación del estado de Ultra local */}
+        <ConfirmUltraModal
+          open={modalConfirmUltraOpen}
+          onClose={() => setModalConfirmUltraOpen(false)}
+          onConfirm={() => {
+            if (datosFactura) {
+              handleContabilizar(datosFactura);
+            }
+          }}
         />
 
         {/* Notificaciones */}

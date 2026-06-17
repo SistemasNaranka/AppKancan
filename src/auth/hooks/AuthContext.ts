@@ -16,6 +16,7 @@ export type User = {
   ultra_code: string;
   rol?: string;
   store_id?: string | number;
+  store_name?: string;
   policies?: string[];
   requires_password_change?: boolean;
   ia_key?: string; // API key de Gemini para extracción de facturas (encriptada en Directus)

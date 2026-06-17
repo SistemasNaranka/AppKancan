@@ -116,6 +116,7 @@ export default defineConfig({
       "@mui/icons-material/Description",
       "@mui/icons-material/DescriptionOutlined",
       "@mui/icons-material/DesignServices",
+      "@mui/icons-material/DesktopWindows",
       "@mui/icons-material/Difference",
       "@mui/icons-material/Dining",
       "@mui/icons-material/Diversity1",

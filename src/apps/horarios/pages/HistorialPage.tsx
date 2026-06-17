@@ -4,7 +4,22 @@ import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
-import { Select, MenuItem } from '@mui/material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import {
+  Select,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Box,
+  Typography,
+  IconButton
+} from '@mui/material';
 import { ObservationModal } from '../components/ObservationModal';
 import DateRangeFilter from '../components/DateRangeFilter';
 import { Eye } from 'lucide-react';
@@ -117,109 +132,175 @@ export default function HistorialPage() {
       </section>
 
       {/* Tabla */}
-      <div className="tour-hist-tabla bg-white rounded-2xl shadow-sm border border-gray-300 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-[#e8f0fe] border border-gray-300 rounded-t-xl">
-              <tr>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Empleado</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Inicio Turno</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Inicio Almuerzo</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fin Almuerzo</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fin Turno</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Horas</th>
-                <th className="px-3 py-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-300">
-              {datosPaginados.map((row, index) => (
-                <tr key={index} className="hover:bg-blue-50/50 transition-colors duration-200">
-                  <td className="px-6 py-4 font-body-md text-gray-700 whitespace-nowrap">{row.fecha}</td>
-                  <td className="px-6 py-4 font-body-md text-gray-700 whitespace-nowrap">{row.empleado}</td>
-                  <td className="px-6 py-4 font-body-md text-gray-700 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-2">
-                      {formatearHora(row.inicio_turno)}
+      <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #eef2f6', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', bgcolor: '#fff' }} className="tour-hist-tabla">
+        <TableContainer sx={{ overflow: 'auto' }}>
+          <Table sx={{ minWidth: 650 }}>
+            <TableHead sx={{ bgcolor: '#f0f7ff' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Fecha</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Empleado</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Inicio Turno</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Inicio Almuerzo</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Fin Almuerzo</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Fin Turno</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Total Horas</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0', width: 50 }}></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {datosPaginados.map((row, idx) => (
+                <TableRow
+                  key={idx}
+                  hover
+                  sx={{
+                    bgcolor: idx % 2 === 0 ? '#ffffff' : '#fafcff',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      bgcolor: '#eef4ff',
+                    }
+                  }}
+                >
+                  <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#1e293b', borderBottom: '1px solid #e2e8f0' }}>
+                    {row.fecha}
+                  </TableCell>
+                  <TableCell sx={{ py: 1.5, fontWeight: 600, color: '#1e293b', borderBottom: '1px solid #e2e8f0' }}>
+                    {row.empleado}
+                  </TableCell>
+                  <TableCell sx={{ py: 1.5, borderBottom: '1px solid #e2e8f0' }}>
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#475569', fontSize: '0.875rem' }}>
+                        {formatearHora(row.inicio_turno)}
+                      </Typography>
                       {tieneObservacion(row, 'Comenzar Jornada') && (
-                        <button
+                        <Box
+                          component="button"
                           onClick={() => { setFilaSeleccionada(row); setModalOpen(true); }}
-                          className="w-2 h-2 rounded-full bg-[#00407a] hover:scale-125 transition-transform cursor-pointer"
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: '#004680',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s',
+                            '&:hover': { transform: 'scale(1.25)' }
+                          }}
                           title="Ver observaciones"
                         />
                       )}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-body-md text-gray-700 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-2">
-                      {formatearHora(row.inicio_almuerzo)}
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.5, borderBottom: '1px solid #e2e8f0' }}>
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#475569', fontSize: '0.875rem' }}>
+                        {formatearHora(row.inicio_almuerzo)}
+                      </Typography>
                       {tieneObservacion(row, 'Iniciar Almuerzo') && (
-                        <button
+                        <Box
+                          component="button"
                           onClick={() => { setFilaSeleccionada(row); setModalOpen(true); }}
-                          className="w-2 h-2 rounded-full bg-[#00407a] hover:scale-125 transition-transform cursor-pointer"
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: '#004680',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s',
+                            '&:hover': { transform: 'scale(1.25)' }
+                          }}
                           title="Ver observaciones"
                         />
                       )}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-body-md text-gray-700 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-2">
-                      {formatearHora(row.fin_almuerzo)}
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.5, borderBottom: '1px solid #e2e8f0' }}>
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#475569', fontSize: '0.875rem' }}>
+                        {formatearHora(row.fin_almuerzo)}
+                      </Typography>
                       {tieneObservacion(row, 'Finalizar Almuerzo') && (
-                        <button
+                        <Box
+                          component="button"
                           onClick={() => { setFilaSeleccionada(row); setModalOpen(true); }}
-                          className="w-2 h-2 rounded-full bg-[#00407a] hover:scale-125 transition-transform cursor-pointer"
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: '#004680',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s',
+                            '&:hover': { transform: 'scale(1.25)' }
+                          }}
                           title="Ver observaciones"
                         />
                       )}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-body-md text-gray-700 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-2">
-                      {formatearHora(row.fin_turno)}
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.5, borderBottom: '1px solid #e2e8f0' }}>
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#475569', fontSize: '0.875rem' }}>
+                        {formatearHora(row.fin_turno)}
+                      </Typography>
                       {tieneObservacion(row, 'Terminar Jornada') && (
-                        <button
+                        <Box
+                          component="button"
                           onClick={() => { setFilaSeleccionada(row); setModalOpen(true); }}
-                          className="w-2 h-2 rounded-full bg-[#00407a] hover:scale-125 transition-transform cursor-pointer"
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: '#004680',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s',
+                            '&:hover': { transform: 'scale(1.25)' }
+                          }}
                           title="Ver observaciones"
                         />
                       )}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-body-md text-gray-700 whitespace-nowrap">
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.5, fontWeight: 600, color: '#004680', borderBottom: '1px solid #e2e8f0' }}>
                     {calcularHoras(row.inicio_turno, row.fin_turno, row.inicio_almuerzo, row.fin_almuerzo)}
-                  </td>
-                  <td className="px-3 py-4 text-center">
+                  </TableCell>
+                  <TableCell sx={{ py: 1.5, textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>
                     {row.observaciones_evento.length > 0 && (
-                      <button
+                      <IconButton
                         onClick={() => { setFilaSeleccionada(row); setModalOpen(true); }}
                         title="Ver observaciones"
-                        className="inline-flex items-center justify-center rounded-full p-1 hover:bg-blue-50 transition-colors cursor-pointer"
+                        size="small"
+                        sx={{
+                          color: '#004680',
+                          '&:hover': { bgcolor: '#eff6ff' }
+                        }}
                       >
-                        <Eye size={16} className="text-[#00407a]" strokeWidth={2} />
-                      </button>
+                        <Eye size={16} strokeWidth={2} />
+                      </IconButton>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
               {(isLoading || isError || datosPaginados.length === 0) && (
-  <tr>
-    <td colSpan={8} className="px-6 py-12 text-center text-sm">
-      {isLoading && <span className="text-gray-500">Cargando registros...</span>}
-      {isError && <span className="text-red-500">Error al cargar los registros</span>}
-      {!isLoading && !isError && <span className="text-gray-400">No hay registros para mostrar</span>}
-    </td>
-  </tr>
-)}
-            </tbody>
-          </table>
-        </div>
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 8, borderBottom: 'none' }}>
+                    {isLoading && <Typography variant="body2" sx={{ color: '#64748b' }}>Cargando registros...</Typography>}
+                    {isError && <Typography variant="body2" sx={{ color: '#ef4444' }}>Error al cargar los registros</Typography>}
+                    {!isLoading && !isError && <Typography variant="body2" sx={{ color: '#94a3b8' }}>No hay registros para mostrar</Typography>}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-        {/* Paginación: arma los botones y mete "..." cuando hay más de 5 páginas */}
-        <div className="px-4 py-4 flex items-center justify-between border-t border-gray-300">
-          <div className="flex items-center gap-3">
-            <p className="text-xs text-gray-500">
+        {/* Paginación */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#fff', borderTop: '1px solid #eef2f6' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="caption" sx={{ color: '#64748b' }}>
               Mostrando {datosPaginados.length} de {datosFiltrados.length} registros
-            </p>
+            </Typography>
             <Select
               value={registrosPorPagina}
               onChange={(e) => {
@@ -227,22 +308,38 @@ export default function HistorialPage() {
                 setPaginaActual(1);
               }}
               size="small"
-              sx={{ backgroundColor: '#e8f0fe', borderRadius: 2, fontSize: '0.75rem', minWidth: 80 }}
+              sx={{
+                bgcolor: '#f1f7fe',
+                borderRadius: 2,
+                fontSize: '0.75rem',
+                minWidth: 70,
+                height: 30,
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#cbd5e1'
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#94a3b8'
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#004680'
+                }
+              }}
             >
               <MenuItem value={5}>5</MenuItem>
               <MenuItem value={10}>10</MenuItem>
               <MenuItem value={20}>20</MenuItem>
               <MenuItem value={50}>50</MenuItem>
             </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPaginaActual((p) => p - 1)}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton
+              size="small"
               disabled={paginaActual === 1}
-              className="p-1 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30"
+              onClick={() => setPaginaActual((p) => p - 1)}
+              sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}
             >
-              ‹
-            </button>
+              <ChevronLeftIcon fontSize="small" />
+            </IconButton>
             {(() => {
               const paginas: (number | string)[] = [];
               if (totalPaginas <= 5) {
@@ -258,32 +355,44 @@ export default function HistorialPage() {
               }
               return paginas.map((num, idx) =>
                 typeof num === 'string' ? (
-                  <span key={`dots-${idx}`} className="text-gray-400 px-1">...</span>
+                  <Typography key={`dots-${idx}`} variant="caption" sx={{ color: '#94a3b8', px: 0.5 }}>...</Typography>
                 ) : (
-                  <button
+                  <Box
                     key={num}
                     onClick={() => setPaginaActual(num)}
-                    className={`w-8 h-8 rounded text-xs font-semibold ${
-                      paginaActual === num
-                        ? 'bg-[#00407a] text-white'
-                        : 'hover:bg-gray-100 text-gray-500'
-                    }`}
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 1.5,
+                      cursor: 'pointer',
+                      bgcolor: paginaActual === num ? '#004680' : '#fff',
+                      color: paginaActual === num ? '#fff' : '#5e6f8d',
+                      border: paginaActual === num ? 'none' : '1px solid #dfe4ec',
+                      fontWeight: paginaActual === num ? 700 : 500,
+                      fontSize: '0.85rem',
+                      transition: 'all 0.2s',
+                      '&:hover': { bgcolor: paginaActual === num ? '#004680' : '#f1f5f9' }
+                    }}
                   >
                     {num}
-                  </button>
+                  </Box>
                 )
               );
             })()}
-            <button
-              onClick={() => setPaginaActual((p) => p + 1)}
+            <IconButton
+              size="small"
               disabled={paginaActual === totalPaginas}
-              className="p-1 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30"
+              onClick={() => setPaginaActual((p) => p + 1)}
+              sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}
             >
-              ›
-            </button>
-          </div>
-        </div>
-      </div>
+              <ChevronRightIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </Box>
+      </Paper>
 
       <ObservationModal
         open={modalOpen}

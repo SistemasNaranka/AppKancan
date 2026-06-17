@@ -230,8 +230,8 @@ export const useHorarios = () => {
     }
   };
 
-  const eliminarEmpleado = (idEmpleado: string) => {
-    console.log(`[UI] Eliminación local desactivada. ID: ${idEmpleado}`);
+  const eliminarEmpleado = (_idEmpleado: string) => {
+    // Eliminación local desactivada: la baja se gestiona vía novedad.
   };
 
   const resetHorarios = () => {
@@ -298,7 +298,13 @@ export const useHorarios = () => {
     
     let nombreEmpleado = `Empleado #${empId || ''}`;
     if (nov.employee_id?.first_name) {
-      nombreEmpleado = `${nov.employee_id.first_name} ${nov.employee_id.last_name || ""}`.trim();
+      const parts = [
+        nov.employee_id.first_name,
+        nov.employee_id.middle_name,
+        nov.employee_id.last_name,
+        nov.employee_id.second_last_name
+      ].filter(part => part && part.trim() !== "");
+      nombreEmpleado = parts.join(" ").trim() || `Empleado #${empId || ''}`;
     } else if (empLocal) {
       nombreEmpleado = empLocal.nombre;
     }

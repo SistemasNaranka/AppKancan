@@ -37,6 +37,7 @@ import { HorariosTourProvider, useHorariosTour, HorariosTab } from '../component
 import { HorariosTour } from '../components/tour/HorariosTour';
 import TutorialButton from '../components/tour/TutorialButton';
 import { useTutorial } from '@/shared/hooks/TutorialContext';
+import { useAuth } from '@/auth/hooks/useAuth';
 
 
 const MALLA_HORARIA_HABILITADA = false;
@@ -100,7 +101,17 @@ const getChipColor = (tipo: any) => {
   return { bg: '#f8fafc', text: '#64748b' };
 };
 
+const toTitleCase = (str: string) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 function RegistrosPageContent() {
+  const { user } = useAuth();
   const {
     empleados, novedades, tiposNovedad, loading, error,
     registrarEvento, resetHorarios, eliminarEmpleado,
@@ -210,7 +221,7 @@ function RegistrosPageContent() {
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 700, color: '#0f2c4a', lineHeight: 1.2, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
-                {getTituloPrincipal()}
+                {getTituloPrincipal()}{user?.store_name ? ` - ${toTitleCase(user.store_name)}` : ''}
               </Typography>
               <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mt: 0.4, lineHeight: 1.35 }}>
                 {subtitulosTab[tabValue]}
@@ -219,7 +230,7 @@ function RegistrosPageContent() {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <TutorialButton />
-            <Tooltip title="Reiniciar todos los registros">
+            <Tooltip title="Actualizar registros">
               <Button
                 className="tour-refresh"
                 onClick={resetHorarios}
@@ -244,47 +255,67 @@ function RegistrosPageContent() {
           </Box>
         </Box>
 
-        <Tabs
-          className="tour-tabs"
-          value={tabValue}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons={false}
-          TabIndicatorProps={{ sx: { display: 'none' } }}
-          sx={{
-            px: { xs: 1, md: 1.5 },
-            py: 1.25,
-            minHeight: 'auto',
-            '& .MuiTabs-flexContainer': { gap: 1 },
-            '& .MuiTabs-scrollButtons.Mui-disabled': { display: 'none' },
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              letterSpacing: '0.2px',
-              minHeight: 40,
-              borderRadius: '10px',
-              px: 2,
-              color: '#64748b',
-              boxShadow: 'none',
-              transition: 'background-color 0.2s ease, color 0.2s ease',
-              '& .MuiTab-iconWrapper': { mr: 0.75 },
-              '&:hover': { backgroundColor: '#eef4fb', color: '#004680', boxShadow: 'none' },
-              '&.Mui-selected': {
-                color: '#fff',
-                backgroundColor: '#004680',
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: { xs: 1, md: 2 } }}>
+          <Tabs
+            className="tour-tabs"
+            value={tabValue}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons={false}
+            TabIndicatorProps={{ sx: { display: 'none' } }}
+            sx={{
+              px: { xs: 1, md: 1.5 },
+              py: 1.25,
+              minHeight: 'auto',
+              flex: 1,
+              '& .MuiTabs-flexContainer': { gap: 1 },
+              '& .MuiTabs-scrollButtons.Mui-disabled': { display: 'none' },
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                letterSpacing: '0.2px',
+                minHeight: 40,
+                borderRadius: '10px',
+                px: 2,
+                color: '#64748b',
                 boxShadow: 'none',
+                transition: 'background-color 0.2s ease, color 0.2s ease',
+                '& .MuiTab-iconWrapper': { mr: 0.75 },
+                '&:hover': { backgroundColor: '#eef4fb', color: '#004680', boxShadow: 'none' },
+                '&.Mui-selected': {
+                  color: '#fff',
+                  backgroundColor: '#004680',
+                  boxShadow: 'none',
+                },
+                '&.Mui-selected:hover': { backgroundColor: '#003a6b', boxShadow: 'none' },
               },
-              '&.Mui-selected:hover': { backgroundColor: '#003a6b', boxShadow: 'none' },
-            },
-          }}
-        >
-          <Tab icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
-          <Tab icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
-          <Tab icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
-          {/* La pestaña permanece en el árbol (oculta) para conservar la alineación de índices con sus TabPanel */}
-          <Tab icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
-        </Tabs>
+            }}
+          >
+            <Tab icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
+            <Tab icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
+            <Tab icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
+            {/* La pestaña permanece en el árbol (oculta) para conservar la alineación de índices con sus TabPanel */}
+            <Tab icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
+          </Tabs>
+
+          {tabValue === 0 && (
+            <Chip
+              label={`Total Empleados: ${empleados.length}`}
+              sx={{
+                bgcolor: '#eaf2fb',
+                color: '#004680',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                borderRadius: '8px',
+                border: '1px solid #d6e6f7',
+                ml: 2,
+                height: 32,
+                px: 0.5,
+              }}
+            />
+          )}
+        </Box>
       </Paper>
 
       <TabPanel value={tabValue} index={0}>
@@ -413,6 +444,18 @@ function RegistrosPageContent() {
                   onChange={(newVal) => { setFechaFiltro(newVal as Dayjs | null); setPage(0); }}
                   format="DD/MM/YYYY"
                   slotProps={{
+                    shortcuts: {
+                      items: [
+                        {
+                          label: 'Hoy',
+                          getValue: () => dayjs(),
+                        },
+                        {
+                          label: 'Ayer',
+                          getValue: () => dayjs().subtract(1, 'day'),
+                        },
+                      ],
+                    },
                     textField: {
                       size: 'small',
                       placeholder: 'DD/MM/YYYY',

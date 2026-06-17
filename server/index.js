@@ -8,6 +8,7 @@ const path = require("path");
 
 // Importar rutas
 const informeVentasRoutes = require("./routes/informeVentas");
+const contabilizacionRoutes = require("./routes/contabilizacion");
 
 // Importar utilidades
 const { dbConfig } = require("./utils/db");
@@ -17,15 +18,17 @@ const PORT = process.env.PORT || 11000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Health check (público)
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Rutas de informe de ventas (protegidas)
+// Rutas (protegidas)
 app.use("/api", informeVentasRoutes);
+app.use("/api", contabilizacionRoutes);
 
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "../dist")));

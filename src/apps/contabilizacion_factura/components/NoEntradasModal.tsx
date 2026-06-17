@@ -36,8 +36,8 @@ export function NoEntradasModal({
         },
       }}
     >
-      <DialogTitle sx={{ pb: 1, fontWeight: 700, color: "#d32f2f", display: "flex", alignItems: "center", gap: 1 }}>
-        <WarningAmber sx={{ fontSize: 28, color: "#d32f2f" }} />
+      <DialogTitle sx={{ pb: 1, fontWeight: 700, color: "error.main", display: "flex", alignItems: "center", gap: 1 }}>
+        <WarningAmber sx={{ fontSize: 28, color: "error.main" }} />
         Sin Entradas de Mercancía
       </DialogTitle>
       <DialogContent>
@@ -48,7 +48,7 @@ export function NoEntradasModal({
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             El proveedor <strong>{proveedorNombre || "Proveedor"}</strong> con NIT <strong>{nit}</strong> no tiene registros activos en la tabla de entradas de mercancía.
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, color: "#d32f2f", mt: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: "error.main", mt: 1 }}>
             Se debe actualizar la base de datos con las entradas correspondientes.
           </Typography>
         </Box>
@@ -58,14 +58,14 @@ export function NoEntradasModal({
           variant="contained"
           onClick={onClose}
           sx={{
-            background: "#d32f2f",
-            color: "#fff",
+            backgroundColor: "#EF5350",
+            color: "#FFFFFF",
             textTransform: "none",
             fontWeight: 600,
             borderRadius: 2,
             boxShadow: "none",
             "&:hover": {
-              background: "#b71c1c",
+              backgroundColor: "#C62828",
               boxShadow: "none",
             },
           }}

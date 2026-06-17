@@ -9,7 +9,6 @@ export async function getStoreIdUsuarioActual(): Promise<number | null> {
       directus.request(readMe({ fields: ["store_id", "store.id"] as any }))
     );
     const raw = me?.store_id ?? me?.store?.id ?? null;
-    console.log("[HORARIOS] readMe store_id =", me?.store_id, "| store.id =", me?.store?.id);
     const num = Number(raw);
     return Number.isFinite(num) && num > 0 ? num : null;
   } catch (error) {
@@ -25,27 +24,40 @@ export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_employees", {
-          fields: ["id", "first_name", "last_name", "store_id", "position_id.name"],
-          filter: { store_id: { _eq: storeId } },
+          fields: ["id", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
+          filter: {
+            store_id: { _eq: storeId },
+            status: { _eq: "Activo" }
+          },
           limit: -1,
         })
       )
     );
 
-    return (items || []).map((emp: any) => ({
-      id: String(emp.id),
-      documento: String(emp.id), 
-      nombre: `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || "Empleado Sin Nombre",
-      cargo: emp.position_id?.name || "Sin Cargo",
-      estadoActual: "entrada_pendiente",
-      registros: {
-        inicioJornada: null,
-        inicioAlmuerzo: null,
-        finAlmuerzo: null,
-        finJornada: null,
-        observaciones: {},
-      },
-    }));
+    return (items || []).map((emp: any) => {
+      const parts = [
+        emp.first_name,
+        emp.middle_name,
+        emp.last_name,
+        emp.second_last_name
+      ].filter(part => part && part.trim() !== "");
+      const full_name = parts.join(" ").trim() || "Empleado Sin Nombre";
+
+      return {
+        id: String(emp.id),
+        documento: String(emp.id), 
+        nombre: full_name,
+        cargo: emp.position_id?.name || "Sin Cargo",
+        estadoActual: "entrada_pendiente",
+        registros: {
+          inicioJornada: null,
+          inicioAlmuerzo: null,
+          finAlmuerzo: null,
+          finJornada: null,
+          observaciones: {},
+        },
+      };
+    });
   } catch (error) {
     console.error("❌ Error cargando la tabla adm_employees:", error);
     return [];
@@ -86,7 +98,9 @@ export async function getNovedades(storeId: number): Promise<any[]> {
             "newness_id.name",
             "employee_id.id",
             "employee_id.first_name",
+            "employee_id.middle_name",
             "employee_id.last_name",
+            "employee_id.second_last_name",
             "report_date"
           ],
           filter: { store_id: { _eq: storeId } },

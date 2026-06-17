@@ -122,24 +122,37 @@ export function AutomaticModal({
 </DialogContent>
             <DialogActions sx={{ px: 3, pb: 3 }}>
                 <Button
+                    variant="contained"
                     onClick={onClose}
                     startIcon={<Cancel />}
                     disabled={loading}
-                    sx={{ color: "text.secondary" }}
+                    sx={{
+                        backgroundColor: "#EF5350",
+                        color: "#FFFFFF",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        borderRadius: 2,
+                        boxShadow: "none",
+                        "&:hover": {
+                            backgroundColor: "#C62828",
+                            boxShadow: "none",
+                        },
+                    }}
                 >
                     Cancelar
                 </Button>
                 <Button
                     variant="contained"
+                    color="primary"
                     onClick={handleConfirm}
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Save />}
                     sx={{
-                        background: "#004680",
-                        color: "#fff",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        borderRadius: 2,
                         boxShadow: "none",
                         "&:hover": {
-                            background: "#005aa3",
                             boxShadow: "none",
                         },
                     }}
