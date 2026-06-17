@@ -31,6 +31,7 @@ import { AutomaticModal } from "../components/AutomaticoModal";
 import { GoodsReceiptModal } from "../components/GoodsReceiptModal";
 import { NoEntradasModal } from "../components/NoEntradasModal";
 import { ConfirmUltraModal } from "../components/ConfirmUltraModal";
+import { CausacionProgressModal } from "../components/CausacionProgressModal";
 import { TourProvider } from "../components/TourContext";
 
 // Utilidades y tipos
@@ -50,8 +51,12 @@ export default function Home() {
     setModalNoEntradasOpen,
     modalConfirmUltraOpen,
     setModalConfirmUltraOpen,
-    protocoloLanzado,
-    setProtocoloLanzado,
+    causacionProgressOpen,
+    setCausacionProgressOpen,
+    causacionEntryId,
+    causacionEntryNumber,
+    handleCausacionSuccess,
+    handleCausacionFailure,
     notification,
     handleCloseNotification,
     isProcessing,
@@ -185,155 +190,67 @@ export default function Home() {
               )}
 
               {/* Botones de acción y Confirmación de Protocolo */}
-              {protocoloLanzado ? (
-                <Paper
-                  elevation={0}
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  justifyContent: "flex-end",
+                  pt: 2.5,
+                  pb: 0.5,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  onClick={handleNewFile}
+                  startIcon={<Cancel />}
                   sx={{
-                    mt: 3,
-                    p: 2.5,
-                    borderRadius: 3,
-                    border: "1px solid #bae6fd",
-                    backgroundColor: "#f0f9ff",
-                    display: "flex",
-                    flexDirection: { xs: "column", md: "row" },
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 2,
-                    boxShadow: "0 4px 20px rgba(2, 132, 199, 0.08)",
+                    backgroundColor: "#EF5350",
+                    color: "#FFFFFF",
+                    borderRadius: 2,
+                    textTransform: "none",
+                    px: 3,
+                    py: 1.2,
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
+                    boxShadow: "none",
+                    "&:hover": {
+                      backgroundColor: "#C62828",
+                      boxShadow: "none",
+                    },
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <Box
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: "50%",
-                        backgroundColor: "#e0f2fe",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#0284c7",
-                      }}
-                    >
-                      <SmartToy sx={{ fontSize: 22 }} />
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700} color="#0369a1">
-                        Se envió la factura a Ultra
-                      </Typography>
-                      <Typography variant="body2" color="#0369a1" sx={{ opacity: 0.9 }}>
-                        ¿El proceso de causación local finalizó de forma correcta en tu pantalla?
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ display: "flex", gap: 1.5, width: { xs: "100%", md: "auto" }, justifyContent: "flex-end" }}>
-                    <Button
-                      variant="contained"
-                      onClick={() => setProtocoloLanzado(false)}
-                      sx={{
-                        backgroundColor: "#EF5350",
-                        color: "#FFFFFF",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        borderRadius: 2,
-                        px: 2.5,
-                        py: 1,
-                        boxShadow: "none",
-                        "&:hover": {
-                          backgroundColor: "#C62828",
-                          boxShadow: "none",
-                        },
-                      }}
-                    >
-                      No / Reintentar
-                    </Button>
+                  Cancelar
+                </Button>
+                <Tooltip
+                  title={(!datosFactura.entrada && !entradaSeleccionada) ? "No es posible causar la factura sin una entrada de mercancía vinculada" : ""}
+                  arrow
+                  placement="top"
+                >
+                  <span style={{ display: "inline-flex", cursor: (!datosFactura.entrada && !entradaSeleccionada) ? "not-allowed" : "pointer" }}>
                     <Button
                       variant="contained"
                       color="primary"
-                      onClick={() => {
-                        setProtocoloLanzado(false);
-                        handleNewFile();
-                      }}
+                      onClick={handleUpdateResolution}
+                      disabled={!datosFactura.entrada && !entradaSeleccionada}
+                      startIcon={<Update />}
                       sx={{
+                        borderRadius: 2,
                         textTransform: "none",
                         fontWeight: 600,
-                        borderRadius: 2,
-                        px: 3,
-                        py: 1,
+                        fontSize: "0.95rem",
+                        px: 3.5,
+                        py: 1.2,
                         boxShadow: "none",
                         "&:hover": {
                           boxShadow: "none",
                         },
                       }}
                     >
-                      Sí, continuar
+                      Causar factura
                     </Button>
-                  </Box>
-                </Paper>
-              ) : (
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 2,
-                    justifyContent: "flex-end",
-                    pt: 2.5,
-                    pb: 0.5,
-                  }}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={handleNewFile}
-                    startIcon={<Cancel />}
-                    sx={{
-                      backgroundColor: "#EF5350",
-                      color: "#FFFFFF",
-                      borderRadius: 2,
-                      textTransform: "none",
-                      px: 3,
-                      py: 1.2,
-                      fontWeight: 600,
-                      fontSize: "0.95rem",
-                      boxShadow: "none",
-                      "&:hover": {
-                        backgroundColor: "#C62828",
-                        boxShadow: "none",
-                      },
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Tooltip
-                    title={(!datosFactura.entrada && !entradaSeleccionada) ? "No es posible causar la factura sin una entrada de mercancía vinculada" : ""}
-                    arrow
-                    placement="top"
-                  >
-                    <span style={{ display: "inline-flex", cursor: (!datosFactura.entrada && !entradaSeleccionada) ? "not-allowed" : "pointer" }}>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleUpdateResolution}
-                        disabled={!datosFactura.entrada && !entradaSeleccionada}
-                        startIcon={<Update />}
-                        sx={{
-                          borderRadius: 2,
-                          textTransform: "none",
-                          fontWeight: 600,
-                          fontSize: "0.95rem",
-                          px: 3.5,
-                          py: 1.2,
-                          boxShadow: "none",
-                          "&:hover": {
-                            boxShadow: "none",
-                          },
-                        }}
-                      >
-                        Causar factura
-                      </Button>
-                    </span>
-                  </Tooltip>
-                </Box>
-              )}
+                  </span>
+                </Tooltip>
+              </Box>
             </Box>
           )}
         </Box>
@@ -373,6 +290,16 @@ export default function Home() {
               handleContabilizar(datosFactura);
             }
           }}
+        />
+
+        {/* Modal de progreso de causación en tiempo real (WebSockets) */}
+        <CausacionProgressModal
+          open={causacionProgressOpen}
+          goodsReceiptId={causacionEntryId}
+          goodsReceiptNumber={causacionEntryNumber}
+          onSuccess={handleCausacionSuccess}
+          onFailure={handleCausacionFailure}
+          onClose={() => setCausacionProgressOpen(false)}
         />
 
         {/* Notificaciones */}

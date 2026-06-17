@@ -193,6 +193,18 @@ export default function EmployeeCard({
     }
   };
 
+  const getEditadoStatus = (evento: string): boolean => {
+    if (!registros.horasOriginales) return false;
+    let eventKey = '';
+    switch (evento) {
+      case 'Comenzar Jornada': eventKey = 'inicioJornada'; break;
+      case 'Iniciar Almuerzo': eventKey = 'inicioAlmuerzo'; break;
+      case 'Finalizar Almuerzo': eventKey = 'finAlmuerzo'; break;
+      case 'Terminar Jornada': eventKey = 'finJornada'; break;
+    }
+    return !!registros.horasOriginales[eventKey];
+  };
+
   const handleOpenNovedadModal = () => {
     setFormData({ novedad: '', fechaInicio: dayjs().format('YYYY-MM-DD'), fechaFin: dayjs().format('YYYY-MM-DD'), observaciones: '' });
     setFormErrors({});
@@ -288,11 +300,17 @@ export default function EmployeeCard({
               const bloqueado = !btn.activo && !yaHecho;
               const observacionGuardada = getObservacion(btn.etiqueta);
               const obsEnabled = yaHecho;
-              const relojEnabled = yaHecho;
+              const editado = getEditadoStatus(btn.etiqueta);
+              const relojEnabled = yaHecho && !editado;
+              const tooltipTitle = relojEnabled 
+                ? 'Editar hora' 
+                : (yaHecho && editado 
+                    ? 'Esta hora ya fue editada y no se puede volver a editar. En caso de ser necesario, llamar a soporte.' 
+                    : 'No disponible');
 
               return (
                 <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Tooltip title={relojEnabled ? 'Editar hora' : 'No disponible'}>
+                  <Tooltip title={tooltipTitle}>
                     <span>
                       <IconButton
                         size="small"

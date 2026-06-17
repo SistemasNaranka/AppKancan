@@ -15,7 +15,7 @@ const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
     const buscar = (tipo: string) => {
       const match = registros.find((r) => r.log_type === tipo);
       if (!match) return null;
-      return match.updated_record_time || match.record_time || null;
+      return match.record_time || null;
     };
 
     const observaciones_evento = registros
