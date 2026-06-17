@@ -73,7 +73,7 @@ export const useHorarios = () => {
 
     records.forEach((r) => {
       const type = r.log_type;
-      const timeVal = r.updated_record_time || r.record_time;
+      const timeVal = r.record_time;
       const time = timeVal ? timeVal.substring(0, 5) : '';
       const obs = r.observations || '';
       
@@ -101,8 +101,8 @@ export const useHorarios = () => {
       }
 
       if (eventKey) {
-        registros.horasOriginales![eventKey] = r.record_time ? r.record_time.substring(0, 5) : null;
-        registros.horasEditadas![eventKey] = r.updated_record_time ? r.updated_record_time.substring(0, 5) : null;
+        registros.horasOriginales![eventKey] = r.original_record_time ? r.original_record_time.substring(0, 5) : null;
+        registros.horasEditadas![eventKey] = r.original_record_time ? r.record_time.substring(0, 5) : null;
       }
     });
 
@@ -152,8 +152,8 @@ export const useHorarios = () => {
   });
 
   const updateTimeRecordMutation = useMutation({
-    mutationFn: ({ id, observations, record_time, updated_record_time }: { id: number; observations?: string; record_time?: string; updated_record_time?: string }) =>
-      updateTimeRecord(id, { observations, record_time, updated_record_time }),
+    mutationFn: ({ id, observations, record_time, original_record_time }: { id: number; observations?: string; record_time?: string; original_record_time?: string }) =>
+      updateTimeRecord(id, { observations, record_time, original_record_time }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeRecords'] });
       showSnackbar('Registro actualizado correctamente', 'success');
@@ -185,9 +185,11 @@ export const useHorarios = () => {
       );
 
       if (existingRecord) {
+        const originalTime = existingRecord.original_record_time || existingRecord.record_time;
         await updateTimeRecordMutation.mutateAsync({
           id: existingRecord.id,
-          updated_record_time: recordTime,
+          record_time: recordTime,
+          original_record_time: originalTime,
           observations: observacion,
         });
       } else {

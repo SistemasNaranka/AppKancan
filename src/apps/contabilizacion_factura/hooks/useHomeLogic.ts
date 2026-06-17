@@ -24,6 +24,11 @@ export function useHomeLogic() {
   const [modalConfirmUltraOpen, setModalConfirmUltraOpen] = useState(false);
   const [protocoloLanzado, setProtocoloLanzado] = useState(false);
 
+  // Estados para el progreso y WebSocket de causación
+  const [causacionProgressOpen, setCausacionProgressOpen] = useState(false);
+  const [causacionEntryId, setCausacionEntryId] = useState<number | null>(null);
+  const [causacionEntryNumber, setCausacionEntryNumber] = useState<string | null>(null);
+
   // Estados para notificaciones
   const [notification, setNotification] = useState<{
     open: boolean;
@@ -102,18 +107,23 @@ export function useHomeLogic() {
             const supplier = await getSupplierByNit(nitSinDv);
             if (supplier && supplier.id) {
               const goodsReceipts = await getGoodsReceiptsBySupplierId(supplier.id);
-              if (goodsReceipts && goodsReceipts.length > 0) {
-                entries = goodsReceipts;
-                if (goodsReceipts.length === 1) {
+              // Filtrar para mostrar solo las entradas en estado 'pendiente'
+              const pendingGoodsReceipts = (goodsReceipts || []).filter(
+                (gr) => gr.status === "pendiente"
+              );
+              
+              if (pendingGoodsReceipts && pendingGoodsReceipts.length > 0) {
+                entries = pendingGoodsReceipts;
+                if (pendingGoodsReceipts.length === 1) {
                   // Si solo hay una, asignarla por defecto
-                  selectedEntry = goodsReceipts[0].document_number;
+                  selectedEntry = pendingGoodsReceipts[0].document_number;
                   datos.entrada = selectedEntry;
                 } else {
                   // Si hay varias, abrir el modal emergente de selección
                   setModalEntradasOpen(true);
                 }
               } else {
-                // Si existe el proveedor pero no tiene entradas habilitadas
+                // Si existe el proveedor pero no tiene entradas habilitadas en estado 'pendiente'
                 setModalNoEntradasOpen(true);
               }
             } else {
@@ -164,6 +174,8 @@ export function useHomeLogic() {
     if (docNumber) {
       const entryObj = entradas.find((e) => e.document_number === docNumber);
       if (entryObj && entryObj.id) {
+        setCausacionEntryId(entryObj.id);
+        setCausacionEntryNumber(entryObj.document_number);
         try {
           await updateGoodsReceiptStatus(entryObj.id, "en_proceso");
           console.log(`Estado de entrada #${docNumber} actualizado a 'en_proceso'`);
@@ -173,8 +185,25 @@ export function useHomeLogic() {
       }
     }
     executeContabilizarFactura(datos);
-    setProtocoloLanzado(true);
+    setCausacionProgressOpen(true);
   }, [entradas, entradaSeleccionada]);
+
+  const handleCausacionSuccess = useCallback(() => {
+    setNotification({
+      open: true,
+      message: "¡Factura contabilizada con éxito!",
+      severity: "success",
+    });
+    handleNewFile();
+  }, [handleNewFile]);
+
+  const handleCausacionFailure = useCallback((message: string) => {
+    setNotification({
+      open: true,
+      message: `Error en causación: ${message}`,
+      severity: "error",
+    });
+  }, []);
 
   // Función para manejar el botón Actualizar Resolución con verificación de NIT
   const handleUpdateResolution = useCallback(async () => {
@@ -341,6 +370,12 @@ export function useHomeLogic() {
     setModalConfirmUltraOpen,
     protocoloLanzado,
     setProtocoloLanzado,
+    causacionProgressOpen,
+    setCausacionProgressOpen,
+    causacionEntryId,
+    causacionEntryNumber,
+    handleCausacionSuccess,
+    handleCausacionFailure,
     notification,
     handleCloseNotification,
     isProcessing,

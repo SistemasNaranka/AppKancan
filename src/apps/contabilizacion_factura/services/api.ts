@@ -1,6 +1,6 @@
 import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
-import { readItems, createItem, updateItem } from "@directus/sdk";
+import { readItems, createItem, updateItem, readItem } from "@directus/sdk";
 
 interface ProveedorContabilidad {
     id?: number;
@@ -237,5 +237,20 @@ export async function updateGoodsReceiptStatus(id: number, status: string) {
         throw error;
     }
 }
+
+export async function getGoodsReceiptById(id: number): Promise<AccGoodsReceipt | null> {
+    try {
+        const item = await withAutoRefresh(() =>
+            directus.request(
+                readItem("acc_goods_receipts", id),
+            ),
+        );
+        return item as unknown as AccGoodsReceipt;
+    } catch (error) {
+        console.error("Error al obtener entrada de mercancía por ID:", error);
+        return null;
+    }
+}
+
 
 
