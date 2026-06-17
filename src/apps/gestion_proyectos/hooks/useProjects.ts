@@ -18,9 +18,6 @@ interface UseProjectByIdReturn {
   reload: () => Promise<void>;
 }
 
-/**
- * Hook to get all projects
- */
 export function useProjects(): UseProjectsReturn {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,9 +44,6 @@ export function useProjects(): UseProjectsReturn {
   return { projects, loading, error, reload };
 }
 
-/**
- * Hook to get a project by ID
- */
 export function useProjectById(id: string): UseProjectByIdReturn {
   const [project, setProject] = useState<Project | null>(null);
   const [metrics, setMetrics] = useState<ProjectMetrics>({
@@ -70,7 +64,6 @@ export function useProjectById(id: string): UseProjectByIdReturn {
       const data = await getProjectById(id);
       if (data) {
         setProject(data);
-        // Calculate metrics
         if (data.processes && data.processes.length > 0) {
           setMetrics(calculateProjectMetrics(data.processes));
         }
@@ -92,9 +85,6 @@ export function useProjectById(id: string): UseProjectByIdReturn {
   return { project, metrics, loading, error, reload };
 }
 
-/**
- * Gets the project status in a readable format
- */
 export function getStatusLabel(status: string): string {
   switch (status) {
     case "en_proceso":
@@ -108,9 +98,6 @@ export function getStatusLabel(status: string): string {
   }
 }
 
-/**
- * Gets the badge color according to the status
- */
 export function getStatusColor(status: string): { bg: string; text: string } {
   switch (status) {
     case "en_proceso":

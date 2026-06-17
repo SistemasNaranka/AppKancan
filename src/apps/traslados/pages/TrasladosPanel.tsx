@@ -1,4 +1,3 @@
-// Archivo: src/apps/traslados/pages/TrasladosPanel.tsx
 import React, { useMemo, useState } from "react";
 import { Box, Snackbar, Alert } from "@mui/material";
 import { PanelPendientes } from "../components/PanelPendientes";
@@ -27,11 +26,9 @@ const TrasladosPanel: React.FC = () => {
   >("todos");
   const [filtroFecha, setFiltroFecha] = useState<string | null>(null);
 
-  // ✅ Verificar si el usuario tiene la política TrasladosTiendas
   const tienePoliticaTrasladosTiendas =
     user?.policies?.includes("store_transfers") ?? false;
 
-  // ✅ Query para cargar traslados con cache automático
   const {
     data: pendientes = [],
     isLoading: loading,
@@ -47,7 +44,6 @@ const TrasladosPanel: React.FC = () => {
         throw new Error("Usuario no autenticado o datos incompletos");
       }
 
-      // ✅ Usar URL diferente si el usuario tiene política de tienda
       return await obtenerTraslados(
         String(codigo),
         String(empresa),
@@ -60,43 +56,36 @@ const TrasladosPanel: React.FC = () => {
       !!user?.ultra_code && !!user?.company && accessValidation.isValid,
   });
 
-  // ✅ Mostrar errores de la query
   React.useEffect(() => {
     if (isError && queryError) {
       setError(queryError.message || "Error al cargar traslados");
     }
   }, [isError, queryError]);
 
-  // ✅ Obtener bodegas destino únicas (incluye orígenes si es tienda para filtrar por remitente)
   const bodegasDestino = useMemo(() => {
     const bodegas = new Map<string, string>();
     const codigoUltra = user?.ultra_code?.toString();
 
     pendientes.forEach((t) => {
-      // Agregar destino si existe
       if (t.nombre_destino) {
         const label = `${t.bodega_destino} - ${t.nombre_destino}`;
         if (!bodegas.has(label)) bodegas.set(label, label);
       }
-      // Si es usuario tienda, también agregar el origen para poder filtrar "quién me envía"
       if (tienePoliticaTrasladosTiendas && t.nombre_origen) {
         const label = `${t.bodega_origen} - ${t.nombre_origen}`;
         if (!bodegas.has(label)) bodegas.set(label, label);
       }
     });
 
-    // Filtramos para no mostrar la propia bodega del usuario en la lista (evita confusión)
     return Array.from(bodegas.values())
       .filter((b) => !codigoUltra || !b.startsWith(`${codigoUltra} -`))
       .sort();
   }, [pendientes, tienePoliticaTrasladosTiendas, user?.ultra_code]);
 
-  // ✅ Filtrado por tipo (enviados/recibidos), bodega destino, nombre y fecha
   const filtrados = useMemo(() => {
     const codigoUltra = user?.ultra_code ?? "";
 
     return pendientes.filter((t) => {
-      // ✅ Filtrar por tipo: enviados (bodega_origen == codigo_ultra) o recibidos (bodega_destino == codigo_ultra)
       let coincideTipo = true;
       if (filtroTipo === "enviados") {
         coincideTipo = String(t.bodega_origen) === String(codigoUltra);
@@ -104,7 +93,6 @@ const TrasladosPanel: React.FC = () => {
         coincideTipo = String(t.bodega_destino) === String(codigoUltra);
       }
 
-      // ✅ Filtrar por Bodega (Destino u Origen según el caso en vista tienda)
       const labelDestino = `${t.bodega_destino} - ${t.nombre_destino}`;
       const labelOrigen = `${t.bodega_origen} - ${t.nombre_origen}`;
 
@@ -120,7 +108,6 @@ const TrasladosPanel: React.FC = () => {
         t.traslado?.toString().includes(filtroNombre) ||
         t.nombre_origen?.toLowerCase().includes(filtroNombre.toLowerCase()) ||
         t.nombre_destino?.toLowerCase().includes(filtroNombre.toLowerCase());
-      // ✅ Filtrar por fecha (comparar solo YYYY-MM-DD)
       const coincideFecha =
         !filtroFecha || (t.fecha && t.fecha.startsWith(filtroFecha));
 
@@ -137,7 +124,6 @@ const TrasladosPanel: React.FC = () => {
     tienePoliticaTrasladosTiendas,
   ]);
 
-  // ✅ Obtener conteos de enviados y recibidos
   const conteos = useMemo(() => {
     const codigoUltra = user?.ultra_code ?? "";
     const enviados = pendientes.filter(
@@ -166,14 +152,12 @@ const TrasladosPanel: React.FC = () => {
     };
   }, [pendientes, user?.ultra_code, tienePoliticaTrasladosTiendas]);
 
-  // ✅ Selección de traslados
   const handleToggleSeleccion = (id: number) => {
     setIdsSeleccionados((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
-  // ✅ Seleccionar/Deseleccionar todos
   const handleToggleSeleccionarTodos = (seleccionar: boolean) => {
     const idsFiltrados = filtrados.map((t) => t.traslado);
     if (seleccionar) {
@@ -185,7 +169,6 @@ const TrasladosPanel: React.FC = () => {
     }
   };
 
-  // ✅ Función que ejecuta el hijo cuando aprueba traslados
   const handleEliminarTrasladosAprobados = async (
     ids: number[],
     clave: string,
@@ -203,16 +186,6 @@ const TrasladosPanel: React.FC = () => {
         throw new Error("No se encontraron traslados para aprobar");
       }
 
-      if (import.meta.env.DEV) {
-        console.log(
-          "Informacion enviada",
-          trasladosSeleccionados,
-          user.company,
-          user.ultra_code,
-          clave,
-        );
-      }
-
       const resultado = await aprobarTraslados(
         trasladosSeleccionados,
         String(user.company),
@@ -220,7 +193,6 @@ const TrasladosPanel: React.FC = () => {
         clave,
       );
 
-      // ✅ Actualizar el cache de TanStack Query
       queryClient.setQueryData<Traslado[]>(
         ["traslados_pendientes", user?.ultra_code, user?.company],
         (old = []) => old.filter((p) => !ids.includes(p.traslado)),
@@ -237,7 +209,6 @@ const TrasladosPanel: React.FC = () => {
     }
   };
 
-  // 🔄 CAMBIO: Agregar función para reintentar la carga
   const handleRetry = () => {
     queryClient.invalidateQueries({
       queryKey: ["traslados_pendientes", user?.ultra_code, user?.company],
@@ -248,7 +219,6 @@ const TrasladosPanel: React.FC = () => {
     navigate("/");
   };
 
-  // ✅ Verificar si el usuario tiene la política que impide aprobar traslados
   const tienePoliticaTrasladosJefezona =
     user?.policies?.includes("AreaManagerTransfers") ?? false;
 

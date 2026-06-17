@@ -1,4 +1,3 @@
-// src/apps/traslados/components/AccessValidationModal.tsx
 import React from "react";
 import {
   Dialog,
@@ -20,9 +19,6 @@ interface AccessValidationModalProps {
   onHome?: () => void;
 }
 
-/**
- * Modal de validación de acceso — usa la paleta del tema actual (claro/oscuro).
- */
 export const AccessValidationModal: React.FC<AccessValidationModalProps> = ({
   open,
   errorType,
@@ -31,11 +27,9 @@ export const AccessValidationModal: React.FC<AccessValidationModalProps> = ({
   const isNoAccess = errorType === "no-access";
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  // 🎨 Usa colores del tema
   const bgColor = isNoAccess
-    ? theme.palette.background.paper // fondo si es "sin acceso"
-    : theme.palette.background.paper; // fondo si es "incompleto"
+    ? theme.palette.background.paper
+    : theme.palette.background.paper;
 
   const titleColor = isNoAccess
     ? theme.palette.error.main

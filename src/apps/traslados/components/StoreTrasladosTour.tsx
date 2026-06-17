@@ -1,8 +1,3 @@
-/**
- * StoreTrasladosTour.tsx
- * Tour guiado para usuarios con política store_transfers (vista de tienda).
- * Muestra cómo navegar y filtrar traslados en tránsito sin capacidad de aprobación.
- */
 import React, { useCallback, useEffect, useState, ReactNode } from "react";
 import Joyride, {
   CallBackProps,
@@ -17,10 +12,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import { useTrasladosTourContext } from "./TrasladosTourContext";
-
-// ============================================
-// PASOS DEL TOUR (vista tienda)
-// ============================================
 
 const STORE_TOUR_STEPS: Step[] = [
   {
@@ -148,10 +139,6 @@ const STORE_TOUR_STEPS: Step[] = [
     disableBeacon: true,
   },
 ];
-
-// ============================================
-// TOOLTIP PERSONALIZADO (mismo estilo que TrasladosTour)
-// ============================================
 
 const CustomTooltip: React.FC<TooltipRenderProps> = ({
   index,
@@ -288,10 +275,6 @@ const CustomTooltip: React.FC<TooltipRenderProps> = ({
   );
 };
 
-// ============================================
-// COMPONENTE PRINCIPAL
-// ============================================
-
 interface StoreTrasladosTourProps {
   children: ReactNode;
 }
@@ -311,7 +294,6 @@ export const StoreTrasladosTour: React.FC<StoreTrasladosTourProps> = ({
 
   const [runTour, setRunTour] = useState(false);
 
-  // Controlar cuándo corre el tour
   useEffect(() => {
     if (isFullTourRunning && tourPhase !== "COMPLETED") {
       const timer = setTimeout(() => setRunTour(true), 300);
@@ -321,7 +303,6 @@ export const StoreTrasladosTour: React.FC<StoreTrasladosTourProps> = ({
     }
   }, [isFullTourRunning, tourPhase]);
 
-  // Handle tour callbacks
   const handleJoyrideCallback = useCallback(
     (data: CallBackProps) => {
       const { status, action, type, index } = data;

@@ -34,7 +34,6 @@ export default function EditHourModal({
   const [obsInicialHoraModal, setObsInicialHoraModal] = useState('');
   const [horaObsError, setHoraObsError] = useState('');
 
-  // Sincronizar estados locales cuando se abre el modal
   useEffect(() => {
     if (open) {
       let horaDayjs = dayjs();
@@ -79,7 +78,7 @@ export default function EditHourModal({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-      <DialogTitle component="div" sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>
+      <DialogTitle component="div" sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>
         <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Editar Hora - {eventName}</Typography>
         <Typography component="span" variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>{employeeName}</Typography>
       </DialogTitle>
@@ -115,7 +114,7 @@ export default function EditHourModal({
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>
         <Button onClick={onClose} variant="outlined" color="error" sx={{ borderRadius: 2, fontWeight: 600 }}>Cancelar</Button>
-        <Button onClick={handleConfirmarHora} variant="contained" disabled={!hayCambios} sx={{ bgcolor: '#004a99', borderRadius: 2, fontWeight: 600 }}>Guardar</Button>
+        <Button onClick={handleConfirmarHora} variant="contained" disabled={!hayCambios} sx={{ bgcolor: '#004680', borderRadius: 2, fontWeight: 600 }}>Guardar</Button>
       </DialogActions>
     </Dialog>
   );

@@ -1,4 +1,3 @@
-// src/apps/pruebas/services/mapeoService.ts
 import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
@@ -12,17 +11,14 @@ import { MapeoArchivo, TiendaMapeo } from "../types/mapeo.types";
 export interface FileNameMapping {
   source_file: string;
   store_file: string;
-  terminal: string; // Nuevo campo
-  acquirer_id: string; // Nuevo campo
+  terminal: string;
+  acquirer_id: string;
   store_id: {
     id: number;
     name: string;
   };
 }
 
-/**
- * Asegura que el token esté establecido en el cliente de Directus
- */
 const asegurarToken = async () => {
   const tokens = cargarTokenStorage();
   if (tokens?.access) {
@@ -30,12 +26,8 @@ const asegurarToken = async () => {
   }
 };
 
-/**
- * Obtiene todos los registros de la tabla Mapeo_Nombres_Archivos
- */
 export const obtenerMapeosArchivos = async (): Promise<FileNameMapping[]> => {
   try {
-    // Asegurar que el token esté establecido antes de la petición
     await asegurarToken();
 
     const data = await withAutoRefresh(() =>
@@ -61,19 +53,12 @@ export const obtenerMapeosArchivos = async (): Promise<FileNameMapping[]> => {
   }
 };
 
-/**
- * Procesa los datos de Directus y los convierte en las estructuras que necesita el componente
- */
 export const procesarMapeosParaNormalizacion = (
   mapeos: FileNameMapping[]
 ): { tablasMapeo: MapeoArchivo[]; tiendaMapeos: TiendaMapeo[] } => {
 
-  // 1. Agrupar por archivo_origen para obtener los tipos de archivo únicos
   const archivoOrigenUnicos = [...new Set(mapeos.map(m => m.source_file))];
 
-  //===========================  LISTA DE COLUMNAS A ELIMINAR  ===========================//
-
-  // 2. Configuración de columnas a eliminar por tipo de archivo
   const columnasEliminarPorTipo: Record<string, string[]> = {
     "Maria Perez - Bco Occidente": [
       "RESPUESTA",
@@ -114,7 +99,7 @@ export const procesarMapeosParaNormalizacion = (
       "Tasa Aerop o Propina",
       "comisión",
       "Retenciones",
-    ],//						
+    ],					
     "Creditos": [
       "Almacén",
       "Identificación",
@@ -125,13 +110,11 @@ export const procesarMapeosParaNormalizacion = (
     ],
   };
 
-  // 3. Crear tablasMapeo con las columnas específicas para cada tipo
   const tablasMapeo: MapeoArchivo[] = archivoOrigenUnicos.map(archivoOrigen => ({
     source_file: archivoOrigen,
     columnasEliminar: columnasEliminarPorTipo[archivoOrigen] || [],
   }));
 
-  // 4. Crear tiendaMapeos (mapeo de nombres de tiendas)
   const tiendaMapeos: TiendaMapeo[] = mapeos.map(m => ({
     source_file: m.source_file,
     store_file: m.store_file,

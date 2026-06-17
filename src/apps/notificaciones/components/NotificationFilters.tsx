@@ -7,7 +7,6 @@ export default function DateRangeSelector() {
 
   const handleChange = (event: SelectChangeEvent) => {
     setRango(event.target.value);
-    console.log("Filtrar por días:", event.target.value);
   };
 
   return (
@@ -16,7 +15,6 @@ export default function DateRangeSelector() {
         value={rango}
         onChange={handleChange}
         displayEmpty
-        // Usamos startAdornment para encajar el icono de calendario a la izquierda
         startAdornment={
           <CalendarMonthIcon sx={{ color: '#64748b', fontSize: '1.1rem', ml: 1, mr: -0.5 }} />
         }
@@ -28,13 +26,11 @@ export default function DateRangeSelector() {
           fontSize: '0.85rem',
           height: '38px',
           boxShadow: 'none',
-          // Forzamos el borde gris claro idéntico a tu diseño anterior
           border: '1px solid #e2e8f0', 
           '&:hover': {
             borderColor: '#cbd5e1',
             bgcolor: '#f8fafc',
           },
-          // Quitamos las líneas molestas por defecto que rompen el diseño en MUI
           '.MuiOutlinedInput-notchedOutline': { border: 'none' },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 'none' },
           '& .MuiSelect-select': {
@@ -43,10 +39,9 @@ export default function DateRangeSelector() {
             gap: 1,
             py: 0,
             pl: 1,
-            pr: '32px !important', // Espacio para que la flecha nativa de la derecha no pise el texto
+            pr: '32px !important',
           },
         }}
-        // Estilos para el menú desplegable cuando se abre
         MenuProps={{
           PaperProps: {
             sx: {

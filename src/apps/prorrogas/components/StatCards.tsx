@@ -3,22 +3,18 @@ import { Box, Card, CardContent, Grid, Typography, Stack } from '@mui/material';
 import { useContracts } from '../hooks/useContracts';
 import { useContractContext } from '../contexts/ContractContext';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// StatCards
-// ─────────────────────────────────────────────────────────────────────────────
 
 const StatCards: React.FC = () => {
 
-const { filteredContratos: contratos, setTab, filters } = useContractContext();
+const { filteredContracts: contracts, setTab, filters } = useContractContext();
 
-const activos       = contratos.filter((c) => c.contractStatus === 'vigente').length;
-const porVencer     = contratos.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 30).length;
-const criticos      = contratos.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 7).length;
-const vencidos      = contratos.filter((c) => c.contractStatus === 'vencido').length;
+const activos       = contracts.filter((c) => c.contractStatus === 'vigente').length;
+const porVencer     = contracts.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 30).length;
+const criticos      = contracts.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 7).length;
+const vencidos      = contracts.filter((c) => c.contractStatus === 'vencido').length;
 
-  // Contratos creados este mes (usa date_created del contrato)
   const thisMonth = new Date();
-  const nuevosEsteMes = contratos.filter((c) => {
+  const nuevosEsteMes = contracts.filter((c) => {
     if (!c.date_created) return false;
     const d = new Date(c.date_created);
     return d.getFullYear() === thisMonth.getFullYear() && d.getMonth() === thisMonth.getMonth();

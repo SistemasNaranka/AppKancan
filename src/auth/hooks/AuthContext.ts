@@ -16,14 +16,13 @@ export type User = {
   ultra_code: string;
   rol?: string;
   store_id?: string | number;
+  store_name?: string;
   policies?: string[];
   requires_password_change?: boolean;
   ia_key?: string; // API key de Gemini para extracción de facturas (encriptada en Directus)
   models_ia?: any; // Modelos de IA a usar para extracción en formato JSON (ej: [{"name": "gemini-3.1-flash-lite"}, ...])
 } | null;
-/**
- *  Tipado de los valores que otorgara el Provider a sus hijos
- */
+
 export type AuthContextType = {
   user: User;
   loading: boolean;
@@ -31,9 +30,7 @@ export type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
-/**
- *  Contexto que abarca sobre los datos del autenticado
- */
+
 // Creacion de contexto
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined,

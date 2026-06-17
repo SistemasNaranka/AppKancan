@@ -1,8 +1,6 @@
-// src/apps/contactos/types/contact.ts
-
 export interface Contactos {
   id: number;
-  date_created?: string;    // ← agregado
+  date_created?: string;
   full_name: string;
   phone_number: string;
   email: string;

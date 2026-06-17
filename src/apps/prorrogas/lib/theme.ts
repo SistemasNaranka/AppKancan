@@ -1,10 +1,5 @@
 import { createTheme } from '@mui/material/styles';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// THEME — El Archivero Digital
-// Color primario de marca: #004680
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const theme = createTheme({
   palette: {
     primary: {
@@ -33,8 +28,6 @@ export const theme = createTheme({
   },
 
   typography: {
-    // Instala la fuente en index.html:
-    // <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     fontFamily: '"Plus Jakarta Sans", "DM Sans", "Segoe UI", sans-serif',
     h4: { fontWeight: 800, color: '#1a2535' },
     h5: { fontWeight: 700, color: '#1a2535' },

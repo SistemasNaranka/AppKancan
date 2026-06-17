@@ -26,9 +26,7 @@ function refreshTokensOnce(refreshToken: string): Promise<void> {
   return refreshInFlight;
 }
 
-/**
- * Interceptor que verifica y refresca el token antes de cada petición
- */
+
 export async function ensureValidToken(): Promise<void> {
   const tokens = cargarTokenStorage();
   // Si no hay tokens, no hacer nada (el usuario no está autenticado)
@@ -60,9 +58,7 @@ export async function ensureValidToken(): Promise<void> {
   }
 }
 
-/**
- * Wrapper para directus.request que hace refresh automático si es necesario
- */
+
 export async function requestWithAutoRefresh<T>(
   requestFn: () => Promise<T>,
 ): Promise<T> {
@@ -106,19 +102,7 @@ export async function requestWithAutoRefresh<T>(
   }
 }
 
-/**
- * Función helper para usar con directus.request
- *
- * Uso:
- * ```typescript
- * import { withAutoRefresh } from "@/services/directus/directusInterceptor";
- * import { readItems } from "@directus/sdk";
- *
- * const items = await withAutoRefresh(() =>
- *   directus.request(readItems('empresas'))
- * );
- * ```
- */
+
 export async function withAutoRefresh<T>(
   directusRequest: () => Promise<T>,
 ): Promise<T> {

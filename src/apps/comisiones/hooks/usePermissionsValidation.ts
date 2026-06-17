@@ -33,14 +33,12 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
 
   const validatePermissionsAndStores = async () => {
     try {
-      // 1. Verificar si tiene permiso readComisionesTienda
       const hasPermission = canAssignEmployees();
       if (!hasPermission) {
         setError("No tienes permisos para asignar empleados");
         return;
       }
 
-      // 2. Verificar tiendas del usuario
       const tiendas = await  getStores();
       setTiendasCount(tiendas.length);
 
@@ -49,7 +47,6 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
         return;
       }
 
-      // 3. Si tiene más de 1 tienda, mostrar aviso y redirigir
       if (tiendas.length > 1) {
         setShowMultipleStoresWarning(true);
         setError(
@@ -58,7 +55,6 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
         return;
       }
 
-      // 4. Si tiene exactamente 1 tienda, guardar la información completa de la tienda del usuario
       setTiendaUsuario(tiendas[0]);
       setHasPermission(true);
       setValidationCompleted(true);
@@ -70,7 +66,6 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
   };
 
   const handleCloseAndRedirect = (onClose: () => void, navigate: any) => {
-    // Solo redirigir si realmente hay múltiples tiendas
     if (showMultipleStoresWarning) {
       setShowMultipleStoresWarning(false);
       setValidationCompleted(false);
@@ -78,7 +73,6 @@ export const usePermissionsValidation = (): UsePermissionsValidationReturn => {
       onClose();
       navigate("/home");
     } else {
-      // Si no hay múltiples tiendas, simplemente cerrar sin redirigir
       onClose();
     }
   };

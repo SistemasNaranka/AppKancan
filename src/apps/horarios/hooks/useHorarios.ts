@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { EmpleadoAsistencia, TipoNovedad, NovedadMapeada, RegistrosAsistencia } from '../interfaces/horarios.interface';
-import { getEmpleados, getNovedades, getTiposNovedad, getTimeRecords } from '../api/directus/read';
+import { getEmpleados, getNovedades, getTiposNovedad, getTimeRecords, getStoreIdUsuarioActual } from '../api/directus/read';
 import { createNovedades, createTimeRecord, updateTimeRecord } from '../api/directus/create';
 import dayjs from 'dayjs';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
-
-const STORE_ID = 90;
 
 export const useHorarios = () => {
   const queryClient = useQueryClient();
@@ -14,10 +12,17 @@ export const useHorarios = () => {
   const { showSnackbar } = useGlobalSnackbar();
   const hoy = dayjs().format('YYYY-MM-DD');
 
-  // ─── QUERIES ──────────────────────────────────────────────
+  const { data: STORE_ID = null } = useQuery<number | null>({
+    queryKey: ['horariosStoreId'],
+    queryFn: getStoreIdUsuarioActual,
+    staleTime: 30 * 60 * 1000,
+  });
+  const tieneTienda = STORE_ID != null;
+
   const { data: empleadosDB = [], isLoading: loadingEmpleados, error: errorE } = useQuery<EmpleadoAsistencia[]>({
     queryKey: ['empleados', STORE_ID],
-    queryFn: () => getEmpleados(STORE_ID),
+    queryFn: () => getEmpleados(STORE_ID as number),
+    enabled: tieneTienda,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
@@ -29,16 +34,17 @@ export const useHorarios = () => {
   });
 
   const { data: novedadesDB = [], error: errorN } = useQuery<any[]>({
-    queryKey: ['novedades'],
-    queryFn: getNovedades,
+    queryKey: ['novedades', STORE_ID],
+    queryFn: () => getNovedades(STORE_ID as number),
+    enabled: tieneTienda,
   });
 
   const { data: timeRecords = [], isLoading: loadingTimeRecords, error: errorTime } = useQuery<any[]>({
     queryKey: ['timeRecords', STORE_ID, hoy],
-    queryFn: () => getTimeRecords(STORE_ID, hoy),
+    queryFn: () => getTimeRecords(STORE_ID as number, hoy),
+    enabled: tieneTienda,
   });
 
-  // ─── FILTRADO DE EMPLEADOS CON NOVEDAD HOY ────────────────
   const idsConNovedadHoy = (novedadesDB || [])
     .map((nov: any) => {
       const empId = nov.employee_id?.id || nov.employee_id;
@@ -49,7 +55,6 @@ export const useHorarios = () => {
     })
     .filter(Boolean);
 
-  // ─── MAQUEO DE EMPLEADOS CON REGISTROS DE TIEMPO ──────────
   const empleadosMapeados: EmpleadoAsistencia[] = empleadosDB.map((emp) => {
     const records = timeRecords.filter(
       (r) => Number(r.employee_id?.id || r.employee_id) === Number(emp.id)
@@ -121,12 +126,11 @@ export const useHorarios = () => {
 
   const empleados = empleadosMapeados.filter((emp) => !idsConNovedadHoy.includes(String(emp.id)));
 
-  // ─── MUTACIONES ───────────────────────────────────────────
   const noveltyMutation = useMutation({
     mutationFn: createNovedades,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['novedades'] });
-      queryClient.invalidateQueries({ queryKey: ['empleados', STORE_ID] });
+      queryClient.invalidateQueries({ queryKey: ['empleados'] });
       showSnackbar('Novedad registrada con éxito', 'success');
     },
     onError: (err: any) => {
@@ -138,7 +142,7 @@ export const useHorarios = () => {
   const createTimeRecordMutation = useMutation({
     mutationFn: createTimeRecord,
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ['timeRecords', STORE_ID, hoy] });
+      queryClient.invalidateQueries({ queryKey: ['timeRecords'] });
       showSnackbar(`Registro de "${data?.log_type || 'asistencia'}" guardado con éxito`, 'success');
     },
     onError: (err: any) => {
@@ -147,12 +151,11 @@ export const useHorarios = () => {
     }
   });
 
-  // ✅ Mutación que permite actualizar tanto observación como hora
   const updateTimeRecordMutation = useMutation({
     mutationFn: ({ id, observations, record_time, updated_record_time }: { id: number; observations?: string; record_time?: string; updated_record_time?: string }) =>
       updateTimeRecord(id, { observations, record_time, updated_record_time }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeRecords', STORE_ID, hoy] });
+      queryClient.invalidateQueries({ queryKey: ['timeRecords'] });
       showSnackbar('Registro actualizado correctamente', 'success');
     },
     onError: (err: any) => {
@@ -161,7 +164,6 @@ export const useHorarios = () => {
     }
   });
 
-  // ─── FUNCIÓN PRINCIPAL: REGISTRAR EVENTO (edita o crea) ───
   const registrarEvento = async (
     idEmpleado: string,
     tipoEvento: string,
@@ -191,7 +193,7 @@ export const useHorarios = () => {
       } else {
         await createTimeRecordMutation.mutateAsync({
           employee_id: Number(idEmpleado),
-          store_id: STORE_ID,
+          store_id: STORE_ID as number,
           log_type: tipoEvento,
           record_date: recordDate,
           record_time: recordTime,
@@ -234,9 +236,9 @@ export const useHorarios = () => {
 
   const resetHorarios = () => {
     setError(null);
-    queryClient.invalidateQueries({ queryKey: ['empleados', STORE_ID] });
+    queryClient.invalidateQueries({ queryKey: ['empleados'] });
     queryClient.invalidateQueries({ queryKey: ['novedades'] });
-    queryClient.invalidateQueries({ queryKey: ['timeRecords', STORE_ID, hoy] });
+    queryClient.invalidateQueries({ queryKey: ['timeRecords'] });
   };
 
   const agregarNovedad = async (novedad: {
@@ -277,7 +279,7 @@ export const useHorarios = () => {
           newness_id: Number(tipoEncontrado.id),
           report_date: current.format('YYYY-MM-DD'),
           observations: novedad.observaciones || '',
-          store_id: STORE_ID,
+          store_id: STORE_ID as number,
         });
         current = current.add(1, 'day');
       }
@@ -290,14 +292,19 @@ export const useHorarios = () => {
     }
   };
 
-  // ─── MAPEO DE NOVEDADES PARA LA TABLA ─────────────────────
   const novedadesMapped: NovedadMapeada[] = (novedadesDB || []).map((nov: any) => {
     const empId = nov.employee_id?.id || nov.employee_id;
     const empLocal = empleadosDB.find((e) => String(e.id) === String(empId));
     
     let nombreEmpleado = `Empleado #${empId || ''}`;
     if (nov.employee_id?.first_name) {
-      nombreEmpleado = `${nov.employee_id.first_name} ${nov.employee_id.last_name || ""}`.trim();
+      const parts = [
+        nov.employee_id.first_name,
+        nov.employee_id.middle_name,
+        nov.employee_id.last_name,
+        nov.employee_id.second_last_name
+      ].filter(part => part && part.trim() !== "");
+      nombreEmpleado = parts.join(" ").trim() || `Empleado #${empId || ''}`;
     } else if (empLocal) {
       nombreEmpleado = empLocal.nombre;
     }

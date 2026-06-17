@@ -1,12 +1,5 @@
-// ============================================
-// CONSTANTES, TIPOS Y UTILIDADES PARA ENVIOSPAGE
-// ============================================
-
 import type { FilaMatrizGeneral, FilaDetalleProducto } from '../types';
 
-// ─────────────────────────────────────────────
-// Brand & Design Tokens
-// ─────────────────────────────────────────────
 export const BRAND = {
   primary: '#006ACC',
   dark: '#004680',
@@ -16,10 +9,6 @@ export const BRAND = {
 
 export const MAIN_FONT = "'Inter', sans-serif";
 export const MONO_FONT = "'Roboto Mono', 'Consolas', monospace";
-
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
 export type SheetCategory = 'general' | 'producto_a' | 'producto_b';
 
 export interface SheetData {
@@ -59,18 +48,12 @@ export interface ConfirmedEntry {
   columnTotals: Record<string, number>;
 }
 
-// ─────────────────────────────────────────────
-// Category config
-// ─────────────────────────────────────────────
 export const CATEGORY_CONFIG: Record<SheetCategory, { label: string; icon: React.ReactNode; accent: string; chipColor: string }> = {
   general: { label: 'Textil', icon: null as any, accent: BRAND.primary, chipColor: BRAND.bg },
   producto_a: { label: 'Calzado/Bolso', icon: null as any, accent: '#0891b2', chipColor: '#e0f7fa' },
   producto_b: { label: 'Calzado/Bolso', icon: null as any, accent: BRAND.dark, chipColor: BRAND.bg },
 };
 
-// ─────────────────────────────────────────────
-// Audio feedback (Web Audio API)
-// ─────────────────────────────────────────────
 export const playBeep = (type: 'success' | 'error') => {
   try {
     const ctx = new AudioContext();
@@ -93,9 +76,6 @@ export const playBeep = (type: 'success' | 'error') => {
   } catch { /* AudioContext not supported */ }
 };
 
-// ─────────────────────────────────────────────
-// Validation styles helper
-// ─────────────────────────────────────────────
 export const getValidationStyles = (valRef: number, valInput: number) => {
   if (valInput === 0 && valRef === 0) return { bgcolor: 'transparent', color: '#94a3b8', borderColor: 'transparent', indicator: 'none' as const };
   if (valInput === 0 && valRef !== 0) return { bgcolor: '#ffffff', color: '#64748b', borderColor: 'transparent', indicator: 'pending' as const };
@@ -104,9 +84,6 @@ export const getValidationStyles = (valRef: number, valInput: number) => {
   return { bgcolor: '#fee2e2', color: '#991b1b', borderColor: '#fca5a5', indicator: 'over' as const };
 };
 
-// ─────────────────────────────────────────────
-// Reference cleaning utility
-// ─────────────────────────────────────────────
 export const cleanRefStr = (raw: string): string => {
   return raw
     .split('|')[0]
@@ -115,9 +92,6 @@ export const cleanRefStr = (raw: string): string => {
     .trim();
 };
 
-// ─────────────────────────────────────────────
-// Stats calculation
-// ─────────────────────────────────────────────
 export const calculateStats = (
   filas: any[],
   validationData: Record<string, any>,
@@ -144,9 +118,6 @@ export const calculateStats = (
   };
 };
 
-// ─────────────────────────────────────────────
-// Mirror column totals calculation
-// ─────────────────────────────────────────────
 export const calculateMirrorColumnTotals = (
   columns: string[],
   filas: any[],
@@ -170,9 +141,6 @@ export const calculateMirrorColumnTotals = (
   return totals;
 };
 
-// ─────────────────────────────────────────────
-// Lock checking utilities (pure functions)
-// ─────────────────────────────────────────────
 export const checkIsLockedByOther = (
   filaId: string,
   filas: any[],
@@ -207,9 +175,6 @@ export const checkIsLockedByMe = (
   return !!(rowLock && String(lockUserId) === String(user?.id));
 };
 
-// ─────────────────────────────────────────────
-// Get lock info for a row
-// ─────────────────────────────────────────────
 export const getRowLockInfo = (
   fila: any,
   currentRef: string,

@@ -36,7 +36,6 @@ export interface StoreData {
 }
 
 export interface UseStoreManagementReturn extends StoreData {
-  // Estados
   setTienda: (tienda: DirectusTienda | null) => void;
   setPresupuesto: (presupuesto: string) => void;
   setFecha: (fecha: string) => void;
@@ -45,7 +44,6 @@ export interface UseStoreManagementReturn extends StoreData {
   setError: (error: string | null) => void;
   setSuccess: (success: string | null) => void;
 
-  // Handlers
   handleAddEmpleado: (empleado: DirectusStaff) => void;
   handleRemoveEmpleado: (empleadoId: number) => void;
   handleSaveChanges: () => Promise<void>;
@@ -54,11 +52,9 @@ export interface UseStoreManagementReturn extends StoreData {
   clearMessages: () => void;
   recalcularDatos: () => void;
 
-  // Helpers
   getStoreEmployees: (tiendaId: number) => Promise<DirectusStaff[]>;
   validateForm: () => boolean;
 
-  // Callback para actualizar datos principales
   onSaveComplete?: () => void;
 }
 
@@ -68,7 +64,6 @@ export const useStoreManagement = (
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Estados principales
   const [tienda, setTienda] = useState<DirectusTienda | null>(null);
   const [presupuesto, setPresupuesto] = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
@@ -82,11 +77,9 @@ export const useStoreManagement = (
   const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Estado de datos base
   const [tiendas, setTiendas] = useState<DirectusTienda[]>([]);
   const [cargos, setCargos] = useState<DirectusPosition[]>([]);
 
-  // Cargar datos base al inicializar
   useEffect(() => {
     loadBaseData();
   }, []);
@@ -107,7 +100,6 @@ export const useStoreManagement = (
     }
   };
 
-  // Obtener empleados de una tienda específica
   const getStoreEmployees = useCallback(async (tiendaId: number) => {
     try {
       const asesoresData = await obtenerAsesores();
@@ -124,7 +116,6 @@ export const useStoreManagement = (
     }
   }, []);
 
-  // Cargar datos de una tienda específica
   const handleLoadStoreData = useCallback(
     async (tiendaId: number, selectedFecha: string) => {
       try {
@@ -132,7 +123,6 @@ export const useStoreManagement = (
         setError(null);
         setSuccess(null);
 
-        // Encontrar la tienda
         const tiendaData = tiendas.find((t) => t.id === tiendaId);
         if (!tiendaData) {
           setError("Tienda no encontrada");
@@ -140,11 +130,9 @@ export const useStoreManagement = (
         }
         setTienda(tiendaData);
 
-        // Cargar empleados de la tienda
         const empleadosTienda = await getStoreEmployees(tiendaId);
         setEmpleados(empleadosTienda);
 
-        // Obtener presupuesto diario de la tienda para la fecha desde la API
         try {
           const presupuestosDiarios = await obtenerPresupuestosDiarios(
             tiendaId,
@@ -164,10 +152,8 @@ export const useStoreManagement = (
           setPresupuesto("0");
         }
 
-        // Establecer empleados seleccionados como todos los empleados de la tienda
         setEmpleadosSeleccionados(empleadosTienda);
 
-        // Establecer fecha
         setFecha(selectedFecha);
 
         setSuccess("Datos de la tienda cargados correctamente");
@@ -180,7 +166,6 @@ export const useStoreManagement = (
     [tiendas, getStoreEmployees],
   );
 
-  // Agregar empleado a la selección
   const handleAddEmpleado = useCallback(
     (empleado: DirectusStaff) => {
       if (!empleadosSeleccionados.find((emp) => emp.id === empleado.id)) {
@@ -191,14 +176,12 @@ export const useStoreManagement = (
     [empleadosSeleccionados],
   );
 
-  // Remover empleado de la selección
   const handleRemoveEmpleado = useCallback((empleadoId: number) => {
     setEmpleadosSeleccionados((prev) =>
       prev.filter((emp) => emp.id !== empleadoId),
     );
   }, []);
 
-  // Limpiar formulario
   const handleClearForm = useCallback(() => {
     setTienda(null);
     setPresupuesto("");
@@ -210,7 +193,6 @@ export const useStoreManagement = (
     setSuccess(null);
   }, []);
 
-  // Validar formulario
   const validateForm = useCallback(() => {
     if (!tienda) {
       setError("Debe seleccionar una tienda");
@@ -231,7 +213,6 @@ export const useStoreManagement = (
     return true;
   }, [tienda, presupuesto, fecha, empleadosSeleccionados]);
 
-  // Guardar cambios
   const handleSaveChanges = useCallback(async () => {
     if (!validateForm()) {
       return;
@@ -246,7 +227,6 @@ export const useStoreManagement = (
       const presupuestoPorEmpleado =
         presupuestoTotal / empleadosSeleccionados.length;
 
-      // 1. Guardar/Actualizar presupuesto diario de la tienda
       const presupuestoTienda = {
         store_id: tienda!.id,
         budget: presupuestoTotal,
@@ -255,10 +235,8 @@ export const useStoreManagement = (
 
       await guardarPresupuestosTienda([presupuestoTienda] as any);
 
-      // 2. Eliminar presupuestos existentes de empleados para esta fecha y tienda
       await eliminarPresupuestosEmpleados(tienda!.id, fecha);
 
-      // 3. Crear nuevos presupuestos para cada empleado seleccionado
       const nuevosPresupuestosEmpleados = empleadosSeleccionados.map(
         (empleado) => ({
           advisor_id: empleado.id,
@@ -277,13 +255,10 @@ export const useStoreManagement = (
       setPresupuestosEmpleados(nuevosPresupuestosEmpleados);
       setSuccess("Cambios guardados correctamente");
 
-      // Recalcular datos después de guardar
       recalcularDatos();
 
-      // Invalidar cache de React Query para actualizar datos en tiempo real
       queryClient.invalidateQueries({ queryKey: ["commission-data"] });
 
-      // Llamar callback para actualizar datos principales del sistema
       if (onSaveComplete) {
         onSaveComplete();
       }
@@ -295,7 +270,6 @@ export const useStoreManagement = (
     }
   }, [tienda, presupuesto, fecha, empleadosSeleccionados, validateForm]);
 
-  // Recalcular datos (simulado)
   const recalcularDatos = useCallback(() => {
     if (!tienda || !presupuesto || empleadosSeleccionados.length === 0) {
       return;
@@ -310,12 +284,9 @@ export const useStoreManagement = (
         parseFloat(presupuesto) / empleadosSeleccionados.length,
     };
 
-    console.log("Datos recalculados:", datosRecalculados);
-
     setSuccess("Datos recalculados correctamente");
   }, [tienda, presupuesto, empleadosSeleccionados, fecha]);
 
-  // Verificar si se puede guardar
   const canSave = useCallback(() => {
     return (
       tienda !== null &&
@@ -326,13 +297,11 @@ export const useStoreManagement = (
     );
   }, [tienda, presupuesto, fecha, empleadosSeleccionados]);
 
-  // Limpiar mensajes
   const clearMessages = useCallback(() => {
     setError(null);
     setSuccess(null);
   }, []);
 
-  // Manejar cambios
   const handlePresupuestoChange = useCallback(
     (value: string) => {
       setPresupuesto(value);
@@ -350,7 +319,6 @@ export const useStoreManagement = (
   );
 
   return {
-    // Estados
     tienda,
     presupuesto,
     fecha,
@@ -362,8 +330,6 @@ export const useStoreManagement = (
     success,
     canSave: canSave(),
     saving,
-
-    // Setters
     setTienda,
     setPresupuesto: handlePresupuestoChange,
     setFecha: handleFechaChange,
@@ -371,8 +337,6 @@ export const useStoreManagement = (
     setLoading,
     setError,
     setSuccess,
-
-    // Handlers
     handleAddEmpleado,
     handleRemoveEmpleado,
     handleSaveChanges,
@@ -380,8 +344,6 @@ export const useStoreManagement = (
     handleClearForm,
     clearMessages,
     recalcularDatos,
-
-    // Helpers
     getStoreEmployees,
     validateForm,
     onSaveComplete,

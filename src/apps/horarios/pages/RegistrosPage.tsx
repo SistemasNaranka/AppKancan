@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box, Typography, IconButton, Tooltip, Tabs, Tab, Paper, Avatar,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -33,6 +33,13 @@ import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
 import HistorialPage from '../pages/HistorialPage';
+import { HorariosTourProvider, useHorariosTour, HorariosTab } from '../components/tour/HorariosTourContext';
+import { HorariosTour } from '../components/tour/HorariosTour';
+import TutorialButton from '../components/tour/TutorialButton';
+import { useAuth } from '@/auth/hooks/useAuth';
+
+
+const MALLA_HORARIA_HABILITADA = false;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -63,6 +70,21 @@ const getIconForTipo = (tipo: any) => {
   return <AssignmentIcon fontSize="small" sx={{ color: '#64748b' }} />;
 };
 
+const AVATAR_COLORS = [
+  '#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777',
+  '#0891b2', '#4f46e5', '#ca8a04', '#dc2626', '#059669',
+  '#2563eb', '#9333ea',
+];
+
+const getAvatarColor = (texto: string) => {
+  const str = String(texto || '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+};
+
 const getChipColor = (tipo: any) => {
   const tipoLower = String(tipo || '').toLowerCase();
   if (tipoLower.includes('descanso')) return { bg: '#e0f2fe', text: '#0284c7' };
@@ -78,22 +100,35 @@ const getChipColor = (tipo: any) => {
   return { bg: '#f8fafc', text: '#64748b' };
 };
 
-export default function RegistrosPage() {
+const toTitleCase = (str: string) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+function RegistrosPageContent() {
+  const { user } = useAuth();
   const {
     empleados, novedades, tiposNovedad, loading, error,
     registrarEvento, resetHorarios, eliminarEmpleado,
     guardarObservacion, agregarNovedad,
   } = useHorarios();
 
+  const { setTabChangeCallback } = useHorariosTour();
   const [tabValue, setTabValue] = useState(0);
+
+  useEffect(() => {
+    setTabChangeCallback((tab: HorariosTab) => setTabValue(tab));
+  }, [setTabChangeCallback]);
   const [page, setPage] = useState(0);
   const rowsPerPage = 5;
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false); // Estado del buscador expandible
   const [fechaFiltro, setFechaFiltro] = useState<Dayjs | null>(null);
 
-  const titulosTab = ['Registros de Asistencia', 'Registro de Novedades', 'Historial de Asistencia', 'Malla Horaria'];
   const subtitulosTab = [
     'Gestiona las marcaciones de asistencia del día',
     'Gestiona y revisa las incidencias de asistencia en tiempo real',
@@ -121,51 +156,164 @@ export default function RegistrosPage() {
     }
   };
 
+  const getIconoPrincipal = () => {
+    const iconSx = { fontSize: 26 };
+    switch (tabValue) {
+      case 0: return <EventNoteIcon sx={iconSx} />;
+      case 1: return <AssignmentIcon sx={iconSx} />;
+      case 2: return <HistoryIcon sx={iconSx} />;
+      case 3: return <GridViewIcon sx={iconSx} />;
+      default: return <EventNoteIcon sx={iconSx} />;
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress size={50} sx={{ color: '#004a99' }} />
+        <CircularProgress size={50} sx={{ color: '#004680' }} />
         <Typography color="#64748b" fontWeight={600}>Cargando datos del servidor...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: 'transparent', px: { xs: 2, md: 4 }, pt: 4, pb: 4 }}>
+    <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: 'transparent', px: { xs: 2, md: 4 }, pt: 2, pb: 4 }}>
       {error && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
-      {/* Tarjeta de Tabs: mb: 3 (24px) iguala el respiro vertical con el resto de tarjetas */}
-      <Paper elevation={0} sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 2.5, mb: 3, bgcolor: '#fff' }}>
+      <Paper elevation={0} sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 1, mb: 2, bgcolor: '#fff' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, bgcolor: '#fff', p: { xs: 1.5, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#004a99', fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
-              {getTituloPrincipal()}
-            </Typography>
-            <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.2 }}>
-              {subtitulosTab[tabValue]}
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
+            {/* Badge de ícono que ancla el título y refuerza el contexto de la pestaña activa */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: { xs: 40, md: 48 },
+                height: { xs: 40, md: 48 },
+                borderRadius: 2.5,
+                flexShrink: 0,
+                color: '#004680',
+                bgcolor: '#eaf2fb',
+                border: '1px solid #d6e6f7',
+              }}
+            >
+              {getIconoPrincipal()}
+            </Box>
+            <Box>
+              <Typography sx={{ fontWeight: 700, color: '#0f2c4a', lineHeight: 1.2, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
+                {getTituloPrincipal()}{user?.store_name ? ` - ${toTitleCase(user.store_name)}` : ''}
+              </Typography>
+              <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mt: 0.4, lineHeight: 1.35 }}>
+                {subtitulosTab[tabValue]}
+              </Typography>
+            </Box>
           </Box>
-          <Tooltip title="Reiniciar todos los registros">
-            <IconButton onClick={resetHorarios} sx={{ bgcolor: '#004a99', color: '#fff', borderRadius: 2, width: 32, height: 32, '&:hover': { bgcolor: '#003366' } }}>
-              <RefreshIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <TutorialButton />
+            <Tooltip title="Actualizar registros">
+              <Button
+                className="tour-refresh"
+                onClick={resetHorarios}
+                variant="contained"
+                disableElevation
+                startIcon={<RefreshIcon sx={{ fontSize: 18 }} />}
+                sx={{
+                  bgcolor: '#004680',
+                  color: '#fff',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  px: 2,
+                  py: 0.75,
+                  boxShadow: 'none',
+                  '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
+                }}
+              >
+                Actualizar
+              </Button>
+            </Tooltip>
+          </Box>
         </Box>
 
-        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" sx={{ px: { xs: 1, md: 2 }, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', py: 1, minHeight: 40, color: '#64748b', '&.Mui-selected': { color: '#004a99' } }, '& .MuiTabs-indicator': { backgroundColor: '#004a99', height: 3 } }}>
-          <Tab icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
-          <Tab icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
-          <Tab icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
-          <Tab icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" />
-        </Tabs>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: { xs: 1, md: 2 } }}>
+          <Tabs
+            className="tour-tabs"
+            value={tabValue}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons={false}
+            TabIndicatorProps={{ sx: { display: 'none' } }}
+            sx={{
+              px: { xs: 1, md: 1.5 },
+              py: 1.25,
+              minHeight: 'auto',
+              flex: 1,
+              '& .MuiTabs-flexContainer': { gap: 1 },
+              '& .MuiTabs-scrollButtons.Mui-disabled': { display: 'none' },
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                letterSpacing: '0.2px',
+                minHeight: 40,
+                borderRadius: '10px',
+                px: 2,
+                color: '#64748b',
+                boxShadow: 'none',
+                transition: 'background-color 0.2s ease, color 0.2s ease',
+                '& .MuiTab-iconWrapper': { mr: 0.75 },
+                '&:hover': { backgroundColor: '#eef4fb', color: '#004680', boxShadow: 'none' },
+                '&.Mui-selected': {
+                  color: '#fff',
+                  backgroundColor: '#004680',
+                  boxShadow: 'none',
+                },
+                '&.Mui-selected:hover': { backgroundColor: '#003a6b', boxShadow: 'none' },
+              },
+            }}
+          >
+            <Tab icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
+            <Tab icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
+            <Tab icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
+            {/* La pestaña permanece en el árbol (oculta) para conservar la alineación de índices con sus TabPanel */}
+            <Tab icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
+          </Tabs>
+
+          {tabValue === 0 && (
+            <Chip
+              label={`Total Empleados: ${empleados.length}`}
+              sx={{
+                bgcolor: '#eaf2fb',
+                color: '#004680',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                borderRadius: '8px',
+                border: '1px solid #d6e6f7',
+                ml: 2,
+                height: 32,
+                px: 0.5,
+              }}
+            />
+          )}
+        </Box>
       </Paper>
 
       <TabPanel value={tabValue} index={0}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)'
+          },
+          gap: 3,
+          width: '100%'
+        }}>
           {empleados.map((empleado) => (
             <EmployeeCard
               key={empleado.id}
@@ -190,98 +338,90 @@ export default function RegistrosPage() {
         <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #eef2f6', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
           {/* Cabecera con filtros */}
           <Box sx={{ p: 2, bgcolor: '#ffffff', borderBottom: '1px solid #eef2f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#004a99', fontSize: '1rem' }}>
-              Novedades registradas
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
-              
-              {/* RESTAURADO: BUSCADOR EXPANDIBLE Y ANIMADO CON ÍCONO AL LADO DERECHO */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
               <Box
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 2,
+                  flexShrink: 0,
+                  color: '#004680',
+                  bgcolor: '#eaf2fb',
+                  border: '1px solid #d6e6f7',
+                }}
+              >
+                <AssignmentIcon sx={{ fontSize: 19 }} />
+              </Box>
+              <Typography sx={{ fontWeight: 700, color: '#0f2c4a', fontSize: '1rem', lineHeight: 1.2 }}>
+                Novedades registradas
+              </Typography>
+              <Chip
+                label={novedadesFiltradas.length}
+                size="small"
+                sx={{ height: 22, fontWeight: 700, fontSize: '0.72rem', bgcolor: '#eaf2fb', color: '#004680' }}
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
+              <Box
+                className="tour-nov-search"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'flex-end',
-                  width: isSearchOpen ? { xs: '100%', sm: 280, md: 350 } : 38,
-                  transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  width: { xs: '100%', sm: 280, md: 350 },
                   height: 38,
                 }}
               >
-                {!isSearchOpen ? (
-                  <Tooltip title="Buscar empleado">
-                    <IconButton
-                      onClick={() => setIsSearchOpen(true)}
-                      sx={{
-                        bgcolor: '#f1f7fe',
-                        color: '#475569',
-                        borderRadius: 2,
-                        width: 38,
-                        height: 38,
-                        border: '1px solid #cbd5e1',
-                        '&:hover': { bgcolor: '#e2e8f0', borderColor: '#94a3b8' }
-                      }}
-                    >
-                      <PersonSearchIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                  </Tooltip>
-                ) : (
-                  <TextField
-                    autoFocus
-                    size="small"
-                    placeholder="Nombre del empleado..."
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end" sx={{ gap: 0.5 }}>
-                          {searchQuery && (
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSearchQuery('');
-                                setPage(0);
-                              }}
-                            >
-                              <ClearIcon sx={{ fontSize: 16, color: '#8a9bb5' }} />
-                            </IconButton>
-                          )}
+                <TextField
+                  size="small"
+                  placeholder="Nombre del empleado..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end" sx={{ gap: 0.5 }}>
+                        {searchQuery && (
                           <IconButton
                             size="small"
                             onClick={() => {
                               setSearchQuery('');
-                              setIsSearchOpen(false); // Cierra y encoge al oprimir la lupa
                               setPage(0);
                             }}
-                            edge="end"
                           >
-                            <PersonSearchIcon sx={{ color: '#004a99', fontSize: 20 }} />
+                            <ClearIcon sx={{ fontSize: 16, color: '#8a9bb5' }} />
                           </IconButton>
-                        </InputAdornment>
-                      )
-                    }}
-                    sx={{
-                      width: '100%',
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2, 
-                        bgcolor: '#f1f7fe', 
-                        height: 38,
-                        '& fieldset': { borderColor: '#cbd5e1' },
-                        '&:hover fieldset': { borderColor: '#94a3b8' },
-                        '&.Mui-focused fieldset': { borderColor: '#004a99' },
+                        )}
+                        <PersonSearchIcon sx={{ color: '#004680', fontSize: 20, mr: 0.5 }} />
+                      </InputAdornment>
+                    )
+                  }}
+                  sx={{
+                    width: '100%',
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      bgcolor: '#f1f7fe',
+                      height: 38,
+                      '& fieldset': { borderColor: '#cbd5e1' },
+                      '&:hover fieldset': { borderColor: '#94a3b8' },
+                      '&.Mui-focused fieldset': { borderColor: '#004680' },
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      fontSize: '0.85rem',
+                      color: '#475569',
+                      '&::placeholder': {
+                        color: '#8a9bb5',
+                        opacity: 1,
                       },
-                      '& .MuiOutlinedInput-input': { 
-                        fontSize: '0.85rem', 
-                        color: '#475569',
-                        '&::placeholder': {
-                          color: '#8a9bb5',
-                          opacity: 1,
-                        },
-                      }
-                    }}
-                  />
-                )}
+                    }
+                  }}
+                />
               </Box>
 
-              {/* DATE PICKER (ANCHO CORREGIDO PARA FECHA COMPLETA) */}
+              {/* DATE PICKER */}
+              <Box className="tour-nov-fecha">
               <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
                 <DatePicker
                   label=""
@@ -289,16 +429,28 @@ export default function RegistrosPage() {
                   onChange={(newVal) => { setFechaFiltro(newVal as Dayjs | null); setPage(0); }}
                   format="DD/MM/YYYY"
                   slotProps={{
+                    shortcuts: {
+                      items: [
+                        {
+                          label: 'Hoy',
+                          getValue: () => dayjs(),
+                        },
+                        {
+                          label: 'Ayer',
+                          getValue: () => dayjs().subtract(1, 'day'),
+                        },
+                      ],
+                    },
                     textField: {
                       size: 'small',
                       placeholder: 'DD/MM/YYYY',
                       sx: {
-                        width: 195, 
+                        width: 195,
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2, bgcolor: '#f9fafc', height: 38,
                           '& fieldset': { borderColor: '#cbd5e1' },
                           '&:hover fieldset': { borderColor: '#94a3b8' },
-                          '&.Mui-focused fieldset': { borderColor: '#004a99' },
+                          '&.Mui-focused fieldset': { borderColor: '#004680' },
                         },
                         '& .MuiOutlinedInput-input': { fontSize: '0.85rem', color: '#475569' }
                       }
@@ -307,12 +459,13 @@ export default function RegistrosPage() {
                   }}
                 />
               </LocalizationProvider>
+              </Box>
 
             </Box>
           </Box>
 
           {/* Tabla */}
-          <TableContainer sx={{ overflow: 'auto' }}>
+          <TableContainer className="tour-nov-tabla" sx={{ overflow: 'auto' }}>
             <Table sx={{ minWidth: 650 }}>
               <TableHead sx={{ bgcolor: '#f0f7ff' }}>
                 <TableRow>
@@ -343,8 +496,6 @@ export default function RegistrosPage() {
                         transition: 'all 0.2s',
                         '&:hover': {
                           bgcolor: '#eef4ff',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                          cursor: 'pointer'
                         }
                       }}
                     >
@@ -357,10 +508,9 @@ export default function RegistrosPage() {
                             sx={{
                               width: 36,
                               height: 36,
-                              bgcolor: '#004a99',
+                              bgcolor: getAvatarColor(nombreEmpleado),
                               fontSize: '1rem',
                               fontWeight: 600,
-                              boxShadow: '0 2px 6px rgba(0,74,153,0.2)'
                             }}
                           >
                             {inicial}
@@ -393,17 +543,15 @@ export default function RegistrosPage() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Tooltip title={novedad.observaciones || 'Sin observaciones'} arrow placement="top-start">
-                          <Typography variant="body2" sx={{ color: '#475569', maxWidth: 300, wordBreak: 'break-word' }}>
-                            {observacionCorta}
-                          </Typography>
-                        </Tooltip>
+                        <Typography variant="body2" sx={{ color: '#475569', maxWidth: 300, wordBreak: 'break-word' }}>
+                          {observacionCorta}
+                        </Typography>
                       </TableCell>
                     </TableRow>
                   );
                 })}
-                
-                {/* MENSAJES DE FILTRO TOTALMENTE DINÁMICOS */}
+
+
                 {novedadesFiltradas.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
@@ -460,13 +608,13 @@ export default function RegistrosPage() {
                       justifyContent: 'center',
                       borderRadius: 1.5,
                       cursor: 'pointer',
-                      bgcolor: isActive ? '#004a99' : '#fff',
+                      bgcolor: isActive ? '#004680' : '#fff',
                       color: isActive ? '#fff' : '#5e6f8d',
                       border: isActive ? 'none' : '1px solid #dfe4ec',
                       fontWeight: isActive ? 700 : 500,
                       fontSize: '0.85rem',
                       transition: 'all 0.2s',
-                      '&:hover': { bgcolor: isActive ? '#004a99' : '#f1f5f9' }
+                      '&:hover': { bgcolor: isActive ? '#004680' : '#f1f5f9' }
                     }}
                   >
                     {pageNum + 1}
@@ -496,5 +644,15 @@ export default function RegistrosPage() {
         </Paper>
       </TabPanel>
     </Box>
+  );
+}
+
+export default function RegistrosPage() {
+  return (
+    <HorariosTourProvider>
+      <HorariosTour>
+        <RegistrosPageContent />
+      </HorariosTour>
+    </HorariosTourProvider>
   );
 }

@@ -42,7 +42,6 @@ export const DaysWithoutBudgetPanel: React.FC<DaysWithoutBudgetPanelProps> = ({
 }) => {
   const isComplete = diasSinPresupuesto.length === 0;
 
-  // NUEVO: Verificar si hay algún día pendiente HASTA EL DÍA DE HOY
   const hasPendingPastOrToday = diasSinPresupuesto.some(dia =>
     dayjs(dia).isBefore(dayjs(), 'day') || dayjs(dia).isSame(dayjs(), 'day')
   );

@@ -215,7 +215,7 @@ export const StoreTrasladosFilters: React.FC<StoreTrasladosFiltersProps> = ({
                 borderWidth: "2px",
               },
               "& .MuiSelect-icon": {
-                right: 2, // Flecha al ras
+                right: 2,
               },
             }}
           >
@@ -368,7 +368,7 @@ export const StoreTrasladosFilters: React.FC<StoreTrasladosFiltersProps> = ({
           display: "flex",
           alignItems: "center",
           gap: 3,
-          pb: 1, // Alineación visual con los inputs
+          pb: 1,
           pr: 1,
         }}
       >

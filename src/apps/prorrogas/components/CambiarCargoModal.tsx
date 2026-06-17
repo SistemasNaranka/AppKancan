@@ -25,17 +25,17 @@ import CloseIcon from '@mui/icons-material/Close';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import { Contrato, HistorialCargo } from '../types/types';
-import { getHistorialCargos } from '../api/read';
-import { crearHistorialCargo } from '../api/create';
-import { actualizarCargoEnContrato } from '../api/write';
+import { Contract, PositionHistory } from '../types/types';
+import { getPositionHistory } from '../api/read';
+import { createPositionHistory } from '../api/create';
+import { updatePositionInContract } from '../api/write';
 import { formatDate } from '../lib/utils';
-import { ROLES_AREAS, getCargoLabel } from '../config/cargos';
+import { ROLES_AREAS, getPositionLabel } from '../config/cargos';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  contrato: Contrato;
+  contrato: Contract;
   onCargoChanged: () => Promise<void>;
 }
 
@@ -47,21 +47,20 @@ const Transition = React.forwardRef(function Transition(
 });
 
 const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoChanged }) => {
-  // Use live context to get the most up-to-date cargo after mutations
-  const { selectedContrato } = useContractContext();
-  const liveContrato = selectedContrato?.id === contrato.id ? selectedContrato : contrato;
-  const [historial, setHistorial] = useState<HistorialCargo[]>([]);
+  const { selectedContract } = useContractContext();
+  const liveContrato = selectedContract?.id === contrato.id ? selectedContract : contrato;
+  const [historial, setHistorial] = useState<PositionHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   
   const [isAddingMode, setIsAddingMode] = useState(false);
-  const [nuevoCargo, setNuevoCargo] = useState<string>('');
+  const [newPosition, setNuevoCargo] = useState<string>('');
   const [fechaEfectividad, setFechaEfectividad] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
   const fetchHistory = async (showSpinner = true) => {
     if (showSpinner) setLoadingHistory(true);
-    const data = await getHistorialCargos(contrato.id);
-    setHistorial(data as HistorialCargo[]);
+    const data = await getPositionHistory(contrato.id);
+    setHistorial(data as PositionHistory[]);
     if (showSpinner) setLoadingHistory(false);
   };
 
@@ -70,59 +69,49 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
       fetchHistory(true);
       setIsAddingMode(false);
       setNuevoCargo('');
-      // Seleccionar automáticamente la fecha actual
       setFechaEfectividad(new Date().toISOString().split('T')[0]);
     }
   }, [open, contrato.id]);
 
   const handleSave = async () => {
-    if (!nuevoCargo || !fechaEfectividad) return;
+    if (!newPosition || !fechaEfectividad) return;
 
     const cargoAnterior =
       typeof liveContrato.position === 'object' &&
       liveContrato.position !== null &&
       'name' in (liveContrato.position as any)
         ? (liveContrato.position as any).name
-        : getCargoLabel(liveContrato.position);
+        : getPositionLabel(liveContrato.position);
 
-    const selectedRole = ROLES_AREAS.find(r => r.nombre === nuevoCargo);
-    const nuevaArea = selectedRole ? selectedRole.area : undefined;
+    const selectedRole = ROLES_AREAS.find(r => r.nombre === newPosition);
+    const newArea = selectedRole ? selectedRole.area : undefined;
 
-    // 1️⃣ Crear registro en historial_cargos
-    const success = await (crearHistorialCargo as any)({
+    const success = await (createPositionHistory as any)({
       contrato_id: contrato.id,
       cargo_anterior: cargoAnterior || 'Desconocido',
-      cargo_nuevo: nuevoCargo,
+      cargo_nuevo: newPosition,
       fecha_efectividad: fechaEfectividad,
-      nueva_area: nuevaArea,
+      nueva_area: newArea,
     });
 
     if (success) {
-      // 2️⃣ Actualizar cargo (y área) en la tabla contratos
-      // Esto hace que el cambio se refleje en toda la app:
-      // el WebSocket del ContractContext detecta el UPDATE y
-      // ejecuta UPSERT_CONTRATO, re-renderizando todos los
-      // componentes que consumen el contexto.
-      await actualizarCargoEnContrato(contrato.id, nuevoCargo, nuevaArea);
+      await updatePositionInContract(contrato.id, newPosition, newArea);
 
-      // 3️⃣ Optimizar UI agregando el item localmente sin esperar re-fetch
       setHistorial(prev => [
         {
           id: Date.now(),
           contract_id: contrato.id,
           previous_position: cargoAnterior,
-          new_position: nuevoCargo,
+          new_position: newPosition,
           effective_date: fechaEfectividad,
           date_created: new Date().toISOString(),
-        } as HistorialCargo,
+        } as PositionHistory,
         ...prev,
       ]);
 
-      // 4️⃣ Notificar al componente padre para que refresque si es necesario
       await onCargoChanged();
       setIsAddingMode(false);
 
-      // 5️⃣ Sincronizar historial en background sin spinner
       fetchHistory(false);
     }
 
@@ -134,7 +123,7 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
     if (typeof cargo === 'object' && cargo !== null && 'name' in cargo) {
       return (cargo as any).name;
     }
-    return getCargoLabel(cargo);
+    return getPositionLabel(cargo);
   }, [liveContrato.position]);
 
   return (
@@ -232,20 +221,20 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
                               {/* Timeline Content */}
                               <Box sx={{ pb: isLast ? 1 : 4, pt: 0, flex: 1 }}>
                                 <Typography variant="body2" fontWeight={800} color="text.primary">
-                                  {getCargoLabel(h.new_position)}
+                                  {getPositionLabel(h.new_position)}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
                                   Realizado el <strong>{formatDate(h.effective_date)}</strong>
                                 </Typography>
                                 <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
                                   <Chip 
-                                    label={getCargoLabel(h.previous_position)} 
+                                    label={getPositionLabel(h.previous_position)} 
                                     size="small" 
                                     sx={{ height: 22, fontSize: '0.68rem', bgcolor: '#f1f5f9', color: '#64748b', fontWeight: 600 }} 
                                   />
                                   <ArrowForwardIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
                     <Chip
-                                    label={getCargoLabel(h.new_position)} 
+                                    label={getPositionLabel(h.new_position)} 
                       size="small"
                                     sx={{ height: 22, fontSize: '0.68rem', bgcolor: '#eff6ff', color: '#2563eb', fontWeight: 700 }} 
                     />
@@ -274,7 +263,7 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
                   <TextField
                     select
                     label="Asignar a nueva posición"
-                    value={nuevoCargo}
+                    value={newPosition}
                     onChange={(e) => setNuevoCargo(e.target.value)}
                     fullWidth
                     size="small"
@@ -291,7 +280,7 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
                     <DatePicker
                       label="Fecha de Efectividad"
                       value={fechaEfectividad ? dayjs(fechaEfectividad) : null}
-                      onChange={(val) => setFechaEfectividad(val ? val.format('YYYY-MM-DD') : '')}
+                      onChange={(val) => setFechaEfectividad(val ? dayjs(val).format('YYYY-MM-DD') : '')}
                       disabled={saving}
                       slotProps={{
                         textField: {
@@ -323,7 +312,7 @@ const CambiarCargoModal: React.FC<Props> = ({ open, onClose, contrato, onCargoCh
               fullWidth
               variant="contained" 
               onClick={handleSave} 
-              disabled={saving || !nuevoCargo || !fechaEfectividad}
+              disabled={saving || !newPosition || !fechaEfectividad}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, boxShadow: 'none', bgcolor: '#004680', '&:hover': { bgcolor: '#003366', boxShadow: 'none' } }}
             >
               {saving ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Confirmar Cambio'}

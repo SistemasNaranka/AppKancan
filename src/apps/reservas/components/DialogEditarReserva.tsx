@@ -1,10 +1,6 @@
-// ================================
-// src/apps/reservas/components/DialogEditarReserva.tsx
-// REFACTORIZACIÓN PROFESIONAL SEGURA
-// SIN CAMBIAR LÓGICA NI FUNCIONALIDAD
-// ================================
+  // Diálogo de edición de una reserva existente con notificación opcional a los participantes.
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,23 +9,12 @@ import {
   TextField,
   Typography,
   Alert,
-  ToggleButton,
-  ToggleButtonGroup,
-  MenuItem,
-  Select,
-  FormControl,
-  Autocomplete,
-  IconButton,
   CircularProgress,
-  Avatar,
   Switch,
   FormControlLabel,
 } from "@mui/material";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import SaveIcon from "@mui/icons-material/Save";
-import InfoIcon from "@mui/icons-material/Info";
-import DeleteIcon from "@mui/icons-material/Delete";
-import PersonIcon from "@mui/icons-material/Person";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -40,45 +25,30 @@ import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 
 import type {
-  Reserva,
-  ActualizarReserva,
-  Sala,
+  Reservation,
+  UpdateReservation,
+  Room,
 } from "../types/reservas.types";
 
-import {
-  SALAS_DISPONIBLES,
-  HORARIO_INICIO,
-  HORARIO_FIN,
-} from "../types/reservas.types";
-
-import {
-  getConfiguracionReserva,
-  buscarUsuarios,
-} from "../services/reservas";
-
-// ================================
-// CONSTANTES
-// ================================
-
-const EMAIL_REGEX =
-  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-const INFO_SALAS: Record<string, string> = {
-  "Sala Principal": "Grande",
-  "Sala Secundaria": "Compacta",
-};
-
-// ================================
-// TYPES
-// ================================
+import { EMAIL_REGEX } from "./dialogShared/constants";
+import { generarOpcionesHora, calcularHoraMinima } from "./dialogShared/horaHelpers";
+import { useHorarioConfig } from "./dialogShared/useHorarioConfig";
+import { useHolidays } from "../hooks/useHolidays";
+import { FestivoDay } from "./FestivoDay";
+import { useParticipantesAutocomplete } from "./dialogShared/useParticipantesAutocomplete";
+import { SalaSelector } from "./dialogShared/SalaSelector";
+import { HorasFields } from "./dialogShared/HorasFields";
+import { ParticipantesSection } from "./dialogShared/ParticipantesSection";
+import { ObservacionesField } from "./dialogShared/ObservacionesField";
 
 interface DialogEditarReservaProps {
   open: boolean;
-  reserva: Reserva | null;
+  reserva: Reservation | null;
   onClose: () => void;
   onSubmit: (
     id: number,
-    datos: ActualizarReserva,
+    datos: UpdateReservation,
+    skipWebhook?: boolean,
   ) => Promise<void>;
   verificarConflicto?: (
     sala: string,
@@ -89,221 +59,47 @@ interface DialogEditarReservaProps {
   ) => Promise<boolean>;
 }
 
-// ================================
-// HELPERS
-// ================================
-
-const generarOpcionesHora = (
-  horaInicio: number = 7,
-  horaFin: number = 17,
-) => {
-  const opciones: { value: string; label: string }[] = [];
-
-  for (let h = horaInicio; h <= horaFin; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const hora24 = `${h
-        .toString()
-        .padStart(2, "0")}:${m
-        .toString()
-        .padStart(2, "0")}`;
-
-      const hora12 =
-        h > 12 ? h - 12 : h === 0 ? 12 : h;
-
-      const ampm = h >= 12 ? "PM" : "AM";
-
-      const label = `${hora12
-        .toString()
-        .padStart(2, "0")}:${m
-        .toString()
-        .padStart(2, "0")} ${ampm}`;
-
-      opciones.push({
-        value: hora24,
-        label,
-      });
-    }
-  }
-
-  return opciones;
-};
-
-const formatearHoraLegible = (
-  hora24: string,
-): string => {
-  const [h, m] = hora24
-    .split(":")
-    .map(Number);
-
-  const hora12 =
-    h > 12 ? h - 12 : h === 0 ? 12 : h;
-
-  const ampm = h >= 12 ? "PM" : "AM";
-
-  return `${hora12}:${m
-    .toString()
-    .padStart(2, "0")} ${ampm}`;
-};
-
-const calcularHoraMinima = (
-  horaInicio: string,
-): string => {
-  const [h, m] = horaInicio
-    .split(":")
-    .map(Number);
-
-  let horaMinima = h;
-  let minutoMinimo = m + 30;
-  if (minutoMinimo >= 60) {
-    horaMinima += 1;
-    minutoMinimo -= 60;
-  }
-  if (horaMinima >= 24) horaMinima = 23;
-
-  return `${horaMinima
-    .toString()
-    .padStart(2, "0")}:${minutoMinimo
-    .toString()
-    .padStart(2, "0")}`;
-};
-
-// ================================
-// COMPONENTE PRINCIPAL
-// ================================
-
-const DialogEditarReserva: React.FC<
-  DialogEditarReservaProps
-> = ({
+const DialogEditarReserva: React.FC<DialogEditarReservaProps> = ({
   open,
   reserva,
   onClose,
   onSubmit,
   verificarConflicto,
 }) => {
+  const [loading, setLoading] = useState(false);
+  const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
+  const { data: festivos = {} } = useHolidays(calendarYear);
+  const [error, setError] = useState<string | null>(null);
+  const [horaInicioSeleccionada, setHoraInicioSeleccionada] = useState("");
+  const [enviarCorreo, setEnviarCorreo] = useState<boolean>(false);
 
-  // ================================
-  // STATES
-  // ================================
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState<string | null>(null);
-
-  const [configCargando, setConfigCargando] =
-    useState(true);
-
-  const [horaInicioSeleccionada,
-    setHoraInicioSeleccionada] =
-    useState("");
-
-  const [horarioConfig, setHorarioConfig] =
-    useState({
-      horaApertura: HORARIO_INICIO,
-      horaCierre: HORARIO_FIN,
-    });
-
-  const [usuariosSugeridos,
-    setUsuariosSugeridos] =
-    useState<any[]>([]);
-
-  const [buscandoUsuarios,
-    setBuscandoUsuarios] =
-    useState(false);
-
-  const [tempNombre,
-    setTempNombre] =
-    useState("");
-
-  const [tempCorreo,
-    setTempCorreo] =
-    useState("");
-
-  const searchTimeout =
-    useRef<NodeJS.Timeout | null>(null);
-
-  // Toggle: enviar correo de actualización al editar reserva (default ON).
-  const [enviarCorreo, setEnviarCorreo] = useState<boolean>(true);
-
-  // ================================
-  // VALIDACIÓN
-  // ================================
+  const { horarioConfig, configCargando } = useHorarioConfig(open);
 
   const schema = useMemo(
     () =>
       yup.object({
-        room_name: yup
-          .string()
-          .required(
-            "Selecciona una sala",
-          ),
-
-        date: yup
-          .string()
-          .required(
-            "Selecciona una fecha",
-          ),
-
-        start_time: yup
-          .string()
-          .required(
-            "Selecciona hora de inicio",
-          ),
-
-        end_time: yup
-          .string()
-          .required(
-            "Selecciona hora de fin",
-          ),
-
+        room_name: yup.string().required("Selecciona una sala"),
+        date: yup.string().required("Selecciona una fecha"),
+        start_time: yup.string().required("Selecciona hora de inicio"),
+        end_time: yup.string().required("Selecciona hora de fin"),
         meeting_title: yup
           .string()
-          .required(
-            "El título es obligatorio",
-          )
-          .min(
-            3,
-            "Mínimo 3 caracteres",
-          )
-          .max(
-            100,
-            "Máximo 100 caracteres",
-          ),
-
-        observations: yup
-          .string()
-          .max(
-            500,
-            "Máximo 500 caracteres",
-          ),
-
+          .required("El título es obligatorio")
+          .min(3, "Mínimo 3 caracteres")
+          .max(100, "Máximo 100 caracteres"),
+        observations: yup.string().max(500, "Máximo 500 caracteres"),
         participants: yup.array().of(
           yup.object({
-            name: yup
-              .string()
-              .required(
-                "El nombre es obligatorio",
-              ),
-
+            name: yup.string().required("El nombre es obligatorio"),
             email: yup
               .string()
-              .matches(
-                EMAIL_REGEX,
-                "Correo no válido",
-              )
-              .required(
-                "El correo es obligatorio",
-              ),
+              .matches(EMAIL_REGEX, "Correo no válido")
+              .required("El correo es obligatorio"),
           }),
         ),
       }),
     [horarioConfig],
   );
-
-  // ================================
-  // FORM
-  // ================================
 
   const {
     control,
@@ -313,13 +109,11 @@ const DialogEditarReserva: React.FC<
     reset,
     setValue,
   } = useForm({
-    resolver:
-      yupResolver(schema),
+    resolver: yupResolver(schema),
     defaultValues: {
-      room_name: "" as Sala,
+      room_name: "" as Room,
       date: "",
-      start_time:
-        horarioConfig.horaApertura,
+      start_time: horarioConfig.horaApertura,
       end_time: "",
       meeting_title: "",
       observations: "",
@@ -327,67 +121,26 @@ const DialogEditarReserva: React.FC<
     },
   });
 
-  const {
-    fields,
-    append,
-    remove,
-  } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control,
     name: "participants",
   });
 
-  // ================================
-  // WATCHERS
-  // ================================
-
-  const horaInicioWatch =
-    watch("start_time");
-
-  const horaFinalWatch =
-    watch("end_time");
-
-  const observacionesWatch =
-    watch("observations");
-
-  // ================================
-  // MEMOS
-  // ================================
+  const horaInicioWatch = watch("start_time");
+  const horaFinalWatch = watch("end_time");
 
   const opcionesHora = useMemo(() => {
-    const inicio = parseInt(
-      horarioConfig.horaApertura.split(":")[0],
-    );
-
-    const fin = parseInt(
-      horarioConfig.horaCierre.split(":")[0],
-    );
-
-    return generarOpcionesHora(
-      inicio,
-      fin,
-    );
+    const inicio = parseInt(horarioConfig.horaApertura.split(":")[0]);
+    const fin = parseInt(horarioConfig.horaCierre.split(":")[0]);
+    return generarOpcionesHora(inicio, fin);
   }, [horarioConfig]);
 
-  const opcionesHoraFinal =
-    useMemo(() => {
-      const base = horaInicioWatch || horaInicioSeleccionada;
-      if (!base) return opcionesHora;
-
-      const horaMinima = calcularHoraMinima(base);
-
-      return opcionesHora.filter(
-        (opcion) =>
-          opcion.value >= horaMinima,
-      );
-    }, [
-      opcionesHora,
-      horaInicioWatch,
-      horaInicioSeleccionada,
-    ]);
-
-  const caracteresObservaciones = observacionesWatch?.length || 0;
-  const caracteresRestantes = 500 - caracteresObservaciones;
-  const aproximandoLimite = caracteresObservaciones >= 450;
+  const opcionesHoraFinal = useMemo(() => {
+    const base = horaInicioWatch || horaInicioSeleccionada;
+    if (!base) return opcionesHora;
+    const horaMinima = calcularHoraMinima(base);
+    return opcionesHora.filter((opcion) => opcion.value >= horaMinima);
+  }, [opcionesHora, horaInicioWatch, horaInicioSeleccionada]);
 
   const shouldDisableDate = (day: Date | any) => {
     const hoy = new Date();
@@ -396,15 +149,9 @@ const DialogEditarReserva: React.FC<
     return date < hoy;
   };
 
-  // ================================
-  // EFFECTS
-  // ================================
-
-  // Sincronizar horaInicioSeleccionada y corregir end_time si quedó inválido.
   useEffect(() => {
     if (!horaInicioWatch) return;
     setHoraInicioSeleccionada(horaInicioWatch);
-
     const horaMinimaStr = calcularHoraMinima(horaInicioWatch);
     if (horaFinalWatch && horaFinalWatch < horaMinimaStr) {
       setValue("end_time", horaMinimaStr);
@@ -412,55 +159,8 @@ const DialogEditarReserva: React.FC<
   }, [horaInicioWatch, horaFinalWatch, setValue]);
 
   useEffect(() => {
-    const cargarConfiguracion =
-      async () => {
-        setConfigCargando(true);
-
-        try {
-          const config =
-            await getConfiguracionReserva();
-
-          if (config) {
-            setHorarioConfig({
-              horaApertura:
-                config.opening_time?.substring(
-                  0,
-                  5,
-                ) ||
-                HORARIO_INICIO,
-
-              horaCierre:
-                config.closing_time?.substring(
-                  0,
-                  5,
-                ) ||
-                HORARIO_FIN,
-            });
-          }
-        } catch (err) {
-          console.error(
-            "Error cargando configuración:",
-            err,
-          );
-        } finally {
-          setConfigCargando(
-            false,
-          );
-        }
-      };
-
-    if (open) {
-      cargarConfiguracion();
-    }
-  }, [open]);
-
-  // FIX: cargar los datos de la reserva en el formulario al abrir el modal.
-  // Sin este effect, el form quedaba con los defaultValues (vacíos) y el modal
-  // parecía no funcionar.
-  useEffect(() => {
     if (!open || !reserva) return;
 
-    // Normalizar participantes: aceptar tanto {nombre, correo} como {nombre, email}
     const participantesNormalizados = Array.isArray(reserva.participants)
       ? reserva.participants.map((p: any) => ({
           name: p?.name ?? "",
@@ -469,7 +169,7 @@ const DialogEditarReserva: React.FC<
       : [];
 
     reset({
-      room_name: (reserva.room_name as Sala) ?? ("" as Sala),
+      room_name: (reserva.room_name as Room) ?? ("" as Room),
       date: reserva.date,
       start_time: (reserva.start_time || "").substring(0, 5),
       end_time: (reserva.end_time || "").substring(0, 5),
@@ -481,74 +181,25 @@ const DialogEditarReserva: React.FC<
     setError(null);
   }, [open, reserva, reset]);
 
-  // ================================
-  // HANDLERS
-  // ================================
+  const {
+    usuariosSugeridos,
+    buscandoUsuarios,
+    tempNombre,
+    setTempNombre,
+    tempCorreo,
+    setTempCorreo,
+    handleBuscarUsuarios,
+  } = useParticipantesAutocomplete();
 
-  const handleAddParticipante =
-    () => {
-      if (
-        tempNombre.trim() &&
-        tempCorreo.trim()
-      ) {
-        if (
-          !fields.some(
-            (f) =>
-              (f as any).email ===
-              tempCorreo,
-          )
-        ) {
-          append({
-            name: tempNombre,
-            email: tempCorreo,
-          });
-
-          setTempNombre("");
-          setTempCorreo("");
-        }
+  const handleAddParticipante = () => {
+    if (tempNombre.trim() && tempCorreo.trim()) {
+      if (!fields.some((f) => (f as any).email === tempCorreo)) {
+        append({ name: tempNombre, email: tempCorreo });
+        setTempNombre("");
+        setTempCorreo("");
       }
-    };
-
-  const handleBuscarUsuarios =
-    (valor: string) => {
-      if (
-        searchTimeout.current
-      ) {
-        clearTimeout(
-          searchTimeout.current,
-        );
-      }
-
-      if (valor.length < 3) {
-        setUsuariosSugeridos(
-          [],
-        );
-        return;
-      }
-
-      searchTimeout.current =
-        setTimeout(
-          async () => {
-            setBuscandoUsuarios(
-              true,
-            );
-
-            const resultados =
-              await buscarUsuarios(
-                valor,
-              );
-
-            setUsuariosSugeridos(
-              resultados as any[],
-            );
-
-            setBuscandoUsuarios(
-              false,
-            );
-          },
-          500,
-        );
-    };
+    }
+  };
 
   const handleClose = () => {
     reset();
@@ -556,110 +207,53 @@ const DialogEditarReserva: React.FC<
     onClose();
   };
 
-  const handleSalaChange = (
-    _event:
-      React.MouseEvent<HTMLElement>,
-    newSala: Sala | null,
-  ) => {
-    if (newSala) {
-      setValue(
-        "room_name",
-        newSala,
-      );
-    }
-  };
+  const onFormSubmit = async (data: any) => {
+    if (!reserva) return;
 
-  const handleDateChange = (
-    date: Date | null,
-  ) => {
-    if (date) {
-      setValue(
-        "date",
-        format(
-          date,
-          "yyyy-MM-dd",
-        ),
-      );
-    }
-  };
+    setLoading(true);
+    setError(null);
 
-  // ================================
-  // SUBMIT
-  // ================================
-
-  const onFormSubmit =
-    async (data: any) => {
-      if (!reserva) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        if (
-          verificarConflicto
-        ) {
-          const hayConflicto =
-            await verificarConflicto(
-              data.room_name,
-              data.date,
-              data.start_time,
-              data.end_time,
-              reserva.id,
-            );
-
-          if (
-            hayConflicto
-          ) {
-            setError(
-              "Ya existe una reserva en este horario para esta sala",
-            );
-
-            setLoading(
-              false,
-            );
-
-            return;
-          }
-        }
-
-        const payloadActualizacion = {
-          room_name: data.room_name,
-          date: data.date,
-          start_time: data.start_time,
-          end_time: data.end_time,
-          meeting_title: data.meeting_title,
-          observations: data.observations?.trim() || "",
-          participants: data.participants,
-        };
-
-        // El servicio actualizarReserva ya dispara el webhook n8n internamente
-        // con SELECT previo → UPDATE → POST. No se necesita lógica aquí.
-        await onSubmit(reserva.id, payloadActualizacion);
-
-        handleClose();
-      } catch (err: any) {
-        setError(
-          err.message ||
-            "Error al actualizar la reserva",
+    try {
+      if (verificarConflicto) {
+        const hayConflicto = await verificarConflicto(
+          data.room_name,
+          data.date,
+          data.start_time,
+          data.end_time,
+          reserva.id,
         );
-      } finally {
-        setLoading(false);
-      }
-    };
 
-  // ================================
-  // RENDER
-  // ================================
+        if (hayConflicto) {
+          setError("Ya existe una reserva en este horario para esta sala");
+          setLoading(false);
+          return;
+        }
+      }
+
+      const payloadActualizacion = {
+        room_name: data.room_name,
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        meeting_title: data.meeting_title,
+        observations: data.observations?.trim() || "",
+        participants: data.participants,
+      };
+
+      await onSubmit(reserva.id, payloadActualizacion, !enviarCorreo);
+
+      handleClose();
+    } catch (err: any) {
+      setError(err.message || "Error al actualizar la reserva");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!reserva) return null;
 
   return (
-    <LocalizationProvider
-      dateAdapter={
-        AdapterDateFns
-      }
-      adapterLocale={es}
-    >
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Dialog
         open={open}
         onClose={handleClose}
@@ -668,7 +262,6 @@ const DialogEditarReserva: React.FC<
         PaperProps={{ sx: { borderRadius: 3, maxWidth: 900 } }}
       >
         <DialogContent sx={{ p: 0 }}>
-          {/* Header */}
           <Box sx={{ p: 3, pb: 2 }}>
             <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a2a3a", mb: 0.5 }}>
               Editar Reservación
@@ -700,9 +293,7 @@ const DialogEditarReserva: React.FC<
                   border: "1px solid #e5e7eb",
                 }}
               >
-                {/* Columna izquierda */}
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {/* Título */}
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
                       Título de la Reunión *
@@ -725,279 +316,60 @@ const DialogEditarReserva: React.FC<
                     />
                   </Box>
 
-                  {/* Sala */}
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                      Seleccionar Sala *
-                    </Typography>
-                    <Controller
-                      name="room_name"
-                      control={control}
-                      render={({ field }) => (
-                        <ToggleButtonGroup
-                          value={field.value}
-                          exclusive
-                          onChange={handleSalaChange}
-                          fullWidth
-                          sx={{
-                            "& .MuiToggleButton-root": {
-                              flex: 1,
-                              py: 1,
-                              textTransform: "none",
-                              fontWeight: 500,
-                              fontSize: "0.875rem",
-                              border: "1px solid #d1d5db",
-                              backgroundColor: "white",
-                              "&.Mui-selected": {
-                                backgroundColor: "#EFF6FF",
-                                borderColor: "#3B82F6",
-                                color: "#1D4ED8",
-                                "&:hover": { backgroundColor: "#DBEAFE" },
-                              },
-                              "&:hover": { backgroundColor: "#f9fafb" },
-                            },
-                          }}
-                        >
-                          {SALAS_DISPONIBLES.map((sala) => (
-                            <ToggleButton key={sala} value={sala} disabled={loading}>
-                              {sala} ({INFO_SALAS[sala]})
-                            </ToggleButton>
-                          ))}
-                        </ToggleButtonGroup>
-                      )}
-                    />
-                    {errors.meeting_title && (
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-                        {errors.meeting_title.message}
-                      </Typography>
+                  <Controller
+                    name="room_name"
+                    control={control}
+                    render={({ field }) => (
+                      <SalaSelector
+                        value={field.value as Room | ""}
+                        onChange={(sala) => field.onChange(sala)}
+                        disabled={loading}
+                        errorMessage={errors.meeting_title?.message}
+                      />
                     )}
-                  </Box>
+                  />
 
-                  {/* Horas */}
-                  <Box>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 2,
-                        p: 1.5,
-                        backgroundColor: "#EFF6FF",
-                        borderRadius: 1,
-                        border: "1px solid #BFDBFE",
-                      }}
-                    >
-                      <InfoIcon sx={{ color: "#3B82F6", fontSize: 20 }} />
-                      <Typography variant="body2" sx={{ color: "#1E40AF" }}>
-                        Horario disponible:{" "}
-                        <strong>{formatearHoraLegible(horarioConfig.horaApertura)}</strong> a{" "}
-                        <strong>{formatearHoraLegible(horarioConfig.horaCierre)}</strong>
-                      </Typography>
-                    </Box>
+                  <Controller
+                    name="start_time"
+                    control={control}
+                    render={({ field: startField }) => (
+                      <Controller
+                        name="end_time"
+                        control={control}
+                        render={({ field: endField }) => (
+                          <HorasFields
+                            horaApertura={horarioConfig.horaApertura}
+                            horaCierre={horarioConfig.horaCierre}
+                            opcionesInicio={opcionesHora}
+                            opcionesFin={opcionesHoraFinal}
+                            startTime={startField.value}
+                            endTime={endField.value}
+                            onStartChange={(v) => startField.onChange(v)}
+                            onEndChange={(v) => endField.onChange(v)}
+                            disabled={loading || configCargando}
+                            errorStart={errors.start_time?.message}
+                            errorEnd={errors.start_time?.message}
+                          />
+                        )}
+                      />
+                    )}
+                  />
 
-                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-                      <Box>
-                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                          Hora de Inicio *
-                        </Typography>
-                        <Controller
-                          name="start_time"
-                          control={control}
-                          render={({ field }) => (
-                            <FormControl fullWidth error={!!errors.start_time}>
-                              <Select
-                                {...field}
-                                disabled={loading || configCargando}
-                                size="small"
-                                sx={{ backgroundColor: "white" }}
-                              >
-                                {opcionesHora.map((opcion) => (
-                                  <MenuItem key={opcion.value} value={opcion.value}>
-                                    {opcion.label}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                              {errors.start_time && (
-                                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                  {errors.start_time.message}
-                                </Typography>
-                              )}
-                            </FormControl>
-                          )}
-                        />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                          Hora de Fin *
-                        </Typography>
-                        <Controller
-                          name="end_time"
-                          control={control}
-                          render={({ field }) => (
-                            <FormControl fullWidth error={!!errors.start_time}>
-                              <Select
-                                {...field}
-                                disabled={loading || configCargando}
-                                size="small"
-                                sx={{ backgroundColor: "white" }}
-                              >
-                                {opcionesHoraFinal.map((opcion) => (
-                                  <MenuItem key={opcion.value} value={opcion.value}>
-                                    {opcion.label}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                              {errors.start_time && (
-                                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                  {errors.start_time.message}
-                                </Typography>
-                              )}
-                            </FormControl>
-                          )}
-                        />
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  {/* Participantes */}
-                  <Box>
-                    <Box sx={{ p: 1.8, bgcolor: "#F9FAFB", borderRadius: 2, border: "1px solid #E5E7EB", mb: 1.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#374151", mb: 1.2, fontSize: "0.85rem" }}>
-                        Editar Participantes
-                      </Typography>
-
-                      <Box sx={{ display: "flex", gap: 2, mb: 0.5, alignItems: "flex-end" }}>
-                        <TextField
-                          placeholder="Nombre"
-                          variant="standard"
-                          size="small"
-                          fullWidth
-                          value={tempNombre}
-                          onChange={(e) => setTempNombre(e.target.value)}
-                          sx={{ flex: 1 }}
-                        />
-                        <Autocomplete
-                          freeSolo
-                          options={usuariosSugeridos}
-                          getOptionLabel={(option) =>
-                            typeof option === "string" ? option : option.email
-                          }
-                          loading={buscandoUsuarios}
-                          onInputChange={(_, valor) => {
-                            setTempCorreo(valor);
-                            handleBuscarUsuarios(valor);
-                          }}
-                          onChange={(_, data) => {
-                            if (data && typeof data !== "string") {
-                              // Sobreescribir nombre + correo siempre que se elija
-                              // un usuario del dropdown (corrige bug de nombre stale).
-                              setTempCorreo(data.email);
-                              setTempNombre(`${data.first_name} ${data.last_name || ""}`.trim());
-                            } else if (typeof data === "string") {
-                              setTempCorreo(data);
-                            } else if (data === null) {
-                              setTempCorreo("");
-                              setTempNombre("");
-                            }
-                          }}
-                          value={tempCorreo}
-                          sx={{ flex: 2 }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              placeholder="Correo"
-                              variant="standard"
-                              size="small"
-                              fullWidth
-                              InputProps={{
-                                ...params.InputProps,
-                                endAdornment: (
-                                  <React.Fragment>
-                                    {buscandoUsuarios ? <CircularProgress color="inherit" size={16} /> : null}
-                                    {params.InputProps.endAdornment}
-                                  </React.Fragment>
-                                ),
-                              }}
-                            />
-                          )}
-                        />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={handleAddParticipante}
-                          disabled={!tempNombre || !tempCorreo}
-                          sx={{
-                            minWidth: "auto",
-                            px: 3,
-                            textTransform: "none",
-                            bgcolor: "#3B82F6",
-                            "&:hover": { bgcolor: "#2563EB" },
-                            boxShadow: "none",
-                            borderRadius: 1.5,
-                            height: 32,
-                          }}
-                        >
-                          Agregar
-                        </Button>
-                      </Box>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        maxHeight: 200,
-                        overflowY: "auto",
-                        pr: 1,
-                        "::-webkit-scrollbar": { width: "6px" },
-                        "::-webkit-scrollbar-thumb": {
-                          backgroundColor: "#e5e7eb",
-                          borderRadius: "10px",
-                        },
-                      }}
-                    >
-                      {fields.map((field, index) => (
-                        <Box
-                          key={field.id}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1.5,
-                            py: 0.8,
-                            borderBottom: "1px solid #f3f4f6",
-                            "&:last-child": { borderBottom: "none" },
-                          }}
-                        >
-                          <Avatar sx={{ width: 30, height: 30, bgcolor: "#EFF6FF", color: "#3B82F6" }}>
-                            <PersonIcon sx={{ fontSize: 18 }} />
-                          </Avatar>
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#1f2937", fontSize: "0.85rem", lineHeight: 1.2 }} noWrap>
-                              {(field as any).name}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.75rem", display: "block" }} noWrap>
-                              {(field as any).email}
-                            </Typography>
-                          </Box>
-                          <IconButton
-                            size="small"
-                            onClick={() => remove(index)}
-                            sx={{ color: "#9ca3af", p: 0.5, "&:hover": { color: "#ef4444" } }}
-                          >
-                            <DeleteIcon sx={{ fontSize: 18 }} />
-                          </IconButton>
-                        </Box>
-                      ))}
-                      {fields.length === 0 && (
-                        <Box sx={{ py: 3, textAlign: "center", bgcolor: "#f9fafb", borderRadius: 2, border: "1px dashed #d1d5db" }}>
-                          <Typography variant="body2" sx={{ color: "#9ca3af", fontStyle: "italic", fontSize: "0.8rem" }}>
-                            No hay invitados en la lista
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  </Box>
+                  <ParticipantesSection
+                    titulo="Editar Participantes"
+                    fields={fields as any}
+                    onRemove={remove}
+                    onAdd={handleAddParticipante}
+                    tempNombre={tempNombre}
+                    tempCorreo={tempCorreo}
+                    setTempNombre={setTempNombre}
+                    setTempCorreo={setTempCorreo}
+                    usuariosSugeridos={usuariosSugeridos}
+                    buscandoUsuarios={buscandoUsuarios}
+                    onBuscarUsuarios={handleBuscarUsuarios}
+                  />
                 </Box>
 
-                {/* Columna derecha - Calendario */}
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
                     Fecha *
@@ -1015,24 +387,39 @@ const DialogEditarReserva: React.FC<
                       control={control}
                       render={({ field }) => (
                         <StaticDatePicker
-                          value={
-                            field.value
-                              ? parse(field.value, "yyyy-MM-dd", new Date())
-                              : null
-                          }
+                          value={field.value ? parse(field.value, "yyyy-MM-dd", new Date()) : null}
                           onChange={(date: any) => {
                             if (date) {
-                              const d = date instanceof Date ? date : (date?.toDate?.() ?? new Date(date));
+                              const d =
+                                date instanceof Date
+                                  ? date
+                                  : (date?.toDate?.() ?? new Date(date));
                               field.onChange(format(d, "yyyy-MM-dd"));
                             }
+                          }}
+                          onMonthChange={(date: any) => {
+                            const y = (date instanceof Date ? date : new Date(date as any)).getFullYear();
+                            if (!isNaN(y)) setCalendarYear(y);
+                          }}
+                          onYearChange={(date: any) => {
+                            const y = (date instanceof Date ? date : new Date(date as any)).getFullYear();
+                            if (!isNaN(y)) setCalendarYear(y);
                           }}
                           shouldDisableDate={shouldDisableDate}
                           disabled={loading}
                           displayStaticWrapperAs="desktop"
-                          slotProps={{ actionBar: { actions: [] } }}
+                          slots={{ day: FestivoDay as any }}
+                          slotProps={{
+                            actionBar: { actions: [] },
+                            day: { holidays: festivos } as any,
+                          }}
                           sx={{
                             "& .MuiPickersCalendarHeader-root": { paddingLeft: 2, paddingRight: 2 },
                             "& .MuiDayCalendar-root": { width: "100%" },
+                            "& .MuiPickersDay-root.Mui-disabled": {
+                              color: "#ccc",
+                              backgroundColor: "#f5f5f5",
+                            },
                           }}
                         />
                       )}
@@ -1044,43 +431,17 @@ const DialogEditarReserva: React.FC<
                     </Typography>
                   )}
 
-                  {/* Observaciones (debajo del calendario) */}
                   <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: "#374151" }}>
-                      Observaciones
-                    </Typography>
                     <Controller
                       name="observations"
                       control={control}
                       render={({ field }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          multiline
-                          rows={3}
-                          placeholder="Detalles adicionales..."
-                          error={!!errors.observations}
-                          helperText={
-                            errors.observations?.message || (
-                              <Typography
-                                component="span"
-                                sx={{
-                                  color: aproximandoLimite
-                                    ? caracteresObservaciones >= 500
-                                      ? "#ef4444"
-                                      : "#f59e0b"
-                                    : "#6b7280",
-                                  fontSize: "0.75rem",
-                                }}
-                              >
-                                {caracteresObservaciones >= 500
-                                  ? "Límite alcanzado"
-                                  : `Opcional - ${caracteresRestantes} caracteres restantes`}
-                              </Typography>
-                            )
-                          }
+                        <ObservacionesField
+                          value={field.value || ""}
+                          onChange={(v) => field.onChange(v)}
                           disabled={loading}
-                          sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "white" } }}
+                          errorMessage={errors.observations?.message}
+                          placeholder="Detalles adicionales..."
                         />
                       )}
                     />
@@ -1088,8 +449,16 @@ const DialogEditarReserva: React.FC<
                 </Box>
               </Box>
 
-              {/* Botones */}
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, mt: 3, flexWrap: "wrap" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 2,
+                  mt: 3,
+                  flexWrap: "wrap",
+                }}
+              >
                 <FormControlLabel
                   control={
                     <Switch
@@ -1112,32 +481,32 @@ const DialogEditarReserva: React.FC<
                   sx={{ ml: 0 }}
                 />
                 <Box sx={{ display: "flex", gap: 2 }}>
-                <Button
-                  onClick={handleClose}
-                  disabled={loading}
-                  sx={{ textTransform: "none", fontWeight: 500, color: "#374151" }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                  startIcon={
-                    loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />
-                  }
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 600,
-                    backgroundColor: "#004680",
-                    borderRadius: 2,
-                    px: 3,
-                    boxShadow: "none",
-                    "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" },
-                  }}
-                >
-                  Guardar Cambios
-                </Button>
+                  <Button
+                    onClick={handleClose}
+                    disabled={loading}
+                    sx={{ textTransform: "none", fontWeight: 500, color: "#374151" }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={loading}
+                    startIcon={
+                      loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />
+                    }
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 600,
+                      backgroundColor: "#004680",
+                      borderRadius: 2,
+                      px: 3,
+                      boxShadow: "none",
+                      "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" },
+                    }}
+                  >
+                    Guardar Cambios
+                  </Button>
                 </Box>
               </Box>
             </Box>

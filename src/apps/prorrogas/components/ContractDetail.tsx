@@ -13,6 +13,7 @@ import Avatar from '@mui/material/Avatar';
 import LinearProgress from '@mui/material/LinearProgress';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
@@ -23,15 +24,11 @@ import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import PersonIcon from '@mui/icons-material/Person';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useContractContext } from '../contexts/ContractContext';
-import { daysUntil, formatDate, getProrrogaProgress, formatTipoContrato, getProrrogaDuration, computeEndDate } from '../lib/utils';
-import { Prorroga } from '../types/types';
+import { daysUntil, formatDate, getExtensionProgress, formatContractType, getExtensionDuration, computeEndDate } from '../lib/utils';
+import { Extension } from '../types/types';
 import CambiarCargoModal from './CambiarCargoModal';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-const getCargoName = (cargo: unknown): string => {
+const getPositionName = (cargo: unknown): string => {
   if (!cargo) return 'Sin cargo';
   if (typeof cargo === 'object' && cargo !== null && 'name' in cargo) {
     return (cargo as { name: string }).name;
@@ -53,35 +50,30 @@ const avatarBg = (id: number | string) => {
   return colors[idx];
 };
 
-const prorrogaLabel = (num: number): string => {
+const extensionLabel = (num: number): string => {
   if (num === 0) return 'CONTRATO ORIGINAL';
   const ordinals = ['', 'PRIMERA', 'SEGUNDA', 'TERCERA', 'CUARTA', 'QUINTA'];
   return num < ordinals.length ? `${ordinals[num]} PRÓRROGA` : `PRÓRROGA ${num}`;
 };
 
-const prorrogaCircleColor = (num: number, isActive: boolean, isCompleted: boolean) => {
+const extensionCircleColor = (num: number, isActive: boolean, isCompleted: boolean) => {
   if (isActive) return { bg: '#004680', text: '#fff' };
   if (isCompleted) return { bg: '#e8f5e9', text: '#1a7a4a' };
   return { bg: '#f1f5f9', text: '#94a3b8' };
 };
 
-const getEffectiveEndDate = (prorroga: Prorroga): string => {
-  // CORRECCIÓN APLICADA AQUÍ
+const getEffectiveEndDate = (prorroga: Extension): string => {
   if (prorroga.end_date) {
     return prorroga.end_date instanceof Date
       ? prorroga.end_date.toISOString().split('T')[0]
       : String(prorroga.end_date).split('T')[0];
   }
-  const duracion = prorroga.duration ?? getProrrogaDuration(prorroga.extension_number ?? 0);
+  const duracion = prorroga.duration ?? getExtensionDuration(prorroga.extension_number ?? 0);
   return computeEndDate(prorroga.start_date, duracion) ?? '';
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Timeline Entry
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface TimelineEntryProps {
-  prorroga: Prorroga;
+  prorroga: Extension;
   isLast: boolean;
   isActive: boolean;
   displayIndex: number;
@@ -90,12 +82,12 @@ interface TimelineEntryProps {
 const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActive, displayIndex }) => {
   const isCompleted = !isActive;
   const numero = prorroga.extension_number ?? displayIndex;
-  const duracion = prorroga.duration ?? getProrrogaDuration(numero);
+  const duracion = prorroga.duration ?? getExtensionDuration(numero);
   const effectiveEndDate = getEffectiveEndDate(prorroga);
   const daysLeft = isActive ? daysUntil(effectiveEndDate) : null;
   const isCritical = daysLeft !== null && isFinite(daysLeft) && daysLeft <= 7;
-  const circle = prorrogaCircleColor(numero, isActive, isCompleted);
-  const progress = isActive ? getProrrogaProgress(prorroga, effectiveEndDate) : null;
+  const circle = extensionCircleColor(numero, isActive, isCompleted);
+  const progress = isActive ? getExtensionProgress(prorroga, effectiveEndDate) : null;
 
   return (
     <Box sx={{ display: 'flex', gap: 2, position: 'relative' }}>
@@ -143,7 +135,7 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActiv
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.8}>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Typography variant="overline" sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'text.secondary', lineHeight: 1 }}>
-              {prorrogaLabel(numero)}
+              {extensionLabel(numero)}
             </Typography>
             {isActive && (
               <Chip
@@ -228,58 +220,51 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ prorroga, isLast, isActiv
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ContractDetail
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface Props {
   onOpenForm: () => void;
   onEditContract: () => void;
 }
 
 const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
-  const { selectedContrato, loadContratos } = useContractContext();
+  const { selectedContract, loadContracts } = useContractContext();
   const [page, setPage] = useState(1);
   const [cambiarCargoOpen, setCambiarCargoOpen] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Si el contenedor con scroll real no es `window`, scrollIntoView() fuerza la visualización.
     if (topRef.current) {
       topRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
     }
-  }, [selectedContrato]);
+  }, [selectedContract]);
 
-  if (!selectedContrato) return null;
+  if (!selectedContract) return null;
 
-  const c = selectedContrato;
+  const c = selectedContract;
   const prorrogas = [...(c.extensions ?? [])]
     .sort((a, b) => (a.extension_number ?? 0) - (b.extension_number ?? 0))
     .filter((p, idx, arr) => arr.findIndex(x => x.id === p.id) === idx);
   const hasProrrogas = prorrogas.length > 0;
-  const lastProrroga = hasProrrogas ? prorrogas[prorrogas.length - 1] : null;
+  const lastExtension = hasProrrogas ? prorrogas[prorrogas.length - 1] : null;
   const firstProrroga = hasProrrogas ? prorrogas[0] : null;
 
-  // Limit and pagination logic
   const itemsPerPage = 5;
   const reversedProrrogas = [...prorrogas].reverse();
   const totalPages = Math.ceil(reversedProrrogas.length / itemsPerPage);
   const paginatedProrrogas = reversedProrrogas.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  const lastEffectiveEnd = lastProrroga ? getEffectiveEndDate(lastProrroga) : null;
+  const lastEffectiveEnd = lastExtension ? getEffectiveEndDate(lastExtension) : null;
   const daysLeft = lastEffectiveEnd ? daysUntil(lastEffectiveEnd) : Infinity;
   const isCritical = isFinite(daysLeft) && daysLeft <= 7;
   const isVencido = isFinite(daysLeft) && daysLeft < 0;
 
   const getDur = (p: typeof prorrogas[0]) =>
-    p.duration ?? getProrrogaDuration(p.extension_number ?? 0);
+    p.duration ?? getExtensionDuration(p.extension_number ?? 0);
 
   const totalMeses = prorrogas.reduce((acc, p) => acc + getDur(p), 0);
   const maxMeses = Math.max(...prorrogas.map((p) => getDur(p)), 1);
 
-  // Progress bar para tiempo restante del contrato
   const timeProgress = (() => {
-    if (!lastProrroga || !isFinite(daysLeft)) return 100;
-    const start = new Date(lastProrroga.start_date).getTime();  // CORRECCIÓN APLICADA AQUÍ
+    if (!lastExtension || !isFinite(daysLeft)) return 100;
+    const start = new Date(lastExtension.start_date).getTime(); 
     const end   = new Date(lastEffectiveEnd!).getTime();
     if (isNaN(start) || isNaN(end) || end <= start) return 0;
     const elapsed = Date.now() - start;
@@ -287,7 +272,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
     return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
   })();
 
-  const cargoName = getCargoName(c.position);
+  const cargoName = getPositionName(c.position);
 
   return (
     <Box ref={topRef} sx={{ pt: 1 }}>
@@ -305,7 +290,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                       <PersonIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.9)' }} />
                     </Avatar>
                     <Box>
-                      <Typography variant="h5" fontWeight={800} mb={0.3}>{`${c.first_name} ${c.last_name || ''}`.trim()}</Typography>
+                      <Typography variant="h5" fontWeight={800} mb={0.3}>{formatNombreCompleto(c)}</Typography>
                       <Typography variant="body2" color="text.secondary" mb={0.5}>
                         {cargoName} | {c.department || ''}
                       </Typography>
@@ -341,13 +326,13 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                   </Box>
                   <Box>
                     <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Tipo</Typography>
-                    <Typography variant="body2" fontWeight={700}>{formatTipoContrato(c.contract_type)}</Typography>
+                    <Typography variant="body2" fontWeight={700}>{formatContractType(c.contract_type)}</Typography>
                   </Box>
                    <Box>
                     <Typography variant="overline" display="block" color="text.disabled" sx={{ fontSize: '0.63rem', mb: 0.3 }}>Prórroga Actual</Typography>
-                    {lastProrroga ? (
+                    {lastExtension ? (
                       <Chip
-                        label={lastProrroga.extension_number === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.extension_number}`}
+                        label={lastExtension.extension_number === 0 ? 'Contrato original' : `Prórroga #${lastExtension.extension_number}`}
                         size="small"
                         sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, bgcolor: '#e8f0fa', color: 'primary.main' }}
                       />
@@ -429,7 +414,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
           <Stack spacing={2.5}>
             <Box sx={{ background: '#004680', borderRadius: 3, p: 2.5, color: '#fff' }}>
               <Typography variant="overline" sx={{ color: '#7fb8e8', display: 'block', mb: 2, fontSize: '0.65rem', letterSpacing: '0.1em' }}>
-                Resumen del Contrato
+                Resumen del Contract
               </Typography>
 
               <Stack spacing={1.3}>
@@ -459,9 +444,9 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
                 </Stack>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography variant="caption" sx={{ color: '#a0c8e8' }}>Prórroga actual</Typography>
-                  {lastProrroga ? (
+                  {lastExtension ? (
                     <Chip
-                      label={lastProrroga.extension_number === 0 ? 'Contrato original' : `Prórroga #${lastProrroga.extension_number}`}
+                      label={lastExtension.extension_number === 0 ? 'Contrato original' : `Prórroga #${lastExtension.extension_number}`}
                       size="small"
                       sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' }}
                     />
@@ -669,7 +654,7 @@ const ContractDetail: React.FC<Props> = ({ onOpenForm, onEditContract }) => {
         open={cambiarCargoOpen}
         onClose={() => setCambiarCargoOpen(false)}
         contrato={c}
-        onCargoChanged={async () => { await loadContratos(); }}
+        onCargoChanged={async () => { await loadContracts(); }}
       />
     </Box>
   );

@@ -20,17 +20,16 @@ export const InlineMessage: React.FC<InlineMessageProps> = ({
 }) => {
   const [visible, setVisible] = useState(false);
 
-  // Duración por defecto según el tipo de mensaje
   const getDefaultDuration = () => {
     switch (type) {
       case "success":
-        return 1500; // 1.5 segundos para mensajes de éxito
+        return 1500;
       case "error":
-        return 3000; // 3 segundos para errores
+        return 3000;
       case "warning":
-        return 2500; // 2.5 segundos para advertencias
+        return 2500;
       case "info":
-        return 2000; // 2 segundos para información
+        return 2000;
       default:
         return 2000;
     }

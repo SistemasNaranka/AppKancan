@@ -1,17 +1,10 @@
-/**
- * Botón flotante de ayuda para iniciar tours interactivos
- * Módulo de Contabilización de Facturas
- */
-
 import React from "react";
 import { Button } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useTourContext } from "./TourContext";
 
 interface FloatingHelpButtonProps {
-  /** Ocultar el botón cuando hay una notificación mostrando */
   hideWhenNotification?: boolean;
-  /** Estado de si hay una notificación mostrando */
   notificationOpen?: boolean;
 }
 
@@ -21,7 +14,6 @@ export const FloatingHelpButton: React.FC<FloatingHelpButtonProps> = ({
 }) => {
   const { startTour, isTourRunning } = useTourContext();
 
-  // Ocultar cuando hay una notificación mostrando y la prop está habilitada
   const shouldHide = hideWhenNotification && notificationOpen;
 
   const handleClick = () => {

@@ -22,13 +22,6 @@ type ListaTrasladosProps = {
   filtroTipo?: "todos" | "enviados" | "recibidos";
 };
 
-/**
- * Componente mejorado para listar traslados con:
- * - Skeleton loaders durante la carga
- * - Mensaje cuando no hay datos
- * - Mensaje cuando no hay coincidencias con filtro
- * - Manejo de errores
- */
 export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
   loading = false,
   isError = false,
@@ -43,12 +36,11 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
   const { user } = useAuth();
   const codigoUltra = user?.ultra_code ?? "";
 
-  // Estados para el modal de detalle (Solo para tiendas)
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTrasladoId, setSelectedTrasladoId] = useState<number | null>(null);
   const [selectedItems, setSelectedItems] = useState<Traslado[]>([]);
 
-  // Lógica de agrupación para vista tienda
   const trasladosAgrupados = useMemo(() => {
     if (!tienePoliticaTrasladosTiendas) return { cards: traslados, details: new Map<number, Traslado[]>() };
 
@@ -56,12 +48,10 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     const itemsMap = new Map<number, Traslado[]>();
 
     traslados.forEach((t) => {
-      // Guardar el item para el detalle
       const id = t.traslado;
       if (!itemsMap.has(id)) itemsMap.set(id, []);
       itemsMap.get(id)!.push(t);
 
-      // Agrupar para la vista principal
       if (!map.has(id)) {
         map.set(id, { ...t });
       } else {
@@ -76,7 +66,6 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     };
   }, [traslados, tienePoliticaTrasladosTiendas]);
 
-  // Filtrado final sobre los datos agrupados o planos
   const filtrados = useMemo(() => {
     const data = tienePoliticaTrasladosTiendas ? trasladosAgrupados.cards : traslados;
     return data;
@@ -90,7 +79,6 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     setModalOpen(true);
   };
 
-  // Helper para renderizar el modal
   const renderModal = () => (
     tienePoliticaTrasladosTiendas && (
       <TrasladoDetalleModal
@@ -102,12 +90,10 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     )
   );
 
-  // Estado 1: CARGANDO - Mostrar skeletons
   if (loading) {
     return <SkeletonCard count={20} height={180} />;
   }
 
-  // Estado 2: ERROR - Mostrar mensaje de error con opción de reintentar
   if (isError) {
     return (
       <>
@@ -173,7 +159,6 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     );
   }
 
-  // Estado 3: SIN DATOS (nunca ha habido traslados)
   if (totalPendientes === 0 && filtrados.length === 0) {
     return (
       <>
@@ -211,7 +196,6 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     );
   }
 
-  // Estado 4: CON FILTROS pero sin coincidencias (el usuario filtró y no encontró nada)
   if (filtrados.length === 0 && totalPendientes > 0) {
     return (
       <>
@@ -254,7 +238,6 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     );
   }
 
-  // Caso Especial: VISTA DE TIENDA con filtro "TODOS" -> Separar en columnas
   if (tienePoliticaTrasladosTiendas && filtroTipo === "todos") {
     const enviados = filtrados.filter((t) => String(t.bodega_origen) === String(codigoUltra));
     const porRecibir = filtrados.filter((t) => String(t.bodega_origen) !== String(codigoUltra));
@@ -327,7 +310,6 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     );
   }
 
-  // Estado 5: DATOS DISPONIBLES - Mostrar lista normal
   return (
     <>
       <Fade in timeout={500}>

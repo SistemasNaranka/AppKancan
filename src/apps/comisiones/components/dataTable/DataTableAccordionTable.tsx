@@ -13,7 +13,6 @@ import { formatCurrency } from "../../lib/utils";
 import { formatProximaComision } from "../../lib/calculations.utils";
 import { grey, blue } from "@mui/material/colors";
 
-// IMPORTACIÓN DE TU LÓGICA EXTRAÍDA
 import { 
   SortState, SortField, EmployeeRow, INITIAL_SORT_STATE, 
   getRowBackgroundColor, getRowHoverColor, processRowsWithSorting 

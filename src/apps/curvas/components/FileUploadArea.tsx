@@ -23,15 +23,6 @@ interface FileUploadAreaProps {
   estado?: EstadoCarga;
 }
 
-/**
- * Área de carga de archivos con drag & drop
- * 
- * Características:
- * - Soporte para drag & drop
- * - Indicadores de progreso
- * - Manejo de errores por archivo
- * - Validación de tipo de archivo
- */
 export const FileUploadArea = ({
   tipo,
   titulo,
@@ -45,7 +36,6 @@ export const FileUploadArea = ({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Manejar drag & drop
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -63,11 +53,9 @@ export const FileUploadArea = ({
     e.stopPropagation();
   }, []);
 
-  // Validar y procesar archivo
   const processFile = useCallback((file: File) => {
     setError(null);
     
-    // Validar tipo de archivo
     const validExtensions = acceptedFiles.split(',').map(ext => ext.trim());
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     
@@ -76,7 +64,6 @@ export const FileUploadArea = ({
       return;
     }
 
-    // Validar tamaño (máx 10MB)
     if (file.size > 10 * 1024 * 1024) {
       setError('El archivo excede el tamaño máximo de 10MB');
       return;
@@ -86,7 +73,6 @@ export const FileUploadArea = ({
     onUpload(file);
   }, [acceptedFiles, onUpload]);
 
-  // Manejar drop
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -98,7 +84,6 @@ export const FileUploadArea = ({
     }
   }, [processFile]);
 
-  // Manejar selección de archivo
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -106,12 +91,10 @@ export const FileUploadArea = ({
     }
   }, [processFile]);
 
-  // Manejar click para seleccionar archivo
   const handleClick = () => {
     fileInputRef.current?.click();
   };
 
-  // Obtener color de estado
   const getStatusColor = () => {
     switch (estado) {
       case 'exito':
@@ -126,7 +109,6 @@ export const FileUploadArea = ({
     }
   };
 
-  // Obtener icono de estado
   const getStatusIcon = () => {
     switch (estado) {
       case 'exito':

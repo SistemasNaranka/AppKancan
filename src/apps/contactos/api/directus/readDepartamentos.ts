@@ -1,4 +1,3 @@
-// src/apps/contactos/api/directus/readDepartamentos.ts
 import directus from '@/services/directus/directus';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
 import { readItems } from '@directus/sdk';

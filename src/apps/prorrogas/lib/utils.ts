@@ -1,4 +1,4 @@
-import { ContractStatus, Prorroga } from "../types/types";
+import { ContractStatus, Extension } from "../types/types";
 import { addMonths as dfAddMonths, subDays, parseISO } from "date-fns";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ export const daysUntil = (dateStr: string | undefined | null): number => {
  * - Prórrogas 0 a 3 → 4 meses
  * - Prórroga 4 en adelante → 12 meses
  */
-export const getProrrogaDuration = (numero: number | undefined): number =>
+export const getExtensionDuration = (numero: number | undefined): number =>
   (numero ?? 0) >= 4 ? 12 : 4;
 
 /** Estado visual del contrato según días restantes */
@@ -92,13 +92,13 @@ export const getContractStatus = (fechaFin: string): ContractStatus => {
   return "vigente";
 };
 
-export const getNextProrrogaNumber = (prorrogas: Prorroga[]): number => {
+export const getNextExtensionNumber = (prorrogas: Extension[]): number => {
   if (prorrogas.length === 0) return 0;
   return Math.max(...prorrogas.map((p) => p.extension_number ?? 0)) + 1;
 };
 
 /** Porcentaje de avance de la prórroga activa */
-export const getProrrogaProgress = (entry: Prorroga, effectiveEndDate?: string): number => {
+export const getExtensionProgress = (entry: Extension, effectiveEndDate?: string): number => {
   const start = new Date(entry.start_date).getTime();
   const endDate = effectiveEndDate || (entry.end_date ? (entry.end_date instanceof Date ? entry.end_date.toISOString().split('T')[0] : String(entry.end_date).split('T')[0]) : null);
   if (!endDate) return 0;
@@ -116,7 +116,7 @@ export const getProrrogaProgress = (entry: Prorroga, effectiveEndDate?: string):
  *   "TERMINO_FIJO"  → "Termino fijo"
  *   "termino-fijo"  → "Termino fijo"
  */
-export const formatTipoContrato = (raw: string | undefined | null): string => {
+export const formatContractType = (raw: string | undefined | null): string => {
   if (!raw) return '—';
   return raw
     .replace(/[_-]/g, ' ')                    // underscores y guiones → espacios

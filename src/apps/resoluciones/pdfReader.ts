@@ -57,15 +57,12 @@ function parseResponse(response: string): any {
 }
 
 function extractWithRegex(texto1: string, texto2: string): DataPDF {
-  // Extraer número de formulario (resolución)
   const numeroMatch = texto1.match(/\b(1876\d{10})\b/);
   const numero_formulario = numeroMatch ? numeroMatch[1] : "";
 
-  // Extraer fecha
   const fechaMatch = texto1.match(/(\d{4}-\d{2}-\d{2})/);
   const fecha_creacion = fechaMatch ? fechaMatch[1] : "";
 
-  // Extraer razón social
   let razon_social = "";
   if (texto1.includes("NARANKA")) {
     razon_social = "NARANKA SAS";
@@ -78,7 +75,6 @@ function extractWithRegex(texto1: string, texto2: string): DataPDF {
     razon_social = "MARIA FERNANDA PEREZ VELEZ";
   }
 
-  // Extraer municipio (ciudad) - última palabra antes de SUBDIRECCION
   const municipioMatch = texto1.match(
     /([A-Za-zÁÉÍÓÚáéíóúÑñ]+)\s+SUBDIRECCION/i,
   );
@@ -86,25 +82,20 @@ function extractWithRegex(texto1: string, texto2: string): DataPDF {
     ? municipioMatch[1].trim().toUpperCase()
     : "";
 
-  // Extraer prefijo
   const prefijoMatch = texto2.match(/\b([A-Z]{2}\d{1,4})\b/);
   const prefijo = prefijoMatch ? prefijoMatch[1] : "";
 
-  // Extraer desde: el número que aparece inmediatamente después del prefijo (ej: LE26 111)
   const desdeMatch = texto2.match(/\b[A-Z]{2}\d{1,4}\b\s+(\d+)/);
   const desde_numero = desdeMatch ? parseInt(desdeMatch[1]) : 1;
 
-  // Extraer hasta
   const hastaMatch = texto2.match(/(\d{1,3}(?:,\d{3})+)/);
   const hasta_numero = hastaMatch
     ? parseInt(hastaMatch[1].replace(/,/g, ""))
     : 0;
 
-  // Extraer vigencia
   const vigenciaMatch = texto2.match(/\b(\d{1,2})\s+HABILITACIÓN/i);
   const vigencia = vigenciaMatch ? parseInt(vigenciaMatch[1]) : 12;
 
-  // Extraer tipo solicitud
   let tipo_solicitud = "Principal";
   if (texto2.includes("HABILITACIÓN")) {
     tipo_solicitud = "Habilitación";
@@ -146,21 +137,17 @@ export async function LearnPDF(
 ): Promise<DataPDF | string> {
   try {
     const arrayBuffer = await archivo.arrayBuffer();
-    // Clonamos el ArrayBuffer ya que pdfjsLib desasocia (detach) la memoria al parsearla
     const arrayBufferCopy = arrayBuffer.slice(0);
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-    // Validar que tenga al menos 2 páginas
     if (pdf.numPages < 2) {
       return "El PDF debe tener 2 o más páginas";
     }
 
-    // Leer página 1
     const pagina1 = await pdf.getPage(1);
     const textoPagina1 = await pagina1.getTextContent();
     const texto1 = textoPagina1.items.map((item: any) => item.str).join(" ");
 
-    // Leer página 2
     const pagina2 = await pdf.getPage(2);
     const textoPagina2 = await pagina2.getTextContent();
     const texto2 = textoPagina2.items.map((item: any) => item.str).join(" ");
@@ -168,12 +155,10 @@ export async function LearnPDF(
     let finalData: DataPDF | null = null;
     let geminiErrorDetails = "";
 
-    // Si hay API Key de Gemini, intentar la extracción con IA
     if (geminiApiKey) {
       const modelos = obtenerModelosIA(modelosIA);
 
       const uint8Array = new Uint8Array(arrayBufferCopy);
-      // Convertir Uint8Array a base64 de manera segura
       let binary = "";
       const len = uint8Array.byteLength;
       for (let i = 0; i < len; i++) {
@@ -228,7 +213,6 @@ export async function LearnPDF(
           const responseText = resData.text || "";
           const parsed = parseResponse(responseText);
 
-          // Validar que tengamos campos críticos correctos
           if (parsed && parsed.numero_formulario) {
             finalData = {
               numero_formulario: parsed.numero_formulario,
@@ -254,17 +238,12 @@ export async function LearnPDF(
       console.warn("API Key de Gemini no configurada en el perfil del usuario.");
     }
 
-    // Fallback: Si no hay API Key o falla Gemini, usar la lógica Regex
-    console.log("Ejecutando fallback alternativo con expresiones regulares (Regex)...");
     const regexData = extractWithRegex(texto1, texto2);
 
-    // Validar que el fallback haya obtenido datos críticos mínimos
     if (regexData.numero_formulario && regexData.fecha_creacion) {
-      console.log("Extracción con Regex exitosa:", regexData);
       return regexData;
     }
 
-    // Si ambos fallaron
     if (geminiApiKey) {
       return `Error al extraer datos con la IA: ${geminiErrorDetails}. Además, el análisis alternativo (Regex) falló al leer el formato de este PDF. Por favor verifica que el archivo sea una resolución válida de la DIAN.`;
     } else {

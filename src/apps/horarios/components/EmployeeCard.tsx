@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Card, Typography, Button, Box, IconButton, Stack, Chip, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
@@ -15,7 +15,7 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { EmpleadoAsistencia } from '../interfaces/horarios.interface';
 import EditHourModal from './EditHourModal';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import * as yup from 'yup';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -64,15 +64,6 @@ const formatTo12Hour = (timeStr: string | null): string => {
   return `${hoursStr}:${minutes} ${ampm}`;
 };
 
-const getEventKey = (evento: string): string => {
-  switch (evento) {
-    case 'Comenzar Jornada': return 'inicioJornada';
-    case 'Iniciar Almuerzo': return 'inicioAlmuerzo';
-    case 'Finalizar Almuerzo': return 'finAlmuerzo';
-    case 'Terminar Jornada': return 'finJornada';
-    default: return '';
-  }
-};
 
 export default function EmployeeCard({
   empleado, tiposNovedad, onRegistrarEvento,
@@ -80,7 +71,7 @@ export default function EmployeeCard({
 }: EmployeeCardProps) {
   if (!empleado) {
     return (
-      <Card sx={{ width: 380, borderRadius: 3, p: 4, textAlign: 'center' }}>
+      <Card sx={{ width: '100%', borderRadius: 3, p: 4, textAlign: 'center' }}>
         <CircularProgress size={40} />
         <Typography sx={{ mt: 2 }}>Cargando empleado...</Typography>
       </Card>
@@ -89,7 +80,6 @@ export default function EmployeeCard({
 
   const { id, nombre, estadoActual, registros } = empleado;
 
-  // Estados
   const [novedadModalOpen, setNovedadModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     novedad: '',
@@ -102,12 +92,11 @@ export default function EmployeeCard({
   const [obsModalOpen, setObsModalOpen] = useState(false);
   const [eventoActualObs, setEventoActualObs] = useState('');
   const [observacionTexto, setObservacionTexto] = useState('');
-  const [obsInicialModal, setObsInicialModal] = useState(''); // <-- añadido
+  const [obsInicialModal, setObsInicialModal] = useState('');
 
   const [horaModalOpen, setHoraModalOpen] = useState(false);
   const [eventoActualHora, setEventoActualHora] = useState('');
 
-  // Validación
   const novedadSchema = yup.object().shape({
     novedad: yup.string().required('El tipo de novedad es obligatorio'),
     fechaInicio: yup.string().required('La fecha de inicio es obligatoria'),
@@ -151,7 +140,6 @@ export default function EmployeeCard({
     }
   };
 
-  // Modal novedad
   const handleOpenNovedadModal = () => {
     setFormData({ novedad: '', fechaInicio: dayjs().format('YYYY-MM-DD'), fechaFin: dayjs().format('YYYY-MM-DD'), observaciones: '' });
     setFormErrors({});
@@ -178,7 +166,6 @@ export default function EmployeeCard({
     }
   };
 
-  // Modal observación
   const handleOpenObsModal = (evento: string) => {
     setEventoActualObs(evento);
     const obs = getObservacion(evento);
@@ -197,7 +184,6 @@ export default function EmployeeCard({
     handleCloseObsModal();
   };
 
-  // Modal edición hora (usando el componente externo)
   const handleOpenHoraModal = (evento: string) => {
     setEventoActualHora(evento);
     setHoraModalOpen(true);
@@ -207,8 +193,8 @@ export default function EmployeeCard({
 
   return (
     <>
-      <Card sx={{ width: 380, borderRadius: 3, overflow: 'hidden', boxShadow: finalizado ? 'none' : '0 4px 12px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
-        <Box sx={{ bgcolor: '#004a99', color: 'white', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Card className="tour-employee-card" sx={{ width: '100%', borderRadius: 3, overflow: 'hidden', boxShadow: finalizado ? 'none' : '0 4px 12px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
+        <Box sx={{ bgcolor: '#004680', color: 'white', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <Typography sx={{ fontWeight: 700, fontSize: '1rem', textTransform: 'capitalize', lineHeight: 1.2 }}>{nombre}</Typography>
             {empleado.cargo && (
@@ -219,7 +205,7 @@ export default function EmployeeCard({
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Tooltip title={novedadActiva ? 'Registrar novedad' : 'No disponible'}>
-              <span>
+              <span className="tour-novedad-btn">
                 <IconButton
                   size="medium"
                   disabled={!novedadActiva}
@@ -243,7 +229,7 @@ export default function EmployeeCard({
         </Box>
 
         <Box sx={{ p: 3 }}>
-          <Stack spacing={1.5}>
+          <Stack className="tour-marcacion" spacing={1.5}>
             {botones.map((btn, idx) => {
               const yaHecho = !!btn.hora;
               const bloqueado = !btn.activo && !yaHecho;
@@ -263,7 +249,7 @@ export default function EmployeeCard({
                           border: '1px solid',
                           borderColor: relojEnabled ? '#cbd5e1' : '#e2e8f0',
                           borderRadius: 1.5,
-                          color: relojEnabled ? '#004a99' : '#cbd5e1',
+                          color: relojEnabled ? '#004680' : '#cbd5e1',
                           '&:hover': { bgcolor: relojEnabled ? '#f1f5f9' : 'transparent' }
                         }}
                       >
@@ -285,13 +271,22 @@ export default function EmployeeCard({
                       fontWeight: 700,
                       py: 1,
                       borderRadius: 2,
-                      bgcolor: btn.activo ? '#004a99' : 'transparent',
+                      bgcolor: btn.activo ? '#004680' : 'transparent',
                       color: btn.activo ? '#fff' : yaHecho ? '#16a34a' : '#94a3b8',
                       borderColor: yaHecho ? '#cbd5e1' : 'transparent',
                       cursor: yaHecho ? 'default' : 'pointer',
+                      boxShadow: 'none',
+                      transition: 'all 0.3s ease-in-out',
                       '&:hover': {
                         bgcolor: btn.activo ? '#003366' : 'transparent',
                         transform: btn.activo ? 'translateY(-1px)' : 'none',
+                        boxShadow: 'none',
+                      },
+                      '&:active': {
+                        boxShadow: 'none',
+                      },
+                      '&:focus': {
+                        boxShadow: 'none',
                       },
                     }}
                   >
@@ -309,7 +304,7 @@ export default function EmployeeCard({
                           border: '1px solid',
                           borderColor: obsEnabled ? '#cbd5e1' : '#e2e8f0',
                           borderRadius: 1.5,
-                          color: obsEnabled ? '#004a99' : '#cbd5e1',
+                          color: obsEnabled ? '#004680' : '#cbd5e1',
                           '&:hover': { bgcolor: obsEnabled ? '#f1f5f9' : 'transparent' }
                         }}
                       >
@@ -323,13 +318,12 @@ export default function EmployeeCard({
           </Stack>
           {finalizado && (
             <Box sx={{ mt: 2, textAlign: 'center', bgcolor: '#f0fdf4', py: 1, borderRadius: 2 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: '#16a34a' }}>✅ Jornada completada</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: '#16a34a' }}>Jornada completada</Typography>
             </Box>
           )}
         </Box>
       </Card>
 
-      {/* Modal de edición de hora reutilizable (componente externo) */}
       <EditHourModal
         open={horaModalOpen}
         onClose={() => setHoraModalOpen(false)}
@@ -344,7 +338,7 @@ export default function EmployeeCard({
 
       {/* Modal observación */}
       <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-        <DialogTitle component="div" sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>
+        <DialogTitle component="div" sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>
           <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Observaciones del evento</Typography>
           <Typography component="span" variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>{eventoActualObs} • {nombre}</Typography>
         </DialogTitle>
@@ -355,13 +349,13 @@ export default function EmployeeCard({
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 2, bgcolor: '#f8fafc' }}>
           <Button onClick={handleCloseObsModal} variant="outlined" color="error" sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}>Cancelar</Button>
-          <Button onClick={handleGuardarObservacion} variant="contained" disabled={observacionTexto === obsInicialModal} sx={{ bgcolor: '#004a99', borderRadius: 2, px: 4, fontWeight: 600 }}>Guardar</Button>
+          <Button onClick={handleGuardarObservacion} variant="contained" disabled={observacionTexto === obsInicialModal} sx={{ bgcolor: '#004680', borderRadius: 2, px: 4, fontWeight: 600 }}>Guardar</Button>
         </DialogActions>
       </Dialog>
 
       {/* Modal novedad */}
       <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-        <DialogTitle sx={{ bgcolor: '#004a99', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
+        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
             <FormControl fullWidth error={!!formErrors.novedad}>
@@ -410,7 +404,7 @@ export default function EmployeeCard({
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button onClick={handleCloseNovedadModal} variant="outlined" color="error">Cancelar</Button>
-          <Button onClick={handleGuardarNovedad} variant="contained" sx={{ bgcolor: '#004a99' }}>Guardar</Button>
+          <Button onClick={handleGuardarNovedad} variant="contained" sx={{ bgcolor: '#004680' }}>Guardar</Button>
         </DialogActions>
       </Dialog>
     </>

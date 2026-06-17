@@ -2,11 +2,7 @@ import React, { useState, useCallback } from "react";
 import { Box, CircularProgress, Typography, Alert, Button } from "@mui/material";
 import WarningIcon from "@mui/icons-material/Warning";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-
-// Hooks
 import { useFileProcessor } from "../hooks/useFileProcessor";
-
-// Components
 import HomeHeader from "../components/HomeHeader";
 import FileSidebar from "../components/FileSidebar";
 import FilePreview from "../components/FilePreview";
@@ -44,7 +40,6 @@ const Home: React.FC = () => {
     cargarDatosMapeo
   } = useFileProcessor();
 
-  // Manejadores para drag and drop en toda la página
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -54,7 +49,6 @@ const Home: React.FC = () => {
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Solo desactivar si es un dragleave del documento o del contenedor principal
     if (e.currentTarget === document.body || e.currentTarget === e.target) {
       setDragActive(false);
     }
@@ -71,7 +65,6 @@ const Home: React.FC = () => {
     }
   }, [procesarArchivosRaw]);
 
-  // Generar mensaje para el modal de confirmación de normalización con duplicados
   const getDuplicateNormalizationMessage = useCallback((): string[] => {
     const mensaje: string[] = [
       "Se detectaron archivos con el mismo nombre en la lista:",
@@ -85,7 +78,6 @@ const Home: React.FC = () => {
     return mensaje;
   }, [duplicadosParaNormalizar]);
 
-  // Loader mientras cargan mapeos iniciales
   if (cargandoMapeos) {
     return (
       <Box sx={{

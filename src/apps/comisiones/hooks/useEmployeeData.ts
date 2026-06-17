@@ -8,7 +8,6 @@ import {
 import { obtenerAsesores, obtenerCargos } from "../api/directus/read";
 
 interface UseEmployeeDataReturn {
-  // Estados
   asesoresDisponibles: DirectusStaff[];
   cargosDisponibles: DirectusPosition[];
   cargosFiltrados: DirectusPosition[];
@@ -16,12 +15,10 @@ interface UseEmployeeDataReturn {
   error: string | null;
   empleadoEncontrado: DirectusStaff | null;
 
-  // Handlers
   loadAsesoresDisponibles: () => Promise<void>;
   setCargoSeleccionado: (value: string) => void;
   buscarEmpleadoPorCodigo: (codigo: string) => void;
 
-  // Getters
   getCurrentMessage: () => {
     message: string;
     type: "success" | "error" | "warning" | "info";
@@ -44,12 +41,10 @@ export const useEmployeeData = (
   const [empleadoEncontrado, setEmpleadoEncontrado] =
     useState<DirectusStaff | null>(null);
 
-  // ✅ FIX: Memoizar el ID de la tienda para evitar bucles infinitos
   const tiendaId = useMemo(() => {
     return tiendaUsuario?.id;
   }, [tiendaUsuario?.id]);
 
-  // ✅ FIX: Memoizar empleadosAsignados para evitar bucles infinitos
   const empleadosAsignadosMemo = useMemo(() => {
     return empleadosAsignados;
   }, [
@@ -81,7 +76,6 @@ export const useEmployeeData = (
     }
   };
 
-  // Filtrar cargos basados en empleados asignados (ocultar roles exclusivos ya seleccionados) y tienda
   useEffect(() => {
     const rolesAsignados = empleadosAsignadosMemo.map((e) =>
       e.cargoAsignado.toLowerCase(),
@@ -92,7 +86,6 @@ export const useEmployeeData = (
 
     let cargosFiltrados = cargosDisponibles;
 
-    // Filtrar roles exclusivos ya asignados
     if (cargosExclusivosUsados.length > 0) {
       cargosFiltrados = cargosFiltrados.filter((cargo) => {
         const cargoLower = cargo.name.toLowerCase();
@@ -100,8 +93,6 @@ export const useEmployeeData = (
       });
     }
 
-    // Filtrar gerente_online SOLO si la tienda NO es 5 (tienda online)
-    // ✅ FIX: Convertir a número para comparación correcta
     const tiendaIdNum = tiendaId ? Number(tiendaId) : null;
 
     if (tiendaIdNum && tiendaIdNum !== 5) {
@@ -112,20 +103,17 @@ export const useEmployeeData = (
         return !isGerenteOnline;
       });
     } else if (tiendaIdNum === 5) {
-      // Para tienda 5, verificar que gerente_online esté incluido
     }
 
     setCargosFiltrados(cargosFiltrados);
-  }, [empleadosAsignadosMemo, cargosDisponibles, tiendaId]); // ✅ FIX: Usar empleadosAsignadosMemo para evitar bucles
+  }, [empleadosAsignadosMemo, cargosDisponibles, tiendaId]);
 
-  // Establecer valor por defecto cuando se cargan los cargos
   useEffect(() => {
     if (cargosFiltrados.length > 0) {
       const asesorCargo = cargosFiltrados.find(
         (c) => c.name.toLowerCase() === "asesor",
       );
       if (asesorCargo) {
-        // Solo establecer si no hay cargo seleccionado o si está vacío
         if (!empleadoEncontrado) {
           setEmpleadoEncontrado(null);
         }
@@ -145,13 +133,11 @@ export const useEmployeeData = (
       return;
     }
 
-    // Búsqueda ESTRICTA por ID solamente
     const empleado = asesoresDisponibles.find(
       (a) => String(a.id) === String(codigo.trim())
     );
     setEmpleadoEncontrado(empleado || null);
 
-    // ✅ NUEVO: Avisar si el código no existe (cuando tiene 4 dígitos)
     if (codigo.trim().length === 4 && !empleado) {
       setError(`⚠️ El código ${codigo.trim()} no existe en la base de datos.`);
     } else if (error && error.includes("no existe")) {
@@ -160,8 +146,6 @@ export const useEmployeeData = (
   };
 
   const getCurrentMessage = () => {
-    // Esta función puede ser expandida para devolver mensajes específicos
-    // basados en el estado actual de los datos
     return null;
   };
 
@@ -173,7 +157,7 @@ export const useEmployeeData = (
     error,
     empleadoEncontrado,
     loadAsesoresDisponibles,
-    setCargoSeleccionado: () => {}, // Esta función se maneja en el hook principal
+    setCargoSeleccionado: () => {},
     buscarEmpleadoPorCodigo,
     getCurrentMessage,
   };

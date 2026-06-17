@@ -5,9 +5,6 @@ import type {
   FrequencyType,
 } from "../types";
 
-/**
- * Converts seconds to readable format
- */
 export function formatTime(seconds: number): string {
   if (seconds === undefined || seconds === null || isNaN(seconds)) {
     return "0s";
@@ -31,16 +28,10 @@ export function formatTime(seconds: number): string {
   return `${isNegative ? "-" : ""}${minutes}m ${segs}s`;
 }
 
-/**
- * Converts seconds to hours
- */
 export function secondsToHours(seconds: number): number {
   return Number((seconds / 3600).toFixed(2));
 }
 
-/**
- * Calculates metrics for a single process.
- */
 export function calculateProcessMetrics(process: Process): ProcessMetrics {
   const timeBefore = Number(process.time_before) || 0;
   const timeAfter = Number(process.time_after) || 0;
@@ -87,9 +78,6 @@ export function calculateProcessMetrics(process: Process): ProcessMetrics {
   };
 }
 
-/**
- * Calculates total metrics for a project
- */
 export function calculateProjectMetrics(
   processes: Process[],
 ): ProjectMetrics {
@@ -122,9 +110,7 @@ export function calculateProjectMetrics(
   };
 }
 
-/**
- * Gets frequency text
- */
+
 export function getFrequencyText(
   type: FrequencyType,
   quantity: number,
@@ -141,27 +127,21 @@ export function getFrequencyText(
   }
 }
 
-/**
- * Options for frequency select
- */
+
 export const frequencyOptions = [
   { value: "diaria", label: "Diaria" },
   { value: "semanal", label: "Semanal" },
   { value: "mensual", label: "Mensual" },
 ];
 
-/**
- * Options for project status select
- */
+
 export const projectStatusOptions = [
   { value: "en_proceso", label: "En Proceso", color: "blue" },
   { value: "entregado", label: "Entregado", color: "green" },
   { value: "en_seguimiento", label: "En Seguimiento", color: "orange" },
 ];
 
-/**
- * Options for project type
- */
+
 export const projectTypeOptions = [
   { value: "mejora", label: "Mejora" },
   { value: "nuevo", label: "Nuevo" },

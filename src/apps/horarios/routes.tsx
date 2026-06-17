@@ -12,7 +12,6 @@ const rutasHorarios: RouteObject[] = [
         element: <RegistrosPage />
       },
       {
-        // El ADT acepta 'index: true' en lugar de un path vacío
         index: true,
         element: <Navigate to="registros" replace />
       },

@@ -1,4 +1,3 @@
-// src/apps/gestion_proyectos/components/ProcessList.tsx
 import {
   TextField,
   Select,
@@ -137,7 +136,6 @@ export function ProcessList({
   );
 }
 
-// ─── Process card ───────────────────────────────────────────────────────
 function ProcessCard({
   process,
   index,
@@ -149,10 +147,8 @@ function ProcessCard({
   onDelete: (id: string) => void;
   onUpdate: (id: string, field: string, value: any) => void;
 }) {
-  // Local state for shared time unit
   const [unit, setUnit] = useState<"seg" | "min" | "hora">("seg");
 
-  // Conversions
   const secondsToUnit = (seconds: number): number => {
     if (seconds === 0) return 0;
     switch (unit) {
@@ -176,7 +172,6 @@ function ProcessCard({
     }
   };
 
-  // Format value to show in input
   const formatValue = (seconds: number): string => {
     if (seconds === 0) return "";
     const converted = secondsToUnit(seconds);

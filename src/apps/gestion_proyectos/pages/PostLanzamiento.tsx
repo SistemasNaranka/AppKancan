@@ -33,7 +33,6 @@ import {
 import type { Feedback, CreateFeedbackInput } from "../types";
 import { useGlobalSnackbar } from "../../../shared/components/SnackbarsPosition/SnackbarContext";
 
-// Header container with margin and border-radius
 const HeaderContainer = styled(Box)({
   margin: '24px 0',
   padding: '20px 24px',

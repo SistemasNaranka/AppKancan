@@ -1,7 +1,7 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { getProrrogaProgress, formatDate, getProrrogaDuration } from "../lib/utils";
+import { getExtensionProgress, formatDate, getExtensionDuration } from "../lib/utils";
 import { daysUntil } from "../hooks/useContracts";
 import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import RadioButtonUnchecked from '@mui/icons-material/RadioButtonUnchecked';
@@ -9,20 +9,17 @@ import Autorenew from '@mui/icons-material/Autorenew';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import { Stack } from "@mui/material";
 import { Chip, LinearProgress } from "@mui/material";
-import { Prorroga } from "../types/types";
+import { Extension } from "../types/types";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ContractTimeline
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface ContractTimelineProps {
-  prorrogas: Prorroga[];
+  prorrogas: Extension[];
 }
 
 const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
   const lastIdx      = prorrogas.length - 1;
-  const nextNum      = prorrogas.length;           // la siguiente prórroga que se crearía
-  const nextDuration = getProrrogaDuration(nextNum);
+  const nextNum      = prorrogas.length;
+  const nextDuration = getExtensionDuration(nextNum);
 
   return (
     <Box sx={{ position: 'relative', pl: 4 }}>
@@ -39,11 +36,11 @@ const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
         }}
       />
 
-      {/* Prorroga entries */}
+      {/* Extension entries */}
       {prorrogas.map((p, idx) => {
         const isActive     = idx === lastIdx;
         const isFinalizado = !isActive && daysUntil(p.end_date?.toString() ?? null) < 0;
-        const progress     = isActive ? getProrrogaProgress(p) : 0;
+        const progress     = isActive ? getExtensionProgress(p) : 0;
         const diasRestantes = daysUntil(p.end_date?.toString() ?? null);
 
         return (
@@ -98,7 +95,7 @@ const ContractTimeline: React.FC<ContractTimelineProps> = ({ prorrogas }) => {
                     />
                   )}
                   <Chip
-                    label={`${p.duration ?? getProrrogaDuration(p.extension_number ?? idx)} meses`}
+                    label={`${p.duration ?? getExtensionDuration(p.extension_number ?? idx)} meses`}
                     size="small"
                     sx={{
                       bgcolor: isActive ? 'primary.main' : '#f0f4f8',

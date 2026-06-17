@@ -1,7 +1,3 @@
-/**
- * Validaciones para datos de presupuestos y configuración
- */
-
 import { StaffMember } from "../types";
 
 export interface ValidationError {
@@ -9,10 +5,6 @@ export interface ValidationError {
   field: string;
   message: string;
 }
-
-/**
- * Valida un registro de presupuesto
- */
 export const validateBudgetRecord = (
   record: any,
   rowIndex: number
@@ -34,7 +26,6 @@ export const validateBudgetRecord = (
       message: "La fecha es requerida",
     });
   } else {
-    // Validar formato de fecha (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(record.fecha)) {
       errors.push({
@@ -80,9 +71,6 @@ export const validateBudgetRecord = (
   return errors;
 };
 
-/**
- * Valida la configuración de porcentaje de gerente
- */
 export const validateManagerPercentage = (
   percentage: number
 ): ValidationError[] => {
@@ -103,9 +91,6 @@ export const validateManagerPercentage = (
   return errors;
 };
 
-/**
- * Valida un miembro del personal
- */
 export const validateStaffMember = (
   member: any,
   rowIndex: number
@@ -162,9 +147,6 @@ export const validateStaffMember = (
   return errors;
 };
 
-/**
- * Valida que haya al menos un asesor por tienda/fecha
- */
 export const validateStaffAssignment = (
   staff: StaffMember[]
 ): ValidationError[] => {
@@ -178,7 +160,6 @@ export const validateStaffAssignment = (
     }
   });
 
-  // Verificar que cada tienda/fecha tenga al menos un asesor
   const tiendaFechas = new Set<string>();
   staff.forEach((member) => {
     tiendaFechas.add(`${member.tienda}|${member.fecha}`);

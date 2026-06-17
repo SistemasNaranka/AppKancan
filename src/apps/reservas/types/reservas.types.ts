@@ -1,9 +1,4 @@
-// src/apps/reservas/types/reservas.types.ts
-
-/**
- * Datos del usuario en una reserva
- */
-export interface UsuarioReserva {
+export interface ReservationUser {
   id: string;
   first_name: string;
   last_name: string;
@@ -14,232 +9,155 @@ export interface UsuarioReserva {
   };
 }
 
-/**
- * Participante de una reunión
- */
-export interface Participante {
+export interface Participant {
   name: string;
   email: string;
 }
 
-/**
- * Estructura tal cual viene de Directus (tabla Reuniones_Reservas)
- */
-export interface Reserva {
+export interface Reservation {
   id: number;
   date_created: string;
-  user_id: UsuarioReserva | null;
+  user_id: ReservationUser | null;
   room_name: string;
   date: string;
   start_time: string;
   end_time: string;
-  status: EstadoReserva;
+  status: ReservationStatus;
   meeting_title: string;
   observations?: string;
-  participants?: Participante[];
+  participants?: Participant[];
   departament?: string;
-  estadoCalculado?: EstadoReserva;
-  //participantes?: { nombre: string; correo: string }[];
+  calculatedStatus?: ReservationStatus;
 }
 
-/**
- * Estados posibles de una reserva
- * "En curso" se calcula dinámicamente, no se guarda en BD
- */
-export type EstadoReserva = "Vigente" | "En curso" | "Finalizado" | "Cancelado";
+export type ReservationStatus = "Vigente" | "En curso" | "Finalizado" | "Cancelado";
 
-/**
- * Estados para mostrar en filtros (sin duplicados)
- */
-export const ESTADOS_FILTRO = [
+export const FILTER_STATUSES = [
   "Vigente",
   "En curso",
   "Finalizado",
   "Cancelado",
 ] as const;
 
-/**
- * Opciones de salas disponibles
- */
-export type Sala = "Sala Principal" | "Sala Secundaria";
+export type Room = "Sala Principal" | "Sala Secundaria";
 
-/**
- * Lista de salas disponibles
- */
-export const SALAS_DISPONIBLES: Sala[] = ["Sala Principal", "Sala Secundaria"];
+export const AVAILABLE_ROOMS: Room[] = ["Sala Principal", "Sala Secundaria"];
 
-// /**
-//  * Información de configuración de las salas
-//  */
-// export const INFO_SALAS: Record<string, { tipo: string; capacidad: number }> = {
-//   "Sala Principal": { tipo: "", capacidad: 12 },
-//   "Sala Secundaria": { tipo: "", capacidad: 6 },
-// };
-
-/**
- * Datos para crear una nueva reserva
- */
-export interface NuevaReserva {
-  room_name: Sala;
+export interface NewReservation {
+  room_name: Room;
   date: string;
   start_time: string;
   end_time: string;
   meeting_title: string;
   observations?: string;
-  participants?: Participante[];
+  participants?: Participant[];
   departament?: string;
 }
 
-/**
- * Datos para actualizar una reserva existente
- */
-export interface ActualizarReserva {
-  room_name?: Sala;
+export interface UpdateReservation {
+  room_name?: Room;
   date?: string;
   start_time?: string;
   end_time?: string;
-  status?: EstadoReserva;
+  status?: ReservationStatus;
   meeting_title?: string;
   observations?: string;
-  participants?: Participante[];
+  participants?: Participant[];
 }
 
-/**
- * Filtros para consultar reservas
- */
-export interface FiltrosReserva {
+export interface ReservationFilters {
   date?: string;
-  room_name?: Sala | "";
-  status?: EstadoReserva | "";
+  room_name?: Room | "";
+  status?: ReservationStatus | "";
   user_id?: string;
 }
 
-/**
- * Configuración de colores de FONDO por estado
- */
-export const COLORES_ESTADO: Record<EstadoReserva, string> = {
+export const STATUS_COLORS: Record<ReservationStatus, string> = {
   Vigente: "#004680",
   "En curso": "#0F9568",
   Finalizado: "#F3F4F6",
   Cancelado: "#FEE2E2",
 };
 
-/**
- * Configuración de colores de TEXTO por estado
- */
-export const COLORES_TEXTO_ESTADO: Record<EstadoReserva, string> = {
+export const STATUS_TEXT_COLORS: Record<ReservationStatus, string> = {
   Vigente: "#5CB6FF",
   "En curso": "#41ECB3",
   Finalizado: "#374151",
   Cancelado: "#DC2626",
 };
 
-/**
- * Configuración de horario de operación para reservas
- * Esta configuración viene de la base de datos
- */
-export interface ConfiguracionHorario {
+export interface ScheduleConfig {
   id: number;
-  opening_time: string; // Formato HH:mm
-  closing_time: string;    // Formato HH:mm
+  opening_time: string;
+  closing_time: string;
   status: "Activo" | "Inactivo";
 }
 
-/**
- * Configuración de la aplicación de reservas
- */
-export interface ConfiguracionReservas {
-  hora_inicio_operacion: string;
-  hora_fin_operacion: string;
-  intervalo_reserva_minutos: number;
-  dias_laborales: number[]; // 0=domingo, 1=lunes, ..., 6=sábado
+export interface ReservationConfig {
+  operation_start_time: string;
+  operation_end_time: string;
+  reservation_interval_minutes: number;
+  working_days: number[];
 }
 
-// Valores por defecto mientras se carga la configuración
-export const CONFIGURACION_POR_DEFECTO: ConfiguracionReservas = {
-  hora_inicio_operacion: "07:00",
-  hora_fin_operacion: "18:00",
-  intervalo_reserva_minutos: 60,
-  dias_laborales: [1, 2, 3, 4, 5], // Lunes a Viernes
+export const DEFAULT_RESERVATION_CONFIG: ReservationConfig = {
+  operation_start_time: "07:00",
+  operation_end_time: "18:00",
+  reservation_interval_minutes: 60,
+  working_days: [1, 2, 3, 4, 5],
 };
 
-/**
- * Horario comercial (configurable - futuro: vendrá de BD)
- */
-export const HORARIO_COMERCIAL = {
-  inicio: "07:00",
-  fin: "16:30", // 4:30 PM
+export const BUSINESS_HOURS = {
+  start: "07:00",
+  end: "16:30",
 };
 
-export const HORARIO_INICIO = HORARIO_COMERCIAL.inicio;
-export const HORARIO_FIN = HORARIO_COMERCIAL.fin;
+export const START_HOUR = BUSINESS_HOURS.start;
+export const END_HOUR = BUSINESS_HOURS.end;
 
-/**
- * Capitaliza la primera letra de un string
- */
 export const capitalize = (text: string): string => {
   if (!text) return "";
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 };
 
-/**
- * Duración mínima de reunión en minutos
- */
-export const DURACION_MINIMA_MINUTOS = 30;
+export const MIN_DURATION_MINUTES = 30;
 
-/**
- * Calcula el estado real de una reserva basado en la fecha/hora actual
- */
-export const calcularEstadoReserva = (reserva: Reserva): EstadoReserva => {
-  // Si está cancelado, mantener ese estado
-  if (estaCancelado(reserva.status)) {
-    return reserva.status;
+export const calculateReservationStatus = (reservation: Reservation): ReservationStatus => {
+  if (isCancelled(reservation.status)) {
+    return reservation.status;
   }
 
-  const ahora = new Date();
-  const fechaInicio = new Date(`${reserva.date}T${reserva.start_time}`);
-  const fechaFin = new Date(`${reserva.date}T${reserva.end_time}`);
+  const now = new Date();
+  const startTime = new Date(`${reservation.date}T${reservation.start_time}`);
+  const endTime = new Date(`${reservation.date}T${reservation.end_time}`);
 
-  // Si ya pasó la hora final → Finalizado
-  if (ahora >= fechaFin) {
+  if (now >= endTime) {
     return "Finalizado";
   }
 
-  // Si está entre hora inicio y hora final → En curso
-  if (ahora >= fechaInicio && ahora < fechaFin) {
+  if (now >= startTime && now < endTime) {
     return "En curso";
   }
 
-  // Si aún no ha comenzado → Vigente
   return "Vigente";
 };
 
-/**
- * Verifica si un estado es "finalizado" (cualquier variante)
- */
-export const estaFinalizado = (estado: string): boolean => {
-  const estadoLower = estado?.toLowerCase() || "";
-  return estadoLower === "finalizada" || estadoLower === "finalizado";
+export const isFinished = (status: string): boolean => {
+  const statusLower = status?.toLowerCase() || "";
+  return statusLower === "finalizada" || statusLower === "finalizado";
 };
 
-/**
- * Verifica si un estado es "cancelado" (cualquier variante)
- */
-export const estaCancelado = (estado: string): boolean => {
-  const estadoLower = estado?.toLowerCase() || "";
-  return estadoLower === "cancelada" || estadoLower === "cancelado";
+export const isCancelled = (status: string): boolean => {
+  const statusLower = status?.toLowerCase() || "";
+  return statusLower === "cancelada" || statusLower === "cancelado";
 };
 
-/**
- * Verifica si una reserva puede ser modificada
- */
-export const puedeModificarse = (estado: string): boolean => {
-  const estadoLower = estado?.toLowerCase() || "";
-  return estadoLower === "vigente";
+export const canBeModified = (status: string): boolean => {
+  const statusLower = status?.toLowerCase() || "";
+  return statusLower === "vigente";
 };
 
-// Paleta de colores variados para el Calendario
-export const PALETA_RESERVAS = [
+export const RESERVATIONS_PALETTE = [
   "#3b82f6",
   "#8b5cf6",
   "#ec4899",
@@ -256,13 +174,11 @@ export const PALETA_RESERVAS = [
   "#a855f7",
 ];
 
-// Función: Devuelve siempre el mismo color para el mismo ID
-export const getReservaColor = (id: number): string => {
-  if (!id) return "#9e9e9e"; // Color gris si no hay ID
-  return PALETA_RESERVAS[id % PALETA_RESERVAS.length];
+export const getReservationColor = (id: number): string => {
+  if (!id) return "#9e9e9e";
+  return RESERVATIONS_PALETTE[id % RESERVATIONS_PALETTE.length];
 };
 
-// Retorna siempre blanco para el texto
 export const getRandomTextColor = (): string => {
   return "#ffffff";
 };

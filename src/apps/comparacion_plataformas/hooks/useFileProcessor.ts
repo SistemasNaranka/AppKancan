@@ -82,7 +82,6 @@ export const useFileProcessor = () => {
                 reader.onload = (e) => {
                     try {
                         const arrayData = new Uint8Array(e.target?.result as ArrayBuffer);
-                        // Optimizar lectura: ignorar estilos y fórmulas si no son necesarios
                         const workbook = XLSX.read(arrayData, {
                             type: "array",
                             cellDates: true,
@@ -118,13 +117,11 @@ export const useFileProcessor = () => {
     const procesarArchivosRaw = async (files: FileList | File[]) => {
         if (!files || files.length === 0) return;
         setCargando(true);
-        // Limpiar advertencia de duplicados anterior
         setDuplicadosAdvertencia([]);
 
         const fileArray = Array.from(files);
 
         try {
-            // Procesar todos los archivos en paralelo
             const nuevosArchivos = await Promise.all(fileArray.map(async (file) => {
                 try {
                     const nuevoArchivo = await leerArchivo(file);
@@ -144,11 +141,9 @@ export const useFileProcessor = () => {
                 }
             }));
 
-            // Filtrar los que fallaron y actualizar estado una sola vez
             const archivosValidos = nuevosArchivos.filter((a): a is ArchivoSubido => a !== null);
 
             if (archivosValidos.length > 0) {
-                // Detectar archivos duplicados por nombre
                 const nombresExistentes = new Set(archivos.map(a => a.nombre));
                 const duplicadosDetectados: string[] = [];
                 const archivosSinDuplicar: ArchivoSubido[] = [];
@@ -161,7 +156,6 @@ export const useFileProcessor = () => {
                     }
                 });
 
-                // Si hay duplicados, mostrar advertencia y agregar solo los no duplicados
                 if (duplicadosDetectados.length > 0) {
                     setDuplicadosAdvertencia(duplicadosDetectados);
                 }
@@ -203,15 +197,7 @@ export const useFileProcessor = () => {
         const columnasAEliminarAdicionales: string[] = [];
         archivo.columnas.forEach(col => {
             const colNorm = normalizarString(col);
-            /* 
-                        // Regla especial para ReporteDiariodeVentasComercio: ocultar columna documento
-                        // ya que este reporte trae direcciones en ese campo
-                        if (archivo.tipoArchivo?.trim().toLowerCase() === 'reportediariodeventascomercio' && (colNorm.includes('documento') || colNorm === 'documento')) {
-                            columnasAEliminarAdicionales.push(col);
-                            return;
-                        }
-            */
-            // Identificar documentos para mapeo
+            
             let esDoc = false;
             if (keywordsDocumento.some(key => colNorm.includes(key)) && !excludeKeywords.some(ex => colNorm.includes(ex))) {
                 mapeoDocumento[col] = "Documento";
@@ -221,17 +207,13 @@ export const useFileProcessor = () => {
                 esDoc = true;
             }
 
-            // Solo añadir a eliminar si NO es una columna que acabamos de mapear como Documento
-            // o si es explícitamente una columna de descuento
             if (colNorm.includes('descuento')) {
                 columnasAEliminarAdicionales.push(col);
             } else if (esDoc && col !== "Documento") {
-                // Si mapeamos una columna (ej. "Cedula") a "Documento", debemos ocultar la original "Cedula"
                 columnasAEliminarAdicionales.push(col);
             }
         });
 
-        // --- SOLUCIÓN: Aplicar el mapeo a los datos ---
         if (Object.keys(mapeoDocumento).length > 0) {
             datosNormalizados = datosNormalizados.map(fila => {
                 const nuevaFila = { ...fila };
@@ -248,7 +230,6 @@ export const useFileProcessor = () => {
         const todasLasColumnasAEliminar = [...(archivo.columnasEliminar || []), ...columnasAEliminarAdicionales].filter(col => {
             const colNorm = normalizarString(col);
 
-            // Proteger "Documento" si no es el reporte especial
             if (archivo.tipoArchivo?.trim().toLowerCase() !== 'reportediariodeventascomercio' && colNorm === 'documento') {
                 return false;
             }
@@ -262,28 +243,23 @@ export const useFileProcessor = () => {
 
         let columnasFinales = obtenerColumnasRestantes(archivo.columnas, todasLasColumnasAEliminar);
 
-        // Si detectamos documentos, asegurar la columna final
         if (Object.keys(mapeoDocumento).length > 0) {
             if (!columnasFinales.some(c => c.toLowerCase() === "documento")) {
                 columnasFinales = ["Documento", ...columnasFinales];
             }
         }
 
-        // Doble verificación: Si es ReporteDiariodeVentasComercio, NUNCA mostrar Documento
         if (archivo.tipoArchivo?.trim().toLowerCase() === 'reportediariodeventascomercio') {
             columnasFinales = columnasFinales.filter(c => c.toLowerCase() !== 'documento');
         }
 
-        // Validar la calidad del mapeo de tiendas
         const validacion = validarDatosNormalizados(datosNormalizados, archivo.tipoArchivo);
 
-        // Guardar validación para mostrar al usuario
         setValidacionesArchivos(prev => ({
             ...prev,
             [archivo.nombre]: validacion
         }));
 
-        // Mostrar resumen de validación en consola
         if (validacion.errores.length > 0) {
             console.error('❌ Errores:', validacion.errores);
         }
@@ -297,25 +273,21 @@ export const useFileProcessor = () => {
         const archivosSinNormalizar = archivos.filter(a => !a.normalizado && a.tipoArchivo);
         if (archivosSinNormalizar.length === 0) return;
 
-        // Detectar archivos con nombres duplicados
         const nombresArchivos = archivosSinNormalizar.map(a => a.nombre);
         const nombresDuplicados = nombresArchivos.filter((nombre, index) => 
             nombresArchivos.indexOf(nombre) !== index
         );
         const duplicadosUnicos = [...new Set(nombresDuplicados)];
 
-        // Si hay duplicados, mostrar confirmación
         if (duplicadosUnicos.length > 0) {
             setDuplicadosParaNormalizar(duplicadosUnicos);
             setMostrarConfirmacionDuplicados(true);
             return;
         }
 
-        // Continuar con la normalización sin duplicados
         await ejecutarNormalizacion();
     };
 
-    // Función que ejecuta la normalización real
     const ejecutarNormalizacion = async () => {
         setCargando(true);
         try {
@@ -339,18 +311,15 @@ export const useFileProcessor = () => {
         }
     };
 
-    // Función para confirmar normalización con duplicados
     const confirmarNormalizacionConDuplicados = async () => {
         await ejecutarNormalizacion();
     };
 
-    // Función para cancelar normalización con duplicados
     const cancelarNormalizacionConDuplicados = () => {
         setMostrarConfirmacionDuplicados(false);
         setDuplicadosParaNormalizar([]);
     };
 
-    // Función para limpiar la advertencia de duplicados
     const limpiarAdvertenciaDuplicados = useCallback(() => {
         setDuplicadosAdvertencia([]);
     }, []);
@@ -360,7 +329,6 @@ export const useFileProcessor = () => {
         let totalFilasProcesadas = 0;
         let filasSinTienda = 0;
 
-        // Mapeo detallado para asegurar que coincidan los nombres de los archivos
         const mapeoVisual = [
             { keys: ["transactions", "addi"], label: "ADDI" },
             { keys: ["reportediario", "ventascomercio", "redebana"], label: "REDEBAN" },
@@ -372,15 +340,12 @@ export const useFileProcessor = () => {
             const nombreLower = archivo.nombre.toLowerCase();
             const tipoLower = (archivo.tipoArchivo || "").toLowerCase();
 
-            // Buscamos coincidencia parcial en el nombre del archivo o en el tipo detectado
             const match = mapeoVisual.find(m =>
                 m.keys.some(k => nombreLower.includes(k) || tipoLower.includes(k))
             );
 
-            // Si no hay match por palabras clave, intentar normalizar el tipo/nombre
             let fuenteNombre = match ? match.label : (archivo.tipoArchivo || archivo.nombre);
 
-            // Verificación extra: si la fuente detectada se parece a alguna de las estándar, forzarla
             if (!match) {
                 const fuenteUpper = fuenteNombre.toUpperCase();
                 if (fuenteUpper.includes('TRANSFERENCIA')) fuenteNombre = 'TRANSFERENCIAS';
@@ -394,7 +359,6 @@ export const useFileProcessor = () => {
 
             archivo.datos.forEach(fila => {
                 totalFilasProcesadas++;
-                // NORMALIZACIÓN DE TIENDA: Siempre Mayúsculas y Trim para agrupar correctamente
                 const tiendaRaw = fila._tienda_normalizada || "SIN TIENDA";
                 const tienda = String(tiendaRaw).trim().toUpperCase();
 
@@ -410,10 +374,8 @@ export const useFileProcessor = () => {
                 filasAgrupadasEnArchivo++;
             });
         });
-        // Primero ordenar los registros dentro de cada tienda por su código
         const gruposConRegistrosOrdenados = ordenarGruposPorCodigo(grupos);
 
-        // Luego ordenar las tiendas por su ID de la base de datos
         return ordenarTiendasPorCodigo(gruposConRegistrosOrdenados, tiendaMapeos);
     }, [archivos, tiendaMapeos]);
 
@@ -427,7 +389,6 @@ export const useFileProcessor = () => {
                     cache[fuente] = todasLasColumnas.filter(col => {
                         const colLower = col.toLowerCase();
                         if (col.startsWith('_') || col === 'tiendaId' || colLower.includes('descuento')) return false;
-                        // Regla para ocultar documento en REDEBAN (basado en el nombre nuevo o el antiguo)
                         if ((fuente.includes('REDEBAN') || fuente.toLowerCase().includes('reportediario') || fuente.toLowerCase().includes('ventascomercio')) && colLower.includes('documento')) return false;
                         return keywords.some(key => colLower.includes(key));
                     }).sort((a, b) => {
@@ -457,13 +418,11 @@ export const useFileProcessor = () => {
 
             let currentStoreRow = 1;
 
-            // Filtrar tiendas si hay una seleccionada
             const tiendasAExportar = tiendaFiltrada
                 ? Object.entries(gruposPorTienda).filter(([tienda]) => tienda === tiendaFiltrada)
                 : Object.entries(gruposPorTienda);
 
             tiendasAExportar.forEach(([tienda, fuentes]) => {
-                // TÍTULO DE LA TIENDA (Abarca ambas columnas de la cuadrícula)
                 const tiendaRow = worksheet.getRow(currentStoreRow);
                 tiendaRow.values = [`TIENDA: ${tienda.toUpperCase()}`];
                 worksheet.mergeCells(currentStoreRow, 1, currentStoreRow, 15);
@@ -479,7 +438,6 @@ export const useFileProcessor = () => {
                 let startRowSources = currentStoreRow + 2;
                 let maxRowInThisSection = startRowSources;
 
-                // Agrupar fuentes de dos en dos para el diseño en paralelo
                 const nombresFuentes = Object.keys(fuentes);
                 for (let i = 0; i < nombresFuentes.length; i += 2) {
                     const fuentesEnEstaFila = [nombresFuentes[i], nombresFuentes[i + 1]].filter(Boolean);
@@ -487,17 +445,15 @@ export const useFileProcessor = () => {
                     let innerMaxRow = rowForThisPair;
 
                     fuentesEnEstaFila.forEach((fuente, index) => {
-                        const colStart = index === 0 ? 1 : 9; // Columna A o Columna I
+                        const colStart = index === 0 ? 1 : 9;
                         const datos = fuentes[fuente];
                         let r = rowForThisPair;
 
-                        // Título de la Fuente
                         const fRow = worksheet.getRow(r);
                         fRow.getCell(colStart).value = `FUENTE: ${fuente.toUpperCase()}`;
                         fRow.getCell(colStart).font = { bold: true, size: 12, color: { argb: 'FF333333' } };
                         r++;
 
-                        // Encabezados
                         let columnasFuente = columnasPorFuente[fuente] || [];
                         if (columnasFuente.length === 0 && datos.length > 0) {
                             columnasFuente = Object.keys(datos[0]).filter(col => !col.startsWith('_') && col !== 'tiendaId');
@@ -514,7 +470,6 @@ export const useFileProcessor = () => {
                         });
                         r++;
 
-                        // Datos
                         let totalFuente = 0;
                         datos.forEach(fila => {
                             const dRow = worksheet.getRow(r);
@@ -539,7 +494,6 @@ export const useFileProcessor = () => {
                             r++;
                         });
 
-                        // Fila de Total
                         const tRow = worksheet.getRow(r);
                         const labelCell = tRow.getCell(colStart + Math.max(0, columnasFuente.length - 2));
                         const valueCell = tRow.getCell(colStart + Math.max(0, columnasFuente.length - 1));
@@ -550,11 +504,10 @@ export const useFileProcessor = () => {
                         valueCell.font = { bold: true };
                         valueCell.numFmt = '"$"#,##0';
 
-                        // Estilo fondo fila total
                         for (let c = 0; c < columnasFuente.length; c++) {
                             tRow.getCell(colStart + c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
                         }
-                        r += 2; // Espacio después de la tabla
+                        r += 2;
 
                         if (r > innerMaxRow) innerMaxRow = r;
                     });
@@ -564,11 +517,10 @@ export const useFileProcessor = () => {
                 }
 
                 currentStoreRow = maxRowInThisSection + 1;
-                worksheet.addRow([]); // Fila vacía entre tiendas
+                worksheet.addRow([]);
                 currentStoreRow++;
             });
 
-            // Ajuste de anchos de columna
             worksheet.columns = Array(20).fill(0).map(() => ({ width: 18 }));
 
             const buffer = await workbook.xlsx.writeBuffer();

@@ -32,7 +32,7 @@ interface EditStoreBudgetModalProps {
   onClose: () => void;
   selectedMonth?: string;
   onSaveComplete?: () => void;
-  tiendaProp?: any; // NUEVO
+  tiendaProp?: any;
 }
 
 export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
@@ -40,7 +40,7 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
   onClose,
   selectedMonth,
   onSaveComplete,
-  tiendaProp, // NUEVO
+  tiendaProp,
 }) => {
   const { area } = useApps();
   const [, setSaveCompleted] = React.useState(false);
@@ -60,7 +60,7 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
     success,
     diasSinPresupuesto,
     diasConPresupuestoCero,
-    diasConAsignacion, // NUEVO
+    diasConAsignacion,
     selectedDays,
     tiendas,
     toggleDaySelection,
@@ -84,7 +84,7 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
     onClose,
     selectedMonth,
     onSaveComplete,
-    tiendaProp, // NUEVO
+    tiendaProp,
   });
 
   const isAdmin = area?.toLowerCase() !== "tienda" || tiendas.length > 1;
@@ -131,7 +131,7 @@ export const EditStoreBudgetModal: React.FC<EditStoreBudgetModalProps> = ({
         {/* Header Premium (Dark Blue) */}
         <Box
           sx={{
-            bgcolor: "#003e7e", // Blue from image
+            bgcolor: "#003e7e",
             color: "white",
             p: 3,
             display: "flex",

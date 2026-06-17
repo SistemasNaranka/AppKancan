@@ -9,20 +9,6 @@ import type {
   Talla
 } from '../../types';
 
-/**
- * API para leer datos de curvas desde Directus
- * 
- * Funciones disponibles:
- * - getMatrizGeneral: Obtiene la matriz general de curvas
- * - getDetalleProducto: Obtiene el detalle de un producto
- * - getTiendas: Obtiene la lista de tiendas
- * - getCurvas: Obtiene las curvas disponibles
- * - getTallas: Obtiene las tallas disponibles
- */
-
-/**
- * Obtiene la matriz general de curvas desde Directus
- */
 export const getMatrizGeneral = async (
   referencia: string
 ): Promise<MatrizGeneralCurvas | null> => {
@@ -57,9 +43,6 @@ export const getMatrizGeneral = async (
   }
 };
 
-/**
- * Obtiene el detalle de un producto desde Directus
- */
 export const getDetalleProducto = async (
   referencia: string
 ): Promise<DetalleProducto | null> => {
@@ -103,10 +86,6 @@ export const getDetalleProducto = async (
   }
 };
 
-/**
- * Obtiene la lista de tiendas desde Directus (colección core_stores)
- * Ordenadas alfabéticamente
- */
 const TIENDAS_TTL_MS = 10 * 60 * 1000;
 let tiendasCache: { data: Tienda[]; expiresAt: number } | null = null;
 let tiendasInFlight: Promise<Tienda[]> | null = null;
@@ -151,7 +130,6 @@ export const getTiendas = async (): Promise<Tienda[]> => {
 
   tiendasInFlight = fetchTiendasFresh()
     .then((data) => {
-      // Solo cacheamos respuestas válidas (no vacías por error transitorio).
       if (data.length > 0) {
         tiendasCache = { data, expiresAt: Date.now() + TIENDAS_TTL_MS };
       }
@@ -164,9 +142,6 @@ export const getTiendas = async (): Promise<Tienda[]> => {
   return tiendasInFlight;
 };
 
-/**
- * Retorna las tiendas por defecto para la carga (excluyendo Oficina y Tienda Online)
- */
 export const getDefaultTiendas = (tiendas: Tienda[]): Tienda[] => {
   return tiendas.filter(t =>
     t.nombre.toUpperCase() !== 'OFICINA' &&
@@ -174,9 +149,6 @@ export const getDefaultTiendas = (tiendas: Tienda[]): Tienda[] => {
   );
 };
 
-/**
- * Obtiene las curvas disponibles desde Directus
- */
 export const getCurvas = async (): Promise<TipoCurva[]> => {
   try {
     const response = await withAutoRefresh(() =>
@@ -198,9 +170,6 @@ export const getCurvas = async (): Promise<TipoCurva[]> => {
   }
 };
 
-/**
- * Obtiene las tallas disponibles desde Directus
- */
 export const getTallas = async (): Promise<Talla[]> => {
   try {
     const response = await withAutoRefresh(() =>
@@ -222,9 +191,6 @@ export const getTallas = async (): Promise<Talla[]> => {
   }
 };
 
-/**
- * Obtiene el historial de cargas de curvas
- */
 export const getHistorialCargas = async (limit = 10) => {
   try {
     const response = await withAutoRefresh(() =>
@@ -243,10 +209,6 @@ export const getHistorialCargas = async (limit = 10) => {
   }
 };
 
-/**
- * Obtiene los registros de log_curvas para mostrar en Envíos
- * Permite filtrar por fecha y referencia
- */
 export const getLogCurvas = async (
   fecha?: string,
   referencia?: string,
@@ -256,7 +218,6 @@ export const getLogCurvas = async (
     const queryFilter: any[] = [];
 
     if (fecha) {
-      // Filtrar por fecha (solo la fecha, sin hora)
       queryFilter.push({
         log_date: { _gte: `${fecha}T00:00:00`, _lte: `${fecha}T23:59:59` }
       });
@@ -279,7 +240,6 @@ export const getLogCurvas = async (
       limit: 5000,
     };
 
-    // Solo agregar filtro si hay condiciones
     if (queryFilter.length > 0) {
       queryOptions.filter = queryFilter.length === 1
         ? queryFilter[0]
@@ -299,10 +259,6 @@ export const getLogCurvas = async (
   }
 };
 
-/**
- * Obtiene los registros de envios_curvas para una fecha y referencia específicas
- * Se usa para hidratar la validación física (escaneo)
- */
 export const getEnviosCurvas = async (
   fecha?: string,
   referencia?: string
@@ -336,11 +292,6 @@ export const getEnviosCurvas = async (
   }
 };
 
-/**
- * Obtiene los registros de envios_curvas para el módulo de Análisis
-
- * Permite filtrar por un rango de fechas
- */
 export const getEnviosAnalisis = async (
   fechaInicio?: string,
   fechaFin?: string
@@ -361,7 +312,6 @@ export const getEnviosAnalisis = async (
     const queryOptions: any = {
       sort: ['-shipment_date'],
       limit: -1,
-      // Traemos info del usuario y de la tienda si existe la relación
       fields: [
         '*',
         'user_id.id',
@@ -392,10 +342,6 @@ export const getEnviosAnalisis = async (
   }
 };
 
-/**
- * Obtiene las fechas recientes que tienen datos y su estado consolidado.
- * Retorna un mapa: fecha (YYYY-MM-DD) -> 'pendiente' | 'enviado'
- */
 export const getResumenFechasCurvas = async (): Promise<Record<string, 'pendiente' | 'enviado'>> => {
   try {
     const response = await withAutoRefresh(() =>
@@ -416,7 +362,6 @@ export const getResumenFechasCurvas = async (): Promise<Record<string, 'pendient
       }
     });
 
-    // Marcar fechas futuras o actuales como pendientes si no hay datos
     const today = new Date().toISOString().split('T')[0];
     if (!fechas[today]) fechas[today] = 'pendiente';
 

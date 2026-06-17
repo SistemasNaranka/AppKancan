@@ -119,7 +119,6 @@ export const useEnviosSubmit = ({
     }
   };
 
-  // Autoguardado
   useEffect(() => {
     if (!current || !user || isSending || isSaving) return;
     const sheetKey = String(current.sheet.id);
@@ -129,7 +128,6 @@ export const useEnviosSubmit = ({
 
     const timer = setTimeout(() => { handleEnviarADespacho("auto"); }, 7000);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validationData, current, user]);
 
   return { isSending, isSaving, handleEnviarADespacho };

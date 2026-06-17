@@ -8,7 +8,6 @@ import {
   IconButton,
   Tooltip,
   Typography,
-  Button,
   TextField,
   InputAdornment,
   Pagination,
@@ -24,30 +23,29 @@ import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CalendarIcon from "@mui/icons-material/CalendarMonth";
 import TimeIcon from "@mui/icons-material/AccessTime";
-import NotesIcon from "@mui/icons-material/Notes";
+
 import AreaIcon from "@mui/icons-material/Business";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import AddIcon from "@mui/icons-material/Add";
+
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import type { Reserva, EstadoReserva } from "../types/reservas.types";
+import type { Reservation, ReservationStatus } from "../types/reservas.types";
 import {
-  COLORES_ESTADO,
-  COLORES_TEXTO_ESTADO,
-  puedeModificarse,
+  STATUS_COLORS,
+  STATUS_TEXT_COLORS,
+  canBeModified,
   capitalize,
 } from "../types/reservas.types";
 import { useTourContext } from "./TourContext";
 
 interface MisReservasCardsProps {
-  reservas: Reserva[];
-  usuarioActualId?: string;
-  onEditar?: (reserva: Reserva) => void;
-  onCancelar?: (reserva: Reserva) => void;
-  onNuevaReserva?: () => void;
+  reservations: Reservation[];
+  currentUserId?: string;
+  onEdit?: (reserva: Reservation) => void;
+  onCancel?: (reserva: Reservation) => void;
+  onNewReservation?: () => void;
   loading?: boolean;
 }
 
@@ -56,56 +54,54 @@ type TabKey = "todas" | "vigentes" | "finalizadas" | "canceladas";
 const ITEMS_PER_PAGE = 6;
 
 const MisReservasCards: React.FC<MisReservasCardsProps> = ({
-  reservas,
-  usuarioActualId,
-  onEditar,
-  onCancelar,
-  onNuevaReserva,
+  reservations,
+  currentUserId,
+  onEdit,
+  onCancel,
+
   loading = false,
 }) => {
   const [tab, setTab] = useState<TabKey>("todas");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const { isFullTourRunning, tourPhase, userCreatedReservation, mockReservasAdicionales } =
+  const { isFullTourRunning, tourPhase, userCreatedReservation, mockAdditionalReservations } =
     useTourContext();
 
   const isTourActive = isFullTourRunning && tourPhase === "MIS_RESERVAS";
 
-  const tourReservas: Reserva[] = useMemo(() => {
+  const tourReservas: Reservation[] = useMemo(() => {
     if (!isTourActive) return [];
-    const out: Reserva[] = [];
+    const out: Reservation[] = [];
     if (userCreatedReservation) out.push(userCreatedReservation);
-    out.push(...mockReservasAdicionales);
+    out.push(...mockAdditionalReservations);
     return out;
-  }, [isTourActive, userCreatedReservation, mockReservasAdicionales]);
+  }, [isTourActive, userCreatedReservation, mockAdditionalReservations]);
 
-  const reservasToShow = isTourActive ? tourReservas : reservas;
+  const reservationsToShow = isTourActive ? tourReservas : reservations;
 
-  const getEstado = (r: Reserva) =>
-    (r.estadoCalculado || r.status)?.toLowerCase() || "";
+  const getEstado = (r: Reservation) =>
+    (r.calculatedStatus || r.status)?.toLowerCase() || "";
 
-  const reservasVigentes = reservasToShow.filter(
+  const reservasVigentes = reservationsToShow.filter(
     (r) => getEstado(r) === "vigente" || getEstado(r) === "en curso",
   );
-  const reservasFinalizadas = reservasToShow.filter(
+  const reservasFinalizadas = reservationsToShow.filter(
     (r) => getEstado(r) === "finalizado" || getEstado(r) === "finalizada",
   );
-  const reservasCanceladas = reservasToShow.filter(
+  const reservasCanceladas = reservationsToShow.filter(
     (r) => getEstado(r) === "cancelado" || getEstado(r) === "cancelada",
   );
 
-  // Filtrar por tab activo
   const baseList =
     tab === "todas"
-      ? reservasToShow
+      ? reservationsToShow
       : tab === "vigentes"
         ? reservasVigentes
         : tab === "finalizadas"
           ? reservasFinalizadas
           : reservasCanceladas;
 
-  // Búsqueda libre
   const filteredList = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return baseList;
@@ -122,7 +118,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     );
   }, [baseList, search]);
 
-  // Reset page al cambiar tab/search
   React.useEffect(() => {
     setPage(1);
   }, [tab, search]);
@@ -133,13 +128,13 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     page * ITEMS_PER_PAGE,
   );
 
-  const puedeModificar = (reserva: Reserva): boolean => {
+  const puedeModificar = (reserva: Reservation): boolean => {
     if (isTourActive) return false;
-    if (!usuarioActualId) return false;
+    if (!currentUserId) return false;
     if (!reserva.user_id) return false;
-    if (reserva.user_id.id !== usuarioActualId) return false;
-    const estadoActual = reserva.estadoCalculado || reserva.status;
-    if (!puedeModificarse(estadoActual)) return false;
+    if (reserva.user_id.id !== currentUserId) return false;
+    const estadoActual = reserva.calculatedStatus || reserva.status;
+    if (!canBeModified(estadoActual)) return false;
     const ahora = new Date();
     const fechaReserva = new Date(`${reserva.date}T${reserva.start_time}`);
     return fechaReserva > ahora;
@@ -164,7 +159,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
   const truncarTexto = (texto: string, limite: number) =>
     !texto ? "" : texto.length > limite ? texto.slice(0, limite) + "..." : texto;
 
-  // ── Sub-componentes ──────────────────────────────────────────────────────
 
   const FilterChip: React.FC<{
     label: string;
@@ -212,11 +206,10 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     );
   };
 
-  const EstadoChip: React.FC<{ estado: EstadoReserva }> = ({ estado }) => {
-    // Override: "Vigente"/"En curso" usan verde sólido como el badge del filtro.
+  const EstadoChip: React.FC<{ estado: ReservationStatus }> = ({ estado }) => {
     const esVigente = estado === "Vigente" || estado === "En curso";
-    const bg = esVigente ? "#16a34a" : (COLORES_ESTADO[estado] ?? "#e5e7eb");
-    const color = esVigente ? "#ffffff" : (COLORES_TEXTO_ESTADO[estado] ?? "#374151");
+    const bg = esVigente ? "#16a34a" : (STATUS_COLORS[estado] ?? "#e5e7eb");
+    const color = esVigente ? "#ffffff" : (STATUS_TEXT_COLORS[estado] ?? "#374151");
     return (
       <Chip
         label={String(estado).toUpperCase()}
@@ -233,9 +226,9 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
     );
   };
 
-  const RowReserva: React.FC<{ reserva: Reserva; className?: string }> = ({ reserva, className }) => {
+  const RowReserva: React.FC<{ reserva: Reservation; className?: string }> = ({ reserva, className }) => {
     const canModify = puedeModificar(reserva);
-    const estado = (reserva.estadoCalculado || reserva.status) as EstadoReserva;
+    const estado = (reserva.calculatedStatus || reserva.status) as ReservationStatus;
 
     return (
       <TableRow
@@ -327,11 +320,11 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
         <TableCell sx={{ py: 2 }} align="right">
           {canModify ? (
             <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-              {onEditar && (
+              {onEdit && (
                 <Tooltip title="Editar">
                   <IconButton
                     size="small"
-                    onClick={() => onEditar(reserva)}
+                    onClick={() => onEdit(reserva)}
                     sx={{
                       color: "#004680",
                       "&:hover": { bgcolor: "rgba(0,70,128,0.08)" },
@@ -341,11 +334,11 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
                   </IconButton>
                 </Tooltip>
               )}
-              {onCancelar && (
+              {onCancel && (
                 <Tooltip title="Cancelar">
                   <IconButton
                     size="small"
-                    onClick={() => onCancelar(reserva)}
+                    onClick={() => onCancel(reserva)}
                     sx={{
                       color: "#ef4444",
                       "&:hover": { bgcolor: "rgba(239,68,68,0.08)" },
@@ -363,8 +356,6 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
       </TableRow>
     );
   };
-
-  // ── Render ───────────────────────────────────────────────────────────────
 
   if (loading && !isTourActive) {
     return (
@@ -420,7 +411,7 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap className="tour-mis-reservas-tabs">
           <FilterChip
             label="Todas"
-            count={reservasToShow.length}
+            count={reservationsToShow.length}
             value="todas"
             color="#0070c0"
           />

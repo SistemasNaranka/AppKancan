@@ -8,30 +8,30 @@ interface Props {
 
 // 🎨 Paleta clara
 const avatarColorsLight = [
-  "#1976d2", // azul
-  "#9c27b0", // morado
-  "#2e7d32", // verde
-  "#f57c00", // naranja
-  "#d32f2f", // rojo
-  "#0288d1", // celeste
-  "#7b1fa2", // violeta
-  "#00897b", // verde azulado
-  "#c2185b", // rosa oscuro
-  "#5d4037", // marrón
+  "#1976d2",
+  "#9c27b0",
+  "#2e7d32",
+  "#f57c00",
+  "#d32f2f",
+  "#0288d1",
+  "#7b1fa2",
+  "#00897b",
+  "#c2185b",
+  "#5d4037",
 ];
 
 // 🌙 Paleta oscura
 const avatarColorsDark = [
-  "#64b5f6", // azul claro
-  "#ba68c8", // morado claro
-  "#81c784", // verde suave
-  "#ffb74d", // naranja suave
-  "#e57373", // rojo suave
-  "#4dd0e1", // celeste
-  "#9575cd", // violeta
-  "#4db6ac", // verde azulado claro
-  "#f06292", // rosa brillante
-  "#8d6e63", // marrón claro
+  "#64b5f6",
+  "#ba68c8",
+  "#81c784",
+  "#ffb74d",
+  "#e57373",
+  "#4dd0e1",
+  "#9575cd",
+  "#4db6ac",
+  "#f06292",
+  "#8d6e63",
 ];
 
 const getInitials = (nombre: string) => {
@@ -42,7 +42,6 @@ const getInitials = (nombre: string) => {
 export const HeaderUserInfo = ({ user, area }: Props) => {
   const theme = useTheme();
 
-  // 🎨 Reutiliza el mismo sistema de color que SidebarFooter
   const avatarColor = useMemo(() => {
     const palette =
       theme.palette.mode === "dark" ? avatarColorsDark : avatarColorsLight;

@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { buscarUsuarios } from "../services/reservas";
+import { searchUsers } from "../services/reservas";
 
 interface Participante {
   name: string;
@@ -45,7 +45,7 @@ export const ListaParticipantes: React.FC<ListaParticipantesProps> = ({ fields, 
     }
     searchTimeout.current = setTimeout(async () => {
       setBuscandoUsuarios(true);
-      const resultados = await buscarUsuarios(valor);
+      const resultados = await searchUsers(valor);
       setUsuariosSugeridos(resultados as any[]);
       setBuscandoUsuarios(false);
     }, 500);

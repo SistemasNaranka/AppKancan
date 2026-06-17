@@ -16,12 +16,12 @@ interface CodesModalProps {
   selectedMonth?: string;
   hasSavedData?: boolean;
   onShowSaveLoading?: (error?: any) => void;
-  tiendaProp?: any; // NUEVO
+  tiendaProp?: any;
 }
 
 export const CodesModal: React.FC<CodesModalProps> = ({
   isOpen, onClose, onAssignmentComplete, selectedMonth, hasSavedData, onShowSaveLoading,
-  tiendaProp, // NUEVO
+  tiendaProp,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -36,7 +36,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
     showMultipleStoresWarning, error: validationError, validatePermissionsAndStores, resetState,
   } = usePermissionsValidation();
 
-  // Si se pasa tiendaProp (ej. desde el dashboard por un Admin), usar esa en lugar de la del usuario
   const tiendaActual = tiendaProp || tiendaUsuario;
 
   const {
@@ -51,7 +50,6 @@ export const CodesModal: React.FC<CodesModalProps> = ({
 
   const fechaActual = getFechaActual(selectedMonth);
 
-  // --- Efectos de Carga y Validación (Lógica Intacta) ---
   useEffect(() => {
     if (isOpen && asesoresDisponibles.length > 0 && cargosDisponibles.length > 0) {
       setDataReady(true);

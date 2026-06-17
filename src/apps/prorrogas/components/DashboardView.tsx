@@ -16,8 +16,8 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PersonIcon from '@mui/icons-material/Person';
 import { useContracts } from '../hooks/useContracts';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
-// ── Design tokens ────────────────────────────────────────────────────────────
 const CARD = {
   borderRadius: '14px',
   boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.06)',
@@ -44,14 +44,12 @@ const StatusDot: React.FC<{ status: keyof typeof S }> = ({ status }) => {
   );
 };
 
-// ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
   onChangeTab?: (tab: string) => void;
   onNewContract?: () => void;
   onNewProrroga?: (contractId: number) => void;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
 const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrroga }) => {
   const { allEnriched, counts } = useContracts();
 
@@ -77,7 +75,7 @@ const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrr
 
   const quickActions = [
     { label:'Nuevo Contrato',     sub:'Crear contrato nuevo',      Icon:AddCircleOutlineIcon, color:'#004680', action:onNewContract },
-    { label:'Solicitar Prórroga', sub:'Extender un contrato',      Icon:EventAvailableIcon,   color:'#0284c7', action:()=>onChangeTab?.('contratos') },
+    { label:'Solicitar Prórroga', sub:'Extender un contrato',      Icon:EventAvailableIcon,   color:'#0284c7', action:()=>onChangeTab?.('contracts') },
     { label:'Ver Empleados',      sub:'Gestionar empleados',        Icon:PersonAddAltIcon,     color:'#7c3aed', action:()=>onChangeTab?.('empleados') },
     { label:'Ver Reportes',       sub:'Análisis y estadísticas',    Icon:BarChartIcon,         color:'#0f766e', action:()=>{} },
   ];
@@ -120,9 +118,9 @@ const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrr
               <Box sx={{ px:3, pt:2.5, pb:2, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                 <Box>
                   <Typography sx={{ fontWeight:700, color:'#0f172a', fontSize:'1rem' }}>Contratos Recientes</Typography>
-                  <Typography variant="caption" sx={{ color:'#94a3b8' }}>Últimos {recent.length} contratos actualizados</Typography>
+                  <Typography variant="caption" sx={{ color:'#94a3b8' }}>Últimos {recent.length} contracts actualizados</Typography>
                 </Box>
-                <Button size="small" endIcon={<ChevronRightIcon />} onClick={() => onChangeTab?.('contratos')}
+                <Button size="small" endIcon={<ChevronRightIcon />} onClick={() => onChangeTab?.('contracts')}
                   sx={{ color:'#004680', fontWeight:600, textTransform:'none', fontSize:13 }}>
                   Ver todos
                 </Button>
@@ -142,7 +140,7 @@ const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrr
                   {recent.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py:5, color:'#94a3b8' }}>
-                        No hay contratos registrados aún
+                        No hay contracts registrados aún
                       </TableCell>
                     </TableRow>
                   ) : recent.map(c => {
@@ -164,14 +162,14 @@ const DashboardView: React.FC<Props> = ({ onChangeTab, onNewContract, onNewProrr
                               <PersonIcon sx={{ fontSize: 18 }} />
                             </Avatar>
                             <Box>
-                              <Typography sx={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{c.first_name}</Typography>
+                              <Typography sx={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{formatNombreCompleto(c)}</Typography>
                               <Typography sx={{ fontSize:11, color:'#94a3b8' }}>{c.position}</Typography>
                             </Box>
                           </Box>
                         </TableCell>
                         <TableCell>
                           <Typography sx={{ fontSize:13, fontWeight:600, color: st==='vencido'?'#b91c1c': st==='proximo'?'#c2410c':'#0f172a' }}>
-                            {c.lastProrroga ? new Date(c.lastProrroga.end_date).toLocaleDateString() : '—'}
+                            {c.lastExtension ? new Date(c.lastExtension.end_date).toLocaleDateString() : '—'}
                           </Typography>
                           <Typography sx={{ fontSize:11, color:'#94a3b8' }}>
                             {c.daysLeft >= 0 ? `En ${c.daysLeft} días` : `Venció hace ${Math.abs(c.daysLeft)} días`}

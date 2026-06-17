@@ -72,13 +72,12 @@ export async function deleteProject(id: string): Promise<boolean> {
   }
 }
 
-// ✅ FIX: individual insertions + Number(project_id)
 export async function createProcesses(
   processes: CreateProcessInput[],
 ): Promise<boolean> {
   for (const p of processes) {
     const payload = {
-      project_id: Number(p.project_id), // ← KEY FIX
+      project_id: Number(p.project_id),
       name: p.name,
       time_before: p.time_before,
       time_after: p.time_after,
@@ -99,7 +98,7 @@ export async function createProcess(
 ): Promise<string | null> {
   try {
     const payload = {
-      project_id: Number(data.project_id), // ← FIX
+      project_id: Number(data.project_id),
       name: data.name,
       time_before: data.time_before,
       time_after: data.time_after,
@@ -215,8 +214,6 @@ export async function deleteBenefit(id: string): Promise<boolean> {
     return false;
   }
 }
-
-// ─── Feedback ─────────────────────────────────────────────────────────────────
 
 export async function createFeedback(
   data: CreateFeedbackInput,

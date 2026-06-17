@@ -1,4 +1,3 @@
-// src/apps/gestion_proyectos/hooks/useCurvasShipping.ts
 import { useState, useCallback } from "react";
 import { saveEnviosBatch } from "../api/directus/create";
 import { getLogCurvas } from "../api/directus/read";

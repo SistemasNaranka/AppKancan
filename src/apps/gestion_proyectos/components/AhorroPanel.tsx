@@ -34,7 +34,6 @@ import { Bar } from "react-chartjs-2";
 import { formatTime, calculateProjectMetrics } from "../lib/calculos";
 import type { Project } from "../types";
 
-// Registrar componentes de Chart.js
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface AhorroPanelProps {

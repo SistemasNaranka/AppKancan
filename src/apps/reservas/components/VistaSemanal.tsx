@@ -6,23 +6,22 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { useQuery } from "@tanstack/react-query";
 import { format, addDays, startOfWeek, addWeeks, subWeeks, setMonth, setYear } from "date-fns";
 import { es } from "date-fns/locale";
-import { getConfiguracionReserva } from "../services/reservas";
-import { SALAS_DISPONIBLES, CONFIGURACION_POR_DEFECTO } from "../types/reservas.types";
-import type { Reserva } from "../types/reservas.types";
+import { getReservationConfig } from "../services/reservas";
+import { AVAILABLE_ROOMS, DEFAULT_RESERVATION_CONFIG } from "../types/reservas.types";
+import type { Reservation } from "../types/reservas.types";
 import type { VistaSemanalProps } from "./VistaSemanal.types";
-import { generarHorasRango, getReservasEnCelda, formatearHora12h, ESTADOS_EXCLUIDOS } from "./VistaSemanal.utils";
-import { useFestivos } from "../hooks/useFestivos";
+import { generateHoursRange, getReservationsInCell, formatHour12h, ESTADOS_EXCLUIDOS } from "./VistaSemanal.utils";
+import { useHolidays } from "../hooks/useHolidays";
 import {
   SelectorSala, SelectorVista, NavegacionSemanal, SelectorFecha, PeriodoActual,
   CargandoHorarios, EncabezadoDia, CeldaHora, PopoverDetalleReserva,
 } from "./VistaSemanal.components";
 
-// ─── Hook de configuración ────────────────────────────────────────────────────
 
-const useConfiguracionHoras = () => {
+const useHoursConfig = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["configuracion_reservas"],
-    queryFn: getConfiguracionReserva,
+    queryFn: getReservationConfig,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
@@ -30,62 +29,59 @@ const useConfiguracionHoras = () => {
   const horas = useMemo(() => {
     if (isLoading || isError || !data) {
       if (isError) console.warn("⚠️ Usando configuración por defecto de horarios");
-      return generarHorasRango(CONFIGURACION_POR_DEFECTO.hora_inicio_operacion, CONFIGURACION_POR_DEFECTO.hora_fin_operacion);
+      return generateHoursRange(DEFAULT_RESERVATION_CONFIG.operation_start_time, DEFAULT_RESERVATION_CONFIG.operation_end_time);
     }
-    const horaInicio = data.opening_time?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_inicio_operacion;
-    const horaFin = data.closing_time?.split(":").slice(0, 2).join(":") || CONFIGURACION_POR_DEFECTO.hora_fin_operacion;
-    return generarHorasRango(horaInicio, horaFin);
+    const horaInicio = data.opening_time?.split(":").slice(0, 2).join(":") || DEFAULT_RESERVATION_CONFIG.operation_start_time;
+    const horaFin = data.closing_time?.split(":").slice(0, 2).join(":") || DEFAULT_RESERVATION_CONFIG.operation_end_time;
+    return generateHoursRange(horaInicio, horaFin);
   }, [data, isLoading, isError]);
 
   return { horas, isLoading, isError };
 };
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 
 const VistaSemanal: React.FC<VistaSemanalProps> = ({
-  reservas, onNuevaReserva, onEditarReserva, onCancelarReserva,
-  usuarioActualId, vistaCalendario = "semanal", onCambiarVista, salaInicial,
+  reservations, onNewReservation, onEditReservation, onCancelReservation,
+  currentUserId, calendarView = "semanal", onViewChange, initialRoom,
 }) => {
-  const [fechaBase, setFechaBase] = useState(new Date());
-  const [salaSeleccionada, setSalaSeleccionada] = useState<string>(salaInicial || SALAS_DISPONIBLES[0]);
+  const [baseDate, setBaseDate] = useState(new Date());
+  const [selectedRoom, setSelectedRoom] = useState<string>(initialRoom || AVAILABLE_ROOMS[0]);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [reservaSeleccionada, setReservaSeleccionada] = useState<Reserva | null>(null);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
-  const { horas, isLoading: isLoadingConfig, isError: isErrorConfig } = useConfiguracionHoras();
+  const { horas, isLoading: isLoadingConfig, isError: isErrorConfig } = useHoursConfig();
 
-  const { data: festivos = {} } = useFestivos(fechaBase.getFullYear());
+  const { data: festivos = {} } = useHolidays(baseDate.getFullYear());
 
   const diasSemana = useMemo(() => {
-    const inicio = startOfWeek(fechaBase, { weekStartsOn: 1 });
+    const inicio = startOfWeek(baseDate, { weekStartsOn: 1 });
     return Array.from({ length: 5 }, (_, i) => addDays(inicio, i));
-  }, [fechaBase]);
+  }, [baseDate]);
 
   const reservasSemana = useMemo(() => {
     const fechaInicio = format(diasSemana[0], "yyyy-MM-dd");
     const fechaFin = format(diasSemana[4], "yyyy-MM-dd");
-    return reservas.filter((r) => {
-      const estado = (r.estadoCalculado || r.status)?.toLowerCase();
+    return reservations.filter((r) => {
+      const estado = (r.calculatedStatus || r.status)?.toLowerCase();
       if (ESTADOS_EXCLUIDOS.includes(estado)) return false;
-      if (r.room_name !== salaSeleccionada) return false;
+      if (r.room_name !== selectedRoom) return false;
       return r.date >= fechaInicio && r.date <= fechaFin;
     });
-  }, [reservas, diasSemana, salaSeleccionada]);
+  }, [reservations, diasSemana, selectedRoom]);
 
-  // Navegación
-  const semanaAnterior  = () => setFechaBase(subWeeks(fechaBase, 1));
-  const semanaSiguiente = () => setFechaBase(addWeeks(fechaBase, 1));
-  const irAHoy          = () => setFechaBase(new Date());
-  const handleCambiarDia = (dia: number) => { const f = new Date(fechaBase); f.setDate(dia); setFechaBase(f); };
-  const handleCambiarMes = (mes: number) => setFechaBase(setMonth(fechaBase, mes));
-  const handleCambiarAño = (año: number) => setFechaBase(setYear(fechaBase, año));
+  const previousWeek  = () => setBaseDate(subWeeks(baseDate, 1));
+  const nextWeek = () => setBaseDate(addWeeks(baseDate, 1));
+  const goToToday          = () => setBaseDate(new Date());
+  const handleCambiarDia = (dia: number) => { const f = new Date(baseDate); f.setDate(dia); setBaseDate(f); };
+  const handleCambiarMes = (mes: number) => setBaseDate(setMonth(baseDate, mes));
+  const handleCambiarAño = (año: number) => setBaseDate(setYear(baseDate, año));
 
-  // Popover
-  const handleClickReserva = (e: React.MouseEvent<HTMLElement>, reserva: Reserva) => {
+  const handleClickReserva = (e: React.MouseEvent<HTMLElement>, reserva: Reservation) => {
     e.stopPropagation();
-    setReservaSeleccionada(reserva);
+    setSelectedReservation(reserva);
     setAnchorEl(e.currentTarget);
   };
-  const handleClosePopover = () => { setAnchorEl(null); setReservaSeleccionada(null); };
+  const handleClosePopover = () => { setAnchorEl(null); setSelectedReservation(null); };
 
   const rangoFechas = `${format(diasSemana[0], "d MMM", { locale: es })} - ${format(diasSemana[4], "d MMM yyyy", { locale: es })}`;
   const hoy = new Date();
@@ -98,10 +94,10 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
 
         <Paper elevation={0} sx={{ p: 1.5, border: "1px solid #e0e0e0", borderRadius: 2, backgroundColor: "#fff" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <SelectorSala salaSeleccionada={salaSeleccionada} onCambiar={setSalaSeleccionada} />
-            {onCambiarVista && <SelectorVista vistaCalendario={vistaCalendario} onCambiarVista={onCambiarVista} />}
-            <NavegacionSemanal onAnterior={semanaAnterior} onSiguiente={semanaSiguiente} onHoy={irAHoy} />
-            <SelectorFecha fechaBase={fechaBase} onCambiarDia={handleCambiarDia} onCambiarMes={handleCambiarMes} onCambiarAño={handleCambiarAño} />
+            <SelectorSala selectedRoom={selectedRoom} onChange={setSelectedRoom} />
+            {onViewChange && <SelectorVista calendarView={calendarView} onViewChange={onViewChange} />}
+            <NavegacionSemanal onPrevious={previousWeek} onNext={nextWeek} onToday={goToToday} />
+            <SelectorFecha baseDate={baseDate} onDayChange={handleCambiarDia} onMonthChange={handleCambiarMes} onYearChange={handleCambiarAño} />
             <PeriodoActual rangoFechas={rangoFechas} />
           </Box>
         </Paper>
@@ -123,7 +119,7 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
                 <Box component="span" sx={{ fontWeight: 600, color: "#6b7280", textTransform: "uppercase", fontSize: "0.7rem" }}>Hora</Box>
               </Box>
               {diasSemana.map((dia, idx) => (
-                <EncabezadoDia key={dia.toISOString()} dia={dia} idx={idx} hoy={hoy} reservasSemana={reservasSemana} nombreFestivo={festivos[format(dia, "yyyy-MM-dd")]} />
+                <EncabezadoDia key={dia.toISOString()} day={dia} idx={idx} today={hoy} weeklyReservations={reservasSemana} holidayName={festivos[format(dia, "yyyy-MM-dd")]} />
               ))}
             </Box>
 
@@ -132,15 +128,15 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
               {horas.map((hora, horaIdx) => (
                 <Box key={hora} sx={{ display: "grid", gridTemplateColumns: "80px repeat(5, 1fr)", height: 60, borderBottom: horaIdx < horas.length - 1 ? "1px solid #e0e0e0" : "none", width: "100%", boxSizing: "border-box", minWidth: 700 }}>
                   <Box sx={{ p: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", pr: 1.5, backgroundColor: "#fafafa", borderRight: "1px solid #e0e0e0", height: 60, boxSizing: "border-box" }}>
-                    <Box component="span" sx={{ color: "#6b7280", fontSize: "0.7rem" }}>{formatearHora12h(hora)}</Box>
+                    <Box component="span" sx={{ color: "#6b7280", fontSize: "0.7rem" }}>{formatHour12h(hora)}</Box>
                   </Box>
                   {diasSemana.map((dia, diaIdx) => (
                     <CeldaHora
                       key={`${dia.toISOString()}-${hora}`}
                       dia={dia} hora={hora} diaIdx={diaIdx} hoy={hoy}
-                      reservasEnCelda={getReservasEnCelda(reservasSemana, dia, hora, format)}
-                      salaSeleccionada={salaSeleccionada}
-                      onNuevaReserva={onNuevaReserva}
+                      reservasEnCelda={getReservationsInCell(reservasSemana, dia, hora, format)}
+                      selectedRoom={selectedRoom}
+                      onNewReservation={onNewReservation}
                       onClickReserva={handleClickReserva}
                     />
                   ))}
@@ -151,9 +147,9 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
         )}
 
         <PopoverDetalleReserva
-          anchorEl={anchorEl} reservaSeleccionada={reservaSeleccionada}
-          usuarioActualId={usuarioActualId} onClose={handleClosePopover}
-          onEditar={onEditarReserva} onCancelar={onCancelarReserva}
+          anchorEl={anchorEl} selectedReservation={selectedReservation}
+          currentUserId={currentUserId} onClose={handleClosePopover}
+          onEditar={onEditReservation} onCancelar={onCancelReservation}
         />
       </Box>
     </LocalizationProvider>

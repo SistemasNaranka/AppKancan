@@ -22,9 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
-  /**
-   * Función auxiliar para extraer políticas de Directus (estructura específica)
-   */
+  
   const extractPolicies = (userData: any): string[] => {
     // Extraer políticas directas del usuario
     const directPolicies =
@@ -40,9 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return combined;
   };
 
-  /**
-   * Función de login
-   */
+  
   const login = async (email: string, password: string) => {
     try {
       const res = await loginDirectus(email, password);
@@ -61,7 +57,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         ultra_code: me.ultra_code,
         company: me.company,
         rol: me.role?.name,
-        store_id: me.store?.id,
+        store_id: me.store_id?.id ?? me.store_id,
+        store_name: me.store_id?.name,
         policies: extractedPolicies,
         requires_password_change: me.requires_password_change || false,
         ia_key: me.ia_key,
@@ -76,9 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Usar el hook de navegación para manejar la persistencia de la ruta
   const { clearSavedRoute, goToHome } = useNavigationPersistence();
 
-  /**
-   * Función de logout mejorada
-   */
+  
   const logout = async () => {
     const tokens = cargarTokenStorage();
 
@@ -107,9 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await setTokenDirectus(null);
   };
 
-  /**
-   * Inicialización: Verificar si hay sesión válida
-   */
+  
   useEffect(() => {
     const init = async () => {
       // Solo inicializar una vez
@@ -165,7 +158,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           ultra_code: me.ultra_code,
           company: me.company,
           rol: me.role?.name,
-          store_id: me.store?.id,
+          store_id: me.store_id?.id ?? me.store_id,
+          store_name: me.store_id?.name,
           policies: extractedPolicies,
           requires_password_change: me.requires_password_change || false,
           ia_key: me.ia_key,

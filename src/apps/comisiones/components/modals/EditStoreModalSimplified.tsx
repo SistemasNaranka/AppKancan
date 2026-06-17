@@ -22,7 +22,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-import "dayjs/locale/es"; // Localización español
+import "dayjs/locale/es";
 import Close from '@mui/icons-material/Close';
 import Save from '@mui/icons-material/Save';
 import Person from '@mui/icons-material/Person';
@@ -49,13 +49,10 @@ export const EditStoreModalSimplified: React.FC<
   EditStoreModalSimplifiedProps
 > = ({ isOpen, onClose, selectedMonth, tiendaProp, onSaveComplete }) => {
   const { area } = useApps();
-  // Estado para controlar si se ha guardado correctamente
   const [, setSaveCompleted] = React.useState(false);
   const [, setSaveError] = React.useState(false);
 
-  // Usar el hook para toda la lógica de negocio (sin onSaveComplete, la recarga se maneja en onClose)
   const {
-    // Estados
     fecha,
     tiendaSeleccionada,
     tiendaNombre,
@@ -66,14 +63,13 @@ export const EditStoreModalSimplified: React.FC<
     tiendas,
     cargos,
     loading,
-    loadingCatalogos, // NUEVO
+    loadingCatalogos,
     error,
     success,
     diasSinPresupuesto,
     diasConPresupuestoCero,
-    diasConAsignacion, // NUEVO
+    diasConAsignacion,
     selectedDays,
-    // Handlers
     handleTiendaChange,
     handleKeyPress,
     handleAgregarEmpleado,
@@ -83,14 +79,12 @@ export const EditStoreModalSimplified: React.FC<
     toggleDaySelection,
     selectAllPendingDays,
     clearDaySelection,
-    // Utils
     setError,
     setSuccess,
     setFecha,
     setCargoSeleccionado,
     setCodigoEmpleado,
-    // Validaciones
-    hasChanges, // NUEVO
+    hasChanges,
   } = useEditStoreModalLogic({
     isOpen,
     onClose,
@@ -112,10 +106,8 @@ export const EditStoreModalSimplified: React.FC<
     }
   };
 
-  // 🚀 NUEVO: Efecto para limpiar estados cuando se cierra el modal
   React.useEffect(() => {
     if (!isOpen) {
-      // El modal se cerró, limpiar estados
       setSaveCompleted(false);
       setSaveError(false);
     }
@@ -189,10 +181,10 @@ export const EditStoreModalSimplified: React.FC<
               <DaysWithoutBudgetPanel
                 diasSinPresupuesto={diasSinPresupuesto}
                 diasConPresupuestoCero={diasConPresupuestoCero}
-                diasAsignados={diasConAsignacion} // NUEVO
+                diasAsignados={diasConAsignacion}
                 selectedDays={selectedDays}
-                currentDate={fecha} // Fix: Pass current date to control calendar month
-                hideWhenComplete={false} // Siempre mostrar el calendario en edición para permitir seleccionar cualquier día
+                currentDate={fecha}
+                hideWhenComplete={false}
                 onToggleDay={toggleDaySelection}
                 onSelectAll={selectAllPendingDays}
                 onClearAll={clearDaySelection}
@@ -251,7 +243,7 @@ export const EditStoreModalSimplified: React.FC<
                   <DatePicker
                     value={fecha ? dayjs(fecha) : null}
                     format="DD/MM/YYYY"
-                    maxDate={dayjs()} // Bloquear fechas futuras
+                    maxDate={dayjs()}
                     shouldDisableDate={(date) => {
                       const dayjsDate = dayjs(date as any);
                       const dateStr = dayjsDate.format("YYYY-MM-DD");
@@ -265,7 +257,7 @@ export const EditStoreModalSimplified: React.FC<
                       textField: {
                         fullWidth: true,
                         size: "medium",
-                        readOnly: true, // Fix: Prevent manual typing to bypass maxDate
+                        readOnly: true,
                         sx: {
                           bgcolor: "white",
                           "& .MuiOutlinedInput-root": {
@@ -333,7 +325,7 @@ export const EditStoreModalSimplified: React.FC<
                         bgcolor: "white",
                         "& .MuiOutlinedInput-root": {
                           borderRadius: 2,
-                          p: "7.5px !important", // Ajuste para igualar altura
+                          p: "7.5px !important",
                           "& .MuiOutlinedInput-notchedOutline": {
                             borderWidth: 2,
                             borderColor: "grey.300",
@@ -386,7 +378,7 @@ export const EditStoreModalSimplified: React.FC<
                   flex: {
                     xs: "1 1 100%",
                     sm: "1 1 calc(50% - 8px)",
-                    md: "2", // Flex relativo para distribuir mejor
+                    md: "2",
                   },
                 }}
               >
@@ -403,7 +395,7 @@ export const EditStoreModalSimplified: React.FC<
                 </Typography>
                 <FormControl fullWidth size="small">
                   <Select
-                    value={cargoSeleccionado === 0 ? "" : cargoSeleccionado} // Fix: Convert 0 to "" to match displayEmpty/placeholder behavior
+                    value={cargoSeleccionado === 0 ? "" : cargoSeleccionado}
                     onChange={(e) => {
                       setCargoSeleccionado(e.target.value as number);
                     }}
@@ -459,7 +451,7 @@ export const EditStoreModalSimplified: React.FC<
                   flex: {
                     xs: "1 1 100%",
                     sm: "1 1 calc(50% - 8px)",
-                    md: "1.5", // Menos espacio que cargo
+                    md: "1.5",
                   },
                 }}
               >
@@ -492,7 +484,6 @@ export const EditStoreModalSimplified: React.FC<
                       py: 1,
                       textAlign: "center",
                       fontWeight: 600,
-                      // Hide Spinners
                       "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
                       {
                         WebkitAppearance: "none",
@@ -522,11 +513,11 @@ export const EditStoreModalSimplified: React.FC<
               {/* Nuevo contenedor agrupado para Empleado y Botón (para forzarlos juntos) */}
               <Box
                 sx={{
-                  flex: { xs: "1 1 100%", md: "4" }, // Ocupa el resto del espacio
+                  flex: { xs: "1 1 100%", md: "4" },
                   display: "flex",
                   gap: 2,
                   alignItems: "flex-end",
-                  flexWrap: { xs: "wrap", sm: "nowrap" }, // Wrap en móvil, fila en desktop
+                  flexWrap: { xs: "wrap", sm: "nowrap" },
                 }}
               >
                 {/* Empleado Encontrado */}
@@ -542,7 +533,7 @@ export const EditStoreModalSimplified: React.FC<
                       sx={{
                         px: 2,
                         py: 1,
-                        height: "56px", // Height matches EmployeeInfoCard
+                        height: "56px",
                         border: "1px dashed #e0e0e0",
                         borderRadius: 2,
                         bgcolor: "#fafafa",
@@ -563,7 +554,7 @@ export const EditStoreModalSimplified: React.FC<
                       !tiendaSeleccionada ||
                       !empleadoEncontrado ||
                       !cargoSeleccionado ||
-                      (fecha ? dayjs(fecha).isAfter(dayjs(), 'day') : false) // Fix: Disable adding if date is future
+                      (fecha ? dayjs(fecha).isAfter(dayjs(), 'day') : false)
                     }
                     sx={{
                       py: 1,
@@ -723,10 +714,10 @@ export const EditStoreModalSimplified: React.FC<
                           position: "absolute",
                           top: 4,
                           right: 4,
-                          bgcolor: "error.lighter", // SOFTER RED
-                          color: "error.main", // ICON COLOR RED
-                          "&:hover": { bgcolor: "error.main", color: "white" }, // Stronger Red on Hover
-                          width: 24, // Slightly larger button
+                          bgcolor: "error.lighter",
+                          color: "error.main",
+                          "&:hover": { bgcolor: "error.main", color: "white" },
+                          width: 24,
                           height: 24,
                           zIndex: 1,
                         }}
@@ -752,16 +743,16 @@ export const EditStoreModalSimplified: React.FC<
                           {empleado.nombre}
                         </Typography>
                         <Typography
-                          variant="body2" // Increased from caption
+                          variant="body2"
                           sx={{
                             color:
                               empleado.cargo_nombre === "Gerente"
                                 ? "success.main"
                                 : "primary.main",
-                            fontWeight: 700, // Bolder
+                            fontWeight: 700,
                             mb: 1,
                             display: "block",
-                            fontSize: "0.85rem", // Specifically set larger size
+                            fontSize: "0.85rem",
                           }}
                         >
                           • {empleado.cargo_nombre}

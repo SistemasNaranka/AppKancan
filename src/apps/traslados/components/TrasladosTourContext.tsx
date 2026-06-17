@@ -56,13 +56,12 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
 
   const isFullTourRunning = tourPhase !== "IDLE" && tourPhase !== "COMPLETED";
 
-  // Iniciar el tour completo
+
   const startFullTour = useCallback(() => {
     setStepIndex(0);
     setTourPhase("FILTROS");
   }, []);
 
-  // Auto-iniciar tour si hay ?tour=start en la URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("tour") === "start" && !isFullTourRunning) {
@@ -71,15 +70,12 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     }
   }, [location.search, location.pathname, navigate, startFullTour, isFullTourRunning]);
 
-  // Integración con PeekButton — dispara el tour cuando el botón flotante
-  // de "?" solicita el tutorial de Traslados.
   useEffect(() => {
     if (activeTutorial !== "traslados") return;
     endTutorial();
     startFullTour();
   }, [activeTutorial, endTutorial, startFullTour]);
 
-  // Verificar si el tour ya fue completado
   const isTourCompleted = useCallback((): boolean => {
     try {
       return localStorage.getItem(TOUR_LOCALSTORAGE_KEY) === "true";
@@ -88,7 +84,6 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     }
   }, []);
 
-  // Marcar el tour como completado
   const markTourCompleted = useCallback((): void => {
     try {
       localStorage.setItem(TOUR_LOCALSTORAGE_KEY, "true");
@@ -97,7 +92,6 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     }
   }, []);
 
-  // Reiniciar el estado del tour
   const resetTourState = useCallback((): void => {
     try {
       localStorage.removeItem(TOUR_LOCALSTORAGE_KEY);
@@ -106,7 +100,6 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     }
   }, []);
 
-  // Avanzar a la siguiente fase
   const nextPhase = useCallback(() => {
     const currentIndex = PHASE_ORDER.indexOf(tourPhase);
     if (currentIndex >= 0 && currentIndex < PHASE_ORDER.length - 1) {
@@ -125,13 +118,11 @@ export const TrasladosTourProvider: React.FC<TrasladosTourProviderProps> = ({ ch
     }
   }, [tourPhase, markTourCompleted]);
 
-  // Detener el tour
   const stopTour = useCallback(() => {
     setTourPhase("IDLE");
     setStepIndex(0);
   }, []);
 
-  // Completar el tour
   const completeTour = useCallback(() => {
     markTourCompleted();
     setTourPhase("COMPLETED");

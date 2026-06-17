@@ -28,12 +28,11 @@ const ConfirmacionAprobacion: React.FC<Props> = ({
   onConfirm,
   cantidadTraslados,
 }) => {
-  const [identificacion, setIdentificacion] = useState(""); // solo dígitos
+  const [identificacion, setIdentificacion] = useState("");
   const [mostrarIdentificacion, setMostrarIdentificacion] = useState(false);
   const [error, setError] = useState("");
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  // Handle Enter key press
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter" && identificacion.trim()) {
       handleConfirm();
@@ -52,7 +51,7 @@ const ConfirmacionAprobacion: React.FC<Props> = ({
       return;
     }
 
-    onConfirm(cleanId); // envía solo dígitos
+    onConfirm(cleanId);
     handleClose();
   };
 
@@ -179,10 +178,10 @@ const ConfirmacionAprobacion: React.FC<Props> = ({
             }}
             sx={(theme) => ({
               width: {
-                xs: "100%", // Pantallas pequeñas (móviles)
-                sm: "80%", // Tablets
-                md: "60%", // Escritorio mediano
-                lg: "50%", // Escritorio grande
+                xs: "100%",
+                sm: "80%",
+                md: "60%",
+                lg: "50%",
               },
 
               "& .MuiOutlinedInput-root": {

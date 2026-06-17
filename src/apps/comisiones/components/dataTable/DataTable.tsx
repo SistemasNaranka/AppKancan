@@ -10,11 +10,6 @@ import { Paper, Typography, Box } from "@mui/material";
 import { DataTableAccordion } from "./DataTableAccordion";
 import { DataTableLoadingState } from "../ui/LoadingState";
 import { green, blue, orange, grey, pink, red } from "@mui/material/colors";
-
-// =============================================================================
-// TIPOS E INTERFACES
-// =============================================================================
-
 interface DataTableProps {
   tiendas: TiendaResumen[];
   cargos?: DirectusPosition[];
@@ -36,11 +31,6 @@ interface DataTableProps {
   thresholdConfig?: CommissionThresholdConfig | null;
 }
 
-// =============================================================================
-// COMPONENTES INTERNOS MODULARES
-// =============================================================================
-
-// Componente para estado vacío
 const DataTableEmptyState = ({
   hasEmptyData,
   filterRol,
@@ -64,7 +54,6 @@ const DataTableEmptyState = ({
   );
 };
 
-// Componente para contenido principal de la tabla
 const DataTableContent = ({
   visibleTiendas,
   expandedTiendas,
@@ -95,7 +84,7 @@ const DataTableContent = ({
   tiendaKeys: string[];
   thresholdConfig?: CommissionThreshold[];
 }) => {
-  // Renderizado de tiendas normal
+
   const renderTiendas = () => {
     return visibleTiendas.map((tienda, index) => {
       const tiendaKey = tiendaKeys[index];
@@ -116,7 +105,6 @@ const DataTableContent = ({
     });
   };
 
-  // Si hay muchas tiendas expandidas, usar carga incremental
   if (hasManyExpandedStores && visibleTiendas.length > 20) {
     const tiendasToRender = visibleTiendas.slice(0, incrementallyLoadedCount);
     const remainingCount = visibleTiendas.length - incrementallyLoadedCount;
@@ -166,7 +154,6 @@ const DataTableContent = ({
     );
   }
 
-  // Renderizado normal para casos normales
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {renderTiendas()}
@@ -174,11 +161,6 @@ const DataTableContent = ({
   );
 };
 
-// =============================================================================
-// HOOKS DE LÓGICA MODULAR
-// =============================================================================
-
-// Hook para filtrado de tiendas
 const useDataTableFilters = (tiendas: TiendaResumen[], filterRol?: Role[]) => {
   return useMemo(() => {
     if (!filterRol || filterRol.length === 0) {
@@ -191,7 +173,6 @@ const useDataTableFilters = (tiendas: TiendaResumen[], filterRol?: Role[]) => {
   }, [tiendas, filterRol]);
 };
 
-// Hook para carga incremental
 const useIncrementalLoading = (
   visibleTiendas: TiendaResumen[],
   hasManyExpandedStores: boolean,
@@ -200,7 +181,6 @@ const useIncrementalLoading = (
   const [isIncrementallyLoading, setIsIncrementallyLoading] = useState(false);
 
   useEffect(() => {
-    // Limpiar cualquier timer existente
     let firstTimer: NodeJS.Timeout;
     let interval: NodeJS.Timeout;
 
@@ -237,7 +217,6 @@ const useIncrementalLoading = (
       setIsIncrementallyLoading(false);
     }
 
-    // Cleanup function más robusta
     return () => {
       if (firstTimer) clearTimeout(firstTimer);
       if (interval) clearInterval(interval);
@@ -247,12 +226,6 @@ const useIncrementalLoading = (
   return { incrementallyLoadedCount, isIncrementallyLoading };
 };
 
-/**
- * 🚀 DataTable MODULARIZADO CON MATERIAL UI TABLE
- * - Elimina useTransition y Suspense para mejor performance
- * - Usa componentes modulares para mejor organización
- * - Filtrado simple sin lógica compleja
- */
 export const DataTable: React.FC<DataTableProps> = memo(
   ({
     tiendas,
@@ -265,10 +238,8 @@ export const DataTable: React.FC<DataTableProps> = memo(
     isRefetching = false,
     thresholdConfig,
   }) => {
-    // Estados para inputs temporales de ventas
     const [, setVentasInputs] = useState<Record<string, number>>({});
 
-    // Hooks modulares
     const visibleTiendas = useDataTableFilters(tiendas, filterRol);
 
     const hasEmptyData = useMemo(() => {
@@ -282,12 +253,10 @@ export const DataTable: React.FC<DataTableProps> = memo(
     const { incrementallyLoadedCount, isIncrementallyLoading } =
       useIncrementalLoading(visibleTiendas, hasManyExpandedStores);
 
-    // Cache de keys para evitar recalcular
     const tiendaKeys = useMemo(() => {
       return visibleTiendas.map((tienda) => `${tienda.tienda}-${tienda.fecha}`);
     }, [visibleTiendas]);
 
-    // Handler optimizado para cambios de ventas
     const handleVentaChange = useCallback(
       (
         tiendaName: string,
@@ -332,7 +301,6 @@ export const DataTable: React.FC<DataTableProps> = memo(
       [tiendas, onVentasUpdate],
     );
 
-    // Handler simple para acordeones
     const handleAccordionChange = useCallback(
       (tiendaKey: string) => {
         toggleSingleStore(tiendaKey);
@@ -342,7 +310,6 @@ export const DataTable: React.FC<DataTableProps> = memo(
 
     const getCumplimientoColor = useCallback(
       (pct: number) => {
-        // Valores por defecto si no hay configuración
         const DEFAULT_THRESHOLDS = [
           {
             min_compliance: 85,
@@ -382,12 +349,9 @@ export const DataTable: React.FC<DataTableProps> = memo(
             ? thresholdConfig.compliance_values
             : DEFAULT_THRESHOLDS;
 
-        // Ordenar umbrales por min_compliance ascendente
         const umbralesOrdenados = [...umbrales].sort(
           (a, b) => a.min_compliance - b.min_compliance,
         );
-
-        // Verificar si el cumplimiento está dentro de alguno de los umbrales configurados
         const isWithinThresholds = umbralesOrdenados.some((umbral) => {
           const nextUmbral =
             umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
@@ -397,12 +361,10 @@ export const DataTable: React.FC<DataTableProps> = memo(
           );
         });
 
-        // Asignar color SOLO si el cumplimiento está dentro de los umbrales configurados
         if (!isWithinThresholds) {
-          return grey[600]; // Gris (sin color) para cumplimiento < umbral mínimo o fuera de rango
+          return grey[600];
         }
 
-        // Mapa de colores MUI a nombres de colores
         const colorMap: Record<string, string> = {
           red: red[300],
           pink: pink[300],
@@ -413,7 +375,6 @@ export const DataTable: React.FC<DataTableProps> = memo(
           yellow: "#ffeb3b",
         };
 
-        // Asignar color basado EN LOS UMBRALES CONFIGURADOS para el mes
         for (let i = 0; i < umbralesOrdenados.length; i++) {
           const umbral = umbralesOrdenados[i];
           const nextUmbral = umbralesOrdenados[i + 1];
@@ -422,43 +383,39 @@ export const DataTable: React.FC<DataTableProps> = memo(
             pct >= umbral.min_compliance &&
             (!nextUmbral || pct < nextUmbral.min_compliance)
           ) {
-            // Si el umbral tiene un color configurado, usarlo
             if (umbral.color && colorMap[umbral.color]) {
               return colorMap[umbral.color];
             }
 
-            // Si no, usar la lógica de color por defecto
             if (umbral.min_compliance >= 85 && umbral.min_compliance < 90) {
-              return red[300]; // Rojo para umbrales 85-89%
+              return red[300];
             } else if (
               umbral.min_compliance >= 90 &&
               umbral.min_compliance < 95
             ) {
-              return pink[300]; // Rosa para umbrales 90-94%
+              return pink[300];
             } else if (
               umbral.min_compliance >= 95 &&
               umbral.min_compliance < 100
             ) {
-              return orange[600]; // Naranja para umbrales 95-99%
+              return orange[600];
             } else if (
               umbral.min_compliance >= 100 &&
               umbral.min_compliance < 110
             ) {
-              return blue[600]; // Azul para umbrales 100-109%
+              return blue[600];
             } else {
-              return green[600]; // Verde para umbrales ≥110%
+              return green[600];
             }
           }
         }
 
-        return grey[600]; // Default
+        return grey[600];
       },
       [thresholdConfig],
     );
 
-    // Contenido de la tabla optimizado
     const tableContent = useMemo(() => {
-      // Estado vacío
       if (hasEmptyData) {
         return (
           <DataTableEmptyState
@@ -468,7 +425,6 @@ export const DataTable: React.FC<DataTableProps> = memo(
         );
       }
 
-      // Contenido principal
       return (
         <DataTableContent
           visibleTiendas={visibleTiendas}
@@ -518,9 +474,7 @@ export const DataTable: React.FC<DataTableProps> = memo(
       </DataTableLoadingState>
     );
   },
-  // Comparador personalizado más estricto para evitar re-renders innecesarios
   (prevProps, nextProps) => {
-    // Comparaciones básicas
     const basicPropsEqual =
       prevProps.tiendas.length === nextProps.tiendas.length &&
       prevProps.expandedTiendas.size === nextProps.expandedTiendas.size &&
@@ -532,7 +486,6 @@ export const DataTable: React.FC<DataTableProps> = memo(
 
     if (!basicPropsEqual) return false;
 
-    // Comparación más detallada de las tiendas
     return prevProps.tiendas.every((tienda, i) => {
       const nextTienda = nextProps.tiendas[i];
       if (!nextTienda) return false;

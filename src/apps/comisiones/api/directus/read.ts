@@ -13,9 +13,6 @@ import {
   CommissionThreshold,
 } from "../../types";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
-
-// ==================== FUNCIONES AUXILIARES ====================
-
 /**
  * Función auxiliar para convertir nombre de mes a número
  */
@@ -36,9 +33,6 @@ const getMonthNumber = (monthName: string): string => {
   };
   return months[monthName] || "01";
 };
-
-// ==================== FUNCIONES DE LECTURA ====================
-
 /**
  * Obtener todas las tiendas
  */
@@ -49,7 +43,6 @@ export async function getStores(): Promise<DirectusTienda[]> {
       return [];
     }
 
-    // Robustecer el filtro para manejar IDs como string o number
     const filter: any = {
       _or: [{ id: { _in: tiendaIds } }, { id: { _in: tiendaIds.map(String) } }],
     };
@@ -170,7 +163,7 @@ const isCurrentMonth = (mes: string): boolean => {
   const anio = parseInt(anioStr);
 
   const ahora = new Date();
-  return ahora.getFullYear() === anio && ahora.getMonth() === mesNumero; // Usar hora local
+  return ahora.getFullYear() === anio && ahora.getMonth() === mesNumero;
 };
 
 /**
@@ -189,7 +182,6 @@ export async function obtenerPresupuestosDiarios(
     if (tiendaId) {
       const match = tiendaIds.find((id) => String(id) === String(tiendaId));
       if (match !== undefined) {
-        // Filtro agnóstico al tipo
         filter.store_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
@@ -200,7 +192,6 @@ export async function obtenerPresupuestosDiarios(
       }
     }
 
-    // 🚀 NUEVO: Si es el mes actual, filtrar hasta la fecha actual
     if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
       const fechaActual = getCurrentDate();
       const [mesNombre, anio] = mesSeleccionado.split(" ");
@@ -252,10 +243,8 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
       ),
     );
 
-    // Extraer todos los meses únicos de las fechas
     const mesesSet = new Set<string>();
     data.forEach((item: any) => {
-      // Usar fecha local en lugar de UTC
       const fecha = new Date(item.date + "T00:00:00");
       const meses = [
         "Ene",
@@ -271,8 +260,8 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
         "Nov",
         "Dic",
       ];
-      const mesNombre = meses[fecha.getMonth()]; // Usar hora local
-      const anio = fecha.getFullYear(); // Usar hora local
+      const mesNombre = meses[fecha.getMonth()];
+      const anio = fecha.getFullYear();
       mesesSet.add(`${mesNombre} ${anio}`);
     });
 
@@ -300,7 +289,7 @@ export async function obtenerTodosPresupuestosMeses(): Promise<string[]> {
 
     return todosLosMeses;
   } catch (error) {
-    // En caso de error, devolver array vacío para que no rompa la aplicación
+
     return [];
   }
 }
@@ -347,7 +336,6 @@ export async function obtenerPorcentajesMensuales(
       ),
     );
 
-    // Convertir el formato nuevo al formato esperado
     const porcentajesConvertidos: DirectusPorcentajeMensual[] = (
       data as DirectusPorcentajeMensualNuevo[]
     ).map((item) => {
@@ -365,7 +353,7 @@ export async function obtenerPorcentajesMensuales(
       return {
         id: item.id,
         fecha: `${item.year}-${item.month}`,
-        role_config: item.role_config, // Mantener el array original
+        role_config: item.role_config,
         gerente_tipo: configMap.gerente_tipo,
         gerente_porcentaje: configMap.gerente_porcentaje,
         asesor_tipo: configMap.asesor_tipo,
@@ -400,7 +388,6 @@ export async function obtenerPresupuestosEmpleados(
     if (tiendaId) {
       const match = tiendaIds.find((id) => String(id) === String(tiendaId));
       if (match !== undefined) {
-        // Filtro agnóstico al tipo
         filter.store_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
@@ -411,12 +398,11 @@ export async function obtenerPresupuestosEmpleados(
       }
     }
 
-    // 🚀 REVERTIDO: Restaurar funcionalidad original para no dañar toda la app
     if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
       const fechaActual = getCurrentDate();
       filter.date = { _lte: fechaActual };
     } else if (fecha) {
-      filter.date = { _lte: fecha }; // Restaurar funcionalidad original
+      filter.date = { _lte: fecha };
     }
 
     const data = await withAutoRefresh(() =>
@@ -454,7 +440,6 @@ export async function obtenerEmpleadosPorFechaExacta(
   try {
     const tiendaIdsPermitidos = await obtenerTiendasIdsUsuarioActual();
 
-    // Filtrar solo las tiendas que el usuario tiene permiso de ver
     const tiendasFiltradas = tiendaIds.filter((id) =>
       tiendaIdsPermitidos.some((pId: any) => String(pId?.id || pId) === String(id)),
     );
@@ -508,7 +493,6 @@ export async function obtenerVentasEmpleados(
     if (tiendaId) {
       const match = tiendaIds.find((id) => String(id) === String(tiendaId));
       if (match !== undefined) {
-        // Filtro agnóstico al tipo
         filter.store_id = { _in: [String(match), Number(match)] };
       } else {
         return [];
@@ -519,12 +503,11 @@ export async function obtenerVentasEmpleados(
       }
     }
 
-    // 🚀 NUEVO: Si es el mes actual, filtrar hasta la fecha actual
     if (mesSeleccionado && isCurrentMonth(mesSeleccionado)) {
       const fechaActual = getCurrentDate();
       filter.date = { _lte: fechaActual };
     } else if (fecha) {
-      filter.date = { _lte: fecha }; // Cambiar a <= para incluir todas las fechas
+      filter.date = { _lte: fecha };
     }
 
     const data = await withAutoRefresh(() =>
@@ -566,7 +549,6 @@ export async function obtenerTiendasUsuario(
 
     return data as { store_id: number; status: string }[];
   } catch (error: any) {
-    // Si es error 404 (colección no existe), devolver array vacío
     if (error.response?.status === 404) {
       return [];
     }
@@ -595,7 +577,6 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
     const tiendaIds = data.map((item: any) => item.store_id);
     return tiendaIds;
   } catch (error: any) {
-    // Si es error 404 (colección no existe), devolver array vacío
     if (error.response?.status === 404) {
       return [];
     }
@@ -603,16 +584,13 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
     throw error;
   }
 }
-
-// ==================== CONFIGURACIÓN DE UMBRALES DE COMISIONES ====================
-
 /**
  * Tipo de retorno para obtenerUmbralesComisiones que incluye el ID
  */
 export interface CommissionThresholdConfigWithId {
   id: number;
-  mes: string; // "MMM YYYY"
-  anio: string; // "YYYY"
+  mes: string;
+  anio: string;
   compliance_values: CommissionThreshold[];
 }
 
@@ -666,8 +644,6 @@ export async function obtenerUmbralesComisiones(
     }
 
     const item = data[0] as DirectusCommissionCompliance;
-
-    // Convertir a formato de configuración
     const mesesLabels: { [key: string]: string } = {
       "01": "Ene",
       "02": "Feb",
@@ -690,7 +666,6 @@ export async function obtenerUmbralesComisiones(
       compliance_values: item.compliance_values || [],
     };
   } catch (error: any) {
-    // Si la colección no existe o hay error, retornar null para usar valores por defecto
     if (error.response?.status === 404) {
       return null;
     }

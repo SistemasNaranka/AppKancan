@@ -1,4 +1,3 @@
-// src/apps/contactos/pages/ContactDirectory.tsx
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Box, Typography, Button, TextField,

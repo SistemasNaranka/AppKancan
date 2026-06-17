@@ -41,12 +41,10 @@ export function FiltrosVentasComponent({
   onActualizarFiltros,
   onLimpiarFiltros,
 }: FiltrosVentasProps) {
-  // Opciones a usar: filtradas si están disponibles, si no las completas
   const opcionesCiudades = ciudadesFiltradas || ciudades.map((c) => c.nombre);
   const opcionesTiendas = tiendasFiltradas || tiendas;
   const opcionesAsesores = asesoresFiltrados || asesores;
 
-  // Cuando cambia la zona, limpiar ciudad, bodega y asesor dependientes
   const handleZonaChange = (value: string | null) => {
     onActualizarFiltros({
       zona: value || undefined,
@@ -56,7 +54,6 @@ export function FiltrosVentasComponent({
     });
   };
 
-  // Cuando cambia la ciudad, limpiar bodega y asesor dependientes
   const handleCiudadChange = (value: string | null) => {
     onActualizarFiltros({
       ciudad: value || undefined,
@@ -66,8 +63,8 @@ export function FiltrosVentasComponent({
   };
   const handleTiendaChange = (value: string | null) => {
     onActualizarFiltros({
-      bodega: value || undefined, // Usamos el nombre directamente
-      asesor: undefined, // Limpiar asesor dependiente
+      bodega: value || undefined,
+      asesor: undefined,
     });
   };
 
@@ -80,7 +77,6 @@ export function FiltrosVentasComponent({
     filtros.agrupacion,
   ].filter(Boolean).length;
 
-  // Convertir fechas a Dayjs para el DatePicker
   const fechaDesdeValue = filtros.fecha_desde
     ? dayjs(filtros.fecha_desde)
     : null;
@@ -88,13 +84,10 @@ export function FiltrosVentasComponent({
     ? dayjs(filtros.fecha_hasta)
     : null;
 
-  // Manejador para cambio de fecha desde
   const handleFechaDesdeChange = (newValue: any) => {
     const newFechaDesde = newValue ? newValue.format("YYYY-MM-DD") : "";
 
-    // Validar que fecha desde no sea mayor que fecha hasta
     if (filtros.fecha_hasta && newFechaDesde > filtros.fecha_hasta) {
-      // Si la nueva fecha desde es mayor que fecha hasta, ajustar fecha hasta
       onActualizarFiltros({
         fecha_desde: newFechaDesde,
         fecha_hasta: newFechaDesde,
@@ -104,13 +97,10 @@ export function FiltrosVentasComponent({
     }
   };
 
-  // Manejador para cambio de fecha hasta
   const handleFechaHastaChange = (newValue: any) => {
     const newFechaHasta = newValue ? newValue.format("YYYY-MM-DD") : "";
 
-    // Validar que fecha hasta no sea menor que fecha desde
     if (filtros.fecha_desde && newFechaHasta < filtros.fecha_desde) {
-      // Si la nueva fecha hasta es menor que fecha desde, ajustar fecha desde
       onActualizarFiltros({
         fecha_desde: newFechaHasta,
         fecha_hasta: newFechaHasta,

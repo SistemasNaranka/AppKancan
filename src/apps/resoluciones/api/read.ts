@@ -2,8 +2,6 @@ import directus from "@/services/directus/directus";
 import { readItems } from "@directus/sdk";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
-// ==================== INTERFACES DIRECTUS ====================
-
 export interface DirectusResolucion {
   id: number;
   form_number: string;
@@ -33,12 +31,6 @@ export interface DirectusResolucion {
   } | null;
 }
 
-// ==================== FUNCIONES DE LECTURA ====================
-
-/**
- * Obtener todas las resoluciones con sus relaciones
- * Solo trae resoluciones con estado 'Activo' o 'Pendiente'
- */
 export async function getResolutions(): Promise<DirectusResolucion[]> {
   try {
     const data = await withAutoRefresh(() =>
@@ -84,9 +76,6 @@ export interface PrefixValidationResult {
   ultra_id?: number;
 }
 
-/**
- * Verifica si existe un prefijo para una empresa dada en acc_prefix_resolutions y obtiene su ultra_id si existe
- */
 export async function checkPrefixExists(prefix: string, businessName: string): Promise<PrefixValidationResult> {
   if (!businessName || !prefix) return { exists: false };
 

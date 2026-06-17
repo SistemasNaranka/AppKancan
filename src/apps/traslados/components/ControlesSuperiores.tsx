@@ -1,8 +1,3 @@
-/**
- * ControlesSuperiores.tsx
- * Controles superiores del panel de traslados pendientes
- * Incluye: Botón Tutorial y Aprobar
- */
 import React from "react";
 import { Box, Button, useTheme } from "@mui/material";
 import TrasladosHelpButton from "./TrasladosHelpButton";
@@ -36,7 +31,6 @@ export const ControlesSuperiores: React.FC<Props> = ({
         p: 2,
         gap: 9,
 
-        // 📱 En pantallas pequeñas: cambia a layout horizontal
         [theme.breakpoints.down("sm")]: {
           flexDirection: "row",
           justifyContent: "center",
@@ -46,7 +40,7 @@ export const ControlesSuperiores: React.FC<Props> = ({
         },
       }}
     >
-      {/* 🔹 Botón de Tutorial - Ocultar si tiene política TrasladosTiendas */}
+
       {!tienePoliticaTrasladosTiendas && (
         <Box
           sx={{
@@ -60,7 +54,7 @@ export const ControlesSuperiores: React.FC<Props> = ({
         </Box>
       )}
 
-      {/* 🔹 Botón APROBAR - Ocultar si tiene política TrasladosJefezona o TrasladosTiendas */}
+
       {!tienePoliticaTrasladosJefezona && !tienePoliticaTrasladosTiendas && (
         <Button
           variant="contained"
@@ -83,7 +77,6 @@ export const ControlesSuperiores: React.FC<Props> = ({
               transform: idsSeleccionadosLength === 0 ? "none" : "scale(1.04)",
             },
 
-            // 📱 Botón más compacto y adaptable
             [theme.breakpoints.down("sm")]: {
               px: 3,
               py: 1,

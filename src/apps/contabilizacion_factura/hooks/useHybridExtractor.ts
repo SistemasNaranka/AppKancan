@@ -2,10 +2,8 @@ import { useState, useCallback, useRef } from "react";
 import { DatosFacturaPDF, ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 
-// Modelo por defecto si no está configurado en Directus
 const MODELO_POR_DEFECTO = "gemini-3.5-flash";
 
-// Prompt para extracción de datos de factura (igual para ambos proveedores)
 const PROMPT_EXTRACCION = `Eres un experto en auditoría contable colombiana. Tu tarea es extraer datos de facturas electrónicas con precisión absoluta.
 
 REGLAS DE ORO PARA EVITAR CONFUSIONES:
@@ -44,9 +42,7 @@ Restricciones:
 - Si un número tiene puntos o comas de miles, conviértelo a formato computacional.
 - Si no encuentras un dato, pon null.
 - Si "es_factura_valida" es false, por favor pon todos los demás campos del JSON en null.`;
-/**
- * Respuesta esperada de la IA
- */
+
 interface RespuestaExtraccion {
   es_factura_valida: boolean | null;
   nit_proveedor: string | null;
@@ -61,17 +57,11 @@ interface RespuestaExtraccion {
   moneda: string | null;
 }
 
-/**
- * Tipo de proveedor de IA utilizado
- */
 export type ProveedorIA = "gemini" | null;
 
-/**
- * Estado del procesamiento
- */
 export interface EstadoHibrido {
   proveedorUsado: ProveedorIA;
-  modeloUsado: string | null; // Nombre del modelo que procesó la factura
+  modeloUsado: string | null;
   intentoGemini: boolean;
   errorGemini: string | null;
 }
@@ -99,21 +89,17 @@ export function useHybridExtractor(modelosIA?: any) {
   const [error, setError] = useState<ErrorProcesamientoPDF | null>(null);
   const [progress, setProgressRaw] = useState(0);
   
-  // Referencia para throttling: almacenar timestamp de última actualización
   const lastUpdateRef = useRef<number>(0);
-  const THROTTLE_INTERVAL = 100; // 100ms mínimo entre actualizaciones
+  const THROTTLE_INTERVAL = 100;
   
-  // Función segura para actualizar progreso con throttling y lógica de valor máximo
   const setProgress = useCallback((value: number) => {
     const now = Date.now();
-    const valueClamped = Math.min(100, Math.max(0, Math.round(value))); // Validación de bordes y redondeo
+    const valueClamped = Math.min(100, Math.max(0, Math.round(value)));
     
-    // Solo actualizar si ha pasado el intervalo mínimo Y el valor es mayor que el actual (monotonicidad)
     if (now - lastUpdateRef.current >= THROTTLE_INTERVAL && valueClamped > 0) {
       lastUpdateRef.current = now;
       setProgressRaw((prev) => (valueClamped > prev ? valueClamped : prev));
     } else if (valueClamped >= 100) {
-      // Forzar actualización cuando llega a 100%
       setProgressRaw(100);
     }
   }, []);
@@ -146,11 +132,7 @@ export function useHybridExtractor(modelosIA?: any) {
     [],
   );
 
-  /**
-   * Limpia y parsea la respuesta de la IA
-   */
-  const parseResponse = useCallback((response: string): RespuestaExtraccion => {
-    // Intentar extraer JSON de la respuesta
+const parseResponse = useCallback((response: string): RespuestaExtraccion => {
     let jsonStr = response.trim();
 
     const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -158,11 +140,9 @@ export function useHybridExtractor(modelosIA?: any) {
       jsonStr = jsonMatch[1].trim();
     }
 
-    // Intentar parsear el JSON
     try {
       return JSON.parse(jsonStr);
     } catch {
-      // Si falla, intentar encontrar un objeto JSON en el texto
       const jsonObjectMatch = jsonStr.match(/\{[\s\S]*\}/);
       if (jsonObjectMatch) {
         try {
@@ -239,10 +219,7 @@ export function useHybridExtractor(modelosIA?: any) {
   );
 
 
-  /**
-   * Construye el objeto DatosFacturaPDF desde la respuesta parseada
-   */
-  const buildInvoiceData = useCallback(
+const buildInvoiceData = useCallback(
     (datos: RespuestaExtraccion, file: File): DatosFacturaPDF => {
       return {
         numeroFactura: datos.numero_factura || "Sin número",
@@ -254,12 +231,12 @@ export function useHybridExtractor(modelosIA?: any) {
           nombre: datos.nombre_proveedor || "Proveedor no identificado",
           nif: datos.nit_proveedor || undefined,
         },
-        conceptos: [], // La IA no extrae conceptos individuales por ahora
+        conceptos: [],
         impuestos: datos.impuestos
           ? [
               {
                 base: datos.subtotal || (datos.valor_total || 0) / 1.19,
-                tipo: 19, // IVA Colombia por defecto
+                tipo: 19,
                 importe: datos.impuestos,
               },
             ]
@@ -278,16 +255,12 @@ export function useHybridExtractor(modelosIA?: any) {
     [],
   );
 
-  /**
-   * Procesa un archivo PDF y extrae los datos usando Gemini con fallback a Ollama
-   */
   const extractData = useCallback(
     async (file: File): Promise<DatosFacturaPDF> => {
       setIsProcessing(true);
       setError(null);
       setProgressRaw(0);
 
-      // Resetear estado híbrido
       const nuevoEstado: EstadoHibrido = {
         proveedorUsado: null,
         modeloUsado: null,
@@ -297,7 +270,6 @@ export function useHybridExtractor(modelosIA?: any) {
       setEstadoHibrido(nuevoEstado);
 
       try {
-        // Paso 1: Validar archivo (0-5%)
         if (!file || file.size === 0) {
           throw createError(
             "archivo_invalido",
@@ -306,7 +278,6 @@ export function useHybridExtractor(modelosIA?: any) {
         }
         setProgress(5);
 
-        // Paso 2: Validar tipo MIME (5-10%)
         const validTypes = ["application/pdf", "application/x-pdf"];
         if (
           !validTypes.includes(file.type) &&
@@ -319,11 +290,9 @@ export function useHybridExtractor(modelosIA?: any) {
         }
         setProgress(10);
 
-        // Paso 3: Preparar documento (10-20%)
         setProgress(15);
         let response: string = "";
 
-        // Intentar extracción con Gemini primero
         const modelos = obtenerModelosIA(modelosIA);
         let geminiExitoso = false;
         let ultimoErrorGemini = "";
@@ -356,7 +325,6 @@ export function useHybridExtractor(modelosIA?: any) {
         if (geminiExitoso) {
           setProgress(60);
         } else {
-          // Guardar error de Gemini
           nuevoEstado.errorGemini = ultimoErrorGemini || "Todos los modelos de Gemini fallaron";
           setEstadoHibrido({ ...nuevoEstado });
 
@@ -366,17 +334,14 @@ export function useHybridExtractor(modelosIA?: any) {
           );
         }
 
-        // Paso 7: Parsear respuesta JSON (60-75%)
         setProgress(65);
         const datosExtraidos = parseResponse(response);
         setProgress(75);
 
-        // Paso 8: Construir objeto de datos (75-85%)
         setProgress(80);
         const datosFactura = buildInvoiceData(datosExtraidos, file);
         setProgress(85);
 
-        // Paso 9: Validar datos extraídos (85-95%)
         setProgress(90);
         if (datosExtraidos.es_factura_valida === false) {
           throw createError(
@@ -396,7 +361,6 @@ export function useHybridExtractor(modelosIA?: any) {
           );
         }
 
-        // Paso 10: Finalizar (95-100%)
         setProgress(95);
         setProgress(100);
         return datosFactura;
@@ -411,10 +375,7 @@ export function useHybridExtractor(modelosIA?: any) {
     [extractWithGemini, parseResponse, buildInvoiceData, modelosIA],
   );
 
-  /**
-   * Limpia el error actual
-   */
-  const clearError = useCallback(() => {
+const clearError = useCallback(() => {
     setError(null);
     setProgressRaw(0);
     setEstadoHibrido({
@@ -435,7 +396,6 @@ export function useHybridExtractor(modelosIA?: any) {
   };
 }
 
-// ============ FUNCIONES AUXILIARES ============
 
 function createError(
   tipo: TipoErrorPDF,

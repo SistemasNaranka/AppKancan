@@ -1,7 +1,3 @@
-// ============================================
-// COMPONENTES UI PARA ENVIOSPAGE
-// ============================================
-
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -28,10 +24,6 @@ import {
   getValidationStyles,
   getRowLockInfo,
 } from "./EnviosPage.utils";
-
-// ─────────────────────────────────────────────
-// TYPES & INTERFACES
-// ─────────────────────────────────────────────
 
 interface DebouncedSearchInputProps {
   value: string;
@@ -72,10 +64,6 @@ interface CustomDayProps {
   [key: string]: any;
 }
 
-// ─────────────────────────────────────────────
-// INTERNAL HELPERS
-// ─────────────────────────────────────────────
-
 const BarcodeBadge = ({ rawInput, count }: { rawInput: any; count: number }) => (
   <Tooltip
     title={
@@ -108,10 +96,6 @@ const BarcodeBadge = ({ rawInput, count }: { rawInput: any; count: number }) => 
     </Box>
   </Tooltip>
 );
-
-// ─────────────────────────────────────────────
-// COMPONENTS
-// ─────────────────────────────────────────────
 
 export const DebouncedSearchInput = ({ value, onChange, placeholder, sx, disabled }: DebouncedSearchInputProps) => {
   const [localValue, setLocalValue] = useState(value);

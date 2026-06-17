@@ -1,7 +1,5 @@
 import React from "react";
 import { SvgIconProps } from "@mui/material";
-
-// 🧩 Importa todos los íconos usados en tus categorías y apps
 import Folder from '@mui/icons-material/Folder';
 import Home from '@mui/icons-material/Home';
 import Apps from '@mui/icons-material/Apps';
@@ -38,6 +36,8 @@ import Diversity1 from '@mui/icons-material/Diversity1';
 import BackupTable from '@mui/icons-material/BackupTable';
 import ContactPhone from '@mui/icons-material/ContactPhone';
 import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
+import MoreTimeIcon from '@mui/icons-material/MoreTime';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 /**
  * Mapa de íconos permitidos.
  * Los nombres deben coincidir con los valores en la base de datos.
@@ -86,6 +86,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   MonetizationOn,
   ShoppingBag,
   WorkspacePremium,
+  MoreTimeIcon,
+  HowToRegIcon,
+  HowToReg: HowToRegIcon,
 
   // 🔸 Logistica
   Warehouse,

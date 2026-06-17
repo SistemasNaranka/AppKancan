@@ -9,8 +9,6 @@ import React, {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTutorial } from "@/shared/hooks/TutorialContext";
 
-// ── Tipos ──────────────────────────────────────────────────────────────────
-
 interface NotificationsTourContextType {
   isRunning: boolean;
   startTour: () => void;
@@ -18,10 +16,7 @@ interface NotificationsTourContextType {
 }
 
 const NotificationsTourContext = createContext<NotificationsTourContextType | undefined>(undefined);
-
 const TOUR_KEY = "notificaciones-tour-completed-v1";
-
-// ── Provider ────────────────────────────────────────────────────────────────
 
 interface Props { children: ReactNode }
 
@@ -30,9 +25,7 @@ export const NotificationsTourProvider: React.FC<Props> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { activeTutorial, endTutorial } = useTutorial();
-
   const startTour = useCallback(() => {
-    // Apaga primero para forzar reset interno de Joyride, luego enciende
     setIsRunning(false);
     setTimeout(() => setIsRunning(true), 50);
   }, []);
@@ -42,7 +35,6 @@ export const NotificationsTourProvider: React.FC<Props> = ({ children }) => {
     try { localStorage.setItem(TOUR_KEY, "true"); } catch { /* noop */ }
   }, []);
 
-  // Activación via URL ?tour=start
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("tour") === "start" && !isRunning) {
@@ -51,7 +43,6 @@ export const NotificationsTourProvider: React.FC<Props> = ({ children }) => {
     }
   }, [location.search, location.pathname, navigate, startTour, isRunning]);
 
-  // Activación via PeekButton
   useEffect(() => {
     if (activeTutorial !== "notificaciones") return;
     endTutorial();
@@ -64,8 +55,6 @@ export const NotificationsTourProvider: React.FC<Props> = ({ children }) => {
     </NotificationsTourContext.Provider>
   );
 };
-
-// ── Hook ────────────────────────────────────────────────────────────────────
 
 export const useNotificationsTour = (): NotificationsTourContextType => {
   const ctx = useContext(NotificationsTourContext);

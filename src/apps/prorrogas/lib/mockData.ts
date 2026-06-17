@@ -1,4 +1,4 @@
-// import { Contrato, Employee } from '../types/types';
+// import { Contract, Employee } from '../types/types';
 
 // // ─────────────────────────────────────────────────────────────────────────────
 // // MOCK DATA — Gestión de Prórrogas v2
@@ -19,10 +19,10 @@
 // }
 
 // let _pid = 1;
-// function makeProgs(contratoId: number, seqs: PSeq[]) {
+// function makeProgs(contractId: number, seqs: PSeq[]) {
 //   return seqs.map((p, n) => ({
 //     id: _pid++,
-//     contrato_id: contratoId,
+//     contrato_id: contractId,
 //     numero: n,
 //     label: n === 0 ? 'Contrato Inicial' : `Prórroga ${n}`,
 //     descripcion: p.d,
@@ -36,7 +36,7 @@
 // // CONTRATOS
 // // ─────────────────────────────────────────────────────────────────────────────
 
-// export const mockContratos: Contrato[] = [
+// export const mockContratos: Contract[] = [
 
 //   // ══════════════════════════════════════════════════════════════════════════
 //   // CRÍTICO — vence en 0–7 días (hasta 2026-03-31)
@@ -52,7 +52,7 @@
 //     empresa: 'Constructora Andina S.A.',
 //     request_status: 'pendiente',
 //     documentos: [
-//       { id: 1, contrato_id: 1, nombre: 'Contrato Original.pdf',   tipo: 'contrato',  fecha: '2024-12-01', firmado: true  },
+//       { id: 1, contrato_id: 1, nombre: 'Contract Original.pdf',   tipo: 'contrato',  fecha: '2024-12-01', firmado: true  },
 //       { id: 2, contrato_id: 1, nombre: 'Otrosí Prórroga 3.pdf',   tipo: 'otrosi',    fecha: '2025-12-01', firmado: true  },
 //       { id: 3, contrato_id: 1, nombre: 'Evaluación Desempeño Q4', tipo: 'evaluacion',fecha: '2025-11-20', firmado: false },
 //     ],
@@ -74,7 +74,7 @@
 //     empresa: 'TechSolutions Perú',
 //     request_status: 'en_revision',
 //     documentos: [
-//       { id: 4, contrato_id: 2, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-04-01', firmado: true },
+//       { id: 4, contrato_id: 2, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-04-01', firmado: true },
 //       { id: 5, contrato_id: 2, nombre: 'Otrosí Prórroga 2.pdf', tipo: 'otrosi',   fecha: '2025-12-01', firmado: true },
 //     ],
 //     prorrogas: makeProgs(2, [
@@ -94,7 +94,7 @@
 //     empresa: 'Consultoría Estratégica S.A.',
 //     request_status: 'pendiente',
 //     documentos: [
-//       { id: 6, contrato_id: 3, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-12-01', firmado: true },
+//       { id: 6, contrato_id: 3, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-12-01', firmado: true },
 //     ],
 //     prorrogas: makeProgs(3, [
 //       { i: '2025-12-01', f: '2026-03-30', m: 4, d: 'Análisis estratégico de mercado y posicionamiento competitivo.' },
@@ -111,7 +111,7 @@
 //     empresa: 'Logística del Norte S.A.',
 //     request_status: 'pendiente',
 //     documentos: [
-//       { id: 7, contrato_id: 4, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-08-01', firmado: true },
+//       { id: 7, contrato_id: 4, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-08-01', firmado: true },
 //       { id: 8, contrato_id: 4, nombre: 'Otrosí Prórroga 1.pdf', tipo: 'otrosi',   fecha: '2025-12-01', firmado: true },
 //     ],
 //     prorrogas: makeProgs(4, [
@@ -130,7 +130,7 @@
 //     empresa: 'Servicios Técnicos SRL',
 //     request_status: 'en_revision',
 //     documentos: [
-//       { id: 9,  contrato_id: 5, nombre: 'Contrato Original.pdf',   tipo: 'contrato',  fecha: '2024-03-29', firmado: true  },
+//       { id: 9,  contrato_id: 5, nombre: 'Contract Original.pdf',   tipo: 'contrato',  fecha: '2024-03-29', firmado: true  },
 //       { id: 10, contrato_id: 5, nombre: 'Otrosí Prórroga 4.pdf',   tipo: 'otrosi',    fecha: '2025-07-29', firmado: true  },
 //       { id: 11, contrato_id: 5, nombre: 'Evaluación Desempeño 2025', tipo: 'evaluacion', fecha: '2025-06-15', firmado: true },
 //     ],
@@ -157,7 +157,7 @@
 //     empresa: 'Innovatech Corp.',
 //     request_status: 'pendiente',
 //     documentos: [
-//       { id: 12, contrato_id: 6, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-06-03', firmado: true },
+//       { id: 12, contrato_id: 6, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-06-03', firmado: true },
 //     ],
 //     prorrogas: makeProgs(6, [
 //       { i: '2025-06-03', f: '2025-10-02', m: 4, d: 'Desarrollo de módulos de facturación electrónica.' },
@@ -175,7 +175,7 @@
 //     empresa: 'Distribuidora del Sur Ltda.',
 //     request_status: 'en_revision',
 //     documentos: [
-//       { id: 13, contrato_id: 7, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2024-08-08', firmado: true },
+//       { id: 13, contrato_id: 7, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2024-08-08', firmado: true },
 //       { id: 14, contrato_id: 7, nombre: 'Otrosí Prórroga 3.pdf', tipo: 'otrosi',   fecha: '2025-08-08', firmado: true },
 //     ],
 //     prorrogas: makeProgs(7, [
@@ -196,7 +196,7 @@
 //     empresa: 'Minería del Pacífico S.A.',
 //     request_status: 'pendiente',
 //     documentos: [
-//       { id: 15, contrato_id: 8, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-06-11', firmado: true },
+//       { id: 15, contrato_id: 8, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-06-11', firmado: true },
 //       { id: 16, contrato_id: 8, nombre: 'Otrosí Prórroga 1.pdf', tipo: 'otrosi',   fecha: '2025-10-11', firmado: true },
 //     ],
 //     prorrogas: makeProgs(8, [
@@ -215,7 +215,7 @@
 //     empresa: 'GlobalTech Solutions',
 //     request_status: 'aprobada',
 //     documentos: [
-//       { id: 17, contrato_id: 9, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2024-10-15', firmado: true },
+//       { id: 17, contrato_id: 9, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2024-10-15', firmado: true },
 //       { id: 18, contrato_id: 9, nombre: 'Otrosí Prórroga 2.pdf', tipo: 'otrosi',   fecha: '2025-10-15', firmado: true },
 //     ],
 //     prorrogas: makeProgs(9, [
@@ -236,7 +236,7 @@
 //     empresa: 'Banco Central Andino',
 //     request_status: 'pendiente',
 //     documentos: [
-//       { id: 19, contrato_id: 10, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-06-19', firmado: true },
+//       { id: 19, contrato_id: 10, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-06-19', firmado: true },
 //     ],
 //     prorrogas: makeProgs(10, [
 //       { i: '2025-06-19', f: '2025-10-18', m: 4, d: 'Evaluación de riesgo crediticio y portafolios.' },
@@ -254,7 +254,7 @@
 //     empresa: 'Constructora Andina S.A.',
 //     request_status: 'en_revision',
 //     documentos: [
-//       { id: 20, contrato_id: 11, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-12-21', firmado: true },
+//       { id: 20, contrato_id: 11, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-12-21', firmado: true },
 //     ],
 //     prorrogas: makeProgs(11, [
 //       { i: '2025-12-21', f: '2026-04-20', m: 4, d: 'Diseño de plan de bienestar corporativo y reclutamiento masivo.' },
@@ -271,7 +271,7 @@
 //     empresa: 'TechSolutions Perú',
 //     request_status: 'pendiente',
 //     documentos: [
-//       { id: 21, contrato_id: 12, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-08-23', firmado: true },
+//       { id: 21, contrato_id: 12, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-08-23', firmado: true },
 //       { id: 22, contrato_id: 12, nombre: 'Otrosí Prórroga 1.pdf', tipo: 'otrosi',   fecha: '2025-12-23', firmado: true },
 //     ],
 //     prorrogas: makeProgs(12, [
@@ -290,7 +290,7 @@
 //     empresa: 'Logística del Norte S.A.',
 //     request_status: 'pendiente',
 //     documentos: [
-//       { id: 23, contrato_id: 13, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-12-24', firmado: true },
+//       { id: 23, contrato_id: 13, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-12-24', firmado: true },
 //     ],
 //     prorrogas: makeProgs(13, [
 //       { i: '2025-12-24', f: '2026-04-23', m: 4, d: 'Análisis de eficiencia operativa y reducción de costos logísticos.' },
@@ -311,7 +311,7 @@
 //     empresa: 'Servicios Técnicos SRL',
 //     request_status: 'aprobada',
 //     documentos: [
-//       { id: 24, contrato_id: 14, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2026-01-16', firmado: true },
+//       { id: 24, contrato_id: 14, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2026-01-16', firmado: true },
 //     ],
 //     prorrogas: makeProgs(14, [
 //       { i: '2026-01-16', f: '2026-05-15', m: 4, d: 'Cierre fiscal anual y auditoría de cuentas corporativas.' },
@@ -328,7 +328,7 @@
 //     empresa: 'Innovatech Corp.',
 //     request_status: 'aprobada',
 //     documentos: [
-//       { id: 25, contrato_id: 15, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-11-21', firmado: true },
+//       { id: 25, contrato_id: 15, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-11-21', firmado: true },
 //       { id: 26, contrato_id: 15, nombre: 'Otrosí Prórroga 1.pdf', tipo: 'otrosi',   fecha: '2026-03-21', firmado: true },
 //     ],
 //     prorrogas: makeProgs(15, [
@@ -347,7 +347,7 @@
 //     empresa: 'Distribuidora del Sur Ltda.',
 //     request_status: 'completada',
 //     documentos: [
-//       { id: 27, contrato_id: 16, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2024-10-01', firmado: true },
+//       { id: 27, contrato_id: 16, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2024-10-01', firmado: true },
 //       { id: 28, contrato_id: 16, nombre: 'Otrosí Prórroga 4.pdf', tipo: 'otrosi',   fecha: '2025-10-01', firmado: true },
 //     ],
 //     prorrogas: makeProgs(16, [
@@ -369,7 +369,7 @@
 //     empresa: 'Minería del Pacífico S.A.',
 //     request_status: 'aprobada',
 //     documentos: [
-//       { id: 29, contrato_id: 17, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2026-02-16', firmado: true },
+//       { id: 29, contrato_id: 17, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2026-02-16', firmado: true },
 //     ],
 //     prorrogas: makeProgs(17, [
 //       { i: '2026-02-16', f: '2026-06-15', m: 4, d: 'Exploración geológica en nuevos yacimientos del norte.' },
@@ -386,7 +386,7 @@
 //     empresa: 'Consultoría Estratégica S.A.',
 //     request_status: 'aprobada',
 //     documentos: [
-//       { id: 30, contrato_id: 18, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-10-01', firmado: true },
+//       { id: 30, contrato_id: 18, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-10-01', firmado: true },
 //       { id: 31, contrato_id: 18, nombre: 'Otrosí Prórroga 1.pdf', tipo: 'otrosi',   fecha: '2026-02-01', firmado: true },
 //     ],
 //     prorrogas: makeProgs(18, [
@@ -405,7 +405,7 @@
 //     empresa: 'GlobalTech Solutions',
 //     request_status: 'completada',
 //     documentos: [
-//       { id: 32, contrato_id: 19, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2024-07-01', firmado: true },
+//       { id: 32, contrato_id: 19, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2024-07-01', firmado: true },
 //       { id: 33, contrato_id: 19, nombre: 'Otrosí Prórroga 4.pdf', tipo: 'otrosi',   fecha: '2025-07-01', firmado: true },
 //     ],
 //     prorrogas: makeProgs(19, [
@@ -427,7 +427,7 @@
 //     empresa: 'Banco Central Andino',
 //     request_status: 'aprobada',
 //     documentos: [
-//       { id: 34, contrato_id: 20, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2026-01-16', firmado: true },
+//       { id: 34, contrato_id: 20, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2026-01-16', firmado: true },
 //     ],
 //     prorrogas: makeProgs(20, [
 //       { i: '2026-01-16', f: '2026-05-15', m: 4, d: 'Gestión de riesgo de mercado y modelos de valoración.' },
@@ -444,7 +444,7 @@
 //     empresa: 'Constructora Andina S.A.',
 //     request_status: 'aprobada',
 //     documentos: [
-//       { id: 35, contrato_id: 21, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2026-01-02', firmado: true },
+//       { id: 35, contrato_id: 21, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2026-01-02', firmado: true },
 //     ],
 //     prorrogas: makeProgs(21, [
 //       { i: '2026-01-02', f: '2026-05-01', m: 4, d: 'Diseño de arquitectura cloud-native para plataforma corporativa.' },
@@ -461,7 +461,7 @@
 //     empresa: 'TechSolutions Perú',
 //     request_status: 'completada',
 //     documentos: [
-//       { id: 36, contrato_id: 22, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-02-23', firmado: true },
+//       { id: 36, contrato_id: 22, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-02-23', firmado: true },
 //       { id: 37, contrato_id: 22, nombre: 'Otrosí Prórroga 4.pdf', tipo: 'otrosi',   fecha: '2026-02-23', firmado: true },
 //     ],
 //     prorrogas: makeProgs(22, [
@@ -486,7 +486,7 @@
 //     empresa: 'Logística del Norte S.A.',
 //     request_status: 'rechazada',
 //     documentos: [
-//       { id: 38, contrato_id: 23, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-09-16', firmado: true },
+//       { id: 38, contrato_id: 23, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-09-16', firmado: true },
 //     ],
 //     prorrogas: makeProgs(23, [
 //       { i: '2025-09-16', f: '2026-01-15', m: 4, d: 'Control de inventario y gestión de almacén central.' },
@@ -503,7 +503,7 @@
 //     empresa: 'Servicios Técnicos SRL',
 //     request_status: 'rechazada',
 //     documentos: [
-//       { id: 39, contrato_id: 24, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-11-01', firmado: true },
+//       { id: 39, contrato_id: 24, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-11-01', firmado: true },
 //     ],
 //     prorrogas: makeProgs(24, [
 //       { i: '2025-11-01', f: '2026-02-28', m: 4, d: 'Soporte técnico nivel 2 para clientes corporativos.' },
@@ -520,7 +520,7 @@
 //     empresa: 'Innovatech Corp.',
 //     request_status: 'completada',
 //     documentos: [
-//       { id: 40, contrato_id: 25, nombre: 'Contrato Original.pdf', tipo: 'contrato', fecha: '2025-11-11', firmado: true },
+//       { id: 40, contrato_id: 25, nombre: 'Contract Original.pdf', tipo: 'contrato', fecha: '2025-11-11', firmado: true },
 //       { id: 41, contrato_id: 25, nombre: 'Acta de Cierre.pdf',    tipo: 'otro',      fecha: '2026-03-10', firmado: true },
 //     ],
 //     prorrogas: makeProgs(25, [
@@ -530,7 +530,7 @@
 // ];
 
 // // ─────────────────────────────────────────────────────────────────────────────
-// // EMPLEADOS — derivados de contratos (un empleado por contrato en mock)
+// // EMPLEADOS — derivados de contracts (un empleado por contrato en mock)
 // // ─────────────────────────────────────────────────────────────────────────────
 
 // export const mockEmployees: Employee[] = mockContratos.map((c) => ({

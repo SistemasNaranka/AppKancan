@@ -17,7 +17,6 @@ interface ValidationAlertProps {
 const ValidationAlert: React.FC<ValidationAlertProps> = ({ validaciones }) => {
     const [expandido, setExpandido] = React.useState(false);
 
-    // Filtrar solo archivos con errores o advertencias
     const archivosConProblemas = Object.entries(validaciones).filter(
         ([_, validacion]) => validacion.errores.length > 0 || validacion.advertencias.length > 0
     );
@@ -26,7 +25,6 @@ const ValidationAlert: React.FC<ValidationAlertProps> = ({ validaciones }) => {
         return null;
     }
 
-    // Determinar severidad general
     const hayErrores = archivosConProblemas.some(([_, v]) => v.errores.length > 0);
     const severity = hayErrores ? 'error' : 'warning';
 

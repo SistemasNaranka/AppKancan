@@ -1,9 +1,3 @@
-/**
- * Componentes de feedback para el procesamiento de facturas
- * Incluye: ProcessingFeedback, ErrorDisplay, SuccessDisplay
- * Módulo de Contabilización de Facturas
- */
-
 import { useState, useEffect, useRef } from "react";
 import {
   Box,
@@ -27,17 +21,12 @@ import Search from '@mui/icons-material/Search';
 import CloudSync from '@mui/icons-material/CloudSync';
 import { ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
 
-// ============ PROCESSING FEEDBACK ============
-
 interface ProcessingFeedbackProps {
   message: string;
   progress: number;
   isProcessing: boolean;
 }
 
-/**
- * Pasos del procesamiento con iconos y colores
- */
 const PASOS_PROCESAMIENTO = [
   { id: "cargando", icon: Description, label: "Cargando", color: "#2196f3" },
   {
@@ -60,20 +49,15 @@ export function ProcessingFeedback({
   progress,
   isProcessing,
 }: ProcessingFeedbackProps) {
-  // Estado para el paso actual animado
   const [pasoAnimado, setPasoAnimado] = useState(0);
   const [progresoAnimado, setProgresoAnimado] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const pasoIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Animación continua del paso mientras está procesando
   useEffect(() => {
     if (isProcessing) {
-      // Cambiar paso cada 2 segundos para dar sensación de progreso
       pasoIntervalRef.current = setInterval(() => {
         setPasoAnimado((prev) => {
-          // Avanzar al siguiente paso, pero no más allá del paso 3
-          // a menos que el progreso real esté cerca de completar
           if (prev < 3) {
             return prev + 1;
           }
@@ -81,20 +65,16 @@ export function ProcessingFeedback({
         });
       }, 2000);
 
-      // Progreso animado continuo - solo avanza, nunca retrocede
       intervalRef.current = setInterval(() => {
         setProgresoAnimado((prev) => {
-          // Incrementar gradualmente, pero mantenerse detrás del progreso real
           const targetProgress = Math.min(pasoAnimado * 25 + 20, 95);
           if (prev < targetProgress) {
             return Math.min(prev + 2, targetProgress);
           }
-          // Mantener el progreso en el target sin oscilar
           return targetProgress;
         });
       }, 100);
     } else {
-      // Cuando termina, mostrar progreso completo
       setProgresoAnimado(100);
       setPasoAnimado(3);
     }
@@ -105,11 +85,9 @@ export function ProcessingFeedback({
     };
   }, [isProcessing, pasoAnimado]);
 
-  // Sincronizar con el progreso real cuando avanza significativamente
   useEffect(() => {
     if (progress > progresoAnimado && progress < 100) {
       setProgresoAnimado(progress);
-      // Actualizar paso basado en progreso real
       if (progress >= 80) setPasoAnimado(3);
       else if (progress >= 50) setPasoAnimado(2);
       else if (progress >= 25) setPasoAnimado(1);
@@ -309,8 +287,6 @@ export function ProcessingFeedback({
   );
 }
 
-// ============ ERROR DISPLAY ============
-
 interface ErrorDisplayProps {
   error: ErrorProcesamientoPDF;
   onRetry: () => void;
@@ -411,8 +387,6 @@ export function ErrorDisplay({ error, onRetry, onClear }: ErrorDisplayProps) {
     </Alert>
   );
 }
-
-// ============ SUCCESS DISPLAY ============
 
 interface SuccessDisplayProps {
   onNewFile: () => void;

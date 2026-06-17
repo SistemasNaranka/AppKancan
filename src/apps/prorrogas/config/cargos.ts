@@ -7,8 +7,6 @@ export const ROLES_AREAS = [
   { nombre: 'Gerente Online', area: 'Sistemas' },
 ];
 
-// Mapeo de IDs numéricos antiguos a nombres legibles.
-// Los contratos creados antes de la migración guardaban el cargo como número.
 const LEGACY_ID_MAP: Record<string, string> = {
   '1': 'Gerente',
   '2': 'Asesor',
@@ -18,26 +16,19 @@ const LEGACY_ID_MAP: Record<string, string> = {
   '6': 'Gerente Online',
 };
 
-/**
- * Resuelve cualquier representación de cargo (número legacy, string, objeto)
- * a un nombre legible para mostrar en la UI.
- */
-export const getCargoLabel = (cargo: unknown): string => {
+export const getPositionLabel = (cargo: unknown): string => {
   if (!cargo) return 'Sin Cargo';
 
-  // Si Directus lo devolvió como objeto con campo name (core_positions)
   if (typeof cargo === 'object' && cargo !== null && 'name' in cargo) {
     return (cargo as { name: string }).name;
   }
 
   const str = String(cargo);
 
-  // Resolver ID numérico legacy
   if (LEGACY_ID_MAP[str]) {
     return LEGACY_ID_MAP[str];
   }
 
-  // Ya es un string válido (post-migración)
   if (isNaN(Number(str)) && str.trim() !== '') {
     return str;
   }

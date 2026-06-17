@@ -11,19 +11,16 @@ import {
   readUsers,
 } from "@directus/sdk";
 import type {
-  Reserva,
-  NuevaReserva,
-  ActualizarReserva,
-  FiltrosReserva,
+  Reservation,
+  NewReservation,
+  UpdateReservation,
+  ReservationFilters,
 } from "../types/reservas.types";
 import { format } from "date-fns";
 import {
-  calcularEstadoReserva,
-  estaFinalizado,
-  estaCancelado,
+  calculateReservationStatus,
 } from "../types/reservas.types";
 
-// Campos a traer de cada reserva
 const RESERVATION_FIELDS = [
   "id",
   "date_created",
@@ -47,78 +44,62 @@ const RESERVATION_FIELDS = [
   "departament",
 ];
 
-/**
- * Procesa las reservas para calcular estados dinámicos
- * NO modifica la BD, solo calcula el estado para mostrar
- */
-function procesarReservas(reservas: Reserva[]): Reserva[] {
-  return reservas.map((reserva) => ({
-    ...reserva,
-    estadoCalculado: calcularEstadoReserva(reserva),
+function processReservations(reservations: Reservation[]): Reservation[] {
+  return reservations.map((reservation) => ({
+    ...reservation,
+    calculatedStatus: calculateReservationStatus(reservation),
   }));
 }
 
-/**
- * Filtra reservas en el cliente basado en el estado calculado
- */
-function filtrarPorEstadoCalculado(
-  reservas: Reserva[],
-  estadoFiltro: string,
-): Reserva[] {
-  if (!estadoFiltro) return reservas;
+function filterByCalculatedStatus(
+  reservations: Reservation[],
+  statusFilter: string,
+): Reservation[] {
+  if (!statusFilter) return reservations;
 
-  const estadoLower = estadoFiltro.toLowerCase();
+  const statusLower = statusFilter.toLowerCase();
 
-  return reservas.filter((reserva) => {
-    const estadoCalculado = (
-      reserva.estadoCalculado || reserva.status
+  return reservations.filter((reservation) => {
+    const calculatedStatus = (
+      reservation.calculatedStatus || reservation.status
     ).toLowerCase();
 
-    // Mapear variantes
-    if (estadoLower === "vigente") {
-      return estadoCalculado === "vigente";
+    if (statusLower === "vigente") {
+      return calculatedStatus === "vigente";
     }
-    if (estadoLower === "en curso") {
-      return estadoCalculado === "en curso";
+    if (statusLower === "en curso") {
+      return calculatedStatus === "en curso";
     }
-    if (estadoLower === "finalizado") {
+    if (statusLower === "finalizado") {
       return (
-        estadoCalculado === "finalizado" || estadoCalculado === "finalizada"
+        calculatedStatus === "finalizado" || calculatedStatus === "finalizada"
       );
     }
-    if (estadoLower === "cancelado") {
-      return estadoCalculado === "cancelado" || estadoCalculado === "cancelada";
+    if (statusLower === "cancelado") {
+      return calculatedStatus === "cancelado" || calculatedStatus === "cancelada";
     }
 
     return true;
   });
 }
 
-/**
- * Obtiene todas las reservas
- */
-export async function getReservas(
-  filtros?: FiltrosReserva,
-): Promise<Reserva[]> {
+export async function getReservations(
+  filters?: ReservationFilters,
+): Promise<Reservation[]> {
   try {
     const filter: any = {};
 
-    // Filtro por fecha - EXACTO
-    if (filtros?.date) {
-      filter.date = { _eq: filtros.date };
+    if (filters?.date) {
+      filter.date = { _eq: filters.date };
     }
 
-    // Filtro por sala
-    if (filtros?.room_name) {
-      filter.room_name = { _eq: filtros.room_name };
+    if (filters?.room_name) {
+      filter.room_name = { _eq: filters.room_name };
     }
 
-    // Filtro por usuario
-    if (filtros?.user_id) {
-      filter.user_id = { _eq: filtros.user_id };
+    if (filters?.user_id) {
+      filter.user_id = { _eq: filters.user_id };
     }
-
-    // NO filtrar por estado en la BD (se hace después con estado calculado)
 
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -131,34 +112,27 @@ export async function getReservas(
       ),
     );
 
-    // Procesar para calcular estados
-    let reservas = procesarReservas(items as Reserva[]);
+    let reservations = processReservations(items as Reservation[]);
 
-    // Filtrar por estado calculado en el cliente
-    if (filtros?.status) {
-      reservas = filtrarPorEstadoCalculado(reservas, filtros.status);
+    if (filters?.status) {
+      reservations = filterByCalculatedStatus(reservations, filters.status);
     }
 
-    return reservas;
+    return reservations;
   } catch (error) {
     console.error("❌ Error al cargar reservas:", error);
     throw error;
   }
 }
 
-/**
- * Obtiene reservas de un mes específico (para calendario)
- */
-export async function getReservasMes(
-  año: number,
-  mes: number,
-): Promise<Reserva[]> {
+export async function getMonthlyReservations(
+  year: number,
+  month: number,
+): Promise<Reservation[]> {
   try {
-    // Primer día del mes
-    const primerDia = `${año}-${String(mes).padStart(2, "0")}-01`;
-    // Último día del mes
-    const ultimoDia = new Date(año, mes, 0).getDate();
-    const ultimaFecha = `${año}-${String(mes).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
+    const firstDay = `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDayNum = new Date(year, month, 0).getDate();
+    const lastDay = `${year}-${String(month).padStart(2, "0")}-${String(lastDayNum).padStart(2, "0")}`;
 
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -166,8 +140,8 @@ export async function getReservasMes(
           fields: RESERVATION_FIELDS,
           filter: {
             date: {
-              _gte: primerDia,
-              _lte: ultimaFecha,
+              _gte: firstDay,
+              _lte: lastDay,
             },
           },
           sort: ["date", "start_time"],
@@ -176,19 +150,16 @@ export async function getReservasMes(
       ),
     );
 
-    return procesarReservas(items as Reserva[]);
+    return processReservations(items as Reservation[]);
   } catch (error) {
     console.error("❌ Error al cargar reservas del mes:", error);
     throw error;
   }
 }
 
-/**
- * Obtiene las reservas del usuario autenticado
- */
-export async function getMisReservas(
-  filtros?: FiltrosReserva,
-): Promise<Reserva[]> {
+export async function getMyReservations(
+  filters?: ReservationFilters,
+): Promise<Reservation[]> {
   try {
     const me = await withAutoRefresh(() =>
       directus.request(
@@ -202,11 +173,11 @@ export async function getMisReservas(
       user_id: { _eq: me.id },
     };
 
-    if (filtros?.date) {
-      filter.date = { _eq: filtros.date };
+    if (filters?.date) {
+      filter.date = { _eq: filters.date };
     }
-    if (filtros?.room_name) {
-      filter.room_name = { _eq: filtros.room_name };
+    if (filters?.room_name) {
+      filter.room_name = { _eq: filters.room_name };
     }
 
     const items = await withAutoRefresh(() =>
@@ -220,13 +191,13 @@ export async function getMisReservas(
       ),
     );
 
-    let reservas = procesarReservas(items as Reserva[]);
+    let reservations = processReservations(items as Reservation[]);
 
-    if (filtros?.status) {
-      reservas = filtrarPorEstadoCalculado(reservas, filtros.status);
+    if (filters?.status) {
+      reservations = filterByCalculatedStatus(reservations, filters.status);
     }
 
-    return reservas;
+    return reservations;
   } catch (error) {
     console.error("❌ Error al cargar mis reservas:", error);
     throw error;
@@ -236,7 +207,7 @@ export async function getMisReservas(
 /**
  * Obtiene una reserva por ID
  */
-export async function getReservaById(id: number): Promise<Reserva> {
+export async function getReservationById(id: number): Promise<Reservation> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -253,10 +224,10 @@ export async function getReservaById(id: number): Promise<Reserva> {
       throw new Error("Reserva no encontrada");
     }
 
-    const reserva = items[0] as Reserva;
-    reserva.estadoCalculado = calcularEstadoReserva(reserva);
+    const reservation = items[0] as Reservation;
+    reservation.calculatedStatus = calculateReservationStatus(reservation);
 
-    return reserva;
+    return reservation;
   } catch (error) {
     console.error("❌ Error al cargar reserva:", error);
     throw error;
@@ -266,7 +237,7 @@ export async function getReservaById(id: number): Promise<Reserva> {
 /**
  * Crea una nueva reserva
  */
-export async function crearReserva(datos: NuevaReserva): Promise<Reserva> {
+export async function createReservation(data: NewReservation): Promise<Reservation> {
   try {
     const me = await withAutoRefresh(() =>
       directus.request(
@@ -279,82 +250,66 @@ export async function crearReserva(datos: NuevaReserva): Promise<Reserva> {
     const item = await withAutoRefresh(() =>
       directus.request(
         createItem("adm_meeting_reservations", {
-          ...datos,
+          ...data,
           user_id: me.id,
           status: "Vigente",
         }),
       ),
     );
 
-    return await getReservaById(item.id);
+    return await getReservationById(item.id);
   } catch (error) {
     console.error("❌ Error al crear reserva:", error);
     throw error;
   }
 }
 
-/**
- * Actualiza una reserva existente.
- * 1. SELECT previo para capturar estado anterior (solo en memoria).
- * 2. UPDATE con los nuevos datos.
- * 3. POST al webhook n8n con reserva_anterior, reserva nueva y cambios.
- */
-export async function actualizarReserva(
+export async function updateReservation(
   id: number,
-  datos: ActualizarReserva,
+  data: UpdateReservation,
   skipWebhook = false,
-): Promise<Reserva> {
+): Promise<Reservation> {
   try {
-    // 1. SELECT antes del UPDATE
-    const reserva_anterior = await getReservaById(id);
+    const previousReservation = await getReservationById(id);
 
-    // 2. UPDATE
     await withAutoRefresh(() =>
-      directus.request(updateItem("adm_meeting_reservations", id, datos)),
+      directus.request(updateItem("adm_meeting_reservations", id, data)),
     );
 
-    const reservaActualizada = await getReservaById(id);
+    const updatedReservation = await getReservationById(id);
 
-    // 3. Notificar webhook n8n (fire-and-forget, no bloquea)
-    // skipWebhook=true cuando la llamada viene de cancelarReserva
-    if (skipWebhook) return reservaActualizada;
+    if (skipWebhook) return updatedReservation;
 
-    const { notificarCorreoReserva } = await import("./correoReservas");
-    notificarCorreoReserva({
+    const { sendReservationEmailNotification } = await import("./correoReservas");
+    sendReservationEmailNotification({
       evento: "reserva_actualizada",
-      reserva: reservaActualizada as any,
+      reserva: updatedReservation as any,
       ...({
-        reserva_anterior,
+        reserva_anterior: previousReservation,
         cambios: {
-          meeting_title: reserva_anterior.meeting_title !== datos.meeting_title,
-          room_name: reserva_anterior.room_name !== datos.room_name,
-          date: reserva_anterior.date !== datos.date,
-          start_time: reserva_anterior.start_time !== datos.start_time,
-          end_time: reserva_anterior.end_time !== datos.end_time,
+          meeting_title: previousReservation.meeting_title !== data.meeting_title,
+          room_name: previousReservation.room_name !== data.room_name,
+          date: previousReservation.date !== data.date,
+          start_time: previousReservation.start_time !== data.start_time,
+          end_time: previousReservation.end_time !== data.end_time,
         },
       } as any),
     }).catch((err: unknown) =>
       console.warn("⚠️ [n8n] correo actualización NO enviado:", err),
     );
 
-    return reservaActualizada;
+    return updatedReservation;
   } catch (error) {
     console.error("❌ Error al actualizar reserva:", error);
     throw error;
   }
 }
 
-/**
- * Cancela una reserva
- */
-export async function cancelarReserva(id: number): Promise<Reserva> {
-  return await actualizarReserva(id, { status: "Cancelado" }, true);
+export async function cancelReservation(id: number): Promise<Reservation> {
+  return await updateReservation(id, { status: "Cancelado" }, true);
 }
 
-/**
- * Elimina una reserva
- */
-export async function eliminarReserva(id: number): Promise<void> {
+export async function deleteReservation(id: number): Promise<void> {
   try {
     await withAutoRefresh(() =>
       directus.request(deleteItem("adm_meeting_reservations", id)),
@@ -365,45 +320,42 @@ export async function eliminarReserva(id: number): Promise<void> {
   }
 }
 
-/**
- * Verifica si hay conflicto de horario
- */
-export async function verificarConflictoHorario(
-  sala: string,
-  fecha: string,
-  horaInicio: string,
-  horaFinal: string,
-  reservaIdExcluir?: number,
+export async function checkScheduleConflict(
+  room: string,
+  date: string,
+  startTime: string,
+  endTime: string,
+  excludeReservationId?: number,
 ): Promise<boolean> {
   try {
     const filter: any = {
-      room_name: { _eq: sala },
-      date: { _eq: fecha },
+      room_name: { _eq: room },
+      date: { _eq: date },
       status: { _neq: "Cancelado" },
       _or: [
         {
           _and: [
-            { start_time: { _lte: horaInicio } },
-            { end_time: { _gt: horaInicio } },
+            { start_time: { _lte: startTime } },
+            { end_time: { _gt: startTime } },
           ],
         },
         {
           _and: [
-            { start_time: { _lt: horaFinal } },
-            { end_time: { _gte: horaFinal } },
+            { start_time: { _lt: endTime } },
+            { end_time: { _gte: endTime } },
           ],
         },
         {
           _and: [
-            { start_time: { _gte: horaInicio } },
-            { end_time: { _lte: horaFinal } },
+            { start_time: { _gte: startTime } },
+            { end_time: { _lte: endTime } },
           ],
         },
       ],
     };
 
-    if (reservaIdExcluir) {
-      filter.id = { _neq: reservaIdExcluir };
+    if (excludeReservationId) {
+      filter.id = { _neq: excludeReservationId };
     }
 
     const items = await withAutoRefresh(() =>
@@ -423,27 +375,19 @@ export async function verificarConflictoHorario(
   }
 }
 
-/**
- * Interfaz para la configuración de horarios de reservas
- */
-export interface ConfiguracionReserva {
+export interface DBReservationConfig {
   id: number;
-  opening_time: string; // Ej: "08:00:00"
-  closing_time: string; // Ej: "15:00:00"
+  opening_time: string;
+  closing_time: string; 
 }
 
-/**
- * Obtiene la configuración de horarios para reservas desde la BD.
- * Resultado cacheado en memoria — se reusa mientras la sesión esté activa.
- * Llama a invalidarCacheConfiguracion() si el admin cambia los horarios.
- */
-let _configCache: ConfiguracionReserva | null | undefined = undefined;
+let _configCache: DBReservationConfig | null | undefined = undefined;
 
-export function invalidarCacheConfiguracion(): void {
+export function invalidateConfigCache(): void {
   _configCache = undefined;
 }
 
-export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | null> {
+export async function getReservationConfig(): Promise<DBReservationConfig | null> {
   if (_configCache !== undefined) return _configCache;
 
   try {
@@ -457,7 +401,7 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
     );
 
     if (items && items.length > 0) {
-      _configCache = items[0] as ConfiguracionReserva;
+      _configCache = items[0] as DBReservationConfig;
       return _configCache;
     }
 
@@ -472,16 +416,10 @@ export async function getConfiguracionReserva(): Promise<ConfiguracionReserva | 
   }
 }
 
-/**
- * Actualiza automáticamente las reservas que ya finalizaron a estado "Finalizado"
- * Esta función debe llamarse al cargar las reservas para mantener la BD actualizada
- */
-export async function actualizarReservasFinalizadas(): Promise<number> {
+export async function updateCompletedReservations(): Promise<number> {
   try {
-    const ahora = new Date();
+    const now = new Date();
 
-    // Obtener todas las reservas que NO están canceladas ni finalizadas
-    // y cuya fecha/hora final ya pasó
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_meeting_reservations", {
@@ -490,7 +428,7 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
             _and: [
               { status: { _neq: "Cancelado" } },
               { status: { _neq: "Finalizado" } },
-              { date: { _lte: format(ahora, "yyyy-MM-dd") } },
+              { date: { _lte: format(now, "yyyy-MM-dd") } },
             ],
           },
           limit: -1,
@@ -502,41 +440,35 @@ export async function actualizarReservasFinalizadas(): Promise<number> {
       return 0;
     }
 
-    // Filtrar solo las que ya pasaron su hora final
-    const reservasAFinalizar = items.filter((reserva: any) => {
-      const fechaFin = new Date(`${reserva.date}T${reserva.end_time}`);
-      return ahora >= fechaFin;
+    const reservationsToComplete = items.filter((reservation: any) => {
+      const endTime = new Date(`${reservation.date}T${reservation.end_time}`);
+      return now >= endTime;
     });
 
-    if (reservasAFinalizar.length === 0) {
+    if (reservationsToComplete.length === 0) {
       return 0;
     }
 
-    // Actualizar cada reserva a "Finalizado"
-    const actualizaciones = reservasAFinalizar.map((reserva: any) =>
+    const updates = reservationsToComplete.map((reservation: any) =>
       withAutoRefresh(() =>
         directus.request(
-          updateItem("adm_meeting_reservations", reserva.id, {
+          updateItem("adm_meeting_reservations", reservation.id, {
             status: "Finalizado",
           }),
         ),
       ),
     );
 
-    await Promise.all(actualizaciones);
+    await Promise.all(updates);
 
-    return reservasAFinalizar.length;
+    return reservationsToComplete.length;
   } catch (error) {
     console.error("❌ Error al actualizar reservas finalizadas:", error);
     return 0;
   }
 }
-/**
- * Busca usuarios en la colección directus_users para el autocompletado
- * @param query Texto a buscar
- * @returns Lista de usuarios sugeridos
- */
-export const buscarUsuarios = async (query: string) => {
+
+export const searchUsers = async (query: string) => {
   if (!query || query.length < 3) return [];
 
   try {

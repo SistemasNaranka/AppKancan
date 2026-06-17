@@ -23,27 +23,23 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
   onHabilitar,
   cargando = false,
 }) => {
-  // Calcular días restantes si hay resolución
   const infoVencimiento =
     resolucion?.vigencia && resolucion?.fecha_creacion
       ? DaysRemaining(resolucion.vigencia, resolucion.fecha_creacion)
       : null;
 
-  // Función para formatear número de resolución (4-4-3-3)
   const formatResolution = (numero: string | undefined): string => {
     if (!numero) return "";
     const s = numero.toString();
-    if (s.length !== 14) return s; // Si no tiene 14 dígitos, devolver sin formato
+    if (s.length !== 14) return s;
     return `${s.slice(0, 4)} ${s.slice(4, 8)} ${s.slice(8, 11)} ${s.slice(11, 14)}`;
   };
 
-  // Calcular información de facturas
   const facturasRestantes = resolucion?.facturas_restantes ?? 0;
   const ultimaFactura = resolucion?.ultima_factura ?? 0;
   const hastaNumero = resolucion?.hasta_numero ?? 0;
   const desdeNumero = resolucion?.desde_numero ?? 0;
 
-  // Calcular facturas usadas (última_factura - desde_numero + 1)
   const facturasUsadas =
     ultimaFactura > 0 ? ultimaFactura - desdeNumero + 1 : 0;
   const totalFacturas = hastaNumero - desdeNumero + 1;
@@ -155,14 +151,13 @@ const ResolutionCard: React.FC<ResolutionCardProps> = ({
                     }
                   }
 
-                  // Colores para disponibles
                   if (campo.etiqueta === "Disponibles") {
                     if (facturasRestantes <= 10) {
-                      colorTexto = "#d32f2f"; // Rojo - Vencido
+                      colorTexto = "#d32f2f";
                     } else if (facturasRestantes <= 70) {
-                      colorTexto = "#ed6c02"; // Naranja - Por vencer
+                      colorTexto = "#ed6c02";
                     } else {
-                      colorTexto = "#2e7d32"; // Verde - Vigente
+                      colorTexto = "#2e7d32";
                     }
                   }
 

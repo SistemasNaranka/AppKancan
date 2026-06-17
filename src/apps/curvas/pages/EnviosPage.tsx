@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -10,11 +9,9 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import "dayjs/locale/es";
 
-// Configuración y Utils
 import { CATEGORY_CONFIG, type ConfirmedEntry } from "./EnviosPage.utils";
 import { useEnviosKeyboard, useEnviosValidation } from "./useEnviosLogic";
 
-// Módulos Extraídos
 import { EnviosPageHeader } from "./EnviosPageHeader";
 import { EnviosPageEmptyState } from "./EnviosPageEmptyState";
 import { EnviosDataTable } from "./EnviosDataTable";
@@ -55,26 +52,22 @@ const EnviosPage = () => {
     if (el) setPortalTarget(el);
   }, []);
 
-  // 1. Hook de Sincronización (WebSockets y API)
   const { logCurvasData, enviosCurvasData, loadingLogCurvas, fechasConDatos } = useEnviosDataSync({
     filtroFecha, filtroReferencia, userRole, lastLogsUpdate
   });
 
-  // 2. Hook de Transformación de Datos
   const { confirmedEntries, visibleEntries } = useConfirmedEntries({
     logCurvasData, sentEntryKeys, validationData, tiendasDict, filtroReferencia
   });
 
   const current = visibleEntries[selectedEntry] || null;
 
-  // 3. Hook de Hidratación y Sincronización Cruzada
   useEnviosHydration({
     current, enviosCurvasData, extractRef, setValidationData, myScannedTiendasRef
   });
 
   const _validationResults = useEnviosValidation({ current, validationData });
 
-  // 4. Hook de Lógica de Guardado
   const { isSending, isSaving, handleEnviarADespacho } = useEnviosSubmit({
     current, user, validationData, myScannedTiendasRef, datosCurvas,
     tiendasDict, logCurvasData, extractRef, setSnackbar

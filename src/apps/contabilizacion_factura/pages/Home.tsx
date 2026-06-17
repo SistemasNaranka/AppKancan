@@ -17,7 +17,6 @@ import Update from '@mui/icons-material/Update';
 // Hooks
 import { useHomeLogic } from "../hooks/useHomeLogic";
 
-// Componentes modulares
 import { FileUploadArea } from "../components/FileUploadArea";
 import { InvoiceInfoCard } from "../components/InvoiceInfoCard";
 import {

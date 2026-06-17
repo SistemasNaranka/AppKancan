@@ -26,10 +26,8 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
   const getPerformanceInfo = () => {
     const cumplimientoPct = tienda.cumplimiento_tienda_pct;
 
-    // Usar configuración proporcionada o array vacío
     const umbrales = thresholdConfig || [];
 
-    // Si no hay umbrales configurados, mostrar sin comisión
     if (umbrales.length === 0) {
       return {
         message: "Sin comisión",
@@ -38,14 +36,11 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
       };
     }
 
-    // Ordenar umbrales por min_compliance ascendente
     const umbralesOrdenados = [...umbrales].sort(
       (a, b) => a.min_compliance - b.min_compliance,
     );
 
-    // Si no alcanza el primer umbral
     if (cumplimientoPct < umbralesOrdenados[0].min_compliance) {
-      // Encontrar al gerente de la tienda
       const gerente = tienda.empleados.find((e) => e.rol === "gerente");
       if (gerente && gerente.proxima_venta) {
         return {
@@ -64,7 +59,6 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
       }
     }
 
-    // Determinar el nivel actual basado en los umbrales
     let currentLevel = 0;
     for (let i = 0; i < umbralesOrdenados.length; i++) {
       if (cumplimientoPct >= umbralesOrdenados[i].min_compliance) {
@@ -74,10 +68,8 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
       }
     }
 
-    // Mensajes basados en el nivel actual
     const messages = umbralesOrdenados.map((umbral) => umbral.name);
 
-    // Mapa de colores MUI a nombres de colores
     const colorMap: Record<string, string> = {
       red: red[300],
       pink: pink[300],
@@ -88,9 +80,7 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
       yellow: "#ffeb3b",
     };
 
-    // Colores basados en los umbrales configurados para el mes
     const getCumplimientoColor = (pct: number) => {
-      // Verificar si el cumplimiento está dentro de alguno de los umbrales configurados
       const isWithinThresholds = umbralesOrdenados.some((umbral) => {
         const nextUmbral =
           umbralesOrdenados[umbralesOrdenados.indexOf(umbral) + 1];
@@ -100,12 +90,10 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
         );
       });
 
-      // Asignar color SOLO si el cumplimiento está dentro de los umbrales configurados
       if (!isWithinThresholds) {
-        return grey[600]; // Gris (sin color) para cumplimiento < umbral mínimo o fuera de rango
+        return grey[600];
       }
 
-      // Asignar color basado EN LOS UMBRALES CONFIGURADOS para el mes
       for (let i = 0; i < umbralesOrdenados.length; i++) {
         const umbral = umbralesOrdenados[i];
         const nextUmbral = umbralesOrdenados[i + 1];
@@ -114,39 +102,37 @@ const PerformanceMessage: React.FC<PerformanceMessageProps> = ({
           pct >= umbral.min_compliance &&
           (!nextUmbral || pct < nextUmbral.min_compliance)
         ) {
-          // Si el umbral tiene un color configurado, usarlo
+
           if (umbral.color && colorMap[umbral.color]) {
             return colorMap[umbral.color];
           }
 
-          // Si no, usar la lógica de color por defecto
           if (umbral.min_compliance >= 85 && umbral.min_compliance < 90) {
-            return red[300]; // Rojo para umbrales 85-89%
+            return red[300];
           } else if (
             umbral.min_compliance >= 90 &&
             umbral.min_compliance < 95
           ) {
-            return pink[300]; // Rosa para umbrales 90-94%
+            return pink[300];
           } else if (
             umbral.min_compliance >= 95 &&
             umbral.min_compliance < 100
           ) {
-            return orange[600]; // Naranja para umbrales 95-99%
+            return orange[600];
           } else if (
             umbral.min_compliance >= 100 &&
             umbral.min_compliance < 110
           ) {
-            return blue[600]; // Azul para umbrales 100-109%
+            return blue[600];
           } else {
-            return green[600]; // Verde para umbrales ≥110%
+            return green[600];
           }
         }
       }
 
-      return grey[600]; // Default
+      return grey[600];
     };
 
-    // Obtener el color basado en el cumplimiento real de la tienda y la configuración del mes
     const color = getCumplimientoColor(cumplimientoPct);
 
     const icons = [

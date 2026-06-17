@@ -1,18 +1,3 @@
-/**
- * Tutorial interactivo del módulo de Curvas (basado en react-joyride)
- *
- * Targets esperados en el DOM:
- *  - #tour-curvas-tabs            → Tabs de navegación (CurvasRouteLayout)
- *  - #tour-load-type              → Toggle GENERAL/PRODUCTOS (UploadPage)
- *  - #tour-referencia             → Input de referencia (UploadPage)
- *  - .tour-curvas-matrix          → Matriz dinámica (UploadPage)
- *  - .tour-curvas-actions         → Botones Guardar / Enviar a Despacho (UploadPage)
- *  - .tour-curvas-fecha           → Selector de fecha (DashboardPage)
- *  - .tour-curvas-datagrid        → DataGrid editable (DashboardPage)
- *  - .tour-curvas-tiendas         → Lista de tiendas (EnviosPage)
- *  - .tour-curvas-scan            → Campo de escaneo (EnviosPage)
- *  - .tour-curvas-analisis-rango  → Rango de fechas (AnalisisPage)
- */
 import {
   createContext,
   ReactNode,
@@ -38,22 +23,15 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import { useCurvasPolicies } from "../hooks/useCurvasPolicies";
 import { useTutorial } from "@/shared/hooks/TutorialContext";
 
-// ════════════════════════════════════════════════════════════
-// CONFIGURACIÓN
-// ════════════════════════════════════════════════════════════
-
 const STORAGE_KEY = "curvas:tour:completed:v1";
 const BRAND_DARK = "#004680";
 const BRAND_PRIMARY = "#006ACC";
 
-// Tiempo máximo esperando que aparezca un target tras nav/render.
 const TARGET_WAIT_MS = 8000;
-// Pequeño delay extra después de navegación antes de empezar a observar.
 const POST_NAV_SETTLE_MS = 250;
 
 type CurvasStep = Step & { route?: string };
 
-// Pasos para Admin / Producción (recorrido completo)
 const STEPS_ADMIN: CurvasStep[] = [
   {
     target: "body",
@@ -95,7 +73,6 @@ const STEPS_ADMIN: CurvasStep[] = [
       </Box>
     ),
   },
-  // ── CARGA ──
   {
     target: "#tour-load-type",
     placement: "bottom",
@@ -176,7 +153,7 @@ const STEPS_ADMIN: CurvasStep[] = [
       </Box>
     ),
   },
-  // ── DASHBOARD ──
+
   {
     target: ".tour-curvas-fecha",
     placement: "bottom",
@@ -213,7 +190,7 @@ const STEPS_ADMIN: CurvasStep[] = [
       </Box>
     ),
   },
-  // ── ENVÍOS ──
+
   {
     target: ".tour-curvas-tiendas",
     placement: "bottom",
@@ -260,7 +237,7 @@ const STEPS_ADMIN: CurvasStep[] = [
       </Box>
     ),
   },
-  // ── ANÁLISIS ──
+
   {
     target: ".tour-curvas-analisis-rango",
     placement: "bottom",
@@ -298,7 +275,6 @@ const STEPS_ADMIN: CurvasStep[] = [
   },
 ];
 
-// Pasos para Tienda / store_transfers (sólo consulta de envíos hacia su tienda)
 const STEPS_TIENDA: CurvasStep[] = [
   {
     target: "body",
@@ -392,7 +368,6 @@ const STEPS_TIENDA: CurvasStep[] = [
   },
 ];
 
-// Pasos para Bodega (sólo Sistema de Despacho)
 const STEPS_BODEGA: CurvasStep[] = [
   {
     target: "body",
@@ -470,22 +445,12 @@ const STEPS_BODEGA: CurvasStep[] = [
   },
 ];
 
-// ════════════════════════════════════════════════════════════
-// HELPER: esperar a que aparezca un elemento en el DOM
-// ════════════════════════════════════════════════════════════
-
-/**
- * Espera a que aparezca un elemento que matchea el selector.
- * Usa MutationObserver para detectar la inserción inmediatamente.
- * Devuelve true si encontró, false si timeout. Resolve cancelable.
- */
 const waitForElement = (
   selector: string,
   timeoutMs: number,
   abortRef: { aborted: boolean },
 ): Promise<boolean> => {
   return new Promise((resolve) => {
-    // "body" siempre existe — atajo.
     if (selector === "body") {
       resolve(true);
       return;
@@ -513,16 +478,11 @@ const waitForElement = (
 
     const timeoutId = window.setTimeout(() => finish(false), timeoutMs);
 
-    // Polling barato (200ms) para cancelar si el caller abortó.
     const abortChecker = window.setInterval(() => {
       if (abortRef.aborted) finish(false);
     }, 200);
   });
 };
-
-// ════════════════════════════════════════════════════════════
-// CONTEXT
-// ════════════════════════════════════════════════════════════
 
 interface CurvasTourContextValue {
   startTour: () => void;
@@ -537,10 +497,6 @@ export const useCurvasTour = (): CurvasTourContextValue => {
   if (!ctx) throw new Error("useCurvasTour debe usarse dentro de <CurvasTourProvider>");
   return ctx;
 };
-
-// ════════════════════════════════════════════════════════════
-// CUSTOM TOOLTIP
-// ════════════════════════════════════════════════════════════
 
 const CustomTooltip = ({
   index,
@@ -631,9 +587,6 @@ const CustomTooltip = ({
   );
 };
 
-// ════════════════════════════════════════════════════════════
-// PROVIDER + JOYRIDE
-// ════════════════════════════════════════════════════════════
 
 interface CurvasTourProviderProps {
   children: ReactNode;
@@ -652,13 +605,10 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
 
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  // Flag global para que la operación actual pueda cancelarse si stopTour fires.
   const abortRef = useRef({ aborted: false });
 
-  // Núcleo: dado un stepIndex deseado, navega si hace falta y espera target.
   const transitionToStep = useCallback(
     async (targetIndex: number) => {
-      // Si pasamos del último paso, terminar el tour.
       if (targetIndex >= steps.length) {
         try { localStorage.setItem(STORAGE_KEY, "1"); } catch {}
         abortRef.current.aborted = true;
@@ -670,44 +620,35 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
       const step = steps[targetIndex];
       if (!step) return;
 
-      // Cancelar operación anterior.
       abortRef.current.aborted = true;
       const myAbort = { aborted: false };
       abortRef.current = myAbort;
 
-      // Oculta el tooltip mientras transicionamos (sin desmontar Joyride por completo).
       setRun(false);
 
-      // Navega si la ruta es distinta.
       if (step.route && location.pathname !== step.route) {
         navigate(step.route);
       }
 
-      // Pequeño settle para que React haga el primer commit post-nav.
       await new Promise((r) => setTimeout(r, POST_NAV_SETTLE_MS));
       if (myAbort.aborted) return;
 
-      // Espera a que el target real exista.
       const selector =
         typeof step.target === "string" ? step.target : "body";
       const found = await waitForElement(selector, TARGET_WAIT_MS, myAbort);
       if (myAbort.aborted) return;
 
       if (!found) {
-        // Target nunca apareció — saltar paso (a menos que sea el último).
         if (targetIndex < steps.length - 1) {
           setStepIndex(targetIndex + 1);
         } else {
-          // Si era el último, terminar el tour.
           try { localStorage.setItem(STORAGE_KEY, "1"); } catch {}
           setRun(false);
         }
         return;
       }
 
-      // Target listo — fija índice y arranca Joyride.
       setStepIndex(targetIndex);
-      // Microtask delay para que stepIndex llegue antes de run=true.
       await new Promise((r) => setTimeout(r, 30));
       if (myAbort.aborted) return;
       setRun(true);
@@ -730,8 +671,6 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
     setStepIndex(0);
   }, []);
 
-  // Integración con PeekButton — dispara el tour cuando el panel lateral
-  // de "Mis aplicaciones" solicita el tutorial de Curvas.
   const { activeTutorial, endTutorial } = useTutorial();
   useEffect(() => {
     if (activeTutorial !== "curvas") return;
@@ -739,7 +678,6 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
     startTour();
   }, [activeTutorial, endTutorial, startTour]);
 
-  // Callback de Joyride: solo escucha eventos de navegación del usuario.
   const handleCallback = useCallback(
     (data: CallBackProps) => {
       const { status, action, type, index } = data;
@@ -755,9 +693,6 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
         return;
       }
 
-      // TARGET_NOT_FOUND: no debería pasar porque waitForElement ya garantizó
-      // que existía. Si pasa (elemento removido entre el wait y el render),
-      // saltamos al siguiente paso.
       if (type === EVENTS.TARGET_NOT_FOUND) {
         if (index < steps.length - 1) {
           void transitionToStep(index + 1);
@@ -767,12 +702,10 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
         return;
       }
 
-      // Usuario presionó Siguiente.
       if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT) {
         void transitionToStep(index + 1);
         return;
       }
-      // Usuario presionó Atrás.
       if (type === EVENTS.STEP_AFTER && action === ACTIONS.PREV) {
         void transitionToStep(Math.max(0, index - 1));
         return;
@@ -781,7 +714,6 @@ export const CurvasTourProvider = ({ children }: CurvasTourProviderProps) => {
     [stopTour, transitionToStep, steps.length],
   );
 
-  // Cleanup al desmontar.
   useEffect(() => {
     return () => {
       abortRef.current.aborted = true;

@@ -28,11 +28,8 @@ import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import { CreateContrato, Contrato, RequestStatus } from '../types/types';
+import { CreateContract, Contract, RequestStatus } from '../types/types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Áreas predefinidas — edita esta lista según tu empresa
-// ─────────────────────────────────────────────────────────────────────────────
 const AREAS_PREDEFINIDAS = [
   'Contabilidad',
   'Recursos Humanos',
@@ -46,9 +43,6 @@ const AREAS_PREDEFINIDAS = [
 
 const NUEVA_AREA_VALUE = '__nueva__';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Opciones estáticas
-// ─────────────────────────────────────────────────────────────────────────────
 const tipoContratoOptions = [
   { value: 'indefinido', label: 'Indefinido' },
   { value: 'definido',   label: 'Definido' },
@@ -65,9 +59,6 @@ const statusOptions: { value: RequestStatus; label: string }[] = [
 
 import { ROLES_AREAS } from '../config/cargos';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
 interface FormData {
   documento_identidad: string;
   nombre: string;
@@ -94,18 +85,14 @@ const initialFormData: FormData = {
   request_status: 'pendiente',
 };
 
-interface ContratoFormProps {
+interface ContractFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateContrato) => Promise<void>;
-  /** Si se pasa, el formulario entra en modo edición */
-  initialData?: Contrato;
+  onSubmit: (data: CreateContract) => Promise<void>;
+  initialData?: Contract;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
-export const ContratoForm: React.FC<ContratoFormProps> = ({
+export const ContratoForm: React.FC<ContractFormProps> = ({
   open, onClose, onSubmit, initialData,
 }) => {
   const isEditing = !!initialData;
@@ -114,15 +101,12 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
   const [saving, setSaving]       = useState(false);
   const [errors, setErrors]       = useState<Record<string, string>>({});
 
-  // Estado para áreas personalizadas agregadas en esta sesión
   const [areasExtra, setAreasExtra] = useState<string[]>([]);
-  // Controla si se muestra el input para agregar nueva área
   const [showNuevaArea, setShowNuevaArea] = useState(false);
   const [nuevaAreaInput, setNuevaAreaInput] = useState('');
 
   const todasLasAreas = [...AREAS_PREDEFINIDAS, ...areasExtra];
 
-  // Poblar el form cuando se abre en modo edición
   useEffect(() => {
     if (open && initialData) {
       setFormData({
@@ -137,7 +121,6 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
         duracion_meses: 0,
         request_status: initialData.status,
       });
-      // Si el área no está en la lista predefinida, agregarla
       if (
         initialData.department &&
         !AREAS_PREDEFINIDAS.includes(initialData.department)
@@ -159,13 +142,11 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
     (e: React.ChangeEvent<HTMLInputElement | { value: unknown }>) => {
       const value = e.target.value;
 
-      // Si elige "Agregar nueva área" en el select
       if (field === 'area' && value === NUEVA_AREA_VALUE) {
         setShowNuevaArea(true);
         return;
       }
 
-      // Si cambia el cargo, auto-asignar el área
       if (field === 'cargo') {
         const selectedRole = ROLES_AREAS.find(r => r.nombre === value);
         if (selectedRole) {
@@ -181,7 +162,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
       if (errors[field]) setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
     };
 
-  const handleAgregarArea = () => {
+  const handleAddArea = () => {
     const trimmed = nuevaAreaInput.trim();
     if (!trimmed) return;
     if (!todasLasAreas.includes(trimmed)) {
@@ -214,11 +195,11 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
     if (!validate()) return;
     setSaving(true);
     try {
-      const contratoData: CreateContrato = {
+      const contratoData: CreateContract = {
         first_name:    formData.nombre,
         last_name:     formData.apellido,
         document:      formData.documento_identidad,
-        position:      formData.cargo, // Guardamos como nombre (String)
+        position:      formData.cargo,
         contract_type: formData.tipo_contrato,
         department:    formData.area,
         start_date:    formData.fecha_ingreso,
@@ -240,7 +221,6 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
     if (!saving) { setFormData(initialFormData); setErrors({}); onClose(); }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <Dialog
       open={open}
@@ -357,14 +337,14 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
                   label="Nombre de la nueva área"
                   value={nuevaAreaInput}
                   onChange={(e) => setNuevaAreaInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAgregarArea()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddArea()}
                   fullWidth size="small" autoFocus
                   helperText="Presiona Enter o haz clic en Agregar"
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
                 <Button
                   variant="contained"
-                  onClick={handleAgregarArea}
+                  onClick={handleAddArea}
                   disabled={!nuevaAreaInput.trim()}
                   sx={{ mt: 0.1, borderRadius: 2, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap',
                     bgcolor: '#2563eb', boxShadow: 'none', '&:hover': { bgcolor: '#1d4ed8', boxShadow: 'none' } }}
@@ -417,7 +397,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
                 <DatePicker
                   label="Fecha de Inicio"
                   value={formData.fecha_ingreso ? dayjs(formData.fecha_ingreso) : null}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, fecha_ingreso: val ? val.format('YYYY-MM-DD') : '' }))}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, fecha_ingreso: val ? dayjs(val).format('YYYY-MM-DD') : '' }))}
                   disabled={saving}
                   slotProps={{
                     textField: {
@@ -432,7 +412,7 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
                 <DatePicker
                   label="Fecha de Finalización"
                   value={formData.fecha_fin ? dayjs(formData.fecha_fin) : null}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, fecha_fin: val ? val.format('YYYY-MM-DD') : '' }))}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, fecha_fin: val ? dayjs(val).format('YYYY-MM-DD') : '' }))}
                   disabled={saving}
                   slotProps={{
                     textField: {
@@ -454,22 +434,6 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
               />
             </Box>
           </Box>
-
-          {/* ── Estado ── */}
-          <Box>
-            <SectionHeader Icon={BusinessOutlinedIcon} label="ESTADO DE LA SOLICITUD" />
-            <TextField
-              label="Estado" value={formData.request_status}
-              onChange={handleChange('request_status')}
-              fullWidth select disabled={saving} size="small"
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 220 }}
-            >
-              {statusOptions.map((o) => (
-                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
-              ))}
-            </TextField>
-          </Box>
-
         </Box>
       </DialogContent>
 
@@ -489,7 +453,6 @@ export const ContratoForm: React.FC<ContratoFormProps> = ({
   );
 };
 
-// ─── Subcomponente header de sección ─────────────────────────────────────────
 const SectionHeader: React.FC<{ Icon: React.ElementType; label: string }> = ({ Icon, label }) => (
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
     <Icon sx={{ color: 'primary.main', fontSize: 18 }} />

@@ -31,7 +31,7 @@ export const useCountAnimation = (target: number, duration: number = 600): numbe
     return () => {
       
     };
-  }, [target, duration]); //correctas
+  }, [target, duration]);
 
   return count;
 };

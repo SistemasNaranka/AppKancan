@@ -1,4 +1,3 @@
-// src/apps/gestion_proyectos/hooks/useCurvasEditor.ts
 import { useEffect, useCallback } from "react";
 import { saveLogsBatch, saveLogCurvas } from "../api/directus/create";
 import { extractRef } from "../utils/curvasHelpers";

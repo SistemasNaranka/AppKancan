@@ -2,10 +2,6 @@ import directus from "@/services/directus/directus";
 import { createItem, readItems } from "@directus/sdk";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
-/**
- * Crear una nueva resolución en la base de datos vinculándola automáticamente
- * con su prefijo (prefix_id) correspondiente en acc_prefix_resolutions.
- */
 export async function createResolution(data: {
   form_number: string;
   business_name: string;
@@ -21,10 +17,8 @@ export async function createResolution(data: {
   try {
     let prefix_id: number | null = null;
 
-    // La columna company en la tabla acc_points_of_sale contiene el nombre completo en mayúsculas (ej: "NARANKA SAS")
     const company = data.business_name;
 
-    // Buscar prefix_id coincidente por nombre de prefijo y empresa
     if (company && data.prefix) {
       try {
         const matchingPrefixes = await withAutoRefresh(() =>
@@ -54,7 +48,6 @@ export async function createResolution(data: {
 
         if (matchingPrefixes && matchingPrefixes.length > 0) {
           prefix_id = matchingPrefixes[0].id as number;
-          console.log(`✅ prefix_id encontrado para vincular en Directus: ${prefix_id}`);
         } else {
           console.warn(`⚠️ No se encontró coincidencia para el prefijo ${data.prefix} de la empresa ${company} en acc_prefix_resolutions.`);
         }
@@ -69,7 +62,7 @@ export async function createResolution(data: {
           form_number: data.form_number,
           business_name: data.business_name,
           prefix: data.prefix,
-          prefix_id: prefix_id, // Vinculación en base de datos
+          prefix_id: prefix_id,
           start_number: data.start_number,
           end_number: data.end_number,
           validity: data.validity,

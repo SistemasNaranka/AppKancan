@@ -22,7 +22,6 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
-  // 🔹 Detecta pantallas pequeñas (por debajo de 600px)
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
@@ -37,7 +36,6 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
       }}
     >
 
-      {/* —— CARD: TRASLADOS PENDIENTES —— */}
       <Card
         variant="outlined"
         sx={{
@@ -87,7 +85,6 @@ const ContadorPendientesYSeleccionados: React.FC<Props> = ({
         </CardContent>
       </Card>
 
-      {/* —— CARD: DOCUMENTOS SELECCIONADOS —— */}
       {seleccionados > 0 && (
         <Card
           variant="outlined"

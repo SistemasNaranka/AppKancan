@@ -27,14 +27,11 @@ function HistorialContent() {
   const [filtroEstado,  setFiltroEstado]  = useState('TODOS');
   const [rangoFecha,    setRangoFecha]    = useState('hoy');
   const [selectedNotif, setSelectedNotif] = useState<INotification | null>(null);
-
-  // ── Cambios pendientes (id → nuevoStatus) hasta que el usuario confirme ──
   const [pendingChanges, setPendingChanges] = useState<Record<string, EstadoVisibilidad>>({});
   const [guardandoCambios, setGuardandoCambios] = useState(false);
   const hayPendientes = Object.keys(pendingChanges).length > 0;
   const { showSnackbar } = useGlobalSnackbar();
 
-  // ── Carga ──────────────────────────────────────────────
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
@@ -48,21 +45,16 @@ function HistorialContent() {
   }, []);
 
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
-
-  // Auto-refresh cada 30 s — pausado mientras haya cambios pendientes
-  // para no perder lo que el usuario marcó antes de confirmar.
   useEffect(() => {
     if (hayPendientes) return;
     const id = setInterval(cargarDatos, 30_000);
     return () => clearInterval(id);
   }, [cargarDatos, hayPendientes]);
 
-  // ── Toggle pendiente (no llega al backend hasta confirmar) ──
   const handleTogglePendiente = (id: string, nuevoStatus: EstadoVisibilidad) => {
     setPendingChanges((prev) => {
       const next = { ...prev };
       const original = registros.find((r) => r.id === id)?.status;
-      // Si el usuario "revierte" al valor original, se quita de pendientes
       if (original === nuevoStatus) {
         delete next[id];
       } else {
@@ -96,13 +88,10 @@ function HistorialContent() {
     setPendingChanges({});
   };
 
-  // ── Filtrado ────────────────────────────────────────────
   const dataFiltrada = useMemo(() => {
     return registros.filter((r) => {
-      // El status efectivo es el pendiente si existe, si no el real.
       const statusEfectivo: EstadoVisibilidad = pendingChanges[r.id] ?? r.status;
 
-      // Filtro de visibilidad/tipo
       let cumpleEstado = true;
       if (filtroEstado === 'OCULTAS') {
         cumpleEstado = statusEfectivo === 'inactivo';
@@ -112,7 +101,6 @@ function HistorialContent() {
         cumpleEstado = r.tipo_notificacion === filtroEstado && statusEfectivo === 'activo';
       }
 
-      // Filtro fecha
       let cumpleFecha = true;
       if (rangoFecha !== 'todos' && r.fecha) {
         const partes = r.fecha.split('/');
@@ -155,8 +143,6 @@ function HistorialContent() {
             onChange={(_, val) => {
               if (!val) return;
               setFiltroEstado(val);
-              // Al entrar en "Ocultas" mostramos todas las históricas por
-              // defecto; el usuario puede volver a filtrar por fecha si quiere.
               if (val === 'OCULTAS') setRangoFecha('todos');
             }}
             size="small"

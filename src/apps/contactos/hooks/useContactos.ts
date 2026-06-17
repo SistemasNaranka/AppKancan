@@ -1,4 +1,3 @@
-// src/apps/contactos/hooks/useContactos.ts
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Contactos, CreateContactoInput } from '../types/contact';
 import { getContactos } from '../api/directus/read';
@@ -26,7 +25,6 @@ export const useContactos = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Cargar ────────────────────────────────────────────────────────────────
   const cargar = useCallback(async () => {
     try {
       setCargando(true);
@@ -42,28 +40,24 @@ export const useContactos = () => {
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  // ── Crear ─────────────────────────────────────────────────────────────────
   const crear = async (data: CreateContactoInput): Promise<boolean> => {
     const id = await createContacto(data);
     if (id) { await cargar(); return true; }
     return false;
   };
 
-  // ── Actualizar ────────────────────────────────────────────────────────────
   const actualizar = async (id: number, data: Partial<CreateContactoInput>): Promise<boolean> => {
     const ok = await updateContacto(id, data);
     if (ok) await cargar();
     return ok;
   };
 
-  // ── Eliminar ──────────────────────────────────────────────────────────────
   const eliminar = async (id: number): Promise<boolean> => {
     const ok = await deleteContacto(id);
     if (ok) setContactos((prev) => prev.filter((c) => c.id !== id));
     return ok;
   };
 
-  // ── Ordenar ───────────────────────────────────────────────────────────────
   const handleSort = (criterio: 'asc' | 'desc' | 'area') => {
     setContactos((prev) => {
       const temp = [...prev];
@@ -74,7 +68,6 @@ export const useContactos = () => {
     });
   };
 
-  // ── Filtrar ───────────────────────────────────────────────────────────────
   const filtrados = useMemo(() => {
     const t = busqueda.toLowerCase().trim();
     if (!t) return contactos;
@@ -95,7 +88,7 @@ export const useContactos = () => {
   cargando,
   error,
   eliminar,
-  recargar: cargar, // <--- Añade esto para poder refrescar la tabla
+  recargar: cargar,
   actualizar
 };
   };

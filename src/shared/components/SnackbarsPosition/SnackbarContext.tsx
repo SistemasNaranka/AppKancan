@@ -39,13 +39,11 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
           variant="filled" 
           sx={{ width: '100%', maxWidth: 400, borderRadius: 2, 
 
-          // COLORES POR SEVERIDAD — sobrescribe los de MUI:
           '&.MuiAlert-filledSuccess': { backgroundColor: '#2e7d32', color: '#fff' },
           '&.MuiAlert-filledError':   { backgroundColor: '#c62828', color: '#fff' },
           '&.MuiAlert-filledWarning': { backgroundColor: '#e65100', color: '#fff' },
           '&.MuiAlert-filledInfo':    { backgroundColor: '#01579b', color: '#fff' },
 
-          // TIPOGRAFÍA:
           fontSize: '0.95rem',
           fontWeight: 600,
           

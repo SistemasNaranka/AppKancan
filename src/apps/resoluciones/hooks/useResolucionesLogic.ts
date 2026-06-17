@@ -67,11 +67,9 @@ export const useResolutionsLogic = ({
       Vencido: 3,
     };
     return [...registros].sort((a, b) => {
-      // Primero ordenar por estado
       const diferenciaEstado = ordenEstado[a.estado] - ordenEstado[b.estado];
       if (diferenciaEstado !== 0) return diferenciaEstado;
 
-      // Dentro del mismo estado, ordenar por fecha de vencimiento (más cercana primero)
       const fechaA = new Date(a.fecha_vencimiento).getTime();
       const fechaB = new Date(b.fecha_vencimiento).getTime();
       return fechaA - fechaB;
@@ -161,7 +159,6 @@ export const useResolutionsLogic = ({
       return;
     }
 
-    // Mostrar diálogo de opciones de integración
     setMostrarDialogoOpcionesIntegracion(true);
   };
 
@@ -242,7 +239,6 @@ export const useResolutionsLogic = ({
         status: "Activo",
       });
 
-      // Ejecutar Ultra (lo cual imprime parámetros y link en consola) ahora que está guardada
       ejecutarUltra(resolucionSeleccionada);
 
       const datos = await getResolutions();
@@ -278,7 +274,6 @@ export const useResolutionsLogic = ({
         status: "Activo",
       });
 
-      // Ejecutar Ultra (lo cual imprime parámetros y link en consola) ahora que está guardada
       ejecutarUltra(resolucionSeleccionada);
 
       const datos = await getResolutions();
@@ -306,7 +301,6 @@ export const useResolutionsLogic = ({
       return;
     }
 
-    // Verificar si el prefijo existe en la base de datos y obtener el ultra_id
     const prefixRes = await checkPrefixExists(resultado.prefijo, resultado.razon_social);
     setPrefijoInvalido(!prefixRes.exists);
 

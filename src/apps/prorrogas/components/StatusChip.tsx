@@ -6,10 +6,6 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { ContractStatus, RequestStatus, requestStatusMap } from "../types/types";
 import { SvgIconComponent } from "@mui/icons-material";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONFIG MAPS
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface ChipConfig {
   label: string;
   color: string;
@@ -41,10 +37,6 @@ const contractStatusMap: Record<ContractStatus, ChipConfig> = {
     Icon: ErrorOutlineIcon,
   },
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTS
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface ContractStatusChipProps extends Omit<ChipProps, "color"> {
   status: ContractStatus;

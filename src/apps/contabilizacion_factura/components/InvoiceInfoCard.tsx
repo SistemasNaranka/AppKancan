@@ -1,9 +1,3 @@
-/**
- * Componente para mostrar información de la factura extraída
- * Diseño limpio tipo tarjeta
- * Módulo de Contabilización de Facturas
- */
-
 import {
   Box,
   Typography,
@@ -29,7 +23,7 @@ import { DatosFacturaPDF, formatCurrency, formatDate, getNitSinDv } from "../typ
 
 interface InvoiceInfoCardProps {
   datosFactura: DatosFacturaPDF;
-  className?: string; // Para tours interactivos
+  className?: string;
   entradas?: any[];
   entradaSeleccionada?: string;
   onSelectEntradaClick?: () => void;

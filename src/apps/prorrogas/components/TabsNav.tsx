@@ -19,16 +19,15 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
   { value: 'resumen',    label: 'Resumen',    Icon: DashboardOutlinedIcon  },
-  { value: 'contratos',  label: 'Contratos',  Icon: ArticleOutlinedIcon    },
+  { value: 'contracts',  label: 'Contratos',  Icon: ArticleOutlinedIcon    },
   { value: 'empleados',  label: 'Empleados',  Icon: GroupsOutlinedIcon     },
 ];
 
 const TabsNav: React.FC = () => {
-  const { filters, setTab, selectedContrato, select, allEnriched } = useContracts();
+  const { filters, setTab, selectedContract, select, allEnriched } = useContracts();
 
-  /** Badge numérico por pestaña (solo muestra cuando hay alertas relevantes) */
   const badgeFor = (value: TabValue): number | undefined => {
-    if (value === 'contratos') {
+    if (value === 'contracts') {
       const urgent = allEnriched.filter(c => c.daysLeft >= 0 && c.daysLeft <= 30).length;
       return urgent > 0 ? urgent : undefined;
     }
@@ -45,8 +44,7 @@ const TabsNav: React.FC = () => {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        {/* Bot├│n Volver ÔÇö solo visible cuando hay un contrato seleccionado */}
-        {selectedContrato && (
+        {selectedContract && (
           <Button
             variant="outlined"
             size="small"

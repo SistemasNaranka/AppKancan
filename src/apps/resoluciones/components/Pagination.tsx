@@ -14,24 +14,20 @@ const Pagination: React.FC<PaginationProps> = ({
   totalPaginas,
   onCambiarPagina,
 }) => {
-  // Generar los números de página a mostrar
   const generarPaginas = () => {
     const paginas: (number | string)[] = [];
 
     if (totalPaginas <= 7) {
-      // Si hay 7 o menos páginas, mostrar todas
       for (let i = 1; i <= totalPaginas; i++) {
         paginas.push(i);
       }
     } else {
-      // Siempre mostrar la primera página
       paginas.push(1);
 
       if (paginaActual > 3) {
         paginas.push("...");
       }
 
-      // Páginas alrededor de la actual
       const inicio = Math.max(2, paginaActual - 1);
       const fin = Math.min(totalPaginas - 1, paginaActual + 1);
 
@@ -43,7 +39,6 @@ const Pagination: React.FC<PaginationProps> = ({
         paginas.push("...");
       }
 
-      // Siempre mostrar la última página
       paginas.push(totalPaginas);
     }
 

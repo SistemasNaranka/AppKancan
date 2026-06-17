@@ -8,18 +8,6 @@ import type {
   EnvioCurva,
 } from "../../types";
 
-/**
- * API para crear datos de curvas en Directus
- *
- * Funciones disponibles:
- * - saveMatrizGeneral: Guarda la matriz general de curvas
- * - saveDetalleProducto: Guarda el detalle de un producto
- * - saveHistorialCarga: Guarda el historial de carga
- */
-
-/**
- * Guarda la matriz general de curvas en Directus
- */
 export const saveMatrizGeneral = async (
   matriz: MatrizGeneralCurvas,
 ): Promise<boolean> => {
@@ -46,9 +34,6 @@ export const saveMatrizGeneral = async (
   }
 };
 
-/**
- * Guarda el detalle de un producto en Directus
- */
 export const saveDetalleProducto = async (
   producto: DetalleProducto,
 ): Promise<boolean> => {
@@ -82,9 +67,6 @@ export const saveDetalleProducto = async (
   }
 };
 
-/**
- * Guarda el historial de carga de archivos
- */
 export const saveHistorialCarga = async (datos: {
   tipo_archivo: string;
   nombre_archivo: string;
@@ -117,9 +99,6 @@ export const saveHistorialCarga = async (datos: {
   }
 };
 
-/**
- * Guarda múltiples curvas de distribución en batch
- */
 export const saveBatchCurvas = async (
   curvas: MatrizGeneralCurvas[],
 ): Promise<boolean> => {
@@ -144,9 +123,6 @@ export const saveBatchCurvas = async (
   }
 };
 
-/**
- * Guarda un registro de log de curvas en Directus
- */
 export const saveLogCurvas = async (
   logData: Omit<LogCurvas, "id" | "date_created">,
 ): Promise<boolean> => {
@@ -154,10 +130,6 @@ export const saveLogCurvas = async (
   return ids.length > 0;
 };
 
-/**
- * Guarda múltiples registros de log de curvas en Directus (Batch)
- * Devuelve los IDs generados para usar como referencia en envios_curvas
- */
 export const saveLogsBatch = async (
   logsData: Omit<LogCurvas, "id" | "date_created">[],
 ): Promise<{ store_id: string; id: string }[]> => {
@@ -167,7 +139,6 @@ export const saveLogsBatch = async (
     const results: { store_id: string; id: string }[] = [];
 
     for (const log of logsData) {
-      // SIEMPRE crear nuevo registro para envíos (no actualizar existentes)
       const item = {
         store_id: log.store_id,
         store_name: log.store_name || "",
@@ -193,18 +164,12 @@ export const saveLogsBatch = async (
   }
 };
 
-/**
- * Guarda un registro de envío a despacho en Directus (tabla envios_curvas)
- */
 export const saveEnvioCurva = async (
   envioData: Omit<EnvioCurva, "id" | "date_created">,
 ): Promise<boolean> => {
   return saveEnviosBatch([envioData]);
 };
 
-/**
- * Guarda múltiples registros de envío a despacho en Directus (Batch)
- */
 export const saveEnviosBatch = async (
   enviosData: Omit<EnvioCurva, "id" | "date_created">[],
 ): Promise<boolean> => {
@@ -233,9 +198,6 @@ export const saveEnviosBatch = async (
   }
 };
 
-/**
- * Elimina borradores de escaneo físico previos para evitar duplicados al guardar nuevo progreso
- */
 export const deleteEnvioDrafts = async (
   referencia: string,
   usuarioId: string,
@@ -248,7 +210,7 @@ export const deleteEnvioDrafts = async (
             _and: [
               { reference: { _eq: referencia } },
               { user_id: { _eq: usuarioId } },
-              { shipment_date: { _gte: new Date().toISOString().split("T")[0] } }, // Solo los de hoy
+              { shipment_date: { _gte: new Date().toISOString().split("T")[0] } },
             ],
           },
         }),
@@ -256,7 +218,6 @@ export const deleteEnvioDrafts = async (
     );
     return true;
   } catch (error) {
-    // Es posible que no haya nada que borrar, no lo tratamos como error crítico
     console.warn(
       "Info: No se eliminaron borradores previos o error en delete:",
       error,
@@ -265,9 +226,6 @@ export const deleteEnvioDrafts = async (
   }
 };
 
-/**
- * Elimina registros de log_curvas previos para evitar duplicados
- */
 export const deleteLogCurvasByRef = async (
   referencia: string,
   plantilla: string,

@@ -33,11 +33,8 @@ import SwapVertIcon from '@mui/icons-material/SwapVert';
 import PersonIcon from '@mui/icons-material/Person';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
-import { getCargoLabel } from '../config/cargos';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+import { getPositionLabel } from '../config/cargos';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
 const initials = (name: string | undefined | null) => {
   if (!name) return '??';
@@ -64,7 +61,6 @@ const getDaysLabel = (daysLeft: number): { text: string; color: string } => {
   return { text: `En ${daysLeft} días`, color: daysLeft <= 7 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#6b7280' };
 };
 
-// Status chip para la nueva tabla
 const StatusBadge: React.FC<{ daysLeft: number; contractStatus: string }> = ({ daysLeft, contractStatus }) => {
   if (contractStatus === 'vencido' || daysLeft < 0) {
     return (
@@ -98,9 +94,6 @@ const StatusBadge: React.FC<{ daysLeft: number; contractStatus: string }> = ({ d
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sidebar
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
   onNewProrroga: () => void;
@@ -225,10 +218,6 @@ const ResumenSidebar: React.FC<SidebarProps> = ({ onNewProrroga, onNewContract }
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ContractTable
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface Props {
   onOpenForm: (contractId: number) => void;
   onNewContractClick?: () => void;
@@ -236,7 +225,7 @@ interface Props {
 }
 
 const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequestProrrogaClick }) => {
-  const { filteredContratos, allEnriched, filters, setFilter, select, loading, error } = useContracts();
+  const { filteredContracts, allEnriched, filters, setFilter, select, loading, error } = useContracts();
   const [page, setPage] = useState(1);
   const [vencSort, setVencSort] = useState<'none' | 'asc' | 'desc'>('none');
 
@@ -249,14 +238,10 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
 
   const itemsPerPage = 6;
 
-  // En Resumen: si hay búsqueda activa, usar filteredContratos para que el buscador funcione
-  // Si no hay búsqueda, mostrar todos ordenados por recientes
   const baseRows = isResumen
-    ? (hasSearch ? filteredContratos : [...allEnriched])
-    : filteredContratos;
+    ? (hasSearch ? filteredContracts : [...allEnriched])
+    : filteredContracts;
 
-  // Sort local por vencimiento al hacer click en el header.
-  // none = orden por defecto del hook/contexto (recientes / filtro activo).
   const sourceRows = vencSort === 'none'
     ? baseRows
     : [...baseRows].sort((a, b) => {
@@ -285,14 +270,14 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
     ? (hasSearch
         ? `${sourceRows.length} resultados para "${filters.search.trim()}" (Total: ${allEnriched.length})`
         : `Mostrando recientes`)
-    : `${filteredContratos.length} registros (Pág. ${page} de ${totalPages || 1})`;
+    : `${filteredContracts.length} registros (Pág. ${page} de ${totalPages || 1})`;
 
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
         <Stack spacing={2} alignItems="center">
           <CircularProgress size={40} sx={{ color: '#004680' }} />
-          <Typography variant="body2" color="text.secondary">Cargando contratos...</Typography>
+          <Typography variant="body2" color="text.secondary">Cargando contracts...</Typography>
         </Stack>
       </Box>
     );
@@ -302,7 +287,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error" sx={{ borderRadius: 2 }}>
-          <Typography variant="body2" fontWeight={600}>Error al cargar contratos</Typography>
+          <Typography variant="body2" fontWeight={600}>Error al cargar contracts</Typography>
           <Typography variant="caption">{error}</Typography>
         </Alert>
       </Box>
@@ -382,14 +367,14 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
               {rows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary', fontSize: '0.85rem' }}>
-                    No se encontraron contratos con los filtros actuales o en esta página.
+                    No se encontraron contracts con los filtros actuales o en esta página.
                   </TableCell>
                 </TableRow>
               )}
 
               {rows.map((c) => {
                 const { text: daysText, color: daysColor } = getDaysLabel(c.daysLeft);
-                const fechaVence = c.lastProrroga?.end_date ?? c.end_date;
+                const fechaVence = c.lastExtension?.end_date ?? c.end_date;
                 const venceDate = safeFormatDate(fechaVence?.toString() ?? null);
                 const isUrgent = isFinite(c.daysLeft) && c.daysLeft >= 0 && c.daysLeft <= 30;
 
@@ -404,7 +389,7 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
                       '& .MuiTableCell-root': { py: 1.4 },
                     }}
                   >
-                    {/* Contrato */}
+                    {/* Contract */}
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                        <Avatar sx={{ width: 32, height: 32, bgcolor: avatarColor(c.id), borderRadius: 1.5 }}>
@@ -412,10 +397,10 @@ const ContractTable: React.FC<Props> = ({ onOpenForm, onNewContractClick, onRequ
                         </Avatar>
                         <Box>
                           <Typography variant="body2" fontWeight={700} color="text.primary" fontSize="0.82rem">
-                            {c.first_name ?? `#${c.id}`}
+                            {formatNombreCompleto(c) || `#${c.id}`}
                           </Typography>
                           <Typography variant="caption" color="text.disabled">
-                            {getCargoLabel(c.position)}
+                            {getPositionLabel(c.position)}
                           </Typography>
                         </Box>
                       </Box>

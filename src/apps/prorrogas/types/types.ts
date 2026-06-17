@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPES — Gestión de Prórrogas
-// ─────────────────────────────────────────────────────────────────────────────
-
 export type ContractStatus = 'vigente' | 'proximo' | 'vencido';
 
 export type RequestStatus =
@@ -21,11 +17,10 @@ export const requestStatusMap: Record<RequestStatus, {
   completada: { label: 'Completada', color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd' },
 };
 
-export type TabValue = 'resumen' | 'contratos' | 'empleados' | 'prorrogas' | RequestStatus | 'activos' | 'vencidos' | 'por_vencer' | 'criticos';
+export type TabValue = 'resumen' | 'contracts' | 'empleados' | 'prorrogas' | RequestStatus | 'activos' | 'vencidos' | 'por_vencer' | 'criticos';
 
-// ── Colección: adm_extensions ─────────────────────────────────────────────
 
-export interface Prorroga {
+export interface Extension {
   id: number;
   contract_id: number;
   extension_number: number;
@@ -38,45 +33,44 @@ export interface Prorroga {
   date_updated?: string;
 }
 
-export type CreateProrroga = Omit<Prorroga, 'id' | 'date_created' | 'date_updated'>;
-export type UpdateProrroga = Partial<
-  Omit<Prorroga, 'id' | 'contract_id' | 'date_created' | 'date_updated'>
+export type CreateExtension = Omit<Extension, 'id' | 'date_created' | 'date_updated'>;
+export type UpdateExtension = Partial<
+  Omit<Extension, 'id' | 'contract_id' | 'date_created' | 'date_updated'>
 >;
 
-// ── Colección: adm_contracts ──────────────────────────────────────────────
 
-export interface Contrato {
+export interface Contract {
   id: number;
   contract_id?: string;
   numero_contrato?: string;
   empleado_id?: number;
   first_name: string;
+  middle_name?: string;
   last_name: string;
+  second_last_name?: string;
   position: string | number;
   contract_type?: string;
   department?: string;
   empleado_area?: string;
   empresa?: string;
   status: RequestStatus;
-  extensions?: Prorroga[];
+  extensions?: Extension[];
   date_created?: string;
   document: string;
   prorroga?: boolean | string;
   duracion?: string | number;
-  start_date: string; // YYYY-MM-DD
-  end_date: string; // YYYY-MM-DD
+  start_date: string;
+  end_date: string;
   date_updated?: string;
 }
 
-export type CreateContrato = Omit<
-  Contrato,
+export type CreateContract = Omit<
+  Contract,
   "id" | "date_created" | "date_updated"
 >;
-export type UpdateContrato = Partial<CreateContrato>;
+export type UpdateContract = Partial<CreateContract>;
 
-// ── Estadísticas ──────────────────────────────────────────────────────────
-
-export interface ContratoStats {
+export interface ContractStats {
   total: number;
   vigentes: number;
   proximos: number;
@@ -92,9 +86,8 @@ export interface DashboardStats {
   nuevos_este_mes: number;
 }
 
-// ── Filtros ───────────────────────────────────────────────────────────────
 
-export interface ContratoFilters {
+export interface ContractFilters {
   search?: string;
   status?: RequestStatus[];
   department?: string;
@@ -107,8 +100,6 @@ export interface UIFilters {
   sortBy: 'vencimiento' | 'nombre' | 'prorroga';
   contractStatus?: ContractStatus | 'todos';
 }
-
-// ── Paginación ────────────────────────────────────────────────────────────
 
 export interface PaginationParams {
   page: number;
@@ -124,15 +115,11 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-// ── Payloads ──────────────────────────────────────────────────────────────
-
-export interface CreateProrrogaPayload {
+export interface CreateExtensionPayload {
   contractId: number;
   fechaInicio: string;
   descripcion?: string;
 }
-
-// ── Empleados ─────────────────────────────────────────────────────────────
 
 export interface Employee {
   id: number;
@@ -143,15 +130,13 @@ export interface Employee {
   empresa?: string;
 }
 
-// ── Historial de Cargos — adm_position_history ────────────────────────────
-
-export interface HistorialCargo {
+export interface PositionHistory {
   id: number;
   contract_id: number;
   previous_position: string | number;
   new_position: string | number;
-  effective_date: string; // YYYY-MM-DD
+  effective_date: string;
   date_created?: string;
 }
 
-export type CreateHistorialCargo = Omit<HistorialCargo, 'id' | 'date_created'>;
+export type CreatePositionHistory = Omit<PositionHistory, 'id' | 'date_created'>;

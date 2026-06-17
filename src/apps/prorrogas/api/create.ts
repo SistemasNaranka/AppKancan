@@ -2,14 +2,14 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { createItem, updateItem, deleteItem, readItems } from "@directus/sdk";
 import type {
-  Contrato,
-  CreateContrato,
-  UpdateContrato,
-  Prorroga,
-  CreateProrroga,
-  UpdateProrroga,
+  Contract,
+  CreateContract,
+  UpdateContract,
+  Extension,
+  CreateExtension,
+  UpdateExtension,
 } from "../types/types";
-import { addMonths, getProrrogaDuration, toLocalDateStr } from "../lib/utils";
+import { addMonths, getExtensionDuration, toLocalDateStr } from "../lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTRATOS
@@ -19,7 +19,7 @@ import { addMonths, getProrrogaDuration, toLocalDateStr } from "../lib/utils";
  * Crea un nuevo contrato en Directus.
  * El status se inicializa en "pendiente" si no se provee.
  */
-export async function crearContrato(data: CreateContrato): Promise<Contrato | null> {
+export async function createContract(data: CreateContract): Promise<Contract | null> {
   try {
     // adm_contracts.position es FK a core_positions. Resolver nombre → id si llega como string.
     let cargoFk: any = data.position;
@@ -48,7 +48,7 @@ export async function crearContrato(data: CreateContrato): Promise<Contrato | nu
       directus.request(createItem("adm_contracts", payload))
     );
 
-    return result as Contrato;
+    return result as Contract;
   } catch (error) {
     console.error("❌ Error al crear contrato:", error);
     return null;
@@ -58,10 +58,10 @@ export async function crearContrato(data: CreateContrato): Promise<Contrato | nu
 /**
  * Actualiza un contrato existente por su ID.
  */
-export async function actualizarContrato(
+export async function updateContract(
   id: number,
-  updates: UpdateContrato
-): Promise<Contrato | null> {
+  updates: UpdateContract
+): Promise<Contract | null> {
   try {
     // Si position viene como string nombre, resolver a FK core_positions.
     let payload: any = { ...updates };
@@ -84,7 +84,7 @@ export async function actualizarContrato(
       directus.request(updateItem("adm_contracts", id, payload))
     );
 
-    return result as Contrato;
+    return result as Contract;
   } catch (error) {
     console.error(`❌ Error al actualizar contrato ${id}:`, error);
     return null;
@@ -94,7 +94,7 @@ export async function actualizarContrato(
 /**
  * Elimina un contrato por su ID.
  */
-export async function eliminarContrato(id: number): Promise<boolean> {
+export async function deleteContract(id: number): Promise<boolean> {
   try {
     await withAutoRefresh(() =>
       directus.request(deleteItem("adm_contracts", id))
@@ -109,11 +109,11 @@ export async function eliminarContrato(id: number): Promise<boolean> {
 /**
  * Cambia solo el status de un contrato.
  */
-export async function cambiarRequestStatus(
+export async function changeRequestStatus(
   id: number,
-  status: Contrato["status"]
-): Promise<Contrato | null> {
-  return actualizarContrato(id, { status });
+  status: Contract["status"]
+): Promise<Contract | null> {
+  return updateContract(id, { status });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,22 +127,22 @@ export async function cambiarRequestStatus(
  *   - Prórrogas 0 a 3  → 4 meses
  *   - Prórroga 4 en adelante → 12 meses
  */
-export async function crearProrroga(
+export async function createExtension(
   data: {
     contrato_id: number;
     numero: number;
     fecha_inicio: string;
     descripcion?: string;
   }
-): Promise<Prorroga | null> {
+): Promise<Extension | null> {
   try {
     // Regla de duración: prórrogas 0-3 →  4 meses, prórrogas 4+ → 12 meses
-    const duracion_meses = getProrrogaDuration(data.numero);
+    const duracion_meses = getExtensionDuration(data.numero);
 
     // Regla de fecha fin: fecha_inicio + N meses - 1 día
     const fecha_final = addMonths(data.fecha_inicio, duracion_meses);
 
-    const payload: CreateProrroga = {
+    const payload: CreateExtension = {
       contract_id:      data.contrato_id,
       extension_number: data.numero,
       label:            data.numero === 0 ? "Contrato Inicial" : `Prórroga ${data.numero}`,
@@ -158,7 +158,7 @@ export async function crearProrroga(
       directus.request(createItem("adm_extensions", payload))
     );
 
-    return result as Prorroga;
+    return result as Extension;
   } catch (error) {
     console.error("❌ Error al crear prórroga:", error);
     return null;
@@ -170,15 +170,15 @@ export async function crearProrroga(
  * Si se actualiza start_date, recalcula end_date y duration.
  * También actualiza el end_date del contrato asociado.
  */
-export async function actualizarProrroga(
+export async function updateExtension(
   id: number,
-  updates: UpdateProrroga & { extension_number?: number; contract_id?: number }
-): Promise<Prorroga | null> {
+  updates: UpdateExtension & { extension_number?: number; contract_id?: number }
+): Promise<Extension | null> {
   try {
-    let payload: UpdateProrroga = { ...updates };
+    let payload: UpdateExtension = { ...updates };
 
     if (updates.start_date && updates.extension_number !== undefined) {
-      const duracion_meses = getProrrogaDuration(updates.extension_number);
+      const duracion_meses = getExtensionDuration(updates.extension_number);
       const fechaInicioStr = updates.start_date instanceof Date
         ? toLocalDateStr(updates.start_date)
         : updates.start_date;
@@ -197,16 +197,16 @@ export async function actualizarProrroga(
     // 2. Si se actualizó end_date Y sabemos a qué contrato pertenece,
     // hacemos una llamada separada y segura para actualizar el contrato.
     if (payload.end_date) {
-       const contratoId = updates.contract_id || (result as Prorroga).contract_id;
+       const contractId = updates.contract_id || (result as Extension).contract_id;
 
-       if (contratoId) {
+       if (contractId) {
           await withAutoRefresh(() =>
-             directus.request(updateItem("adm_contracts", contratoId, { end_date: payload.end_date }))
+             directus.request(updateItem("adm_contracts", contractId, { end_date: payload.end_date }))
           );
        }
     }
 
-    return result as Prorroga;
+    return result as Extension;
   } catch (error) {
     console.error(`❌ Error al actualizar prorroga ${id}:`, error);
     return null;
@@ -216,7 +216,7 @@ export async function actualizarProrroga(
 /**
  * Elimina una prórroga por su ID.
  */
-export async function eliminarProrroga(id: number): Promise<boolean> {
+export async function deleteExtension(id: number): Promise<boolean> {
   try {
     await withAutoRefresh(() =>
       directus.request(deleteItem("adm_extensions", id))
@@ -232,7 +232,7 @@ export async function eliminarProrroga(id: number): Promise<boolean> {
 // HISTORIAL DE CARGOS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function crearHistorialCargo(data: {
+export async function createPositionHistory(data: {
   contrato_id: number;
   cargo_anterior: string | number;
   cargo_nuevo: string | number;
@@ -275,8 +275,8 @@ export async function crearHistorialCargo(data: {
     const updates: any = { position: cargoFk };
     if (nueva_area) updates.department = nueva_area;
 
-    const updated = await actualizarContrato(contrato_id, updates);
-    if (!updated) throw new Error("actualizarContrato devolvió null");
+    const updated = await updateContract(contrato_id, updates);
+    if (!updated) throw new Error("updateContract devolvió null");
 
     return true;
   } catch (error) {

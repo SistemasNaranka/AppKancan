@@ -1,4 +1,3 @@
-// src/apps/contactos/components/AddContactModal.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -54,7 +53,6 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
     if (field === 'phone_number') {
       setForm((prev) => ({ ...prev, [field]: value.replace(/[^0-9+\s]/g, '') }));
     } else if (field === 'full_name') {
-      // Bloquea números en el nombre completo
       setForm((prev) => ({ ...prev, [field]: value.replace(/[0-9]/g, '') }));
     } else {
       setForm((prev) => ({ ...prev, [field]: value }));

@@ -1,8 +1,7 @@
 // src/apps/reservas/pages/home.tsx
 
 import React from "react";
-import { Box, Typography } from "@mui/material";
-import CalendarIcon from '@mui/icons-material/CalendarMonth';
+import { Box } from "@mui/material";
 import ReservasView from "../views/ReservasView";
 
 const Home: React.FC = () => {

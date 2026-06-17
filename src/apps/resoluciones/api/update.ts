@@ -2,9 +2,6 @@ import directus from "@/services/directus/directus";
 import { updateItem } from "@directus/sdk";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
-/**
- * Actualizar el estado de una resolución en la base de datos de Directus.
- */
 export async function updateResolutionStatus(id: number, status: string) {
   try {
     const updated = await withAutoRefresh(() =>

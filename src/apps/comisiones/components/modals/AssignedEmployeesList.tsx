@@ -150,7 +150,7 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
         }}
       >
         {empleadosAsignados
-          .sort((a, b) => a.asesor.id - b.asesor.id) // Ordenar por código de menor a mayor
+          .sort((a, b) => a.asesor.id - b.asesor.id)
           .map((empleado, index) => (
             <Box
               key={`empleado-${empleado.asesor.id}-${index}`}
@@ -223,7 +223,7 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
                   sx={{
                     fontWeight: 600,
                     color: theme.palette.grey[900],
-                    fontSize: "0.9rem", // MÁS GRANDE
+                    fontSize: "0.9rem",
                     lineHeight: 1.2,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -242,8 +242,8 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
                     backgroundColor: alpha(theme.palette.success.main, 0.1),
                     color: theme.palette.success.dark,
                     fontWeight: 500,
-                    fontSize: "0.8rem", // MÁS GRANDE
-                    height: 22, // MÁS ALTO
+                    fontSize: "0.8rem",
+                    height: 22,
                     alignSelf: "flex-start",
                     "& .MuiChip-label": {
                       px: 0.75,
@@ -267,8 +267,8 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
                       backgroundColor: alpha(theme.palette.primary.main, 0.1),
                       color: theme.palette.primary.dark,
                       fontWeight: 500,
-                      fontSize: "0.8rem", // MÁS GRANDE
-                      height: 20, // MÁS ALTO
+                      fontSize: "0.8rem",
+                      height: 20,
                       "& .MuiChip-label": {
                         px: 0.75,
                         lineHeight: 1,
@@ -281,7 +281,7 @@ export const AssignedEmployeesList: React.FC<AssignedEmployeesListProps> = ({
                     sx={{
                       color: theme.palette.success.dark,
                       fontWeight: 700,
-                      fontSize: "0.9rem", // MÁS GRANDE
+                      fontSize: "0.9rem",
                       display: "flex",
                       alignItems: "center",
                       lineHeight: 1,

@@ -52,7 +52,7 @@ export async function createNovedades(items: {
 
 export async function createTimeRecord(data: {
   employee_id: number;
-  store_id: number;
+  store_id?: number;
   log_type: string;
   record_date: string;
   record_time: string;

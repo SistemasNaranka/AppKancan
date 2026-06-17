@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchTimeRecords, TimeRecord } from '../api/directus/read';
+import { fetchTimeRecords, getStoreIdUsuarioActual, TimeRecord } from '../api/directus/read';
 import { HistorialRow } from '../interfaces/horarios.interface';
 
 const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
@@ -46,10 +46,17 @@ const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
 };
 
 export const useHistorial = (fechaInicio?: string, fechaFin?: string) => {
+  const { data: storeId = null } = useQuery<number | null>({
+    queryKey: ['horariosStoreId'],
+    queryFn: getStoreIdUsuarioActual,
+    staleTime: 30 * 60 * 1000,
+  });
+
   return useQuery({
-    queryKey: ['historial', fechaInicio, fechaFin],
-    queryFn: () => fetchTimeRecords(fechaInicio, fechaFin),
+    queryKey: ['historial', storeId, fechaInicio, fechaFin],
+    queryFn: () => fetchTimeRecords(fechaInicio, fechaFin, storeId ?? undefined),
     select: (data) => agruparRegistros(data),
+    enabled: storeId != null,
     staleTime: 1000 * 60 * 5,
   });
 };

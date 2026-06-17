@@ -63,27 +63,23 @@ export const useEditStoreBudgetModalLogic = ({
     localStorage.setItem("modalFecha", fecha);
   }, [fecha]);
 
-  // ✅ NUEVO: Buscar empleado automáticamente cuando cambia el código
   useEffect(() => {
     if (!codigoEmpleado || codigoEmpleado.length < 1) {
       setEmpleadoEncontrado(null);
       return;
     }
 
-    // Limpiar errores previos al buscar
     if (error && error.includes("no existe")) setError("");
 
     const cleanCodigo = codigoEmpleado.trim();
     const codigoNum = parseInt(cleanCodigo);
 
-    // Búsqueda por ID exacto solamente
     const asesor = todosEmpleados.find(
       (a: any) => String(a.id) === String(codigoEmpleado),
     );
 
     setEmpleadoEncontrado(asesor || null);
 
-    // ✅ NUEVO: Avisar si el código no existe (cuando tiene 4 dígitos)
     if (codigoEmpleado.length === 4 && !asesor) {
       setError(`⚠️ El código ${codigoEmpleado} no existe en la base de datos.`);
     }
@@ -109,7 +105,6 @@ export const useEditStoreBudgetModalLogic = ({
       setTodosEmpleados(eData);
       setCargos(cData);
 
-      // ✅ NUEVO: Auto-selección para tienda única
       if (sortedTiendas.length === 1 && !tiendaId) {
         setTiendaId(Number(sortedTiendas[0].id));
         setTiendaNombre(sortedTiendas[0].name);
@@ -154,7 +149,6 @@ export const useEditStoreBudgetModalLogic = ({
   };
 
   const handleAgregarEmpleado = async () => {
-    // ✅ Validaciones con mensajes claros
     if (!tiendaId) {
       setError("Debe seleccionar una tienda primero.");
       return;
@@ -185,7 +179,7 @@ export const useEditStoreBudgetModalLogic = ({
     const nuevoEmpleado = {
       id: empleadoEncontrado.id,
       nombre: empleadoEncontrado.name,
-      codigo: empleadoEncontrado.id, // Usar ID como código para consistencia
+      codigo: empleadoEncontrado.id,
       cargo_id: cargoSeleccionado,
       cargo_nombre: cargoDoc?.name || "Asesor",
       presupuesto: 0,
@@ -201,7 +195,7 @@ export const useEditStoreBudgetModalLogic = ({
       setEmpleadosAsignados(empleados);
       setEmpleadoEncontrado(null);
       setCodigoEmpleado("");
-      setError(""); // Limpiar error al agregar con éxito
+      setError("");
     } catch (err) {
       console.error("Error al agregar:", err);
       setError("Error al procesar la asignación.");
@@ -243,8 +237,6 @@ export const useEditStoreBudgetModalLogic = ({
     const diasAGuardar = selectedDays.length > 0 ? selectedDays : [fecha];
     try {
       setLoading(true);
-
-      // Validar si existe presupuesto mensual/diario configurado
       const fechaObj = dayjs(fecha);
       const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
       const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");

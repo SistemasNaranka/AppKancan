@@ -3,10 +3,6 @@ import Joyride, { CallBackProps, STATUS, TooltipRenderProps, Step } from "react-
 import { useNavigate } from "react-router-dom";
 import { useNotificationsTour } from "./NotificationsTourContext";
 
-// ── Pasos ───────────────────────────────────────────────────────────────────
-// Cada paso define su propio spotlight borderRadius para coincidir
-// con el border-radius real del elemento que apunta.
-
 const STEPS: Step[] = [
   {
     target: "#notif-header",
@@ -50,8 +46,6 @@ const STEPS: Step[] = [
     styles: { spotlight: { borderRadius: 16 } },
   },
 ];
-
-// ── Tooltip personalizado ───────────────────────────────────────────────────
 
 function CustomTooltip({
   continuous,
@@ -144,8 +138,6 @@ function CustomTooltip({
   );
 }
 
-// ── Componente principal ────────────────────────────────────────────────────
-
 export default function NotificationsTour() {
   const { isRunning, stopTour } = useNotificationsTour();
   const navigate = useNavigate();
@@ -154,17 +146,12 @@ export default function NotificationsTour() {
     const { status } = data;
     if (status === STATUS.FINISHED) {
       stopTour();
-      // Encadena con el tour de "Crear Notificación"
       navigate("/notificaciones/crear?tour=start");
     } else if (status === STATUS.SKIPPED) {
       stopTour();
     }
   };
 
-  // Solo montamos Joyride mientras el tour está activo.
-  // Evita el error "Failed to execute 'removeChild' on 'Node'" que se
-  // produce cuando el spotlight/portal de Joyride se monta apuntando a un
-  // elemento dentro de un contenedor sticky y luego intenta limpiarse.
   if (!isRunning) return null;
 
   return (
@@ -177,7 +164,6 @@ export default function NotificationsTour() {
       scrollToFirstStep
       disableScrolling={false}
       disableScrollParentFix
-      // Offset para compensar el header sticky (~88px) más margen visual
       scrollOffset={100}
       tooltipComponent={CustomTooltip}
       callback={handleCallback}

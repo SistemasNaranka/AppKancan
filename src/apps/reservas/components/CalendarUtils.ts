@@ -1,7 +1,6 @@
 import { 
-  format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays 
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays 
 } from "date-fns";
-import { Reserva } from "../types/reservas.types";
 
 export const MESES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -10,14 +9,14 @@ export const MESES = [
 
 export const AÑOS = Array.from({ length: 7 }, (_, i) => 2024 + i);
 
-export const formatearHora = (hora: string) => hora.substring(0, 5);
+export const formatTime = (hora: string) => hora.substring(0, 5);
 
-export const truncarTexto = (texto: string, limite: number) => {
+export const truncateText = (texto: string, limite: number) => {
   if (!texto) return "";
   return texto.length > limite ? texto.slice(0, limite) + "..." : texto;
 };
 
-export const generarDiasCalendario = (fechaActual: Date, mostrarFinesSemana: boolean) => {
+export const generateCalendarDays = (fechaActual: Date, mostrarFinesSemana: boolean) => {
   const inicioMes = startOfMonth(fechaActual);
   const finMes = endOfMonth(fechaActual);
   const inicioCalendario = startOfWeek(inicioMes, { weekStartsOn: mostrarFinesSemana ? 0 : 1 });

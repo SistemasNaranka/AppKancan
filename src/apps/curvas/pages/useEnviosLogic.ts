@@ -1,6 +1,3 @@
-// ============================================
-// CUSTOM HOOKS PARA ENVIOSPAGE
-// ============================================
 
 import { useEffect, useRef, useCallback, useMemo } from "react";
 import {
@@ -12,9 +9,6 @@ import {
 
 
 
-// ─────────────────────────────────────────────
-// useEnviosKeyboard - Manejo de teclado/escáner
-// ─────────────────────────────────────────────
 interface UseEnviosKeyboardProps {
   current: any | undefined;
   activeCell: { filaId: string; col: string; sheetId: string } | null;
@@ -63,7 +57,6 @@ export const useEnviosKeyboard = ({
   const autoCursorRef = useRef<{ filaId: string; col: string } | null>(null);
   const activeCellRef = useRef<typeof activeCell>(activeCell);
 
-  // Sync activeCell ref
   useEffect(() => {
     activeCellRef.current = activeCell;
 
@@ -77,7 +70,6 @@ export const useEnviosKeyboard = ({
         user,
       );
       
-      // Only focus if the row is locked by current user
       if (isLockedByMe) {
         const cellElement = document.getElementById(
           `cell-${activeCell.filaId}-${activeCell.col}`,
@@ -90,20 +82,16 @@ export const useEnviosKeyboard = ({
     }
   }, [activeCell, current, bloqueosActivos, user, extractRef]);
 
-  // Auto-cursor initialization when sheet changes
   useEffect(() => {
     if (current && current.sheet.id && current.sheet.filas.length > 0) {
-      // Usar un ID único para la hoja para detectar cambios reales de pestaña
       const currentSheetId = String(current.sheet.id);
       const prevSheetId = activeCellRef.current?.sheetId;
 
-      // SOLO inicializar si no hay una celda activa O si realmente cambiamos de hoja (ID distinto)
       if (!activeCellRef.current || String(prevSheetId) !== currentSheetId) {
         const currentRef = extractRef(current.sheet);
         let targetFilaId = null;
         let targetCol = current.columns[0];
 
-        // Find first unlocked row
         for (const fila of current.sheet.filas) {
           const rowLock = bloqueosActivos?.find(
             (b: any) =>
@@ -145,10 +133,8 @@ export const useEnviosKeyboard = ({
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.sheet?.id]); // Solo disparar cuando cambia el ID de la hoja
+  }, [current?.sheet?.id]);
 
-  // Main keyboard handler
   useEffect(() => {
     const handleGlobalKeyDown = (e: any) => {
 
@@ -160,7 +146,6 @@ export const useEnviosKeyboard = ({
 
       const currentRef = extractRef(current.sheet);
 
-      // Check if current cell is locked by current user
       const isCurrentCellLockedByMe = checkIsLockedByMe(
         currentActiveCell.filaId,
         current.sheet.filas,
@@ -169,7 +154,6 @@ export const useEnviosKeyboard = ({
         user,
       );
 
-      // Si no está bloqueado por ti, ignorar teclas de navegación (excepto Enter para escaneo)
       const isNavigationKey =
         e.key === "ArrowUp" ||
         e.key === "ArrowDown" ||
@@ -182,7 +166,6 @@ export const useEnviosKeyboard = ({
       const isRapidInput = timeSinceLastKey < 150;
       const shiftPressed = e.shiftKey;
 
-      // Scanner input handling
       if (e.key === "Enter" || e.key === "Tab") {
         const scannedCode = bufferRef.current.trim();
 
@@ -192,14 +175,12 @@ export const useEnviosKeyboard = ({
           const codeWithoutLeadingZeros = scannedCode.replace(/^0+/, "");
           const extractedRef = codeWithoutLeadingZeros.substring(0, 5);
 
-           // Solo validar códigos que pertenezcan a la referencia actual
            const currentEntry = confirmedEntries[safeIndex];
            const currentEntryRef =
              (currentEntry.sheet as any).referencia || currentEntry.sheet.nombreHoja || "";
            const currentRefClean = cleanRefStr(currentEntryRef);
 
 
-           // Verificar si el código pertenece a la referencia actual
            const belongsToCurrentRef =
              extractedRef === currentRefClean ||
              codeWithoutLeadingZeros.includes(currentRefClean) ||
@@ -207,7 +188,6 @@ export const useEnviosKeyboard = ({
 
 
            if (!belongsToCurrentRef) {
-             // Código pertenece a otra referencia - rechazar
              playBeep("error");
              setSnackbar({
                open: true,
@@ -244,20 +224,15 @@ export const useEnviosKeyboard = ({
 
           const targetCol = String(currentActiveCell.col);
 
-           // Validar que el código contenga la talla correcta después de la referencia
-           // Formato esperado: REFERENCIA(5) + TALLA(2) + EXTRA
-           const expectedTalla = targetCol.padStart(2, '0'); // Siempre 2 dígitos: "01", "03", "10"
+           const expectedTalla = targetCol.padStart(2, '0');
 
 
-           // Extraer parte después de la referencia (posiciones 6+)
            const codeAfterReference = codeWithoutLeadingZeros.substring(5);
 
 
-           // Extraer talla del código (primeros 2 dígitos después de referencia)
            const codeTalla = codeAfterReference.substring(0, 2);
 
 
-           // Verificar si coincide con la talla esperada
            if (codeTalla !== expectedTalla) {
              playBeep("error");
              setSnackbar({
@@ -315,7 +290,6 @@ export const useEnviosKeyboard = ({
           lastKeyTimeRef.current = now;
           return;
         } else {
-          // Referencia no encontrada en lotes activos
 
           playBeep("error");
           setSnackbar({
@@ -330,7 +304,6 @@ export const useEnviosKeyboard = ({
         return;
       }
 
-      // Accumulate potential scanner input
       if (
         e.key.length === 1 &&
         !e.ctrlKey &&
@@ -353,7 +326,6 @@ export const useEnviosKeyboard = ({
         return;
       }
 
-      // Navigation keys
       if (
         [
           "ArrowDown",
@@ -464,7 +436,6 @@ export const useEnviosKeyboard = ({
           let nextFilaObj = filas.find(
             (f: any) => String(f.id) === String(nextFilaId),
           );
-          // Skip if locked by other
           while (
             nextFilaObj &&
             checkIsLockedByOther(
@@ -507,7 +478,6 @@ export const useEnviosKeyboard = ({
         }
       }
 
-      // Clear buffer on Escape
       if (e.key === "Escape") {
         bufferRef.current = "";
         lastKeyTimeRef.current = now;
@@ -539,9 +509,6 @@ export const useEnviosKeyboard = ({
   };
 };
 
-// ─────────────────────────────────────────────
-// useEnviosValidation - Validaciones y totales
-// ─────────────────────────────────────────────
 interface UseEnviosValidationProps {
   current: any | undefined;
   validationData: Record<string, any>;
@@ -561,7 +528,6 @@ export const useEnviosValidation = ({
       totals[col] = 0;
       current.sheet.filas.forEach((fila: any) => {
         const rawVal = currentSheetValidation[fila.id]?.[col];
-        // Soporta número directo o objeto {cantidad, barcodes}
         const val =
           typeof rawVal === "object" ? rawVal?.cantidad || 0 : rawVal || 0;
         totals[col] += val;

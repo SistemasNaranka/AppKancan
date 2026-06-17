@@ -15,12 +15,12 @@ import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PersonIcon from '@mui/icons-material/Person';
-import { useContracts, EnrichedContrato } from '../hooks/useContracts';
+import { useContracts, EnrichedContract } from '../hooks/useContracts';
 import { useContractContext } from '../contexts/ContractContext';
 import { ContratoForm } from './ContratoForm';
-import { CreateContrato, Contrato, Prorroga } from '../types/types';
+import { CreateContract, Contract, Extension } from '../types/types';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 
-// ─── Constantes ───────────────────────────────────────────────────────────────
 const CARD_RADIUS = 14;
 
 const STATUS_CFG = {
@@ -36,7 +36,6 @@ function initials(name: string) {
   return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
 }
 
-// ─── Status Chip ──────────────────────────────────────────────────────────────
 const StatusChip: React.FC<{ status: keyof typeof STATUS_CFG }> = ({ status }) => {
   const cfg = STATUS_CFG[status];
   return (
@@ -49,7 +48,6 @@ const StatusChip: React.FC<{ status: keyof typeof STATUS_CFG }> = ({ status }) =
   );
 };
 
-// ─── Prorroga Chip ────────────────────────────────────────────────────────────
 const ProrrogaChip: React.FC<{ numero: number }> = ({ numero }) => (
   <Chip
     label={numero === 0 ? 'Original' : `Prórroga #${numero}`}
@@ -65,7 +63,6 @@ const ProrrogaChip: React.FC<{ numero: number }> = ({ numero }) => (
   />
 );
 
-// ─── Sort Header Cell ─────────────────────────────────────────────────────────
 const SortCell: React.FC<{
   label: string;
   field: SortKey;
@@ -94,31 +91,30 @@ const SortCell: React.FC<{
   </TableCell>
 );
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 const ContractsView: React.FC = () => {
   const { allEnriched, counts } = useContracts();
-  const { addContrato, updateContrato, deleteContrato } = useContractContext();
+  const { addContract, updateContract, deleteContract } = useContractContext();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<FilterTab>('todos');
   const [sortKey, setSortKey] = useState<SortKey>('vencimiento');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingContract, setEditingContract] = useState<Contrato | null>(null);
+  const [editingContract, setEditingContract] = useState<Contract | null>(null);
 
-  const handleCreateContrato = async (data: CreateContrato) => {
-    await addContrato(data);
+  const handleCreateContract = async (data: CreateContract) => {
+    await addContract(data);
   };
 
-  const handleUpdateContrato = async (data: CreateContrato) => {
+  const handleUpdateContract = async (data: CreateContract) => {
     if (editingContract) {
-      await updateContrato(editingContract.id, data);
+      await updateContract(editingContract.id, data);
       setEditingContract(null);
     }
   };
 
-  const handleDeleteContrato = async (id: number) => {
+  const handleDeleteContract = async (id: number) => {
     if (window.confirm('¿Está seguro de que desea eliminar este contrato?')) {
-      await deleteContrato(id);
+      await deleteContract(id);
     }
   };
 
@@ -134,7 +130,7 @@ const ContractsView: React.FC = () => {
         if (tab !== 'todos' && c.contractStatus !== tab) return false;
         if (!q) return true;
         return (
-          c.first_name.toLowerCase().includes(q) ||
+          formatNombreCompleto(c).toLowerCase().includes(q) ||
           String(c.position).toLowerCase().includes(q) ||
           (c.empleado_area?.toLowerCase() ?? '').includes(q) ||
           String(c.id).includes(q)
@@ -143,7 +139,7 @@ const ContractsView: React.FC = () => {
       .sort((a, b) => {
         let cmp = 0;
         if (sortKey === 'vencimiento') cmp = a.daysLeft - b.daysLeft;
-        if (sortKey === 'nombre') cmp = a.first_name.localeCompare(b.first_name);
+        if (sortKey === 'nombre') cmp = formatNombreCompleto(a).localeCompare(formatNombreCompleto(b));
         if (sortKey === 'prorroga') cmp = (b.extensions?.length ?? 0) - (a.extensions?.length ?? 0);
         return sortDir === 'asc' ? cmp : -cmp;
       });
@@ -167,7 +163,7 @@ const ContractsView: React.FC = () => {
                 Lista de Contratos
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {counts.total} contratos en total
+                {counts.total} contracts en total
               </Typography>
             </Box>
             <Button
@@ -242,7 +238,7 @@ const ContractsView: React.FC = () => {
           {/* Sub-header */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Typography variant="caption" color="text.secondary">
-              Mostrando <strong>{filtered.length}</strong> de <strong>{counts.total}</strong> contratos
+              Mostrando <strong>{filtered.length}</strong> de <strong>{counts.total}</strong> contracts
               {sortKey === 'vencimiento' && ' | Ordenado por fecha de vencimiento'}
             </Typography>
           </Box>
@@ -276,7 +272,7 @@ const ContractsView: React.FC = () => {
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                       <Typography variant="body2" color="text.secondary">
-                        No se encontraron contratos con los filtros actuales.
+                        No se encontraron contracts con los filtros actuales.
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -306,7 +302,7 @@ const ContractsView: React.FC = () => {
                           </Avatar>
                           <Box>
                             <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.83rem', lineHeight: 1.3 }}>
-                              {c.first_name}
+                              {formatNombreCompleto(c)}
                             </Typography>
                             <Typography variant="caption" color="text.disabled">
                               {c.empleado_area}
@@ -324,14 +320,14 @@ const ContractsView: React.FC = () => {
 
                       {/* Nº Prórroga */}
                       <TableCell>
-                        <ProrrogaChip numero={c.lastProrroga?.extension_number ?? 0} />
+                        <ProrrogaChip numero={c.lastExtension?.extension_number ?? 0} />
                       </TableCell>
 
                       {/* Fecha Inicio */}
                       <TableCell>
                         <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                          {c.lastProrroga && c.lastProrroga.start_date
-                            ? new Date(c.lastProrroga.start_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+                          {c.lastExtension && c.lastExtension.start_date
+                            ? new Date(c.lastExtension.start_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
                             : '—'}
                         </Typography>
                       </TableCell>
@@ -346,8 +342,8 @@ const ContractsView: React.FC = () => {
                             color: st === 'vencido' ? '#dc2626' : st === 'proximo' ? '#d97706' : '#1e293b',
                           }}
                         >
-                          {c.lastProrroga && c.lastProrroga.end_date
-                            ? new Date(c.lastProrroga.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+                          {c.lastExtension && c.lastExtension.end_date
+                            ? new Date(c.lastExtension.end_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
                             : '—'}
                         </Typography>
                         <Typography
@@ -396,13 +392,13 @@ const ContractsView: React.FC = () => {
       <ContratoForm
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={handleCreateContrato}
+        onSubmit={handleCreateContract}
       />
       {/* Modal para editar contrato */}
       <ContratoForm
         open={!!editingContract}
         onClose={() => setEditingContract(null)}
-        onSubmit={handleUpdateContrato}
+        onSubmit={handleUpdateContract}
         initialData={editingContract ?? undefined}
       />
     </Box>

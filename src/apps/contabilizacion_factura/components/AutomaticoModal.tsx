@@ -45,7 +45,7 @@ export function AutomaticModal({
         setErrorStr("");
         try {
             await onConfirm(automaticoStr.trim());
-            setAutomaticoStr(""); // Reset
+            setAutomaticoStr("");
         } catch (err) {
             setErrorStr("Hubo un error al guardar el registro. Intenta de nuevo.");
         } finally {
@@ -67,7 +67,7 @@ export function AutomaticModal({
             <DialogContent>
     <Box 
         sx={{ mb: 2, mt: 1 }} 
-        className="tour-automatico-modal" // <--- Clase movida aquí para que el spotlight la encuentre
+        className="tour-automatico-modal"
     >
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             El NIT <strong>{getNitSinDv(nit || "")}</strong>{nit && getNitSinDv(nit) !== nit ? ` (completo: ${nit})` : ""} no tiene número asignado.

@@ -1,4 +1,3 @@
-// useEmployeeOperations.ts (Versión Mejorada)
 import { useState, useEffect, useRef, useMemo } from "react";
 import dayjs from "dayjs";
 import { DirectusStaff, DirectusPosition, DirectusTienda, EmpleadoAsignado, ROLES_EXCLUSIVOS, RolExclusivo } from "../types/modal";
@@ -13,7 +12,6 @@ export const useEmployeeOperations = (
   tiendaUsuario: DirectusTienda | null,
   onAssignmentComplete?: (ventasData: any[]) => void
 ) => {
-  // --- ESTADOS ---
   const [codigoInput, setCodigoInput] = useState("");
   const [cargoSeleccionado, setCargoSeleccionado] = useState("");
   const [empleadosAsignados, setEmpleadosAsignados] = useState<EmpleadoAsignado[]>([]);
@@ -31,7 +29,6 @@ export const useEmployeeOperations = (
   const codigoInputRef = useRef<HTMLInputElement>(null);
   const { recalculateBudgets } = useBudgetCalculations(tiendaUsuario?.id || "");
 
-  // ✅ NUEVO: Validación de roles mínimos requeridos
   const hasRequiredRoles = useMemo(() => {
     const hasManager = empleadosAsignados.some(e => {
       const r = e.cargoAsignado.toLowerCase();
@@ -41,7 +38,6 @@ export const useEmployeeOperations = (
     return hasManager && hasAsesor;
   }, [empleadosAsignados]);
 
-  // --- LOGICA DE VALIDACIÓN (Efectos) ---
   useEffect(() => {
     const newCanSave = hasRequiredRoles && empleadosAsignados.length > 0;
     if (canSave !== newCanSave) setCanSave(newCanSave);
@@ -54,7 +50,6 @@ export const useEmployeeOperations = (
     if (JSON.stringify(buttonConfig) !== JSON.stringify(newConfig)) setButtonConfig(newConfig);
   }, [empleadosAsignados, hasExistingData, canSave, buttonConfig, hasRequiredRoles]);
 
-  // --- DIRTY CHECK (useMemo) ---
   const hasChanges = useMemo(() => {
     if (empleadosOriginal.length === 0 && empleadosAsignados.length > 0) return true;
     if (empleadosOriginal.length !== empleadosAsignados.length) return true;
@@ -71,15 +66,12 @@ export const useEmployeeOperations = (
     return hasAddedOrRemoved || hasRoleChange;
   }, [empleadosAsignados, empleadosOriginal]);
 
-  // --- HANDLERS PRINCIPALES ---
 
-  // ✅ Función para cargar datos (Lógica original preservada)
   const cargarDatosExistentes = async (fecha: string, mes?: string, asesores?: DirectusStaff[], cargos?: DirectusPosition[]) => {
     if (!tiendaUsuario) return;
     try {
       setLoading(true);
 
-      // Validar si existe presupuesto configurado para el mes de la fecha
       const fechaObj = dayjs(fecha);
       const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
       const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");
@@ -121,7 +113,6 @@ export const useEmployeeOperations = (
           };
         });
 
-        // ✅ DISTRIBUCIÓN AUTOMÁTICA: Si todos los presupuestos son 0, recalculamos
         const totalPresupuesto = mapeados.reduce((sum, e) => sum + e.presupuesto, 0);
         if (totalPresupuesto === 0 && mapeados.length > 0) {
           const { empleados: calculados } = await recalculateBudgets(
@@ -147,7 +138,6 @@ export const useEmployeeOperations = (
     } catch (e) { setError("Error al cargar datos"); } finally { setLoading(false); }
   };
 
-  // ✅ Función para agregar empleado con distribución de presupuesto
   const handleAddEmpleado = async (asesores: DirectusStaff[], cargos: DirectusPosition[], empleadoYaEncontrado?: DirectusStaff | null) => {
     if (!codigoInput.trim() || !cargoSeleccionado) {
       setError("Código y cargo son requeridos");
@@ -157,10 +147,6 @@ export const useEmployeeOperations = (
 
     const cleanCodigo = codigoInput.trim();
     const codigoNum = parseInt(cleanCodigo);
-    
-    // 1. Usar el empleado ya encontrado por el buscador si existe
-    // 2. Si no, buscarlo en la lista de forma flexible (id o documento, string o number)
-    // Búsqueda ESTRICTA por ID solamente
     const asesor = empleadoYaEncontrado || asesores.find(a => 
       String(a.id) === cleanCodigo
     );
@@ -171,14 +157,12 @@ export const useEmployeeOperations = (
       return;
     }
 
-    // Validar si ya está asignado
     if (empleadosAsignados.some(e => e.asesor.id === asesor.id)) {
       setError(`${asesor.name} ya está asignado`);
       setMessageType("warning");
       return;
     }
 
-    // Validar roles exclusivos
     const errorRol = validateExclusiveRoleHelper(cargoSeleccionado, asesor, empleadosAsignados);
     if (errorRol) {
       setError(errorRol);
@@ -197,9 +181,7 @@ export const useEmployeeOperations = (
     
     try {
       setLoading(true);
-      const fecha = getFechaActual(undefined); // O pasar la fecha actual desde props
-
-      // Validar si existe presupuesto diario de tienda configurado (> 0)
+      const fecha = getFechaActual(undefined);
       const presupuestosDiarios = await obtenerPresupuestosDiarios(
         tiendaUsuario!.id,
         fecha,
@@ -234,7 +216,6 @@ export const useEmployeeOperations = (
     }
   };
 
-  // ✅ Función para remover empleado y redistribuir
   const handleRemoveEmpleado = async (asesorId: number) => {
     const nuevaLista = empleadosAsignados.filter(e => e.asesor.id !== asesorId);
     
@@ -267,13 +248,11 @@ export const useEmployeeOperations = (
     }
   };
 
-  // ✅ Función de guardado (Lógica compleja de inserts/updates/deletes)
   const handleSaveAsignaciones = async (fecha: string, cargos: DirectusPosition[]) => {
     if (!canSave) return;
     try {
       setSaving(true);
 
-      // Validar si existe presupuesto mensual/diario configurado
       const fechaObj = dayjs(fecha);
       const startOfMonth = fechaObj.startOf("month").format("YYYY-MM-DD");
       const endOfMonth = fechaObj.endOf("month").format("YYYY-MM-DD");
@@ -327,7 +306,6 @@ export const useEmployeeOperations = (
     } catch (e) { setError("Error al guardar"); throw e; } finally { setSaving(false); }
   };
 
-  // ✅ Retorno del Hook
   return {
     codigoInput, setCodigoInput, cargoSeleccionado, setCargoSeleccionado, empleadosAsignados,
     loading, saving, error, success, messageType, canSave, hasExistingData, isUpdateMode, hasChanges,

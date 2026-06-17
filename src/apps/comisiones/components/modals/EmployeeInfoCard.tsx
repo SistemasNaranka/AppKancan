@@ -22,7 +22,6 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({
   const hasEmployeeInfo = codigoInput.trim() && empleadoEncontrado;
   const hasNoEmployee = codigoInput.trim() && !empleadoEncontrado;
 
-  // Don't show anything if no code is entered or if still loading
   if (!codigoInput.trim()) {
     return null;
   }
@@ -40,7 +39,7 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({
             : theme.palette.warning.main
         }`,
         borderRadius: 2,
-        p: 1.5, // Más padding para aprovechar mejor el espacio
+        p: 1.5,
         transition: "all 0.3s ease",
         display: "flex",
         alignItems: "center",
@@ -141,7 +140,7 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({
             sx={{
               color: theme.palette.warning.dark,
               fontWeight: 600,
-              fontSize: "1.1rem", // Letra más grande
+              fontSize: "1.1rem",
               lineHeight: 1.2,
               whiteSpace: "nowrap",
               overflow: "hidden",

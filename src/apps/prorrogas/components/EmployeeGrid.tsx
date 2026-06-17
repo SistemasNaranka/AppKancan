@@ -13,12 +13,13 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import PersonIcon from '@mui/icons-material/Person';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
+import { formatNombreCompleto } from '../lib/nombreCompleto';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import IconButton from '@mui/material/IconButton';
 import { useContracts } from '../hooks/useContracts';
 import { formatDate } from '../lib/utils';
-import { getCargoLabel } from '../config/cargos';
+import { getPositionLabel } from '../config/cargos';
 const avatarColors = ['#004680', '#0284c7', '#4338ca', '#059669', '#d97706', '#dc2626'];
 const avatarColor = (id: number) => avatarColors[id % avatarColors.length];
 
@@ -33,21 +34,18 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
   const [cargoFilter, setCargoFilter] = useState<string>('todos');
   const itemsPerPage = 12;
 
-  // Obtener cargos únicos y ordenados alfabéticamente
   const uniqueCargos = Array.from(
-    new Set(allEnriched.map((c) => getCargoLabel(c.position)))
+    new Set(allEnriched.map((c) => getPositionLabel(c.position)))
   ).sort((a, b) => a.localeCompare(b));
 
   const filteredEmployees = allEnriched.filter(c => {
     const statusMatch = statusFilter === 'todos' || c.contractStatus === statusFilter;
-    const cargoMatch = cargoFilter === 'todos' || getCargoLabel(c.position) === cargoFilter;
+    const cargoMatch = cargoFilter === 'todos' || getPositionLabel(c.position) === cargoFilter;
 
-    // Búsqueda global del TopBar
     const q = filters.search.toLowerCase().trim();
     const searchMatch = !q || (
-      c.first_name.toLowerCase().includes(q) ||
-      (c.last_name?.toLowerCase() ?? '').includes(q) ||
-      String(getCargoLabel(c.position)).toLowerCase().includes(q) ||
+      formatNombreCompleto(c).toLowerCase().includes(q) ||
+      String(getPositionLabel(c.position)).toLowerCase().includes(q) ||
       (c.department?.toLowerCase() ?? '').includes(q) ||
       (c.document?.toLowerCase() ?? '').includes(q) ||
       (c.empresa?.toLowerCase() ?? '').includes(q) ||
@@ -60,7 +58,6 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const rows = filteredEmployees.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  // Reset de paginación cuando cambia la búsqueda global
   useEffect(() => {
     setPage(1);
   }, [filters.search]);
@@ -139,11 +136,11 @@ const EmployeeGrid: React.FC<Props> = ({ onEditContract }) => {
                       <PersonIcon sx={{ color: 'rgba(255,255,255,0.9)' }} />
                     </Avatar>
                     <Box sx={{ overflow: 'hidden', pr: 8 }}>
-                      <Typography variant="subtitle2" fontWeight={700} noWrap title={`${emp.first_name} ${emp.last_name || ''}`.trim()}>
-                        {`${emp.first_name} ${emp.last_name || ''}`.trim()}
+                      <Typography variant="subtitle2" fontWeight={700} noWrap title={formatNombreCompleto(emp)}>
+                        {formatNombreCompleto(emp)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" noWrap>
-                        {getCargoLabel(emp.position)}
+                        {getPositionLabel(emp.position)}
                       </Typography>
                     </Box>
                     <Box sx={{ position: 'absolute', right: 0, top: 0, display: 'flex', gap: 0.5, alignItems: 'center' }}>

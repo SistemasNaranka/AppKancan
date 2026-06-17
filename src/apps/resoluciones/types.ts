@@ -1,11 +1,9 @@
-// Estado posible de una resolución
 export type StatusResolution =
   | "Vigente"
   | "Por vencer"
   | "Vencido"
   | "Pendiente";
 
-// Interfaz principal de una resolución
 export interface Resolution {
   id: number;
   id_ultra?: number;
@@ -24,5 +22,5 @@ export interface Resolution {
   ente_facturador: string;
   empresa: string;
   facturas_disponibles?: number;
-  facturas_restantes?: number; // hasta_numero - ultima_factura
+  facturas_restantes?: number;
 }

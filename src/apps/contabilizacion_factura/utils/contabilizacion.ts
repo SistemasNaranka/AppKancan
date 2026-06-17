@@ -1,11 +1,4 @@
-/**
- * Utilidades para el módulo de Contabilización de Facturas
- * Incluye constantes, configuración y función para ejecutar el programa corporativo
- */
-
 import { DatosFacturaPDF, EstadoProceso } from "../types";
-
-// ============ CONSTANTES ============
 
 export const ESTADO_CONFIG: Record<
   EstadoProceso,
@@ -19,9 +12,6 @@ export const ESTADO_CONFIG: Record<
   error: { label: "Error en el proceso", color: "error" },
 };
 
-// ============ CONFIGURACIÓN DEL EJECUTABLE ============
-
-// Protocolo URI registrado en Windows para la contabilización de facturas
 export const PROTOCOLO_EMPRESA = "empresa://";
 
 // ============ FUNCIÓN PARA EJECUTAR .EXE ============
@@ -78,10 +68,8 @@ export function executeContabilizarFactura(
 
   const params = new URLSearchParams(paramsObj);
 
-  // Construir el URI del protocolo con los parámetros
   const uri = `${PROTOCOLO_EMPRESA}actualizar?${params.toString()}`;
 
-  // Log para visualizar lo que se envía a la hora de causar
   console.log("=== ENVIANDO PARÁMETROS A CONTABILIZACIÓN DE FACTURA ===");
   console.log("1. Número factura sin prefijo (numero):", datosFactura.numeroSinPrefijo || datosFactura.numeroFactura);
   console.log("2. Fecha vencimiento (fechaVencimiento):", datosFactura.fechaVencimiento || "N/A");

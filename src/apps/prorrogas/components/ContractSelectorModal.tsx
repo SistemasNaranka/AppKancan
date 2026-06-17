@@ -20,6 +20,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
 import { useContracts } from "../hooks/useContracts";
+import { formatNombreCompleto } from "../lib/nombreCompleto";
 
 interface ContractSelectorModalProps {
   open: boolean;
@@ -37,13 +38,15 @@ const ContractSelectorModal: React.FC<ContractSelectorModalProps> = ({
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    if (!q) return allEnriched.slice(0, 50); // Show recent 50 when empty
+    if (!q) return allEnriched.slice(0, 50);
 
     return allEnriched
       .filter((c) => {
         return (
           (c.first_name && c.first_name.toLowerCase().includes(q)) ||
+          (c.middle_name && c.middle_name.toLowerCase().includes(q)) ||
           (c.last_name && c.last_name.toLowerCase().includes(q)) ||
+          (c.second_last_name && c.second_last_name.toLowerCase().includes(q)) ||
           (c.document && c.document.toLowerCase().includes(q)) ||
           (c.position && String(c.position).toLowerCase().includes(q)) ||
           (c.contract_type && c.contract_type.toLowerCase().includes(q)) ||
@@ -77,7 +80,7 @@ const ContractSelectorModal: React.FC<ContractSelectorModalProps> = ({
             autoFocus
             fullWidth
             size="small"
-            placeholder="Buscar empleado o contrato..."
+            placeholder="Buscar empleado o contrato"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             InputProps={{
@@ -134,7 +137,7 @@ const ContractSelectorModal: React.FC<ContractSelectorModalProps> = ({
                   <ListItemText
                     primary={
                       <Typography variant="body2" fontWeight={700}>
-                        {c.first_name} {c.last_name}
+                        {formatNombreCompleto(c)}
                       </Typography>
                     }
                     secondary={

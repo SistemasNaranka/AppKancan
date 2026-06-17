@@ -34,7 +34,6 @@ export const ContactoConfigModal: React.FC<Props> = ({ open, onClose }) => {
       if (cfg) {
         setConfigId(cfg.id);
         if (cfg.daily_sync_time) {
-          // "HH:MM:SS" → dayjs object usando fecha base de hoy
           const [h, m] = cfg.daily_sync_time.split(':');
           setHora(dayjs().hour(Number(h)).minute(Number(m)).second(0));
         } else {
