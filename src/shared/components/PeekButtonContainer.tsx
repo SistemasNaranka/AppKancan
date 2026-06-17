@@ -8,6 +8,7 @@ import EventAvailable from "@mui/icons-material/EventAvailable";
 import AccessTime from "@mui/icons-material/AccessTime";
 import TransferWithinAStation from "@mui/icons-material/TransferWithinAStation";
 import NotificationsActive from "@mui/icons-material/NotificationsActive";
+import Schedule from "@mui/icons-material/Schedule";
 import Apps from "@mui/icons-material/Apps";
 
 /* ----------------------------- Iconos por app ----------------------------- */
@@ -24,6 +25,9 @@ const APP_ICONS: Record<string, React.ReactNode> = {
   notificaciones: (
     <NotificationsActive sx={{ width: 18, height: 18, color: "#fff" }} />
   ),
+  horarios: (
+    <Schedule sx={{ width: 18, height: 18, color: "#fff" }} />
+  ),
 };
 
 const DefaultIcon = (
@@ -39,6 +43,7 @@ const TUTORIAL_ROUTES: Record<string, string> = {
   reservas: "/reservas",
   prorrogas: "/prorrogas",
   traslados: "/traslados",
+  horarios: "/horarios/registros",
 };
 
 /* ----------------- Apps con tutorial implementado ------------------- */
@@ -51,6 +56,7 @@ const APPS_WITH_TUTORIAL = new Set<string>([
   "traslados",
   "curvas",
   "contabilizacion_factura",
+  "horarios",
 ]);
 
 /* --------------------------- Helpers de extracción -------------------------- */
@@ -97,12 +103,24 @@ export default function PeekButtonContainer() {
           pick(app, ["name", "nombre", "title", "label", "display_name", "titulo"]) ??
           String(app.id ?? "App");
 
-        const key = pick(app, ["slug", "codigo", "code"])?.toLowerCase() ?? slugify(label);
+        const rutaBackend = pick(app, ["route", "path", "url", "ruta"]);
+
+        // Candidatos de slug: slug/código del backend, slug del nombre, y
+        // el primer segmento de la ruta (ej: "/horarios/registros" → "horarios").
+        const candidatos = [
+          pick(app, ["slug", "codigo", "code"])?.toLowerCase(),
+          slugify(label),
+          rutaBackend ? slugify(rutaBackend.split("/").filter(Boolean)[0] ?? "") : undefined,
+        ].filter(Boolean) as string[];
+
+        // Usa el primer candidato que tenga tutorial implementado; si ninguno,
+        // cae al slug del nombre (la app se filtra después de todos modos).
+        const key = candidatos.find((c) => APPS_WITH_TUTORIAL.has(c)) ?? candidatos[0];
 
         // Prioridad: mapa fijo > data del backend > fallback /{key}
         const route =
           TUTORIAL_ROUTES[key] ??
-          pick(app, ["route", "path", "url"]) ??
+          rutaBackend ??
           `/${key}`;
 
         return {

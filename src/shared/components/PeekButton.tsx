@@ -24,7 +24,7 @@ interface PeekButtonProps {
 
 const MAIN = 44;   // diámetro botón principal
 const ITEM = 34;   // diámetro cada acción
-const RADIUS = 78; // radio del arco
+const RADIUS = 104; // radio del arco (mayor = más separación entre botones)
 
 /* ══════════════════════════════════════════════════════════════
    HELPERS

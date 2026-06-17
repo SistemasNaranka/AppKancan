@@ -36,6 +36,7 @@ import HistorialPage from '../pages/HistorialPage';
 import { HorariosTourProvider, useHorariosTour, HorariosTab } from '../components/tour/HorariosTourContext';
 import { HorariosTour } from '../components/tour/HorariosTour';
 import TutorialButton from '../components/tour/TutorialButton';
+import { useTutorial } from '@/shared/hooks/TutorialContext';
 
 
 const MALLA_HORARIA_HABILITADA = false;
@@ -106,12 +107,26 @@ function RegistrosPageContent() {
     guardarObservacion, agregarNovedad,
   } = useHorarios();
 
-  const { setTabChangeCallback } = useHorariosTour();
+  const { setTabChangeCallback, startFullTour } = useHorariosTour();
+  const { activeTutorial, endTutorial } = useTutorial();
   const [tabValue, setTabValue] = useState(0);
 
   useEffect(() => {
     setTabChangeCallback((tab: HorariosTab) => setTabValue(tab));
   }, [setTabChangeCallback]);
+
+  // Arranca el tour cuando se dispara desde el PeekButton (menú global de tutoriales).
+  // Se espera a que la carga termine para que los elementos del tour (.tour-tabs,
+  // tarjetas, etc.) ya estén montados en el DOM antes de iniciar Joyride.
+  useEffect(() => {
+    if (activeTutorial === 'horarios' && !loading) {
+      const t = setTimeout(() => {
+        startFullTour();
+        endTutorial();
+      }, 350);
+      return () => clearTimeout(t);
+    }
+  }, [activeTutorial, loading, startFullTour, endTutorial]);
   const [page, setPage] = useState(0);
   const rowsPerPage = 5;
 
