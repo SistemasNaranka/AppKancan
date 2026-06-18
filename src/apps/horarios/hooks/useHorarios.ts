@@ -1,22 +1,24 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { EmpleadoAsistencia, TipoNovedad, NovedadMapeada, RegistrosAsistencia } from '../interfaces/horarios.interface';
-import { getEmpleados, getNovedades, getTiposNovedad, getTimeRecords, getStoreIdUsuarioActual } from '../api/directus/read';
-import { createNovedades, createTimeRecord, updateTimeRecord } from '../api/directus/create';
+import { EmpleadoAsistencia, TipoNovedad, NovedadMapeada, RegistrosAsistencia, Motivo } from '../interfaces/horarios.interface';
+import { getEmpleados, getNovedades, getTiposNovedad, getTimeRecords, getStoreIdUsuarioActual, getReasons } from '../api/directus/read';
+import { createNovedades, createTimeRecord, updateTimeRecord, upsertRecordReason } from '../api/directus/create';
 import dayjs from 'dayjs';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
-export const useHorarios = () => {
+export const useHorarios = (storeOverride?: number | null) => {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const { showSnackbar } = useGlobalSnackbar();
   const hoy = dayjs().format('YYYY-MM-DD');
 
-  const { data: STORE_ID = null } = useQuery<number | null>({
+  // Tienda del usuario; un admin puede pasar `storeOverride` para ver otra tienda.
+  const { data: storeUsuario = null } = useQuery<number | null>({
     queryKey: ['horariosStoreId'],
     queryFn: getStoreIdUsuarioActual,
     staleTime: 30 * 60 * 1000,
   });
+  const STORE_ID = storeOverride != null ? storeOverride : storeUsuario;
   const tieneTienda = STORE_ID != null;
 
   const { data: empleadosDB = [], isLoading: loadingEmpleados, error: errorE } = useQuery<EmpleadoAsistencia[]>({
@@ -30,6 +32,12 @@ export const useHorarios = () => {
   const { data: tiposNovedad = [], error: errorT } = useQuery<TipoNovedad[]>({
     queryKey: ['tiposNovedad'],
     queryFn: getTiposNovedad,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const { data: reasons = [] } = useQuery<Motivo[]>({
+    queryKey: ['reasons'],
+    queryFn: getReasons,
     staleTime: 10 * 60 * 1000,
   });
 
@@ -168,7 +176,8 @@ export const useHorarios = () => {
     idEmpleado: string,
     tipoEvento: string,
     horaOverride?: string,
-    observacionOverride?: string
+    observacionOverride?: string,
+    reasonId?: number | null
   ) => {
     setError(null);
     try {
@@ -184,6 +193,7 @@ export const useHorarios = () => {
           r.record_date === recordDate
       );
 
+      let recordId: number | null = null;
       if (existingRecord) {
         const originalTime = existingRecord.original_record_time || existingRecord.record_time;
         await updateTimeRecordMutation.mutateAsync({
@@ -192,8 +202,9 @@ export const useHorarios = () => {
           original_record_time: originalTime,
           observations: observacion,
         });
+        recordId = existingRecord.id;
       } else {
-        await createTimeRecordMutation.mutateAsync({
+        const creado: any = await createTimeRecordMutation.mutateAsync({
           employee_id: Number(idEmpleado),
           store_id: STORE_ID as number,
           log_type: tipoEvento,
@@ -201,6 +212,12 @@ export const useHorarios = () => {
           record_time: recordTime,
           observations: observacion,
         });
+        recordId = creado?.id != null ? Number(creado.id) : null;
+      }
+
+      // Vincula (o actualiza) el motivo seleccionado con el registro de tiempo.
+      if (reasonId != null && recordId != null) {
+        await upsertRecordReason(recordId, reasonId);
       }
     } catch (err: any) {
       console.error('Error al registrar evento:', err);
@@ -334,6 +351,7 @@ export const useHorarios = () => {
     empleados,
     novedades: novedadesMapped,
     tiposNovedad,
+    reasons,
     loading: loadingEmpleados || loadingTimeRecords,
     error: error || (errorE || errorT || errorN || errorTime ? 'Sincronizando...' : null),
     registrarEvento,

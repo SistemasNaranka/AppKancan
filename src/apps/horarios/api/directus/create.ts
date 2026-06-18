@@ -1,5 +1,5 @@
 import directus from "@/services/directus/directus";
-import { createItem, createItems, updateItem } from "@directus/sdk";
+import { createItem, createItems, updateItem, readItems } from "@directus/sdk";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
 export async function createNovedad(data: { 
@@ -88,6 +88,34 @@ export async function updateTimeRecord(id: number, data: { observations?: string
   } catch (error: any) {
     console.error('❌ Error al actualizar registro de tiempo:', error);
     throw new Error(error?.errors?.[0]?.message || 'Error al actualizar registro de tiempo');
+  }
+}
+
+// Vincula un registro de tiempo con su motivo (com_records_reasons).
+// Un motivo por registro: actualiza la fila existente o la crea si no hay.
+export async function upsertRecordReason(recordId: number, reasonId: number) {
+  try {
+    const existentes: any = await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_records_reasons', {
+          fields: ['id'],
+          filter: { records_id: { _eq: recordId } },
+          limit: 1,
+        })
+      )
+    );
+    const fila = (existentes || [])[0];
+    if (fila?.id != null) {
+      return await withAutoRefresh(() =>
+        directus.request(updateItem('com_records_reasons', fila.id, { reasons_id: Number(reasonId) }))
+      );
+    }
+    return await withAutoRefresh(() =>
+      directus.request(createItem('com_records_reasons', { records_id: Number(recordId), reasons_id: Number(reasonId) }))
+    );
+  } catch (error: any) {
+    console.error('❌ Error al guardar el motivo del registro:', error);
+    throw new Error(error?.errors?.[0]?.message || 'Error al guardar el motivo del registro');
   }
 }
 

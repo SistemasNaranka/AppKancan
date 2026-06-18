@@ -13,8 +13,9 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import DiningIcon from '@mui/icons-material/Dining';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { EmpleadoAsistencia } from '../interfaces/horarios.interface';
+import { EmpleadoAsistencia, Motivo } from '../interfaces/horarios.interface';
 import EditHourModal from './EditHourModal';
+import { getRecordReasonId } from '../api/directus/read';
 import dayjs from 'dayjs';
 import * as yup from 'yup';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -25,7 +26,8 @@ import 'dayjs/locale/es';
 interface EmployeeCardProps {
   empleado: EmpleadoAsistencia;
   tiposNovedad: { id: number; name?: string; nombre?: string }[];
-  onRegistrarEvento: (idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string) => Promise<void> | void;
+  reasons: Motivo[];
+  onRegistrarEvento: (idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string, reasonId?: number | null) => Promise<void> | void;
   onEliminarEmpleado: (idEmpleado: string) => void;
   onGuardarObservacion: (idEmpleado: string, evento: string, texto: string) => void;
   onAgregarNovedad: (novedad: {
@@ -96,8 +98,8 @@ function NombreEmpleado({ nombre }: { nombre: string }) {
       slotProps={{
         tooltip: {
           sx: {
-            bgcolor: '#0f2c4a',
-            color: '#fff',
+            bgcolor: '#EAF2FB',
+            color: '#0f2c4a',
             fontSize: '0.8rem',
             fontWeight: 600,
             letterSpacing: '0.2px',
@@ -105,10 +107,11 @@ function NombreEmpleado({ nombre }: { nombre: string }) {
             px: 1.5,
             py: 0.875,
             borderRadius: 2,
-            boxShadow: '0 8px 24px rgba(0, 70, 128, 0.28)',
+            border: '1px solid #d6e6f7',
+            boxShadow: '0 8px 24px rgba(0, 70, 128, 0.18)',
           },
         },
-        arrow: { sx: { color: '#0f2c4a' } },
+        arrow: { sx: { color: '#EAF2FB', '&::before': { border: '1px solid #d6e6f7' } } },
       }}
     >
       {texto}
@@ -119,7 +122,7 @@ function NombreEmpleado({ nombre }: { nombre: string }) {
 }
 
 export default function EmployeeCard({
-  empleado, tiposNovedad, onRegistrarEvento,
+  empleado, tiposNovedad, reasons, onRegistrarEvento,
   onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad
 }: EmployeeCardProps) {
   if (!empleado) {
@@ -149,6 +152,7 @@ export default function EmployeeCard({
 
   const [horaModalOpen, setHoraModalOpen] = useState(false);
   const [eventoActualHora, setEventoActualHora] = useState('');
+  const [initialReasonId, setInitialReasonId] = useState<number | null>(null);
 
   const novedadSchema = yup.object().shape({
     novedad: yup.string().required('El tipo de novedad es obligatorio'),
@@ -249,9 +253,26 @@ export default function EmployeeCard({
     handleCloseObsModal();
   };
 
+  const getRecordIdEvento = (evento: string): number | undefined => {
+    let eventKey = '';
+    switch (evento) {
+      case 'Comenzar Jornada': eventKey = 'inicioJornada'; break;
+      case 'Iniciar Almuerzo': eventKey = 'inicioAlmuerzo'; break;
+      case 'Finalizar Almuerzo': eventKey = 'finAlmuerzo'; break;
+      case 'Terminar Jornada': eventKey = 'finJornada'; break;
+    }
+    return registros.ids?.[eventKey];
+  };
+
   const handleOpenHoraModal = (evento: string) => {
     setEventoActualHora(evento);
+    setInitialReasonId(null);
     setHoraModalOpen(true);
+    // Precarga el motivo previamente guardado para este registro (si existe).
+    const recordId = getRecordIdEvento(evento);
+    if (recordId != null) {
+      getRecordReasonId(recordId).then(setInitialReasonId).catch(() => setInitialReasonId(null));
+    }
   };
 
   const maxLength = 500;
@@ -402,8 +423,10 @@ export default function EmployeeCard({
         eventName={eventoActualHora}
         initialTimeStr={getHoraEvento(eventoActualHora)}
         initialObservation={getObservacion(eventoActualHora)}
-        onConfirm={async (horaFormateada, observacion) => {
-          await onRegistrarEvento(id, eventoActualHora, horaFormateada, observacion);
+        reasons={reasons}
+        initialReasonId={initialReasonId}
+        onConfirm={async (horaFormateada, observacion, reasonId) => {
+          await onRegistrarEvento(id, eventoActualHora, horaFormateada, observacion, reasonId);
         }}
       />
 

@@ -3,8 +3,11 @@ import {
   Box, Typography, IconButton, Tooltip, Tabs, Tab, Paper, Avatar,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, CircularProgress, Alert,
-  TextField, InputAdornment, Button, ToggleButton, ToggleButtonGroup
+  TextField, InputAdornment, Button, Autocomplete
 } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import { getStores, getStoreIdUsuarioActual } from '../api/directus/read';
+import { Tienda } from '../interfaces/horarios.interface';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import HistoryIcon from '@mui/icons-material/History';
@@ -116,15 +119,35 @@ const toTitleCase = (str: string) => {
 
 function RegistrosPageContent() {
   const { user } = useAuth();
+  const { esAdmin } = useHorariosPolicies();
+
+  // Tienda activa compartida entre la vista de tienda y el panel admin
+  // (null al inicio; se fija a la tienda del propio admin al resolverla).
+  const [storeOverride, setStoreOverride] = useState<number | null>(null);
+  const { data: tiendasAdmin = [] } = useQuery<Tienda[]>({
+    queryKey: ['adminTiendas'],
+    queryFn: getStores,
+    enabled: esAdmin(),
+    staleTime: 30 * 60 * 1000,
+  });
+  const { data: miTienda = null } = useQuery<number | null>({
+    queryKey: ['horariosStoreId'],
+    queryFn: getStoreIdUsuarioActual,
+    enabled: esAdmin(),
+    staleTime: 30 * 60 * 1000,
+  });
+  useEffect(() => {
+    if (storeOverride == null && miTienda != null) setStoreOverride(miTienda);
+  }, [miTienda, storeOverride]);
+
   const {
-    empleados, novedades, tiposNovedad, loading, error,
+    empleados, novedades, tiposNovedad, reasons, loading, error,
     registrarEvento, resetHorarios, eliminarEmpleado,
     guardarObservacion, agregarNovedad,
-  } = useHorarios();
+  } = useHorarios(storeOverride);
 
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
   const { activeTutorial, endTutorial } = useTutorial();
-  const { esAdmin } = useHorariosPolicies();
   const [tabValue, setTabValue] = useState(0);
   const [vistaAdmin, setVistaAdmin] = useState(false);
 
@@ -156,7 +179,14 @@ function RegistrosPageContent() {
     'Consulta y verifica los registros históricos de la jornada laboral',
     'Visualiza la planificación de turnos y horarios'
   ];
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => setTabValue(newValue);
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number | 'admin') => {
+    if (newValue === 'admin') {
+      setVistaAdmin(true);
+      return;
+    }
+    setVistaAdmin(false);
+    setTabValue(newValue);
+  };
 
   const novedadesFiltradas = novedades.filter((n: any) => {
     const matchNombre = (n.empleadoNombre || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -227,44 +257,45 @@ function RegistrosPageContent() {
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 700, color: '#0f2c4a', lineHeight: 1.2, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
-                {vistaAdmin ? 'Panel Administrativo' : `${getTituloPrincipal()}${user?.store_name ? ` - ${toTitleCase(user.store_name)}` : ''}`}
+                {vistaAdmin
+                  ? 'Panel Administrativo'
+                  : `${getTituloPrincipal()}${(() => {
+                      const nombre = storeOverride != null
+                        ? (tiendasAdmin.find((t) => t.id === storeOverride)?.name ?? '')
+                        : (user?.store_name ?? '');
+                      return nombre ? ` - ${toTitleCase(nombre)}` : '';
+                    })()}`}
               </Typography>
               <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mt: 0.4, lineHeight: 1.35 }}>
                 {vistaAdmin ? 'Gestión de empleados de todas las tiendas' : subtitulosTab[tabValue]}
               </Typography>
             </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            {esAdmin() && (
-              <ToggleButtonGroup
-                value={vistaAdmin ? 'admin' : 'tienda'}
-                exclusive
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            {esAdmin() && !vistaAdmin && (
+              <Autocomplete
                 size="small"
-                onChange={(_, v) => { if (v !== null) setVistaAdmin(v === 'admin'); }}
-                sx={{
-                  bgcolor: '#f1f7fe',
-                  borderRadius: 2,
-                  p: 0.5,
-                  '& .MuiToggleButton-root': {
-                    border: 'none',
-                    borderRadius: '8px !important',
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.78rem',
-                    color: '#64748b',
-                    px: 1.5,
-                    gap: 0.5,
-                    '&.Mui-selected': {
-                      bgcolor: '#004680',
-                      color: '#fff',
-                      '&:hover': { bgcolor: '#003a6b' },
-                    },
-                  },
-                }}
-              >
-                <ToggleButton value="tienda"><StorefrontIcon sx={{ fontSize: 16 }} /> Tienda</ToggleButton>
-                <ToggleButton value="admin"><AdminPanelSettingsIcon sx={{ fontSize: 16 }} /> Admin</ToggleButton>
-              </ToggleButtonGroup>
+                options={tiendasAdmin}
+                getOptionLabel={(o) => o.name}
+                value={tiendasAdmin.find((t) => t.id === storeOverride) ?? null}
+                onChange={(_, v) => setStoreOverride(v ? v.id : null)}
+                sx={{ width: 230 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Tiendas"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <StorefrontIcon sx={{ fontSize: 18, color: '#004680' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
+                  />
+                )}
+              />
             )}
             {!vistaAdmin && (
               <>
@@ -296,11 +327,10 @@ function RegistrosPageContent() {
           </Box>
         </Box>
 
-        {!vistaAdmin && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: { xs: 1, md: 2 } }}>
           <Tabs
             className="tour-tabs"
-            value={tabValue}
+            value={vistaAdmin ? 'admin' : tabValue}
             onChange={handleTabChange}
             variant="scrollable"
             scrollButtons={false}
@@ -334,14 +364,18 @@ function RegistrosPageContent() {
               },
             }}
           >
-            <Tab icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
-            <Tab icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
-            <Tab icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
+            <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
+            <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
+            <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
             {/* La pestaña permanece en el árbol (oculta) para conservar la alineación de índices con sus TabPanel */}
-            <Tab icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
+            <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
+            {/* Pestaña ADMIN: solo para administradores */}
+            {esAdmin() && (
+              <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
+            )}
           </Tabs>
 
-          {tabValue === 0 && (
+          {tabValue === 0 && !vistaAdmin && (
             <Chip
               label={`Total Empleados: ${empleados.length}`}
               sx={{
@@ -358,11 +392,10 @@ function RegistrosPageContent() {
             />
           )}
         </Box>
-        )}
       </Paper>
 
       {vistaAdmin ? (
-        <AdminEmpleadosPage />
+        <AdminEmpleadosPage storeSel={storeOverride} onStoreChange={setStoreOverride} />
       ) : (
       <>
       <TabPanel value={tabValue} index={0}>
@@ -381,6 +414,7 @@ function RegistrosPageContent() {
               key={empleado.id}
               empleado={empleado}
               tiposNovedad={tiposNovedad as any}
+              reasons={reasons}
               onRegistrarEvento={registrarEvento}
               onEliminarEmpleado={eliminarEmpleado}
               onGuardarObservacion={guardarObservacion}

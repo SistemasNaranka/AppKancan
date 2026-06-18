@@ -52,6 +52,12 @@ export interface TipoNovedad {
   name: string;
 }
 
+// Motivo de edición de hora (catálogo com_reasons, solo activos)
+export interface Motivo {
+  id: number;
+  name: string;
+}
+
 export interface NovedadMapeada {
   id: string | number;
   fecha: string;

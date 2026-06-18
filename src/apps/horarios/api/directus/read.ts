@@ -1,7 +1,7 @@
 import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, readMe } from "@directus/sdk";
-import { EmpleadoAsistencia, TipoNovedad, Tienda, Cargo, EmpleadoAdmin } from "../../interfaces/horarios.interface";
+import { EmpleadoAsistencia, TipoNovedad, Tienda, Cargo, EmpleadoAdmin, Motivo } from "../../interfaces/horarios.interface";
 
 export async function getStoreIdUsuarioActual(): Promise<number | null> {
   try {
@@ -82,6 +82,55 @@ export async function getTiposNovedad(): Promise<TipoNovedad[]> {
   } catch (error) {
     console.error("❌ Error cargando com_newness:", error);
     return [];
+  }
+}
+
+// Catálogo de motivos de edición de hora (com_reasons), solo activos.
+export async function getReasons(): Promise<Motivo[]> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_reasons", {
+          fields: ["id", "name"],
+          filter: { status: { _eq: true } },
+          sort: ["name"],
+          limit: -1,
+        })
+      )
+    );
+    const motivos = (items || []).map((r: any) => ({ id: Number(r.id), name: r.name || "" }));
+    // "Otro" siempre va de última opción, el resto en orden alfabético.
+    return motivos.sort((a: Motivo, b: Motivo) => {
+      const aOtro = a.name.trim().toLowerCase() === "otro";
+      const bOtro = b.name.trim().toLowerCase() === "otro";
+      if (aOtro !== bOtro) return aOtro ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+  } catch (error) {
+    console.error("❌ Error cargando com_reasons:", error);
+    return [];
+  }
+}
+
+// Motivo vinculado a un registro de tiempo (com_records_reasons) para precargar el selector.
+export async function getRecordReasonId(recordId: number): Promise<number | null> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_records_reasons", {
+          fields: ["reasons_id"],
+          filter: { records_id: { _eq: recordId } },
+          limit: 1,
+        })
+      )
+    );
+    const raw = (items || [])[0]?.reasons_id;
+    if (raw == null) return null;
+    const id = Number(typeof raw === "object" ? raw.id : raw);
+    return Number.isFinite(id) ? id : null;
+  } catch (error) {
+    console.error("❌ Error obteniendo motivo del registro:", error);
+    return null;
   }
 }
 
@@ -226,9 +275,22 @@ export async function getCargos(): Promise<Cargo[]> {
   }
 }
 
-// Busca un empleado por número de documento, sin filtrar por estado
-// (debe encontrar Activos e Inactivos para reingreso/cambio de tienda).
-export async function buscarEmpleadoPorDocumento(documentNumber: string): Promise<EmpleadoAdmin | null> {
+const mapEmpleadoAdmin = (emp: any): EmpleadoAdmin => ({
+  id: emp.id,
+  document_type: emp.document_type ?? null,
+  document_number: emp.document_number != null ? String(emp.document_number) : null,
+  first_name: emp.first_name ?? null,
+  middle_name: emp.middle_name ?? null,
+  last_name: emp.last_name ?? null,
+  second_last_name: emp.second_last_name ?? null,
+  store_id: emp.store_id != null ? Number(emp.store_id) : null,
+  position_id: emp.position_id?.id != null ? Number(emp.position_id.id) : (emp.position_id != null ? Number(emp.position_id) : null),
+  position_name: emp.position_id?.name ?? null,
+  status: emp.status ?? null,
+});
+
+// Lista TODOS los empleados (activos e inactivos) de una tienda, para el panel admin.
+export async function listarEmpleadosTienda(storeId: number): Promise<EmpleadoAdmin[]> {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -238,28 +300,60 @@ export async function buscarEmpleadoPorDocumento(documentNumber: string): Promis
             "first_name", "middle_name", "last_name", "second_last_name",
             "store_id", "position_id", "position_id.name", "status",
           ],
-          filter: { document_number: { _eq: documentNumber } },
-          limit: 1,
+          filter: { store_id: { _eq: storeId } },
+          sort: ["first_name", "last_name"],
+          limit: -1,
         })
       )
     );
-    const emp: any = (items || [])[0];
-    if (!emp) return null;
-    return {
-      id: emp.id,
-      document_type: emp.document_type ?? null,
-      document_number: emp.document_number != null ? String(emp.document_number) : null,
-      first_name: emp.first_name ?? null,
-      middle_name: emp.middle_name ?? null,
-      last_name: emp.last_name ?? null,
-      second_last_name: emp.second_last_name ?? null,
-      store_id: emp.store_id != null ? Number(emp.store_id) : null,
-      position_id: emp.position_id?.id != null ? Number(emp.position_id.id) : (emp.position_id != null ? Number(emp.position_id) : null),
-      position_name: emp.position_id?.name ?? null,
-      status: emp.status ?? null,
-    };
+    return (items || []).map(mapEmpleadoAdmin);
   } catch (error) {
-    console.error("❌ Error buscando empleado por documento:", error);
+    console.error("❌ Error listando empleados por tienda:", error);
+    throw error;
+  }
+}
+
+// Busca empleados por número de documento O por nombre/apellido (sin filtrar por
+// estado: debe encontrar Activos e Inactivos para reingreso/cambio de tienda).
+export async function buscarEmpleados(query: string): Promise<EmpleadoAdmin[]> {
+  const q = query.trim();
+  if (!q) return [];
+  try {
+    const esNumero = /^\d+$/.test(q);
+    // Cada palabra debe coincidir en ALGÚN campo de nombre (AND entre palabras,
+    // OR entre campos). Así "Brayan Riascos" matchea first_name + last_name.
+    const tokens = q.split(/\s+/).filter(Boolean);
+    // document_number es columna numérica: comparamos como número exacto.
+    const filter: any = esNumero
+      ? { document_number: { _eq: Number(q) } }
+      : {
+          _and: tokens.map((tok) => ({
+            _or: [
+              { first_name: { _icontains: tok } },
+              { middle_name: { _icontains: tok } },
+              { last_name: { _icontains: tok } },
+              { second_last_name: { _icontains: tok } },
+            ],
+          })),
+        };
+
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("adm_employees", {
+          fields: [
+            "id", "document_type", "document_number",
+            "first_name", "middle_name", "last_name", "second_last_name",
+            "store_id", "position_id", "position_id.name", "status",
+          ],
+          filter,
+          sort: ["first_name", "last_name"],
+          limit: 50,
+        })
+      )
+    );
+    return (items || []).map(mapEmpleadoAdmin);
+  } catch (error) {
+    console.error("❌ Error buscando empleados:", error);
     throw error;
   }
 }

@@ -34,19 +34,37 @@ function obtenerModelosIA(modelosIA: any): string[] {
   return [MODELO_POR_DEFECTO];
 }
 
-const PROMPT = (nombre: string) => `Eres un asistente que separa nombres completos de personas en Colombia.
-Dado el nombre completo: "${nombre}"
-Devuelve EXCLUSIVAMENTE un JSON válido con esta forma exacta:
+const PROMPT = (nombre: string) => `Eres un experto en onomástica colombiana. Tu tarea es separar un nombre completo en sus 4 componentes.
+
+Devuelve EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin explicaciones, sin bloques de código) con esta forma exacta:
 {"first_name":"","middle_name":"","last_name":"","second_last_name":""}
 
-Reglas:
-- En Colombia el orden es: primer nombre, segundo nombre (opcional), primer apellido, segundo apellido (opcional).
-- Por lo general los DOS últimos tokens son apellidos.
-- Si hay 4 palabras: primer nombre, segundo nombre, primer apellido, segundo apellido.
-- Si hay 3 palabras: primer nombre, primer apellido, segundo apellido (middle_name vacío).
-- Si hay 2 palabras: primer nombre y primer apellido (middle_name y second_last_name vacíos).
-- Apellidos compuestos (ej. "de la Cruz", "Del Río") deben quedar juntos en el apellido correspondiente.
-- Respeta tildes y mayúsculas iniciales. No agregues texto fuera del JSON. Campos faltantes = "".`;
+Donde:
+- first_name = PRIMER nombre
+- middle_name = SEGUNDO nombre (NO un apellido)
+- last_name = PRIMER apellido
+- second_last_name = SEGUNDO apellido
+
+Estructura de un nombre en Colombia (en este orden): [primer nombre] [segundo nombre] [primer apellido] [segundo apellido].
+La parte de NOMBRES va primero y la parte de APELLIDOS va al final. Normalmente cada persona tiene DOS apellidos (los dos últimos tokens) y uno o dos nombres.
+
+REGLAS según la cantidad de palabras:
+- 4 palabras  -> first_name=1ª, middle_name=2ª, last_name=3ª, second_last_name=4ª. (DEBES llenar los 4 campos)
+- 3 palabras  -> first_name=1ª, middle_name="", last_name=2ª, second_last_name=3ª.
+- 2 palabras  -> first_name=1ª, middle_name="", last_name=2ª, second_last_name="".
+- 5 o más     -> los DOS últimos tokens son los apellidos (last_name y second_last_name); el resto son nombres (first_name = 1º, middle_name = el resto de los nombres unidos).
+- Apellidos/partículas compuestas ("de", "del", "la", "los", "san", "santa", "da", "di", "van", "von") se unen al apellido que les sigue (ej. "de la Cruz" => un solo apellido "de la Cruz").
+
+IMPORTANTE: cuando haya 4 o más palabras, NUNCA dejes middle_name ni second_last_name vacíos por defecto; complétalos según las reglas. Respeta tildes y mayúsculas iniciales. Si un campo no aplica, déjalo en "".
+
+EJEMPLOS:
+"Maria Camila Mendes Rey" => {"first_name":"Maria","middle_name":"Camila","last_name":"Mendes","second_last_name":"Rey"}
+"Lycet Paola Luna Rincon" => {"first_name":"Lycet","middle_name":"Paola","last_name":"Luna","second_last_name":"Rincon"}
+"Juan Perez Gomez" => {"first_name":"Juan","middle_name":"","last_name":"Perez","second_last_name":"Gomez"}
+"Ana Lopez" => {"first_name":"Ana","middle_name":"","last_name":"Lopez","second_last_name":""}
+"Jose Luis de la Cruz Romero" => {"first_name":"Jose","middle_name":"Luis","last_name":"de la Cruz","second_last_name":"Romero"}
+
+Ahora separa este nombre: "${nombre}"`;
 
 function parsearJSON(texto: string): NombreSeparado {
   let jsonStr = texto.trim();

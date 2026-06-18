@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getStores, getCargos, buscarEmpleadoPorDocumento } from '../api/directus/read';
+import { getStores, getCargos, buscarEmpleados, listarEmpleadosTienda } from '../api/directus/read';
 import { crearEmpleado, actualizarEmpleado } from '../api/directus/create';
 import { Tienda, Cargo, EmpleadoAdmin } from '../interfaces/horarios.interface';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
@@ -9,7 +9,9 @@ import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/Snackba
 // Extensible: agregar más valores aquí cuando el negocio los habilite.
 export const TIPOS_DOCUMENTO: string[] = ['Cédula de Ciudadanía'];
 
-export const useAdminEmpleados = () => {
+// La tienda seleccionada se controla desde fuera (props) para compartirla con la
+// vista de tienda; así la selección persiste al cambiar de pestaña.
+export const useAdminEmpleados = (tiendaSel: number | null, setTiendaSel: (id: number | null) => void) => {
   const queryClient = useQueryClient();
   const { showSnackbar } = useGlobalSnackbar();
 
@@ -25,38 +27,48 @@ export const useAdminEmpleados = () => {
     staleTime: 30 * 60 * 1000,
   });
 
-  // Resultado de la búsqueda por documento
+  // Listado de empleados de la tienda seleccionada (controlada desde el padre).
+  const { data: empleadosTienda = [], isLoading: loadingTienda } = useQuery<EmpleadoAdmin[]>({
+    queryKey: ['adminEmpleadosTienda', tiendaSel],
+    queryFn: () => listarEmpleadosTienda(tiendaSel as number),
+    enabled: tiendaSel != null,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Resultados de la búsqueda (por nombre o documento) + empleado seleccionado para editar
+  const [resultados, setResultados] = useState<EmpleadoAdmin[]>([]);
   const [empleado, setEmpleado] = useState<EmpleadoAdmin | null>(null);
   const [buscando, setBuscando] = useState(false);
-  const [sinResultado, setSinResultado] = useState(false);
+  const [yaBusco, setYaBusco] = useState(false);
 
-  const buscarEmpleado = async (documento: string) => {
-    const doc = documento.trim();
-    if (!doc) return;
+  const buscar = async (query: string) => {
+    const q = query.trim();
+    if (!q) return;
     setBuscando(true);
-    setSinResultado(false);
+    setYaBusco(true);
     setEmpleado(null);
     try {
-      const result = await buscarEmpleadoPorDocumento(doc);
-      if (result) {
-        setEmpleado(result);
-      } else {
-        setSinResultado(true);
-      }
+      const result = await buscarEmpleados(q);
+      setResultados(result);
     } catch (err: any) {
-      showSnackbar(err?.message || 'Error al buscar el empleado', 'error');
+      showSnackbar(err?.message || 'Error al buscar', 'error');
+      setResultados([]);
     } finally {
       setBuscando(false);
     }
   };
 
+  const seleccionar = (emp: EmpleadoAdmin | null) => setEmpleado(emp);
+
   const limpiarBusqueda = () => {
+    setResultados([]);
     setEmpleado(null);
-    setSinResultado(false);
+    setYaBusco(false);
   };
 
   const invalidarEmpleados = () => {
     queryClient.invalidateQueries({ queryKey: ['empleados'] });
+    queryClient.invalidateQueries({ queryKey: ['adminEmpleadosTienda'] });
   };
 
   const crearMutation = useMutation({
@@ -75,8 +87,9 @@ export const useAdminEmpleados = () => {
       actualizarEmpleado(id, data),
     onSuccess: (_res, variables) => {
       invalidarEmpleados();
-      // Refleja los cambios en la tarjeta visible
+      // Refleja los cambios en el seleccionado y en la lista de resultados
       setEmpleado((prev) => (prev ? { ...prev, ...variables.data } as EmpleadoAdmin : prev));
+      setResultados((prev) => prev.map((e) => (e.id === variables.id ? { ...e, ...variables.data } as EmpleadoAdmin : e)));
       showSnackbar('Empleado actualizado correctamente', 'success');
     },
     onError: (err: any) => {
@@ -90,10 +103,18 @@ export const useAdminEmpleados = () => {
     tiposDocumento: TIPOS_DOCUMENTO,
     loadingCatalogos: loadingTiendas || loadingCargos,
 
+    // Listado por tienda (vista por defecto)
+    tiendaSel,
+    setTiendaSel,
+    empleadosTienda,
+    loadingTienda,
+
+    resultados,
     empleado,
     buscando,
-    sinResultado,
-    buscarEmpleado,
+    yaBusco,
+    buscar,
+    seleccionar,
     limpiarBusqueda,
 
     crearEmpleado: crearMutation.mutateAsync,

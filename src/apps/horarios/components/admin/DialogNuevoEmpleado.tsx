@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box,
   TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete,
-  Typography, Divider, FormHelperText, InputAdornment, Tooltip, CircularProgress,
+  Typography, Divider, FormHelperText, InputAdornment, CircularProgress,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import * as yup from 'yup';
@@ -25,8 +25,6 @@ const AZUL = '#004680';
 const schema = yup.object().shape({
   document_type: yup.string().required('Selecciona el tipo de documento'),
   document_number: yup.string().trim().required('El número de documento es obligatorio'),
-  first_name: yup.string().trim().required('El primer nombre es obligatorio'),
-  last_name: yup.string().trim().required('El primer apellido es obligatorio'),
   store_id: yup.number().moreThan(0, 'Selecciona una tienda').required('Selecciona una tienda'),
   position_id: yup.number().moreThan(0, 'Selecciona un cargo').required('Selecciona un cargo'),
 });
@@ -34,13 +32,26 @@ const schema = yup.object().shape({
 const initialForm = (tipoDocDefault: string) => ({
   document_type: tipoDocDefault,
   document_number: '',
-  first_name: '',
-  middle_name: '',
-  last_name: '',
-  second_last_name: '',
   store_id: 0,
   position_id: 0,
 });
+
+// Separación heurística (fallback si la IA no está disponible).
+// Orden colombiano: nombres primero, apellidos al final (los 2 últimos tokens).
+function splitNombreLocal(nombre: string) {
+  const t = nombre.trim().split(/\s+/).filter(Boolean);
+  const r = { first_name: '', middle_name: '', last_name: '', second_last_name: '' };
+  if (t.length === 1) { r.first_name = t[0]; }
+  else if (t.length === 2) { r.first_name = t[0]; r.last_name = t[1]; }
+  else if (t.length === 3) { r.first_name = t[0]; r.last_name = t[1]; r.second_last_name = t[2]; }
+  else {
+    r.first_name = t[0];
+    r.middle_name = t[1];
+    r.second_last_name = t[t.length - 1];
+    r.last_name = t.slice(2, t.length - 1).join(' ');
+  }
+  return r;
+}
 
 export default function DialogNuevoEmpleado({
   open, onClose, tiendas, cargos, tiposDocumento, guardando, onGuardar,
@@ -62,44 +73,50 @@ export default function DialogNuevoEmpleado({
 
   const setCampo = (campo: string, valor: any) => setForm((f) => ({ ...f, [campo]: valor }));
 
-  const handleSepararIA = async () => {
-    try {
-      const r = await separarNombre(nombreCompleto);
-      setForm((f) => ({
-        ...f,
-        first_name: r.first_name,
-        middle_name: r.middle_name,
-        last_name: r.last_name,
-        second_last_name: r.second_last_name,
-      }));
-      setErrors((e) => ({ ...e, first_name: '', last_name: '' }));
-    } catch (err: any) {
-      showSnackbar(err?.message || 'No se pudo separar el nombre con IA', 'error');
-    }
-  };
-
+  // Al crear: valida, separa el nombre completo (IA con fallback local) y guarda.
   const handleGuardar = async () => {
+    setErrors({});
+
+    // 1) Validación de campos base + nombre completo
+    const nuevosErrores: Record<string, string> = {};
     try {
-      setErrors({});
-      const data = await schema.validate(form, { abortEarly: false });
-      await onGuardar({
-        document_type: data.document_type,
-        document_number: data.document_number,
-        first_name: data.first_name,
-        middle_name: form.middle_name || undefined,
-        last_name: data.last_name,
-        second_last_name: form.second_last_name || undefined,
-        store_id: data.store_id,
-        position_id: data.position_id,
-      });
-      onClose();
+      await schema.validate(form, { abortEarly: false });
     } catch (err: any) {
       if (err instanceof yup.ValidationError) {
-        const e: Record<string, string> = {};
-        err.inner.forEach((i) => { if (i.path) e[i.path] = i.message; });
-        setErrors(e);
+        err.inner.forEach((i) => { if (i.path) nuevosErrores[i.path] = i.message; });
       }
     }
+    const nombre = nombreCompleto.trim().replace(/\s+/g, ' ');
+    if (!nombre) nuevosErrores.nombreCompleto = 'El nombre completo es obligatorio';
+    else if (nombre.split(' ').length < 2) nuevosErrores.nombreCompleto = 'Ingresa al menos un nombre y un apellido';
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrors(nuevosErrores);
+      return;
+    }
+
+    // 2) Separar el nombre: IA primero, fallback heurístico si falla
+    let partes;
+    try {
+      partes = await separarNombre(nombre);
+      if (!partes.first_name || !partes.last_name) partes = splitNombreLocal(nombre);
+    } catch {
+      partes = splitNombreLocal(nombre);
+      showSnackbar('IA no disponible: el nombre se separó automáticamente.', 'warning');
+    }
+
+    // 3) Guardar
+    await onGuardar({
+      document_type: form.document_type,
+      document_number: form.document_number,
+      first_name: partes.first_name,
+      middle_name: partes.middle_name || undefined,
+      last_name: partes.last_name,
+      second_last_name: partes.second_last_name || undefined,
+      store_id: form.store_id,
+      position_id: form.position_id,
+    });
+    onClose();
   };
 
   return (
@@ -139,66 +156,25 @@ export default function DialogNuevoEmpleado({
             <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>NOMBRE</Typography>
           </Divider>
 
-          {/* Nombre completo + separación con IA */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-            <TextField
-              fullWidth
-              label="Nombre completo"
-              placeholder="Ej: Maria Camila Mendes Rey"
-              value={nombreCompleto}
-              onChange={(e) => setNombreCompleto(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && disponible && nombreCompleto.trim() && !procesando) { e.preventDefault(); handleSepararIA(); } }}
-              InputProps={{
-                endAdornment: procesando ? (
-                  <InputAdornment position="end"><CircularProgress size={18} /></InputAdornment>
-                ) : undefined,
-              }}
-              helperText="Escribe el nombre completo y sepáralo con IA, o llena los campos manualmente."
-            />
-            <Tooltip title={disponible ? 'Separar nombres y apellidos con IA' : 'Configura tu clave de IA en tu perfil para usar esto'}>
-              <span>
-                <Button
-                  onClick={handleSepararIA}
-                  disabled={!disponible || procesando || !nombreCompleto.trim()}
-                  variant="contained"
-                  disableElevation
-                  startIcon={<AutoAwesomeIcon sx={{ fontSize: 18 }} />}
-                  sx={{ bgcolor: AZUL, textTransform: 'none', fontWeight: 700, borderRadius: 2, whiteSpace: 'nowrap', height: 56, '&:hover': { bgcolor: '#003a6b' } }}
-                >
-                  {procesando ? 'Separando…' : 'Separar con IA'}
-                </Button>
-              </span>
-            </Tooltip>
-          </Box>
-
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField
-              fullWidth label="Primer nombre *"
-              value={form.first_name}
-              onChange={(e) => setCampo('first_name', e.target.value)}
-              error={!!errors.first_name}
-              helperText={errors.first_name}
-            />
-            <TextField
-              fullWidth label="Segundo nombre"
-              value={form.middle_name}
-              onChange={(e) => setCampo('middle_name', e.target.value)}
-            />
-          </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField
-              fullWidth label="Primer apellido *"
-              value={form.last_name}
-              onChange={(e) => setCampo('last_name', e.target.value)}
-              error={!!errors.last_name}
-              helperText={errors.last_name}
-            />
-            <TextField
-              fullWidth label="Segundo apellido"
-              value={form.second_last_name}
-              onChange={(e) => setCampo('second_last_name', e.target.value)}
-            />
-          </Box>
+          {/* Nombre completo (la IA lo separa al crear el empleado) */}
+          <TextField
+            fullWidth
+            label="Nombre completo *"
+            placeholder="Ej: Maria Camila Mendes Rey"
+            value={nombreCompleto}
+            onChange={(e) => setNombreCompleto(e.target.value)}
+            error={!!errors.nombreCompleto}
+            helperText={errors.nombreCompleto || (disponible
+              ? 'Al crear, la IA separa nombres y apellidos automáticamente.'
+              : 'Se separará automáticamente al crear (sin IA: configura tu clave para mayor precisión).')}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <AutoAwesomeIcon sx={{ fontSize: 18, color: AZUL }} />
+                </InputAdornment>
+              ),
+            }}
+          />
 
           <Divider textAlign="left">
             <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>ASIGNACIÓN</Typography>
@@ -238,9 +214,16 @@ export default function DialogNuevoEmpleado({
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" color="error" disabled={guardando}>Cancelar</Button>
-        <Button onClick={handleGuardar} variant="contained" disableElevation disabled={guardando} sx={{ bgcolor: AZUL, '&:hover': { bgcolor: '#003a6b' } }}>
-          {guardando ? 'Guardando…' : 'Crear empleado'}
+        <Button onClick={onClose} variant="outlined" color="error" disabled={guardando || procesando}>Cancelar</Button>
+        <Button
+          onClick={handleGuardar}
+          variant="contained"
+          disableElevation
+          disabled={guardando || procesando}
+          startIcon={(guardando || procesando) ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <AutoAwesomeIcon sx={{ fontSize: 18 }} />}
+          sx={{ bgcolor: AZUL, textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#003a6b' } }}
+        >
+          {procesando ? 'Procesando nombre…' : guardando ? 'Guardando…' : 'Crear empleado'}
         </Button>
       </DialogActions>
     </Dialog>
