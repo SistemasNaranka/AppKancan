@@ -22,13 +22,19 @@ import {
 } from '@mui/material';
 import { ObservationModal } from '../components/ObservationModal';
 import DateRangeFilter from '../components/DateRangeFilter';
+import ExportHistorialDialog from '../components/ExportHistorialDialog';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import { Button } from '@mui/material';
 import { Eye } from 'lucide-react';
 import { HistorialRow } from '../interfaces/horarios.interface';
+import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 
 export default function HistorialPage() {
+  const { esAdmin } = useHorariosPolicies();
   const [searchNombre, setSearchNombre] = useState('');
   const [fechaInicio, setFechaInicio] = useState<Dayjs | null>(null);
   const [fechaFin, setFechaFin] = useState<Dayjs | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { data = [], isLoading, isError } = useHistorial(
     fechaInicio ? fechaInicio.format('YYYY-MM-DD') : undefined,
@@ -99,13 +105,26 @@ export default function HistorialPage() {
       {/* Filtros */}
       <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
         {/* Encabezado de la sección de filtros */}
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg text-[#004680] bg-[#eaf2fb] border border-[#d6e6f7] shrink-0">
-            <CalendarMonthIcon sx={{ fontSize: 18 }} />
+        <div className="flex items-center justify-between gap-2.5 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg text-[#004680] bg-[#eaf2fb] border border-[#d6e6f7] shrink-0">
+              <CalendarMonthIcon sx={{ fontSize: 18 }} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[#0f2c4a] leading-tight">Filtros de búsqueda</h3>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-[#0f2c4a] leading-tight">Filtros de búsqueda</h3>
-          </div>
+          {esAdmin() && (
+            <Button
+              onClick={() => setExportOpen(true)}
+              variant="contained"
+              disableElevation
+              startIcon={<FileDownloadIcon />}
+              sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, '&:hover': { bgcolor: '#003a6b' } }}
+            >
+              Exportar
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 items-end">
@@ -400,6 +419,13 @@ export default function HistorialPage() {
         empleado={filaSeleccionada?.empleado ?? ''}
         fecha={filaSeleccionada?.fecha ?? ''}
         observaciones={filaSeleccionada?.observaciones_evento ?? []}
+      />
+
+      <ExportHistorialDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        fechaInicio={fechaInicio ? fechaInicio.format('YYYY-MM-DD') : undefined}
+        fechaFin={fechaFin ? fechaFin.format('YYYY-MM-DD') : undefined}
       />
     </div>
   );

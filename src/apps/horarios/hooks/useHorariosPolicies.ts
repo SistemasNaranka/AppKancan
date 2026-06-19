@@ -1,11 +1,5 @@
 import { useAuth } from '@/auth/hooks/useAuth';
 
-/**
- * Permisos del módulo de Horarios.
- * Sigue el mismo patrón que comisiones (useUserPolicies): se basa en las
- * policies del usuario autenticado. La seguridad real la aplican los
- * permisos de Directus; esto solo controla la visibilidad en la UI.
- */
 export const useHorariosPolicies = () => {
   const { user } = useAuth();
 

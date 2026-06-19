@@ -5,12 +5,8 @@ import { crearEmpleado, actualizarEmpleado } from '../api/directus/create';
 import { Tienda, Cargo, EmpleadoAdmin } from '../interfaces/horarios.interface';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
-// Tipos de documento: hoy una sola opción (campo lista desplegable de adm_employees).
-// Extensible: agregar más valores aquí cuando el negocio los habilite.
 export const TIPOS_DOCUMENTO: string[] = ['Cédula de Ciudadanía'];
 
-// La tienda seleccionada se controla desde fuera (props) para compartirla con la
-// vista de tienda; así la selección persiste al cambiar de pestaña.
 export const useAdminEmpleados = (tiendaSel: number | null, setTiendaSel: (id: number | null) => void) => {
   const queryClient = useQueryClient();
   const { showSnackbar } = useGlobalSnackbar();
@@ -27,7 +23,6 @@ export const useAdminEmpleados = (tiendaSel: number | null, setTiendaSel: (id: n
     staleTime: 30 * 60 * 1000,
   });
 
-  // Listado de empleados de la tienda seleccionada (controlada desde el padre).
   const { data: empleadosTienda = [], isLoading: loadingTienda } = useQuery<EmpleadoAdmin[]>({
     queryKey: ['adminEmpleadosTienda', tiendaSel],
     queryFn: () => listarEmpleadosTienda(tiendaSel as number),
@@ -35,7 +30,6 @@ export const useAdminEmpleados = (tiendaSel: number | null, setTiendaSel: (id: n
     staleTime: 2 * 60 * 1000,
   });
 
-  // Resultados de la búsqueda (por nombre o documento) + empleado seleccionado para editar
   const [resultados, setResultados] = useState<EmpleadoAdmin[]>([]);
   const [empleado, setEmpleado] = useState<EmpleadoAdmin | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -87,7 +81,6 @@ export const useAdminEmpleados = (tiendaSel: number | null, setTiendaSel: (id: n
       actualizarEmpleado(id, data),
     onSuccess: (_res, variables) => {
       invalidarEmpleados();
-      // Refleja los cambios en el seleccionado y en la lista de resultados
       setEmpleado((prev) => (prev ? { ...prev, ...variables.data } as EmpleadoAdmin : prev));
       setResultados((prev) => prev.map((e) => (e.id === variables.id ? { ...e, ...variables.data } as EmpleadoAdmin : e)));
       showSnackbar('Empleado actualizado correctamente', 'success');
@@ -103,7 +96,6 @@ export const useAdminEmpleados = (tiendaSel: number | null, setTiendaSel: (id: n
     tiposDocumento: TIPOS_DOCUMENTO,
     loadingCatalogos: loadingTiendas || loadingCargos,
 
-    // Listado por tienda (vista por defecto)
     tiendaSel,
     setTiendaSel,
     empleadosTienda,

@@ -2,14 +2,6 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/auth/hooks/useAuth';
 import { cargarTokenStorage } from '@/auth/services/tokenDirectus';
 
-/**
- * Separa un "nombre completo" en sus 4 componentes usando Gemini, a través del
- * proxy genérico ya existente (POST /api/ia/gemini/extraer). Reusa el mismo
- * patrón que contabilizacion_factura/useHybridExtractor (token, model, parseo).
- *
- * Requisitos: la cuenta debe tener `ia_key` y `models_ia` configurados en Directus.
- */
-
 export interface NombreSeparado {
   first_name: string;
   middle_name: string;
@@ -29,7 +21,6 @@ function obtenerModelosIA(modelosIA: any): string[] {
       if (names.length > 0) return names;
     }
   } catch {
-    /* ignore */
   }
   return [MODELO_POR_DEFECTO];
 }
@@ -90,7 +81,6 @@ export const useParseNombreIA = () => {
   const { user } = useAuth();
   const [procesando, setProcesando] = useState(false);
 
-  // Disponible solo si el usuario tiene clave de IA configurada.
   const disponible = !!user?.ia_key;
 
   const separarNombre = useCallback(async (nombreCompleto: string): Promise<NombreSeparado> => {

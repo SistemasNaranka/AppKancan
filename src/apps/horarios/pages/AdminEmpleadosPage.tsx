@@ -16,7 +16,6 @@ import { EmpleadoAdmin } from '../interfaces/horarios.interface';
 
 const AZUL = '#004680';
 
-// Color determinista para el avatar según el nombre.
 const AVATAR_COLORS = ['#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777', '#0891b2', '#4f46e5', '#ca8a04', '#dc2626', '#059669', '#2563eb', '#9333ea'];
 const colorAvatar = (texto: string) => {
   let hash = 0;
@@ -46,9 +45,6 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
 
   const tiendaNombre = (id: number | null) => tiendas.find((t) => t.id === id)?.name ?? '—';
 
-  // La búsqueda se hace en vivo y SIEMPRE sobre los empleados de la tienda
-  // seleccionada (no global). Filtrado en cliente: por nombre (subcadena por
-  // palabra) o por documento (subcadena). Así aparece resultado mientras escribe.
   const cargandoLista = loadingTienda;
   const enBusqueda = query.trim().length > 0;
 
@@ -63,7 +59,6 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
   };
 
   const esActivo = (e: EmpleadoAdmin) => (e.status || '').toLowerCase() === 'activo';
-  // base = empleados de la tienda que coinciden con la búsqueda
   const base = empleadosTienda.filter(coincide);
   const nActivos = base.filter(esActivo).length;
   const nInactivos = base.length - nActivos;

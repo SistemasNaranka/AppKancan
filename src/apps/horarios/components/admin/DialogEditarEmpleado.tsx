@@ -110,7 +110,7 @@ export default function DialogEditarEmpleado({
       </DialogContent>
 
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" color="error" disabled={guardando}>Cerrar</Button>
+        <Button onClick={onClose} variant="outlined" disabled={guardando} sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cerrar</Button>
         <Button
           onClick={guardar}
           variant="contained"

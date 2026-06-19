@@ -12,7 +12,6 @@ export const useHorarios = (storeOverride?: number | null) => {
   const { showSnackbar } = useGlobalSnackbar();
   const hoy = dayjs().format('YYYY-MM-DD');
 
-  // Tienda del usuario; un admin puede pasar `storeOverride` para ver otra tienda.
   const { data: storeUsuario = null } = useQuery<number | null>({
     queryKey: ['horariosStoreId'],
     queryFn: getStoreIdUsuarioActual,
@@ -215,7 +214,6 @@ export const useHorarios = (storeOverride?: number | null) => {
         recordId = creado?.id != null ? Number(creado.id) : null;
       }
 
-      // Vincula (o actualiza) el motivo seleccionado con el registro de tiempo.
       if (reasonId != null && recordId != null) {
         await upsertRecordReason(recordId, reasonId);
       }
@@ -250,7 +248,6 @@ export const useHorarios = (storeOverride?: number | null) => {
   };
 
   const eliminarEmpleado = (_idEmpleado: string) => {
-    // Eliminación local desactivada: la baja se gestiona vía novedad.
   };
 
   const resetHorarios = () => {

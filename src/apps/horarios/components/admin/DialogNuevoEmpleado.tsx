@@ -4,7 +4,6 @@ import {
   TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete,
   Typography, Divider, FormHelperText, InputAdornment, CircularProgress,
 } from '@mui/material';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import * as yup from 'yup';
 import { Tienda, Cargo, NuevoEmpleadoPayload } from '../../interfaces/horarios.interface';
 import { useParseNombreIA } from '../../hooks/useParseNombreIA';
@@ -36,8 +35,6 @@ const initialForm = (tipoDocDefault: string) => ({
   position_id: 0,
 });
 
-// Separación heurística (fallback si la IA no está disponible).
-// Orden colombiano: nombres primero, apellidos al final (los 2 últimos tokens).
 function splitNombreLocal(nombre: string) {
   const t = nombre.trim().split(/\s+/).filter(Boolean);
   const r = { first_name: '', middle_name: '', last_name: '', second_last_name: '' };
@@ -60,7 +57,7 @@ export default function DialogNuevoEmpleado({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [nombreCompleto, setNombreCompleto] = useState('');
 
-  const { separarNombre, procesando, disponible } = useParseNombreIA();
+  const { separarNombre, procesando } = useParseNombreIA();
   const { showSnackbar } = useGlobalSnackbar();
 
   useEffect(() => {
@@ -73,11 +70,9 @@ export default function DialogNuevoEmpleado({
 
   const setCampo = (campo: string, valor: any) => setForm((f) => ({ ...f, [campo]: valor }));
 
-  // Al crear: valida, separa el nombre completo (IA con fallback local) y guarda.
   const handleGuardar = async () => {
     setErrors({});
 
-    // 1) Validación de campos base + nombre completo
     const nuevosErrores: Record<string, string> = {};
     try {
       await schema.validate(form, { abortEarly: false });
@@ -95,7 +90,6 @@ export default function DialogNuevoEmpleado({
       return;
     }
 
-    // 2) Separar el nombre: IA primero, fallback heurístico si falla
     let partes;
     try {
       partes = await separarNombre(nombre);
@@ -105,7 +99,6 @@ export default function DialogNuevoEmpleado({
       showSnackbar('IA no disponible: el nombre se separó automáticamente.', 'warning');
     }
 
-    // 3) Guardar
     await onGuardar({
       document_type: form.document_type,
       document_number: form.document_number,
@@ -126,7 +119,6 @@ export default function DialogNuevoEmpleado({
       </DialogTitle>
       <DialogContent dividers sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
-          {/* Documento */}
           <Box sx={{ display: 'flex', gap: 2 }}>
             <FormControl fullWidth error={!!errors.document_type}>
               <InputLabel id="tipo-doc-label">Tipo de documento</InputLabel>
@@ -156,21 +148,16 @@ export default function DialogNuevoEmpleado({
             <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>NOMBRE</Typography>
           </Divider>
 
-          {/* Nombre completo (la IA lo separa al crear el empleado) */}
           <TextField
             fullWidth
             label="Nombre completo *"
-            placeholder="Ej: Maria Camila Mendes Rey"
+            placeholder="Ej: Juan Camilo Ortiz Grisales"
             value={nombreCompleto}
             onChange={(e) => setNombreCompleto(e.target.value)}
             error={!!errors.nombreCompleto}
-            helperText={errors.nombreCompleto || (disponible
-              ? 'Al crear, la IA separa nombres y apellidos automáticamente.'
-              : 'Se separará automáticamente al crear (sin IA: configura tu clave para mayor precisión).')}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <AutoAwesomeIcon sx={{ fontSize: 18, color: AZUL }} />
                 </InputAdornment>
               ),
             }}
@@ -214,13 +201,13 @@ export default function DialogNuevoEmpleado({
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" color="error" disabled={guardando || procesando}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined" disabled={guardando || procesando} sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
         <Button
           onClick={handleGuardar}
           variant="contained"
           disableElevation
           disabled={guardando || procesando}
-          startIcon={(guardando || procesando) ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <AutoAwesomeIcon sx={{ fontSize: 18 }} />}
+          startIcon={(guardando || procesando) ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
           sx={{ bgcolor: AZUL, textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#003a6b' } }}
         >
           {procesando ? 'Procesando nombre…' : guardando ? 'Guardando…' : 'Crear empleado'}

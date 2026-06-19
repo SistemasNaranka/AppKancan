@@ -369,7 +369,6 @@ function RegistrosPageContent() {
             <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
             {/* La pestaña permanece en el árbol (oculta) para conservar la alineación de índices con sus TabPanel */}
             <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
-            {/* Pestaña ADMIN: solo para administradores */}
             {esAdmin() && (
               <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
             )}

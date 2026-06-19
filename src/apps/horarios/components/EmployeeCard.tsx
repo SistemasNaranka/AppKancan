@@ -67,9 +67,6 @@ const formatTo12Hour = (timeStr: string | null): string => {
 };
 
 
-// Nombre del empleado truncado a una línea. Muestra tooltip con el nombre
-// completo SOLO cuando realmente se corta (detecta overflow real, no por
-// número de caracteres, ya que el ancho depende de la fuente).
 function NombreEmpleado({ nombre }: { nombre: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [truncado, setTruncado] = useState(false);
@@ -268,7 +265,6 @@ export default function EmployeeCard({
     setEventoActualHora(evento);
     setInitialReasonId(null);
     setHoraModalOpen(true);
-    // Precarga el motivo previamente guardado para este registro (si existe).
     const recordId = getRecordIdEvento(evento);
     if (recordId != null) {
       getRecordReasonId(recordId).then(setInitialReasonId).catch(() => setInitialReasonId(null));
@@ -442,7 +438,7 @@ export default function EmployeeCard({
           <TextField fullWidth multiline rows={5} placeholder="Escriba aquí la observación..." value={observacionTexto} onChange={(e) => setObservacionTexto(e.target.value.slice(0, maxLength))} helperText={`${observacionTexto.length}/${maxLength} caracteres`} slotProps={{ formHelperText: { sx: { textAlign: 'right', mt: 1, fontWeight: 500 } } }} />
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 2, bgcolor: '#f8fafc' }}>
-          <Button onClick={handleCloseObsModal} variant="outlined" color="error" sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}>Cancelar</Button>
+          <Button onClick={handleCloseObsModal} variant="outlined" sx={{ borderRadius: 2, px: 3, fontWeight: 600, color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
           <Button onClick={handleGuardarObservacion} variant="contained" disabled={observacionTexto === obsInicialModal} sx={{ bgcolor: '#004680', borderRadius: 2, px: 4, fontWeight: 600 }}>Guardar</Button>
         </DialogActions>
       </Dialog>
@@ -497,7 +493,7 @@ export default function EmployeeCard({
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={handleCloseNovedadModal} variant="outlined" color="error">Cancelar</Button>
+          <Button onClick={handleCloseNovedadModal} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
           <Button onClick={handleGuardarNovedad} variant="contained" sx={{ bgcolor: '#004680' }}>Guardar</Button>
         </DialogActions>
       </Dialog>

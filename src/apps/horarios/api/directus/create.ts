@@ -91,8 +91,6 @@ export async function updateTimeRecord(id: number, data: { observations?: string
   }
 }
 
-// Vincula un registro de tiempo con su motivo (com_records_reasons).
-// Un motivo por registro: actualiza la fila existente o la crea si no hay.
 export async function upsertRecordReason(recordId: number, reasonId: number) {
   try {
     const existentes: any = await withAutoRefresh(() =>
@@ -119,11 +117,7 @@ export async function upsertRecordReason(recordId: number, reasonId: number) {
   }
 }
 
-/* ──────────────────────────────────────────────────────────────
-   Panel administrativo de empleados (adm_employees)
-   ────────────────────────────────────────────────────────────── */
 
-// email/phone_number se llenan con valores estáticos por defecto (acuerdo con el negocio).
 const EMAIL_DEFECTO = 'correo@dominio.com';
 const TELEFONO_DEFECTO = '1';
 

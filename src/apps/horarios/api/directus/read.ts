@@ -85,7 +85,6 @@ export async function getTiposNovedad(): Promise<TipoNovedad[]> {
   }
 }
 
-// Catálogo de motivos de edición de hora (com_reasons), solo activos.
 export async function getReasons(): Promise<Motivo[]> {
   try {
     const items = await withAutoRefresh(() =>
@@ -99,7 +98,6 @@ export async function getReasons(): Promise<Motivo[]> {
       )
     );
     const motivos = (items || []).map((r: any) => ({ id: Number(r.id), name: r.name || "" }));
-    // "Otro" siempre va de última opción, el resto en orden alfabético.
     return motivos.sort((a: Motivo, b: Motivo) => {
       const aOtro = a.name.trim().toLowerCase() === "otro";
       const bOtro = b.name.trim().toLowerCase() === "otro";
@@ -112,7 +110,31 @@ export async function getReasons(): Promise<Motivo[]> {
   }
 }
 
-// Motivo vinculado a un registro de tiempo (com_records_reasons) para precargar el selector.
+export async function getReasonNamesForRecords(recordIds: number[]): Promise<Map<number, string>> {
+  const mapa = new Map<number, string>();
+  if (!recordIds || recordIds.length === 0) return mapa;
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_records_reasons", {
+          fields: ["records_id", "reasons_id.name"],
+          filter: { records_id: { _in: recordIds } },
+          limit: -1,
+        })
+      )
+    );
+    (items || []).forEach((it: any) => {
+      const rid = Number(typeof it.records_id === "object" ? it.records_id?.id : it.records_id);
+      const nombre = it.reasons_id?.name ?? null;
+      if (Number.isFinite(rid) && nombre) mapa.set(rid, nombre);
+    });
+    return mapa;
+  } catch (error) {
+    console.error("❌ Error obteniendo motivos de los registros:", error);
+    return mapa;
+  }
+}
+
 export async function getRecordReasonId(recordId: number): Promise<number | null> {
   try {
     const items = await withAutoRefresh(() =>
@@ -172,6 +194,7 @@ export interface TimeRecord {
   original_record_time: string | null;
   log_type: string;
   employee_id: {
+    document_number?: string | number | null;
     first_name: string;
     middle_name: string | null;
     last_name: string;
@@ -202,11 +225,40 @@ export const fetchTimeRecords = async (
     directus.request(
       readItems('com_time_records', {
 
-        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id', 'observations'],
+        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id', 'observations'],
 
- 
+
         filter,
         sort: ['-record_date'],
+        limit: -1,
+      })
+    )
+  ) as TimeRecord[];
+};
+
+export const fetchTimeRecordsExport = async (
+  fechaInicio?: string,
+  fechaFin?: string,
+  storeIds?: number[]
+): Promise<TimeRecord[]> => {
+  const filter: any = {};
+
+  if (storeIds && storeIds.length > 0) {
+    filter.store_id = { _in: storeIds };
+  }
+  if (fechaInicio) {
+    filter.record_date = { ...filter.record_date, _gte: fechaInicio };
+  }
+  if (fechaFin) {
+    filter.record_date = { ...filter.record_date, _lte: fechaFin };
+  }
+
+  return await withAutoRefresh(() =>
+    directus.request(
+      readItems('com_time_records', {
+        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id', 'observations'],
+        filter,
+        sort: ['record_date'],
         limit: -1,
       })
     )
@@ -233,11 +285,6 @@ export async function getTimeRecords(storeId: number, date: string): Promise<any
   }
 }
 
-/* ──────────────────────────────────────────────────────────────
-   Panel administrativo de empleados
-   ────────────────────────────────────────────────────────────── */
-
-// Todas las tiendas (para el selector del admin; no se filtra por la del usuario).
 export async function getStores(): Promise<Tienda[]> {
   try {
     const data = await withAutoRefresh(() =>
@@ -256,7 +303,6 @@ export async function getStores(): Promise<Tienda[]> {
   }
 }
 
-// Catálogo de cargos (core_positions).
 export async function getCargos(): Promise<Cargo[]> {
   try {
     const data = await withAutoRefresh(() =>
@@ -289,7 +335,6 @@ const mapEmpleadoAdmin = (emp: any): EmpleadoAdmin => ({
   status: emp.status ?? null,
 });
 
-// Lista TODOS los empleados (activos e inactivos) de una tienda, para el panel admin.
 export async function listarEmpleadosTienda(storeId: number): Promise<EmpleadoAdmin[]> {
   try {
     const items = await withAutoRefresh(() =>
@@ -313,17 +358,12 @@ export async function listarEmpleadosTienda(storeId: number): Promise<EmpleadoAd
   }
 }
 
-// Busca empleados por número de documento O por nombre/apellido (sin filtrar por
-// estado: debe encontrar Activos e Inactivos para reingreso/cambio de tienda).
 export async function buscarEmpleados(query: string): Promise<EmpleadoAdmin[]> {
   const q = query.trim();
   if (!q) return [];
   try {
     const esNumero = /^\d+$/.test(q);
-    // Cada palabra debe coincidir en ALGÚN campo de nombre (AND entre palabras,
-    // OR entre campos). Así "Brayan Riascos" matchea first_name + last_name.
     const tokens = q.split(/\s+/).filter(Boolean);
-    // document_number es columna numérica: comparamos como número exacto.
     const filter: any = esNumero
       ? { document_number: { _eq: Number(q) } }
       : {

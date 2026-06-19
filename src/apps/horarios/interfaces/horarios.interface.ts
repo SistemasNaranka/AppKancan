@@ -52,7 +52,6 @@ export interface TipoNovedad {
   name: string;
 }
 
-// Motivo de edición de hora (catálogo com_reasons, solo activos)
 export interface Motivo {
   id: number;
   name: string;
@@ -80,7 +79,6 @@ export interface Cargo {
   name: string;
 }
 
-// Empleado tal como llega de adm_employees al buscar/editar en el panel admin
 export interface EmpleadoAdmin {
   id: number;
   document_type: string | null;
