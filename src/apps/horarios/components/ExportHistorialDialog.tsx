@@ -120,7 +120,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
             />
             <FormControlLabel
               control={<Checkbox checked={todas} onChange={(e) => setTodas(e.target.checked)} sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }} />}
-              label={<Typography sx={{ fontSize: '0.85rem' }}>Todas las tiendas (exporta todo en una sola hoja)</Typography>}
+              label={<Typography sx={{ fontSize: '0.85rem', fontWeight: "bold" }}>Todas las tiendas</Typography>}
               sx={{ mt: 0.5 }}
             />
           </Box>
@@ -170,7 +170,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
           startIcon={exportando ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <FileDownloadIcon />}
           sx={{ bgcolor: AZUL, borderRadius: 2, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#003a6b' } }}
         >
-          {exportando ? 'Exportando…' : 'Exportar CSV'}
+          {exportando ? 'Exportando…' : 'Exportar'}
         </Button>
       </DialogActions>
     </Dialog>

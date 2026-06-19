@@ -114,9 +114,9 @@ const agruparParaExport = (
       finTurno: hhmm(finTurno),
       horasLaboradas: calcularHorasLaboradas(inicioTurno, finTurno, inicioAlmuerzo, finAlmuerzo),
       duracionAlmuerzo: calcularDuracionAlmuerzo(inicioAlmuerzo, finAlmuerzo),
-      motivo: lineasMotivo.join("\n"),
-      observacion: lineasObs.join("\n"),
-      horaInicial: lineasHoraInicial.join("\n"),
+      motivo: lineasMotivo.join("  |  "),
+      observacion: lineasObs.join("  |  "),
+      horaInicial: lineasHoraInicial.join("  |  "),
     };
   });
 
