@@ -1,8 +1,11 @@
 // Header de la vista de reservas: título, tabs animados, botón de tutorial y nueva reserva.
 
 import React from "react";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, Paper, Typography } from "@mui/material";
 import CalendarIcon from "@mui/icons-material/CalendarMonth";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import EventNoteIcon from "@mui/icons-material/EventNote";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 import AddIcon from "@mui/icons-material/Add";
 import { FloatingHelpButton } from "../../components";
 import {
@@ -11,6 +14,8 @@ import {
   ReservationTab,
   TAB_TITLES,
 } from "./reservasView.styled";
+
+const AZUL = "#004680";
 
 interface ReservationViewHeaderProps {
   currentTab: ReservationTab;
@@ -21,11 +26,24 @@ interface ReservationViewHeaderProps {
   onOpenNewReservation: () => void;
 }
 
-const TABS: { id: ReservationTab; label: string }[] = [
-  { id: "Reserva", label: "Reserva" },
-  { id: "mis", label: "Mis reservas" },
-  { id: "calendario", label: "Calendario" },
+const TABS: { id: ReservationTab; label: string; icon: React.ReactNode }[] = [
+  { id: "Reserva", label: "Reserva", icon: <EventAvailableIcon sx={{ fontSize: 18 }} /> },
+  { id: "mis", label: "Mis reservas", icon: <ListAltIcon sx={{ fontSize: 18 }} /> },
+  { id: "calendario", label: "Calendario", icon: <CalendarIcon sx={{ fontSize: 18 }} /> },
 ];
+
+// Subtítulo e ícono contextual por pestaña (refuerzan la jerarquía del encabezado).
+const TAB_SUBTITULOS: Record<ReservationTab, string> = {
+  Reserva: "Reserva una sala disponible para tu equipo",
+  mis: "Consulta y gestiona tus reservas",
+  calendario: "Visualiza la ocupación de las salas",
+};
+
+const TAB_ICONOS: Record<ReservationTab, React.ReactNode> = {
+  Reserva: <CalendarIcon sx={{ fontSize: 26 }} />,
+  mis: <EventAvailableIcon sx={{ fontSize: 26 }} />,
+  calendario: <EventNoteIcon sx={{ fontSize: 26 }} />,
+};
 
 export const ReservationViewHeader: React.FC<ReservationViewHeaderProps> = ({
   currentTab,
@@ -36,43 +54,66 @@ export const ReservationViewHeader: React.FC<ReservationViewHeaderProps> = ({
   onOpenNewReservation,
 }) => {
   return (
-    <Box
+    <Paper
+      elevation={0}
       sx={{
+        borderRadius: 4,
+        border: "1px solid #eef2f6",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+        bgcolor: "#fff",
+        mb: 2,
         display: "flex",
         alignItems: "center",
-        justifyContent: "flex-start",
-        mb: 1,
-        pb: 0.5,
-        borderBottom: "1px solid #e0e0e0",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 1.5,
+        p: { xs: 1.5, md: 2 },
       }}
     >
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
-          minWidth: 180,
+          gap: 1.75,
+          flex: 1,
+          minWidth: 0,
         }}
       >
+        {/* Badge suave que ancla el título (mismo patrón que la app de Horarios) */}
         <Box
           sx={{
-            width: 38,
-            height: 38,
-            borderRadius: 2,
-            backgroundColor: "#1976d2",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            width: { xs: 40, md: 48 },
+            height: { xs: 40, md: 48 },
+            borderRadius: 2.5,
+            flexShrink: 0,
+            color: AZUL,
+            bgcolor: "#eaf2fb",
+            border: "1px solid #d6e6f7",
           }}
         >
-          <CalendarIcon sx={{ color: "white", fontSize: 20 }} />
+          {TAB_ICONOS[currentTab]}
         </Box>
-        <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a2a3a" }}>
-          {TAB_TITLES[currentTab]}
-        </Typography>
+        <Box>
+          <Typography
+            sx={{
+              fontWeight: 700,
+              color: "#0f2c4a",
+              lineHeight: 1.2,
+              fontSize: { xs: "1.15rem", md: "1.4rem" },
+            }}
+          >
+            {TAB_TITLES[currentTab]}
+          </Typography>
+          <Typography sx={{ fontSize: "0.82rem", color: "#64748b", mt: 0.4, lineHeight: 1.35 }}>
+            {TAB_SUBTITULOS[currentTab]}
+          </Typography>
+        </Box>
       </Box>
 
-      <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
+      <Box sx={{ flex: "0 0 auto", display: "flex", justifyContent: "center" }}>
         <TabContainer>
           {TABS.map((tab, index) => {
             const isFirst = index === 0;
@@ -105,6 +146,7 @@ export const ReservationViewHeader: React.FC<ReservationViewHeaderProps> = ({
                   opacity: isFullTourRunning && !isActive ? 0.5 : 1,
                 }}
               >
+                {tab.icon}
                 {tab.label}
               </AnimatedTab>
             );
@@ -112,7 +154,7 @@ export const ReservationViewHeader: React.FC<ReservationViewHeaderProps> = ({
         </TabContainer>
       </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
         <div ref={floatingBtnRef} style={{ display: "inline-flex" }}>
           <FloatingHelpButton onBeforeStart={onStartTutorial} />
         </div>
@@ -135,6 +177,6 @@ export const ReservationViewHeader: React.FC<ReservationViewHeaderProps> = ({
           Nueva reserva
         </Button>
       </Box>
-    </Box>
+    </Paper>
   );
 };
