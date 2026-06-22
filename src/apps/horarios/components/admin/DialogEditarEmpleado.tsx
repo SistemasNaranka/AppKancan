@@ -16,7 +16,7 @@ interface Props {
   cargos: Cargo[];
   guardando: boolean;
   onClose: () => void;
-  onGuardar: (id: number, data: { store_id: number; position_id: number; status: string }) => Promise<unknown>;
+  onGuardar: (id: number, data: { store_id?: number; position_id?: number; status?: string }) => Promise<unknown>;
 }
 
 export default function DialogEditarEmpleado({
@@ -45,7 +45,16 @@ export default function DialogEditarEmpleado({
     statusEdit !== (empleado.status ?? '');
 
   const guardar = async () => {
-    await onGuardar(empleado.id, { store_id: storeEdit, position_id: cargoEdit, status: statusEdit });
+    // Solo se envían los campos que realmente cambiaron (no se reenvían los
+    // valores ya establecidos, que además podrían venir en 0 y causar error).
+    const data: { store_id?: number; position_id?: number; status?: string } = {};
+    if (storeEdit !== (empleado.store_id ?? 0)) data.store_id = storeEdit;
+    if (cargoEdit !== (empleado.position_id ?? 0)) data.position_id = cargoEdit;
+    if (statusEdit !== (empleado.status ?? '')) data.status = statusEdit;
+
+    if (Object.keys(data).length === 0) { onClose(); return; }
+
+    await onGuardar(empleado.id, data);
     onClose();
   };
 

@@ -29,7 +29,11 @@ import { Eye } from 'lucide-react';
 import { HistorialRow } from '../interfaces/horarios.interface';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 
-export default function HistorialPage() {
+interface HistorialPageProps {
+  storeIdAdmin?: number | null;
+}
+
+export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {}) {
   const { esAdmin } = useHorariosPolicies();
   const [searchNombre, setSearchNombre] = useState('');
   const [fechaInicio, setFechaInicio] = useState<Dayjs | null>(null);
@@ -426,6 +430,7 @@ export default function HistorialPage() {
         onClose={() => setExportOpen(false)}
         fechaInicio={fechaInicio ? fechaInicio.format('YYYY-MM-DD') : undefined}
         fechaFin={fechaFin ? fechaFin.format('YYYY-MM-DD') : undefined}
+        tiendaDefault={storeIdAdmin ?? null}
       />
     </div>
   );

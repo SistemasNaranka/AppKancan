@@ -1,5 +1,6 @@
 import { X, Clock, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { createPortal } from 'react-dom';
 import { ObservacionEvento } from '../interfaces/horarios.interface';
 
 interface ObservationModalProps {
@@ -17,7 +18,7 @@ export function ObservationModal({
   fecha,
   observaciones,
 }: ObservationModalProps) {
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -84,6 +85,7 @@ export function ObservationModal({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

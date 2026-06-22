@@ -20,9 +20,10 @@ interface Props {
   onClose: () => void;
   fechaInicio?: string;
   fechaFin?: string;
+  tiendaDefault?: number | null;
 }
 
-export default function ExportHistorialDialog({ open, onClose, fechaInicio, fechaFin }: Props) {
+export default function ExportHistorialDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
   const [todas, setTodas] = useState(false);
@@ -35,6 +36,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
     if (open) {
       setRangoInicio(fechaInicio ? dayjs(fechaInicio) : null);
       setRangoFin(fechaFin ? dayjs(fechaFin) : null);
+      setTodas(false);
     }
   }, [open, fechaInicio, fechaFin]);
 
@@ -45,14 +47,28 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
     enabled: open,
   });
 
+  // Preselecciona la tienda elegida por el admin en la vista de Registros.
+  useEffect(() => {
+    if (open && tiendaDefault != null && tiendas.length > 0) {
+      const t = tiendas.find((x) => x.id === tiendaDefault);
+      setTiendasSel(t ? [t] : []);
+    }
+  }, [open, tiendas, tiendaDefault]);
+
   const puedeExportar = (todas || tiendasSel.length > 0) && !exportando;
 
   const handleExportar = async () => {
     setExportando(true);
     try {
       const storeIds = todas ? undefined : tiendasSel.map((t) => t.id);
-      const fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
-      const fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
+      let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
+      let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
+      // Sin rango seleccionado → por defecto solo el día de hoy.
+      if (!fIni && !fFin) {
+        const hoy = dayjs().format('YYYY-MM-DD');
+        fIni = hoy;
+        fFin = hoy;
+      }
       const records = await fetchTimeRecordsExport(fIni, fFin, storeIds);
 
       const reasonsMap = detallada
@@ -153,7 +169,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
           <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8' }}>
             {rangoInicio || rangoFin
               ? `Se exportará del ${rangoInicio ? rangoInicio.format('YYYY-MM-DD') : '…'} al ${rangoFin ? rangoFin.format('YYYY-MM-DD') : '…'}.`
-              : 'Sin rango de fechas: se exportará todo el historial disponible.'}
+              : `Sin rango seleccionado: se exportará solo el día de hoy (${dayjs().format('YYYY-MM-DD')}).`}
           </Typography>
         </Box>
       </DialogContent>

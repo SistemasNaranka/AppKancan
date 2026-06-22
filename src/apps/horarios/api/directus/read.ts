@@ -321,6 +321,14 @@ export async function getCargos(): Promise<Cargo[]> {
   }
 }
 
+// Extrae un id numérico de un campo relacional que puede venir como número
+// (clave foránea) o como objeto expandido ({ id, name }). Devuelve null si no aplica.
+const idRelacion = (val: any): number | null => {
+  const raw = val != null && typeof val === "object" ? val.id : val;
+  const num = Number(raw);
+  return Number.isFinite(num) ? num : null;
+};
+
 const mapEmpleadoAdmin = (emp: any): EmpleadoAdmin => ({
   id: emp.id,
   document_type: emp.document_type ?? null,
@@ -329,9 +337,9 @@ const mapEmpleadoAdmin = (emp: any): EmpleadoAdmin => ({
   middle_name: emp.middle_name ?? null,
   last_name: emp.last_name ?? null,
   second_last_name: emp.second_last_name ?? null,
-  store_id: emp.store_id != null ? Number(emp.store_id) : null,
-  position_id: emp.position_id?.id != null ? Number(emp.position_id.id) : (emp.position_id != null ? Number(emp.position_id) : null),
-  position_name: emp.position_id?.name ?? null,
+  store_id: idRelacion(emp.store_id),
+  position_id: idRelacion(emp.position_id),
+  position_name: (typeof emp.position_id === "object" ? emp.position_id?.name : null) ?? null,
   status: emp.status ?? null,
 });
 
@@ -343,7 +351,7 @@ export async function listarEmpleadosTienda(storeId: number): Promise<EmpleadoAd
           fields: [
             "id", "document_type", "document_number",
             "first_name", "middle_name", "last_name", "second_last_name",
-            "store_id", "position_id", "position_id.name", "status",
+            "store_id", "position_id.id", "position_id.name", "status",
           ],
           filter: { store_id: { _eq: storeId } },
           sort: ["first_name", "last_name"],
@@ -383,7 +391,7 @@ export async function buscarEmpleados(query: string): Promise<EmpleadoAdmin[]> {
           fields: [
             "id", "document_type", "document_number",
             "first_name", "middle_name", "last_name", "second_last_name",
-            "store_id", "position_id", "position_id.name", "status",
+            "store_id", "position_id.id", "position_id.name", "status",
           ],
           filter,
           sort: ["first_name", "last_name"],

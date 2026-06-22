@@ -730,7 +730,7 @@ function RegistrosPageContent() {
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
-        <HistorialPage />
+        <HistorialPage storeIdAdmin={storeOverride} />
       </TabPanel>
 
       <TabPanel value={tabValue} index={3}>

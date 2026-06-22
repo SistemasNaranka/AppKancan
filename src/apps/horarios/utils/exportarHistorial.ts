@@ -46,7 +46,7 @@ const calcularDuracionAlmuerzo = (
   const base = "2000-01-01";
   const minutos = dayjs(`${base} ${finAlmuerzo}`).diff(dayjs(`${base} ${inicioAlmuerzo}`), "minute");
   if (minutos < 0) return "--";
-  return `${(minutos / 60).toFixed(2)} h`;
+  return `${minutos} min`;
 };
 
 interface FilaExport {
@@ -166,7 +166,7 @@ export const exportarHistorialExcel = async ({
     { key: "finAlmuerzo", header: "Hora fin almuerzo" },
     { key: "finTurno", header: "Hora fin de turno" },
     { key: "horasLaboradas", header: "Horas laboradas" },
-    { key: "duracionAlmuerzo", header: "Hora de almuerzo" },
+    { key: "duracionAlmuerzo", header: "Tiempo de almuerzo" },
   ];
 
   if (detallada) {
