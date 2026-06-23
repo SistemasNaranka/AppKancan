@@ -5,6 +5,8 @@ import {
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import { getStores, fetchTimeRecordsExport, getReasonNamesForRecords } from '../api/directus/read';
@@ -150,6 +152,46 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
               fechaFin={rangoFin}
               onChange={(inicio, fin) => { setRangoInicio(inicio); setRangoFin(fin); }}
             />
+
+            {(() => {
+              const conRango = !!(rangoInicio || rangoFin);
+              const c = conRango
+                ? { bg: '#eaf2fb', border: '#cfe2f7', icon: '#004680', text: '#0f2c4a' }
+                : { bg: '#fff8e1', border: '#ffe49c', icon: '#c08a00', text: '#7a5b00' };
+              return (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.25,
+                    p: 1.5,
+                    mt: 1.25,
+                    borderRadius: 2,
+                    bgcolor: c.bg,
+                    border: `1px solid ${c.border}`,
+                  }}
+                >
+                  {conRango
+                    ? <CalendarMonthIcon sx={{ fontSize: 20, color: c.icon, flexShrink: 0 }} />
+                    : <InfoOutlinedIcon sx={{ fontSize: 20, color: c.icon, flexShrink: 0 }} />}
+                  <Typography sx={{ fontSize: '0.82rem', color: c.text, lineHeight: 1.4 }}>
+                    {conRango ? (
+                      <>
+                        Se exportará del{' '}
+                        <Box component="span" sx={{ fontWeight: 700 }}>{rangoInicio ? rangoInicio.format('DD-MM-YYYY') : '…'}</Box>
+                        {' '}al{' '}
+                        <Box component="span" sx={{ fontWeight: 700 }}>{rangoFin ? rangoFin.format('DD-MM-YYYY') : '…'}</Box>.
+                      </>
+                    ) : (
+                      <>
+                        No seleccionaste un rango de fechas: se exportará{' '}
+                        <Box component="span" sx={{ fontWeight: 700 }}>solo el día de hoy ({dayjs().format('DD-MM-YYYY')})</Box>.
+                      </>
+                    )}
+                  </Typography>
+                </Box>
+              );
+            })()}
           </Box>
 
           <Divider />
@@ -165,12 +207,6 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
               </Box>
             }
           />
-
-          <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-            {rangoInicio || rangoFin
-              ? `Se exportará del ${rangoInicio ? rangoInicio.format('YYYY-MM-DD') : '…'} al ${rangoFin ? rangoFin.format('YYYY-MM-DD') : '…'}.`
-              : `Sin rango seleccionado: se exportará solo el día de hoy (${dayjs().format('YYYY-MM-DD')}).`}
-          </Typography>
         </Box>
       </DialogContent>
 
