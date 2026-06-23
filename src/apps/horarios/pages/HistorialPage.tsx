@@ -103,6 +103,25 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
     return row.observaciones_evento.some((obs) => obs.evento === evento);
   };
 
+  // Para el modal: todos los eventos registrados (con hora) de la fila, con su
+  // observación si existe; los que no tengan, quedan en blanco.
+  const construirEventosFila = (row: HistorialRow | null) => {
+    if (!row) return [];
+    const eventos = [
+      { evento: 'Comenzar Jornada', hora: row.inicio_turno },
+      { evento: 'Iniciar Almuerzo', hora: row.inicio_almuerzo },
+      { evento: 'Finalizar Almuerzo', hora: row.fin_almuerzo },
+      { evento: 'Terminar Jornada', hora: row.fin_turno },
+    ];
+    return eventos
+      .filter((e) => e.hora != null)
+      .map((e) => ({
+        evento: e.evento,
+        hora: e.hora,
+        observacion: row.observaciones_evento.find((o) => o.evento === e.evento)?.observacion ?? '',
+      }));
+  };
+
   return (
     <div className="space-y-4 px-0 -mt-2">
 
@@ -422,7 +441,7 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
         onClose={() => { setModalOpen(false); setFilaSeleccionada(null); }}
         empleado={filaSeleccionada?.empleado ?? ''}
         fecha={filaSeleccionada?.fecha ?? ''}
-        observaciones={filaSeleccionada?.observaciones_evento ?? []}
+        observaciones={construirEventosFila(filaSeleccionada)}
       />
 
       <ExportHistorialDialog

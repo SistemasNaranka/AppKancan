@@ -1,5 +1,3 @@
-// Header de la vista de reservas: título, tabs animados, botón de tutorial y nueva reserva.
-
 import React from "react";
 import { Box, Button, Paper, Typography } from "@mui/material";
 import CalendarIcon from "@mui/icons-material/CalendarMonth";
@@ -32,7 +30,6 @@ const TABS: { id: ReservationTab; label: string; icon: React.ReactNode }[] = [
   { id: "calendario", label: "Calendario", icon: <CalendarIcon sx={{ fontSize: 18 }} /> },
 ];
 
-// Subtítulo e ícono contextual por pestaña (refuerzan la jerarquía del encabezado).
 const TAB_SUBTITULOS: Record<ReservationTab, string> = {
   Reserva: "Reserva una sala disponible para tu equipo",
   mis: "Consulta y gestiona tus reservas",
@@ -79,7 +76,7 @@ export const ReservationViewHeader: React.FC<ReservationViewHeaderProps> = ({
           minWidth: 0,
         }}
       >
-        {/* Badge suave que ancla el título (mismo patrón que la app de Horarios) */}
+        
         <Box
           sx={{
             display: "flex",
