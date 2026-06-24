@@ -1,57 +1,38 @@
-// src/shared/hooks/SnackbarContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Snackbar, Alert, AlertColor } from '@mui/material';
+// Adaptador del snackbar global sobre Sileo (toasts con animación física).
+// Conserva la API previa (useGlobalSnackbar / showSnackbar) para no tocar los
+// call sites; por dentro enruta a los métodos de Sileo según la severidad.
+import { createContext, useContext, ReactNode } from 'react';
+import { sileo, Toaster } from 'sileo';
+import 'sileo/styles.css';
+import './sileoOverrides.css';
+
+type Severity = 'success' | 'error' | 'warning' | 'info';
+
+// Color de fondo del toast según el estado (mismo color para todo el toast).
+export const SILEO_STATE_FILL: Record<string, string> = {
+  success: '#4a9e62',
+  error: '#c62828',
+  warning: '#b45309',
+  info: '#01579b',
+  loading: '#8995a5',
+  action: '#004680',
+};
 
 interface SnackbarContextType {
-  showSnackbar: (message: string, severity?: AlertColor) => void;
+  showSnackbar: (message: string, severity?: Severity) => void;
 }
 
 const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
 
 export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
-  const [snack, setSnack] = useState({
-    open: false,
-    message: '',
-    severity: 'info' as AlertColor,
-  });
-
-  const showSnackbar = (message: string, severity: AlertColor = 'info') => {
-    setSnack({ open: true, message, severity });
-  };
-
-  const handleClose = (_?: React.SyntheticEvent | Event, reason?: string) => {
-    if (reason === 'clickaway') return;
-    setSnack((prev) => ({ ...prev, open: false }));
+  const showSnackbar = (message: string, severity: Severity = 'info') => {
+    sileo[severity]({ title: message, duration: 4000, fill: SILEO_STATE_FILL[severity] });
   };
 
   return (
     <SnackbarContext.Provider value={{ showSnackbar }}>
       {children}
-      <Snackbar 
-        open={snack.open} 
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        autoHideDuration={4000}
-      >
-        <Alert 
-          onClose={handleClose} 
-          severity={snack.severity} 
-          variant="filled" 
-          sx={{ width: '100%', maxWidth: 400, borderRadius: 2, 
-
-          '&.MuiAlert-filledSuccess': { backgroundColor: '#2e7d32', color: '#fff' },
-          '&.MuiAlert-filledError':   { backgroundColor: '#c62828', color: '#fff' },
-          '&.MuiAlert-filledWarning': { backgroundColor: '#e65100', color: '#fff' },
-          '&.MuiAlert-filledInfo':    { backgroundColor: '#01579b', color: '#fff' },
-
-          fontSize: '0.95rem',
-          fontWeight: 600,
-          
-          }}
-        >
-          {snack.message}
-        </Alert>
-      </Snackbar>
+      <Toaster position="bottom-center" />
     </SnackbarContext.Provider>
   );
 };

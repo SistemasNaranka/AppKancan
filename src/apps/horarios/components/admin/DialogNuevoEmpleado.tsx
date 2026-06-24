@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box,
   TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete,
   Typography, Divider, FormHelperText, InputAdornment, CircularProgress,
 } from '@mui/material';
 import * as yup from 'yup';
+import { sileo } from 'sileo';
+import PersonIcon from '@mui/icons-material/Person';
+import BadgeIcon from '@mui/icons-material/Badge';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import WorkIcon from '@mui/icons-material/Work';
 import { Tienda, Cargo, NuevoEmpleadoPayload } from '../../interfaces/horarios.interface';
 import { useParseNombreIA } from '../../hooks/useParseNombreIA';
-import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { SILEO_STATE_FILL } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
 interface Props {
   open: boolean;
@@ -50,6 +55,53 @@ function splitNombreLocal(nombre: string) {
   return r;
 }
 
+interface EmpleadoCreado {
+  nombre: string;
+  documento: string;
+  tienda: string;
+  cargo: string;
+}
+
+function EmpleadoCreadoCard({ emp }: { emp: EmpleadoCreado }) {
+  const fila = (icon: ReactNode, label: string, value: string) => (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box
+        sx={{
+          width: 26,
+          height: 26,
+          borderRadius: 1.5,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'rgba(255,255,255,0.18)',
+          color: '#fff',
+        }}
+      >
+        {icon}
+      </Box>
+      <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', minWidth: 62 }}>{label}</Typography>
+      <Typography sx={{ fontSize: '0.8rem', color: '#fff', fontWeight: 400 }} noWrap>{value || '—'}</Typography>
+    </Box>
+  );
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0.85,
+        minWidth: 240,
+      }}
+    >
+      {fila(<PersonIcon sx={{ fontSize: 16 }} />, 'Nombre', emp.nombre)}
+      {fila(<BadgeIcon sx={{ fontSize: 16 }} />, 'Documento', emp.documento)}
+      {fila(<StorefrontIcon sx={{ fontSize: 16 }} />, 'Tienda', emp.tienda)}
+      {fila(<WorkIcon sx={{ fontSize: 16 }} />, 'Cargo', emp.cargo)}
+    </Box>
+  );
+}
+
 export default function DialogNuevoEmpleado({
   open, onClose, tiendas, cargos, tiposDocumento, guardando, onGuardar,
 }: Props) {
@@ -58,7 +110,6 @@ export default function DialogNuevoEmpleado({
   const [nombreCompleto, setNombreCompleto] = useState('');
 
   const { separarNombre, procesando } = useParseNombreIA();
-  const { showSnackbar } = useGlobalSnackbar();
 
   useEffect(() => {
     if (open) {
@@ -90,28 +141,51 @@ export default function DialogNuevoEmpleado({
       return;
     }
 
-    let partes;
-    try {
-      partes = await separarNombre(nombre);
-      if (!partes.first_name || !partes.last_name) partes = splitNombreLocal(nombre);
-    } catch {
-      partes = splitNombreLocal(nombre);
-      showSnackbar('IA no disponible: el nombre se separó automáticamente.', 'warning');
-    }
+    // Datos para la tarjeta del toast (se capturan antes de cerrar el modal).
+    const empleadoInfo: EmpleadoCreado = {
+      nombre,
+      documento: form.document_number,
+      tienda: tiendas.find((t) => t.id === form.store_id)?.name ?? '',
+      cargo: cargos.find((c) => c.id === form.position_id)?.name ?? '',
+    };
+    const datosForm = { ...form };
 
-    await onGuardar({
-      document_type: form.document_type,
-      document_number: form.document_number,
-      first_name: partes.first_name,
-      middle_name: partes.middle_name || undefined,
-      last_name: partes.last_name,
-      second_last_name: partes.second_last_name || undefined,
-      store_id: form.store_id,
-      position_id: form.position_id,
-    });
+    // Cierra el modal de inmediato; el progreso se muestra en el toast de Sileo.
     onClose();
-  };
 
+    sileo.promise(
+      (async () => {
+        let partes;
+        try {
+          partes = await separarNombre(nombre);
+          if (!partes.first_name || !partes.last_name) partes = splitNombreLocal(nombre);
+        } catch {
+          partes = splitNombreLocal(nombre);
+        }
+        await onGuardar({
+          document_type: datosForm.document_type,
+          document_number: datosForm.document_number,
+          first_name: partes.first_name,
+          middle_name: partes.middle_name || undefined,
+          last_name: partes.last_name,
+          second_last_name: partes.second_last_name || undefined,
+          store_id: datosForm.store_id,
+          position_id: datosForm.position_id,
+        });
+      })(),
+      {
+        loading: { title: 'Creando empleado…', fill: SILEO_STATE_FILL.loading },
+        success: () => ({
+          title: 'Empleado creado',
+          description: <EmpleadoCreadoCard emp={empleadoInfo} />,
+          duration: 6000,
+          fill: SILEO_STATE_FILL.success,
+        }),
+        error: { title: 'Error al crear el empleado', fill: SILEO_STATE_FILL.error, duration: 6000 },
+      }
+    );
+  };
+ 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
       <DialogTitle sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, fontWeight: 700 }}>

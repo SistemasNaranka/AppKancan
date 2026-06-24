@@ -13,6 +13,7 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import DiningIcon from '@mui/icons-material/Dining';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
 import { EmpleadoAsistencia, Motivo } from '../interfaces/horarios.interface';
 import EditHourModal from './EditHourModal';
 import { getRecordReasonId } from '../api/directus/read';
@@ -39,7 +40,16 @@ interface EmployeeCardProps {
     observaciones: string;
     fechaRegistro: string;
   }) => Promise<boolean> | boolean | any;
+  onReportarEvento: (idEmpleado: string, eventType: string) => Promise<boolean> | boolean | any;
 }
+
+// Opciones del reporte de eventos/pausas (definidas en código, no en la BD).
+const EVENTOS_PAUSA = [
+  'Iniciar Pausa Activa',
+  'Terminar Pausa Activa',
+  'Salir al baño',
+  'Regresar del baño',
+];
 
 const getIcon = (etiqueta: string) => {
   switch (etiqueta) {
@@ -120,7 +130,7 @@ function NombreEmpleado({ nombre }: { nombre: string }) {
 
 export default function EmployeeCard({
   empleado, tiposNovedad, reasons, onRegistrarEvento,
-  onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad
+  onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad, onReportarEvento
 }: EmployeeCardProps) {
   if (!empleado) {
     return (
@@ -151,6 +161,11 @@ export default function EmployeeCard({
   const [eventoActualHora, setEventoActualHora] = useState('');
   const [initialReasonId, setInitialReasonId] = useState<number | null>(null);
 
+  const [eventoModalOpen, setEventoModalOpen] = useState(false);
+  const [eventoSeleccionado, setEventoSeleccionado] = useState('');
+  const [eventoError, setEventoError] = useState('');
+  const [guardandoEvento, setGuardandoEvento] = useState(false);
+
   const novedadSchema = yup.object().shape({
     novedad: yup.string().required('El tipo de novedad es obligatorio'),
     fechaInicio: yup.string().required('La fecha de inicio es obligatoria'),
@@ -172,6 +187,8 @@ export default function EmployeeCard({
 
   const novedadActiva = estadoActual === 'entrada_pendiente';
   const finalizado = estadoActual === 'jornada_finalizada';
+  // El reporte de evento/pausa aplica durante la jornada (iniciada y no terminada).
+  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado;
 
   const getObservacion = (evento: string) => {
     if (!registros.observaciones) return '';
@@ -229,6 +246,29 @@ export default function EmployeeCard({
         err.inner.forEach((e) => { if (e.path) errors[e.path] = e.message; });
         setFormErrors(errors);
       }
+    }
+  };
+
+  const handleOpenEventoModal = () => {
+    setEventoSeleccionado('');
+    setEventoError('');
+    setEventoModalOpen(true);
+  };
+  const handleCloseEventoModal = () => {
+    if (guardandoEvento) return;
+    setEventoModalOpen(false);
+  };
+  const handleGuardarEvento = async () => {
+    if (!eventoSeleccionado) {
+      setEventoError('Selecciona un evento');
+      return;
+    }
+    setGuardandoEvento(true);
+    try {
+      const ok = await onReportarEvento(id, eventoSeleccionado);
+      if (ok) setEventoModalOpen(false);
+    } finally {
+      setGuardandoEvento(false);
     }
   };
 
@@ -293,9 +333,9 @@ export default function EmployeeCard({
                   disabled={!novedadActiva}
                   onClick={handleOpenNovedadModal}
                   sx={{
-                    color: novedadActiva ? '#ffd966' : 'rgba(255,255,255,0.3)',
+                    color: novedadActiva ? '#ffffff' : 'rgba(255,255,255,0.3)',
                     '&:hover': {
-                      bgcolor: novedadActiva ? 'rgba(255, 217, 102, 0.08)' : 'transparent',
+                      bgcolor: novedadActiva ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
                     },
                     '&.Mui-disabled': {
                       color: 'rgba(255,255,255,0.3)',
@@ -303,6 +343,26 @@ export default function EmployeeCard({
                   }}
                 >
                   <WarningIcon fontSize="medium" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={reporteActivo ? 'Reportar evento' : 'No disponible'}>
+              <span>
+                <IconButton
+                  size="medium"
+                  disabled={!reporteActivo}
+                  onClick={handleOpenEventoModal}
+                  sx={{
+                    color: reporteActivo ? '#fbbf24' : 'rgba(255,255,255,0.3)',
+                    '&:hover': {
+                      bgcolor: reporteActivo ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                    },
+                    '&.Mui-disabled': {
+                      color: 'rgba(255,255,255,0.3)',
+                    }
+                  }}
+                >
+                  <PauseCircleOutlineIcon fontSize="medium" />
                 </IconButton>
               </span>
             </Tooltip>
@@ -495,6 +555,42 @@ export default function EmployeeCard({
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button onClick={handleCloseNovedadModal} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
           <Button onClick={handleGuardarNovedad} variant="contained" sx={{ bgcolor: '#004680' }}>Guardar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal reporte de evento / pausa */}
+      <Dialog open={eventoModalOpen} onClose={handleCloseEventoModal} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3, fontWeight: 700 }}>Reporta un evento</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          <Typography sx={{ fontSize: '0.85rem', color: '#475569', mb: 2 }}>
+            Escoja la novedad presentada para {nombre}:
+          </Typography>
+          <FormControl fullWidth error={!!eventoError}>
+            <InputLabel id="evento-select-label">Evento</InputLabel>
+            <Select
+              labelId="evento-select-label"
+              value={eventoSeleccionado}
+              label="Evento"
+              onChange={(e) => { setEventoSeleccionado(e.target.value); setEventoError(''); }}
+            >
+              {EVENTOS_PAUSA.map((ev) => (
+                <MenuItem key={ev} value={ev}>{ev}</MenuItem>
+              ))}
+            </Select>
+            {eventoError && <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>{eventoError}</Typography>}
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={handleCloseEventoModal} disabled={guardandoEvento} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
+          <Button
+            onClick={handleGuardarEvento}
+            variant="contained"
+            disabled={guardandoEvento}
+            startIcon={guardandoEvento ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
+            sx={{ bgcolor: '#004680' }}
+          >
+            {guardandoEvento ? 'Guardando…' : 'Guardar'}
+          </Button>
         </DialogActions>
       </Dialog>
     </>

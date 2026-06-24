@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { EmpleadoAsistencia, TipoNovedad, NovedadMapeada, RegistrosAsistencia, Motivo } from '../interfaces/horarios.interface';
 import { getEmpleados, getNovedades, getTiposNovedad, getTimeRecords, getStoreIdUsuarioActual, getReasons } from '../api/directus/read';
-import { createNovedades, createTimeRecord, updateTimeRecord, upsertRecordReason } from '../api/directus/create';
+import { createNovedades, createTimeRecord, updateTimeRecord, upsertRecordReason, createEventReport } from '../api/directus/create';
 import dayjs from 'dayjs';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
@@ -308,6 +308,23 @@ export const useHorarios = (storeOverride?: number | null) => {
     }
   };
 
+  // Reporte de evento/pausa: guarda un registro en com_event_reports. El momento
+  // exacto del reporte queda en date_created (lo asigna Directus).
+  const reportarEvento = async (idEmpleado: string, eventType: string) => {
+    try {
+      await createEventReport({
+        employee_id: Number(idEmpleado),
+        event_type: eventType,
+        store_id: STORE_ID as number,
+      });
+      showSnackbar('Evento reportado con éxito', 'success');
+      return true;
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Error al reportar el evento', 'error');
+      return false;
+    }
+  };
+
   const novedadesMapped: NovedadMapeada[] = (novedadesDB || []).map((nov: any) => {
     const empId = nov.employee_id?.id || nov.employee_id;
     const empLocal = empleadosDB.find((e) => String(e.id) === String(empId));
@@ -356,5 +373,6 @@ export const useHorarios = (storeOverride?: number | null) => {
     eliminarEmpleado,
     guardarObservacion,
     agregarNovedad,
+    reportarEvento,
   };
 };

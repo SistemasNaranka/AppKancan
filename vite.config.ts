@@ -215,6 +215,7 @@ export default defineConfig({
       "@mui/icons-material/PeopleAlt",
       "@mui/icons-material/PeopleAltOutlined",
       "@mui/icons-material/PeopleOutline",
+      "@mui/icons-material/PauseCircleOutline",
       "@mui/icons-material/Percent",
       "@mui/icons-material/Person",
       "@mui/icons-material/PersonAdd",

@@ -50,6 +50,27 @@ export async function createNovedades(items: {
   }
 }
 
+export async function createEventReport(data: {
+  employee_id: number;
+  store_id?: number;
+  event_type: string;
+}) {
+  try {
+    const payload = {
+      employee_id: Number(data.employee_id),
+      store_id: Number(data.store_id || 90),
+      event_type: data.event_type,
+      // date_created lo asigna Directus automáticamente (marca temporal del reporte).
+    };
+    return await withAutoRefresh(() =>
+      directus.request(createItem('com_event_reports', payload))
+    );
+  } catch (error: any) {
+    console.error('❌ Error guardando reporte de evento:', error);
+    throw new Error(error?.errors?.[0]?.message || 'Error al crear el reporte de evento');
+  }
+}
+
 export async function createTimeRecord(data: {
   employee_id: number;
   store_id?: number;

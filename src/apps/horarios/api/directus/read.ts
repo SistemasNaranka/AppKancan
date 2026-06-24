@@ -265,6 +265,81 @@ export const fetchTimeRecordsExport = async (
   ) as TimeRecord[];
 };
 
+export interface NewnessReport {
+  id: number;
+  report_date: string | null;
+  date_created: string | null;
+  observations: string | null;
+  newness_id: { name?: string | null } | null;
+  store_id: string | number | null;
+  employee_id: {
+    document_number?: string | number | null;
+    first_name: string;
+    middle_name: string | null;
+    last_name: string;
+    second_last_name: string | null;
+  } | null;
+}
+
+export const fetchNewnessReportsExport = async (
+  fechaInicio?: string,
+  fechaFin?: string,
+  storeIds?: number[]
+): Promise<NewnessReport[]> => {
+  const filter: any = { _and: [] };
+
+  if (storeIds && storeIds.length > 0) {
+    filter._and.push({ store_id: { _in: storeIds } });
+  }
+
+  // Las novedades guardan la fecha en report_date, pero algunas la tienen en
+  // null y solo cuentan con date_created (timestamp). Para no perder filas,
+  // el rango se evalúa contra cualquiera de los dos campos.
+  if (fechaInicio || fechaFin) {
+    const reportRange: any = {};
+    const createdRange: any = {};
+    if (fechaInicio) {
+      reportRange._gte = fechaInicio;
+      createdRange._gte = `${fechaInicio}T00:00:00`;
+    }
+    if (fechaFin) {
+      reportRange._lte = fechaFin;
+      createdRange._lte = `${fechaFin}T23:59:59`;
+    }
+    filter._and.push({
+      _or: [
+        { report_date: reportRange },
+        { _and: [{ report_date: { _null: true } }, { date_created: createdRange }] },
+      ],
+    });
+  }
+
+  if (filter._and.length === 0) delete filter._and;
+
+  return await withAutoRefresh(() =>
+    directus.request(
+      readItems('com_newness_reports', {
+        fields: [
+          'id',
+          'report_date',
+          'date_created',
+          'observations',
+          'newness_id.name',
+          'store_id',
+          'employee_id.document_number',
+          'employee_id.first_name',
+          'employee_id.middle_name',
+          'employee_id.last_name',
+          'employee_id.second_last_name',
+        ],
+        filter,
+        sort: ['report_date'],
+        limit: -1,
+      })
+    )
+  ) as NewnessReport[];
+};
+
 export async function getTimeRecords(storeId: number, date: string): Promise<any[]> {
   try {
     return await withAutoRefresh(() =>

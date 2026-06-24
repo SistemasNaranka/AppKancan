@@ -1,0 +1,46 @@
+/* Sobrescritura global del aspecto de los toasts de Sileo.
+   Aplica a TODOS los snackbars (éxito/error/warning/info/...). */
+
+/* Paleta de estados on-brand (sobria, alineada al azul #004680 de la app),
+   en lugar de los oklch neón por defecto de Sileo. */
+:root {
+  --sileo-state-success: #4a9e62;
+  --sileo-state-error: #c62828;
+  --sileo-state-warning: #b45309;
+  --sileo-state-info: #01579b;
+  --sileo-state-loading: #8995a5;
+  --sileo-state-action: #004680;
+}
+
+/* El color de fondo lo da TODO el toast (la opción `fill` por estado, definida
+   en SnackbarContext). Aquí solo dejamos el contenido legible en blanco, así
+   no hay dos fondos: un único color por toast con texto blanco. */
+
+/* Título ("Empleado creado", "Error…", etc.): SIEMPRE blanco, peso 400, sin
+   pill de color (el fondo ya es del color del estado). */
+[data-sileo-title],
+[data-sileo-title][data-state] {
+  color: #fff !important;
+  font-weight: 400 !important;
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Badge (círculo del icono): icono blanco sobre un velo translúcido sutil. */
+[data-sileo-badge][data-state] {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Descripción (la tarjeta del empleado) sobre fondo de color: texto claro. */
+[data-sileo-description] {
+  color: #fff;
+}
+
+
+
+
+
+
+
+

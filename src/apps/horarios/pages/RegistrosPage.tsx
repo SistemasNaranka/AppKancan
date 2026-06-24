@@ -43,6 +43,8 @@ import { useTutorial } from '@/shared/hooks/TutorialContext';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import AdminEmpleadosPage from './AdminEmpleadosPage';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ExportNovedadesDialog from '../components/ExportNovedadesDialog';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useAuth } from '@/auth/hooks/useAuth';
 
@@ -143,7 +145,7 @@ function RegistrosPageContent() {
   const {
     empleados, novedades, tiposNovedad, reasons, loading, error,
     registrarEvento, resetHorarios, eliminarEmpleado,
-    guardarObservacion, agregarNovedad,
+    guardarObservacion, agregarNovedad, reportarEvento,
   } = useHorarios(storeOverride);
 
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
@@ -172,6 +174,7 @@ function RegistrosPageContent() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [fechaFiltro, setFechaFiltro] = useState<Dayjs | null>(null);
+  const [exportNovedadesOpen, setExportNovedadesOpen] = useState(false);
 
   const subtitulosTab = [
     'Gestiona las marcaciones de asistencia del día',
@@ -418,6 +421,7 @@ function RegistrosPageContent() {
               onEliminarEmpleado={eliminarEmpleado}
               onGuardarObservacion={guardarObservacion}
               onAgregarNovedad={agregarNovedad}
+              onReportarEvento={reportarEvento}
             />
           ))}
           {empleados.length === 0 && (
@@ -555,6 +559,18 @@ function RegistrosPageContent() {
                 />
               </LocalizationProvider>
               </Box>
+
+              {esAdmin() && (
+                <Button
+                  onClick={() => setExportNovedadesOpen(true)}
+                  variant="contained"
+                  disableElevation
+                  startIcon={<FileDownloadIcon />}
+                  sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 38, '&:hover': { bgcolor: '#003a6b' } }}
+                >
+                  Exportar
+                </Button>
+              )}
 
             </Box>
           </Box>
@@ -740,6 +756,14 @@ function RegistrosPageContent() {
       </TabPanel>
       </>
       )}
+
+      <ExportNovedadesDialog
+        open={exportNovedadesOpen}
+        onClose={() => setExportNovedadesOpen(false)}
+        fechaInicio={fechaFiltro ? fechaFiltro.format('YYYY-MM-DD') : undefined}
+        fechaFin={fechaFiltro ? fechaFiltro.format('YYYY-MM-DD') : undefined}
+        tiendaDefault={storeOverride}
+      />
     </Box>
   );
 }
