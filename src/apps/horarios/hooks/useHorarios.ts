@@ -310,11 +310,12 @@ export const useHorarios = (storeOverride?: number | null) => {
 
   // Reporte de evento/pausa: guarda un registro en com_event_reports. El momento
   // exacto del reporte queda en date_created (lo asigna Directus).
-  const reportarEvento = async (idEmpleado: string, eventType: string) => {
+  const reportarEvento = async (idEmpleado: string, eventType: string, observaciones?: string) => {
     try {
       await createEventReport({
         employee_id: Number(idEmpleado),
         event_type: eventType,
+        observations: observaciones,
         store_id: STORE_ID as number,
       });
       showSnackbar('Evento reportado con éxito', 'success');

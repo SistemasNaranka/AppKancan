@@ -40,7 +40,7 @@ interface EmployeeCardProps {
     observaciones: string;
     fechaRegistro: string;
   }) => Promise<boolean> | boolean | any;
-  onReportarEvento: (idEmpleado: string, eventType: string) => Promise<boolean> | boolean | any;
+  onReportarEvento: (idEmpleado: string, eventType: string, observaciones?: string) => Promise<boolean> | boolean | any;
 }
 
 // Opciones del reporte de eventos/pausas (definidas en código, no en la BD).
@@ -163,6 +163,7 @@ export default function EmployeeCard({
 
   const [eventoModalOpen, setEventoModalOpen] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState('');
+  const [eventoObservaciones, setEventoObservaciones] = useState('');
   const [eventoError, setEventoError] = useState('');
   const [guardandoEvento, setGuardandoEvento] = useState(false);
 
@@ -251,6 +252,7 @@ export default function EmployeeCard({
 
   const handleOpenEventoModal = () => {
     setEventoSeleccionado('');
+    setEventoObservaciones('');
     setEventoError('');
     setEventoModalOpen(true);
   };
@@ -265,7 +267,7 @@ export default function EmployeeCard({
     }
     setGuardandoEvento(true);
     try {
-      const ok = await onReportarEvento(id, eventoSeleccionado);
+      const ok = await onReportarEvento(id, eventoSeleccionado, eventoObservaciones);
       if (ok) setEventoModalOpen(false);
     } finally {
       setGuardandoEvento(false);
@@ -579,6 +581,18 @@ export default function EmployeeCard({
             </Select>
             {eventoError && <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>{eventoError}</Typography>}
           </FormControl>
+          <TextField
+            label="Observaciones"
+            multiline
+            rows={3}
+            fullWidth
+            value={eventoObservaciones}
+            onChange={(e) => setEventoObservaciones(e.target.value.slice(0, 500))}
+            placeholder="Detalle adicional (opcional)..."
+            helperText={`${eventoObservaciones.length}/500 caracteres`}
+            slotProps={{ formHelperText: { sx: { textAlign: 'right' } } }}
+            sx={{ mt: 2.5 }}
+          />
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button onClick={handleCloseEventoModal} disabled={guardandoEvento} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>

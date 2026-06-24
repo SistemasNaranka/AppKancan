@@ -54,12 +54,14 @@ export async function createEventReport(data: {
   employee_id: number;
   store_id?: number;
   event_type: string;
+  observations?: string;
 }) {
   try {
     const payload = {
       employee_id: Number(data.employee_id),
       store_id: Number(data.store_id || 90),
       event_type: data.event_type,
+      observations: data.observations || '',
       // date_created lo asigna Directus automáticamente (marca temporal del reporte).
     };
     return await withAutoRefresh(() =>
