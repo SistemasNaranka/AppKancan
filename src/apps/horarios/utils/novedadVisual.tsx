@@ -14,7 +14,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 export const getIconForTipo = (tipo: any) => {
   const t = String(tipo || '').toLowerCase();
   if (t.includes('descanso')) return <FreeBreakfastIcon fontSize="small" sx={{ color: '#0284c7' }} />;
-  if (t.includes('ausencia')) return <BlockIcon fontSize="small" sx={{ color: '#475569' }} />;
+  if (t.includes('ausencia')) return <BlockIcon fontSize="small" sx={{ color: '#ca8a04' }} />;
   if (t.includes('calamidad')) return <WarningIcon fontSize="small" sx={{ color: '#dc2626' }} />;
   if (t.includes('capacitaci')) return <SchoolIcon fontSize="small" sx={{ color: '#3b82f6' }} />;
   if (t.includes('familia')) return <FamilyRestroomIcon fontSize="small" sx={{ color: '#8b5cf6' }} />;
@@ -29,7 +29,7 @@ export const getIconForTipo = (tipo: any) => {
 export const getChipColor = (tipo: any): { bg: string; text: string } => {
   const t = String(tipo || '').toLowerCase();
   if (t.includes('descanso')) return { bg: '#e0f2fe', text: '#0284c7' };
-  if (t.includes('ausencia')) return { bg: '#f1f5f9', text: '#475569' };
+  if (t.includes('ausencia')) return { bg: '#fef9c3', text: '#ca8a04' };
   if (t.includes('calamidad')) return { bg: '#fee2e2', text: '#dc2626' };
   if (t.includes('capacitaci')) return { bg: '#dbeafe', text: '#3b82f6' };
   if (t.includes('familia')) return { bg: '#ede9fe', text: '#8b5cf6' };

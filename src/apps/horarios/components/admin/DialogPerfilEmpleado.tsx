@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
-  Avatar, Chip, CircularProgress, Divider,
+  Avatar, Chip, CircularProgress, Divider, Collapse,
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import BadgeIcon from '@mui/icons-material/Badge';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import EventNoteIcon from '@mui/icons-material/EventNote';
@@ -25,6 +27,38 @@ const colorAvatar = (t: string) => {
 };
 
 const hhmm = (t: string | null | undefined) => (t ? String(t).slice(0, 5) : '—');
+
+function SeccionColapsable({
+  titulo, count, vacio, hayDatos, defaultOpen = false, children,
+}: {
+  titulo: string;
+  count: number;
+  vacio: string;
+  hayDatos: boolean;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Box sx={{ border: '1px solid #eef2f6', borderRadius: 2, overflow: 'hidden' }}>
+      <Box
+        onClick={() => setOpen((o) => !o)}
+        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 1, cursor: 'pointer', userSelect: 'none', bgcolor: '#f8fafc', '&:hover': { bgcolor: '#f1f5f9' } }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.5px', color: '#6b7280' }}>{titulo}</Typography>
+          <Chip label={count} size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#eaf2fb', color: AZUL }} />
+        </Box>
+        <KeyboardArrowDownIcon sx={{ fontSize: 20, color: '#94a3b8', transition: 'transform 0.2s ease', transform: open ? 'rotate(180deg)' : 'none' }} />
+      </Box>
+      <Collapse in={open}>
+        <Box sx={{ px: 1.5, py: 1 }}>
+          {hayDatos ? children : <Typography sx={{ fontSize: '0.82rem', color: '#94a3b8' }}>{vacio}</Typography>}
+        </Box>
+      </Collapse>
+    </Box>
+  );
+}
 
 interface Props {
   open: boolean;
@@ -109,12 +143,6 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
     </Box>
   );
 
-  const seccion = (titulo: string, vacio: string, children: React.ReactNode, hayDatos: boolean) => (
-    <Box>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>{titulo}</Typography>
-      {hayDatos ? children : <Typography sx={{ fontSize: '0.82rem', color: '#94a3b8' }}>{vacio}</Typography>}
-    </Box>
-  );
 
   const fila = (izq: React.ReactNode, der: React.ReactNode) => (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.85, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
@@ -166,7 +194,7 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
             <Divider />
 
             {/* Últimas jornadas */}
-            {seccion('ÚLTIMAS JORNADAS', 'Sin jornadas este mes.', (
+            <SeccionColapsable titulo="ÚLTIMAS JORNADAS" count={jornadas.length} vacio="Sin jornadas este mes." hayDatos={jornadas.length > 0} defaultOpen>
               <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 {jornadas.slice(0, 5).map((j) => (
                   <Box key={j.fecha} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
@@ -179,10 +207,10 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
                   </Box>
                 ))}
               </Box>
-            ), jornadas.length > 0)}
+            </SeccionColapsable>
 
             {/* Últimas novedades */}
-            {seccion('ÚLTIMAS NOVEDADES', 'Sin novedades registradas.', (
+            <SeccionColapsable titulo="ÚLTIMAS NOVEDADES" count={novedades.length} vacio="Sin novedades registradas." hayDatos={novedades.length > 0}>
               <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 {novedades.map((n) => {
                   const tipo = n.newness_id?.name || 'Novedad';
@@ -200,10 +228,10 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
                   );
                 })}
               </Box>
-            ), novedades.length > 0)}
+            </SeccionColapsable>
 
             {/* Últimas pausas */}
-            {seccion('ÚLTIMAS PAUSAS', 'Sin pausas este mes.', (
+            <SeccionColapsable titulo="ÚLTIMAS PAUSAS" count={eventos.length} vacio="Sin pausas este mes." hayDatos={eventos.length > 0}>
               <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 {eventos.slice(0, 5).map((e) => (
                   <Box key={e.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
@@ -217,7 +245,7 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
                   </Box>
                 ))}
               </Box>
-            ), eventos.length > 0)}
+            </SeccionColapsable>
           </Box>
         )}
       </DialogContent>

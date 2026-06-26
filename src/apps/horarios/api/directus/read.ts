@@ -3,6 +3,10 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, readMe } from "@directus/sdk";
 import { EmpleadoAsistencia, TipoNovedad, Tienda, Cargo, EmpleadoAdmin, Motivo } from "../../interfaces/horarios.interface";
 
+// Tienda "Oficina" usada para pruebas. Se excluye de las exportaciones salvo
+// que quien exporta sea admin (incluirPruebas = true).
+export const STORE_PRUEBAS = 90;
+
 export async function getStoreIdUsuarioActual(): Promise<number | null> {
   try {
     const me: any = await withAutoRefresh(() =>
@@ -239,12 +243,16 @@ export const fetchTimeRecords = async (
 export const fetchTimeRecordsExport = async (
   fechaInicio?: string,
   fechaFin?: string,
-  storeIds?: number[]
+  storeIds?: number[],
+  incluirPruebas = false
 ): Promise<TimeRecord[]> => {
   const filter: any = {};
 
   if (storeIds && storeIds.length > 0) {
     filter.store_id = { _in: storeIds };
+  }
+  if (!incluirPruebas) {
+    filter.store_id = { ...(filter.store_id || {}), _neq: STORE_PRUEBAS };
   }
   if (fechaInicio) {
     filter.record_date = { ...filter.record_date, _gte: fechaInicio };
@@ -284,12 +292,16 @@ export interface NewnessReport {
 export const fetchNewnessReportsExport = async (
   fechaInicio?: string,
   fechaFin?: string,
-  storeIds?: number[]
+  storeIds?: number[],
+  incluirPruebas = false
 ): Promise<NewnessReport[]> => {
   const filter: any = { _and: [] };
 
   if (storeIds && storeIds.length > 0) {
     filter._and.push({ store_id: { _in: storeIds } });
+  }
+  if (!incluirPruebas) {
+    filter._and.push({ store_id: { _neq: STORE_PRUEBAS } });
   }
 
   if (fechaInicio || fechaFin) {
@@ -355,10 +367,12 @@ export interface EventReportExport {
 export const fetchEventReportsExport = async (
   fechaInicio?: string,
   fechaFin?: string,
-  storeIds?: number[]
+  storeIds?: number[],
+  incluirPruebas = false
 ): Promise<EventReportExport[]> => {
   const filter: any = {};
   if (storeIds && storeIds.length > 0) filter.store_id = { _in: storeIds };
+  if (!incluirPruebas) filter.store_id = { ...(filter.store_id || {}), _neq: STORE_PRUEBAS };
   if (fechaInicio) filter.date = { ...filter.date, _gte: fechaInicio };
   if (fechaFin) filter.date = { ...filter.date, _lte: fechaFin };
 

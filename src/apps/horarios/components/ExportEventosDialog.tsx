@@ -12,6 +12,7 @@ import { exportarEventosExcel } from '../utils/exportarEventos';
 import { Tienda } from '../interfaces/horarios.interface';
 import DateRangeFilter from './DateRangeFilter';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 
 const AZUL = '#004680';
 
@@ -23,6 +24,7 @@ interface Props {
 
 export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
+  const { esAdmin } = useHorariosPolicies();
   const [exportando, setExportando] = useState(false);
   const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(null);
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(null);
@@ -61,7 +63,7 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
         fIni = hoy;
         fFin = hoy;
       }
-      const reports = await fetchEventReportsExport(fIni, fFin, [tiendaEfectiva]);
+      const reports = await fetchEventReportsExport(fIni, fFin, [tiendaEfectiva], esAdmin());
       const res = await exportarEventosExcel({ reports, stores: tiendas });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');

@@ -360,6 +360,7 @@ export const useHorarios = (storeOverride?: number | null) => {
       empleadoNombre: nombreEmpleado,
       tipo: tipoNovedadName,
       observaciones: nov.observations || '',
+      empleadoActivo: !!empLocal, // empleadosDB solo trae empleados activos
     };
   });
 

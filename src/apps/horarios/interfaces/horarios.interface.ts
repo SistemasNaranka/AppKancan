@@ -63,6 +63,7 @@ export interface NovedadMapeada {
   empleadoNombre: string;
   tipo: string;
   observaciones: string;
+  empleadoActivo?: boolean;
 }
 
 

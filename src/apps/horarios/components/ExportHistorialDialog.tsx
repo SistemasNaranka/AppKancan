@@ -14,6 +14,7 @@ import { exportarHistorialExcel } from '../utils/exportarHistorial';
 import { Tienda } from '../interfaces/horarios.interface';
 import DateRangeFilter from './DateRangeFilter';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 
 const AZUL = '#004680';
 
@@ -27,6 +28,7 @@ interface Props {
 
 export default function ExportHistorialDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
+  const { esAdmin } = useHorariosPolicies();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
   const [todas, setTodas] = useState(false);
   const [detallada, setDetallada] = useState(false);
@@ -69,7 +71,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
         fIni = hoy;
         fFin = hoy;
       }
-      const records = await fetchTimeRecordsExport(fIni, fFin, storeIds);
+      const records = await fetchTimeRecordsExport(fIni, fFin, storeIds, esAdmin());
 
       const reasonsMap = detallada
         ? await getReasonNamesForRecords(records.map((r) => r.id))
