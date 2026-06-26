@@ -75,7 +75,9 @@ export const useContactos = () => {
       (c) =>
         c.full_name.toLowerCase().includes(t) ||
         (c.department_id || '').toLowerCase().includes(t) ||
-        c.email.toLowerCase().includes(t),
+        (c.department_name || '').toLowerCase().includes(t) ||
+        c.email.toLowerCase().includes(t) ||
+        (c.phone_number || '').toLowerCase().includes(t),
     );
   }, [contactos, busqueda]);
 

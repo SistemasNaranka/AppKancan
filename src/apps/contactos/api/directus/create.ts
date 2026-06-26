@@ -18,27 +18,35 @@ export async function createContacto(data: CreateContactoInput): Promise<number 
       directus.request(createItem(COLLECTION, payload)),
     );
     return result.id;
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error?.errors?.[0]?.message || '';
+    if (msg.includes('phone_number') && msg.includes('unique')) {
+      throw new Error('phone_number_not_unique');
+    }
     console.error('❌ Error al crear contacto:', error);
-    return null;
+    throw error;
   }
 }
 
 export async function updateContacto(id: number, data: Partial<CreateContactoInput>): Promise<boolean> {
   try {
     const payload: any = {};
-    if (data.full_name)       payload.full_name       = data.full_name;
-    if (data.phone_number)    payload.phone_number    = data.phone_number;
-    if (data.email)           payload.email           = data.email;
-    if (data.department_id)   payload.department_id   = Number(data.department_id);
-    if (data.visibility_type) payload.visibility_type = data.visibility_type;
+    if (data.full_name)                  payload.full_name       = data.full_name;
+    if (data.phone_number !== undefined) payload.phone_number    = data.phone_number || null;
+    if (data.email !== undefined)        payload.email           = data.email || null;
+    if (data.department_id !== undefined) payload.department_id  = data.department_id ? Number(data.department_id) : null;
+    if (data.visibility_type)            payload.visibility_type = data.visibility_type;
     await withAutoRefresh(() =>
       directus.request(updateItem(COLLECTION, id, payload)),
     );
     return true;
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error?.errors?.[0]?.message || '';
+    if (msg.includes('phone_number') && msg.includes('unique')) {
+      throw new Error('phone_number_not_unique');
+    }
     console.error('❌ Error al actualizar contacto:', error);
-    return false;
+    throw error;
   }
 }
 

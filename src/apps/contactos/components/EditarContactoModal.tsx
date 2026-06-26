@@ -10,6 +10,7 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import { Contactos, CreateContactoInput } from '../types/contact';
 import { getDepartamentos } from '../api/directus/read';
+import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
 
 
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const EditarContactoModal: React.FC<Props> = ({ open, onClose, onGuardar, contacto }) => {
+  const { showSnackbar } = useGlobalSnackbar();
   const [form, setForm] = useState<CreateContactoInput>({
     full_name: '',
     phone_number: '',
@@ -81,13 +83,29 @@ export const EditarContactoModal: React.FC<Props> = ({ open, onClose, onGuardar,
   const handleGuardar = async () => {
     if (!validar()) return;
     setGuardando(true);
-    const ok = await onGuardar({
-      ...form,
-      full_name: form.full_name.trim(),
-      email: form.email.trim(),
-    });
-    setGuardando(false);
-    if (ok) onClose();
+    try {
+      const ok = await onGuardar({
+        ...form,
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        phone_number: form.phone_number.replace(/\s+/g, ''),
+      });
+      setGuardando(false);
+      if (ok) {
+        onClose();
+        showSnackbar('Contacto actualizado exitosamente', 'success');
+      } else {
+        showSnackbar('Error al actualizar el contacto', 'error');
+      }
+    } catch (err: any) {
+      setGuardando(false);
+      if (err.message === 'phone_number_not_unique') {
+        setErrores((prev) => ({ ...prev, phone_number: 'Este número de teléfono ya existe' }));
+        showSnackbar('El número de teléfono ya está registrado en otro contacto', 'error');
+      } else {
+        showSnackbar('Error al actualizar el contacto', 'error');
+      }
+    }
   };
 
   return (
@@ -124,6 +142,7 @@ export const EditarContactoModal: React.FC<Props> = ({ open, onClose, onGuardar,
             <TextField fullWidth size="small" placeholder="+57 300 000 0000"
               value={form.phone_number}
               onChange={(e) => handleChange('phone_number', e.target.value)}
+              error={!!errores.phone_number} helperText={errores.phone_number}
               InputProps={{ startAdornment: <InputAdornment position="start"><PhoneIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment> }}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
             />

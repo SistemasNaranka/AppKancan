@@ -157,7 +157,7 @@ const ContactDirectory: React.FC = () => {
               <Collapse in={searchOpen} orientation="horizontal" unmountOnExit>
                 <TextField
                   inputRef={searchRef}
-                  placeholder="Buscar nombre, área o correo..."
+                  placeholder="Buscar nombre, área, correo o teléfono..."
                   size="small"
                   value={busqueda}
                   onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}

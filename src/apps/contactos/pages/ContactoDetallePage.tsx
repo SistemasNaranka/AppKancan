@@ -86,19 +86,30 @@ export default function ContactoDetallePage() {
   const handleSave = async () => {
     if (!validar() || !contacto) return;
     setGuardando(true);
-    const ok = await updateContacto(contacto.id, {
-      full_name: form.full_name,
-      email: form.email,
-      phone_number: form.phone_number,
-      visibility_type: form.visibility_type,
-    });
-    setGuardando(false);
-    if (ok) {
-      setContacto((prev) => (prev ? { ...prev, full_name: form.full_name, email: form.email, phone_number: form.phone_number, visibility_type: form.visibility_type } : prev));
-      setEditMode(false);
-      showSnackbar('Contacto actualizado exitosamente', 'success');
-    } else {
-      showSnackbar('Error al actualizar el contacto', 'error');
+    const cleanPhone = form.phone_number.replace(/\s+/g, '');
+    try {
+      const ok = await updateContacto(contacto.id, {
+        full_name: form.full_name,
+        email: form.email,
+        phone_number: cleanPhone,
+        visibility_type: form.visibility_type,
+      });
+      setGuardando(false);
+      if (ok) {
+        setContacto((prev) => (prev ? { ...prev, full_name: form.full_name, email: form.email, phone_number: cleanPhone, visibility_type: form.visibility_type } : prev));
+        setEditMode(false);
+        showSnackbar('Contacto actualizado exitosamente', 'success');
+      } else {
+        showSnackbar('Error al actualizar el contacto', 'error');
+      }
+    } catch (err: any) {
+      setGuardando(false);
+      if (err.message === 'phone_number_not_unique') {
+        setErrores((prev) => ({ ...prev, phone_number: 'Este número de teléfono ya existe' }));
+        showSnackbar('El número de teléfono ya está registrado en otro contacto', 'error');
+      } else {
+        showSnackbar('Error al actualizar el contacto', 'error');
+      }
     }
   };
 
@@ -451,8 +462,11 @@ export default function ContactoDetallePage() {
                   value={form.phone_number}
                   onChange={(e) => {
                     setForm((p) => ({ ...p, phone_number: e.target.value.replace(/[^0-9+\s]/g, '') }));
+                    setErrores((prev) => ({ ...prev, phone_number: '' }));
                   }}
                   disabled={!editMode}
+                  error={!!errores.phone_number}
+                  helperText={errores.phone_number}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
