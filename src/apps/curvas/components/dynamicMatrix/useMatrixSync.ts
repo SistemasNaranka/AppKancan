@@ -1,5 +1,3 @@
-// Sincronización con el padre vía onChange: un effect inmediato simple y otro debounced detallado.
-
 import { useEffect, useRef } from "react";
 import type { MatrixRowData, MatrixVariant } from "./matrix.types";
 import { getRowTotal } from "./matrixCalculations";

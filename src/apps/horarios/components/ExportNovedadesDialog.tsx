@@ -14,6 +14,7 @@ import { exportarNovedadesExcel } from '../utils/exportarNovedades';
 import { Tienda } from '../interfaces/horarios.interface';
 import DateRangeFilter from './DateRangeFilter';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 
 const AZUL = '#004680';
 
@@ -27,6 +28,7 @@ interface Props {
 
 export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
+  const { esAdmin } = useHorariosPolicies();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
   const [todas, setTodas] = useState(false);
   const [todasNovedades, setTodasNovedades] = useState(false);
@@ -62,7 +64,7 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
   const ejecutarExport = async (fIni?: string, fFin?: string, storeIds?: number[]) => {
     setExportando(true);
     try {
-      const reports = await fetchNewnessReportsExport(fIni, fFin, storeIds);
+      const reports = await fetchNewnessReportsExport(fIni, fFin, storeIds, esAdmin());
       const res = await exportarNovedadesExcel({ reports, stores: tiendas });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
@@ -78,7 +80,6 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
   };
 
   const handleExportar = async () => {
-    // Check "todas las novedades" → sin filtro de tiendas ni fechas.
     if (todasNovedades) {
       await ejecutarExport(undefined, undefined, undefined);
       return;

@@ -80,10 +80,7 @@ function obtenerModelosIA(modelosIA: any): string[] {
   return [MODELO_POR_DEFECTO];
 }
 
-/**
- * Hook principal para extracción de PDF con Gemini en el servidor local
- * @param modelosIA - Modelos de IA a usar obtenidos del usuario autenticado (campo models_ia en Directus)
- */
+
 export function useHybridExtractor(modelosIA?: any) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<ErrorProcesamientoPDF | null>(null);
@@ -111,16 +108,13 @@ export function useHybridExtractor(modelosIA?: any) {
   });
 
 
-  /**
-   * Convierte un archivo File a base64 usando la API nativa de FileReader
-   */
+
   const convertFileToBase64 = useCallback(
     async (file: File): Promise<string> => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
           const result = reader.result as string;
-          // El resultado viene como "data:application/pdf;base64,..."
           const base64 = result.split(",")[1];
           resolve(base64);
         };
@@ -155,16 +149,11 @@ const parseResponse = useCallback((response: string): RespuestaExtraccion => {
     }
   }, []);
 
-  /**
-   * Extrae datos llamando al proxy seguro en el servidor local
-   */
   const extractWithGemini = useCallback(
     async (file: File, modeloAUsar: string): Promise<string> => {
       try {
-        // Convertir PDF a base64 de forma asíncrona y nativa
         const base64Data = await convertFileToBase64(file);
 
-        // Obtener el token de Directus para autenticar la petición al proxy
         const tokens = cargarTokenStorage();
         const headers: HeadersInit = {
           "Content-Type": "application/json",
@@ -175,7 +164,6 @@ const parseResponse = useCallback((response: string): RespuestaExtraccion => {
 
         const API_URL = import.meta.env.VITE_VENTAS_API_URL || "/api";
         
-        // Preparar payload estructurado para la API
         const contents = [
           {
             role: "user",

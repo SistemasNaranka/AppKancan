@@ -1,7 +1,7 @@
 // Adaptador del snackbar global sobre Sileo (toasts con animación física).
 // Conserva la API previa (useGlobalSnackbar / showSnackbar) para no tocar los
 // call sites; por dentro enruta a los métodos de Sileo según la severidad.
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, useEffect, ReactNode } from 'react';
 import { sileo, Toaster } from 'sileo';
 import 'sileo/styles.css';
 import './sileoOverrides.css';
@@ -28,6 +28,29 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
   const showSnackbar = (message: string, severity: Severity = 'info') => {
     sileo[severity]({ title: message, duration: 4000, fill: SILEO_STATE_FILL[severity] });
   };
+
+  // Cerrar el toast con un click. Sileo solo cierra con swipe y no expone el id
+  // en el DOM. Para que no desaparezca de golpe, animamos el toast clickeado
+  // deslizándolo hacia abajo (como el swipe) y luego lo limpiamos.
+  useEffect(() => {
+    let cerrando = false;
+    const onClick = (e: MouseEvent) => {
+      const toast = (e.target as HTMLElement)?.closest?.('[data-sileo-toast]') as HTMLElement | null;
+      if (!toast || cerrando || toast.getAttribute('data-state') === 'loading') return;
+      cerrando = true;
+      toast.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+      requestAnimationFrame(() => {
+        toast.style.transform = 'translateY(60px) scale(0.95)';
+        toast.style.opacity = '0';
+      });
+      window.setTimeout(() => {
+        sileo.clear();
+        cerrando = false;
+      }, 350);
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, []);
 
   return (
     <SnackbarContext.Provider value={{ showSnackbar }}>

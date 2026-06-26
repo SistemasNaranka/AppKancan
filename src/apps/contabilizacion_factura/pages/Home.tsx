@@ -14,7 +14,6 @@ import ReceiptLong from '@mui/icons-material/ReceiptLong';
 import Cancel from '@mui/icons-material/Cancel';
 import Update from '@mui/icons-material/Update';
 
-// Hooks
 import { useHomeLogic } from "../hooks/useHomeLogic";
 
 import { FileUploadArea } from "../components/FileUploadArea";
@@ -34,7 +33,6 @@ import { ConfirmUltraModal } from "../components/ConfirmUltraModal";
 import { CausacionProgressModal } from "../components/CausacionProgressModal";
 import { TourProvider } from "../components/TourContext";
 
-// Utilidades y tipos
 import { ESTADO_CONFIG } from "../utils/contabilizacion";
 
 export default function Home() {

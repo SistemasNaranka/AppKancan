@@ -43,7 +43,6 @@ interface EmployeeCardProps {
   onReportarEvento: (idEmpleado: string, eventType: string, observaciones?: string) => Promise<boolean> | boolean | any;
 }
 
-// Opciones del reporte de eventos/pausas (definidas en código, no en la BD).
 const EVENTOS_PAUSA = [
   'Iniciar Pausa Activa',
   'Terminar Pausa Activa',
@@ -188,7 +187,6 @@ export default function EmployeeCard({
 
   const novedadActiva = estadoActual === 'entrada_pendiente';
   const finalizado = estadoActual === 'jornada_finalizada';
-  // El reporte de evento/pausa aplica durante la jornada (iniciada y no terminada).
   const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado;
 
   const getObservacion = (evento: string) => {
@@ -251,7 +249,7 @@ export default function EmployeeCard({
   };
 
   const handleOpenEventoModal = () => {
-    setEventoSeleccionado('');
+    setEventoSeleccionado(EVENTOS_PAUSA[0]);
     setEventoObservaciones('');
     setEventoError('');
     setEventoModalOpen(true);
@@ -349,7 +347,7 @@ export default function EmployeeCard({
               </span>
             </Tooltip>
             <Tooltip title={reporteActivo ? 'Reportar evento' : 'No disponible'}>
-              <span>
+              <span className="tour-evento-btn">
                 <IconButton
                   size="medium"
                   disabled={!reporteActivo}
@@ -381,10 +379,10 @@ export default function EmployeeCard({
               const obsEnabled = yaHecho;
               const editado = getEditadoStatus(btn.etiqueta);
               const relojEnabled = yaHecho && !editado;
-              const tooltipTitle = relojEnabled 
-                ? 'Editar hora' 
-                : (yaHecho && editado 
-                    ? 'Esta hora ya fue editada y no se puede volver a editar. En caso de ser necesario, llamar a soporte.' 
+              const tooltipTitle = relojEnabled
+                ? 'Editar hora'
+                : (yaHecho && editado
+                    ? 'Esta hora ya fue editada y no se puede volver a editar. En caso de ser necesario, llamar a soporte.'
                     : 'No disponible');
 
               return (
@@ -556,7 +554,7 @@ export default function EmployeeCard({
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button onClick={handleCloseNovedadModal} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
-          <Button onClick={handleGuardarNovedad} variant="contained" sx={{ bgcolor: '#004680' }}>Guardar</Button>
+          <Button onClick={handleGuardarNovedad} variant="contained" disabled={!formData.novedad || !formData.fechaInicio || !formData.fechaFin} sx={{ bgcolor: '#004680' }}>Guardar</Button>
         </DialogActions>
       </Dialog>
 

@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box, Typography, Button, TextField,
   Paper, Stack, Pagination, CircularProgress, Alert,
-  IconButton, Collapse, Tooltip, Chip,
+  IconButton, Chip, Autocomplete,
 } from '@mui/material';
+import { getDepartamentos } from '../api/directus/readDepartamentos';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import GroupsIcon from '@mui/icons-material/Groups';
 import SearchIcon from '@mui/icons-material/Search';
@@ -36,21 +37,14 @@ const ContactDirectory: React.FC = () => {
   const [configAbierto, setConfigAbierto] = useState(false);
   const [contactoEditando, setContactoEditando] = useState<Contactos | null>(null);
   const [pagina, setPagina] = useState(1);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [sortCol, setSortCol] = useState<SortCol>('');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const searchRef = useRef<HTMLInputElement>(null);
-  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const [areas, setAreas] = useState<string[]>([]);
+  const [areasSel, setAreasSel] = useState<string[]>([]);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
-        setSearchOpen(false);
-      }
-    };
-    if (searchOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [searchOpen]);
+    getDepartamentos().then((d) => setAreas(d.map((x) => x.name))).catch(() => setAreas([]));
+  }, []);
 
   const handleGuardarNuevo = async (data: CreateContactoInput) => {
     const ok = await createContacto(data);
@@ -69,9 +63,14 @@ const ContactDirectory: React.FC = () => {
     setPagina(1);
   };
 
+  const areaFiltrados = useMemo(() => {
+    if (areasSel.length === 0) return contactos;
+    return contactos.filter((c) => areasSel.includes(c.department_name || ''));
+  }, [contactos, areasSel]);
+
   const sorted = useMemo(() => {
-    if (!sortCol) return contactos;
-    return [...contactos].sort((a, b) => {
+    if (!sortCol) return areaFiltrados;
+    return [...areaFiltrados].sort((a, b) => {
       let va = '', vb = '';
       if (sortCol === 'name')       { va = a.full_name;           vb = b.full_name; }
       if (sortCol === 'area')       { va = a.department_name || ''; vb = b.department_name || ''; }
@@ -80,16 +79,11 @@ const ContactDirectory: React.FC = () => {
       if (sortCol === 'visibility') { va = a.visibility_type;     vb = b.visibility_type; }
       return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
     });
-  }, [contactos, sortCol, sortDir]);
+  }, [areaFiltrados, sortCol, sortDir]);
 
   const inicio = (pagina - 1) * POR_PAGINA;
   const paginados = sorted.slice(inicio, inicio + POR_PAGINA);
   const totalPaginas = Math.max(1, Math.ceil(sorted.length / POR_PAGINA));
-
-  const openSearch = () => {
-    setSearchOpen(true);
-    setTimeout(() => searchRef.current?.focus(), 80);
-  };
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 3, px: { xs: 2, md: 4 }, pb: { xs: 2, md: 4 } }}>
@@ -148,39 +142,57 @@ const ContactDirectory: React.FC = () => {
               />
             )}
 
-            {/* Búsqueda: icono + expansión hacia la izquierda */}
-            <Box
-              ref={searchBoxRef}
-              onMouseEnter={openSearch}
-              sx={{ display: 'flex', alignItems: 'center' }}
-            >
-              <Collapse in={searchOpen} orientation="horizontal" unmountOnExit>
+            {/* Filtro por áreas (multi-selección) */}
+            <Autocomplete
+              multiple
+              size="small"
+              options={areas}
+              value={areasSel}
+              onChange={(_, v) => { setAreasSel(v); setPagina(1); }}
+              disableCloseOnSelect
+              sx={{ width: 260 }}
+              renderTags={(value, getTagProps) => {
+                const MAX = 1;
+                const visibles = value.slice(0, MAX);
+                return (
+                  <>
+                    {visibles.map((option, index) => {
+                      const { key, ...tagProps } = getTagProps({ index });
+                      return <Chip key={key} label={option} size="small" {...tagProps} />;
+                    })}
+                    {value.length > MAX && (
+                      <Chip
+                        label={`+${value.length - MAX}`}
+                        size="small"
+                        sx={{ bgcolor: '#eff6ff', color: '#004a99', fontWeight: 700 }}
+                      />
+                    )}
+                  </>
+                );
+              }}
+              renderInput={(params) => (
                 <TextField
-                  inputRef={searchRef}
-                  placeholder="Buscar nombre, área, correo o teléfono..."
-                  size="small"
-                  value={busqueda}
-                  onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-                  sx={{
-                    width: 260,
-                    '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#f8fafc' },
-                  }}
+                  {...params}
+                  placeholder={areasSel.length === 0 ? 'Filtrar por área(s)' : ''}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#f8fafc' } }}
                 />
-              </Collapse>
-              <IconButton
-                onClick={openSearch}
-                sx={{
-                  ml: searchOpen ? 1 : 0,
-                  color: searchOpen ? '#004a99' : '#004a99',
-                  bgcolor: searchOpen ? '#eff6ff' : 'transparent',
-                  borderRadius: '10px',
-                  transition: 'all 0.2s',
-                  '&:hover': { bgcolor: '#eff6ff', color: '#004a99' },
-                }}
-              >
-                <SearchIcon />
-              </IconButton>
-            </Box>
+              )}
+            />
+
+            {/* Búsqueda: siempre visible */}
+            <TextField
+              placeholder="Buscar nombre, área o correo..."
+              size="small"
+              value={busqueda}
+              onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ fontSize: 20, color: '#004a99', mr: 1 }} />,
+              }}
+              sx={{
+                width: 260,
+                '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#f8fafc' },
+              }}
+            />
 
             {/* Exportar */}
             <Button

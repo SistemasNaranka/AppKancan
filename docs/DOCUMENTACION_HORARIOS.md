@@ -173,6 +173,7 @@ interface ObservacionEvento {
 | `com_time_records` | Marcaciones de jornada | `record_date`, `record_time`, `updated_record_time`, `log_type`, `employee_id`, `store_id`, `observations` |
 | `com_newness` | Catálogo de tipos de novedad | `id`, `name` |
 | `com_newness_reports` | Novedades registradas | `employee_id`, `newness_id`, `report_date`, `observations`, `store_id` |
+| `com_event_reports` | Reportes de evento/pausa | `employee_id`, `store_id`, `event_type`, `observations`, `date_created` (lo asigna Directus) |
 
 > **Nota:** El identificador de tienda está fijado como constante `STORE_ID = 90` en `useHorarios.ts` y como valor por defecto en las funciones de creación de `create.ts`.
 
@@ -213,6 +214,7 @@ Todas las funciones envuelven la petición con `withAutoRefresh()`, que renueva 
 | --------- | ------------- |
 | `createNovedad(data)` | Crea una novedad individual en `com_newness_reports`. |
 | `createNovedades(items[])` | Crea varias novedades en lote (usado al registrar un rango de días). |
+| `createEventReport(data)` | Crea un **reporte de evento/pausa** en `com_event_reports` (`employee_id`, `store_id`, `event_type`, `observations`). El momento del reporte lo fija `date_created` del servidor. |
 | `createTimeRecord(data)` | Crea una marcación nueva en `com_time_records`. |
 | `updateTimeRecord(id, data)` | Actualiza la observación, la hora original o la hora corregida (`updated_record_time`) de una marcación. |
 | `crearEmpleado(data)` | Da de alta un empleado en `adm_employees` (usado por el panel de administración). |
@@ -241,6 +243,7 @@ Los empleados que ya tienen una novedad registrada *hoy* (`idsConNovedadHoy`) se
 | `registrarEvento(id, tipo, horaOverride?, obsOverride?)` | Crea o actualiza una marcación. Si ya existe el registro para ese evento y fecha, lo actualiza con `updated_record_time`; si no, lo crea. |
 | `guardarObservacion(id, tipo, texto)` | Actualiza la observación de un registro existente. |
 | `agregarNovedad(novedad)` | Valida fechas y genera una novedad por cada día del rango `fechaInicio`–`fechaFin` mediante `createNovedades`. |
+| `reportarEvento(idEmpleado, eventType, observaciones?)` | Registra un reporte de evento/pausa vía `createEventReport` y notifica el resultado con snackbar. |
 | `resetHorarios()` | Invalida las consultas para forzar una recarga desde el servidor. |
 | `eliminarEmpleado(id)` | Actualmente desactivado (solo registra en consola); la baja real se gestiona vía novedad. |
 
@@ -278,6 +281,8 @@ Tarjeta individual de cada empleado. Muestra nombre, cargo, estado actual y los 
 - **Botón de observación**: abre un modal para agregar/editar la nota del evento (máx. 500 caracteres).
 
 También contiene el **modal de registro de novedad**, validado con Yup (`novedadSchema`): exige tipo de novedad, fechas válidas y que la fecha fin no sea anterior a la de inicio.
+
+En la cabecera, junto al ícono de novedad, hay un **botón de reporte de evento/pausa** (ícono de pausa). Abre el modal **"Reporta un evento"** con una lista desplegable de opciones **definidas en código** (constante `EVENTOS_PAUSA`: *Iniciar Pausa Activa, Terminar Pausa Activa, Salir al baño, Regresar del baño*) y un campo de **observaciones** opcional. Al guardar, llama a `onReportarEvento` → `reportarEvento` → `createEventReport`. El botón está activo durante la jornada (iniciada y no finalizada). La marca temporal del reporte la fija `date_created` en el servidor.
 
 ### 6.3 `EditHourModal`
 
@@ -346,6 +351,13 @@ La ruta base `horarios` redirige por defecto a `horarios/registros`. Cualquier s
 3. `useHistorial` agrupa los registros por empleado/día y calcula las horas trabajadas.
 4. Los puntos azules permiten abrir el `ObservationModal` con el detalle de las observaciones.
 
+### 8.5 Reporte de Evento / Pausa
+
+1. Durante la jornada, el usuario pulsa el ícono de **pausa** en la tarjeta del empleado.
+2. En el modal **"Reporta un evento"** elige una opción de la lista (definida en código) y, opcionalmente, escribe una observación.
+3. `reportarEvento` llama a `createEventReport`, que inserta el registro en `com_event_reports`.
+4. El instante exacto del reporte queda guardado en `date_created` (reloj del **servidor** de Directus); se muestra un snackbar de confirmación.
+
 ---
 
 ## 9. Consideraciones y Notas Técnicas
@@ -386,6 +398,22 @@ El módulo permite a los administradores exportar tanto el **historial de marcac
 - Si no hay datos para los filtros, la utilidad devuelve `{ ok: false, mensaje }` y el diálogo muestra un snackbar de error.
 - El botón de exportación vive en la cabecera de la pestaña **Novedades** de `RegistrosPage`.
 
+### 10.3 Exportación de Eventos / Pausas
+
+A diferencia de las dos anteriores (admin), este export está en la **vista de Registros** (la de los usuarios), con el botón **Exportar** a la izquierda del chip "Total Empleados".
+
+| Pieza | Archivo | Descripción |
+| ------- | --------- | ------------- |
+| Diálogo | `components/ExportEventosDialog.tsx` | Solo rango de fechas (sin rango → solo hoy). Acotado a una sola tienda: **admin** exporta la tienda seleccionada (`storeOverride`); **usuario normal**, su tienda asignada (`getStoreIdUsuarioActual`). |
+| Utilidad | `utils/exportarEventos.ts` (`exportarEventosExcel`) | Una fila por evento. |
+| Datos | `fetchEventReportsExport` | Lee `com_event_reports` (`event_type`, `date`, `hour`, `observations`) por tienda y rango. |
+
+**Columnas:** `Tienda`, `Número CC`, `Nombre empleado`, `Fecha`, `Hora`, `Evento`, `Observacion`.
+
+### 10.4 Nombre de los archivos
+
+Los tres exports nombran el CSV como **`<nombre> AAAAMMDD-HHMMSS.csv`** (p. ej. `eventos 20260625-151358.csv`). Incluir la hora exacta garantiza nombres únicos por segundo y evita descargas duplicadas (`(1)`, `(2)`…).
+
 ---
 
 ## 11. Administración de Empleados
@@ -397,6 +425,14 @@ Panel para que el administrador dé de alta y edite empleados, además de cambia
 | Página | `pages/AdminEmpleadosPage.tsx` | Búsqueda de empleados, alta y edición. |
 | Hook | `hooks/useAdminEmpleados.ts` | Expone `crearEmpleado`/`actualizarEmpleado` (`mutateAsync`), estados `creando`/`actualizando`, catálogos (tiendas, cargos, tipos de documento) y la búsqueda. En `onSuccess` solo **invalida la lista** (refetch); el feedback visual de la creación lo gestiona el propio diálogo. |
 | Modal | `components/admin/DialogNuevoEmpleado.tsx` | Formulario validado con Yup. Separa el nombre completo en partes (vía IA `useParseNombreIA`, con respaldo local `splitNombreLocal`). |
+| Modal | `components/admin/DialogPerfilEmpleado.tsx` | Perfil del empleado (ver 11.2). |
+
+### 11.0 Selector de tienda, búsqueda y paginación
+
+- **Selector de tienda** con opción **"Todas las tiendas"** (`OPCION_TODAS`, id `-1`).
+- En modo **tienda específica**: lista los empleados de esa tienda (`listarEmpleadosTienda`) y filtra localmente.
+- En modo **"Todas las tiendas"**: carga **todos** los empleados (`listarTodosEmpleados`) y filtra **en el cliente** por nombre o documento. Se hace client-side porque `document_number` es `BigInteger` y no admite búsqueda parcial (`_contains`) en el servidor. En este modo, cada card muestra la **tienda** del empleado.
+- **Paginación** estilo Historial/Novedades ("Mostrando X de Y empleados" + selector de filas), con tamaños múltiplos de 3 (**6**/12/24/48) para cuadrar el grid de 3 columnas y no renderizar miles de cards a la vez.
 
 ### 11.1 Flujo de creación con toast de Sileo
 
@@ -408,6 +444,16 @@ Al pulsar **Crear empleado** (datos válidos):
    - **success** → "Empleado creado" con una tarjeta (`EmpleadoCreadoCard`) que muestra **Nombre, Documento, Tienda y Cargo** del empleado recién creado.
    - **error** → "Error al crear el empleado".
 3. Los datos de la tarjeta se capturan **antes** de cerrar el modal; el `fill` del toast cambia por fase (gris carga → verde éxito → rojo error).
+
+### 11.2 Perfil del empleado
+
+Al hacer **click en la tarjeta** de un empleado se abre `DialogPerfilEmpleado` (antes abría el editor; ahora el editor se abre desde el botón **Editar** dentro del perfil). Muestra, sin repetir lo de la tarjeta:
+
+- **Datos**: documento completo (tipo + número) y tienda.
+- **KPIs del mes** (con icono/color): Jornadas, Pausas, Novedades.
+- **Listas recientes**: últimas jornadas (entrada → salida + horas), últimas novedades (con su icono/color vía `utils/novedadVisual.tsx`) y últimas pausas.
+
+Los datos se cargan por empleado con `getEmployeeTimeRecords`, `getEmployeeNovedades` y `getEmployeeEventReports` (mes actual).
 
 ---
 
@@ -422,6 +468,7 @@ El snackbar global de toda la aplicación se construye sobre la librería **Sile
 
 - **`showSnackbar(mensaje, severidad)`** sigue siendo la forma estándar de notificar (`'success' | 'error' | 'warning' | 'info'`).
 - Para toasts con contenido enriquecido (como la tarjeta de empleado creado) se usa directamente `sileo.promise` / `sileo.success` con una `description` de tipo `ReactNode`.
+- **Cierre con click:** además del swipe nativo y el auto-cierre por `duration`, un listener global en `SnackbarContext` cierra el toast con un click (lo desliza hacia abajo y luego limpia con `sileo.clear()`); ignora los toasts en estado `loading`.
 - **Coste de bundle:** Sileo añade ~12 KB gzip; su dependencia pesada (`motion`) ya formaba parte del proyecto, por lo que el impacto es marginal.
 
 ---

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box, Paper, Typography, TextField, InputAdornment, IconButton, Button,
-  Chip, Avatar, CircularProgress, Alert, Autocomplete,
+  Chip, Avatar, CircularProgress, Alert, Autocomplete, Select, MenuItem,
 } from '@mui/material';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -9,12 +10,18 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import BadgeIcon from '@mui/icons-material/Badge';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import useAdminEmpleados from '../hooks/useAdminEmpleados';
+import { listarTodosEmpleados } from '../api/directus/read';
 import DialogNuevoEmpleado from '../components/admin/DialogNuevoEmpleado';
 import DialogEditarEmpleado from '../components/admin/DialogEditarEmpleado';
-import { EmpleadoAdmin } from '../interfaces/horarios.interface';
+import DialogPerfilEmpleado from '../components/admin/DialogPerfilEmpleado';
+import { EmpleadoAdmin, Tienda } from '../interfaces/horarios.interface';
 
 const AZUL = '#004680';
+
+const OPCION_TODAS: Tienda = { id: -1, name: 'Todas las tiendas' };
 
 const AVATAR_COLORS = ['#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777', '#0891b2', '#4f46e5', '#ca8a04', '#dc2626', '#059669', '#2563eb', '#9333ea'];
 const colorAvatar = (texto: string) => {
@@ -41,11 +48,21 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
 
   const [query, setQuery] = useState('');
   const [modalNuevo, setModalNuevo] = useState(false);
+  const [perfilEmp, setPerfilEmp] = useState<EmpleadoAdmin | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'activo' | 'inactivo'>('todos');
+  const [vistaTodas, setVistaTodas] = useState(false);
 
-  const tiendaNombre = (id: number | null) => tiendas.find((t) => t.id === id)?.name ?? '—';
+  const { data: todosEmpleados = [], isLoading: loadingTodos } = useQuery<EmpleadoAdmin[]>({
+    queryKey: ['adminTodosEmpleados'],
+    queryFn: listarTodosEmpleados,
+    enabled: vistaTodas,
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const cargandoLista = loadingTienda;
+  const tiendaNombre = (id: number | null) =>
+    id == null ? '—' : tiendas.find((t) => String(t.id) === String(id))?.name ?? '—';
+
+  const cargandoLista = vistaTodas ? loadingTodos : loadingTienda;
   const enBusqueda = query.trim().length > 0;
 
   const coincide = (e: EmpleadoAdmin) => {
@@ -59,12 +76,21 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
   };
 
   const esActivo = (e: EmpleadoAdmin) => (e.status || '').toLowerCase() === 'activo';
-  const base = empleadosTienda.filter(coincide);
+  const base = vistaTodas
+    ? (enBusqueda ? todosEmpleados.filter(coincide) : [])
+    : empleadosTienda.filter(coincide);
   const nActivos = base.filter(esActivo).length;
   const nInactivos = base.length - nActivos;
   const visibles = filtroEstado === 'todos'
     ? base
     : base.filter((e) => (filtroEstado === 'activo' ? esActivo(e) : !esActivo(e)));
+
+  const [pagina, setPagina] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(6);
+  useEffect(() => { setPagina(1); }, [query, filtroEstado, tiendaSel, vistaTodas]);
+  const totalPaginas = Math.max(1, Math.ceil(visibles.length / registrosPorPagina));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const visiblesPag = visibles.slice((paginaActual - 1) * registrosPorPagina, paginaActual * registrosPorPagina);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -93,10 +119,15 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
             </Typography>
             <Autocomplete
               size="small"
-              options={tiendas}
+              options={[OPCION_TODAS, ...tiendas]}
               getOptionLabel={(o) => o.name}
-              value={tiendas.find((t) => t.id === tiendaSel) ?? null}
-              onChange={(_, v) => { setTiendaSel(v ? v.id : null); setFiltroEstado('todos'); }}
+              isOptionEqualToValue={(o, v) => o.id === v.id}
+              value={vistaTodas ? OPCION_TODAS : (tiendas.find((t) => t.id === tiendaSel) ?? null)}
+              onChange={(_, v) => {
+                setFiltroEstado('todos');
+                if (v?.id === -1) { setVistaTodas(true); setTiendaSel(null); }
+                else { setVistaTodas(false); setTiendaSel(v ? v.id : null); }
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -113,7 +144,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
 
           <Box sx={{ flex: 1, minWidth: 260 }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
-              BUSCAR EMPLEADO EN LA TIENDA
+              {vistaTodas ? 'BUSCAR EMPLEADO EN TODAS LAS TIENDAS' : 'BUSCAR EMPLEADO EN LA TIENDA'}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
@@ -146,7 +177,15 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
       )}
 
       {!cargandoLista && base.length === 0 && (
-        enBusqueda ? (
+        vistaTodas ? (
+          enBusqueda ? (
+            <Alert severity="info" sx={{ borderRadius: 2 }} action={<Button color="inherit" size="small" onClick={() => setModalNuevo(true)}>Crear nuevo</Button>}>
+              No se encontraron empleados con esa búsqueda.
+            </Alert>
+          ) : (
+            <Alert severity="info" sx={{ borderRadius: 2 }}>Escribe un nombre o número de documento para buscar en todas las tiendas.</Alert>
+          )
+        ) : enBusqueda ? (
           <Alert severity="info" sx={{ borderRadius: 2 }} action={<Button color="inherit" size="small" onClick={() => setModalNuevo(true)}>Crear nuevo</Button>}>
             No se encontraron empleados con esa búsqueda.
           </Alert>
@@ -218,14 +257,14 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
             </Typography>
           ) : (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
-            {visibles.map((emp) => {
+            {visiblesPag.map((emp) => {
               const nombre = nombreDe(emp);
               const inactivo = (emp.status || '').toLowerCase() !== 'activo';
               return (
                 <Paper
                   key={emp.id}
                   elevation={0}
-                  onClick={() => seleccionar(emp)}
+                  onClick={() => setPerfilEmp(emp)}
                   sx={{
                     p: 2,
                     borderRadius: 3,
@@ -262,11 +301,94 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
                     <WorkOutlineIcon sx={{ fontSize: 16, color: AZUL }} />
                     <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }} noWrap>{emp.position_name || 'Sin cargo'}</Typography>
                   </Box>
+                  {vistaTodas && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: '#475569', mt: 0.75 }}>
+                      <StorefrontIcon sx={{ fontSize: 16, color: AZUL }} />
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }} noWrap>{tiendaNombre(emp.store_id)}</Typography>
+                    </Box>
+                  )}
                 </Paper>
               );
             })}
           </Box>
           )}
+
+          {/* Paginación */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: '#fff', border: '1px solid #eef2f6', borderRadius: 3, p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="caption" sx={{ color: '#64748b' }}>
+                Mostrando {visiblesPag.length} de {visibles.length} empleados
+              </Typography>
+              <Select
+                value={registrosPorPagina}
+                onChange={(e) => { setRegistrosPorPagina(Number(e.target.value)); setPagina(1); }}
+                size="small"
+                sx={{
+                  bgcolor: '#f1f7fe', borderRadius: 2, fontSize: '0.75rem', minWidth: 70, height: 30,
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#94a3b8' },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#004680' },
+                }}
+              >
+                <MenuItem value={6}>6</MenuItem>
+                <MenuItem value={12}>12</MenuItem>
+                <MenuItem value={24}>24</MenuItem>
+                <MenuItem value={48}>48</MenuItem>
+              </Select>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <IconButton
+                size="small"
+                disabled={paginaActual === 1}
+                onClick={() => setPagina((p) => p - 1)}
+                sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}
+              >
+                <ChevronLeftIcon fontSize="small" />
+              </IconButton>
+              {(() => {
+                const paginas: (number | string)[] = [];
+                if (totalPaginas <= 5) {
+                  for (let i = 1; i <= totalPaginas; i++) paginas.push(i);
+                } else {
+                  paginas.push(1);
+                  if (paginaActual > 3) paginas.push('...');
+                  for (let i = Math.max(2, paginaActual - 1); i <= Math.min(totalPaginas - 1, paginaActual + 1); i++) paginas.push(i);
+                  if (paginaActual < totalPaginas - 2) paginas.push('...');
+                  paginas.push(totalPaginas);
+                }
+                return paginas.map((num, idx) =>
+                  typeof num === 'string' ? (
+                    <Typography key={`dots-${idx}`} variant="caption" sx={{ color: '#94a3b8', px: 0.5 }}>...</Typography>
+                  ) : (
+                    <Box
+                      key={num}
+                      onClick={() => setPagina(num)}
+                      sx={{
+                        width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderRadius: 1.5, cursor: 'pointer',
+                        bgcolor: paginaActual === num ? '#004680' : '#fff',
+                        color: paginaActual === num ? '#fff' : '#5e6f8d',
+                        border: paginaActual === num ? 'none' : '1px solid #dfe4ec',
+                        fontWeight: paginaActual === num ? 700 : 500,
+                        fontSize: '0.85rem', transition: 'all 0.2s',
+                        '&:hover': { bgcolor: paginaActual === num ? '#004680' : '#f1f5f9' },
+                      }}
+                    >
+                      {num}
+                    </Box>
+                  )
+                );
+              })()}
+              <IconButton
+                size="small"
+                disabled={paginaActual === totalPaginas}
+                onClick={() => setPagina((p) => p + 1)}
+                sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}
+              >
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Box>
         </>
       )}
 
@@ -279,6 +401,14 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
         tiposDocumento={tiposDocumento}
         guardando={creando}
         onGuardar={async (data) => { await crearEmpleado(data); }}
+      />
+
+      <DialogPerfilEmpleado
+        open={!!perfilEmp}
+        empleado={perfilEmp}
+        tiendaNombre={tiendaNombre(perfilEmp?.store_id ?? tiendaSel)}
+        onClose={() => setPerfilEmp(null)}
+        onEditar={() => { if (perfilEmp) seleccionar(perfilEmp); setPerfilEmp(null); }}
       />
 
       <DialogEditarEmpleado

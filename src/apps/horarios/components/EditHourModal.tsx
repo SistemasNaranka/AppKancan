@@ -39,9 +39,7 @@ export default function EditHourModal({
   const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs>(dayjs());
   const [horaInicial, setHoraInicial] = useState<dayjs.Dayjs | null>(null);
   const [horaObservacion, setHoraObservacion] = useState('');
-  const [obsInicialHoraModal, setObsInicialHoraModal] = useState('');
   const [reasonId, setReasonId] = useState<number | ''>('');
-  const [reasonInicial, setReasonInicial] = useState<number | ''>('');
 
   useEffect(() => {
     if (open) {
@@ -66,9 +64,7 @@ export default function EditHourModal({
       setHoraSeleccionada(horaDayjs);
       setHoraInicial(horaDayjs);
       setHoraObservacion(initialObservation || '');
-      setObsInicialHoraModal(initialObservation || '');
       setReasonId(initialReasonId ?? '');
-      setReasonInicial(initialReasonId ?? '');
     }
   }, [open, initialTimeStr, initialObservation, initialReasonId]);
 
@@ -84,11 +80,8 @@ export default function EditHourModal({
   };
 
   const horaCambiada = !horaSeleccionada || !horaInicial || !horaSeleccionada.isSame(horaInicial, 'minute');
-  const obsCambiada = horaObservacion !== obsInicialHoraModal;
-  const reasonCambiado = reasonId !== reasonInicial;
-  const hayCambios = horaCambiada || obsCambiada || reasonCambiado;
   const notaValida = !esOtro || horaObservacion.trim().length >= NOTA_MIN_OTRO;
-  const puedeGuardar = hayCambios && reasonId !== '' && notaValida;
+  const puedeGuardar = horaCambiada && reasonId !== '' && notaValida;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
@@ -151,7 +144,7 @@ export default function EditHourModal({
             value={horaObservacion}
             onChange={(e) => setHoraObservacion(e.target.value)}
             placeholder={esOtro ? `Describe qué pasó (mínimo ${NOTA_MIN_OTRO} caracteres)...` : 'Escriba una nota (opcional)...'}
-            helperText={esOtro ? `${horaObservacion.trim().length}/${NOTA_MIN_OTRO} caracteres` : 'Opcional'}
+            helperText={esOtro ? `${horaObservacion.trim().length}/${NOTA_MIN_OTRO} Caracteres ` : 'Opcional'}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
         </Box>

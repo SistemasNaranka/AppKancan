@@ -45,8 +45,6 @@ export default function DialogEditarEmpleado({
     statusEdit !== (empleado.status ?? '');
 
   const guardar = async () => {
-    // Solo se envían los campos que realmente cambiaron (no se reenvían los
-    // valores ya establecidos, que además podrían venir en 0 y causar error).
     const data: { store_id?: number; position_id?: number; status?: string } = {};
     if (storeEdit !== (empleado.store_id ?? 0)) data.store_id = storeEdit;
     if (cargoEdit !== (empleado.position_id ?? 0)) data.position_id = cargoEdit;

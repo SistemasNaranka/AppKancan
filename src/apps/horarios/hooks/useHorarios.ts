@@ -308,15 +308,16 @@ export const useHorarios = (storeOverride?: number | null) => {
     }
   };
 
-  // Reporte de evento/pausa: guarda un registro en com_event_reports. El momento
-  // exacto del reporte queda en date_created (lo asigna Directus).
   const reportarEvento = async (idEmpleado: string, eventType: string, observaciones?: string) => {
     try {
+      const ahora = dayjs();
       await createEventReport({
         employee_id: Number(idEmpleado),
         event_type: eventType,
         observations: observaciones,
         store_id: STORE_ID as number,
+        date: ahora.format('YYYY-MM-DD'),
+        hour: ahora.format('HH:mm:ss'),
       });
       showSnackbar('Evento reportado con éxito', 'success');
       return true;
@@ -359,6 +360,7 @@ export const useHorarios = (storeOverride?: number | null) => {
       empleadoNombre: nombreEmpleado,
       tipo: tipoNovedadName,
       observaciones: nov.observations || '',
+      empleadoActivo: !!empLocal, // empleadosDB solo trae empleados activos
     };
   });
 

@@ -19,7 +19,7 @@ import Cancel from '@mui/icons-material/Cancel';
 import directus from "@/services/directus/directus";
 import { getGoodsReceiptById } from "../services/api";
 
-const MAX_WAIT_TIME_SECONDS = 120; // 2 minutos
+const MAX_WAIT_TIME_SECONDS = 120;
 
 interface CausacionProgressModalProps {
   open: boolean;
@@ -49,13 +49,11 @@ export function CausacionProgressModal({
   const redirectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Guardar los callbacks en una referencia para evitar reiniciar el useEffect de monitoreo
   const callbacksRef = useRef({ onSuccess, onFailure, onClose });
   useEffect(() => {
     callbacksRef.current = { onSuccess, onFailure, onClose };
   }, [onSuccess, onFailure, onClose]);
 
-  // Formatear el tiempo transcurrido
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -64,7 +62,6 @@ export function CausacionProgressModal({
 
   useEffect(() => {
     if (!open || !goodsReceiptId) {
-      // Resetear estados al cerrar o no tener ID
       setModalState("checking");
       setElapsedTime(0);
       setCurrentStatus("en_proceso");
@@ -78,7 +75,6 @@ export function CausacionProgressModal({
     let active = true;
     let stopSubscription: (() => void) | null = null;
 
-    // Timer de 1 segundo para el tiempo transcurrido
     setElapsedTime(0);
     elapsedTimerRef.current = setInterval(() => {
       setElapsedTime((prev) => {
@@ -100,7 +96,6 @@ export function CausacionProgressModal({
       setModalState("success");
       if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
 
-      // Iniciar conteo regresivo de 3 segundos para el redireccionamiento automático
       setRedirectCount(3);
       redirectTimerRef.current = setInterval(() => {
         setRedirectCount((prev) => {
@@ -128,7 +123,6 @@ export function CausacionProgressModal({
     };
 
     const startMonitoring = async () => {
-      // 1. Verificación inicial de estado mediante REST
       try {
         const currentReceipt = await getGoodsReceiptById(goodsReceiptId);
         if (active && currentReceipt) {
@@ -157,7 +151,6 @@ export function CausacionProgressModal({
       if (!active) return;
       setModalState("waiting");
 
-      // 2. Suscripción en tiempo real vía WebSockets
       try {
         try {
           await directus.connect();
@@ -208,7 +201,6 @@ export function CausacionProgressModal({
         }
       } catch (wsErr) {
         console.error("Error al iniciar suscripción de WebSockets:", wsErr);
-        // Si falla el WebSocket, seguimos con el timer de 2 minutos que hará fallback
       }
     };
 
@@ -218,9 +210,6 @@ export function CausacionProgressModal({
       active = false;
       if (stopSubscription) {
         try {
-          // unsubscribe de Directus retorna una Promesa (o void según los typings).
-          // Para evitar el error de TypeScript "An expression of type 'void' cannot be tested for truthiness",
-          // casteamos el resultado a 'any' antes de verificar si tiene un método '.catch'.
           const result = stopSubscription() as any;
           if (result && typeof result.catch === "function") {
             result.catch((err: any) => {
@@ -236,7 +225,6 @@ export function CausacionProgressModal({
     };
   }, [open, goodsReceiptId]);
 
-  // Manejar click en continuar de forma manual durante el éxito
   const handleManualSuccessContinue = () => {
     if (redirectTimerRef.current) clearInterval(redirectTimerRef.current);
     setTimeout(() => {
@@ -258,7 +246,6 @@ export function CausacionProgressModal({
           overflow: "hidden",
         },
       }}
-      // Evitar que el usuario cierre el modal dando click afuera o con Escape
       disableEscapeKeyDown
       onClose={(_, reason) => {
         if (reason !== "backdropClick" && reason !== "escapeKeyDown") {

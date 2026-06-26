@@ -13,6 +13,8 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import WarningIcon from "@mui/icons-material/Warning";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { useHorariosTour, TourPhase } from "./HorariosTourContext";
 
 const inlineIcon = { fontSize: 16, verticalAlign: "middle", color: "#004680", mx: 0.25 } as const;
@@ -92,7 +94,40 @@ const STEPS_REGISTROS: Step[] = [
         </Typography>
       </Box>
     ),
+    placement: "right",
+  },
+  {
+    target: ".tour-evento-btn",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+          Reportar una Pausa
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Durante la jornada, usa el botón
+          <PauseCircleOutlineIcon sx={{ ...inlineIcon, color: "#b45309" }} /> para
+          registrar una pausa del empleado (pausa activa o ir al baño). Cada
+          reporte queda guardado con su hora.
+        </Typography>
+      </Box>
+    ),
     placement: "left",
+  },
+  {
+    target: ".tour-export-eventos",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+          Exportar Eventos
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Con el botón <FileDownloadIcon sx={inlineIcon} /> <strong>Exportar</strong>{" "}
+          descargas en Excel (CSV) las pausas y eventos registrados de tu tienda,
+          pudiendo elegir el rango de fechas.
+        </Typography>
+      </Box>
+    ),
+    placement: "bottom",
   },
   {
     target: ".tour-refresh",

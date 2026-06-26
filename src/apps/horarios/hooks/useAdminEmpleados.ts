@@ -65,8 +65,6 @@ export const useAdminEmpleados = (tiendaSel: number | null, setTiendaSel: (id: n
     queryClient.invalidateQueries({ queryKey: ['adminEmpleadosTienda'] });
   };
 
-  // El toast de creación (carga + tarjeta de éxito/error) lo gestiona el propio
-  // DialogNuevoEmpleado con sileo.promise; aquí solo se refresca la lista.
   const crearMutation = useMutation({
     mutationFn: crearEmpleado,
     onSuccess: () => {

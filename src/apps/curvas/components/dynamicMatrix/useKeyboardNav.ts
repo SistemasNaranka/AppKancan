@@ -1,5 +1,3 @@
-// Hook con la navegación tipo Excel (flechas, Enter) entre celdas de la matriz.
-
 import type React from "react";
 import type { ActiveCell, MatrixRowData } from "./matrix.types";
 

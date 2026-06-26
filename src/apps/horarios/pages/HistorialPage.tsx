@@ -103,8 +103,6 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
     return row.observaciones_evento.some((obs) => obs.evento === evento);
   };
 
-  // Para el modal: todos los eventos registrados (con hora) de la fila, con su
-  // observación si existe; los que no tengan, quedan en blanco.
   const construirEventosFila = (row: HistorialRow | null) => {
     if (!row) return [];
     const eventos = [

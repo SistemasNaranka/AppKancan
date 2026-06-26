@@ -63,9 +63,9 @@ export interface NovedadMapeada {
   empleadoNombre: string;
   tipo: string;
   observaciones: string;
+  empleadoActivo?: boolean;
 }
 
-/* ── Panel administrativo de empleados ── */
 
 export interface Tienda {
   id: number;
