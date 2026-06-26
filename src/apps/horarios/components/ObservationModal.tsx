@@ -11,8 +11,7 @@ interface ObservationModalProps {
   observaciones: ObservacionEvento[];
 }
 
-// Metadatos por tipo de evento: orden cronológico, ícono y color semántico
-// (misma paleta que las cards de empleado: entrada/almuerzo/salida).
+
 const EVENTO_META: Record<
   string,
   { orden: number; icon: typeof Play; color: string; bg: string }
@@ -32,7 +31,6 @@ export function ObservationModal({
   fecha,
   observaciones,
 }: ObservationModalProps) {
-  // Orden cronológico (Comenzar → Terminar); desconocidos al final.
   const ordenadas = [...observaciones].sort(
     (a, b) => (EVENTO_META[a.evento]?.orden ?? 99) - (EVENTO_META[b.evento]?.orden ?? 99)
   );

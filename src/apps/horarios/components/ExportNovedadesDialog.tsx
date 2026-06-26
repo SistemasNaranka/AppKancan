@@ -78,7 +78,6 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
   };
 
   const handleExportar = async () => {
-    // Check "todas las novedades" → sin filtro de tiendas ni fechas.
     if (todasNovedades) {
       await ejecutarExport(undefined, undefined, undefined);
       return;

@@ -5,11 +5,7 @@ export const useHorariosPolicies = () => {
 
   const hasPolicy = (policyName: string): boolean =>
     user?.policies?.includes(policyName) ?? false;
-
-  // Acceso al panel administrativo de empleados.
-  // No depende del nombre EXACTO de la policy: detecta cualquier policy que
-  // contenga "admin" + un término del módulo (time_log / timelog / horario).
-  // Así sobrevive a renombres como crud_horarios_admin → crud_time_log_admin.
+  
   const MODULO_REGEX = /(time_?log|horario)/;
   const esAdmin = (): boolean =>
     (user?.policies ?? []).some((p) => {

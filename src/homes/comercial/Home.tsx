@@ -14,7 +14,6 @@ import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { useNavigate } from "react-router-dom";
 import { DynamicIcon } from "@/shared/utils/DynamicIcon";
-import HomeTutorial from "@/shared/components/HomeTutorial/HomeTutorial";
 
 const appTabs: Record<string, Window | null> = {
   gmailTab: null,
@@ -589,7 +588,6 @@ function Home() {
           </Paper>
         </Box>
       </Box>
-      <HomeTutorial ready={!loading} />
     </Box>
   );
 }

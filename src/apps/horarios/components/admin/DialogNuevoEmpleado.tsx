@@ -141,7 +141,6 @@ export default function DialogNuevoEmpleado({
       return;
     }
 
-    // Datos para la tarjeta del toast (se capturan antes de cerrar el modal).
     const empleadoInfo: EmpleadoCreado = {
       nombre,
       documento: form.document_number,
@@ -150,7 +149,6 @@ export default function DialogNuevoEmpleado({
     };
     const datosForm = { ...form };
 
-    // Cierra el modal de inmediato; el progreso se muestra en el toast de Sileo.
     onClose();
 
     sileo.promise(

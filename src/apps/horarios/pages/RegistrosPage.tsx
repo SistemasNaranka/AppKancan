@@ -45,6 +45,7 @@ import AdminEmpleadosPage from './AdminEmpleadosPage';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ExportNovedadesDialog from '../components/ExportNovedadesDialog';
+import ExportEventosDialog from '../components/ExportEventosDialog';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useAuth } from '@/auth/hooks/useAuth';
 
@@ -123,8 +124,6 @@ function RegistrosPageContent() {
   const { user } = useAuth();
   const { esAdmin } = useHorariosPolicies();
 
-  // Tienda activa compartida entre la vista de tienda y el panel admin
-  // (null al inicio; se fija a la tienda del propio admin al resolverla).
   const [storeOverride, setStoreOverride] = useState<number | null>(null);
   const { data: tiendasAdmin = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
@@ -157,9 +156,6 @@ function RegistrosPageContent() {
     setTabChangeCallback((tab: HorariosTab) => setTabValue(tab));
   }, [setTabChangeCallback]);
 
-  // Arranca el tour cuando se dispara desde el PeekButton (menú global de tutoriales).
-  // Se espera a que la carga termine para que los elementos del tour (.tour-tabs,
-  // tarjetas, etc.) ya estén montados en el DOM antes de iniciar Joyride.
   useEffect(() => {
     if (activeTutorial === 'horarios' && !loading) {
       const t = setTimeout(() => {
@@ -175,6 +171,7 @@ function RegistrosPageContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [fechaFiltro, setFechaFiltro] = useState<Dayjs | null>(null);
   const [exportNovedadesOpen, setExportNovedadesOpen] = useState(false);
+  const [exportEventosOpen, setExportEventosOpen] = useState(false);
 
   const subtitulosTab = [
     'Gestiona las marcaciones de asistencia del día',
@@ -378,20 +375,31 @@ function RegistrosPageContent() {
           </Tabs>
 
           {tabValue === 0 && !vistaAdmin && (
-            <Chip
-              label={`Total Empleados: ${empleados.length}`}
-              sx={{
-                bgcolor: '#eaf2fb',
-                color: '#004680',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                borderRadius: '8px',
-                border: '1px solid #d6e6f7',
-                ml: 2,
-                height: 32,
-                px: 0.5,
-              }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 2 }}>
+              <Button
+                className="tour-export-eventos"
+                onClick={() => setExportEventosOpen(true)}
+                variant="contained"
+                disableElevation
+                startIcon={<FileDownloadIcon />}
+                sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 32, '&:hover': { bgcolor: '#003a6b' } }}
+              >
+                Exportar
+              </Button>
+              <Chip
+                label={`Total Empleados: ${empleados.length}`}
+                sx={{
+                  bgcolor: '#eaf2fb',
+                  color: '#004680',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  borderRadius: '8px',
+                  border: '1px solid #d6e6f7',
+                  height: 32,
+                  px: 0.5,
+                }}
+              />
+            </Box>
           )}
         </Box>
       </Paper>
@@ -763,6 +771,12 @@ function RegistrosPageContent() {
         fechaInicio={fechaFiltro ? fechaFiltro.format('YYYY-MM-DD') : undefined}
         fechaFin={fechaFiltro ? fechaFiltro.format('YYYY-MM-DD') : undefined}
         tiendaDefault={storeOverride}
+      />
+
+      <ExportEventosDialog
+        open={exportEventosOpen}
+        onClose={() => setExportEventosOpen(false)}
+        storeId={storeOverride}
       />
     </Box>
   );

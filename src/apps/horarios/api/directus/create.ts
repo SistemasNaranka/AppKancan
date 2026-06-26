@@ -55,6 +55,8 @@ export async function createEventReport(data: {
   store_id?: number;
   event_type: string;
   observations?: string;
+  date?: string;
+  hour?: string;
 }) {
   try {
     const payload = {
@@ -62,7 +64,8 @@ export async function createEventReport(data: {
       store_id: Number(data.store_id || 90),
       event_type: data.event_type,
       observations: data.observations || '',
-      // date_created lo asigna Directus automáticamente (marca temporal del reporte).
+      date: data.date,
+      hour: data.hour,
     };
     return await withAutoRefresh(() =>
       directus.request(createItem('com_event_reports', payload))

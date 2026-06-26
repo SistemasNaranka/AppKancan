@@ -1,23 +1,16 @@
 import { saveAs } from "file-saver";
 import dayjs from "dayjs";
-import { NewnessReport } from "../api/directus/read";
+import { EventReportExport } from "../api/directus/read";
 import { Tienda } from "../interfaces/horarios.interface";
 
 const DELIM = ";";
 
-const nombreEmpleado = (emp: NewnessReport["employee_id"]): string =>
+const nombreEmpleado = (emp: EventReportExport["employee_id"]): string =>
   emp
     ? [emp.first_name, emp.middle_name, emp.last_name, emp.second_last_name]
         .filter((n) => n && String(n).trim())
         .join(" ")
     : "Sin nombre";
-
-const fechaDayjs = (nov: NewnessReport) => {
-  const raw = nov.report_date || nov.date_created;
-  if (!raw) return null;
-  const d = dayjs(raw);
-  return d.isValid() ? d : null;
-};
 
 interface FilaExport {
   tienda: string;
@@ -25,7 +18,8 @@ interface FilaExport {
   empleado: string;
   fecha: string;
   fechaOrden: string;
-  tipo: string;
+  hora: string;
+  evento: string;
   observacion: string;
 }
 
@@ -38,26 +32,27 @@ const csvCampo = (valor: string): string => {
 };
 
 interface ExportarParams {
-  reports: NewnessReport[];
+  reports: EventReportExport[];
   stores: Tienda[];
 }
 
-export const exportarNovedadesExcel = async ({
+export const exportarEventosExcel = async ({
   reports,
   stores,
 }: ExportarParams): Promise<{ ok: boolean; mensaje?: string }> => {
   const storesMap = new Map<number, string>(stores.map((s) => [Number(s.id), s.name]));
 
-  const filas: FilaExport[] = reports.map((nov) => {
-    const d = fechaDayjs(nov);
+  const filas: FilaExport[] = reports.map((ev) => {
+    const fechaRaw = (ev.date ?? "").slice(0, 10);
     return {
-      tienda: storesMap.get(Number(nov.store_id)) || String(nov.store_id ?? ""),
-      cc: String(nov.employee_id?.document_number ?? ""),
-      empleado: nombreEmpleado(nov.employee_id),
-      fecha: d ? d.format("DD-MM-YYYY") : "",
-      fechaOrden: d ? d.format("YYYY-MM-DD") : "",
-      tipo: nov.newness_id?.name || "",
-      observacion: nov.observations || "",
+      tienda: storesMap.get(Number(ev.store_id)) || String(ev.store_id ?? ""),
+      cc: String(ev.employee_id?.document_number ?? ""),
+      empleado: nombreEmpleado(ev.employee_id),
+      fecha: fechaRaw ? dayjs(fechaRaw).format("DD-MM-YYYY") : "",
+      fechaOrden: fechaRaw,
+      hora: ev.hour ? String(ev.hour).slice(0, 5) : "",
+      evento: ev.event_type || "",
+      observacion: ev.observations || "",
     };
   });
 
@@ -69,6 +64,7 @@ export const exportarNovedadesExcel = async ({
     (a, b) =>
       a.tienda.localeCompare(b.tienda) ||
       a.fechaOrden.localeCompare(b.fechaOrden) ||
+      a.hora.localeCompare(b.hora) ||
       a.empleado.localeCompare(b.empleado)
   );
 
@@ -77,7 +73,8 @@ export const exportarNovedadesExcel = async ({
     { key: "cc", header: "Número CC" },
     { key: "empleado", header: "Nombre empleado" },
     { key: "fecha", header: "Fecha" },
-    { key: "tipo", header: "Tipo de novedad" },
+    { key: "hora", header: "Hora" },
+    { key: "evento", header: "Evento" },
     { key: "observacion", header: "Observacion" },
   ];
 
@@ -89,7 +86,7 @@ export const exportarNovedadesExcel = async ({
 
   const contenido = "﻿" + lineas.join("\r\n");
   const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
-  saveAs(blob, `novedades ${dayjs().format("YYYYMMDD-HHmmss")}.csv`);
+  saveAs(blob, `eventos ${dayjs().format("YYYYMMDD-HHmmss")}.csv`);
 
   return { ok: true };
 };

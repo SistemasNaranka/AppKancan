@@ -65,7 +65,6 @@ export interface NovedadMapeada {
   observaciones: string;
 }
 
-/* ── Panel administrativo de empleados ── */
 
 export interface Tienda {
   id: number;
