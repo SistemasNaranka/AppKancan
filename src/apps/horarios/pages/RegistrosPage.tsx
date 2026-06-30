@@ -28,6 +28,9 @@ import { useTutorial } from '@/shared/hooks/TutorialContext';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import AdminEmpleadosPage from './AdminEmpleadosPage';
 import ExportEventosDialog from '../components/ExportEventosDialog';
+import NormasModal from '../components/NormasModal';
+import { useNormas } from '../hooks/useNormas';
+import GavelIcon from '@mui/icons-material/Gavel';
 import { useAuth } from '@/auth/hooks/useAuth';
 
 const MALLA_HORARIA_HABILITADA = false;
@@ -81,6 +84,8 @@ function RegistrosPageContent() {
     registrarEvento, resetHorarios, eliminarEmpleado,
     guardarObservacion, agregarNovedad, reportarEvento,
   } = useHorarios(storeOverride);
+
+  const { normas, debeAceptar, manualOpen, setManualOpen, aceptar, aceptando } = useNormas();
 
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
   const { activeTutorial, endTutorial } = useTutorial();
@@ -219,6 +224,21 @@ function RegistrosPageContent() {
             )}
             {!vistaAdmin && (
               <>
+                <Tooltip title="Ver normas de uso">
+                  <Button
+                    onClick={() => setManualOpen(true)}
+                    variant="outlined"
+                    disableElevation
+                    startIcon={<GavelIcon sx={{ fontSize: 18 }} />}
+                    sx={{
+                      borderRadius: 2, textTransform: 'none', fontWeight: 700,
+                      color: '#004680', borderColor: '#cbd5e1', px: 2, py: 0.75,
+                      '&:hover': { borderColor: '#94a3b8', bgcolor: '#eef4fb' },
+                    }}
+                  >
+                    Normas
+                  </Button>
+                </Tooltip>
                 <TutorialButton />
                 <Tooltip title="Actualizar registros">
                   <Button
@@ -380,6 +400,15 @@ function RegistrosPageContent() {
         open={exportEventosOpen}
         onClose={() => setExportEventosOpen(false)}
         storeId={storeOverride}
+      />
+
+      <NormasModal
+        open={debeAceptar || manualOpen}
+        normas={normas}
+        obligatorio={debeAceptar}
+        aceptando={aceptando}
+        onClose={() => setManualOpen(false)}
+        onAceptar={async () => { await aceptar(); setManualOpen(false); }}
       />
     </Box>
   );
