@@ -12,7 +12,7 @@ export const ESTADO_CONFIG: Record<
   error: { label: "Error en el proceso", color: "error" },
 };
 
-export const PROTOCOLO_EMPRESA = "empresa://";
+export const PROTOCOLO_EMPRESA = "ContabilizarFactura://";
 
 // ============ FUNCIÓN PARA EJECUTAR .EXE ============
 
@@ -53,22 +53,21 @@ export function executeContabilizarFactura(
   const automaticoRaw = datosFactura.automaticoAsignado || datosFactura.automatico || "";
   const entradaRaw = datosFactura.entrada || "";
 
-  // Construir los parámetros de la factura sanitizados de forma estricta
-  const paramsObj: Record<string, string> = {
-    numero: sanitizeParam(numeroRaw),
-    fechaVencimiento: sanitizeParam(datosFactura.fechaVencimiento || ""),
-    fechaEmision: sanitizeParam(datosFactura.fechaEmision),
-    automatico: sanitizeAutomatico(automaticoRaw),
-  };
+  // Construir los parámetros en formato "llave:valor" separados por espacios
+  const paramsList = [
+    `numero:${sanitizeParam(numeroRaw)}`,
+    `fechaVencimiento:${sanitizeParam(datosFactura.fechaVencimiento || "")}`,
+    `fechaEmision:${sanitizeParam(datosFactura.fechaEmision)}`,
+    `automatico:${sanitizeAutomatico(automaticoRaw)}`,
+  ];
 
   // Añadir la entrada si existe
   if (entradaRaw) {
-    paramsObj.entrada = sanitizeParam(entradaRaw);
+    paramsList.push(`entrada:${sanitizeParam(entradaRaw)}`);
   }
 
-  const params = new URLSearchParams(paramsObj);
-
-  const uri = `${PROTOCOLO_EMPRESA}actualizar?${params.toString()}`;
+  const paramsString = paramsList.join(" ");
+  const uri = `${PROTOCOLO_EMPRESA}?${encodeURIComponent(paramsString)}`;
 
   console.log("=== ENVIANDO PARÁMETROS A CONTABILIZACIÓN DE FACTURA ===");
   console.log("1. Número factura sin prefijo (numero):", datosFactura.numeroSinPrefijo || datosFactura.numeroFactura);
