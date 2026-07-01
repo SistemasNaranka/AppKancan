@@ -408,9 +408,9 @@ function RegistrosPageContent() {
       />
 
       <NormasModal
-        open={debeAceptar || manualOpen}
+        open={manualOpen}
         normas={normas}
-        obligatorio={debeAceptar}
+        obligatorio={false}
         aceptando={aceptando}
         onClose={() => setManualOpen(false)}
         onAceptar={async () => { await aceptar(); setManualOpen(false); }}
