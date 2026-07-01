@@ -32,6 +32,7 @@ import NormasModal from '../components/NormasModal';
 import { useNormas } from '../hooks/useNormas';
 import GavelIcon from '@mui/icons-material/Gavel';
 import { useAuth } from '@/auth/hooks/useAuth';
+import { syncTimeWithServer } from '../utils/timeSync';
 
 const MALLA_HORARIA_HABILITADA = false;
 
@@ -96,6 +97,10 @@ function RegistrosPageContent() {
   useEffect(() => {
     setTabChangeCallback((tab: HorariosTab) => setTabValue(tab));
   }, [setTabChangeCallback]);
+
+  useEffect(() => {
+    syncTimeWithServer();
+  }, []);
 
   useEffect(() => {
     if (activeTutorial === 'horarios' && !loading) {
@@ -232,8 +237,8 @@ function RegistrosPageContent() {
                     startIcon={<GavelIcon sx={{ fontSize: 18 }} />}
                     sx={{
                       borderRadius: 2, textTransform: 'none', fontWeight: 700,
-                      color: '#004680', borderColor: '#cbd5e1', px: 2, py: 0.75,
-                      '&:hover': { borderColor: '#94a3b8', bgcolor: '#eef4fb' },
+                      color: '#991b1b', borderColor: '#fca5a5', px: 2, py: 0.75, // Rojo suave/borgoña
+                      '&:hover': { borderColor: '#f87171', bgcolor: '#fff5f5' },
                     }}
                   >
                     Normas

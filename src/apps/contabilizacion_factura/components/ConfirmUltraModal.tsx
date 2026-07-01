@@ -49,7 +49,7 @@ export function ConfirmUltraModal({
             Para proceder con la causación, es indispensable que tengas el programa local de <strong>Ultra</strong> abierto en tu computadora y ubicado en la sección correcta.
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600, color: "#0284c7", backgroundColor: "#f0f9ff", p: 1.5, borderRadius: 2, borderLeft: "4px solid #0284c7" }}>
-            💡 Si no lo has abierto, tómate un momento para iniciarlo ahora mismo antes de presionar continuar.
+            Si no lo has abierto, tómate un momento para iniciarlo ahora mismo antes de continuar con el Proceso.
           </Typography>
         </Box>
       </DialogContent>

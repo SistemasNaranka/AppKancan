@@ -84,7 +84,12 @@ const calcularHoras = (recs: any[]): string => {
   let min = dayjs(`${base} ${fin}`).diff(dayjs(`${base} ${ini}`), 'minute');
   const ia = buscar('Iniciar Almuerzo');
   const fa = buscar('Finalizar Almuerzo');
-  if (ia && fa) min -= dayjs(`${base} ${fa}`).diff(dayjs(`${base} ${ia}`), 'minute');
+  if (ia && fa) {
+    const diffAlmuerzo = dayjs(`${base} ${fa}`).diff(dayjs(`${base} ${ia}`), 'minute');
+    if (diffAlmuerzo > 0) {
+      min -= diffAlmuerzo;
+    }
+  }
   return min > 0 ? `${(min / 60).toFixed(1)} h` : '—';
 };
 

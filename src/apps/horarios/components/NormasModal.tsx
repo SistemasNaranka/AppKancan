@@ -9,45 +9,120 @@ import { Normas } from '../api/directus/rules';
 
 const AZUL = '#004680';
 
-// Da formato al texto plano de las normas: títulos, "faltas graves" y viñetas.
+// Da formato al texto plano de las normas en una columna vertical con estilos condicionales.
 function renderContenido(content: string) {
-  const lineas = content.split('\n');
-  return lineas.map((raw, i) => {
-    const linea = raw.trim();
-    if (!linea) return <Box key={i} sx={{ height: 6 }} />;
+  const lineas = content.split('\n').map(l => l.trim()).filter(Boolean);
+  let enSeccionProhibiciones = false;
 
-    const esTituloGrave = /falta/i.test(linea) && linea === linea.toUpperCase();
-    const esSubtitulo = !esTituloGrave && linea.endsWith(':') && linea.length < 60;
-    const esBullet = linea.startsWith('- ') || linea.startsWith('• ');
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      {lineas.map((linea, i) => {
+        let text = linea;
+        let esBold = false;
 
-    if (esTituloGrave) {
-      return (
-        <Typography key={i} sx={{ fontWeight: 800, color: '#b91c1c', fontSize: '0.92rem', letterSpacing: 0.2, mt: 1.5, mb: 0.75 }}>
-          {linea}
-        </Typography>
-      );
-    }
-    if (esSubtitulo) {
-      return (
-        <Typography key={i} sx={{ fontWeight: 700, color: AZUL, fontSize: '0.9rem', mt: 1.25, mb: 0.5 }}>
-          {linea}
-        </Typography>
-      );
-    }
-    if (esBullet) {
-      return (
-        <Box key={i} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 0.85, pl: 0.5 }}>
-          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#cbd5e1', mt: '7px', flexShrink: 0 }} />
-          <Typography sx={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.55 }}>{linea.replace(/^[-•]\s*/, '')}</Typography>
-        </Box>
-      );
-    }
-    return (
-      <Typography key={i} sx={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.6, mb: 0.85 }}>
-        {linea}
-      </Typography>
-    );
-  });
+        // Detectar si la línea empieza con *
+        if (text.startsWith('*')) {
+          esBold = true;
+          text = text.substring(1).trim();
+        }
+
+        const esTituloGrave = /falta|prohibi|importante/i.test(text) && (esBold || text === text.toUpperCase());
+
+        if (esTituloGrave) {
+          enSeccionProhibiciones = true;
+        }
+
+        const esSubtitulo = !esTituloGrave && text.endsWith(':') && text.length < 60;
+        const esBullet = text.startsWith('- ') || text.startsWith('• ');
+
+        if (esTituloGrave) {
+          return (
+            <Typography
+              key={i}
+              sx={{
+                fontWeight: 800,
+                color: AZUL, 
+                fontSize: '0.88rem',
+                letterSpacing: 0.1,
+                mt: 2.25,
+                mb: 1
+              }}
+            >
+              {text}
+            </Typography>
+          );
+        }
+
+        if (esSubtitulo || (esBold && !esBullet)) {
+          return (
+            <Typography
+              key={i}
+              sx={{
+                fontWeight: 700,
+                color: AZUL, // Azul corporativo para subtítulos
+                fontSize: '0.88rem',
+                mt: 1.5,
+                mb: 0.75
+              }}
+            >
+              {text}
+            </Typography>
+          );
+        }
+
+        if (esBullet) {
+          const contenidoBullet = text.replace(/^[-•]\s*/, '');
+
+          // Separar la etiqueta en negrita si tiene formato "Etiqueta: Contenido"
+          const partes = contenidoBullet.split(':');
+          let label = '';
+          let resto = contenidoBullet;
+          if (partes.length > 1 && partes[0].length < 30) {
+            label = partes[0] + ':';
+            resto = partes.slice(1).join(':');
+          }
+
+          return (
+            <Box key={i} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 0.75, pl: 0.5 }}>
+              <Box sx={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                bgcolor: enSeccionProhibiciones ? '#f87171' : '#10b981', // ÚNICAMENTE el punto en rojo suave para prohibiciones
+                mt: '7px',
+                flexShrink: 0
+              }} />
+              <Typography sx={{ fontSize: '0.82rem', color: '#334155', lineHeight: 1.5 }}>
+                {label ? (
+                  <>
+                    <strong style={{ color: '#0f2c4a' }}>{label}</strong>
+                    {resto}
+                  </>
+                ) : (
+                  contenidoBullet
+                )}
+              </Typography>
+            </Box>
+          );
+        }
+
+        return (
+          <Typography
+            key={i}
+            sx={{
+              fontSize: '0.82rem',
+              color: '#475569',
+              lineHeight: 1.5,
+              mb: 0.5,
+              fontWeight: esBold ? 'bold' : 'normal'
+            }}
+          >
+            {text}
+          </Typography>
+        );
+      })}
+    </Box>
+  );
 }
 
 interface Props {
@@ -68,7 +143,7 @@ export default function NormasModal({ open, normas, obligatorio, aceptando, onCl
     <Dialog
       open={open}
       onClose={obligatorio ? undefined : onClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
       disableEscapeKeyDown={obligatorio}
       PaperProps={{ sx: { borderRadius: 4 } }}
@@ -77,7 +152,7 @@ export default function NormasModal({ open, normas, obligatorio, aceptando, onCl
         component="div"
         sx={{
           color: '#fff', py: 2.5, px: 3, display: 'flex', alignItems: 'center', gap: 1.75,
-          background: 'linear-gradient(135deg, #004680 0%, #0a5aa0 100%)',
+          background: 'linear-gradient(135deg, #004680 0%, #0a5aa0 100%)', // Gradiente azul corporativo original
         }}
       >
         <Box sx={{ width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255,255,255,0.18)' }}>
@@ -94,16 +169,16 @@ export default function NormasModal({ open, normas, obligatorio, aceptando, onCl
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 3, bgcolor: '#fbfdff' }}>
-        {/* Aviso destacado */}
+        {/* Aviso destacado en azul corporativo */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1.5, mb: 2, borderRadius: 2, bgcolor: '#eaf2fb', border: '1px solid #cfe2f7' }}>
           <InfoOutlinedIcon sx={{ color: AZUL, fontSize: 22, flexShrink: 0 }} />
-          <Typography sx={{ fontSize: '0.85rem', color: '#0f2c4a', lineHeight: 1.4 }}>
-            El uso del registro de horarios es <b>obligatorio</b>. Léelas con atención: su incumplimiento puede constituir una <b>falta grave</b>.
+          <Typography sx={{ fontSize: '0.82rem', color: '#0f2c4a', lineHeight: 1.4 }}>
+            El uso del registro de horarios es <b>obligatorio</b>. Léelas con atención.
           </Typography>
         </Box>
 
-        {/* Cuerpo de las normas */}
-        <Box sx={{ p: 2.25, borderRadius: 2, bgcolor: '#fff', border: '1px solid #eef2f6' }}>
+        {/* Cuerpo de las normas en una columna */}
+        <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: '#fff', border: '1px solid #eef2f6' }}>
           {normas?.content
             ? renderContenido(normas.content)
             : <Typography sx={{ fontSize: '0.9rem', color: '#94a3b8' }}>No hay normas configuradas.</Typography>}

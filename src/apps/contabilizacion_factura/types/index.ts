@@ -16,7 +16,7 @@ export interface DatosFacturaPDF {
   numeroSinPrefijo: string;
   automatico: string;
   fechaEmision: string;
-  fechaVencimiento?: string;
+  fechaVencimiento: string;
 
   proveedor: {
     nombre: string;
@@ -49,8 +49,7 @@ export interface DatosFacturaPDF {
     tamaño: number;
     fechaCarga: string;
   };
-
-  automaticoAsignado?: string;
+  automaticoAsignado: string;
 
   entrada?: string;
 }

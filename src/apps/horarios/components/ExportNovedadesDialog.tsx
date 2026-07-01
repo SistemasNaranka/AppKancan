@@ -15,6 +15,7 @@ import { Tienda } from '../interfaces/horarios.interface';
 import DateRangeFilter from './DateRangeFilter';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
+import { useAuth } from '@/auth/hooks/useAuth';
 
 const AZUL = '#004680';
 
@@ -24,26 +25,21 @@ interface Props {
   fechaInicio?: string;
   fechaFin?: string;
   tiendaDefault?: number | null;
+  searchNombre?: string;
 }
 
-export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault }: Props) {
+export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault, searchNombre }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
   const { esAdmin } = useHorariosPolicies();
+  const { user } = useAuth();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
-  const [todas, setTodas] = useState(false);
   const [todasNovedades, setTodasNovedades] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(null);
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      setRangoInicio(fechaInicio ? dayjs(fechaInicio) : null);
-      setRangoFin(fechaFin ? dayjs(fechaFin) : null);
-      setTodas(false);
-      setTodasNovedades(false);
-    }
-  }, [open, fechaInicio, fechaFin]);
+  const storeIdUsuario = user?.store_id ? Number(user.store_id) : null;
+  const tiendaEfectiva = tiendaDefault != null ? tiendaDefault : storeIdUsuario;
 
   const { data: tiendas = [], isLoading: loadingTiendas } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
@@ -52,6 +48,17 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
     enabled: open,
   });
 
+  const todas = tiendas.length > 0 && tiendasSel.length === tiendas.length;
+
+  useEffect(() => {
+    if (open) {
+      setRangoInicio(fechaInicio ? dayjs(fechaInicio) : null);
+      setRangoFin(fechaFin ? dayjs(fechaFin) : null);
+      setTiendasSel([]);
+      setTodasNovedades(false);
+    }
+  }, [open, fechaInicio, fechaFin]);
+
   useEffect(() => {
     if (open && tiendaDefault != null && tiendas.length > 0) {
       const t = tiendas.find((x) => x.id === tiendaDefault);
@@ -59,13 +66,29 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
     }
   }, [open, tiendas, tiendaDefault]);
 
-  const puedeExportar = (todasNovedades || todas || tiendasSel.length > 0) && !exportando;
+  const puedeExportar = (esAdmin() ? (todasNovedades || todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
 
   const ejecutarExport = async (fIni?: string, fFin?: string, storeIds?: number[]) => {
     setExportando(true);
     try {
       const reports = await fetchNewnessReportsExport(fIni, fFin, storeIds, esAdmin());
-      const res = await exportarNovedadesExcel({ reports, stores: tiendas });
+
+      let filteredReports = reports;
+      if (searchNombre) {
+        const normalizar = (texto: string) =>
+          texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const searchClean = normalizar(searchNombre);
+        filteredReports = reports.filter((r) => {
+          const empName = r.employee_id
+            ? [r.employee_id.first_name, r.employee_id.middle_name, r.employee_id.last_name, r.employee_id.second_last_name]
+                .filter((n) => n && String(n).trim())
+                .join(" ")
+            : "Sin nombre";
+          return normalizar(empName).includes(searchClean);
+        });
+      }
+
+      const res = await exportarNovedadesExcel({ reports: filteredReports, stores: tiendas });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
         onClose();
@@ -80,11 +103,11 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
   };
 
   const handleExportar = async () => {
-    if (todasNovedades) {
+    if (esAdmin() && todasNovedades) {
       await ejecutarExport(undefined, undefined, undefined);
       return;
     }
-    const storeIds = todas ? undefined : tiendasSel.map((t) => t.id);
+    const storeIds = esAdmin() ? (todas ? undefined : tiendasSel.map((t) => t.id)) : [Number(tiendaEfectiva)];
     let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
     let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
     if (!fIni && !fFin) {
@@ -102,50 +125,66 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
         <Box>
           <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Exportar novedades</Typography>
           <Typography component="span" variant="caption" sx={{ opacity: 0.85, display: 'block' }}>
-            Selecciona tiendas y rango de fechas
+            {esAdmin() ? 'Selecciona tiendas y rango de fechas' : 'Selecciona el rango de fechas'}
           </Typography>
         </Box>
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
-          <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
-              TIENDAS A EXPORTAR
-            </Typography>
-            <Autocomplete
-              multiple
-              size="small"
-              options={tiendas}
-              loading={loadingTiendas}
-              disabled={todas || todasNovedades}
-              getOptionLabel={(o) => o.name}
-              isOptionEqualToValue={(o, v) => o.id === v.id}
-              value={tiendasSel}
-              onChange={(_, v) => setTiendasSel(v)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder={todas ? 'Todas las tiendas seleccionadas' : 'Selecciona una o varias tiendas…'}
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <>
-                        <StorefrontIcon sx={{ fontSize: 18, color: AZUL, ml: 0.5, mr: 0.5 }} />
-                        {params.InputProps.startAdornment}
-                      </>
-                    ),
-                  }}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: todas ? '#f1f5f9' : '#f1f7fe' } }}
-                />
-              )}
-            />
-            <FormControlLabel
-              control={<Checkbox checked={todas} disabled={todasNovedades} onChange={(e) => setTodas(e.target.checked)} sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }} />}
-              label={<Typography sx={{ fontSize: '0.85rem', fontWeight: "bold" }}>Todas las tiendas</Typography>}
-              sx={{ mt: 0.5 }}
-            />
-          </Box>
+          {esAdmin() && (
+            <Box>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
+                TIENDAS A EXPORTAR
+              </Typography>
+              <Autocomplete
+                multiple
+                limitTags={2}
+                size="small"
+                options={tiendas}
+                loading={loadingTiendas}
+                disabled={todasNovedades}
+                getOptionLabel={(o) => o.name}
+                isOptionEqualToValue={(o, v) => o.id === v.id}
+                value={tiendasSel}
+                onChange={(_, v) => setTiendasSel(v)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Selecciona una o varias tiendas…"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <StorefrontIcon sx={{ fontSize: 18, color: AZUL, ml: 0.5, mr: 0.5 }} />
+                          {params.InputProps.startAdornment}
+                        </>
+                      ),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
+                  />
+                )}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={todas}
+                    disabled={todasNovedades}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setTiendasSel(tiendas);
+                      } else {
+                        setTiendasSel([]);
+                      }
+                    }}
+                    sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: '0.85rem', fontWeight: "bold" }}>Todas las tiendas</Typography>}
+                sx={{ mt: 0.5 }}
+              />
+            </Box>
+          )}
 
           <Box sx={{ opacity: todasNovedades ? 0.5 : 1, pointerEvents: todasNovedades ? 'none' : 'auto' }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
@@ -198,17 +237,19 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
             })()}
           </Box>
 
-          <FormControlLabel
-            control={<Checkbox checked={todasNovedades} onChange={(e) => setTodasNovedades(e.target.checked)} sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }} />}
-            label={
-              <Box>
-                <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Descargar todas las novedades</Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  Ignora las tiendas y el rango de fechas: exporta todas las novedades registradas.
-                </Typography>
-              </Box>
-            }
-          />
+          {esAdmin() && (
+            <FormControlLabel
+              control={<Checkbox checked={todasNovedades} onChange={(e) => setTodasNovedades(e.target.checked)} sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }} />}
+              label={
+                <Box>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Descargar todas las novedades</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    Ignora las tiendas y el rango de fechas: exporta todas las novedades registradas.
+                  </Typography>
+                </Box>
+              }
+            />
+          )}
         </Box>
       </DialogContent>
 

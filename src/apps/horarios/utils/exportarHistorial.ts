@@ -32,7 +32,10 @@ const calcularHorasLaboradas = (
   const base = "2000-01-01";
   let minutos = dayjs(`${base} ${finTurno}`).diff(dayjs(`${base} ${inicioTurno}`), "minute");
   if (inicioAlmuerzo && finAlmuerzo) {
-    minutos -= dayjs(`${base} ${finAlmuerzo}`).diff(dayjs(`${base} ${inicioAlmuerzo}`), "minute");
+    const almuerzoMinutos = dayjs(`${base} ${finAlmuerzo}`).diff(dayjs(`${base} ${inicioAlmuerzo}`), "minute");
+    if (almuerzoMinutos > 0) {
+      minutos -= almuerzoMinutos;
+    }
   }
   if (minutos < 0) return "--";
   return `${(minutos / 60).toFixed(2)} h`;

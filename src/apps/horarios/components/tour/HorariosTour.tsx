@@ -193,6 +193,21 @@ const STEPS_NOVEDADES: Step[] = [
     ),
     placement: "bottom",
   },
+  {
+    target: ".tour-nov-export",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+          Exportar Novedades
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Usa el botón <FileDownloadIcon sx={inlineIcon} /> <strong>Exportar</strong> para
+          descargar las novedades en Excel (CSV). La descarga incluirá únicamente las novedades que coincidan con tus filtros activos de búsqueda y fecha.
+        </Typography>
+      </Box>
+    ),
+    placement: "bottom",
+  },
 ];
 
 const STEPS_HISTORIAL: Step[] = [
@@ -238,6 +253,21 @@ const STEPS_HISTORIAL: Step[] = [
           Cada fila muestra las marcaciones de una jornada y el{" "}
           <strong>total de horas</strong> trabajadas (descontando el almuerzo).
           Los puntos azules indican observaciones: haz clic para verlas.
+        </Typography>
+      </Box>
+    ),
+    placement: "bottom",
+  },
+  {
+    target: ".tour-hist-export",
+    content: (
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+          Exportar Historial
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Con el botón <FileDownloadIcon sx={inlineIcon} /> <strong>Exportar</strong> descargas
+          el historial en formato Excel (CSV). La descarga incluirá únicamente los registros que coincidan con tus filtros de búsqueda y fechas que tengas activos.
         </Typography>
       </Box>
     ),

@@ -157,17 +157,16 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride }: Prop
               }}
             />
 
-            {esAdmin && (
-              <Button
-                onClick={() => setExportOpen(true)}
-                variant="contained"
-                disableElevation
-                startIcon={<FileDownloadIcon />}
-                sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 38, '&:hover': { bgcolor: '#003a6b' } }}
-              >
-                Exportar
-              </Button>
-            )}
+            <Button
+              className="tour-nov-export"
+              onClick={() => setExportOpen(true)}
+              variant="contained"
+              disableElevation
+              startIcon={<FileDownloadIcon />}
+              sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 38, '&:hover': { bgcolor: '#003a6b' } }}
+            >
+              Exportar
+            </Button>
           </Box>
         </Box>
 
@@ -297,6 +296,7 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride }: Prop
         fechaInicio={fechaFiltro ? fechaFiltro.format('YYYY-MM-DD') : undefined}
         fechaFin={fechaFiltro ? fechaFiltro.format('YYYY-MM-DD') : undefined}
         tiendaDefault={storeOverride}
+        searchNombre={searchQuery}
       />
     </>
   );

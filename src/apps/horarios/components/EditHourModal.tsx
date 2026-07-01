@@ -13,6 +13,21 @@ import { Motivo } from '../interfaces/horarios.interface';
 
 const NOTA_MIN_OTRO = 15;
 
+const formatTo12Hour = (timeStr: string | null): string => {
+  if (!timeStr) return '';
+  if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  if (isNaN(hours)) return timeStr;
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const hoursStr = String(hours).padStart(2, '0');
+  return `${hoursStr}:${minutes} ${ampm}`;
+};
+
 interface EditHourModalProps {
   open: boolean;
   onClose: () => void;
@@ -22,6 +37,12 @@ interface EditHourModalProps {
   initialObservation: string;
   reasons: Motivo[];
   initialReasonId: number | null;
+  registros?: {
+    inicioJornada?: string | null;
+    inicioAlmuerzo?: string | null;
+    finAlmuerzo?: string | null;
+    finJornada?: string | null;
+  };
   onConfirm: (timeFormatted: string, observation: string, reasonId: number) => Promise<void> | void;
 }
 
@@ -34,15 +55,18 @@ export default function EditHourModal({
   initialObservation,
   reasons,
   initialReasonId,
+  registros,
   onConfirm,
 }: EditHourModalProps) {
   const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs>(dayjs());
   const [horaInicial, setHoraInicial] = useState<dayjs.Dayjs | null>(null);
   const [horaObservacion, setHoraObservacion] = useState('');
   const [reasonId, setReasonId] = useState<number | ''>('');
+  const [errorValidacion, setErrorValidacion] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
+      setErrorValidacion(null);
       let horaDayjs = dayjs();
       if (initialTimeStr) {
         let hours = 0;
@@ -68,6 +92,48 @@ export default function EditHourModal({
     }
   }, [open, initialTimeStr, initialObservation, initialReasonId]);
 
+  // Validaciones cronológicas para evitar traslapes o almuerzos/jornadas negativas
+  useEffect(() => {
+    if (!open || !registros) return;
+    setErrorValidacion(null);
+
+    const selStr = horaSeleccionada.format('HH:mm');
+
+    const checkMin = (targetTime: string | null | undefined, label: string) => {
+      if (!targetTime) return true;
+      const targetStr = targetTime.substring(0, 5);
+      if (selStr < targetStr) {
+        setErrorValidacion(`La hora no puede ser menor a la de ${label} (${formatTo12Hour(targetStr)}).`);
+        return false;
+      }
+      return true;
+    };
+
+    const checkMax = (targetTime: string | null | undefined, label: string) => {
+      if (!targetTime) return true;
+      const targetStr = targetTime.substring(0, 5);
+      if (selStr > targetStr) {
+        setErrorValidacion(`La hora no puede ser mayor a la de ${label} (${formatTo12Hour(targetStr)}).`);
+        return false;
+      }
+      return true;
+    };
+
+    if (eventName === 'Comenzar Jornada') {
+      if (registros.inicioAlmuerzo) checkMax(registros.inicioAlmuerzo, 'Inicio Almuerzo');
+      else if (registros.finJornada) checkMax(registros.finJornada, 'Fin Jornada');
+    } else if (eventName === 'Iniciar Almuerzo') {
+      checkMin(registros.inicioJornada, 'Comenzar Jornada');
+      checkMax(registros.finAlmuerzo, 'Finalizar Almuerzo');
+    } else if (eventName === 'Finalizar Almuerzo') {
+      checkMin(registros.inicioAlmuerzo, 'Iniciar Almuerzo');
+      checkMax(registros.finJornada, 'Terminar Jornada');
+    } else if (eventName === 'Terminar Jornada') {
+      if (registros.finAlmuerzo) checkMin(registros.finAlmuerzo, 'Finalizar Almuerzo');
+      else checkMin(registros.inicioJornada, 'Comenzar Jornada');
+    }
+  }, [horaSeleccionada, open, eventName, registros]);
+
   const motivoSeleccionado = reasonId === '' ? undefined : reasons.find((r) => Number(r.id) === Number(reasonId));
   const esOtro = (motivoSeleccionado?.name || '').trim().toLowerCase() === 'otro';
 
@@ -81,7 +147,7 @@ export default function EditHourModal({
 
   const horaCambiada = !horaSeleccionada || !horaInicial || !horaSeleccionada.isSame(horaInicial, 'minute');
   const notaValida = !esOtro || horaObservacion.trim().length >= NOTA_MIN_OTRO;
-  const puedeGuardar = horaCambiada && reasonId !== '' && notaValida;
+  const puedeGuardar = horaCambiada && reasonId !== '' && notaValida && !errorValidacion;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
@@ -92,6 +158,11 @@ export default function EditHourModal({
       <Divider />
       <DialogContent sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2.5 }}>
+          {errorValidacion && (
+            <Alert severity="error" sx={{ borderRadius: 2 }}>
+              {errorValidacion}
+            </Alert>
+          )}
           <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
             <TimePicker
               label="Hora"

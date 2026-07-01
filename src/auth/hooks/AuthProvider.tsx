@@ -14,6 +14,7 @@ import {
   refreshDirectus,
 } from "@/services/directus/auth";
 import { useNavigationPersistence } from "@/shared/hooks/useNavigationPersistence";
+import queryClient from "@/services/tankstack/QueryClient";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -84,6 +85,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.warn("⚠️ No se pudo hacer logout en servidor:", err);
       }
     }
+
+    // Limpiar caché de React Query al cerrar sesión para evitar fugas de información o datos obsoletos de otro usuario
+    queryClient.clear();
 
     // Limpiar navegación persistente al hacer logout
     clearSavedRoute();

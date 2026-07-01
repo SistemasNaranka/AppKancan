@@ -165,6 +165,7 @@ export default function EmployeeCard({
   const [eventoObservaciones, setEventoObservaciones] = useState('');
   const [eventoError, setEventoError] = useState('');
   const [guardandoEvento, setGuardandoEvento] = useState(false);
+  const [guardandoRegistro, setGuardandoRegistro] = useState<string | null>(null);
 
   const novedadSchema = yup.object().shape({
     novedad: yup.string().required('El tipo de novedad es obligatorio'),
@@ -175,7 +176,7 @@ export default function EmployeeCard({
         if (!fechaInicio || !value) return true;
         return dayjs(value).isSame(dayjs(fechaInicio), 'day') || dayjs(value).isAfter(dayjs(fechaInicio), 'day');
       }),
-    observaciones: yup.string().max(500, 'Máximo 500 caracteres')
+    observaciones: yup.string().max(300, 'Máximo 300 caracteres')
   });
 
   const botones = [
@@ -310,8 +311,16 @@ export default function EmployeeCard({
       getRecordReasonId(recordId).then(setInitialReasonId).catch(() => setInitialReasonId(null));
     }
   };
+  const handleRegistrarEvento = async (tipoEvento: string) => {
+    setGuardandoRegistro(tipoEvento);
+    try {
+      await onRegistrarEvento(id, tipoEvento);
+    } finally {
+      setGuardandoRegistro(null);
+    }
+  };
 
-  const maxLength = 500;
+  const maxLength = 300;
 
   return (
     <>
@@ -409,9 +418,17 @@ export default function EmployeeCard({
                   <Button
                     fullWidth
                     variant={btn.activo ? 'contained' : yaHecho ? 'outlined' : 'text'}
-                    disabled={bloqueado || finalizado}
-                    onClick={yaHecho ? undefined : () => onRegistrarEvento(id, btn.etiqueta)}
-                    endIcon={yaHecho ? <CheckCircleOutlineIcon color="success" /> : getIcon(btn.etiqueta)}
+                    disabled={bloqueado || finalizado || guardandoRegistro !== null}
+                    onClick={yaHecho ? undefined : () => handleRegistrarEvento(btn.etiqueta)}
+                    endIcon={
+                      guardandoRegistro === btn.etiqueta ? (
+                        <CircularProgress size={16} sx={{ color: btn.activo ? '#fff' : '#004680' }} />
+                      ) : yaHecho ? (
+                        <CheckCircleOutlineIcon color="success" />
+                      ) : (
+                        getIcon(btn.etiqueta)
+                      )
+                    }
                     sx={{
                       justifyContent: 'space-between',
                       textTransform: 'uppercase',
@@ -481,6 +498,7 @@ export default function EmployeeCard({
         initialObservation={getObservacion(eventoActualHora)}
         reasons={reasons}
         initialReasonId={initialReasonId}
+        registros={registros}
         onConfirm={async (horaFormateada, observacion, reasonId) => {
           await onRegistrarEvento(id, eventoActualHora, horaFormateada, observacion, reasonId);
         }}
@@ -585,9 +603,9 @@ export default function EmployeeCard({
             rows={3}
             fullWidth
             value={eventoObservaciones}
-            onChange={(e) => setEventoObservaciones(e.target.value.slice(0, 500))}
+            onChange={(e) => setEventoObservaciones(e.target.value.slice(0, 300))}
             placeholder="Detalle adicional (opcional)..."
-            helperText={`${eventoObservaciones.length}/500 caracteres`}
+            helperText={`${eventoObservaciones.length}/300 caracteres`}
             slotProps={{ formHelperText: { sx: { textAlign: 'right' } } }}
             sx={{ mt: 2.5 }}
           />

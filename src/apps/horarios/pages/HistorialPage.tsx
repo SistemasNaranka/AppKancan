@@ -89,7 +89,10 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
     if (inicio_almuerzo && fin_almuerzo) {
       const iniAlmuerzo = dayjs(`${fecha} ${inicio_almuerzo}`);
       const finAlmuerzo = dayjs(`${fecha} ${fin_almuerzo}`);
-      minutes -= finAlmuerzo.diff(iniAlmuerzo, 'minutes');
+      const diffAlmuerzo = finAlmuerzo.diff(iniAlmuerzo, 'minutes');
+      if (diffAlmuerzo > 0) {
+        minutes -= diffAlmuerzo;
+      }
     }
     return `${(minutes / 60).toFixed(2)} h`;
   };
@@ -135,17 +138,16 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
               <h3 className="text-sm font-bold text-[#0f2c4a] leading-tight">Filtros de búsqueda</h3>
             </div>
           </div>
-          {esAdmin() && (
-            <Button
-              onClick={() => setExportOpen(true)}
-              variant="contained"
-              disableElevation
-              startIcon={<FileDownloadIcon />}
-              sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, '&:hover': { bgcolor: '#003a6b' } }}
-            >
-              Exportar
-            </Button>
-          )}
+          <Button
+            className="tour-hist-export"
+            onClick={() => setExportOpen(true)}
+            variant="contained"
+            disableElevation
+            startIcon={<FileDownloadIcon />}
+            sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, '&:hover': { bgcolor: '#003a6b' } }}
+          >
+            Exportar
+          </Button>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 items-end">
@@ -448,6 +450,7 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
         fechaInicio={fechaInicio ? fechaInicio.format('YYYY-MM-DD') : undefined}
         fechaFin={fechaFin ? fechaFin.format('YYYY-MM-DD') : undefined}
         tiendaDefault={storeIdAdmin ?? null}
+        searchNombre={searchNombre}
       />
     </div>
   );

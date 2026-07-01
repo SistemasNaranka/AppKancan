@@ -5,12 +5,13 @@ import { getEmpleados, getNovedades, getTiposNovedad, getTimeRecords, getStoreId
 import { createNovedades, createTimeRecord, updateTimeRecord, upsertRecordReason, createEventReport } from '../api/directus/create';
 import dayjs from 'dayjs';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { getRealColombiaTime } from '../utils/timeSync';
 
 export const useHorarios = (storeOverride?: number | null) => {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const { showSnackbar } = useGlobalSnackbar();
-  const hoy = dayjs().format('YYYY-MM-DD');
+  const hoy = getRealColombiaTime().format('YYYY-MM-DD');
 
   const { data: storeUsuario = null } = useQuery<number | null>({
     queryKey: ['horariosStoreId'],
@@ -180,7 +181,7 @@ export const useHorarios = (storeOverride?: number | null) => {
   ) => {
     setError(null);
     try {
-      const ahora = horaOverride ? dayjs(horaOverride, 'hh:mm A') : dayjs();
+      const ahora = horaOverride ? dayjs(horaOverride, 'hh:mm A') : getRealColombiaTime();
       const recordDate = ahora.format('YYYY-MM-DD');
       const recordTime = ahora.format('HH:mm:ss');
       const observacion = observacionOverride || '';
@@ -310,7 +311,7 @@ export const useHorarios = (storeOverride?: number | null) => {
 
   const reportarEvento = async (idEmpleado: string, eventType: string, observaciones?: string) => {
     try {
-      const ahora = dayjs();
+      const ahora = getRealColombiaTime();
       await createEventReport({
         employee_id: Number(idEmpleado),
         event_type: eventType,
