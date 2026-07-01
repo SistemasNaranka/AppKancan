@@ -130,11 +130,12 @@ interface Props {
   normas: Normas | null;
   obligatorio: boolean;
   aceptando: boolean;
+  titleOverride?: string;
   onClose: () => void;
   onAceptar: () => void;
 }
 
-export default function NormasModal({ open, normas, obligatorio, aceptando, onClose, onAceptar }: Props) {
+export default function NormasModal({ open, normas, obligatorio, aceptando, titleOverride, onClose, onAceptar }: Props) {
   const [acepto, setAcepto] = useState(false);
 
   useEffect(() => { if (open) setAcepto(false); }, [open]);
@@ -160,7 +161,7 @@ export default function NormasModal({ open, normas, obligatorio, aceptando, onCl
         </Box>
         <Box>
           <Typography component="span" variant="h6" sx={{ fontWeight: 800, display: 'block', lineHeight: 1.2 }}>
-            {normas?.title || 'Normas de uso'}
+            {titleOverride || normas?.title || 'Normas de uso'}
           </Typography>
           <Typography component="span" variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.25 }}>
             Lectura obligatoria · Versión {normas?.version ?? '—'}

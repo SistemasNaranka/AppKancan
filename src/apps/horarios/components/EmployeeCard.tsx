@@ -16,7 +16,10 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
 import { EmpleadoAsistencia, Motivo } from '../interfaces/horarios.interface';
 import EditHourModal from './EditHourModal';
+import NormasModal from './NormasModal';
 import { getRecordReasonId } from '../api/directus/read';
+import { getNormasActivas, yaAceptoNormasEmpleado, registrarAceptacionNormasEmpleado, Normas } from '../api/directus/rules';
+import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import * as yup from 'yup';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -166,6 +169,14 @@ export default function EmployeeCard({
   const [eventoError, setEventoError] = useState('');
   const [guardandoEvento, setGuardandoEvento] = useState(false);
   const [guardandoRegistro, setGuardandoRegistro] = useState<string | null>(null);
+  const [employeeNormasOpen, setEmployeeNormasOpen] = useState(false);
+  const [aceptandoNormas, setAceptandoNormas] = useState(false);
+
+  const { data: normasActivas = null } = useQuery<Normas | null>({
+    queryKey: ['normasActivas'],
+    queryFn: getNormasActivas,
+    staleTime: 10 * 60 * 1000,
+  });
 
   const novedadSchema = yup.object().shape({
     novedad: yup.string().required('El tipo de novedad es obligatorio'),
@@ -315,8 +326,29 @@ export default function EmployeeCard({
     setGuardandoRegistro(tipoEvento);
     try {
       await onRegistrarEvento(id, tipoEvento);
+      if (tipoEvento === 'Comenzar Jornada' && normasActivas) {
+        const yaAcepto = await yaAceptoNormasEmpleado(Number(id), normasActivas.id);
+        if (!yaAcepto) {
+          setTimeout(() => {
+            setEmployeeNormasOpen(true);
+          }, 2000);
+        }
+      }
     } finally {
       setGuardandoRegistro(null);
+    }
+  };
+
+  const handleAceptarNormasEmpleado = async () => {
+    if (!normasActivas) return;
+    setAceptandoNormas(true);
+    try {
+      await registrarAceptacionNormasEmpleado(Number(id), normasActivas.version, normasActivas.id);
+      setEmployeeNormasOpen(false);
+    } catch (e) {
+      console.error("Error al registrar aceptación de normas del empleado:", e);
+    } finally {
+      setAceptandoNormas(false);
     }
   };
 
@@ -502,6 +534,16 @@ export default function EmployeeCard({
         onConfirm={async (horaFormateada, observacion, reasonId) => {
           await onRegistrarEvento(id, eventoActualHora, horaFormateada, observacion, reasonId);
         }}
+      />
+
+      <NormasModal
+        open={employeeNormasOpen}
+        normas={normasActivas}
+        obligatorio={true}
+        aceptando={aceptandoNormas}
+        titleOverride={`Normativa de Registro de Horarios — ${nombre}`}
+        onClose={() => setEmployeeNormasOpen(false)}
+        onAceptar={handleAceptarNormasEmpleado}
       />
 
       {/* Modal observación */}

@@ -61,3 +61,43 @@ export async function registrarAceptacionNormas(userId: string, version: number)
     )
   );
 }
+
+export async function yaAceptoNormasEmpleado(employeeId: number, ruleId: number): Promise<boolean> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_rules_acceptance", {
+          fields: ["id"],
+          filter: {
+            _and: [
+              { employee_id: { _eq: employeeId } },
+              { rule_id: { _eq: ruleId } }
+            ]
+          },
+          limit: 1,
+        })
+      )
+    );
+    return (items || []).length > 0;
+  } catch (error) {
+    console.error("❌ Error verificando aceptación de normas del empleado:", error);
+    return false;
+  }
+}
+
+export async function registrarAceptacionNormasEmpleado(employeeId: number, version: number, ruleId: number) {
+  try {
+    return await withAutoRefresh(() =>
+      directus.request(
+        createItem("com_rules_acceptance", {
+          employee_id: employeeId,
+          version,
+          rule_id: ruleId
+        })
+      )
+    );
+  } catch (error: any) {
+    console.error("❌ Error registrando aceptación de normas del empleado:", error);
+    throw new Error(error?.errors?.[0]?.message || 'Error al guardar aceptación de normas');
+  }
+}
