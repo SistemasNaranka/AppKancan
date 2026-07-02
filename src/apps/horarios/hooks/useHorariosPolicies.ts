@@ -13,7 +13,14 @@ export const useHorariosPolicies = () => {
       return s.includes('admin') && MODULO_REGEX.test(s);
     });
 
-  return { hasPolicy, esAdmin };
+  const esReport = (): boolean =>
+    (user?.policies ?? []).some((p) => {
+      const s = p.toLowerCase();
+      return s.includes('report');
+    });
+
+  return { hasPolicy, esAdmin, esReport };
 };
 
 export default useHorariosPolicies;
+

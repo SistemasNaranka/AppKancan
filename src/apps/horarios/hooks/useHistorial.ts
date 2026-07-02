@@ -45,18 +45,21 @@ const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
   });
 };
 
-export const useHistorial = (fechaInicio?: string, fechaFin?: string) => {
+export const useHistorial = (fechaInicio?: string, fechaFin?: string, overrideStoreId?: number | null) => {
   const { data: storeId = null } = useQuery<number | null>({
     queryKey: ['horariosStoreId'],
     queryFn: getStoreIdUsuarioActual,
     staleTime: 30 * 60 * 1000,
+    enabled: overrideStoreId === undefined,
   });
 
+  const activeStoreId = overrideStoreId !== undefined ? overrideStoreId : storeId;
+
   return useQuery({
-    queryKey: ['historial', storeId, fechaInicio, fechaFin],
-    queryFn: () => fetchTimeRecords(fechaInicio, fechaFin, storeId ?? undefined),
+    queryKey: ['historial', activeStoreId, fechaInicio, fechaFin],
+    queryFn: () => fetchTimeRecords(fechaInicio, fechaFin, activeStoreId ?? undefined),
     select: (data) => agruparRegistros(data),
-    enabled: storeId != null,
+    enabled: overrideStoreId !== undefined || storeId != null,
     staleTime: 1000 * 60 * 5,
   });
 };

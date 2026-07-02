@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, CircularProgress,
+  Autocomplete, TextField, FormControlLabel, Checkbox
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import { getStores, getStoreIdUsuarioActual, fetchEventReportsExport } from '../api/directus/read';
@@ -24,16 +26,23 @@ interface Props {
 
 export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
-  const { esAdmin } = useHorariosPolicies();
+  const { esAdmin: originalEsAdmin, esReport } = useHorariosPolicies();
+  const esAdmin = () => originalEsAdmin() || esReport();
   const [exportando, setExportando] = useState(false);
   const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(null);
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(null);
 
+  const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
+
   useEffect(() => {
-    if (open) { setRangoInicio(null); setRangoFin(null); }
+    if (open) { 
+      setRangoInicio(null); 
+      setRangoFin(null); 
+      setTiendasSel([]);
+    }
   }, [open]);
 
-  const { data: tiendas = [] } = useQuery<Tienda[]>({
+  const { data: tiendas = [], isLoading: loadingTiendas } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
     staleTime: 30 * 60 * 1000,
@@ -48,14 +57,22 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
   });
 
   const tiendaEfectiva = storeId != null ? storeId : storeUsuario;
+  const todas = tiendas.length > 0 && tiendasSel.length === tiendas.length;
+
+  useEffect(() => {
+    if (open && storeId != null && tiendas.length > 0) {
+      const t = tiendas.find((x) => x.id === storeId);
+      setTiendasSel(t ? [t] : []);
+    }
+  }, [open, tiendas, storeId]);
+
+  const puedeExportar = (esAdmin() ? (todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
 
   const handleExportar = async () => {
-    if (tiendaEfectiva == null) {
-      showSnackbar('No se pudo determinar la tienda para exportar', 'error');
-      return;
-    }
+    if (!puedeExportar) return;
     setExportando(true);
     try {
+      const storeIds = esAdmin() ? (todas ? undefined : tiendasSel.map((t) => t.id)) : (tiendaEfectiva != null ? [Number(tiendaEfectiva)] : undefined);
       let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
       let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
       if (!fIni && !fFin) {
@@ -63,7 +80,7 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
         fIni = hoy;
         fFin = hoy;
       }
-      const reports = await fetchEventReportsExport(fIni, fFin, [tiendaEfectiva], esAdmin());
+      const reports = await fetchEventReportsExport(fIni, fFin, storeIds, esAdmin());
       const res = await exportarEventosExcel({ reports, stores: tiendas });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
@@ -83,7 +100,7 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
       <DialogTitle component="div" sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <FileDownloadIcon />
         <Box>
-          <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Exportar eventos</Typography>
+          <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Exportar pausas activas</Typography>
           <Typography component="span" variant="caption" sx={{ opacity: 0.85, display: 'block' }}>
             Reportes de pausas y eventos de la tienda
           </Typography>
@@ -92,6 +109,57 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
 
       <DialogContent sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
+          {esAdmin() && (
+            <Box>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
+                TIENDAS A EXPORTAR
+              </Typography>
+              <Autocomplete
+                multiple
+                limitTags={2}
+                size="small"
+                options={tiendas}
+                loading={loadingTiendas}
+                getOptionLabel={(o) => o.name}
+                isOptionEqualToValue={(o, v) => o.id === v.id}
+                value={tiendasSel}
+                onChange={(_, v) => setTiendasSel(v)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Selecciona una o varias tiendas…"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <StorefrontIcon sx={{ color: '#94a3b8', mr: 1, fontSize: 20 }} />
+                          {params.InputProps.startAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={todas}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setTiendasSel(tiendas);
+                      } else {
+                        setTiendasSel([]);
+                      }
+                    }}
+                    sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: '0.85rem', fontWeight: "bold" }}>Todas las tiendas</Typography>}
+                sx={{ mt: 0.5 }}
+              />
+            </Box>
+          )}
+
           <Box>
             <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
               RANGO DE FECHAS
@@ -142,7 +210,7 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
           onClick={handleExportar}
           variant="contained"
           disableElevation
-          disabled={exportando}
+          disabled={!puedeExportar}
           startIcon={exportando ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <FileDownloadIcon />}
           sx={{ bgcolor: AZUL, borderRadius: 2, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#003a6b' } }}
         >

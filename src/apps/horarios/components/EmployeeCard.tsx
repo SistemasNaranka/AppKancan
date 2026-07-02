@@ -48,9 +48,6 @@ interface EmployeeCardProps {
 
 const EVENTOS_PAUSA = [
   'Iniciar Pausa Activa',
-  'Terminar Pausa Activa',
-  'Salir al baño',
-  'Regresar del baño',
 ];
 
 const getIcon = (etiqueta: string) => {
@@ -143,9 +140,65 @@ export default function EmployeeCard({
     );
   }
 
-  const { id, nombre, estadoActual, registros } = empleado;
+  const { id, nombre, estadoActual, registros, pausaActivaRealizada } = empleado;
 
   const [novedadModalOpen, setNovedadModalOpen] = useState(false);
+  const [tiempoRestante, setTiempoRestante] = useState<number | null>(null);
+
+  useEffect(() => {
+    const checkActiveBreak = () => {
+      const expirationStr = localStorage.getItem(`activeBreakExpires_${id}`);
+      if (expirationStr) {
+        const expirationTime = parseInt(expirationStr, 10);
+        const now = Date.now();
+        const diff = Math.ceil((expirationTime - now) / 1000);
+        if (diff > 0) {
+          setTiempoRestante(diff);
+        } else {
+          localStorage.removeItem(`activeBreakExpires_${id}`);
+          setTiempoRestante(null);
+          onReportarEvento(id, 'Terminar Pausa Activa');
+        }
+      }
+    };
+
+    checkActiveBreak();
+    window.addEventListener('storage', checkActiveBreak);
+    return () => window.removeEventListener('storage', checkActiveBreak);
+  }, [id, onReportarEvento]);
+
+  useEffect(() => {
+    if (tiempoRestante === null) return;
+
+    if (tiempoRestante <= 0) {
+      localStorage.removeItem(`activeBreakExpires_${id}`);
+      setTiempoRestante(null);
+      onReportarEvento(id, 'Terminar Pausa Activa');
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const expirationStr = localStorage.getItem(`activeBreakExpires_${id}`);
+      if (expirationStr) {
+        const expirationTime = parseInt(expirationStr, 10);
+        const now = Date.now();
+        const diff = Math.ceil((expirationTime - now) / 1000);
+        if (diff > 0) {
+          setTiempoRestante(diff);
+        } else {
+          clearInterval(interval);
+          localStorage.removeItem(`activeBreakExpires_${id}`);
+          setTiempoRestante(null);
+          onReportarEvento(id, 'Terminar Pausa Activa');
+        }
+      } else {
+        clearInterval(interval);
+        setTiempoRestante(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [tiempoRestante, id, onReportarEvento]);
   const [formData, setFormData] = useState({
     novedad: '',
     fechaInicio: dayjs().format('YYYY-MM-DD'),
@@ -199,7 +252,7 @@ export default function EmployeeCard({
 
   const novedadActiva = estadoActual === 'entrada_pendiente';
   const finalizado = estadoActual === 'jornada_finalizada';
-  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado;
+  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado && tiempoRestante === null;
 
   const getObservacion = (evento: string) => {
     if (!registros.observaciones) return '';
@@ -278,7 +331,14 @@ export default function EmployeeCard({
     setGuardandoEvento(true);
     try {
       const ok = await onReportarEvento(id, eventoSeleccionado, eventoObservaciones);
-      if (ok) setEventoModalOpen(false);
+      if (ok) {
+        setEventoModalOpen(false);
+        if (eventoSeleccionado === 'Iniciar Pausa Activa') {
+          const expirationTime = Date.now() + 5 * 60 * 1000;
+          localStorage.setItem(`activeBreakExpires_${id}`, String(expirationTime));
+          setTiempoRestante(300);
+        }
+      }
     } finally {
       setGuardandoEvento(false);
     }
@@ -365,6 +425,11 @@ export default function EmployeeCard({
                 {empleado.cargo}
               </Typography>
             )}
+            {estadoActual !== 'entrada_pendiente' && !pausaActivaRealizada && (
+              <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ffffff', opacity: 0.75, textTransform: 'uppercase', mt: 0.5, letterSpacing: '0.5px' }}>
+                Pausa activa pendiente
+              </Typography>
+            )}
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Tooltip title={novedadActiva ? 'Registrar novedad' : 'No disponible'}>
@@ -412,6 +477,35 @@ export default function EmployeeCard({
         </Box>
 
         <Box sx={{ p: 3 }}>
+          {tiempoRestante !== null && (
+            <Box 
+              sx={{ 
+                bgcolor: '#ecfeff', 
+                border: '1px solid #a5f3fc', 
+                borderRadius: 2, 
+                p: 1.5, 
+                mb: 2, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                animation: 'pulse 2s infinite ease-in-out',
+                '@keyframes pulse': {
+                  '0%, 100%': { opacity: 1 },
+                  '50%': { opacity: 0.8 },
+                }
+              }}
+            >
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: '#0891b2', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                Pausas Activas
+              </Typography>
+              <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: '#0891b2', mt: 0.5 }}>
+                {Math.floor(tiempoRestante / 60)}:{(tiempoRestante % 60).toString().padStart(2, '0')}
+              </Typography>
+            </Box>
+          )}
+
+
           <Stack className="tour-marcacion" spacing={1.5}>
             {botones.map((btn, idx) => {
               const yaHecho = !!btn.hora;
@@ -450,7 +544,7 @@ export default function EmployeeCard({
                   <Button
                     fullWidth
                     variant={btn.activo ? 'contained' : yaHecho ? 'outlined' : 'text'}
-                    disabled={bloqueado || finalizado || guardandoRegistro !== null}
+                    disabled={bloqueado || finalizado || guardandoRegistro !== null || tiempoRestante !== null}
                     onClick={yaHecho ? undefined : () => handleRegistrarEvento(btn.etiqueta)}
                     endIcon={
                       guardandoRegistro === btn.etiqueta ? (

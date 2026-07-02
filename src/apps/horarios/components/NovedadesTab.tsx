@@ -34,11 +34,10 @@ interface Props {
   novedades: any[];
   esAdmin: boolean;
   storeOverride: number | null;
+  rowsPerPage?: number;
 }
 
-const ROWS_PER_PAGE = 5;
-
-export default function NovedadesTab({ novedades, esAdmin, storeOverride }: Props) {
+export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPerPage = 5 }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [fechaFiltro, setFechaFiltro] = useState<Dayjs | null>(null);
   const [soloActivos, setSoloActivos] = useState(false);
@@ -52,8 +51,12 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride }: Prop
     return matchNombre && matchFecha && matchActivo;
   });
 
-  const paginated = novedadesFiltradas.slice(page * ROWS_PER_PAGE, page * ROWS_PER_PAGE + ROWS_PER_PAGE);
-  const totalPages = Math.max(1, Math.ceil(novedadesFiltradas.length / ROWS_PER_PAGE));
+  const paginated = rowsPerPage === 0
+    ? novedadesFiltradas
+    : novedadesFiltradas.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const totalPages = rowsPerPage === 0
+    ? 1
+    : Math.max(1, Math.ceil(novedadesFiltradas.length / rowsPerPage));
 
   return (
     <>
@@ -252,42 +255,44 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride }: Prop
         </TableContainer>
 
         {/* Paginador */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#fff', borderTop: '1px solid #eef2f6' }}>
-          <Typography variant="caption" color="#64748b">
-            Mostrando {paginated.length} de {novedadesFiltradas.length} novedades
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <IconButton size="small" disabled={page === 0} onClick={() => setPage((p) => Math.max(p - 1, 0))} sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}>
-              <ChevronLeftIcon fontSize="small" />
-            </IconButton>
-            {[...Array(Math.min(totalPages, 7))].map((_, i) => {
-              let pageNum = i;
-              if (totalPages > 7) {
-                if (page < 3) pageNum = i;
-                else if (page > totalPages - 4) pageNum = totalPages - 7 + i;
-                else pageNum = page - 3 + i;
-              }
-              const isActive = page === pageNum;
-              return (
-                <Box
-                  key={i}
-                  onClick={() => setPage(pageNum)}
-                  sx={{
-                    width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5, cursor: 'pointer',
-                    bgcolor: isActive ? '#004680' : '#fff', color: isActive ? '#fff' : '#5e6f8d',
-                    border: isActive ? 'none' : '1px solid #dfe4ec', fontWeight: isActive ? 700 : 500, fontSize: '0.85rem', transition: 'all 0.2s',
-                    '&:hover': { bgcolor: isActive ? '#004680' : '#f1f5f9' }
-                  }}
-                >
-                  {pageNum + 1}
-                </Box>
-              );
-            })}
-            <IconButton size="small" disabled={page === totalPages - 1} onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))} sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}>
-              <ChevronRightIcon fontSize="small" />
-            </IconButton>
+        {rowsPerPage !== 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#fff', borderTop: '1px solid #eef2f6' }}>
+            <Typography variant="caption" color="#64748b">
+              Mostrando {paginated.length} de {novedadesFiltradas.length} novedades
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <IconButton size="small" disabled={page === 0} onClick={() => setPage((p) => Math.max(p - 1, 0))} sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}>
+                <ChevronLeftIcon fontSize="small" />
+              </IconButton>
+              {[...Array(Math.min(totalPages, 7))].map((_, i) => {
+                let pageNum = i;
+                if (totalPages > 7) {
+                  if (page < 3) pageNum = i;
+                  else if (page > totalPages - 4) pageNum = totalPages - 7 + i;
+                  else pageNum = page - 3 + i;
+                }
+                const isActive = page === pageNum;
+                return (
+                  <Box
+                    key={i}
+                    onClick={() => setPage(pageNum)}
+                    sx={{
+                      width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5, cursor: 'pointer',
+                      bgcolor: isActive ? '#004680' : '#fff', color: isActive ? '#fff' : '#5e6f8d',
+                      border: isActive ? 'none' : '1px solid #dfe4ec', fontWeight: isActive ? 700 : 500, fontSize: '0.85rem', transition: 'all 0.2s',
+                      '&:hover': { bgcolor: isActive ? '#004680' : '#f1f5f9' }
+                    }}
+                  >
+                    {pageNum + 1}
+                  </Box>
+                );
+              })}
+              <IconButton size="small" disabled={page === totalPages - 1} onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))} sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}>
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
+            </Box>
           </Box>
-        </Box>
+        )}
       </Paper>
 
       <ExportNovedadesDialog

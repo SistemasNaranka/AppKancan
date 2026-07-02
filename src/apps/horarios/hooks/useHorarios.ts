@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { EmpleadoAsistencia, TipoNovedad, NovedadMapeada, RegistrosAsistencia, Motivo } from '../interfaces/horarios.interface';
-import { getEmpleados, getNovedades, getTiposNovedad, getTimeRecords, getStoreIdUsuarioActual, getReasons } from '../api/directus/read';
+import { getEmpleados, getNovedades, getTiposNovedad, getTimeRecords, getStoreIdUsuarioActual, getReasons, getStoreEventReportsToday } from '../api/directus/read';
 import { createNovedades, createTimeRecord, updateTimeRecord, upsertRecordReason, createEventReport } from '../api/directus/create';
 import dayjs from 'dayjs';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
@@ -50,6 +50,12 @@ export const useHorarios = (storeOverride?: number | null) => {
   const { data: timeRecords = [], isLoading: loadingTimeRecords, error: errorTime } = useQuery<any[]>({
     queryKey: ['timeRecords', STORE_ID, hoy],
     queryFn: () => getTimeRecords(STORE_ID as number, hoy),
+    enabled: tieneTienda,
+  });
+
+  const { data: eventReportsToday = [] } = useQuery<any[]>({
+    queryKey: ['eventReportsToday', STORE_ID, hoy],
+    queryFn: () => getStoreEventReportsToday(STORE_ID as number, hoy),
     enabled: tieneTienda,
   });
 
@@ -125,10 +131,15 @@ export const useHorarios = (storeOverride?: number | null) => {
       estadoActual = 'jornada_iniciada';
     }
 
+    const tienePausaActivaHoy = eventReportsToday.some(
+      (r) => Number(r.employee_id?.id || r.employee_id) === Number(emp.id) && r.event_type === 'Terminar Pausa Activa'
+    );
+
     return {
       ...emp,
       estadoActual,
-      registros
+      registros,
+      pausaActivaRealizada: tienePausaActivaHoy
     };
   });
 
@@ -256,6 +267,7 @@ export const useHorarios = (storeOverride?: number | null) => {
     queryClient.invalidateQueries({ queryKey: ['empleados'] });
     queryClient.invalidateQueries({ queryKey: ['novedades'] });
     queryClient.invalidateQueries({ queryKey: ['timeRecords'] });
+    queryClient.invalidateQueries({ queryKey: ['eventReportsToday'] });
   };
 
   const agregarNovedad = async (novedad: {
@@ -321,6 +333,7 @@ export const useHorarios = (storeOverride?: number | null) => {
         hour: ahora.format('HH:mm:ss'),
       });
       showSnackbar('Evento reportado con éxito', 'success');
+      queryClient.invalidateQueries({ queryKey: ['eventReportsToday'] });
       return true;
     } catch (err: any) {
       showSnackbar(err?.message || 'Error al reportar el evento', 'error');

@@ -4,7 +4,7 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
-  base: "./",
+  base: "/",
   cacheDir: "node_modules/.vite",
   server: {
     host: true,

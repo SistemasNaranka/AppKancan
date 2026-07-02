@@ -214,7 +214,7 @@ const buildInvoiceData = useCallback(
         numeroSinPrefijo: datos.numero_sin_prefijo || datos.numero_factura || "Sin número",
         automatico: "",
         fechaEmision: datos.fecha_emision || new Date().toISOString(),
-        fechaVencimiento: datos.fecha_vencimiento || undefined,
+        fechaVencimiento: datos.fecha_vencimiento || "",
         proveedor: {
           nombre: datos.nombre_proveedor || "Proveedor no identificado",
           nif: datos.nit_proveedor || undefined,
@@ -238,6 +238,7 @@ const buildInvoiceData = useCallback(
           tamaño: file.size,
           fechaCarga: new Date().toISOString(),
         },
+        automaticoAsignado: "",
       };
     },
     [],

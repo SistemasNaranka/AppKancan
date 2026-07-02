@@ -32,7 +32,10 @@ const calcularHorasLaboradas = (
   const base = "2000-01-01";
   let minutos = dayjs(`${base} ${finTurno}`).diff(dayjs(`${base} ${inicioTurno}`), "minute");
   if (inicioAlmuerzo && finAlmuerzo) {
-    const almuerzoMinutos = dayjs(`${base} ${finAlmuerzo}`).diff(dayjs(`${base} ${inicioAlmuerzo}`), "minute");
+    let almuerzoMinutos = dayjs(`${base} ${finAlmuerzo}`).diff(dayjs(`${base} ${inicioAlmuerzo}`), "minute");
+    if (almuerzoMinutos <= 1) {
+      almuerzoMinutos = 0;
+    }
     if (almuerzoMinutos > 0) {
       minutos -= almuerzoMinutos;
     }
@@ -47,7 +50,10 @@ const calcularDuracionAlmuerzo = (
 ): string => {
   if (!inicioAlmuerzo || !finAlmuerzo) return "--";
   const base = "2000-01-01";
-  const minutos = dayjs(`${base} ${finAlmuerzo}`).diff(dayjs(`${base} ${inicioAlmuerzo}`), "minute");
+  let minutos = dayjs(`${base} ${finAlmuerzo}`).diff(dayjs(`${base} ${inicioAlmuerzo}`), "minute");
+  if (minutos <= 1) {
+    minutos = 0;
+  }
   if (minutos < 0) return "--";
   return `${minutos} min`;
 };

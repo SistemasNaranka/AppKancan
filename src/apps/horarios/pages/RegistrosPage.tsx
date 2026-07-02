@@ -27,6 +27,7 @@ import TutorialButton from '../components/tour/TutorialButton';
 import { useTutorial } from '@/shared/hooks/TutorialContext';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import AdminEmpleadosPage from './AdminEmpleadosPage';
+import ReportePage from './ReportePage';
 import ExportEventosDialog from '../components/ExportEventosDialog';
 import NormasModal from '../components/NormasModal';
 import { useNormas } from '../hooks/useNormas';
@@ -61,24 +62,31 @@ const toTitleCase = (str: string) => {
 
 function RegistrosPageContent() {
   const { user } = useAuth();
-  const { esAdmin } = useHorariosPolicies();
+  const { esAdmin, esReport } = useHorariosPolicies();
+  const isOnlyReport = esReport() && !esAdmin();
 
   const [storeOverride, setStoreOverride] = useState<number | null>(null);
   const { data: tiendasAdmin = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
-    enabled: esAdmin(),
+    enabled: esAdmin() || esReport(),
     staleTime: 30 * 60 * 1000,
   });
   const { data: miTienda = null } = useQuery<number | null>({
     queryKey: ['horariosStoreId'],
     queryFn: getStoreIdUsuarioActual,
-    enabled: esAdmin(),
+    enabled: esAdmin() || esReport(),
     staleTime: 30 * 60 * 1000,
   });
+  const [initializedStore, setInitializedStore] = useState(false);
   useEffect(() => {
-    if (storeOverride == null && miTienda != null) setStoreOverride(miTienda);
-  }, [miTienda, storeOverride]);
+    if (miTienda != null && !initializedStore) {
+      if (!isOnlyReport) {
+        setStoreOverride(miTienda);
+      }
+      setInitializedStore(true);
+    }
+  }, [miTienda, initializedStore, isOnlyReport]);
 
   const {
     empleados, novedades, tiposNovedad, reasons, loading, error,
@@ -92,6 +100,7 @@ function RegistrosPageContent() {
   const { activeTutorial, endTutorial } = useTutorial();
   const [tabValue, setTabValue] = useState(0);
   const [vistaAdmin, setVistaAdmin] = useState(false);
+  const [vistaReporte, setVistaReporte] = useState(esReport() && !esAdmin());
   const [exportEventosOpen, setExportEventosOpen] = useState(false);
 
   useEffect(() => {
@@ -118,12 +127,19 @@ function RegistrosPageContent() {
     'Consulta y verifica los registros históricos de la jornada laboral',
     'Visualiza la planificación de turnos y horarios'
   ];
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number | 'admin') => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number | 'admin' | 'reporte') => {
     if (newValue === 'admin') {
       setVistaAdmin(true);
+      setVistaReporte(false);
+      return;
+    }
+    if (newValue === 'reporte') {
+      setVistaReporte(true);
+      setVistaAdmin(false);
       return;
     }
     setVistaAdmin(false);
+    setVistaReporte(false);
     setTabValue(newValue);
   };
 
@@ -183,12 +199,19 @@ function RegistrosPageContent() {
                 border: '1px solid #d6e6f7',
               }}
             >
-              {vistaAdmin ? <AdminPanelSettingsIcon sx={{ fontSize: 26 }} /> : getIconoPrincipal()}
+              {vistaAdmin ? <AdminPanelSettingsIcon sx={{ fontSize: 26 }} /> : vistaReporte ? <FileDownloadIcon sx={{ fontSize: 26 }} /> : getIconoPrincipal()}
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 700, color: '#0f2c4a', lineHeight: 1.2, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
                 {vistaAdmin
                   ? 'Panel Administrativo'
+                  : vistaReporte
+                  ? `${isOnlyReport ? 'Informe Registro de Horarios' : 'Reporte de Asistencia'}${(() => {
+                      const nombre = storeOverride != null
+                        ? (tiendasAdmin.find((t) => t.id === storeOverride)?.name ?? '')
+                        : (user?.store_name ?? '');
+                      return nombre ? ` - ${toTitleCase(nombre)}` : '';
+                    })()}`
                   : `${getTituloPrincipal()}${(() => {
                       const nombre = storeOverride != null
                         ? (tiendasAdmin.find((t) => t.id === storeOverride)?.name ?? '')
@@ -197,12 +220,12 @@ function RegistrosPageContent() {
                     })()}`}
               </Typography>
               <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mt: 0.4, lineHeight: 1.35 }}>
-                {vistaAdmin ? 'Gestión de empleados de todas las tiendas' : subtitulosTab[tabValue]}
+                {vistaAdmin ? 'Gestión de empleados de todas las tiendas' : vistaReporte ? 'Exporta informes y visualiza registros detallados' : subtitulosTab[tabValue]}
               </Typography>
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-            {esAdmin() && !vistaAdmin && (
+            {esAdmin() && !vistaAdmin && !vistaReporte && (
               <Autocomplete
                 size="small"
                 options={tiendasAdmin}
@@ -227,7 +250,7 @@ function RegistrosPageContent() {
                 )}
               />
             )}
-            {!vistaAdmin && (
+            {!vistaAdmin && !vistaReporte && (
               <>
                 <Tooltip title="Ver normas de uso">
                   <Button
@@ -272,85 +295,92 @@ function RegistrosPageContent() {
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: { xs: 1, md: 2 } }}>
-          <Tabs
-            className="tour-tabs"
-            value={vistaAdmin ? 'admin' : tabValue}
-            onChange={handleTabChange}
-            variant="scrollable"
-            scrollButtons={false}
-            TabIndicatorProps={{ sx: { display: 'none' } }}
-            sx={{
-              px: { xs: 1, md: 1.5 },
-              py: 1.25,
-              minHeight: 'auto',
-              flex: 1,
-              '& .MuiTabs-flexContainer': { gap: 1 },
-              '& .MuiTabs-scrollButtons.Mui-disabled': { display: 'none' },
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                letterSpacing: '0.2px',
-                minHeight: 40,
-                borderRadius: '10px',
-                px: 2,
-                color: '#64748b',
-                boxShadow: 'none',
-                transition: 'background-color 0.2s ease, color 0.2s ease',
-                '& .MuiTab-iconWrapper': { mr: 0.75 },
-                '&:hover': { backgroundColor: '#eef4fb', color: '#004680', boxShadow: 'none' },
-                '&.Mui-selected': {
-                  color: '#fff',
-                  backgroundColor: '#004680',
-                  boxShadow: 'none',
-                },
-                '&.Mui-selected:hover': { backgroundColor: '#003a6b', boxShadow: 'none' },
-              },
-            }}
-          >
-            <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
-            <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
-            <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
-            {/* La pestaña permanece en el árbol (oculta) para conservar la alineación de índices con sus TabPanel */}
-            <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
-            {esAdmin() && (
-              <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
-            )}
-          </Tabs>
-
-          {tabValue === 0 && !vistaAdmin && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 2 }}>
-              <Button
-                className="tour-export-eventos"
-                onClick={() => setExportEventosOpen(true)}
-                variant="contained"
-                disableElevation
-                startIcon={<FileDownloadIcon />}
-                sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 32, '&:hover': { bgcolor: '#003a6b' } }}
-              >
-                Exportar
-              </Button>
-              <Chip
-                label={`Total Empleados: ${empleados.length}`}
-                sx={{
-                  bgcolor: '#eaf2fb',
-                  color: '#004680',
-                  fontWeight: 700,
+        {!isOnlyReport && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: { xs: 1, md: 2 } }}>
+            <Tabs
+              className="tour-tabs"
+              value={vistaAdmin ? 'admin' : vistaReporte ? 'reporte' : tabValue}
+              onChange={handleTabChange}
+              variant="scrollable"
+              scrollButtons={false}
+              TabIndicatorProps={{ sx: { display: 'none' } }}
+              sx={{
+                px: { xs: 1, md: 1.5 },
+                py: 1.25,
+                minHeight: 'auto',
+                flex: 1,
+                '& .MuiTabs-flexContainer': { gap: 1 },
+                '& .MuiTabs-scrollButtons.Mui-disabled': { display: 'none' },
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  fontWeight: 600,
                   fontSize: '0.8rem',
-                  borderRadius: '8px',
-                  border: '1px solid #d6e6f7',
-                  height: 32,
-                  px: 0.5,
-                }}
-              />
-            </Box>
-          )}
-        </Box>
+                  letterSpacing: '0.2px',
+                  minHeight: 40,
+                  borderRadius: '10px',
+                  px: 2,
+                  color: '#64748b',
+                  boxShadow: 'none',
+                  transition: 'background-color 0.2s ease, color 0.2s ease',
+                  '& .MuiTab-iconWrapper': { mr: 0.75 },
+                  '&:hover': { backgroundColor: '#eef4fb', color: '#004680', boxShadow: 'none' },
+                  '&.Mui-selected': {
+                    color: '#fff',
+                    backgroundColor: '#004680',
+                    boxShadow: 'none',
+                  },
+                  '&.Mui-selected:hover': { backgroundColor: '#003a6b', boxShadow: 'none' },
+                },
+              }}
+            >
+              <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
+              <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
+              <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
+              {/* La pestaña permanece en el árbol (oculta) para conservar la alineación de índices con sus TabPanel */}
+              <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
+              {esAdmin() && (
+                <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
+              )}
+              {esReport() && (
+                <Tab value="reporte" icon={<FileDownloadIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REPORTE" />
+              )}
+            </Tabs>
+
+            {tabValue === 0 && !vistaAdmin && !vistaReporte && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 2 }}>
+                <Button
+                  className="tour-export-eventos"
+                  onClick={() => setExportEventosOpen(true)}
+                  variant="contained"
+                  disableElevation
+                  startIcon={<FileDownloadIcon />}
+                  sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 32, '&:hover': { bgcolor: '#003a6b' } }}
+                >
+                  Exportar
+                </Button>
+                <Chip
+                  label={`Total Empleados: ${empleados.length}`}
+                  sx={{
+                    bgcolor: '#eaf2fb',
+                    color: '#004680',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    borderRadius: '8px',
+                    border: '1px solid #d6e6f7',
+                    height: 32,
+                    px: 0.5,
+                  }}
+                />
+              </Box>
+            )}
+          </Box>
+        )}
       </Paper>
 
       {vistaAdmin ? (
         <AdminEmpleadosPage storeSel={storeOverride} onStoreChange={setStoreOverride} />
+      ) : vistaReporte ? (
+        <ReportePage storeSel={storeOverride} onStoreChange={setStoreOverride} novedades={novedades} esAdmin={esAdmin()} />
       ) : (
       <>
       <TabPanel value={tabValue} index={0}>

@@ -27,6 +27,7 @@ const buildPresets = () => {
     { label: 'Mes pasado', inicio: hoy.subtract(1, 'month').startOf('month'), fin: hoy.subtract(1, 'month').endOf('month') },
     { label: 'Últimos 30 días', inicio: hoy.subtract(29, 'day'), fin: hoy },
     { label: 'Este año', inicio: hoy.startOf('year'), fin: hoy },
+    { label: 'Todo', inicio: null, fin: null },
   ];
 };
 
@@ -45,25 +46,32 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
   };
   const handleClose = () => setAnchorEl(null);
 
-  const aplicarPreset = (inicio: Dayjs, fin: Dayjs) => {
+  const aplicarPreset = (inicio: Dayjs | null, fin: Dayjs | null) => {
     setTempInicio(inicio);
     setTempFin(fin);
   };
 
-  const presetActivo = (inicio: Dayjs, fin: Dayjs) =>
-    !!tempInicio && !!tempFin &&
-    tempInicio.format('YYYY-MM-DD') === inicio.format('YYYY-MM-DD') &&
-    tempFin.format('YYYY-MM-DD') === fin.format('YYYY-MM-DD');
+  const presetActivo = (inicio: Dayjs | null, fin: Dayjs | null) => {
+    if (inicio === null || fin === null) {
+      return tempInicio === null && tempFin === null;
+    }
+    return !!tempInicio && !!tempFin &&
+      tempInicio.format('YYYY-MM-DD') === inicio.format('YYYY-MM-DD') &&
+      tempFin.format('YYYY-MM-DD') === fin.format('YYYY-MM-DD');
+  };
 
-  const handlePickDay = (value: Dayjs) => {
-    if (!tempInicio || (tempInicio && tempFin)) {
+  const handlePickInicio = (value: Dayjs) => {
+    setTempInicio(value);
+    if (tempFin && value.isAfter(tempFin, 'day')) {
+      setTempFin(null);
+    }
+  };
+
+  const handlePickFin = (value: Dayjs) => {
+    setTempFin(value);
+    if (tempInicio && value.isBefore(tempInicio, 'day')) {
       setTempInicio(value);
       setTempFin(null);
-    } else if (value.isBefore(tempInicio, 'day')) {
-      setTempFin(tempInicio);
-      setTempInicio(value);
-    } else {
-      setTempFin(value);
     }
   };
 
@@ -109,7 +117,7 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
     ? `${fechaInicio.format('DD/MM/YYYY')} – ${fechaFin.format('DD/MM/YYYY')}`
     : fechaInicio
     ? `Desde ${fechaInicio.format('DD/MM/YYYY')}`
-    : '';
+    : 'Todo';
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
@@ -186,7 +194,7 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
               <DateCalendar
                 value={tempInicio}
-                onChange={(v) => v && handlePickDay(v as Dayjs)}
+                onChange={(v) => v && handlePickInicio(v as Dayjs)}
                 slots={{ day: RangeDay }}
                 sx={{ width: 280 }}
               />
@@ -194,7 +202,7 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
               <DateCalendar
                 value={tempFin}
                 referenceDate={dayjs().add(1, 'month')}
-                onChange={(v) => v && handlePickDay(v as Dayjs)}
+                onChange={(v) => v && handlePickFin(v as Dayjs)}
                 slots={{ day: RangeDay }}
                 sx={{ width: 280 }}
               />
@@ -207,7 +215,7 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
                   ? `${tempInicio.format('DD/MM/YYYY')} – ${tempFin.format('DD/MM/YYYY')}`
                   : tempInicio
                   ? `${tempInicio.format('DD/MM/YYYY')} – …`
-                  : 'Selecciona el rango'}
+                  : 'Todo'}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button onClick={handleLimpiar} size="small" sx={{ textTransform: 'none', color: '#94a3b8', '&:hover': { color: '#dc2626', bgcolor: '#fef2f2' } }}>
@@ -218,7 +226,7 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
                   size="small"
                   variant="contained"
                   disableElevation
-                  disabled={!tempInicio}
+                  disabled={!!tempInicio && !tempFin}
                   sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, bgcolor: AZUL, boxShadow: 'none', '&:hover': { bgcolor: '#003a6b', boxShadow: 'none' } }}
                 >
                   Aplicar

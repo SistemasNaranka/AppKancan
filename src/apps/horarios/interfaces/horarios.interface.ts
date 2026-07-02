@@ -16,6 +16,7 @@ export interface EmpleadoAsistencia {
   cargo?: string;
   estadoActual: string;
   registros: RegistrosAsistencia;
+  pausaActivaRealizada?: boolean;
 }
 
 export interface ObservacionEvento {

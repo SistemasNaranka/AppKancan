@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, readMe } from "@directus/sdk";
@@ -187,6 +188,58 @@ export async function getNovedades(storeId: number): Promise<any[]> {
     return items || [];
   } catch (error) {
     console.error("❌ Error cargando la tabla com_newness_reports:", error);
+    return [];
+  }
+}
+
+export async function getStoreNovedades(storeId: number | null): Promise<any[]> {
+  try {
+    const filter: any = {};
+    if (storeId != null) {
+      filter.store_id = { _eq: storeId };
+    }
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_newness_reports", {
+          fields: [
+            "id",
+            "date_created",
+            "observations",
+            "newness_id.id",
+            "newness_id.name",
+            "employee_id.id",
+            "employee_id.first_name",
+            "employee_id.middle_name",
+            "employee_id.last_name",
+            "employee_id.second_last_name",
+            "report_date"
+          ],
+          filter,
+          sort: ["-report_date", "-id"],
+          limit: -1,
+        })
+      )
+    );
+    return (items || []).map((nov: any) => {
+      const parts = [
+        nov.employee_id?.first_name,
+        nov.employee_id?.middle_name,
+        nov.employee_id?.last_name,
+        nov.employee_id?.second_last_name
+      ].filter(Boolean);
+      const fullName = parts.join(" ").trim() || `Empleado #${nov.employee_id?.id || ''}`;
+
+      return {
+        id: nov.id,
+        fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
+        empleadoNombre: fullName,
+        tipo: nov.newness_id?.name || "Sin tipo",
+        observaciones: nov.observations || "",
+        empleadoActivo: true,
+      };
+    });
+  } catch (error) {
+    console.error("❌ Error cargando novedades por tienda:", error);
     return [];
   }
 }
@@ -458,6 +511,72 @@ export async function getEmployeeEventReports(
     );
   } catch (error) {
     console.error('❌ Error cargando eventos del empleado:', error);
+    return [];
+  }
+}
+
+export async function getStoreEventReportsToday(
+  storeId: number,
+  date: string
+): Promise<any[]> {
+  try {
+    return await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_event_reports', {
+          fields: ['id', 'employee_id.id', 'event_type', 'date'],
+          filter: {
+            store_id: { _eq: storeId },
+            date: { _eq: date }
+          },
+          limit: -1,
+        })
+      )
+    );
+  } catch (error) {
+    console.error('❌ Error cargando eventos de la tienda:', error);
+    return [];
+  }
+}
+
+export async function getStoreEventReports(
+  storeId: number | null,
+  fechaInicio?: string,
+  fechaFin?: string
+): Promise<any[]> {
+  try {
+    const filter: any = {};
+    if (storeId != null) {
+      filter.store_id = { _eq: storeId };
+    }
+    if (fechaInicio || fechaFin) {
+      filter.date = {};
+      if (fechaInicio) filter.date._gte = fechaInicio;
+      if (fechaFin) filter.date._lte = fechaFin;
+    }
+    return await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_event_reports', {
+          fields: [
+            'id',
+            'event_type',
+            'date',
+            'hour',
+            'observations',
+            'employee_id.id',
+            'employee_id.first_name',
+            'employee_id.middle_name',
+            'employee_id.last_name',
+            'employee_id.second_last_name',
+            'employee_id.document_number'
+          ],
+          filter,
+          sort: ['-date', '-hour'],
+          limit: -1,
+        })
+      )
+    );
+  } catch (error) {
+    console.error('❌ Error al obtener reportes de eventos de la tienda:', error);
     return [];
   }
 }

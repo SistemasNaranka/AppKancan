@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useHistorial } from '../hooks/useHistorial';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
@@ -27,22 +27,35 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { Button } from '@mui/material';
 import { Eye } from 'lucide-react';
 import { HistorialRow } from '../interfaces/horarios.interface';
-import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 
 interface HistorialPageProps {
   storeIdAdmin?: number | null;
+  fechaInicioExternal?: Dayjs | null;
+  fechaFinExternal?: Dayjs | null;
+  searchNombreExternal?: string;
+  hideHeader?: boolean;
 }
 
-export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {}) {
-  const { esAdmin } = useHorariosPolicies();
-  const [searchNombre, setSearchNombre] = useState('');
-  const [fechaInicio, setFechaInicio] = useState<Dayjs | null>(null);
-  const [fechaFin, setFechaFin] = useState<Dayjs | null>(null);
+export default function HistorialPage({
+  storeIdAdmin,
+  fechaInicioExternal,
+  fechaFinExternal,
+  searchNombreExternal,
+  hideHeader = false,
+}: HistorialPageProps = {}) {
+  const [localSearch, setLocalSearch] = useState('');
+  const [localFechaInicio, setLocalFechaInicio] = useState<Dayjs | null>(null);
+  const [localFechaFin, setLocalFechaFin] = useState<Dayjs | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+
+  const searchNombre = searchNombreExternal !== undefined ? searchNombreExternal : localSearch;
+  const fechaInicio = fechaInicioExternal !== undefined ? fechaInicioExternal : localFechaInicio;
+  const fechaFin = fechaFinExternal !== undefined ? fechaFinExternal : localFechaFin;
 
   const { data = [], isLoading, isError } = useHistorial(
     fechaInicio ? fechaInicio.format('YYYY-MM-DD') : undefined,
-    fechaFin ? fechaFin.format('YYYY-MM-DD') : undefined
+    fechaFin ? fechaFin.format('YYYY-MM-DD') : undefined,
+    storeIdAdmin
   );
 
 
@@ -60,6 +73,10 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
   const [filaSeleccionada, setFilaSeleccionada] = useState<HistorialRow | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
   const [registrosPorPagina, setRegistrosPorPagina] = useState(5);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [searchNombreExternal, fechaInicioExternal, fechaFinExternal]);
 
   const totalPaginas = registrosPorPagina === 0
     ? 1
@@ -89,7 +106,10 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
     if (inicio_almuerzo && fin_almuerzo) {
       const iniAlmuerzo = dayjs(`${fecha} ${inicio_almuerzo}`);
       const finAlmuerzo = dayjs(`${fecha} ${fin_almuerzo}`);
-      const diffAlmuerzo = finAlmuerzo.diff(iniAlmuerzo, 'minutes');
+      let diffAlmuerzo = finAlmuerzo.diff(iniAlmuerzo, 'minutes');
+      if (diffAlmuerzo <= 1) {
+        diffAlmuerzo = 0;
+      }
       if (diffAlmuerzo > 0) {
         minutes -= diffAlmuerzo;
       }
@@ -127,51 +147,60 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
     <div className="space-y-4 px-0 -mt-2">
 
       {/* Filtros */}
-      <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-        {/* Encabezado de la sección de filtros */}
-        <div className="flex items-center justify-between gap-2.5 mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg text-[#004680] bg-[#eaf2fb] border border-[#d6e6f7] shrink-0">
-              <CalendarMonthIcon sx={{ fontSize: 18 }} />
+      {!hideHeader && (
+        <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+          {/* Encabezado de la sección de filtros */}
+          <div className="flex items-center justify-between gap-2.5 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg text-[#004680] bg-[#eaf2fb] border border-[#d6e6f7] shrink-0">
+                <CalendarMonthIcon sx={{ fontSize: 18 }} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#0f2c4a] leading-tight">Filtros de búsqueda</h3>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#0f2c4a] leading-tight">Filtros de búsqueda</h3>
-            </div>
+            <Button
+              className="tour-hist-export"
+              onClick={() => setExportOpen(true)}
+              variant="contained"
+              disableElevation
+              startIcon={<FileDownloadIcon />}
+              sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, '&:hover': { bgcolor: '#003a6b' } }}
+            >
+              Exportar
+            </Button>
           </div>
-          <Button
-            className="tour-hist-export"
-            onClick={() => setExportOpen(true)}
-            variant="contained"
-            disableElevation
-            startIcon={<FileDownloadIcon />}
-            sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, '&:hover': { bgcolor: '#003a6b' } }}
-          >
-            Exportar
-          </Button>
-        </div>
 
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="tour-hist-fechas space-y-1.5 flex-[2]">
-            <DateRangeFilter
-              fechaInicio={fechaInicio}
-              fechaFin={fechaFin}
-              onChange={(inicio, fin) => { setFechaInicio(inicio); setFechaFin(fin); setPaginaActual(1); }}
-            />
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="tour-hist-fechas space-y-1.5 flex-[2]">
+              <DateRangeFilter
+                fechaInicio={fechaInicio}
+                fechaFin={fechaFin}
+                onChange={(inicio, fin) => {
+                  if (fechaInicioExternal === undefined) setLocalFechaInicio(inicio);
+                  if (fechaFinExternal === undefined) setLocalFechaFin(fin);
+                  setPaginaActual(1);
+                }}
+              />
+            </div>
+            <div className="tour-hist-nombre space-y-1.5 flex-[1]">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre..."
+                  value={searchNombre}
+                  onChange={(e) => {
+                    if (searchNombreExternal === undefined) setLocalSearch(e.target.value);
+                    setPaginaActual(1);
+                  }}
+                  className="w-full bg-[#e8f0fe] border border-gray-300 rounded-lg pl-3 pr-10 py-2 text-sm transition-colors focus:outline-none focus:bg-white focus:border-[#004680] focus:ring-2 focus:ring-[#004680]/20"
+                />
+                <PersonSearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 20 }} />
+              </div>
+            </div>
           </div>
-          <div className="tour-hist-nombre space-y-1.5 flex-[1]">
-  <div className="relative">
-    <input
-  type="text"
-  placeholder="Buscar por nombre..."
-  value={searchNombre}
-  onChange={(e) => { setSearchNombre(e.target.value); setPaginaActual(1); }}
-  className="w-full bg-[#e8f0fe] border border-gray-300 rounded-lg pl-3 pr-10 py-2 text-sm transition-colors focus:outline-none focus:bg-white focus:border-[#004680] focus:ring-2 focus:ring-[#004680]/20"
-/>
-    <PersonSearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 20 }} />
-  </div>
-</div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Tabla */}
       <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #eef2f6', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', bgcolor: '#fff' }} className="tour-hist-tabla">
@@ -338,102 +367,104 @@ export default function HistorialPage({ storeIdAdmin }: HistorialPageProps = {})
         </TableContainer>
 
         {/* Paginación */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#fff', borderTop: '1px solid #eef2f6' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="caption" sx={{ color: '#64748b' }}>
-              Mostrando {datosPaginados.length} de {datosFiltrados.length} registros
-            </Typography>
-            <Select
-              value={registrosPorPagina}
-              onChange={(e) => {
-                setRegistrosPorPagina(Number(e.target.value));
-                setPaginaActual(1);
-              }}
-              size="small"
-              sx={{
-                bgcolor: '#f1f7fe',
-                borderRadius: 2,
-                fontSize: '0.75rem',
-                minWidth: 70,
-                height: 30,
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#cbd5e1'
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#94a3b8'
-                },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#004680'
+        {registrosPorPagina !== 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#fff', borderTop: '1px solid #eef2f6' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="caption" sx={{ color: '#64748b' }}>
+                Mostrando {datosPaginados.length} de {datosFiltrados.length} registros
+              </Typography>
+              <Select
+                value={registrosPorPagina}
+                onChange={(e) => {
+                  setRegistrosPorPagina(Number(e.target.value));
+                  setPaginaActual(1);
+                }}
+                size="small"
+                sx={{
+                  bgcolor: '#f1f7fe',
+                  borderRadius: 2,
+                  fontSize: '0.75rem',
+                  minWidth: 70,
+                  height: 30,
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#cbd5e1'
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#94a3b8'
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#004680'
+                  }
+                }}
+              >
+                <MenuItem value={5}>5</MenuItem>
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={20}>20</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+              </Select>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <IconButton
+                size="small"
+                disabled={paginaActual === 1}
+                onClick={() => setPaginaActual((p) => p - 1)}
+                sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}
+              >
+                <ChevronLeftIcon fontSize="small" />
+              </IconButton>
+              {(() => {
+                const paginas: (number | string)[] = [];
+                if (totalPaginas <= 5) {
+                  for (let i = 1; i <= totalPaginas; i++) paginas.push(i);
+                } else {
+                  paginas.push(1);
+                  if (paginaActual > 3) paginas.push('...');
+                  for (let i = Math.max(2, paginaActual - 1); i <= Math.min(totalPaginas - 1, paginaActual + 1); i++) {
+                    paginas.push(i);
+                  }
+                  if (paginaActual < totalPaginas - 2) paginas.push('...');
+                  paginas.push(totalPaginas);
                 }
-              }}
-            >
-              <MenuItem value={5}>5</MenuItem>
-              <MenuItem value={10}>10</MenuItem>
-              <MenuItem value={20}>20</MenuItem>
-              <MenuItem value={50}>50</MenuItem>
-            </Select>
+                return paginas.map((num, idx) =>
+                  typeof num === 'string' ? (
+                    <Typography key={`dots-${idx}`} variant="caption" sx={{ color: '#94a3b8', px: 0.5 }}>...</Typography>
+                  ) : (
+                    <Box
+                      key={num}
+                      onClick={() => setPaginaActual(num)}
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 1.5,
+                        cursor: 'pointer',
+                        bgcolor: paginaActual === num ? '#004680' : '#fff',
+                        color: paginaActual === num ? '#fff' : '#5e6f8d',
+                        border: paginaActual === num ? 'none' : '1px solid #dfe4ec',
+                        fontWeight: paginaActual === num ? 700 : 500,
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        '&:hover': { bgcolor: paginaActual === num ? '#004680' : '#f1f5f9' }
+                      }}
+                    >
+                      {num}
+                    </Box>
+                  )
+                );
+              })()}
+              <IconButton
+                size="small"
+                disabled={paginaActual === totalPaginas}
+                onClick={() => setPaginaActual((p) => p + 1)}
+                sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}
+              >
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
+            </Box>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <IconButton
-              size="small"
-              disabled={paginaActual === 1}
-              onClick={() => setPaginaActual((p) => p - 1)}
-              sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}
-            >
-              <ChevronLeftIcon fontSize="small" />
-            </IconButton>
-            {(() => {
-              const paginas: (number | string)[] = [];
-              if (totalPaginas <= 5) {
-                for (let i = 1; i <= totalPaginas; i++) paginas.push(i);
-              } else {
-                paginas.push(1);
-                if (paginaActual > 3) paginas.push('...');
-                for (let i = Math.max(2, paginaActual - 1); i <= Math.min(totalPaginas - 1, paginaActual + 1); i++) {
-                  paginas.push(i);
-                }
-                if (paginaActual < totalPaginas - 2) paginas.push('...');
-                paginas.push(totalPaginas);
-              }
-              return paginas.map((num, idx) =>
-                typeof num === 'string' ? (
-                  <Typography key={`dots-${idx}`} variant="caption" sx={{ color: '#94a3b8', px: 0.5 }}>...</Typography>
-                ) : (
-                  <Box
-                    key={num}
-                    onClick={() => setPaginaActual(num)}
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 1.5,
-                      cursor: 'pointer',
-                      bgcolor: paginaActual === num ? '#004680' : '#fff',
-                      color: paginaActual === num ? '#fff' : '#5e6f8d',
-                      border: paginaActual === num ? 'none' : '1px solid #dfe4ec',
-                      fontWeight: paginaActual === num ? 700 : 500,
-                      fontSize: '0.85rem',
-                      transition: 'all 0.2s',
-                      '&:hover': { bgcolor: paginaActual === num ? '#004680' : '#f1f5f9' }
-                    }}
-                  >
-                    {num}
-                  </Box>
-                )
-              );
-            })()}
-            <IconButton
-              size="small"
-              disabled={paginaActual === totalPaginas}
-              onClick={() => setPaginaActual((p) => p + 1)}
-              sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}
-            >
-              <ChevronRightIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </Box>
+        )}
       </Paper>
 
       <ObservationModal

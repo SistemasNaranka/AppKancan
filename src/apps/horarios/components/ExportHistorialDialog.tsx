@@ -30,7 +30,8 @@ interface Props {
 
 export default function ExportHistorialDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault, searchNombre }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
-  const { esAdmin } = useHorariosPolicies();
+  const { esAdmin: originalEsAdmin, esReport } = useHorariosPolicies();
+  const esAdmin = () => originalEsAdmin() || esReport();
   const { user } = useAuth();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
   const [detallada, setDetallada] = useState(false);
