@@ -104,7 +104,7 @@ function RegistrosPageContent() {
     nombre: 'USUARIO DE EJEMPLO',
     cargo: '',
     estadoActual: 'entrada_pendiente',
-    pausaActivaRealizada: false,
+    pausasActivasCount: 0,
     registros: {
       inicioJornada: null,
       inicioAlmuerzo: null,
@@ -146,7 +146,7 @@ function RegistrosPageContent() {
 
   const reportarEventoDemo = (idEmpleado: string, eventType: string, observaciones?: string) => {
     if (eventType === 'Terminar Pausa Activa') {
-      setDemoEmpleado(prev => ({ ...prev, pausaActivaRealizada: true }));
+      setDemoEmpleado(prev => ({ ...prev, pausasActivasCount: Math.min((prev.pausasActivasCount ?? 0) + 1, 2) }));
     }
     return true;
   };

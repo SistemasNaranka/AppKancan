@@ -141,7 +141,7 @@ export default function EmployeeCard({
     );
   }
 
-  const { id, nombre, estadoActual, registros, pausaActivaRealizada } = empleado;
+  const { id, nombre, estadoActual, registros, pausasActivasCount = 0 } = empleado;
   const { tieneTemporal } = useHorariosPolicies();
 
   const [novedadModalOpen, setNovedadModalOpen] = useState(false);
@@ -252,7 +252,7 @@ export default function EmployeeCard({
     queryKey: ['yaAceptoNormasEmpleado', id, normasActivas?.id],
     queryFn: async () => {
       if (!normasActivas || String(id) === '99999') return true;
-      return await yaAceptoNormasEmpleado(Number(id), normasActivas.id);
+      return await yaAceptoNormasEmpleado(Number(id), normasActivas.id, normasActivas.version);
     },
     enabled: !!normasActivas && !!id,
     staleTime: 5 * 60 * 1000,
@@ -283,9 +283,11 @@ export default function EmployeeCard({
     { etiqueta: 'Terminar Jornada', activo: estadoActual === 'regreso_almuerzo', hora: registros.finJornada },
   ];
 
+  const MAX_PAUSAS = 2;
   const novedadActiva = estadoActual === 'entrada_pendiente';
   const finalizado = estadoActual === 'jornada_finalizada';
-  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado && tiempoRestante === null;
+  const pausasAgotadas = pausasActivasCount >= MAX_PAUSAS;
+  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado && tiempoRestante === null && !pausasAgotadas;
 
   const getObservacion = (evento: string) => {
     if (!registros.observaciones) return '';
@@ -424,7 +426,7 @@ export default function EmployeeCard({
     try {
       await onRegistrarEvento(id, tipoEvento);
       if (tipoEvento === 'Comenzar Jornada' && normasActivas && String(id) !== '99999') {
-        const yaAcepto = await yaAceptoNormasEmpleado(Number(id), normasActivas.id);
+        const yaAcepto = await yaAceptoNormasEmpleado(Number(id), normasActivas.id, normasActivas.version);
         if (!yaAcepto) {
           setTimeout(() => {
             setEmployeeNormasOpen(true);
@@ -463,9 +465,14 @@ export default function EmployeeCard({
                 {empleado.cargo}
               </Typography>
             )}
-            {estadoActual !== 'entrada_pendiente' && !pausaActivaRealizada && (
+            {estadoActual !== 'entrada_pendiente' && !finalizado && (
               <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ffffff', opacity: 0.75, textTransform: 'uppercase', mt: 0.5, letterSpacing: '0.5px' }}>
-                Pausa activa pendiente
+                {pausasAgotadas
+                  ? null
+                  : pausasActivasCount === 0
+                    ? 'Pausa activa pendiente'
+                    : `Pausa activa ${pausasActivasCount} de ${MAX_PAUSAS} completada`
+                }
               </Typography>
             )}
             {showAceptarNormasButton && (
@@ -514,7 +521,13 @@ export default function EmployeeCard({
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={reporteActivo ? 'Reportar evento' : 'No disponible'}>
+            <Tooltip title={
+              pausasAgotadas
+                ? `Pausas activas completadas (${MAX_PAUSAS} de ${MAX_PAUSAS})`
+                : reporteActivo
+                  ? 'Iniciar Pausa Activa'
+                  : 'No disponible'
+            }>
               <span className="tour-evento-btn">
                 <IconButton
                   size="medium"

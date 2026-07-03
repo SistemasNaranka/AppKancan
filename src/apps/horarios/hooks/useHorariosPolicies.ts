@@ -20,7 +20,7 @@ export const useHorariosPolicies = () => {
     });
 
   const tieneTemporal = (): boolean =>
-    (user?.policies ?? []).some((p) => p.toLowerCase().includes('temporal'));
+    (user?.policies ?? []).some((p) => p.toLowerCase() === 'temporal');
 
   const puedeVerDemo = (): boolean =>
     (user?.policies ?? []).some((p) => p.toLowerCase().includes('demo'));
