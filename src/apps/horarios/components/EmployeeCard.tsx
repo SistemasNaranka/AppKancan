@@ -525,7 +525,11 @@ export default function EmployeeCard({
                 <Button
                   size="small"
                   onClick={() => {
-                    localStorage.removeItem(`activeBreakExpires_${id}`);
+                    if (String(id) === '99999') {
+                      delete (window as any).__demoActiveBreakExpires;
+                    } else {
+                      localStorage.removeItem(`activeBreakExpires_${id}`);
+                    }
                     setTiempoRestante(null);
                     onReportarEvento(id, 'Terminar Pausa Activa');
                   }}
