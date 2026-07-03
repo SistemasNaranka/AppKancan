@@ -19,7 +19,10 @@ export const useHorariosPolicies = () => {
       return s.includes('report');
     });
 
-  return { hasPolicy, esAdmin, esReport };
+  const puedeVerDemo = (): boolean =>
+    (user?.policies ?? []).some((p) => p.toLowerCase().includes('demo'));
+
+  return { hasPolicy, esAdmin, esReport, puedeVerDemo };
 };
 
 export default useHorariosPolicies;

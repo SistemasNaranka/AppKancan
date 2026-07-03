@@ -147,7 +147,13 @@ export default function EmployeeCard({
 
   useEffect(() => {
     const checkActiveBreak = () => {
-      const expirationStr = localStorage.getItem(`activeBreakExpires_${id}`);
+      let expirationStr;
+      if (String(id) === '99999') {
+        expirationStr = (window as any).__demoActiveBreakExpires;
+      } else {
+        expirationStr = localStorage.getItem(`activeBreakExpires_${id}`);
+      }
+
       if (expirationStr) {
         const expirationTime = parseInt(expirationStr, 10);
         const now = Date.now();
@@ -155,7 +161,8 @@ export default function EmployeeCard({
         if (diff > 0) {
           setTiempoRestante(diff);
         } else {
-          localStorage.removeItem(`activeBreakExpires_${id}`);
+          if (String(id) === '99999') delete (window as any).__demoActiveBreakExpires;
+          else localStorage.removeItem(`activeBreakExpires_${id}`);
           setTiempoRestante(null);
           onReportarEvento(id, 'Terminar Pausa Activa');
         }
@@ -171,14 +178,21 @@ export default function EmployeeCard({
     if (tiempoRestante === null) return;
 
     if (tiempoRestante <= 0) {
-      localStorage.removeItem(`activeBreakExpires_${id}`);
+      if (String(id) === '99999') delete (window as any).__demoActiveBreakExpires;
+      else localStorage.removeItem(`activeBreakExpires_${id}`);
       setTiempoRestante(null);
       onReportarEvento(id, 'Terminar Pausa Activa');
       return;
     }
 
     const interval = setInterval(() => {
-      const expirationStr = localStorage.getItem(`activeBreakExpires_${id}`);
+      let expirationStr;
+      if (String(id) === '99999') {
+        expirationStr = (window as any).__demoActiveBreakExpires;
+      } else {
+        expirationStr = localStorage.getItem(`activeBreakExpires_${id}`);
+      }
+      
       if (expirationStr) {
         const expirationTime = parseInt(expirationStr, 10);
         const now = Date.now();
@@ -187,7 +201,8 @@ export default function EmployeeCard({
           setTiempoRestante(diff);
         } else {
           clearInterval(interval);
-          localStorage.removeItem(`activeBreakExpires_${id}`);
+          if (String(id) === '99999') delete (window as any).__demoActiveBreakExpires;
+          else localStorage.removeItem(`activeBreakExpires_${id}`);
           setTiempoRestante(null);
           onReportarEvento(id, 'Terminar Pausa Activa');
         }
@@ -335,7 +350,11 @@ export default function EmployeeCard({
         setEventoModalOpen(false);
         if (eventoSeleccionado === 'Iniciar Pausa Activa') {
           const expirationTime = Date.now() + 5 * 60 * 1000;
-          localStorage.setItem(`activeBreakExpires_${id}`, String(expirationTime));
+          if (String(id) === '99999') {
+            (window as any).__demoActiveBreakExpires = String(expirationTime);
+          } else {
+            localStorage.setItem(`activeBreakExpires_${id}`, String(expirationTime));
+          }
           setTiempoRestante(300);
         }
       }
@@ -386,7 +405,7 @@ export default function EmployeeCard({
     setGuardandoRegistro(tipoEvento);
     try {
       await onRegistrarEvento(id, tipoEvento);
-      if (tipoEvento === 'Comenzar Jornada' && normasActivas) {
+      if (tipoEvento === 'Comenzar Jornada' && normasActivas && String(id) !== '99999') {
         const yaAcepto = await yaAceptoNormasEmpleado(Number(id), normasActivas.id);
         if (!yaAcepto) {
           setTimeout(() => {
@@ -496,12 +515,25 @@ export default function EmployeeCard({
                 }
               }}
             >
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: '#0891b2', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#0e7490', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Pausas Activas
               </Typography>
               <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: '#0891b2', mt: 0.5 }}>
                 {Math.floor(tiempoRestante / 60)}:{(tiempoRestante % 60).toString().padStart(2, '0')}
               </Typography>
+              {String(id) === '99999' && (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    localStorage.removeItem(`activeBreakExpires_${id}`);
+                    setTiempoRestante(null);
+                    onReportarEvento(id, 'Terminar Pausa Activa');
+                  }}
+                  sx={{ mt: 1, fontSize: '0.7rem', fontWeight: 700, bgcolor: '#0891b2', color: '#fff', '&:hover': { bgcolor: '#0e7490' } }}
+                >
+                  Terminar Demo
+                </Button>
+              )}
             </Box>
           )}
 

@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { getStores, getStoreIdUsuarioActual } from '../api/directus/read';
-import { Tienda } from '../interfaces/horarios.interface';
+import { Tienda, EmpleadoAsistencia } from '../interfaces/horarios.interface';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import HistoryIcon from '@mui/icons-material/History';
@@ -62,11 +62,12 @@ const toTitleCase = (str: string) => {
 
 function RegistrosPageContent() {
   const { user } = useAuth();
-  const { esAdmin, esReport } = useHorariosPolicies();
+  const { esAdmin, esReport, puedeVerDemo } = useHorariosPolicies();
   const isOnlyReport = esReport() && !esAdmin();
 
   const [storeOverride, setStoreOverride] = useState<number | null>(null);
   const [actualizando, setActualizando] = useState(false);
+  const [modoDemo, setModoDemo] = useState(false);
   const { data: tiendasAdmin = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
@@ -96,6 +97,76 @@ function RegistrosPageContent() {
   } = useHorarios(storeOverride);
 
   const { normas, debeAceptar, manualOpen, setManualOpen, aceptar, aceptando } = useNormas();
+
+  const [demoEmpleado, setDemoEmpleado] = useState<EmpleadoAsistencia>({
+    id: '99999',
+    documento: '0000000000',
+    nombre: 'USUARIO DE EJEMPLO',
+    cargo: '',
+    estadoActual: 'entrada_pendiente',
+    pausaActivaRealizada: false,
+    registros: {
+      inicioJornada: null,
+      inicioAlmuerzo: null,
+      finAlmuerzo: null,
+      finJornada: null,
+      observaciones: {},
+      ids: {},
+      horasOriginales: {},
+      horasEditadas: {}
+    }
+  });
+
+  const registrarEventoDemo = (idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string) => {
+    const ahora = horaOverride || dayjs().format('HH:mm');
+    setDemoEmpleado(prev => {
+      const nuevo = { ...prev, registros: { ...prev.registros, observaciones: { ...prev.registros.observaciones } } };
+      let eventKey = '';
+      if (tipoEvento === 'Comenzar Jornada') {
+        eventKey = 'inicioJornada';
+        nuevo.estadoActual = 'jornada_iniciada';
+      } else if (tipoEvento === 'Iniciar Almuerzo') {
+        eventKey = 'inicioAlmuerzo';
+        nuevo.estadoActual = 'en_almuerzo';
+      } else if (tipoEvento === 'Finalizar Almuerzo') {
+        eventKey = 'finAlmuerzo';
+        nuevo.estadoActual = 'regreso_almuerzo';
+      } else if (tipoEvento === 'Terminar Jornada') {
+        eventKey = 'finJornada';
+        nuevo.estadoActual = 'jornada_finalizada';
+      }
+      
+      if (eventKey) {
+        nuevo.registros[eventKey as keyof typeof nuevo.registros] = ahora as any;
+        if (observacionOverride) nuevo.registros.observaciones[eventKey as keyof typeof nuevo.registros.observaciones] = observacionOverride;
+      }
+      return nuevo;
+    });
+  };
+
+  const reportarEventoDemo = (idEmpleado: string, eventType: string, observaciones?: string) => {
+    if (eventType === 'Terminar Pausa Activa') {
+      setDemoEmpleado(prev => ({ ...prev, pausaActivaRealizada: true }));
+    }
+    return true;
+  };
+
+  const guardarObservacionDemo = (idEmpleado: string, evento: string, texto: string) => {
+    setDemoEmpleado(prev => {
+      const nuevo = { ...prev, registros: { ...prev.registros, observaciones: { ...prev.registros.observaciones } } };
+      let eventKey = '';
+      switch (evento) {
+        case 'Comenzar Jornada': eventKey = 'inicioJornada'; break;
+        case 'Iniciar Almuerzo': eventKey = 'inicioAlmuerzo'; break;
+        case 'Finalizar Almuerzo': eventKey = 'finAlmuerzo'; break;
+        case 'Terminar Jornada': eventKey = 'finJornada'; break;
+      }
+      if (eventKey) {
+        nuevo.registros.observaciones[eventKey as keyof typeof nuevo.registros.observaciones] = texto;
+      }
+      return nuevo;
+    });
+  };
 
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
   const { activeTutorial, endTutorial } = useTutorial();
@@ -268,6 +339,28 @@ function RegistrosPageContent() {
                     Normas
                   </Button>
                 </Tooltip>
+                {puedeVerDemo() && (
+                  <Tooltip title="Activar/Desactivar Empleado de Prueba (Local)">
+                    <Button
+                      onClick={() => setModoDemo(!modoDemo)}
+                      variant={modoDemo ? "contained" : "outlined"}
+                      disableElevation
+                      startIcon={<AssignmentIcon sx={{ fontSize: 18 }} />}
+                      sx={{
+                        borderRadius: 2, textTransform: 'none', fontWeight: 700,
+                        color: modoDemo ? '#fff' : '#0284c7',
+                        bgcolor: modoDemo ? '#0284c7' : 'transparent',
+                        borderColor: '#7dd3fc', px: 2, py: 0.75,
+                        '&:hover': {
+                          bgcolor: modoDemo ? '#0369a1' : '#f0f9ff',
+                          borderColor: '#38bdf8'
+                        },
+                      }}
+                    >
+                      {modoDemo ? 'Demo Activo' : 'Modo Demo'}
+                    </Button>
+                  </Tooltip>
+                )}
                 <TutorialButton />
                 <Tooltip title="Actualizar registros">
                   <Button
@@ -403,6 +496,19 @@ function RegistrosPageContent() {
           gap: 3,
           width: '100%'
         }}>
+          {modoDemo && (
+            <EmployeeCard
+              key="demo-99999"
+              empleado={demoEmpleado}
+              tiposNovedad={tiposNovedad as any}
+              reasons={reasons}
+              onRegistrarEvento={registrarEventoDemo}
+              onEliminarEmpleado={() => {}}
+              onGuardarObservacion={guardarObservacionDemo}
+              onAgregarNovedad={async () => true}
+              onReportarEvento={reportarEventoDemo}
+            />
+          )}
           {empleados.map((empleado) => (
             <EmployeeCard
               key={empleado.id}
@@ -416,7 +522,7 @@ function RegistrosPageContent() {
               onReportarEvento={reportarEvento}
             />
           ))}
-          {empleados.length === 0 && (
+          {empleados.length === 0 && !modoDemo && (
             <Typography variant="body1" sx={{ color: '#64748b', mt: 4 }}>
               No hay empleados pendientes por gestionar.
             </Typography>
