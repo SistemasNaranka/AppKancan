@@ -50,19 +50,26 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
   const [modalNuevo, setModalNuevo] = useState(false);
   const [perfilEmp, setPerfilEmp] = useState<EmpleadoAdmin | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'activo' | 'inactivo'>('todos');
-  const [vistaTodas, setVistaTodas] = useState(false);
+  const [vistaTodas, setVistaTodas] = useState(true);
+
+  useEffect(() => {
+    if (storeSel !== null) {
+      onStoreChange(null);
+    }
+  }, []);
+
 
   const { data: todosEmpleados = [], isLoading: loadingTodos } = useQuery<EmpleadoAdmin[]>({
     queryKey: ['adminTodosEmpleados'],
     queryFn: listarTodosEmpleados,
-    enabled: vistaTodas,
+    enabled: tiendaSel === null || vistaTodas,
     staleTime: 2 * 60 * 1000,
   });
 
   const tiendaNombre = (id: number | null) =>
     id == null ? '—' : tiendas.find((t) => String(t.id) === String(id))?.name ?? '—';
 
-  const cargandoLista = vistaTodas ? loadingTodos : loadingTienda;
+  const cargandoLista = (tiendaSel === null || vistaTodas) ? loadingTodos : loadingTienda;
   const enBusqueda = query.trim().length > 0;
 
   const coincide = (e: EmpleadoAdmin) => {
@@ -76,8 +83,8 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
   };
 
   const esActivo = (e: EmpleadoAdmin) => (e.status || '').toLowerCase() === 'activo';
-  const base = vistaTodas
-    ? (enBusqueda ? todosEmpleados.filter(coincide) : [])
+  const base = (tiendaSel === null || vistaTodas)
+    ? todosEmpleados.filter(coincide)
     : empleadosTienda.filter(coincide);
   const nActivos = base.filter(esActivo).length;
   const nInactivos = base.length - nActivos;
@@ -144,7 +151,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
 
           <Box sx={{ flex: 1, minWidth: 260 }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
-              {vistaTodas ? 'BUSCAR EMPLEADO EN TODAS LAS TIENDAS' : 'BUSCAR EMPLEADO EN LA TIENDA'}
+              {(tiendaSel === null || vistaTodas) ? 'BUSCAR EMPLEADO EN TODAS LAS TIENDAS' : 'BUSCAR EMPLEADO EN LA TIENDA'}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
@@ -177,24 +184,22 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
       )}
 
       {!cargandoLista && base.length === 0 && (
-        vistaTodas ? (
+        (tiendaSel === null || vistaTodas) ? (
           enBusqueda ? (
             <Alert severity="info" sx={{ borderRadius: 2 }} action={<Button color="inherit" size="small" onClick={() => setModalNuevo(true)}>Crear nuevo</Button>}>
               No se encontraron empleados con esa búsqueda.
             </Alert>
           ) : (
-            <Alert severity="info" sx={{ borderRadius: 2 }}>Escribe un nombre o número de documento para buscar en todas las tiendas.</Alert>
+            <Alert severity="info" sx={{ borderRadius: 2 }}>No hay empleados registrados en el sistema.</Alert>
           )
         ) : enBusqueda ? (
           <Alert severity="info" sx={{ borderRadius: 2 }} action={<Button color="inherit" size="small" onClick={() => setModalNuevo(true)}>Crear nuevo</Button>}>
             No se encontraron empleados con esa búsqueda.
           </Alert>
-        ) : tiendaSel != null ? (
+        ) : (
           <Alert severity="info" sx={{ borderRadius: 2 }} action={<Button color="inherit" size="small" onClick={() => setModalNuevo(true)}>Crear nuevo</Button>}>
             Esta tienda no tiene empleados registrados.
           </Alert>
-        ) : (
-          <Alert severity="info" sx={{ borderRadius: 2 }}>Selecciona una tienda para ver sus empleados.</Alert>
         )
       )}
 
@@ -207,10 +212,13 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
                 {enBusqueda ? <PersonSearchIcon sx={{ fontSize: 22 }} /> : <StorefrontIcon sx={{ fontSize: 22 }} />}
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontWeight: 700, color: '#0f2c4a', fontSize: '1.02rem', lineHeight: 1.2 }} noWrap>
+                 <Typography sx={{ fontWeight: 700, color: '#0f2c4a', fontSize: '1.02rem', lineHeight: 1.2 }} noWrap>
                   {enBusqueda
                     ? 'Resultados de la búsqueda'
-                    : <>Empleados de <Box component="span" sx={{ color: AZUL }}>{tiendaNombre(tiendaSel)}</Box></>}
+                    : (tiendaSel === null
+                      ? 'Todos los empleados'
+                      : <>Empleados de <Box component="span" sx={{ color: AZUL }}>{tiendaNombre(tiendaSel)}</Box></>
+                    )}
                 </Typography>
                 <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8', mt: 0.2 }}>
                   {visibles.length} {visibles.length === 1 ? 'empleado' : 'empleados'}
@@ -301,7 +309,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
                     <WorkOutlineIcon sx={{ fontSize: 16, color: AZUL }} />
                     <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }} noWrap>{emp.position_name || 'Sin cargo'}</Typography>
                   </Box>
-                  {vistaTodas && (
+                  {(tiendaSel === null || vistaTodas) && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: '#475569', mt: 0.75 }}>
                       <StorefrontIcon sx={{ fontSize: 16, color: AZUL }} />
                       <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }} noWrap>{tiendaNombre(emp.store_id)}</Typography>

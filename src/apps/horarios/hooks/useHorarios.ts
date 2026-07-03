@@ -262,12 +262,16 @@ export const useHorarios = (storeOverride?: number | null) => {
   const eliminarEmpleado = (_idEmpleado: string) => {
   };
 
-  const resetHorarios = () => {
+  const resetHorarios = async () => {
     setError(null);
-    queryClient.invalidateQueries({ queryKey: ['empleados'] });
-    queryClient.invalidateQueries({ queryKey: ['novedades'] });
-    queryClient.invalidateQueries({ queryKey: ['timeRecords'] });
-    queryClient.invalidateQueries({ queryKey: ['eventReportsToday'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['empleados'] }),
+      queryClient.invalidateQueries({ queryKey: ['novedades'] }),
+      queryClient.invalidateQueries({ queryKey: ['timeRecords'] }),
+      queryClient.invalidateQueries({ queryKey: ['eventReportsToday'] }),
+      queryClient.invalidateQueries({ queryKey: ['adminTodosEmpleados'] }),
+      queryClient.invalidateQueries({ queryKey: ['adminEmpleadosTienda'] }),
+    ]);
   };
 
   const agregarNovedad = async (novedad: {

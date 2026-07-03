@@ -66,6 +66,7 @@ function RegistrosPageContent() {
   const isOnlyReport = esReport() && !esAdmin();
 
   const [storeOverride, setStoreOverride] = useState<number | null>(null);
+  const [actualizando, setActualizando] = useState(false);
   const { data: tiendasAdmin = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
@@ -271,10 +272,18 @@ function RegistrosPageContent() {
                 <Tooltip title="Actualizar registros">
                   <Button
                     className="tour-refresh"
-                    onClick={resetHorarios}
+                    onClick={async () => {
+                      setActualizando(true);
+                      try {
+                        await resetHorarios();
+                      } finally {
+                        setActualizando(false);
+                      }
+                    }}
+                    disabled={actualizando}
                     variant="contained"
                     disableElevation
-                    startIcon={<RefreshIcon sx={{ fontSize: 18 }} />}
+                    startIcon={actualizando ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: 18 }} />}
                     sx={{
                       bgcolor: '#004680',
                       color: '#fff',

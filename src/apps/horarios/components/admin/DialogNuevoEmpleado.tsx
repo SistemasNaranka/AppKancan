@@ -2,7 +2,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box,
   TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete,
-  Typography, Divider, FormHelperText, InputAdornment, CircularProgress,
+  Typography, Divider, FormHelperText, CircularProgress,
 } from '@mui/material';
 import * as yup from 'yup';
 import { sileo } from 'sileo';
@@ -13,6 +13,7 @@ import WorkIcon from '@mui/icons-material/Work';
 import { Tienda, Cargo, NuevoEmpleadoPayload } from '../../interfaces/horarios.interface';
 import { useParseNombreIA } from '../../hooks/useParseNombreIA';
 import { SILEO_STATE_FILL } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { existeDocumentoEmpleado } from '../../api/directus/read';
 
 interface Props {
   open: boolean;
@@ -28,7 +29,12 @@ const AZUL = '#004680';
 
 const schema = yup.object().shape({
   document_type: yup.string().required('Selecciona el tipo de documento'),
-  document_number: yup.string().trim().required('El número de documento es obligatorio'),
+  document_number: yup.string().trim().required('El número de documento es obligatorio')
+    .test('checkDup', 'Este número de documento ya está registrado', async (val) => {
+      if (!val) return true;
+      const exists = await existeDocumentoEmpleado(val);
+      return !exists;
+    }),
   store_id: yup.number().moreThan(0, 'Selecciona una tienda').required('Selecciona una tienda'),
   position_id: yup.number().moreThan(0, 'Selecciona un cargo').required('Selecciona un cargo'),
 });
@@ -185,7 +191,7 @@ export default function DialogNuevoEmpleado({
   };
  
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
       <DialogTitle sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, fontWeight: 700 }}>
         Nuevo empleado
       </DialogTitle>
@@ -210,7 +216,32 @@ export default function DialogNuevoEmpleado({
               fullWidth
               label="Número de documento"
               value={form.document_number}
-              onChange={(e) => setCampo('document_number', e.target.value.replace(/[^0-9]/g, ''))}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                setCampo('document_number', val);
+                if (errors.document_number) {
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.document_number;
+                    return copy;
+                  });
+                }
+              }}
+              onBlur={async (e) => {
+                const val = e.target.value.trim();
+                if (val) {
+                  const exists = await existeDocumentoEmpleado(val);
+                  if (exists) {
+                    setErrors((prev) => ({ ...prev, document_number: 'Este número de documento ya está registrado' }));
+                  } else {
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.document_number;
+                      return copy;
+                    });
+                  }
+                }
+              }}
               error={!!errors.document_number}
               helperText={errors.document_number}
             />
@@ -227,12 +258,6 @@ export default function DialogNuevoEmpleado({
             value={nombreCompleto}
             onChange={(e) => setNombreCompleto(e.target.value)}
             error={!!errors.nombreCompleto}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                </InputAdornment>
-              ),
-            }}
           />
 
           <Divider textAlign="left">
