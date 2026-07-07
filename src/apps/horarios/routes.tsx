@@ -3,7 +3,9 @@ import HorariosLayout from './components/HorariosLayout';
 import RegistrosPage from './pages/RegistrosPage';
 
 const rutasHorarios: RouteObject[] = [
+  
   {
+    
     path: 'horarios', 
     element: <HorariosLayout />,
     children: [
@@ -18,6 +20,7 @@ const rutasHorarios: RouteObject[] = [
       {
         path: '*',
         element: <Navigate to="registros" replace />
+      
       }
     ]
   }
