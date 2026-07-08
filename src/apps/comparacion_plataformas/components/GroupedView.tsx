@@ -42,16 +42,21 @@ const FUENTE_COLORS = {
         border: '#f97316',
         bg: '#fff7ed',
         text: '#9a3412'
+    },
+    'SUMAS': {
+        border: '#FF8400',
+        bg: '#fff8f0',
+        text: '#b25c00'
     }
 };
 
-const ordenFuentes = ['SISTECREDITOS', 'TRANSFERENCIAS', 'ADDI', 'REDEBAN'];
+const ordenFuentes = ['SISTECREDITOS', 'TRANSFERENCIAS', 'ADDI', 'REDEBAN', 'SUMAS'];
 
 const identificarColumnaValor = (fila: any): string | null => {
     if (!fila) return null;
     return Object.keys(fila).find(k => {
         const kl = k.toLowerCase();
-        return kl.includes('valor') || kl.includes('monto') || kl.includes('total') || kl.includes('neto');
+        return kl.includes('valor') || kl.includes('monto') || kl.includes('total') || kl.includes('neto') || kl.includes('sumas');
     }) || null;
 };
 
@@ -198,7 +203,8 @@ const FuenteCard: React.FC<FuenteCardProps> = ({
                                         colLower.includes('retencion') ||
                                         colLower.includes('retención') ||
                                         colLower.includes('comision') ||
-                                        colLower.includes('comisión');
+                                        colLower.includes('comisión') ||
+                                        colLower.includes('sumas');
 
                                     return (
                                         <TableCell

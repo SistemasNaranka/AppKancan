@@ -37,7 +37,7 @@ export const formatearValor = (valor: any, columna?: string): string => {
     "comercio",
   ];
 
-  const esIdentidad = keywordsNoMoneda.some((key) => colNorm.includes(key));
+  const esIdentidad = keywordsNoMoneda.some((key) => colNorm.includes(key)) || colNorm === "no" || colNorm === "nro";
 
   const normalizarFecha = (v: any): string | null => {
     if (v instanceof Date) {

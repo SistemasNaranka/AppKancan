@@ -21,6 +21,7 @@ const Home: React.FC = () => {
     archivoSeleccionado,
     cargando,
     cargandoMapeos,
+    refrescando,
     errorMapeos,
     validacionesArchivos,
     duplicadosAdvertencia,
@@ -34,6 +35,7 @@ const Home: React.FC = () => {
     cancelarNormalizacionConDuplicados,
     limpiarAdvertenciaDuplicados,
     exportarArchivosNormalizados,
+    refrescarMapeosYProcesar,
     procesarArchivosRaw,
     gruposPorTienda,
     columnasPorFuente,
@@ -135,6 +137,8 @@ const Home: React.FC = () => {
         archivos={archivos}
         cargando={cargando}
         cargandoMapeos={cargandoMapeos}
+        refrescando={refrescando}
+        refrescarMapeosYProcesar={refrescarMapeosYProcesar}
         errorMapeos={errorMapeos}
         mostrarAgrupado={mostrarAgrupado}
         setMostrarAgrupado={setMostrarAgrupado}

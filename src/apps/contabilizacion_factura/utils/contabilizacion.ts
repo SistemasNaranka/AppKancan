@@ -115,13 +115,5 @@ export function executeContabilizarFactura(
   const paramsString = paramsList.join(" ");
   const uri = `${PROTOCOLO_EMPRESA}?${encodeURIComponent(paramsString)}`;
 
-  console.log("=== ENVIANDO PARÁMETROS A CONTABILIZACIÓN DE FACTURA ===");
-  console.log("1. Entrada de mercancía (entrada):", entradaRaw);
-  console.log("2. Número factura sin prefijo (factura):", numeroRaw);
-  console.log("3. Fecha factura/emisión (fechaEmision) [YYYYMMDD]:", fechaFormateada);
-  console.log("4. Fecha vencimiento (fechaVencimiento) [YYYYMMDD]:", fechaVencimiento);
-  console.log("5. Automático asignado (automatico):", automaticoAsignado);
-  console.log("URI invocada:", uri);
-
   window.location.href = uri; 
 }

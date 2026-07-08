@@ -108,6 +108,7 @@ export const procesarMapeosParaNormalizacion = (
       "Retención",
       "Usuario Almacén",
     ],
+    "SUMAS": [],
   };
 
   const tablasMapeo: MapeoArchivo[] = archivoOrigenUnicos.map(archivoOrigen => ({

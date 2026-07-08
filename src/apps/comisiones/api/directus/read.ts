@@ -13,6 +13,7 @@ import {
   CommissionThreshold,
 } from "../../types";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
+import { obtenerTiendasIdsUsuarioActual } from "@/services/directus/userStores";
 /**
  * Función auxiliar para convertir nombre de mes a número
  */
@@ -557,33 +558,7 @@ export async function obtenerTiendasUsuario(
   }
 }
 
-/**
- * Obtener IDs de tiendas asignadas al usuario actual
- */
-export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
-  try {
-    const data = await withAutoRefresh(() =>
-      directus.request(
-        readItems("core_user_stores", {
-          fields: ["store_id"],
-          filter: {
-            status: { _eq: "Activo" },
-          },
-          limit: -1,
-        }),
-      ),
-    );
-
-    const tiendaIds = data.map((item: any) => item.store_id);
-    return tiendaIds;
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      return [];
-    }
-
-    throw error;
-  }
-}
+export { obtenerTiendasIdsUsuarioActual } from "@/services/directus/userStores";
 /**
  * Tipo de retorno para obtenerUmbralesComisiones que incluye el ID
  */

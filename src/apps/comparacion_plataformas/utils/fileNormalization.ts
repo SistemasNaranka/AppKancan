@@ -84,6 +84,17 @@ export const eliminarColumnasPorNombre = (
 };
 
 const normalizarParaComparacion = (str: string): string => {
+  const cleanStr = str.replace(/^\d+\s*[-_]\s*/, "").replace(/^\d{4,}\s+/, "");
+  return cleanStr
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const normalizarBasico = (str: string): string => {
   return str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -170,6 +181,21 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
       const valor = String(fila[columna] || "").trim();
       if (!valor || valor.length < 2) continue;
 
+      // 1. Intentar coincidencia exacta con números (para diferenciar códigos idénticos como 0018929133 y 0089318138)
+      const valorNormalizadoConNumeros = normalizarBasico(valor);
+      for (const mapeo of mapeosRelevantes) {
+        const tiendaNormalizadaConNumeros = normalizarBasico(mapeo.store_file);
+        if (valorNormalizadoConNumeros === tiendaNormalizadaConNumeros) {
+          tiendaIdEncontrado = mapeo.store_id;
+          tiendaEncontrada = mapeo.tiendaNormalizada;
+          filaNueva[columna] = tiendaEncontrada;
+          break;
+        }
+      }
+
+      if (tiendaIdEncontrado) break;
+
+      // 2. Si no hay coincidencia exacta con números, normalizar quitando números iniciales
       const valorNormalizado = normalizarParaComparacion(valor);
 
       for (const mapeo of mapeosRelevantes) {
@@ -178,9 +204,18 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
         );
 
         if (valorNormalizado === tiendaNormalizada) {
+          const tiendaOriginalNormalizada = mapeo.store_file
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+
           const esMapeoGenericoNaranka =
-            tiendaNormalizada === "naranka sas" ||
-            tiendaNormalizada === "naranka";
+            tiendaOriginalNormalizada === "naranka sas" ||
+            tiendaOriginalNormalizada === "naranka" ||
+            tiendaOriginalNormalizada === "naranka s a s";
 
           if (esMapeoGenericoNaranka) {
 

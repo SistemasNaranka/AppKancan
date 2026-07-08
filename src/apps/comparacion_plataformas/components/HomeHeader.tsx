@@ -12,12 +12,15 @@ import DownloadIcon from "@mui/icons-material/Download";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import SearchIcon from "@mui/icons-material/Search";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { ArchivoSubido } from "../types/mapeo.types";
 
 interface HomeHeaderProps {
   archivos: ArchivoSubido[];
   cargando: boolean;
   cargandoMapeos: boolean;
+  refrescando: boolean;
+  refrescarMapeosYProcesar: () => void;
   errorMapeos: string | null;
   mostrarAgrupado: boolean;
   setMostrarAgrupado: (val: boolean) => void;
@@ -36,6 +39,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   archivos,
   cargando,
   cargandoMapeos,
+  refrescando,
+  refrescarMapeosYProcesar,
   errorMapeos,
   mostrarAgrupado,
   setMostrarAgrupado,
@@ -164,6 +169,37 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           }}
         >
           {cargando ? "Procesando..." : "Normalizar Todo"}
+        </Button>
+
+        <Button
+          variant="contained"
+          onClick={refrescarMapeosYProcesar}
+          disabled={cargando || refrescando || archivos.length === 0}
+          startIcon={
+            <RefreshIcon
+              sx={{
+                animation: refrescando ? "spin 1s linear infinite" : "none",
+                "@keyframes spin": {
+                  "0%": { transform: "rotate(0deg)" },
+                  "100%": { transform: "rotate(360deg)" },
+                },
+              }}
+            />
+          }
+          sx={{
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+            color: "#475569",
+            border: "1px solid #cbd5e1",
+            height: "40px",
+            fontWeight: 600,
+            "&:hover": {
+              boxShadow: "0 4px 6px rgba(0,0,0,0.08)",
+              backgroundColor: "#f8fafc",
+            },
+          }}
+        >
+          {refrescando ? "Cargando..." : "Refrescar Mapeos"}
         </Button>
 
         {archivos.some((a) => a.normalizado) && (

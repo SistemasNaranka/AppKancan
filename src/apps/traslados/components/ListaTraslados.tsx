@@ -19,6 +19,7 @@ type ListaTrasladosProps = {
   onRetry?: () => void;
   totalPendientes?: number;
   tienePoliticaTrasladosTiendas?: boolean;
+  tienePoliticaTrasladosJefezona?: boolean;
   filtroTipo?: "todos" | "enviados" | "recibidos";
 };
 
@@ -31,6 +32,7 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
   onRetry,
   totalPendientes = 0,
   tienePoliticaTrasladosTiendas = false,
+  tienePoliticaTrasladosJefezona = false,
   filtroTipo = "todos",
 }) => {
   const { user } = useAuth();
@@ -238,7 +240,7 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
     );
   }
 
-  if (tienePoliticaTrasladosTiendas && filtroTipo === "todos") {
+  if (tienePoliticaTrasladosTiendas && !tienePoliticaTrasladosJefezona && filtroTipo === "todos") {
     const enviados = filtrados.filter((t) => String(t.bodega_origen) === String(codigoUltra));
     const porRecibir = filtrados.filter((t) => String(t.bodega_origen) !== String(codigoUltra));
 
@@ -342,6 +344,7 @@ export const ListaTraslados: React.FC<ListaTrasladosProps> = ({
                 }
                 compact
                 tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
+                tienePoliticaTrasladosJefezona={tienePoliticaTrasladosJefezona}
               />
             );
           })}
