@@ -306,17 +306,24 @@ function RegistrosPageContent() {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
             {esAdmin() && !vistaAdmin && !vistaReporte && (
+              // ============================================================
+              // 🔥 CAMBIO: "Todas las tiendas" sin emoji y con mismo diseño
+              // ============================================================
               <Autocomplete
                 size="small"
-                options={tiendasAdmin}
+                options={[{ id: null, name: 'Todas las tiendas' }, ...tiendasAdmin]}
                 getOptionLabel={(o) => o.name}
-                value={tiendasAdmin.find((t) => t.id === storeOverride) ?? null}
+                value={
+                  storeOverride === null
+                    ? { id: null, name: 'Todas las tiendas' }
+                    : tiendasAdmin.find((t) => t.id === storeOverride) ?? null
+                }
                 onChange={(_, v) => setStoreOverride(v ? v.id : null)}
-                sx={{ width: 230 }}
+                sx={{ width: 250 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    placeholder="Tiendas"
+                    placeholder="Seleccionar tienda"
                     InputProps={{
                       ...params.InputProps,
                       startAdornment: (
@@ -329,6 +336,7 @@ function RegistrosPageContent() {
                   />
                 )}
               />
+              // ============================================================
             )}
             {!vistaAdmin && !vistaReporte && (
               <>
