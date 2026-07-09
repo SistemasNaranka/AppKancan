@@ -149,6 +149,17 @@ function RegistrosPageContent() {
   };
 
   const reportarEventoDemo = (idEmpleado: string, eventType: string, observaciones?: string) => {
+
+
+
+
+
+
+
+
+
+
+    
     if (eventType === 'Terminar Pausa Activa') {
       setDemoEmpleado(prev => ({ ...prev, pausaActivaRealizada: true }));
     }
