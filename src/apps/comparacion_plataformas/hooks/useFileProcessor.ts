@@ -36,6 +36,7 @@ export const useFileProcessor = () => {
     const [duplicadosAdvertencia, setDuplicadosAdvertencia] = useState<string[]>([]);
     const [mostrarConfirmacionDuplicados, setMostrarConfirmacionDuplicados] = useState(false);
     const [duplicadosParaNormalizar, setDuplicadosParaNormalizar] = useState<string[]>([]);
+    const [refrescando, setRefrescando] = useState(false);
 
     useEffect(() => {
         cargarDatosMapeo();
@@ -73,6 +74,8 @@ export const useFileProcessor = () => {
                             tipo: "CSV",
                             datos: datosLimpios,
                             columnas: resultado.meta.fields || [],
+                            datosOriginales: JSON.parse(JSON.stringify(datosLimpios)),
+                            columnasOriginales: resultado.meta.fields ? [...resultado.meta.fields] : [],
                         });
                     },
                     error: reject
@@ -94,10 +97,29 @@ export const useFileProcessor = () => {
                         const hoja = workbook.Sheets[nombreHoja];
                         const jsonData: any[][] = XLSX.utils.sheet_to_json(hoja, { header: 1, defval: "" });
                         const filasNoVacias = jsonData.filter(fila => fila && fila.some(celda => celda !== null && celda !== undefined && String(celda).trim() !== ""));
-                        const columnas = filasNoVacias[0].map((col: any) => String(col || ""));
-                        const filas = filasNoVacias.slice(1).map((fila: any[]) => {
+                        
+                        let headerIndex = 0;
+                        if (filasNoVacias.length > 0 && String(filasNoVacias[0][0] || "").toLowerCase().includes("filtros aplicados")) {
+                            for (let i = 0; i < filasNoVacias.length; i++) {
+                                const row = filasNoVacias[i].map(c => String(c || "").trim().toLowerCase());
+                                if (row.includes("tienda") || row.includes("cédula") || row.includes("cedula")) {
+                                    headerIndex = i;
+                                    break;
+                                }
+                            }
+                            if (headerIndex === 0 && filasNoVacias.length > 2) {
+                                headerIndex = 2;
+                            }
+                        }
+
+                        const columnas = filasNoVacias[headerIndex].map((col: any) => String(col || "").trim());
+                        const filas = filasNoVacias.slice(headerIndex + 1).map((fila: any[]) => {
                             const obj: any = {};
-                            columnas.forEach((col, index) => obj[col] = fila[index] !== undefined ? fila[index] : "");
+                            columnas.forEach((col, index) => {
+                                if (col) {
+                                    obj[col] = fila[index] !== undefined ? fila[index] : "";
+                                }
+                            });
                             return obj;
                         });
                         resolve({
@@ -105,6 +127,8 @@ export const useFileProcessor = () => {
                             tipo: extension.toUpperCase(),
                             datos: filas,
                             columnas: columnas,
+                            datosOriginales: JSON.parse(JSON.stringify(filas)),
+                            columnasOriginales: [...columnas],
                         });
                     } catch (error) { reject(error); }
                 };
@@ -126,8 +150,18 @@ export const useFileProcessor = () => {
                 try {
                     const nuevoArchivo = await leerArchivo(file);
                     const resultadoDecision = findBestMatch(nuevoArchivo.nombre, tablasMapeo);
+                    const nombreLower = nuevoArchivo.nombre.toLowerCase();
+                    const esSumas = nombreLower.includes("reporte ventas") || 
+                                    nombreLower.includes("sumas") ||
+                                    nombreLower.includes("data") ||
+                                    (nombreLower.includes("maria fernanda") && nombreLower.includes("reporte")) ||
+                                    (nombreLower.includes("naranka") && nombreLower.includes("reporte"));
 
-                    if (resultadoDecision) {
+                    if (esSumas) {
+                        nuevoArchivo.tipoArchivo = "SUMAS";
+                        const sumasMapeo = tablasMapeo.find(m => m.source_file === "SUMAS");
+                        nuevoArchivo.columnasEliminar = sumasMapeo ? sumasMapeo.columnasEliminar : [];
+                    } else if (resultadoDecision) {
                         nuevoArchivo.tipoArchivo = resultadoDecision.tipoArchivo;
                         nuevoArchivo.columnasEliminar = resultadoDecision.mapeo.columnasEliminar;
                     } else {
@@ -184,9 +218,10 @@ export const useFileProcessor = () => {
         if (archivoSeleccionado?.nombre === nombre) setArchivoSeleccionado(null);
     };
 
-    const procesarArchivo = (archivo: ArchivoSubido): ArchivoSubido | null => {
+    const procesarArchivo = (archivo: ArchivoSubido, mapeosTiendaCustom?: TiendaMapeo[]): ArchivoSubido | null => {
         if (!archivo.tipoArchivo) return null;
-        let datosNormalizados = mapearNombresTiendasEnTodasLasCeldas(archivo.datos, tiendaMapeos, archivo.tipoArchivo);
+        const mapeosUsar = mapeosTiendaCustom || tiendaMapeos;
+        let datosNormalizados = mapearNombresTiendasEnTodasLasCeldas(archivo.datos, mapeosUsar, archivo.tipoArchivo);
 
         const mapeoDocumento: Record<string, string> = {};
         const keywordsDocumento = ['cedula', 'nit', 'cc', 'idemisor', 'nro_doc', 'identi'];
@@ -199,12 +234,15 @@ export const useFileProcessor = () => {
             const colNorm = normalizarString(col);
             
             let esDoc = false;
-            if (keywordsDocumento.some(key => colNorm.includes(key)) && !excludeKeywords.some(ex => colNorm.includes(ex))) {
-                mapeoDocumento[col] = "Documento";
-                esDoc = true;
-            } else if (keywordsDebiles.some(key => colNorm.includes(key)) && !excludeKeywords.some(ex => colNorm.includes(ex))) {
-                mapeoDocumento[col] = "Documento";
-                esDoc = true;
+            const esTipoSumas = archivo.tipoArchivo?.trim().toLowerCase() === 'sumas';
+            if (!esTipoSumas) {
+                if (keywordsDocumento.some(key => colNorm.includes(key)) && !excludeKeywords.some(ex => colNorm.includes(ex))) {
+                    mapeoDocumento[col] = "Documento";
+                    esDoc = true;
+                } else if (keywordsDebiles.some(key => colNorm.includes(key)) && !excludeKeywords.some(ex => colNorm.includes(ex))) {
+                    mapeoDocumento[col] = "Documento";
+                    esDoc = true;
+                }
             }
 
             if (colNorm.includes('descuento')) {
@@ -330,6 +368,7 @@ export const useFileProcessor = () => {
         let filasSinTienda = 0;
 
         const mapeoVisual = [
+            { keys: ["sumas"], label: "SUMAS" },
             { keys: ["transactions", "addi"], label: "ADDI" },
             { keys: ["reportediario", "ventascomercio", "redebana"], label: "REDEBAN" },
             { keys: ["maria", "perez", "occidente", "transferencia", "banco"], label: "TRANSFERENCIAS" },
@@ -352,6 +391,7 @@ export const useFileProcessor = () => {
                 else if (fuenteUpper.includes('ADDI')) fuenteNombre = 'ADDI';
                 else if (fuenteUpper.includes('REDEBANA') || fuenteUpper.includes('REDEBAN')) fuenteNombre = 'REDEBAN';
                 else if (fuenteUpper.includes('CREDITO') || fuenteUpper.includes('SISTECREDITO')) fuenteNombre = 'SISTECREDITOS';
+                else if (fuenteUpper.includes('SUMAS')) fuenteNombre = 'SUMAS';
             }
 
             let filasAgrupadasEnArchivo = 0;
@@ -385,19 +425,20 @@ export const useFileProcessor = () => {
             Object.entries(fuentes).forEach(([fuente, datos]) => {
                 if (!cache[fuente] && datos.length > 0) {
                     const todasLasColumnas = Object.keys(datos[0]);
-                    const keywords = ['fecha', 'documento', 'cedula', 'nit', 'cc', 'idemisor', 'identificaci', 'referencia', 'tienda', 'valor', 'monto', 'total', 'cliente', 'hora', 'comercio', 'sucursal'];
+                    const keywords = ['fecha', 'documento', 'cedula', 'nit', 'cc', 'idemisor', 'identificaci', 'referencia', 'tienda', 'valor', 'monto', 'total', 'cliente', 'hora', 'comercio', 'sucursal', 'sumas'];
+                    const normalizarParaFiltro = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
                     cache[fuente] = todasLasColumnas.filter(col => {
-                        const colLower = col.toLowerCase();
-                        if (col.startsWith('_') || col === 'tiendaId' || colLower.includes('descuento')) return false;
-                        if ((fuente.includes('REDEBAN') || fuente.toLowerCase().includes('reportediario') || fuente.toLowerCase().includes('ventascomercio')) && colLower.includes('documento')) return false;
-                        return keywords.some(key => colLower.includes(key));
+                        const colNorm = normalizarParaFiltro(col);
+                        if (col.startsWith('_') || col === 'tiendaId' || colNorm.includes('descuento')) return false;
+                        if ((fuente.includes('REDEBAN') || fuente.toLowerCase().includes('reportediario') || fuente.toLowerCase().includes('ventascomercio')) && colNorm.includes('documento')) return false;
+                        return keywords.some(key => colNorm.includes(key)) || colNorm === 'no';
                     }).sort((a, b) => {
                         const getScore = (s: string) => {
-                            const sl = s.toLowerCase();
+                            const sl = normalizarParaFiltro(s);
                             if (sl.includes('fecha')) return 0;
                             if (sl.includes('documento') || sl.includes('cedula') || sl.includes('nit')) return 1;
                             if (sl.includes('tienda')) return 2;
-                            if (sl.includes('valor') || sl.includes('monto') || sl.includes('total')) return 3;
+                            if (sl.includes('valor') || sl.includes('monto') || sl.includes('total') || sl.includes('sumas')) return 3;
                             return 10;
                         };
                         return getScore(a) - getScore(b);
@@ -480,7 +521,7 @@ export const useFileProcessor = () => {
 
                                 if (colL.includes('fecha') || colL.includes('hora') || colL.includes('time') || colL.includes('creacion')) {
                                     cell.value = formatearValor(val, col);
-                                } else if (colL.includes('valor') || colL.includes('monto') || colL.includes('total') || colL.includes('neto')) {
+                                } else if (colL.includes('valor') || colL.includes('monto') || colL.includes('total') || colL.includes('neto') || colL.includes('sumas')) {
                                     const num = typeof val === 'number' ? val : Number(String(val || 0).replace(/[^0-9.-]+/g, ""));
                                     totalFuente += isNaN(num) ? 0 : num;
                                     cell.value = isNaN(num) ? 0 : num;
@@ -531,11 +572,72 @@ export const useFileProcessor = () => {
         }
     };
 
+    const refrescarMapeosYProcesar = async () => {
+        setRefrescando(true);
+        try {
+            const mapeosDirectus = await obtenerMapeosArchivos();
+            const { tablasMapeo: nuevasTablasMapeo, tiendaMapeos: nuevosTiendaMapeos } = procesarMapeosParaNormalizacion(mapeosDirectus);
+            setTablasMapeo(nuevasTablasMapeo);
+            setTiendaMapeos(nuevosTiendaMapeos);
+
+            setArchivos(prevArchivos => {
+                const actualizados = prevArchivos.map(archivo => {
+                    const archivoReset: ArchivoSubido = {
+                        ...archivo,
+                        datos: archivo.datosOriginales ? JSON.parse(JSON.stringify(archivo.datosOriginales)) : archivo.datos,
+                        columnas: archivo.columnasOriginales ? [...archivo.columnasOriginales] : archivo.columnas,
+                        normalizado: false
+                    };
+
+                    const resultadoDecision = findBestMatch(archivoReset.nombre, nuevasTablasMapeo);
+                    const nombreLower = archivoReset.nombre.toLowerCase();
+                    const esSumas = nombreLower.includes("reporte ventas") || 
+                                    nombreLower.includes("sumas") ||
+                                    nombreLower.includes("data") ||
+                                    (nombreLower.includes("maria fernanda") && nombreLower.includes("reporte")) ||
+                                    (nombreLower.includes("naranka") && nombreLower.includes("reporte"));
+
+                    if (esSumas) {
+                        archivoReset.tipoArchivo = "SUMAS";
+                        const sumasMapeo = nuevasTablasMapeo.find(m => m.source_file === "SUMAS");
+                        archivoReset.columnasEliminar = sumasMapeo ? sumasMapeo.columnasEliminar : [];
+                    } else if (resultadoDecision) {
+                        archivoReset.tipoArchivo = resultadoDecision.tipoArchivo;
+                        archivoReset.columnasEliminar = resultadoDecision.mapeo.columnasEliminar;
+                    } else {
+                        archivoReset.tipoArchivo = "ARCHIVO EXTERNO";
+                        archivoReset.columnasEliminar = [];
+                    }
+
+                    if (archivo.normalizado) {
+                        const procesado = procesarArchivo(archivoReset, nuevosTiendaMapeos);
+                        return procesado || archivoReset;
+                    }
+                    return archivoReset;
+                });
+
+                if (archivoSeleccionado) {
+                    const seleccionadoActualizado = actualizados.find(a => a.nombre === archivoSeleccionado.nombre);
+                    if (seleccionadoActualizado) {
+                        setArchivoSeleccionado(seleccionadoActualizado);
+                    }
+                }
+
+                return actualizados;
+            });
+        } catch (error) {
+            console.error("Error al refrescar y re-procesar:", error);
+        } finally {
+            setRefrescando(false);
+        }
+    };
+
     return {
         archivos,
         archivoSeleccionado,
         cargando,
         cargandoMapeos,
+        refrescando,
         errorMapeos,
         validacionesArchivos,
         duplicadosAdvertencia,
@@ -549,6 +651,7 @@ export const useFileProcessor = () => {
         cancelarNormalizacionConDuplicados,
         limpiarAdvertenciaDuplicados,
         exportarArchivosNormalizados,
+        refrescarMapeosYProcesar,
         procesarArchivosRaw,
         gruposPorTienda,
         columnasPorFuente,

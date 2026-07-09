@@ -108,7 +108,7 @@ function RegistrosPageContent() {
     nombre: 'USUARIO DE EJEMPLO',
     cargo: '',
     estadoActual: 'entrada_pendiente',
-    pausaActivaRealizada: false,
+    pausasActivasCount: 0,
     registros: {
       inicioJornada: null,
       inicioAlmuerzo: null,
@@ -161,7 +161,7 @@ function RegistrosPageContent() {
 
     
     if (eventType === 'Terminar Pausa Activa') {
-      setDemoEmpleado(prev => ({ ...prev, pausaActivaRealizada: true }));
+      setDemoEmpleado(prev => ({ ...prev, pausasActivasCount: Math.min((prev.pausasActivasCount ?? 0) + 1, 2) }));
     }
     return true;
   };
@@ -186,6 +186,8 @@ function RegistrosPageContent() {
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
   const { activeTutorial, endTutorial } = useTutorial();
   const [tabValue, setTabValue] = useState(0);
+
+
   const [vistaAdmin, setVistaAdmin] = useState(false);
   const [vistaReporte, setVistaReporte] = useState(esReport() && !esAdmin());
   const [exportEventosOpen, setExportEventosOpen] = useState(false);
@@ -256,7 +258,7 @@ function RegistrosPageContent() {
     }
   };
 
-  if (loading) {
+  if (loading && !vistaAdmin && !vistaReporte && tabValue !== 4) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress size={50} sx={{ color: '#004680' }} />

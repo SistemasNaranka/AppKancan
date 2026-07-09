@@ -120,7 +120,7 @@ export const calculateMesResumenAgrupado = (
     });
   });
 
-  mesBudgets.forEach((budget) => {
+  mesBudgetsFiltrados.forEach((budget) => {
     const tiendaData = tiendasMap.get(budget.tienda)!;
 
     if (!tiendaData.fechas.includes(budget.fecha)) {
@@ -403,7 +403,7 @@ export const calculateMesResumenAgrupado = (
       tienda: tiendaData.tienda,
       tienda_id: tiendaData.tienda_id,
       empresa: tiendaData.empresa,
-      fecha: tiendaData.fechas[0],
+      fecha: tiendaData.fechas[0] ?? "",
       presupuesto_tienda: round(presupuestoTotalTienda),
       ventas_tienda: round(tiendaData.ventasTotal),
       cumplimiento_tienda_pct: cumplimiento_tienda,

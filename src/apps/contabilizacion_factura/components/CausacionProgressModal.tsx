@@ -17,14 +17,15 @@ import PlayArrow from '@mui/icons-material/PlayArrow';
 import Cancel from '@mui/icons-material/Cancel';
 
 import directus from "@/services/directus/directus";
-import { getGoodsReceiptById } from "../services/api";
+import { getGoodsReceiptById, updateSupplierInvoiceStatus } from "../services/api";
 
-const MAX_WAIT_TIME_SECONDS = 120;
+const MAX_WAIT_TIME_SECONDS = 70;
 
 interface CausacionProgressModalProps {
   open: boolean;
   goodsReceiptId: number | null;
   goodsReceiptNumber: string | null;
+  invoiceId: number | null;
   onSuccess: () => void;
   onFailure: (message: string) => void;
   onClose: () => void;
@@ -36,6 +37,7 @@ export function CausacionProgressModal({
   open,
   goodsReceiptId,
   goodsReceiptNumber,
+  invoiceId,
   onSuccess,
   onFailure,
   onClose,
@@ -82,7 +84,7 @@ export function CausacionProgressModal({
           clearInterval(elapsedTimerRef.current!);
           if (active) {
             handleProcessFailure(
-              "Tiempo de espera agotado (2 minutos sin respuesta del sistema Ultra local)."
+              "Tiempo de espera agotado (1 minuto y 10 segundos sin respuesta del sistema Ultra local)."
             );
           }
           return MAX_WAIT_TIME_SECONDS;
@@ -95,6 +97,12 @@ export function CausacionProgressModal({
       if (!active) return;
       setModalState("success");
       if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+
+      if (invoiceId) {
+        updateSupplierInvoiceStatus(invoiceId, "causado").catch((err) =>
+          console.error("Error al actualizar estado de la factura a 'causado':", err)
+        );
+      }
 
       setRedirectCount(3);
       redirectTimerRef.current = setInterval(() => {
@@ -117,6 +125,13 @@ export function CausacionProgressModal({
       setModalState("failure");
       setErrorMessage(msg);
       if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+
+      if (invoiceId) {
+        updateSupplierInvoiceStatus(invoiceId, "pendiente").catch((err) =>
+          console.error("Error al actualizar estado de la factura a 'pendiente':", err)
+        );
+      }
+
       setTimeout(() => {
         callbacksRef.current.onFailure(msg);
       }, 0);
@@ -317,7 +332,7 @@ export function CausacionProgressModal({
                 >
                   <WatchLater sx={{ fontSize: 18, color: "#64748b" }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#475569" }}>
-                    Tiempo transcurrido: {formatTime(elapsedTime)} / 2:00
+                    Tiempo transcurrido: {formatTime(elapsedTime)} / 1:10
                   </Typography>
                 </Box>
 

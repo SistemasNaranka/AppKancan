@@ -12,6 +12,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import { useTrasladosTourContext } from "./TrasladosTourContext";
+import { useAuth } from "@/auth/hooks/useAuth";
 
 const STORE_TOUR_STEPS: Step[] = [
   {
@@ -131,6 +132,90 @@ const STORE_TOUR_STEPS: Step[] = [
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
           Puedes <strong>repetir este tutorial</strong> en cualquier momento
           haciendo clic en este botón. ¡Ya estás listo para usar el módulo!
+        </Typography>
+      </Box>
+    ),
+    title: "Repetir Tutorial",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+];
+
+const JEFE_TOUR_STEPS: Step[] = [
+  {
+    target: '[data-tour="store-header"]',
+    content: (
+      <Box>
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Bienvenido a tu panel de <strong>Traslados</strong>.
+          Aquí puedes ver consolidados todos los traslados en tránsito de las tiendas a las que tienes acceso.
+        </Typography>
+      </Box>
+    ),
+    title: "Panel de Traslados",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="store-filtro-bodega"]',
+    content: (
+      <Box>
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Filtra la lista para ver solo los traslados relacionados con una <strong>tienda específica</strong> de tu zona.
+          Por defecto, se selecciona la primera bodega por orden alfabético.
+        </Typography>
+      </Box>
+    ),
+    title: "Filtrar por Bodega",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="store-filtro-fecha"]',
+    content: (
+      <Box>
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Selecciona una <strong>fecha específica</strong> para ver únicamente los traslados de ese día.
+        </Typography>
+      </Box>
+    ),
+    title: "Filtrar por Fecha",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="store-filtro-nombre"]',
+    content: (
+      <Box>
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Escribe el <strong>número del traslado</strong> para encontrarlo de inmediato en el listado.
+        </Typography>
+      </Box>
+    ),
+    title: "Búsqueda Rápida",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="lista-traslados"]',
+    content: (
+      <Box>
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Aquí se listan las tarjetas agrupadas de traslados.
+          Haz clic en cualquier tarjeta para abrir el <strong>detalle completo</strong> y ver las referencias, nombres y cantidades del traslado.
+        </Typography>
+      </Box>
+    ),
+    title: "Lista de Traslados",
+    placement: "top",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="store-btn-tutorial"]',
+    content: (
+      <Box>
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          Puedes <strong>repetir este tutorial</strong> en cualquier momento haciendo clic en este botón.
         </Typography>
       </Box>
     ),
@@ -283,6 +368,7 @@ export const StoreTrasladosTour: React.FC<StoreTrasladosTourProps> = ({
   children,
 }) => {
   const theme = useTheme();
+  const { user } = useAuth();
   const {
     tourPhase,
     stepIndex,
@@ -293,6 +379,8 @@ export const StoreTrasladosTour: React.FC<StoreTrasladosTourProps> = ({
   } = useTrasladosTourContext();
 
   const [runTour, setRunTour] = useState(false);
+  const tienePoliticaJefezona = user?.policies?.includes("AreaManagerTransfers") ?? false;
+  const steps = tienePoliticaJefezona ? JEFE_TOUR_STEPS : STORE_TOUR_STEPS;
 
   useEffect(() => {
     if (isFullTourRunning && tourPhase !== "COMPLETED") {
@@ -335,7 +423,7 @@ export const StoreTrasladosTour: React.FC<StoreTrasladosTourProps> = ({
 
       <Joyride
         run={runTour}
-        steps={STORE_TOUR_STEPS}
+        steps={steps}
         stepIndex={stepIndex}
         callback={handleJoyrideCallback}
         continuous

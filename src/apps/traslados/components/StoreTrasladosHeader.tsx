@@ -2,14 +2,19 @@ import React from "react";
 import { Box, Typography, Chip, Button, Tooltip, useTheme } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import HelpIcon from "@mui/icons-material/Help";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useTrasladosTourContext } from "./TrasladosTourContext";
 
 interface StoreTrasladosHeaderProps {
   totalPendientes: number;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const StoreTrasladosHeader: React.FC<StoreTrasladosHeaderProps> = ({
   totalPendientes,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   const theme = useTheme();
   const { startFullTour, isFullTourRunning, resetTourState } = useTrasladosTourContext();
@@ -71,12 +76,53 @@ export const StoreTrasladosHeader: React.FC<StoreTrasladosHeaderProps> = ({
           }}
         />
 
+        {onRefresh && (
+          <Tooltip title={isRefreshing ? "Cargando..." : "Refrescar traslados"}>
+            <span>
+              <Button
+                onClick={onRefresh}
+                disabled={isRefreshing || isFullTourRunning}
+                variant="outlined"
+                size="small"
+                startIcon={
+                  <RefreshIcon
+                    sx={{
+                      fontSize: 16,
+                      animation: isRefreshing ? "spin 1s linear infinite" : "none",
+                      "@keyframes spin": {
+                        "0%": { transform: "rotate(0deg)" },
+                        "100%": { transform: "rotate(360deg)" },
+                      },
+                    }}
+                  />
+                }
+                sx={{
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 700,
+                  fontSize: "0.8rem",
+                  px: 1.5,
+                  py: 0.6,
+                  borderColor: "#CBD5E1",
+                  color: "#475569",
+                  "&:hover": {
+                    borderColor: "#94A3B8",
+                    backgroundColor: "#F8FAFC",
+                  },
+                }}
+              >
+                {isRefreshing ? "Refrescando..." : "Refrescar"}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
+
         <Tooltip title={isFullTourRunning ? "Tutorial en curso..." : "Ver tutorial"}>
           <span>
             <Button
               data-tour="store-btn-tutorial"
               onClick={handleStartTour}
-              disabled={isFullTourRunning}
+              disabled={isFullTourRunning || isRefreshing}
               variant="contained"
               size="small"
               startIcon={<HelpIcon sx={{ fontSize: 16 }} />}

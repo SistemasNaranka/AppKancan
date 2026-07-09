@@ -30,6 +30,8 @@ export interface ArchivoSubido {
   tipo: string;
   datos: any[];
   columnas: string[];
+  datosOriginales?: any[];
+  columnasOriginales?: string[];
   normalizado?: boolean;
   tipoArchivo?: string;
   columnasEliminar?: string[];

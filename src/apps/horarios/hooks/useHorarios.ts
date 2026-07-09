@@ -131,15 +131,15 @@ export const useHorarios = (storeOverride?: number | null) => {
       estadoActual = 'jornada_iniciada';
     }
 
-    const tienePausaActivaHoy = eventReportsToday.some(
+    const pausasActivasCount = eventReportsToday.filter(
       (r) => Number(r.employee_id?.id || r.employee_id) === Number(emp.id) && r.event_type === 'Terminar Pausa Activa'
-    );
+    ).length;
 
     return {
       ...emp,
       estadoActual,
       registros,
-      pausaActivaRealizada: tienePausaActivaHoy
+      pausasActivasCount
     };
   });
 

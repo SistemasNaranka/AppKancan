@@ -8,6 +8,7 @@ import {
   getSupplierByNit,
   getGoodsReceiptsBySupplierId,
   updateGoodsReceiptStatus,
+  createSupplierInvoice,
 } from "../services/api";
 import { executeContabilizarFactura } from "../utils/contabilizacion";
 
@@ -26,6 +27,8 @@ export function useHomeLogic() {
   const [causacionProgressOpen, setCausacionProgressOpen] = useState(false);
   const [causacionEntryId, setCausacionEntryId] = useState<number | null>(null);
   const [causacionEntryNumber, setCausacionEntryNumber] = useState<string | null>(null);
+  const [isRefreshingData, setIsRefreshingData] = useState(false);
+  const [causacionInvoiceId, setCausacionInvoiceId] = useState<number | null>(null);
 
   const [notification, setNotification] = useState<{
     open: boolean;
@@ -154,20 +157,66 @@ export function useHomeLogic() {
   }, [clearError]);
 
   const handleContabilizar = useCallback(async (datos: DatosFacturaPDF) => {
+    let supplierId: number | null = null;
+    let goodsReceiptId: number | null = null;
+
+    if (datos.proveedor.nif) {
+      const nitSinDv = getNitSinDv(datos.proveedor.nif);
+      try {
+        const supplier = await getSupplierByNit(nitSinDv);
+        if (supplier && supplier.id) {
+          supplierId = supplier.id;
+        }
+      } catch (err) {
+        console.error("Error al buscar proveedor para registrar factura:", err);
+      }
+    }
+
     const docNumber = datos.entrada || entradaSeleccionada;
     if (docNumber) {
       const entryObj = entradas.find((e) => e.document_number === docNumber);
       if (entryObj && entryObj.id) {
+        goodsReceiptId = entryObj.id;
         setCausacionEntryId(entryObj.id);
         setCausacionEntryNumber(entryObj.document_number);
         try {
           await updateGoodsReceiptStatus(entryObj.id, "en_proceso");
-          console.log(`Estado de entrada #${docNumber} actualizado a 'en_proceso'`);
         } catch (err) {
           console.error("Error al actualizar estado de la entrada:", err);
         }
       }
     }
+
+    if (!supplierId || !goodsReceiptId) {
+      setNotification({
+        open: true,
+        message: "Error: No se pudo asociar el proveedor o la entrada de mercancía para registrar la factura.",
+        severity: "error",
+      });
+      return;
+    }
+
+    try {
+      const createdInvoice = await createSupplierInvoice({
+        supplier_id: supplierId,
+        goods_receipt_id: goodsReceiptId,
+        raw_invoice_number: datos.numeroFactura,
+        clean_invoice_number: datos.numeroSinPrefijo || datos.numeroFactura,
+        invoice_date: datos.fechaEmision,
+        due_date: datos.fechaVencimiento,
+        net_amount: Number(datos.subtotal || 0),
+        tax_amount: Number(datos.totalImpuestos || 0),
+        total_amount: Number(datos.total || 0),
+        status: "en_proceso",
+      });
+
+      if (createdInvoice && createdInvoice.id) {
+        setCausacionInvoiceId(createdInvoice.id);
+      }
+    } catch (err) {
+      console.error("Error al registrar factura en Directus:", err);
+    }
+
     executeContabilizarFactura(datos);
     setCausacionProgressOpen(true);
   }, [entradas, entradaSeleccionada]);
@@ -208,10 +257,6 @@ export function useHomeLogic() {
       const proveedorExistente = await getAutomaticByNit(nitString);
 
       if (proveedorExistente && proveedorExistente.automatic) {
-        console.log(
-          "Proveedor encontrado por NIT sin DV, usando automático:",
-          proveedorExistente.automatic,
-        );
         const nuevosDatos = {
           ...datosFactura,
           automaticoAsignado: proveedorExistente.automatic,
@@ -241,14 +286,6 @@ export function useHomeLogic() {
 
       const nombreProveedor = datosFactura.proveedor.nombre;
       const nitProveedor = getNitSinDv(nitActual);
-
-      console.log("Datos a guardar:", {
-        nit: nitProveedor,
-        automatico,
-        nombreProveedor,
-        numeroFactura: datosFactura.numeroFactura,
-        valorFactura: datosFactura.total,
-      });
 
       setGuardandoAutomatico(true);
       try {
@@ -294,6 +331,65 @@ export function useHomeLogic() {
   const handleCloseNotification = useCallback(() => {
     setNotification((prev) => ({ ...prev, open: false }));
   }, []);
+
+  const handleRefreshData = useCallback(async () => {
+    setIsRefreshingData(true);
+    const cooldownPromise = new Promise((resolve) => setTimeout(resolve, 5000));
+
+    try {
+      if (datosFactura && datosFactura.proveedor.nif) {
+        const nitSinDv = getNitSinDv(datosFactura.proveedor.nif);
+        
+        const proveedorData = await getAutomaticByNit(nitSinDv);
+        let nuevoAutomatico = "";
+        if (proveedorData && proveedorData.automatic) {
+          nuevoAutomatico = proveedorData.automatic;
+          setAutomaticoAsignado(proveedorData.automatic);
+        }
+
+        let entries: any[] = [];
+        let selectedEntry = "";
+
+        const supplier = await getSupplierByNit(nitSinDv);
+        if (supplier && supplier.id) {
+          const goodsReceipts = await getGoodsReceiptsBySupplierId(supplier.id);
+          const pendingGoodsReceipts = (goodsReceipts || []).filter(
+            (gr) => gr.status === "pendiente"
+          );
+          
+          if (pendingGoodsReceipts && pendingGoodsReceipts.length > 0) {
+            entries = pendingGoodsReceipts;
+            if (pendingGoodsReceipts.length === 1) {
+              selectedEntry = pendingGoodsReceipts[0].document_number;
+            } else {
+              setModalEntradasOpen(true);
+            }
+          } else {
+            setModalNoEntradasOpen(true);
+          }
+        } else {
+          setModalNoEntradasOpen(true);
+        }
+
+        setDatosFactura((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            automaticoAsignado: nuevoAutomatico || prev.automaticoAsignado,
+            entrada: selectedEntry || prev.entrada,
+          };
+        });
+
+        setEntradas(entries);
+        setEntradaSeleccionada(selectedEntry);
+      }
+    } catch (err) {
+      console.error("Error al refrescar datos:", err);
+    } finally {
+      await cooldownPromise;
+      setIsRefreshingData(false);
+    }
+  }, [datosFactura]);
 
   const getStatus = useCallback((): EstadoProceso => {
     if (isProcessing) {
@@ -360,5 +456,8 @@ export function useHomeLogic() {
     handleUpdateResolution,
     handleSaveAutomatic,
     getProcessingMessage,
+    isRefreshingData,
+    handleRefreshData,
+    causacionInvoiceId,
   };
 }

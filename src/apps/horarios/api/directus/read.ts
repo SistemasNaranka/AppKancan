@@ -251,6 +251,7 @@ export interface TimeRecord {
   original_record_time: string | null;
   log_type: string;
   employee_id: {
+    id?: number | string;
     document_number?: string | number | null;
     first_name: string;
     middle_name: string | null;
@@ -264,12 +265,16 @@ export interface TimeRecord {
 export const fetchTimeRecords = async (
   fechaInicio?: string,
   fechaFin?: string,
-  storeId?: number
+  storeId?: number,
+  employeeId?: number | string
 ): Promise<TimeRecord[]> => {
   const filter: any = {};
 
   if (storeId != null) {
     filter.store_id = { _eq: storeId };
+  }
+  if (employeeId != null) {
+    filter.employee_id = { _eq: Number(employeeId) };
   }
   if (fechaInicio) {
     filter.record_date = { ...filter.record_date, _gte: fechaInicio };
@@ -282,7 +287,7 @@ export const fetchTimeRecords = async (
     directus.request(
       readItems('com_time_records', {
 
-        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id', 'observations'],
+        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id', 'observations'],
 
 
         filter,
@@ -472,6 +477,186 @@ export async function existeDocumentoEmpleado(documentNumber: string): Promise<b
   } catch (error) {
     console.error("❌ Error verificando existencia de documento:", error);
     return false;
+  }
+}
+
+export async function getEmpleadosBulk(storeIds: number[]): Promise<EmpleadoAsistencia[]> {
+  if (!storeIds || storeIds.length === 0) return [];
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("adm_employees", {
+          fields: ["id", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
+          filter: {
+            store_id: { _in: storeIds },
+            status: { _eq: "Activo" }
+          },
+          limit: -1,
+        })
+      )
+    );
+
+    return (items || []).map((emp: any) => {
+      const parts = [
+        emp.first_name,
+        emp.middle_name,
+        emp.last_name,
+        emp.second_last_name
+      ].filter(part => part && part.trim() !== "");
+      const full_name = parts.join(" ").trim() || "Empleado Sin Nombre";
+
+      return {
+        id: String(emp.id),
+        documento: String(emp.id), 
+        nombre: full_name,
+        cargo: emp.position_id?.name || "Sin Cargo",
+        estadoActual: "entrada_pendiente",
+        storeId: emp.store_id ? Number(typeof emp.store_id === 'object' ? emp.store_id.id : emp.store_id) : null,
+        registros: {
+          inicioJornada: null,
+          inicioAlmuerzo: null,
+          finAlmuerzo: null,
+          finJornada: null,
+          observaciones: {},
+        },
+      };
+    });
+  } catch (error) {
+    console.error("❌ Error cargando empleados en bulk:", error);
+    return [];
+  }
+}
+
+export async function getTimeRecordsBulk(storeIds: number[], date: string): Promise<any[]> {
+  if (!storeIds || storeIds.length === 0) return [];
+  try {
+    return await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_time_records', {
+          fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'store_id', 'observations'],
+          filter: {
+            store_id: { _in: storeIds },
+            record_date: { _eq: date }
+          },
+          limit: -1
+        })
+      )
+    );
+  } catch (error) {
+    console.error('❌ Error al obtener registros de tiempo en bulk:', error);
+    return [];
+  }
+}
+
+export async function getTimeRecordsBulkRange(storeIds: number[], startDate: string, endDate: string): Promise<any[]> {
+  if (!storeIds || storeIds.length === 0) return [];
+  try {
+    return await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_time_records', {
+          fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'store_id', 'observations'],
+          filter: {
+            store_id: { _in: storeIds },
+            record_date: { _gte: startDate, _lte: endDate }
+          },
+          limit: -1
+        })
+      )
+    );
+  } catch (error) {
+    console.error('❌ Error al obtener registros de tiempo por rango en bulk:', error);
+    return [];
+  }
+}
+
+export async function getNovedadesBulkRange(storeIds: number[], startDate: string, endDate: string): Promise<any[]> {
+  if (!storeIds || storeIds.length === 0) return [];
+  try {
+    return await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_newness_reports', {
+          fields: ['id', 'report_date', 'employee_id.id', 'store_id'],
+          filter: {
+            store_id: { _in: storeIds },
+            report_date: { _gte: startDate, _lte: endDate }
+          },
+          limit: -1
+        })
+      )
+    );
+  } catch (error) {
+    console.error('❌ Error al obtener novedades por rango en bulk:', error);
+    return [];
+  }
+}
+
+export async function getEditedTimeRecords(storeIds: number[], startDate: string, endDate: string): Promise<any[]> {
+  try {
+    const filter: any = {
+      original_record_time: { _nnull: true },
+      record_date: { _gte: startDate, _lte: endDate }
+    };
+    if (storeIds && storeIds.length > 0) {
+      filter.store_id = { _in: storeIds };
+    }
+
+    const records = await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_time_records', {
+          fields: [
+            'id', 
+            'record_date', 
+            'record_time', 
+            'original_record_time', 
+            'log_type', 
+            'employee_id.id', 
+            'employee_id.first_name', 
+            'employee_id.middle_name', 
+            'employee_id.last_name', 
+            'employee_id.second_last_name',
+            'store_id.id',
+            'store_id.name',
+            'observations'
+          ],
+          filter,
+          limit: -1,
+          sort: ['-record_date']
+        })
+      )
+    );
+
+    if (!records || records.length === 0) return [];
+
+    const recordIds = records.map((r: any) => r.id);
+    const reasonsMap = await getReasonNamesForRecords(recordIds);
+
+    return records.map((r: any) => {
+      const emp = r.employee_id || {};
+      const store = r.store_id || {};
+      const fullName = [
+        emp.first_name,
+        emp.middle_name,
+        emp.last_name,
+        emp.second_last_name
+      ].filter(Boolean).join(' ');
+
+      return {
+        id: r.id,
+        fecha: r.record_date,
+        empleadoId: emp.id,
+        empleadoNombre: fullName || 'Empleado Desconocido',
+        tiendaId: store.id,
+        tiendaNombre: store.name || 'Sin Tienda',
+        tipoRegistro: r.log_type,
+        horaOriginal: r.original_record_time,
+        horaModificada: r.record_time,
+        motivo: reasonsMap.get(r.id) || 'Sin justificación',
+        observaciones: r.observations || ''
+      };
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener registros editados:', error);
+    return [];
   }
 }
 

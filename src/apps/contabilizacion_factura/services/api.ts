@@ -252,5 +252,53 @@ export async function getGoodsReceiptById(id: number): Promise<AccGoodsReceipt |
     }
 }
 
+export interface AccSupplierInvoice {
+    id?: number;
+    date_created?: string;
+    supplier_id: number;
+    goods_receipt_id: number;
+    raw_invoice_number: string;
+    clean_invoice_number: string;
+    invoice_date: string;
+    due_date: string;
+    net_amount: number;
+    tax_amount: number;
+    total_amount: number;
+    status: "pendiente" | "en_proceso" | "causado";
+}
+
+export async function createSupplierInvoice(
+    data: Omit<AccSupplierInvoice, "id" | "date_created">
+): Promise<AccSupplierInvoice> {
+    try {
+        const item = await withAutoRefresh(() =>
+            directus.request(
+                createItem("acc_supplier_invoices", data)
+            )
+        );
+        return item as unknown as AccSupplierInvoice;
+    } catch (error) {
+        console.error("Error al crear factura de proveedor:", error);
+        throw error;
+    }
+}
+
+export async function updateSupplierInvoiceStatus(
+    id: number,
+    status: "pendiente" | "en_proceso" | "causado"
+) {
+    try {
+        const item = await withAutoRefresh(() =>
+            directus.request(
+                updateItem("acc_supplier_invoices", id, { status })
+            )
+        );
+        return item;
+    } catch (error) {
+        console.error("Error al actualizar estado de la factura de proveedor:", error);
+        throw error;
+    }
+}
+
 
 

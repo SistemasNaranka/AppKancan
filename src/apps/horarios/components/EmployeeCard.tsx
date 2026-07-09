@@ -20,6 +20,7 @@ import NormasModal from './NormasModal';
 import { getRecordReasonId } from '../api/directus/read';
 import { getNormasActivas, yaAceptoNormasEmpleado, registrarAceptacionNormasEmpleado, Normas } from '../api/directus/rules';
 import { useQuery } from '@tanstack/react-query';
+import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import dayjs from 'dayjs';
 import * as yup from 'yup';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -140,7 +141,8 @@ export default function EmployeeCard({
     );
   }
 
-  const { id, nombre, estadoActual, registros, pausaActivaRealizada } = empleado;
+  const { id, nombre, estadoActual, registros, pausasActivasCount = 0 } = empleado;
+  const { tieneTemporal } = useHorariosPolicies();
 
   const [novedadModalOpen, setNovedadModalOpen] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState<number | null>(null);
@@ -246,6 +248,22 @@ export default function EmployeeCard({
     staleTime: 10 * 60 * 1000,
   });
 
+  const { data: yaAceptoVigente = true, refetch: refetchAceptacion } = useQuery<boolean>({
+    queryKey: ['yaAceptoNormasEmpleado', id, normasActivas?.id],
+    queryFn: async () => {
+      if (!normasActivas || String(id) === '99999') return true;
+      return await yaAceptoNormasEmpleado(Number(id), normasActivas.id, normasActivas.version);
+    },
+    enabled: !!normasActivas && !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const showAceptarNormasButton =
+    tieneTemporal() &&
+    String(id) !== '99999' &&
+    !!normasActivas &&
+    !yaAceptoVigente;
+
   const novedadSchema = yup.object().shape({
     novedad: yup.string().required('El tipo de novedad es obligatorio'),
     fechaInicio: yup.string().required('La fecha de inicio es obligatoria'),
@@ -265,9 +283,11 @@ export default function EmployeeCard({
     { etiqueta: 'Terminar Jornada', activo: estadoActual === 'regreso_almuerzo', hora: registros.finJornada },
   ];
 
+  const MAX_PAUSAS = 2;
   const novedadActiva = estadoActual === 'entrada_pendiente';
   const finalizado = estadoActual === 'jornada_finalizada';
-  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado && tiempoRestante === null;
+  const pausasAgotadas = pausasActivasCount >= MAX_PAUSAS;
+  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado && tiempoRestante === null && !pausasAgotadas;
 
   const getObservacion = (evento: string) => {
     if (!registros.observaciones) return '';
@@ -406,7 +426,7 @@ export default function EmployeeCard({
     try {
       await onRegistrarEvento(id, tipoEvento);
       if (tipoEvento === 'Comenzar Jornada' && normasActivas && String(id) !== '99999') {
-        const yaAcepto = await yaAceptoNormasEmpleado(Number(id), normasActivas.id);
+        const yaAcepto = await yaAceptoNormasEmpleado(Number(id), normasActivas.id, normasActivas.version);
         if (!yaAcepto) {
           setTimeout(() => {
             setEmployeeNormasOpen(true);
@@ -424,6 +444,7 @@ export default function EmployeeCard({
     try {
       await registrarAceptacionNormasEmpleado(Number(id), normasActivas.version, normasActivas.id);
       setEmployeeNormasOpen(false);
+      refetchAceptacion();
     } catch (e) {
       console.error("Error al registrar aceptación de normas del empleado:", e);
     } finally {
@@ -444,10 +465,39 @@ export default function EmployeeCard({
                 {empleado.cargo}
               </Typography>
             )}
-            {estadoActual !== 'entrada_pendiente' && !pausaActivaRealizada && (
+            {estadoActual !== 'entrada_pendiente' && !finalizado && (
               <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ffffff', opacity: 0.75, textTransform: 'uppercase', mt: 0.5, letterSpacing: '0.5px' }}>
-                Pausa activa pendiente
+                {pausasAgotadas
+                  ? null
+                  : pausasActivasCount === 0
+                    ? 'Pausa activa pendiente'
+                    : `Pausa activa ${pausasActivasCount} de ${MAX_PAUSAS} completada`
+                }
               </Typography>
+            )}
+            {showAceptarNormasButton && (
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => setEmployeeNormasOpen(true)}
+                sx={{
+                  mt: 0.75,
+                  alignSelf: 'flex-start',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  bgcolor: '#fbbf24',
+                  color: '#451a03',
+                  textTransform: 'uppercase',
+                  px: 1.25,
+                  py: 0.25,
+                  borderRadius: 1.5,
+                  boxShadow: 'none',
+                  letterSpacing: '0.4px',
+                  '&:hover': { bgcolor: '#f59e0b', boxShadow: 'none' }
+                }}
+              >
+                ⚠ Aceptar Normas
+              </Button>
             )}
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -471,7 +521,13 @@ export default function EmployeeCard({
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={reporteActivo ? 'Reportar evento' : 'No disponible'}>
+            <Tooltip title={
+              pausasAgotadas
+                ? `Pausas activas completadas (${MAX_PAUSAS} de ${MAX_PAUSAS})`
+                : reporteActivo
+                  ? 'Iniciar Pausa Activa'
+                  : 'No disponible'
+            }>
               <span className="tour-evento-btn">
                 <IconButton
                   size="medium"
@@ -494,6 +550,7 @@ export default function EmployeeCard({
             <Chip label={estadoActual.replace(/_/g, ' ').toUpperCase()} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 'bold', fontSize: '0.65rem', height: 24 }} />
           </Box>
         </Box>
+
 
         <Box sx={{ p: 3 }}>
           {tiempoRestante !== null && (
@@ -643,6 +700,8 @@ export default function EmployeeCard({
               );
             })}
           </Stack>
+
+
           {finalizado && (
             <Box sx={{ mt: 2, textAlign: 'center', bgcolor: '#f0fdf4', py: 1, borderRadius: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: '#16a34a' }}>Jornada completada</Typography>

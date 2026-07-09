@@ -297,7 +297,6 @@ const buildInvoiceData = useCallback(
             response = await extractWithGemini(file, modeloAUsar);
             
             if (response) {
-              console.log(`Modelo usado: ${modeloAUsar}`);
               nuevoEstado.proveedorUsado = "gemini";
               nuevoEstado.modeloUsado = modeloAUsar;
               setEstadoHibrido({ ...nuevoEstado });

@@ -2,6 +2,7 @@ import React from "react";
 import { Paper, Box, Typography, Chip } from "@mui/material";
 import { Traslado } from "../hooks/types";
 import { useAuth } from "@/auth/hooks/useAuth";
+import dayjs from "dayjs";
 
 interface Props {
   traslado: Traslado;
@@ -9,6 +10,7 @@ interface Props {
   compact?: boolean;
   isSelected?: boolean;
   tienePoliticaTrasladosTiendas?: boolean;
+  tienePoliticaTrasladosJefezona?: boolean;
   isSplitView?: boolean;
 }
 
@@ -18,16 +20,27 @@ const TrasladoListItem: React.FC<Props> = ({
   compact,
   isSelected,
   tienePoliticaTrasladosTiendas = false,
+  tienePoliticaTrasladosJefezona = false,
   isSplitView = false,
 }) => {
   const { user } = useAuth();
   const codigoUltra = user?.ultra_code ?? "";
 
   const esEnviado = traslado.bodega_origen === codigoUltra;
+  const colorearBordes = tienePoliticaTrasladosTiendas && !tienePoliticaTrasladosJefezona;
+
+  const diasTranscurridos = React.useMemo(() => {
+    if (!traslado.fecha) return null;
+    const fechaTraslado = dayjs(traslado.fecha);
+    if (!fechaTraslado.isValid()) return null;
+    const hoy = dayjs();
+    const diff = hoy.diff(fechaTraslado, "day");
+    return diff >= 0 ? diff : 0;
+  }, [traslado.fecha]);
 
   let borderColor = "divider";
 
-  if (tienePoliticaTrasladosTiendas) {
+  if (colorearBordes) {
     borderColor = esEnviado ? "#2563EB" : "#F59E0B";
   }
 
@@ -44,9 +57,9 @@ const TrasladoListItem: React.FC<Props> = ({
         gap: 0.8,
         borderRadius: 2,
         width: "100%",
-        maxWidth: tienePoliticaTrasladosTiendas && isSplitView ? 300 : 280,
+        maxWidth: colorearBordes && isSplitView ? 300 : 280,
         mb: 1,
-        minWidth: tienePoliticaTrasladosTiendas && isSplitView ? 220 : 280,
+        minWidth: colorearBordes && isSplitView ? 220 : 280,
         boxSizing: "border-box",
 
         backgroundColor: isSelected
@@ -56,17 +69,17 @@ const TrasladoListItem: React.FC<Props> = ({
         border: `1px solid`,
         borderColor: isSelected
           ? theme.palette.primary.main
-          : tienePoliticaTrasladosTiendas
+          : colorearBordes
             ? "#CBD5E1"
             : theme.palette.divider,
 
-        borderLeft: tienePoliticaTrasladosTiendas
+        borderLeft: colorearBordes
           ? `4px solid ${borderColor}`
           : "",
 
         boxShadow: isSelected
           ? `0 0 15px ${theme.palette.primary.main}44`
-          : tienePoliticaTrasladosTiendas
+          : colorearBordes
             ? "0 10px 20px -10px rgba(0, 0, 0, 0.15)"
             : theme.shadows[2],
             
@@ -76,7 +89,7 @@ const TrasladoListItem: React.FC<Props> = ({
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         "&:hover": onTrasladoClick
           ? {
-              boxShadow: tienePoliticaTrasladosTiendas
+              boxShadow: colorearBordes
                 ? "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
                 : theme.shadows[6],
               transform: "translateY(-4px)",
@@ -89,7 +102,7 @@ const TrasladoListItem: React.FC<Props> = ({
         Traslado: {traslado.traslado}
       </Typography>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
         <Typography
           variant="body2"
           fontSize={compact ? 12 : 10}
@@ -97,6 +110,26 @@ const TrasladoListItem: React.FC<Props> = ({
         >
           Fecha: {traslado.fecha}
         </Typography>
+        {diasTranscurridos !== null && tienePoliticaTrasladosJefezona && (
+          <Typography
+            variant="caption"
+            sx={{
+              backgroundColor: diasTranscurridos > 7 ? "#FEE2E2" : "#E0F2FE",
+              color: diasTranscurridos > 7 ? "#991B1B" : "#0369A1",
+              px: 1,
+              py: 0.1,
+              borderRadius: "4px",
+              fontWeight: 700,
+              fontSize: compact ? "0.7rem" : "0.65rem",
+            }}
+          >
+            {diasTranscurridos === 0
+              ? "Hoy"
+              : diasTranscurridos === 1
+              ? "Hace 1 día"
+              : `Hace ${diasTranscurridos} días`}
+          </Typography>
+        )}
       </Box>
 
       {/* Encabezado */}

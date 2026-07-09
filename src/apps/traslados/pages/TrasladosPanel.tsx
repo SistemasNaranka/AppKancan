@@ -5,10 +5,11 @@ import { AccessValidationModal } from "../components/ValidarAccesso";
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useAccessValidation } from "../hooks/useAccessValidation";
 import type { Traslado } from "../hooks/types";
-import { obtenerTraslados } from "../api/obtenerTraslados";
+import { obtenerTraslados, obtenerTrasladosJefeZona } from "../api/obtenerTraslados";
 import { aprobarTraslados } from "../api/obtenerTraslados";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { obtenerTiendasUsuarioActual } from "@/services/directus/userStores";
 
 const TrasladosPanel: React.FC = () => {
   const { user } = useAuth();
@@ -25,23 +26,48 @@ const TrasladosPanel: React.FC = () => {
     "todos" | "enviados" | "recibidos"
   >("todos");
   const [filtroFecha, setFiltroFecha] = useState<string | null>(null);
+  const [ordenFecha, setOrdenFecha] = useState<"asc" | "desc">("desc");
+  const hasSetDefaultBodega = React.useRef(false);
 
   const tienePoliticaTrasladosTiendas =
     user?.policies?.includes("store_transfers") ?? false;
 
+  const tienePoliticaTrasladosJefezona =
+    user?.policies?.includes("AreaManagerTransfers") ?? false;
+
+  const tienePoliticaTiendaOGerente =
+    tienePoliticaTrasladosTiendas || tienePoliticaTrasladosJefezona;
+
+  // Obtener tiendas asignadas con sus empresas si el usuario es Jefe de Zona
+  const { data: tiendasAcceso } = useQuery({
+    queryKey: ["tiendas_usuario_actual_con_empresa", user?.id],
+    queryFn: obtenerTiendasUsuarioActual,
+    enabled: !!user && tienePoliticaTrasladosJefezona,
+  });
+
   const {
-    data: pendientes = [],
+    data: pendientesRaw = [],
     isLoading: loading,
     isError,
     error: queryError,
+    refetch,
+    isFetching,
   } = useQuery({
-    queryKey: ["traslados_pendientes", user?.ultra_code, user?.company],
+    queryKey: ["traslados_pendientes", user?.ultra_code, user?.company, tienePoliticaTrasladosJefezona, tiendasAcceso],
     queryFn: async () => {
       const codigo = user?.ultra_code;
       const empresa = user?.company;
 
-      if (!codigo || !empresa) {
+      if (!tienePoliticaTrasladosJefezona && (!empresa || !codigo)) {
         throw new Error("Usuario no autenticado o datos incompletos");
+      }
+
+      if (tienePoliticaTrasladosJefezona) {
+        return await obtenerTrasladosJefeZona(
+          String(codigo || ""),
+          String(empresa || ""),
+          tiendasAcceso || [],
+        );
       }
 
       return await obtenerTraslados(
@@ -53,8 +79,18 @@ const TrasladosPanel: React.FC = () => {
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 2,
     enabled:
-      !!user?.ultra_code && !!user?.company && accessValidation.isValid,
+      accessValidation.isValid &&
+      (tienePoliticaTrasladosJefezona || (!!user?.company && !!user?.ultra_code)) &&
+      (!tienePoliticaTrasladosJefezona || tiendasAcceso !== undefined),
   });
+
+  // Extraer los traslados del objeto envuelto si viene de n8n o similar
+  const pendientes = useMemo(() => {
+    if (Array.isArray(pendientesRaw) && pendientesRaw[0] && Array.isArray((pendientesRaw[0] as any).traslados)) {
+      return (pendientesRaw[0] as any).traslados as Traslado[];
+    }
+    return pendientesRaw as Traslado[];
+  }, [pendientesRaw]);
 
   React.useEffect(() => {
     if (isError && queryError) {
@@ -79,13 +115,25 @@ const TrasladosPanel: React.FC = () => {
 
     return Array.from(bodegas.values())
       .filter((b) => !codigoUltra || !b.startsWith(`${codigoUltra} -`))
-      .sort();
+      .sort((a, b) => {
+        const idA = parseInt(a.split(" - ")[0], 10) || 0;
+        const idB = parseInt(b.split(" - ")[0], 10) || 0;
+        return idA - idB;
+      });
   }, [pendientes, tienePoliticaTrasladosTiendas, user?.ultra_code]);
+
+  // Seleccionar la primera bodega por defecto si es Jefe de Zona y la lista de bodegas cargó
+  React.useEffect(() => {
+    if (tienePoliticaTrasladosJefezona && bodegasDestino.length > 0 && !hasSetDefaultBodega.current) {
+      setFiltroBodegaDestino(bodegasDestino[0]);
+      hasSetDefaultBodega.current = true;
+    }
+  }, [tienePoliticaTrasladosJefezona, bodegasDestino]);
 
   const filtrados = useMemo(() => {
     const codigoUltra = user?.ultra_code ?? "";
 
-    return pendientes.filter((t) => {
+    const res = pendientes.filter((t) => {
       let coincideTipo = true;
       if (filtroTipo === "enviados") {
         coincideTipo = String(t.bodega_origen) === String(codigoUltra);
@@ -113,6 +161,16 @@ const TrasladosPanel: React.FC = () => {
 
       return coincideTipo && coincideBodega && coincideNombre && coincideFecha;
     });
+
+    return res.sort((a, b) => {
+      const dateA = a.fecha || "";
+      const dateB = b.fecha || "";
+      if (ordenFecha === "asc") {
+        return dateA.localeCompare(dateB);
+      } else {
+        return dateB.localeCompare(dateA);
+      }
+    });
   }, [
     pendientes,
     filtroBodegaDestino,
@@ -122,6 +180,7 @@ const TrasladosPanel: React.FC = () => {
     user?.ultra_code,
     user?.policies,
     tienePoliticaTrasladosTiendas,
+    ordenFecha,
   ]);
 
   const conteos = useMemo(() => {
@@ -133,7 +192,7 @@ const TrasladosPanel: React.FC = () => {
       (t) => String(t.bodega_destino) === String(codigoUltra),
     );
 
-    if (tienePoliticaTrasladosTiendas) {
+    if (tienePoliticaTiendaOGerente) {
       const uniqueEnviados = new Set(enviados.map((t) => t.traslado)).size;
       const uniqueRecibidos = new Set(recibidos.map((t) => t.traslado)).size;
       const uniqueTotal = new Set(pendientes.map((t) => t.traslado)).size;
@@ -150,7 +209,7 @@ const TrasladosPanel: React.FC = () => {
       enviados: enviados.length,
       recibidos: recibidos.length,
     };
-  }, [pendientes, user?.ultra_code, tienePoliticaTrasladosTiendas]);
+  }, [pendientes, user?.ultra_code, tienePoliticaTiendaOGerente]);
 
   const handleToggleSeleccion = (id: number) => {
     setIdsSeleccionados((prev) =>
@@ -219,9 +278,6 @@ const TrasladosPanel: React.FC = () => {
     navigate("/");
   };
 
-  const tienePoliticaTrasladosJefezona =
-    user?.policies?.includes("AreaManagerTransfers") ?? false;
-
   return (
     <Box
       sx={{
@@ -245,7 +301,7 @@ const TrasladosPanel: React.FC = () => {
         <>
           <PanelPendientes
             totalPendientes={
-              tienePoliticaTrasladosTiendas
+              (tienePoliticaTrasladosTiendas || tienePoliticaTrasladosJefezona)
                 ? new Set(pendientes.map((t) => t.traslado)).size
                 : pendientes.length
             }
@@ -268,7 +324,11 @@ const TrasladosPanel: React.FC = () => {
             onEliminarTrasladosAprobados={handleEliminarTrasladosAprobados}
             onRetry={handleRetry}
             tienePoliticaTrasladosJefezona={tienePoliticaTrasladosJefezona}
-            tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
+            tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas || tienePoliticaTrasladosJefezona}
+            onRefresh={() => refetch()}
+            isRefreshing={isFetching}
+            ordenFecha={ordenFecha}
+            setOrdenFecha={setOrdenFecha}
           />
 
           {/* Snackbar de éxito */}
