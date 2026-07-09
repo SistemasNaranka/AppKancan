@@ -175,6 +175,8 @@ function RegistrosPageContent() {
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
   const { activeTutorial, endTutorial } = useTutorial();
   const [tabValue, setTabValue] = useState(0);
+
+
   const [vistaAdmin, setVistaAdmin] = useState(false);
   const [vistaReporte, setVistaReporte] = useState(esReport() && !esAdmin());
   const [exportEventosOpen, setExportEventosOpen] = useState(false);
