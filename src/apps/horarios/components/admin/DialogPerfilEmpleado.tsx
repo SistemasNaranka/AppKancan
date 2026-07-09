@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
-  Avatar, Chip, CircularProgress, Divider, Collapse,
+  Avatar, Chip, CircularProgress, Divider, Collapse, IconButton,
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -10,13 +10,17 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
-import { useQuery } from '@tanstack/react-query';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import {
   getEmployeeTimeRecords, getEmployeeNovedades, getEmployeeEventReports,
 } from '../../api/directus/read';
+import { eliminarNovedad } from '../../api/directus/create';
 import { EmpleadoAdmin } from '../../interfaces/horarios.interface';
 import { getIconForTipo, getChipColor } from '../../utils/novedadVisual';
+import { useHorariosPolicies } from '../../hooks/useHorariosPolicies';
+import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
 const AZUL = '#004680';
 const AVATAR_COLORS = ['#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777', '#0891b2', '#4f46e5', '#ca8a04', '#dc2626', '#059669', '#2563eb', '#9333ea'];
@@ -99,6 +103,33 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
   const hoy = dayjs().format('YYYY-MM-DD');
   const habilitado = open && empId > 0;
 
+  const { esAdmin } = useHorariosPolicies();
+  const isAdminUser = esAdmin();
+  const queryClient = useQueryClient();
+  const { showSnackbar } = useGlobalSnackbar();
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  const eliminarMutation = useMutation({
+    mutationFn: eliminarNovedad,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['perfilNovedades', empId] });
+      queryClient.invalidateQueries({ queryKey: ['novedades'] });
+      queryClient.invalidateQueries({ queryKey: ['empleados'] });
+      showSnackbar('Novedad eliminada con éxito', 'success');
+    },
+    onError: (err: any) => {
+      showSnackbar(err?.message || 'Error al eliminar la novedad', 'error');
+    },
+  });
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteId != null) {
+      await eliminarMutation.mutateAsync(confirmDeleteId);
+      setConfirmDeleteId(null);
+    }
+  };
+
   const { data: timeRecords = [], isLoading: loadingTR } = useQuery<any[]>({
     queryKey: ['perfilTimeRecords', empId, inicioMes, hoy],
     queryFn: () => getEmployeeTimeRecords(empId, inicioMes, hoy),
@@ -156,7 +187,8 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
   );
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+    <>
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
       <DialogTitle component="div" sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Avatar sx={{ bgcolor: colorAvatar(nombre), width: 46, height: 46, fontWeight: 700 }}>{nombre.charAt(0).toUpperCase()}</Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -228,7 +260,20 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
                         size="small"
                         sx={{ height: 24, fontWeight: 700, fontSize: '0.72rem', bgcolor: c.bg, color: c.text, '& .MuiChip-icon': { ml: 0.5 } }}
                       />
-                      <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8', flexShrink: 0 }}>{n.report_date ? dayjs(n.report_date).format('DD MMM YYYY') : '—'}</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8', flexShrink: 0 }}>
+                          {n.report_date ? dayjs(n.report_date).format('DD MMM YYYY') : '—'}
+                        </Typography>
+                        {isAdminUser && (
+                          <IconButton
+                            size="small"
+                            onClick={() => setConfirmDeleteId(n.id)}
+                            sx={{ color: '#ef4444', p: 0.25, '&:hover': { bgcolor: '#fef2f2' } }}
+                          >
+                            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        )}
+                      </Box>
                     </Box>
                   );
                 })}
@@ -260,5 +305,55 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
         <Button onClick={onEditar} variant="contained" disableElevation startIcon={<EditOutlinedIcon />} sx={{ bgcolor: AZUL, borderRadius: 2, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#003a6b' } }}>Editar</Button>
       </DialogActions>
     </Dialog>
+
+    {/* Diálogo de Confirmación para Eliminar Novedad */}
+    <Dialog
+      open={confirmDeleteId !== null}
+      onClose={() => setConfirmDeleteId(null)}
+      slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
+    >
+      <DialogTitle sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#0f2c4a' }}>
+        ¿Eliminar novedad?
+      </DialogTitle>
+      <DialogContent>
+        <Typography sx={{ fontSize: '0.85rem', color: '#64748b' }}>
+          ¿Estás seguro de que deseas eliminar esta novedad? Esta acción no se puede deshacer y el empleado volverá a figurar según sus marcaciones habituales.
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+        <Button
+          onClick={() => setConfirmDeleteId(null)}
+          variant="outlined"
+          disabled={eliminarMutation.isPending}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            color: '#475569',
+            borderColor: '#cbd5e1',
+            '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' },
+          }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleConfirmDelete}
+          variant="contained"
+          disableElevation
+          disabled={eliminarMutation.isPending}
+          startIcon={eliminarMutation.isPending ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : null}
+          sx={{
+            bgcolor: '#dc2626',
+            borderRadius: 2,
+            fontWeight: 700,
+            textTransform: 'none',
+            '&:hover': { bgcolor: '#b91c1c' },
+          }}
+        >
+          {eliminarMutation.isPending ? 'Eliminando…' : 'Eliminar'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </>
   );
 }

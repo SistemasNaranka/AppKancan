@@ -245,7 +245,7 @@ function RegistrosPageContent() {
     }
   };
 
-  if (loading) {
+  if (loading && !vistaAdmin && !vistaReporte && tabValue !== 4) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress size={50} sx={{ color: '#004680' }} />
