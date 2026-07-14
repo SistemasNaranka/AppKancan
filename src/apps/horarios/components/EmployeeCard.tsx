@@ -129,7 +129,7 @@ function NombreEmpleado({ nombre }: { nombre: string }) {
 
 export default function EmployeeCard({
   empleado, tiposNovedad, reasons, onRegistrarEvento,
-  onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad, onReportarEvento
+  onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad, onReportarEvento,
 }: EmployeeCardProps) {
   if (!empleado) {
     return (
@@ -214,6 +214,7 @@ export default function EmployeeCard({
 
     return () => clearInterval(interval);
   }, [tiempoRestante, id, onReportarEvento]);
+
   const [formData, setFormData] = useState({
     novedad: '',
     fechaInicio: dayjs().format('YYYY-MM-DD'),
@@ -694,13 +695,27 @@ export default function EmployeeCard({
       </Dialog>
 
       {/* Modal novedad */}
-      <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
+      <Dialog 
+        open={novedadModalOpen} 
+        onClose={handleCloseNovedadModal}
+        maxWidth="sm" 
+        fullWidth 
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>
+          Registro de Novedad
+        </DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-            <FormControl fullWidth error={!!formErrors.novedad}>
+            
+            <FormControl fullWidth id="tour-modal-tipo" error={!!formErrors.novedad}>
               <InputLabel id="novedad-select-label">Novedad</InputLabel>
-              <Select labelId="novedad-select-label" value={formData.novedad} label="Novedad" onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}>
+              <Select 
+                labelId="novedad-select-label" 
+                value={formData.novedad} 
+                label="Novedad" 
+                onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}
+              >
                 {(tiposNovedad || []).map(tipo => (
                   <MenuItem key={tipo.id} value={tipo.name || tipo.nombre}>
                     {tipo.name || tipo.nombre}
@@ -709,6 +724,7 @@ export default function EmployeeCard({
               </Select>
               {formErrors.novedad && <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>{formErrors.novedad}</Typography>}
             </FormControl>
+
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <DatePicker
@@ -739,62 +755,38 @@ export default function EmployeeCard({
                 />
               </Box>
             </LocalizationProvider>
-            <TextField label="Observaciones" multiline rows={3} fullWidth value={formData.observaciones} onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })} placeholder="Detalle adicional..." error={!!formErrors.observaciones} helperText={formErrors.observaciones} />
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Observaciones"
+              placeholder="Escriba aquí las observaciones de la novedad..."
+              value={formData.observaciones}
+              onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+              inputProps={{ maxLength: 300 }}
+            />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={handleCloseNovedadModal} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
-          <Button onClick={handleGuardarNovedad} variant="contained" disabled={!formData.novedad || !formData.fechaInicio || !formData.fechaFin} sx={{ bgcolor: '#004680' }}>Guardar</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Modal reporte de evento / pausa */}
-      <Dialog open={eventoModalOpen} onClose={handleCloseEventoModal} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3, fontWeight: 700 }}>Reporta un evento</DialogTitle>
-        <DialogContent dividers sx={{ p: 3 }}>
-          <Typography sx={{ fontSize: '0.85rem', color: '#475569', mb: 2 }}>
-            Escoja la novedad presentada para {nombre}:
-          </Typography>
-          <FormControl fullWidth error={!!eventoError}>
-            <InputLabel id="evento-select-label">Evento</InputLabel>
-            <Select
-              labelId="evento-select-label"
-              value={eventoSeleccionado}
-              label="Evento"
-              onChange={(e) => { setEventoSeleccionado(e.target.value); setEventoError(''); }}
-            >
-              {EVENTOS_PAUSA.map((ev) => (
-                <MenuItem key={ev} value={ev}>{ev}</MenuItem>
-              ))}
-            </Select>
-            {eventoError && <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>{eventoError}</Typography>}
-          </FormControl>
-          <TextField
-            label="Observaciones"
-            multiline
-            rows={3}
-            fullWidth
-            value={eventoObservaciones}
-            onChange={(e) => setEventoObservaciones(e.target.value.slice(0, 300))}
-            placeholder="Detalle adicional (opcional)..."
-            helperText={`${eventoObservaciones.length}/300 caracteres`}
-            slotProps={{ formHelperText: { sx: { textAlign: 'right' } } }}
-            sx={{ mt: 2.5 }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={handleCloseEventoModal} disabled={guardandoEvento} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
-          <Button
-            onClick={handleGuardarEvento}
-            variant="contained"
-            disabled={guardandoEvento}
-            startIcon={guardandoEvento ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
-            sx={{ bgcolor: '#004680' }}
+        
+        <DialogActions sx={{ p: 3, gap: 2, bgcolor: '#f8fafc' }}>
+          <Button 
+            onClick={handleCloseNovedadModal} 
+            variant="outlined" 
+            sx={{ borderRadius: 2, px: 3, fontWeight: 600, color: '#475569', borderColor: '#cbd5e1' }}
           >
-            {guardandoEvento ? 'Guardando…' : 'Guardar'}
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleGuardarNovedad} 
+            variant="contained" 
+            sx={{ bgcolor: '#004680', borderRadius: 2, px: 4, fontWeight: 600 }}
+          >
+            Guardar Novedad
           </Button>
         </DialogActions>
       </Dialog>
     </>
   );
 }
+

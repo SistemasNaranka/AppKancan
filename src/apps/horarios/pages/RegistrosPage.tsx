@@ -256,7 +256,6 @@ function RegistrosPageContent() {
       <Paper elevation={0} sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 1, mb: 2, bgcolor: '#fff' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, bgcolor: '#fff', p: { xs: 1.5, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
-            {/* Badge de ícono que ancla el título y refuerza el contexto de la pestaña activa */}
             <Box
               sx={{
                 display: 'flex',
@@ -332,7 +331,7 @@ function RegistrosPageContent() {
                     startIcon={<GavelIcon sx={{ fontSize: 18 }} />}
                     sx={{
                       borderRadius: 2, textTransform: 'none', fontWeight: 700,
-                      color: '#991b1b', borderColor: '#fca5a5', px: 2, py: 0.75, // Rojo suave/borgoña
+                      color: '#991b1b', borderColor: '#fca5a5', px: 2, py: 0.75,
                       '&:hover': { borderColor: '#f87171', bgcolor: '#fff5f5' },
                     }}
                   >
@@ -438,7 +437,6 @@ function RegistrosPageContent() {
               <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
               <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
               <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
-              {/* La pestaña permanece en el árbol (oculta) para conservar la alineación de índices con sus TabPanel */}
               <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
               {esAdmin() && (
                 <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
