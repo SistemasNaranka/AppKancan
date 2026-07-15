@@ -21,6 +21,7 @@ import { EmpleadoAdmin } from '../../interfaces/horarios.interface';
 import { getIconForTipo, getChipColor } from '../../utils/novedadVisual';
 import { useHorariosPolicies } from '../../hooks/useHorariosPolicies';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { formatDocumentNumber } from '../../utils/format';
 
 const AZUL = '#004680';
 const AVATAR_COLORS = ['#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777', '#0891b2', '#4f46e5', '#ca8a04', '#dc2626', '#059669', '#2563eb', '#9333ea'];
@@ -210,7 +211,12 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
                   <Box sx={{ width: 28, height: 28, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eaf2fb', color: AZUL }}><BadgeIcon sx={{ fontSize: 17 }} /></Box>
                   <Typography sx={{ fontSize: '0.82rem' }}>Documento</Typography>
                 </Box>,
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f2c4a' }}>{[empleado?.document_type, empleado?.document_number].filter(Boolean).join(' ') || '—'}</Typography>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f2c4a' }}>
+                  {[
+                    empleado?.document_type,
+                    empleado?.document_number ? formatDocumentNumber(empleado.document_number) : ''
+                  ].filter(Boolean).join(' ') || '—'}
+                </Typography>
               )}
               {fila(
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>

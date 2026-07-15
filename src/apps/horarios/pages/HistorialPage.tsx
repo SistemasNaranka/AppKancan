@@ -210,6 +210,7 @@ export default function HistorialPage({
               <TableRow>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Fecha</TableCell>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Empleado</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Tienda</TableCell>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Inicio Turno</TableCell>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Inicio Almuerzo</TableCell>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Fin Almuerzo</TableCell>
@@ -236,6 +237,9 @@ export default function HistorialPage({
                   </TableCell>
                   <TableCell sx={{ py: 1.5, fontWeight: 600, color: '#1e293b', borderBottom: '1px solid #e2e8f0' }}>
                     {row.empleado}
+                  </TableCell>
+                  <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                    {row.tiendaNombre || '—'}
                   </TableCell>
                   <TableCell sx={{ py: 1.5, borderBottom: '1px solid #e2e8f0' }}>
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
@@ -355,7 +359,7 @@ export default function HistorialPage({
               ))}
               {(isLoading || isError || datosPaginados.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 8, borderBottom: 'none' }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 8, borderBottom: 'none' }}>
                     {isLoading && <Typography variant="body2" sx={{ color: '#64748b' }}>Cargando registros...</Typography>}
                     {isError && <Typography variant="body2" sx={{ color: '#ef4444' }}>Error al cargar los registros</Typography>}
                     {!isLoading && !isError && <Typography variant="body2" sx={{ color: '#94a3b8' }}>No hay registros para mostrar</Typography>}

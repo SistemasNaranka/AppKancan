@@ -180,6 +180,7 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
               <TableRow>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Fecha</TableCell>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Empleado</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Tienda</TableCell>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Tipo de Novedad</TableCell>
                 <TableCell sx={{ fontWeight: 700, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>Observaciones</TableCell>
               </TableRow>
@@ -214,6 +215,9 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
                         </Box>
                       </Box>
                     </TableCell>
+                    <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#475569' }}>
+                      {novedad.tiendaNombre || '—'}
+                    </TableCell>
                     <TableCell>
                       <Chip
                         icon={getIconForTipo(novedad.tipo)}
@@ -234,7 +238,7 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
 
               {novedadesFiltradas.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                       <AssignmentIcon sx={{ fontSize: 48, color: '#cbd5e1' }} />
                       <Typography variant="body1" color="#94a3b8" sx={{ fontWeight: 500 }}>

@@ -379,6 +379,7 @@ export const useHorarios = (storeOverride?: number | null) => {
       tipo: tipoNovedadName,
       observaciones: nov.observations || '',
       empleadoActivo: !!empLocal, // empleadosDB solo trae empleados activos
+      tiendaNombre: nov.store_id?.name || 'Sin tienda',
     };
   });
 

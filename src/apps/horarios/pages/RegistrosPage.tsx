@@ -291,13 +291,13 @@ function RegistrosPageContent() {
                     ? `${isOnlyReport ? 'Informe Registro de Horarios' : 'Reporte de Asistencia'}${(() => {
                       const nombre = storeOverride != null
                         ? (tiendasAdmin.find((t) => t.id === storeOverride)?.name ?? '')
-                        : (user?.store_name ?? '');
+                        : (esAdmin() || esReport() ? '' : (user?.store_name ?? ''));
                       return nombre ? ` - ${toTitleCase(nombre)}` : '';
                     })()}` 
                     : `${getTituloPrincipal()}${(() => {
                       const nombre = storeOverride != null
                         ? (tiendasAdmin.find((t) => t.id === storeOverride)?.name ?? '')
-                        : (user?.store_name ?? '');
+                        : (esAdmin() || esReport() ? '' : (user?.store_name ?? ''));
                       return nombre ? ` - ${toTitleCase(nombre)}` : '';
                     })()}`}
               </Typography>

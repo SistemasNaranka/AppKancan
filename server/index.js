@@ -36,6 +36,9 @@ app.use(express.static(path.join(__dirname, "../dist")));
 // Para cualquier ruta que no sea API, servir index.html (SPA)
 app.get("*", (req, res) => {
   if (!req.path.startsWith("/api")) {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.sendFile(path.join(__dirname, "../dist/index.html"));
   } else {
     res.status(404).json({ error: "Endpoint no encontrado" });

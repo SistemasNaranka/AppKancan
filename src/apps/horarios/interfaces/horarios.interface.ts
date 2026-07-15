@@ -34,6 +34,7 @@ export interface HistorialRow {
   fin_almuerzo: string | null;
   fin_turno: string | null;
   observaciones_evento: ObservacionEvento[];
+  tiendaNombre?: string;
 }
 
 export interface Novedad {

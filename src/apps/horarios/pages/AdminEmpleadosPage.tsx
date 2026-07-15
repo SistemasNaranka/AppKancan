@@ -18,6 +18,7 @@ import DialogNuevoEmpleado from '../components/admin/DialogNuevoEmpleado';
 import DialogEditarEmpleado from '../components/admin/DialogEditarEmpleado';
 import DialogPerfilEmpleado from '../components/admin/DialogPerfilEmpleado';
 import { EmpleadoAdmin, Tienda } from '../interfaces/horarios.interface';
+import { formatDocumentNumber } from '../utils/format';
 
 const AZUL = '#004680';
 
@@ -292,7 +293,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
                         {nombre}
                       </Typography>
                       <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <BadgeIcon sx={{ fontSize: 13 }} /> {emp.document_number || '—'}
+                        <BadgeIcon sx={{ fontSize: 13 }} /> {emp.document_number ? formatDocumentNumber(emp.document_number) : '—'}
                       </Typography>
                     </Box>
                     <Chip

@@ -1,11 +1,12 @@
 import type { NewReservation } from "../types/reservas.types";
+import { resolveNetworkUrl } from "@/shared/utils/network";
 
 const WEBHOOK_USERNAME = import.meta.env.VITE_WEBHOOK_USERNAME;
 const WEBHOOK_PASSWORD = import.meta.env.VITE_WEBHOOK_PASSWORD;
 
-const WEBHOOK_URL_CREADA = import.meta.env.VITE_WEBHOOK_URL_ENVIO_CORREO;
-const WEBHOOK_URL_ACTUALIZADA = import.meta.env.VITE_WEBHOOK_URL_RESERVA_ACTUALIZADA;
-const WEBHOOK_URL_CANCELADA = import.meta.env.VITE_WEBHOOK_URL_RESERVA_CANCELADA;
+const WEBHOOK_URL_CREADA = resolveNetworkUrl(import.meta.env.VITE_WEBHOOK_URL_ENVIO_CORREO);
+const WEBHOOK_URL_ACTUALIZADA = resolveNetworkUrl(import.meta.env.VITE_WEBHOOK_URL_RESERVA_ACTUALIZADA);
+const WEBHOOK_URL_CANCELADA = resolveNetworkUrl(import.meta.env.VITE_WEBHOOK_URL_RESERVA_CANCELADA);
 
 type ReservationEvent = "reserva_creada" | "reserva_actualizada" | "reserva_cancelada";
 

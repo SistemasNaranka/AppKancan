@@ -41,6 +41,7 @@ const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
       fin_almuerzo: buscar('Finalizar Almuerzo'),
       fin_turno: buscar('Terminar Jornada'),
       observaciones_evento,
+      tiendaNombre: registros[0].store_id?.name || '—',
     };
   });
 };

@@ -7,6 +7,7 @@ import {
 import BadgeIcon from '@mui/icons-material/Badge';
 import { Tienda, Cargo, EmpleadoAdmin } from '../../interfaces/horarios.interface';
 import { useParseNombreIA } from '../../hooks/useParseNombreIA';
+import { formatDocumentNumber } from '../../utils/format';
 
 const AZUL = '#004680';
 
@@ -136,7 +137,7 @@ export default function DialogEditarEmpleado({
             {nombreCompleto || 'Empleado'}
           </Typography>
           <Typography sx={{ fontSize: '0.78rem', opacity: 0.85 }}>
-            {empleado.document_type || 'Documento'}: {empleado.document_number}
+            {empleado.document_type || 'Documento'}: {formatDocumentNumber(empleado.document_number)}
           </Typography>
         </Box>
         <Chip label={(empleado.status || '—').toUpperCase()} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, fontSize: '0.7rem', borderRadius: '8px' }} />

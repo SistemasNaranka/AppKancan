@@ -409,7 +409,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     <>
                         {/* KPIs de Auditoría */}
                         <Grid container spacing={3} sx={{ mb: 3 }}>
-                            <Grid item xs={12} md={4}>
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Box sx={{ bgcolor: '#ffebee', p: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <EditNoteIcon sx={{ color: '#c62828', fontSize: 28 }} />
@@ -420,7 +420,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                     </Box>
                                 </Paper>
                             </Grid>
-                            <Grid item xs={12} md={4}>
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Box sx={{ bgcolor: '#e3f2fd', p: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <SupervisorAccountIcon sx={{ color: '#0d47a1', fontSize: 28 }} />
@@ -431,7 +431,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                     </Box>
                                 </Paper>
                             </Grid>
-                            <Grid item xs={12} md={4}>
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Box sx={{ bgcolor: '#fff8e1', p: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <WarningIcon sx={{ color: '#f57f17', fontSize: 28 }} />
