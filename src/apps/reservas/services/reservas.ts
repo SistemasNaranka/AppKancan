@@ -1,4 +1,3 @@
-// src/apps/reservas/services/reservas.ts
 
 import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
@@ -204,9 +203,6 @@ export async function getMyReservations(
   }
 }
 
-/**
- * Obtiene una reserva por ID
- */
 export async function getReservationById(id: number): Promise<Reservation> {
   try {
     const items = await withAutoRefresh(() =>
@@ -234,9 +230,6 @@ export async function getReservationById(id: number): Promise<Reservation> {
   }
 }
 
-/**
- * Crea una nueva reserva
- */
 export async function createReservation(data: NewReservation): Promise<Reservation> {
   try {
     const me = await withAutoRefresh(() =>

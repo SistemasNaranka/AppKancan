@@ -15,7 +15,8 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 import { getIconForTipo, getChipColor } from '../utils/novedadVisual';
-import ExportNovedadesDialog from './ExportNovedadesDialog';
+import ExportNovedadesDialog from './reportes/ExportNovedadesDialog';
+import { formatDocumentNumber } from '../utils/format';
 
 const AVATAR_COLORS = [
   '#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777',
@@ -35,21 +36,24 @@ interface Props {
   esAdmin: boolean;
   storeOverride: number | null;
   rowsPerPage?: number;
+  esReporte?: boolean;
 }
 
-export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPerPage = 5 }: Props) {
+export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPerPage = 5, esReporte = false }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [fechaFiltro, setFechaFiltro] = useState<Dayjs | null>(null);
   const [soloActivos, setSoloActivos] = useState(false);
   const [page, setPage] = useState(0);
   const [exportOpen, setExportOpen] = useState(false);
 
-  const novedadesFiltradas = novedades.filter((n: any) => {
-    const matchNombre = (n.empleadoNombre || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchFecha = fechaFiltro ? dayjs(n.fecha).isSame(fechaFiltro, 'day') : true;
-    const matchActivo = !soloActivos || n.empleadoActivo;
-    return matchNombre && matchFecha && matchActivo;
-  });
+  const novedadesFiltradas = esReporte
+    ? novedades
+    : novedades.filter((n: any) => {
+        const matchNombre = (n.empleadoNombre || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const matchFecha = fechaFiltro ? dayjs(n.fecha).isSame(fechaFiltro, 'day') : true;
+        const matchActivo = !soloActivos || n.empleadoActivo;
+        return matchNombre && matchFecha && matchActivo;
+      });
 
   const paginated = rowsPerPage === 0
     ? novedadesFiltradas
@@ -76,101 +80,103 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
               sx={{ height: 22, fontWeight: 700, fontSize: '0.72rem', bgcolor: '#eaf2fb', color: '#004680' }}
             />
           </Box>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
-            <Box
-              className="tour-nov-search"
-              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: { xs: '100%', sm: 280, md: 350 }, height: 38 }}
-            >
-              <TextField
-                size="small"
-                placeholder="Nombre del empleado..."
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end" sx={{ gap: 0.5 }}>
-                      {searchQuery && (
-                        <IconButton size="small" onClick={() => { setSearchQuery(''); setPage(0); }}>
-                          <ClearIcon sx={{ fontSize: 16, color: '#8a9bb5' }} />
-                        </IconButton>
-                      )}
-                      <PersonSearchIcon sx={{ color: '#004680', fontSize: 20, mr: 0.5 }} />
-                    </InputAdornment>
-                  )
-                }}
-                sx={{
-                  width: '100%',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2, bgcolor: '#f1f7fe', height: 38,
-                    '& fieldset': { borderColor: '#cbd5e1' },
-                    '&:hover fieldset': { borderColor: '#94a3b8' },
-                    '&.Mui-focused fieldset': { borderColor: '#004680' },
-                  },
-                  '& .MuiOutlinedInput-input': { fontSize: '0.85rem', color: '#475569', '&::placeholder': { color: '#8a9bb5', opacity: 1 } }
-                }}
-              />
-            </Box>
-
-            {/* DATE PICKER */}
-            <Box className="tour-nov-fecha">
-              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-                <DatePicker
-                  label=""
-                  value={fechaFiltro}
-                  onChange={(newVal) => { setFechaFiltro(newVal as Dayjs | null); setPage(0); }}
-                  format="DD/MM/YYYY"
-                  slotProps={{
-                    shortcuts: {
-                      items: [
-                        { label: 'Hoy', getValue: () => dayjs() },
-                        { label: 'Ayer', getValue: () => dayjs().subtract(1, 'day') },
-                      ],
+          {!esReporte && (
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
+              <Box
+                className="tour-nov-search"
+                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: { xs: '100%', sm: 280, md: 350 }, height: 38 }}
+              >
+                <TextField
+                  size="small"
+                  placeholder="Nombre del empleado..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end" sx={{ gap: 0.5 }}>
+                        {searchQuery && (
+                          <IconButton size="small" onClick={() => { setSearchQuery(''); setPage(0); }}>
+                            <ClearIcon sx={{ fontSize: 16, color: '#8a9bb5' }} />
+                          </IconButton>
+                        )}
+                        <PersonSearchIcon sx={{ color: '#004680', fontSize: 20, mr: 0.5 }} />
+                      </InputAdornment>
+                    )
+                  }}
+                  sx={{
+                    width: '100%',
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2, bgcolor: '#f1f7fe', height: 38,
+                      '& fieldset': { borderColor: '#cbd5e1' },
+                      '&:hover fieldset': { borderColor: '#94a3b8' },
+                      '&.Mui-focused fieldset': { borderColor: '#004680' },
                     },
-                    textField: {
-                      size: 'small',
-                      placeholder: 'DD/MM/YYYY',
-                      sx: {
-                        width: 195,
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2, bgcolor: '#f9fafc', height: 38,
-                          '& fieldset': { borderColor: '#cbd5e1' },
-                          '&:hover fieldset': { borderColor: '#94a3b8' },
-                          '&.Mui-focused fieldset': { borderColor: '#004680' },
-                        },
-                        '& .MuiOutlinedInput-input': { fontSize: '0.85rem', color: '#475569' }
-                      }
-                    },
-                    field: { clearable: true, onClear: () => { setFechaFiltro(null); setPage(0); } },
+                    '& .MuiOutlinedInput-input': { fontSize: '0.85rem', color: '#475569', '&::placeholder': { color: '#8a9bb5', opacity: 1 } }
                   }}
                 />
-              </LocalizationProvider>
+              </Box>
+
+              {/* DATE PICKER */}
+              <Box className="tour-nov-fecha">
+                <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                  <DatePicker
+                    label=""
+                    value={fechaFiltro}
+                    onChange={(newVal) => { setFechaFiltro(newVal as Dayjs | null); setPage(0); }}
+                    format="DD/MM/YYYY"
+                    slotProps={{
+                      shortcuts: {
+                        items: [
+                          { label: 'Hoy', getValue: () => dayjs() },
+                          { label: 'Ayer', getValue: () => dayjs().subtract(1, 'day') },
+                        ],
+                      },
+                      textField: {
+                        size: 'small',
+                        placeholder: 'DD/MM/YYYY',
+                        sx: {
+                          width: 195,
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2, bgcolor: '#f9fafc', height: 38,
+                            '& fieldset': { borderColor: '#cbd5e1' },
+                            '&:hover fieldset': { borderColor: '#94a3b8' },
+                            '&.Mui-focused fieldset': { borderColor: '#004680' },
+                          },
+                          '& .MuiOutlinedInput-input': { fontSize: '0.85rem', color: '#475569' }
+                        }
+                      },
+                      field: { clearable: true, onClear: () => { setFechaFiltro(null); setPage(0); } },
+                    }}
+                  />
+                </LocalizationProvider>
+              </Box>
+
+              <Chip
+                label="Solo activos"
+                clickable
+                onClick={() => { setSoloActivos((v) => !v); setPage(0); }}
+                variant={soloActivos ? 'filled' : 'outlined'}
+                sx={{
+                  height: 38, borderRadius: 2, fontWeight: 700, fontSize: '0.78rem',
+                  bgcolor: soloActivos ? '#004680' : 'transparent',
+                  color: soloActivos ? '#fff' : '#475569',
+                  borderColor: '#cbd5e1',
+                  '&:hover': { bgcolor: soloActivos ? '#003a6b' : '#eef4fb' },
+                }}
+              />
+
+              <Button
+                className="tour-nov-export"
+                onClick={() => setExportOpen(true)}
+                variant="contained"
+                disableElevation
+                startIcon={<FileDownloadIcon />}
+                sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 38, '&:hover': { bgcolor: '#003a6b' } }}
+              >
+                Exportar
+              </Button>
             </Box>
-
-            <Chip
-              label="Solo activos"
-              clickable
-              onClick={() => { setSoloActivos((v) => !v); setPage(0); }}
-              variant={soloActivos ? 'filled' : 'outlined'}
-              sx={{
-                height: 38, borderRadius: 2, fontWeight: 700, fontSize: '0.78rem',
-                bgcolor: soloActivos ? '#004680' : 'transparent',
-                color: soloActivos ? '#fff' : '#475569',
-                borderColor: '#cbd5e1',
-                '&:hover': { bgcolor: soloActivos ? '#003a6b' : '#eef4fb' },
-              }}
-            />
-
-            <Button
-              className="tour-nov-export"
-              onClick={() => setExportOpen(true)}
-              variant="contained"
-              disableElevation
-              startIcon={<FileDownloadIcon />}
-              sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 38, '&:hover': { bgcolor: '#003a6b' } }}
-            >
-              Exportar
-            </Button>
-          </Box>
+          )}
         </Box>
 
         {/* Tabla */}
@@ -187,7 +193,7 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
             </TableHead>
             <TableBody>
               {paginated.map((novedad: any, idx: number) => {
-                const chipColors = getChipColor(novedad.tipo);
+                const chipColors = getChipColor(novedad.tipo, esReporte);
                 const nombreEmpleado = novedad.empleadoNombre || 'Empleado';
                 const inicial = nombreEmpleado.charAt(0).toUpperCase();
                 const fechaFormateada = novedad.fecha ? dayjs(novedad.fecha).format('DD [de] MMM [de] YYYY') : '—';
@@ -209,8 +215,8 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
                         </Avatar>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b' }}>{nombreEmpleado}</Typography>
-                          {novedad.empleadoDocumento && (
-                            <Typography variant="caption" sx={{ color: '#64748b' }}>Doc: {novedad.empleadoDocumento}</Typography>
+                          {esReporte && novedad.empleadoDocumento && (
+                            <Typography variant="caption" sx={{ color: '#64748b' }}>Doc: {formatDocumentNumber(novedad.empleadoDocumento)}</Typography>
                           )}
                         </Box>
                       </Box>

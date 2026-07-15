@@ -36,12 +36,18 @@ const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
             registros[0].employee_id.second_last_name,
           ].filter(n => n && n.trim()).join(' ')
         : 'Sin nombre',
+      documento: registros[0].employee_id?.document_number != null
+        ? String(registros[0].employee_id.document_number)
+        : null,
       inicio_turno: buscar('Comenzar Jornada'),
       inicio_almuerzo: buscar('Iniciar Almuerzo'),
       fin_almuerzo: buscar('Finalizar Almuerzo'),
       fin_turno: buscar('Terminar Jornada'),
       observaciones_evento,
-      tiendaNombre: registros[0].store_id?.name || '—',
+      tiendaNombre:
+        registros[0].store_id && typeof registros[0].store_id === "object"
+          ? registros[0].store_id.name
+          : "—",
     };
   });
 };

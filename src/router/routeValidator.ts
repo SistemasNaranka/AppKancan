@@ -1,8 +1,5 @@
 import { RouteObject } from "react-router-dom";
 
-/**
- * Errores específicos para rutas
- */
 export class RouteValidationError extends Error {
   constructor(
     public filePath: string,
@@ -14,9 +11,6 @@ export class RouteValidationError extends Error {
   }
 }
 
-/**
- * Valida la estructura de un módulo de rutas
- */
 export function validateRouteModule(filePath: string, module: any): void {
   if (!module) {
     throw new RouteValidationError(
@@ -55,9 +49,6 @@ export function validateRouteModule(filePath: string, module: any): void {
   });
 }
 
-/**
- * Valida una ruta individual
- */
 function validateRouteObject(
   filePath: string,
   route: any,
@@ -89,10 +80,6 @@ function validateRouteObject(
   }
 
   if (route.path) {
-    // ✅ Permitir rutas absolutas para módulos siblings
-    // En AppRoutes.tsx, las rutas de módulos se agregan como siblings del Layout
-    // por lo que necesitan ser absolutas para funcionar correctamente
-    // Solo validamos que no estén vacías
     if (route.path.trim() === "") {
       throw new RouteValidationError(
         filePath,
@@ -110,7 +97,6 @@ function validateRouteObject(
     );
   }
 
-  // Children debe ser un array de tipo RouteObject[]
   if (route.children) {
     if (!Array.isArray(route.children)) {
       throw new RouteValidationError(
@@ -126,10 +112,6 @@ function validateRouteObject(
   }
 }
 
-/**
- * Carga y valida rutas sin detener la app.
- * Retorna { routes, error } en lugar de lanzar throw.
- */
 export function loadAndValidateRoutes(
   routeModules: Record<string, { default: RouteObject[] }>
 ): { routes: RouteObject[]; error: RouteValidationError[] | null } {

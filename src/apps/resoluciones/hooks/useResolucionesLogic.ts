@@ -18,9 +18,8 @@ export const useResolutionsLogic = ({
 }: UseResolutionLogicOptions) => {
   const [busqueda, setBusqueda] = useState("");
   const [filtroRazonSocial, setFiltroRazonSocial] = useState("Todas");
-  const [filtroEstado, setFiltroEstado] = useState<StatusResolution | null>(
-    null,
-  );
+  const [filtroEstado, setFiltroEstado] = useState<StatusResolution[]>([]);
+  const [criterioOrden, setCriterioOrden] = useState<"fecha" | "facturas">("fecha");
   const [resolucionSeleccionada, setResolucionSeleccionada] =
     useState<Resolution | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
@@ -59,24 +58,31 @@ export const useResolutionsLogic = ({
     cargarDatos();
   }, []);
 
-  const ordenarPorEstadoYVencimiento = (registros: Resolution[]) => {
-    const ordenEstado: { [key: string]: number } = {
-      Pendiente: 0,
-      "Por vencer": 1,
-      Vigente: 2,
-      Vencido: 3,
-    };
+  const ordenarResoluciones = (registros: Resolution[]) => {
     return [...registros].sort((a, b) => {
-      const diferenciaEstado = ordenEstado[a.estado] - ordenEstado[b.estado];
-      if (diferenciaEstado !== 0) return diferenciaEstado;
-
-      const fechaA = new Date(a.fecha_vencimiento).getTime();
-      const fechaB = new Date(b.fecha_vencimiento).getTime();
-      return fechaA - fechaB;
+      if (criterioOrden === "fecha") {
+        const dateA = a.fecha_vencimiento || "9999-12-31";
+        const dateB = b.fecha_vencimiento || "9999-12-31";
+        if (dateA !== dateB) {
+          return dateA.localeCompare(dateB);
+        }
+        const facturasA = a.facturas_restantes ?? Infinity;
+        const facturasB = b.facturas_restantes ?? Infinity;
+        return facturasA - facturasB;
+      } else {
+        const facturasA = a.facturas_restantes ?? Infinity;
+        const facturasB = b.facturas_restantes ?? Infinity;
+        if (facturasA !== facturasB) {
+          return facturasA - facturasB;
+        }
+        const dateA = a.fecha_vencimiento || "9999-12-31";
+        const dateB = b.fecha_vencimiento || "9999-12-31";
+        return dateA.localeCompare(dateB);
+      }
     });
   };
 
-  const AllResolutions = ordenarPorEstadoYVencimiento([...resoluciones]);
+  const AllResolutions = ordenarResoluciones([...resoluciones]);
 
   const resolucionesBuscadas = busqueda
     ? AllResolutions.filter(
@@ -107,8 +113,8 @@ export const useResolutionsLogic = ({
       ? resolucionesBuscadas.filter((r) => r.razon_social === filtroRazonSocial)
       : resolucionesBuscadas;
 
-  const resolucionesFiltradas = filtroEstado
-    ? resolucionesPorRazonSocial.filter((r) => r.estado === filtroEstado)
+  const resolucionesFiltradas = filtroEstado && filtroEstado.length > 0
+    ? resolucionesPorRazonSocial.filter((r) => filtroEstado.includes(r.estado))
     : resolucionesPorRazonSocial;
 
   const totalPaginas = Math.ceil(resolucionesFiltradas.length / itemsPorPagina);
@@ -128,8 +134,9 @@ export const useResolutionsLogic = ({
     setPaginaActual(1);
   };
 
-  const handleFiltrar = (estado: StatusResolution | null) => {
-    setFiltroEstado(estado);
+  const handleFiltrar = (estados: StatusResolution[]) => {
+    setFiltroEstado(estados);
+    setPaginaActual(1);
   };
 
   const handleSeleccionar = (resolucion: Resolution) => {
@@ -368,6 +375,8 @@ export const useResolutionsLogic = ({
     busqueda,
     filtroRazonSocial,
     filtroEstado,
+    criterioOrden,
+    setCriterioOrden,
     resolucionSeleccionada,
     paginaActual,
     resoluciones,

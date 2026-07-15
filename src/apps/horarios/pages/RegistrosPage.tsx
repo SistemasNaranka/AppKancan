@@ -32,7 +32,7 @@ import { useTutorial } from '@/shared/hooks/TutorialContext';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import AdminEmpleadosPage from './AdminEmpleadosPage';
 import ReportePage from './ReportePage';
-import ExportEventosDialog from '../components/ExportEventosDialog';
+import ExportEventosDialog from '../components/reportes/ExportEventosDialog';
 import NormasModal from '../components/NormasModal';
 import { useNormas } from '../hooks/useNormas';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -148,14 +148,14 @@ function RegistrosPageContent() {
     });
   };
 
-  const reportarEventoDemo = (idEmpleado: string, eventType: string, observaciones?: string) => {
+  const reportarEventoDemo = (_idEmpleado: string, eventType: string, _observaciones?: string) => {
     if (eventType === 'Terminar Pausa Activa') {
       setDemoEmpleado(prev => ({ ...prev, pausasActivasCount: Math.min((prev.pausasActivasCount ?? 0) + 1, 2) }));
     }
     return true;
   };
 
-  const guardarObservacionDemo = (idEmpleado: string, evento: string, texto: string) => {
+  const guardarObservacionDemo = (_idEmpleado: string, evento: string, texto: string) => {
     setDemoEmpleado(prev => {
       const nuevo = { ...prev, registros: { ...prev.registros, observaciones: { ...prev.registros.observaciones } } };
       let eventKey = '';
@@ -458,7 +458,9 @@ function RegistrosPageContent() {
               <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
               <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
               {/* --- SE AÑADIÓ LA PESTAÑA DE MONITOREO AQUÍ --- */}
-              <Tab value={4} icon={<AnalyticsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MONITOREO" />
+              {esAdmin() && (
+                <Tab value={4} icon={<AnalyticsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MONITOREO" />
+              )}
               {/* ----------------------------------------------- */}
               {esAdmin() && (
                 <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
@@ -565,9 +567,11 @@ function RegistrosPageContent() {
           </TabPanel>
 
           {/* --- SE AÑADIÓ EL PANEL DE MONITOREO AQUÍ --- */}
-          <TabPanel value={tabValue} index={4}>
-            <MonitoreoPage storeId={storeOverride} /> {/* 👈 CAMBIO AQUÍ */}
-          </TabPanel>
+          {esAdmin() && (
+            <TabPanel value={tabValue} index={4}>
+              <MonitoreoPage storeId={storeOverride} />
+            </TabPanel>
+          )}
           {/* -------------------------------------------- */}
         </>
       )}

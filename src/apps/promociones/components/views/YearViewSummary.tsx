@@ -54,7 +54,7 @@ const YearViewSummary: React.FC = () => {
     [year, setFocusedDate, setSelectedView]
   );
 
-  // 🔹 Función para calcular posición y ancho de la barra dentro del mes
+  // Función para calcular posición y ancho de la barra dentro del mes
   const calculatePromoPosition = React.useCallback(
     (promo: any, monthIdx: number): PromoWithPosition | null => {
       const monthStart = dayjs().year(year).month(monthIdx).startOf("month");
@@ -104,7 +104,7 @@ const YearViewSummary: React.FC = () => {
     [year]
   );
 
-  // 🔹 Agrupar promociones por mes con posicionamiento
+  // Agrupar promociones por mes con posicionamiento
   const promotionsByMonth = React.useMemo(() => {
     return months.map((monthIdx) => {
       const monthPromos = promotions

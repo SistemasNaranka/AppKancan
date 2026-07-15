@@ -2,17 +2,13 @@ import directus from "./directus";
 import { readItems } from "@directus/sdk";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
-/**
- * Interfaz para representar la tienda con su ID y empresa asociada
- */
+// Interfaz para representar la tienda con su ID y empresa asociada.
 export interface UserStoreAccess {
   store_id: number;
   company: string;
 }
 
-/**
- * Obtener IDs de tiendas asignadas al usuario actual
- */
+// Obtener IDs de tiendas asignadas al usuario actual.
 export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
   try {
     const data = await withAutoRefresh(() =>
@@ -38,9 +34,7 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
   }
 }
 
-/**
- * Obtener tiendas (ID y empresa) asignadas al usuario actual
- */
+// Obtener tiendas (ID y empresa) asignadas al usuario actual.
 export async function obtenerTiendasUsuarioActual(): Promise<UserStoreAccess[]> {
   try {
     const data = await withAutoRefresh(() =>

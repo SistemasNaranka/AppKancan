@@ -1,46 +1,46 @@
 import { useState, useEffect } from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, CircularProgress,
-  Autocomplete, TextField, FormControlLabel, Checkbox
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
+  Autocomplete, TextField, Checkbox, FormControlLabel, CircularProgress,
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import StorefrontIcon from '@mui/icons-material/Storefront';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
-import { getStores, getStoreIdUsuarioActual, fetchEventReportsExport } from '../api/directus/read';
-import { exportarEventosExcel } from '../utils/exportarEventos';
-import { Tienda } from '../interfaces/horarios.interface';
+import { getStores, fetchNewnessReportsExport } from '../../api/directus/read';
+import { exportarNovedadesExcel } from '../../utils/exportarNovedades';
+import { Tienda } from '../../interfaces/horarios.interface';
 import DateRangeFilter from './DateRangeFilter';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
-import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
+import { useHorariosPolicies } from '../../hooks/useHorariosPolicies';
+import { useAuth } from '@/auth/hooks/useAuth';
 
 const AZUL = '#004680';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  storeId: number | null;
+  fechaInicio?: string;
+  fechaFin?: string;
+  tiendaDefault?: number | null;
+  searchNombre?: string;
 }
 
-export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
+export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault, searchNombre }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
   const { esAdmin: originalEsAdmin, esReport } = useHorariosPolicies();
   const esAdmin = () => originalEsAdmin() || esReport();
+  const { user } = useAuth();
+  const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
+  const [todasNovedades, setTodasNovedades] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(null);
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(null);
 
-  const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
-
-  useEffect(() => {
-    if (open) { 
-      setRangoInicio(null); 
-      setRangoFin(null); 
-      setTiendasSel([]);
-    }
-  }, [open]);
+  const storeIdUsuario = user?.store_id ? Number(user.store_id) : null;
+  const tiendaEfectiva = tiendaDefault != null ? tiendaDefault : storeIdUsuario;
 
   const { data: tiendas = [], isLoading: loadingTiendas } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
@@ -49,39 +49,47 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
     enabled: open,
   });
 
-  const { data: storeUsuario = null } = useQuery<number | null>({
-    queryKey: ['horariosStoreId'],
-    queryFn: getStoreIdUsuarioActual,
-    staleTime: 30 * 60 * 1000,
-    enabled: open && storeId == null,
-  });
-
-  const tiendaEfectiva = storeId != null ? storeId : storeUsuario;
   const todas = tiendas.length > 0 && tiendasSel.length === tiendas.length;
 
   useEffect(() => {
-    if (open && storeId != null && tiendas.length > 0) {
-      const t = tiendas.find((x) => x.id === storeId);
+    if (open) {
+      setRangoInicio(fechaInicio ? dayjs(fechaInicio) : null);
+      setRangoFin(fechaFin ? dayjs(fechaFin) : null);
+      setTiendasSel([]);
+      setTodasNovedades(false);
+    }
+  }, [open, fechaInicio, fechaFin]);
+
+  useEffect(() => {
+    if (open && tiendaDefault != null && tiendas.length > 0) {
+      const t = tiendas.find((x) => x.id === tiendaDefault);
       setTiendasSel(t ? [t] : []);
     }
-  }, [open, tiendas, storeId]);
+  }, [open, tiendas, tiendaDefault]);
 
-  const puedeExportar = (esAdmin() ? (todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
+  const puedeExportar = (esAdmin() ? (todasNovedades || todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
 
-  const handleExportar = async () => {
-    if (!puedeExportar) return;
+  const ejecutarExport = async (fIni?: string, fFin?: string, storeIds?: number[]) => {
     setExportando(true);
     try {
-      const storeIds = esAdmin() ? (todas ? undefined : tiendasSel.map((t) => t.id)) : (tiendaEfectiva != null ? [Number(tiendaEfectiva)] : undefined);
-      let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
-      let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
-      if (!fIni && !fFin) {
-        const hoy = dayjs().format('YYYY-MM-DD');
-        fIni = hoy;
-        fFin = hoy;
+      const reports = await fetchNewnessReportsExport(fIni, fFin, storeIds, esAdmin());
+
+      let filteredReports = reports;
+      if (searchNombre) {
+        const normalizar = (texto: string) =>
+          texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const searchClean = normalizar(searchNombre);
+        filteredReports = reports.filter((r) => {
+          const empName = r.employee_id
+            ? [r.employee_id.first_name, r.employee_id.middle_name, r.employee_id.last_name, r.employee_id.second_last_name]
+                .filter((n) => n && String(n).trim())
+                .join(" ")
+            : "Sin nombre";
+          return normalizar(empName).includes(searchClean);
+        });
       }
-      const reports = await fetchEventReportsExport(fIni, fFin, storeIds, esAdmin());
-      const res = await exportarEventosExcel({ reports, stores: tiendas });
+
+      const res = await exportarNovedadesExcel({ reports: filteredReports, stores: tiendas });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
         onClose();
@@ -89,10 +97,26 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
         showSnackbar(res.mensaje || 'No hay datos para exportar', 'error');
       }
     } catch (err: any) {
-      showSnackbar(err?.message || 'Error al exportar los eventos', 'error');
+      showSnackbar(err?.message || 'Error al exportar las novedades', 'error');
     } finally {
       setExportando(false);
     }
+  };
+
+  const handleExportar = async () => {
+    if (esAdmin() && todasNovedades) {
+      await ejecutarExport(undefined, undefined, undefined);
+      return;
+    }
+    const storeIds = esAdmin() ? (todas ? undefined : tiendasSel.map((t) => t.id)) : [Number(tiendaEfectiva)];
+    let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
+    let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
+    if (!fIni && !fFin) {
+      const hoy = dayjs().format('YYYY-MM-DD');
+      fIni = hoy;
+      fFin = hoy;
+    }
+    await ejecutarExport(fIni, fFin, storeIds);
   };
 
   return (
@@ -100,9 +124,9 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
       <DialogTitle component="div" sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <FileDownloadIcon />
         <Box>
-          <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Exportar pausas activas</Typography>
+          <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Exportar novedades</Typography>
           <Typography component="span" variant="caption" sx={{ opacity: 0.85, display: 'block' }}>
-            Reportes de pausas y eventos de la tienda
+            {esAdmin() ? 'Selecciona tiendas y rango de fechas' : 'Selecciona el rango de fechas'}
           </Typography>
         </Box>
       </DialogTitle>
@@ -120,6 +144,7 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
                 size="small"
                 options={tiendas}
                 loading={loadingTiendas}
+                disabled={todasNovedades}
                 getOptionLabel={(o) => o.name}
                 isOptionEqualToValue={(o, v) => o.id === v.id}
                 value={tiendasSel}
@@ -132,11 +157,12 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
                       ...params.InputProps,
                       startAdornment: (
                         <>
-                          <StorefrontIcon sx={{ color: '#94a3b8', mr: 1, fontSize: 20 }} />
+                          <StorefrontIcon sx={{ fontSize: 18, color: AZUL, ml: 0.5, mr: 0.5 }} />
                           {params.InputProps.startAdornment}
                         </>
                       ),
                     }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
                   />
                 )}
               />
@@ -144,6 +170,7 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
                 control={
                   <Checkbox
                     checked={todas}
+                    disabled={todasNovedades}
                     onChange={(e) => {
                       if (e.target.checked) {
                         setTiendasSel(tiendas);
@@ -160,7 +187,7 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
             </Box>
           )}
 
-          <Box>
+          <Box sx={{ opacity: todasNovedades ? 0.5 : 1, pointerEvents: todasNovedades ? 'none' : 'auto' }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
               RANGO DE FECHAS
             </Typography>
@@ -176,7 +203,18 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
                 ? { bg: '#eaf2fb', border: '#cfe2f7', icon: '#004680', text: '#0f2c4a' }
                 : { bg: '#fff8e1', border: '#ffe49c', icon: '#c08a00', text: '#7a5b00' };
               return (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1.5, mt: 1.25, borderRadius: 2, bgcolor: c.bg, border: `1px solid ${c.border}` }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.25,
+                    p: 1.5,
+                    mt: 1.25,
+                    borderRadius: 2,
+                    bgcolor: c.bg,
+                    border: `1px solid ${c.border}`,
+                  }}
+                >
                   {conRango
                     ? <CalendarMonthIcon sx={{ fontSize: 20, color: c.icon, flexShrink: 0 }} />
                     : <InfoOutlinedIcon sx={{ fontSize: 20, color: c.icon, flexShrink: 0 }} />}
@@ -199,6 +237,20 @@ export default function ExportEventosDialog({ open, onClose, storeId }: Props) {
               );
             })()}
           </Box>
+
+          {esAdmin() && (
+            <FormControlLabel
+              control={<Checkbox checked={todasNovedades} onChange={(e) => setTodasNovedades(e.target.checked)} sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }} />}
+              label={
+                <Box>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Descargar todas las novedades</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    Ignora las tiendas y el rango de fechas: exporta todas las novedades registradas.
+                  </Typography>
+                </Box>
+              }
+            />
+          )}
         </Box>
       </DialogContent>
 

@@ -11,14 +11,13 @@ import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import dayjs, { Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 
-import DateRangeFilter from '../components/DateRangeFilter';
-import ExportHistorialDialog from '../components/ExportHistorialDialog';
-import ExportNovedadesDialog from '../components/ExportNovedadesDialog';
-import ExportEventosDialog from '../components/ExportEventosDialog';
+import DateRangeFilter from '../components/reportes/DateRangeFilter';
+import ExportHistorialDialog from '../components/reportes/ExportHistorialDialog';
+import ExportNovedadesDialog from '../components/reportes/ExportNovedadesDialog';
+import ExportEventosDialog from '../components/reportes/ExportEventosDialog';
 import HistorialPage from './HistorialPage';
 import NovedadesTab from '../components/NovedadesTab';
 import { getStores, getStoreEventReports, getStoreNovedades, getEmpleadosBulk, getTimeRecordsBulkRange, getPrimerPeriodoRegistro } from '../api/directus/read';
@@ -44,6 +43,7 @@ const getAvatarColor = (texto: string) => {
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 };
+
 
 function getSemanasDelMes(anio: number, mes: number) {
   const startOfMonth = dayjs().year(anio).month(mes).startOf('month');
@@ -131,8 +131,8 @@ const formatMinutes = (totalMin: number): string => {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 };
 
-export default function ReportePage({ storeSel, onStoreChange, novedades, esAdmin }: ReportePageProps) {
-  const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(dayjs().subtract(29, 'day'));
+export default function ReportePage({ storeSel, onStoreChange, novedades: _, esAdmin }: ReportePageProps) {
+  const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(dayjs().subtract(6, 'day'));
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(dayjs());
   const [searchNombre, setSearchNombre] = useState('');
   const [visualizarTab, setVisualizarTab] = useState<'registros' | 'novedades' | 'pausas' | 'semanal'>('registros');
@@ -360,7 +360,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades, esAdmi
               options={tiendas}
               getOptionLabel={(option) => option.name}
               value={tiendas.find((t) => Number(t.id) === Number(storeSel)) || null}
-              onChange={(event, newValue) => {
+              onChange={(_, newValue) => {
                 onStoreChange(newValue ? Number(newValue.id) : null);
               }}
               renderInput={(params) => (
@@ -561,6 +561,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades, esAdmi
             fechaInicioExternal={rangoInicio}
             fechaFinExternal={rangoFin}
             searchNombreExternal={searchNombre}
+            esReporte={true}
           />
         ) : visualizarTab === 'novedades' ? (
           <Box sx={{ p: 0 }}>
@@ -568,6 +569,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades, esAdmi
               novedades={novedadesFiltradas} 
               esAdmin={esAdmin} 
               storeOverride={storeSel} 
+              esReporte={true}
             />
           </Box>
         ) : visualizarTab === 'semanal' ? (
@@ -784,9 +786,17 @@ export default function ReportePage({ storeSel, onStoreChange, novedades, esAdmi
                   <Autocomplete
                     size="small"
                     options={todosEmpleados}
-                    getOptionLabel={(option) => `${option.nombre} (CC: ${option.documento || option.id})`}
+                    getOptionLabel={(option) => option.nombre}
+                    filterOptions={(options, { inputValue }) => {
+                      const cleanInput = inputValue.toLowerCase().trim();
+                      return options.filter(option => 
+                        option.nombre.toLowerCase().includes(cleanInput) || 
+                        (option.documento || '').toLowerCase().includes(cleanInput) ||
+                        String(option.id).includes(cleanInput)
+                      );
+                    }}
                     value={todosEmpleados.find(e => Number(e.id) === Number(selectedEmpleadoId)) || null}
-                    onChange={(event, newValue) => {
+                    onChange={(_, newValue) => {
                       setSelectedEmpleadoId(newValue ? Number(newValue.id) : null);
                     }}
                     renderInput={(params) => (
@@ -860,7 +870,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades, esAdmi
                           </Avatar>
                           <Box>
                             <Typography variant="subtitle1" fontWeight={700} color="#1e293b">{emp.nombre}</Typography>
-                            <Typography variant="caption" color="#64748b">Cargo: {emp.cargo || 'Sin Cargo'} | CC: {emp.documento || emp.id}</Typography>
+                            <Typography variant="caption" color="#64748b">Cargo: {emp.cargo || 'Sin Cargo'} | CC: {formatDocumentNumber(emp.documento || emp.id)}</Typography>
                           </Box>
                         </Box>
                       );
@@ -1021,13 +1031,13 @@ export default function ReportePage({ storeSel, onStoreChange, novedades, esAdmi
                             label={report.event_type}
                             size="medium"
                             sx={{
-                              bgcolor: report.event_type.includes('Terminar') ? '#f0fdf4' : '#ecfeff',
-                              color: report.event_type.includes('Terminar') ? '#16a34a' : '#0891b2',
+                              bgcolor: report.event_type.includes('Terminar') ? 'rgba(22, 163, 74, 0.06)' : 'rgba(8, 145, 178, 0.06)',
+                              color: report.event_type.includes('Terminar') ? 'rgba(22, 163, 74, 0.8)' : 'rgba(8, 145, 178, 0.8)',
                               fontWeight: 600,
                               borderRadius: '20px',
                               fontSize: '0.75rem',
                               '& .MuiChip-icon': {
-                                color: report.event_type.includes('Terminar') ? '#16a34a' : '#0891b2',
+                                color: report.event_type.includes('Terminar') ? 'rgba(22, 163, 74, 0.8)' : 'rgba(8, 145, 178, 0.8)',
                               }
                             }}
                           />
@@ -1119,6 +1129,8 @@ export default function ReportePage({ storeSel, onStoreChange, novedades, esAdmi
         open={exportEventosOpen} 
         onClose={() => setExportEventosOpen(false)} 
         storeId={storeSel}
+        fechaInicio={rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined}
+        fechaFin={rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined}
       />
     </Box>
   );

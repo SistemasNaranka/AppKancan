@@ -4,7 +4,7 @@ import {
   withAutoRefresh,
   ensureValidToken,
 } from "@/auth/services/directusInterceptor";
-// Tipos para la creación de promociones
+
 export interface CreatePromocionData {
   name: string;
   start_date: string;
@@ -22,19 +22,13 @@ export interface PromoTienda {
   status: string;
 }
 
-/**
- * Formatear hora al formato esperado por Directus (HH:MM:SS)
- * Si la hora viene en formato HH:MM, agregar :00
- */
 function format_time(hora: string | null | undefined): string | null {
   if (!hora) return null;
 
-  // Si ya tiene formato HH:MM:SS, retornar tal cual
   if (hora.split(":").length === 3) {
     return hora;
   }
 
-  // Si tiene formato HH:MM, agregar :00
   if (hora.split(":").length === 2) {
     return `${hora}:00`;
   }
@@ -42,12 +36,8 @@ function format_time(hora: string | null | undefined): string | null {
   return hora;
 }
 
-/**
- * Crear una nueva promoción en Directus
- */
 export async function createPromotion(data: CreatePromocionData) {
   try {
-    // Formatear los datos antes de enviar
     const dataFormateada = {
       name: data.name.trim(),
       start_date: data.start_date,
@@ -68,7 +58,6 @@ export async function createPromotion(data: CreatePromocionData) {
   } catch (error: any) {
     console.error("❌ Error al crear promoción:", error);
 
-    // Mostrar detalles del error si están disponibles
     if (error?.errors) {
       console.error("Detalles del error:", error.errors);
     }
@@ -77,9 +66,6 @@ export async function createPromotion(data: CreatePromocionData) {
   }
 }
 
-/**
- * Asociar tiendas a una promoción
- */
 export async function associateStoresPromotion(
   promoId: number,
   tiendasIds: (number | string)[]
@@ -110,39 +96,28 @@ export async function associateStoresPromotion(
   }
 }
 
-/**
- * Interfaz para los parámetros de createCompletePromotion
- */
 export interface CrearPromocionCompletaParams {
   promocionData: CreatePromocionData;
   tiendasIds: (number | string)[];
 }
 
-/**
- * Crear promoción completa (promoción + asociaciones de tiendas)
- */
-// En create.ts
 export async function createCompletePromotion(
   params: CrearPromocionCompletaParams
 ) {
   let promocionCreada: any = null;
 
   try {
-    // 1. Crear la promoción
     promocionCreada = await createPromotion(params.promocionData);
 
     if (!promocionCreada || !promocionCreada.id) {
       throw new Error("No se pudo crear la promoción - ID no recibido");
     }
 
-    // 2. Asociar tiendas si hay alguna seleccionada
     if (params.tiendasIds.length > 0) {
       try {
         await associateStoresPromotion(promocionCreada.id, params.tiendasIds);
       } catch (tiendaError) {
-        // Si falla la asociación, intentar eliminar la promoción creada
         console.error("❌ Error al asociar tiendas, revertiendo creación...");
-        // TODO: Implementar eliminación de promoción
         throw new Error(
           "Error al asociar tiendas a la promoción. Por favor, intente nuevamente."
         );

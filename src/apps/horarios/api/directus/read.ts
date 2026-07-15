@@ -29,7 +29,7 @@ export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_employees", {
-          fields: ["id", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
+          fields: ["id", "document_number", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
           filter: {
             store_id: { _eq: storeId },
             status: { _eq: "Activo" }
@@ -50,7 +50,7 @@ export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[
 
       return {
         id: String(emp.id),
-        documento: String(emp.id), 
+        documento: emp.document_number ? String(emp.document_number) : String(emp.id), 
         nombre: full_name,
         cargo: emp.position_id?.name || "Sin Cargo",
         estadoActual: "entrada_pendiente",
@@ -173,6 +173,7 @@ export async function getNovedades(storeId: number): Promise<any[]> {
             "newness_id.id",
             "newness_id.name",
             "employee_id.id",
+            "employee_id.document_number",
             "employee_id.first_name",
             "employee_id.middle_name",
             "employee_id.last_name",
@@ -210,6 +211,7 @@ export async function getStoreNovedades(storeId: number | null): Promise<any[]> 
             "newness_id.id",
             "newness_id.name",
             "employee_id.id",
+            "employee_id.document_number",
             "employee_id.first_name",
             "employee_id.middle_name",
             "employee_id.last_name",
@@ -237,6 +239,7 @@ export async function getStoreNovedades(storeId: number | null): Promise<any[]> 
         id: nov.id,
         fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
         empleadoNombre: fullName,
+        empleadoDocumento: nov.employee_id?.document_number ? String(nov.employee_id.document_number) : undefined,
         tipo: nov.newness_id?.name || "Sin tipo",
         observaciones: nov.observations || "",
         empleadoActivo: true,
@@ -263,7 +266,7 @@ export interface TimeRecord {
     last_name: string;
     second_last_name: string | null;
   } | null;
-  store_id: string;
+  store_id: { id: number; name: string } | string | null;
   observations: string | null;
 }
 
@@ -496,7 +499,7 @@ export async function getEmpleadosBulk(storeIds?: number[]): Promise<EmpleadoAsi
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_employees", {
-          fields: ["id", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
+          fields: ["id", "document_number", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
           filter,
           limit: -1,
         })
@@ -514,7 +517,7 @@ export async function getEmpleadosBulk(storeIds?: number[]): Promise<EmpleadoAsi
 
       return {
         id: String(emp.id),
-        documento: String(emp.id), 
+        documento: emp.document_number ? String(emp.document_number) : String(emp.id), 
         nombre: full_name,
         cargo: emp.position_id?.name || "Sin Cargo",
         estadoActual: "entrada_pendiente",

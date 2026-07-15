@@ -30,7 +30,7 @@ interface DayCellProps {
 
 const DayCell: React.FC<DayCellProps> = React.memo(
   ({ day, promos, onClick, onPointerMove, onPointerLeave }) => {
-    const cellRef = useRef<HTMLDivElement | null>(null); // ✅ siempre llamado
+    const cellRef = useRef<HTMLDivElement | null>(null); // siempre llamado
 
     if (!day) {
       return <Box sx={{ border: "0.5px solid rgba(0,0,0,0.1)" }} />;

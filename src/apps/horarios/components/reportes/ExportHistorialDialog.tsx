@@ -9,12 +9,12 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
-import { getStores, fetchTimeRecordsExport, getReasonNamesForRecords } from '../api/directus/read';
-import { exportarHistorialExcel } from '../utils/exportarHistorial';
-import { Tienda } from '../interfaces/horarios.interface';
+import { getStores, fetchTimeRecordsExport, getReasonNamesForRecords } from '../../api/directus/read';
+import { exportarHistorialExcel } from '../../utils/exportarHistorial';
+import { Tienda } from '../../interfaces/horarios.interface';
 import DateRangeFilter from './DateRangeFilter';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
-import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
+import { useHorariosPolicies } from '../../hooks/useHorariosPolicies';
 import { useAuth } from '@/auth/hooks/useAuth';
 
 const AZUL = '#004680';

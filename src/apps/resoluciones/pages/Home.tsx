@@ -19,6 +19,7 @@ import Button from "../components/Button";
 import SummaryCards from "../components/SummaryCards";
 import { LearnPDF } from "../pdfReader";
 import { useResolutionsLogic } from "../hooks/useResolucionesLogic";
+import SortFilter from "../components/SortFilter";
 import { ExportExcel } from "../utils/exportarExcel";
 import { useGlobalSnackbar } from "@/shared/components/SnackbarsPosition/SnackbarContext";
 import { useAuth } from "@/auth/hooks/useAuth";
@@ -33,6 +34,8 @@ const ResolutionsHome = () => {
     busqueda,
     filtroRazonSocial,
     filtroEstado,
+    criterioOrden,
+    setCriterioOrden,
     resolucionSeleccionada,
     paginaActual,
     resoluciones,
@@ -167,8 +170,13 @@ const ResolutionsHome = () => {
             />
 
             <StatusFilters
-              estadoActivo={filtroEstado}
+              estadosSeleccionados={filtroEstado}
               onFiltrar={handleFiltrar}
+            />
+
+            <SortFilter
+              valor={criterioOrden}
+              onChange={setCriterioOrden}
             />
 
             <Button

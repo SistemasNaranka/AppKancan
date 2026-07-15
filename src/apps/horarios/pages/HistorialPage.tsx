@@ -18,15 +18,30 @@ import {
   Paper,
   Box,
   Typography,
-  IconButton
+  IconButton,
+  Avatar
 } from '@mui/material';
 import { ObservationModal } from '../components/ObservationModal';
-import DateRangeFilter from '../components/DateRangeFilter';
-import ExportHistorialDialog from '../components/ExportHistorialDialog';
+import DateRangeFilter from '../components/reportes/DateRangeFilter';
+import ExportHistorialDialog from '../components/reportes/ExportHistorialDialog';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { Button } from '@mui/material';
 import { Eye } from 'lucide-react';
 import { HistorialRow } from '../interfaces/horarios.interface';
+import { formatDocumentNumber } from '../utils/format';
+
+const AVATAR_COLORS = [
+  '#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777',
+  '#0891b2', '#4f46e5', '#ca8a04', '#dc2626', '#059669',
+  '#2563eb', '#9333ea',
+];
+
+const getAvatarColor = (texto: string) => {
+  const str = String(texto || '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+};
 
 interface HistorialPageProps {
   storeIdAdmin?: number | null;
@@ -34,6 +49,7 @@ interface HistorialPageProps {
   fechaFinExternal?: Dayjs | null;
   searchNombreExternal?: string;
   hideHeader?: boolean;
+  esReporte?: boolean;
 }
 
 export default function HistorialPage({
@@ -42,6 +58,7 @@ export default function HistorialPage({
   fechaFinExternal,
   searchNombreExternal,
   hideHeader = false,
+  esReporte = false,
 }: HistorialPageProps = {}) {
   const [localSearch, setLocalSearch] = useState('');
   const [localFechaInicio, setLocalFechaInicio] = useState<Dayjs | null>(null);
@@ -235,8 +252,24 @@ export default function HistorialPage({
                   <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#1e293b', borderBottom: '1px solid #e2e8f0' }}>
                     {row.fecha}
                   </TableCell>
-                  <TableCell sx={{ py: 1.5, fontWeight: 600, color: '#1e293b', borderBottom: '1px solid #e2e8f0' }}>
-                    {row.empleado}
+                  <TableCell sx={{ py: 1.5, borderBottom: '1px solid #e2e8f0' }}>
+                    {esReporte ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar sx={{ width: 36, height: 36, bgcolor: getAvatarColor(row.empleado), fontSize: '1rem', fontWeight: 600 }}>
+                          {row.empleado.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b' }}>{row.empleado}</Typography>
+                          {row.documento && (
+                            <Typography variant="caption" sx={{ color: '#64748b' }}>Doc: {formatDocumentNumber(row.documento)}</Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" sx={{ color: '#1e293b', fontWeight: 500 }}>
+                        {row.empleado}
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
                     {row.tiendaNombre || '—'}
