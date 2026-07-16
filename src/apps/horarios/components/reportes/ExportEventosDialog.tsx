@@ -103,7 +103,10 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
       let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
       let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
       const reports = await fetchEventReportsExport(fIni, fFin, storeIds, esAdmin());
-      const res = await exportarEventosExcel({ reports, stores: tiendasFiltradas });
+      const targetStores = esAdmin()
+        ? (todas ? tiendasFiltradas : tiendasSel)
+        : (tiendaEfectiva != null ? tiendas.filter((t) => Number(t.id) === Number(tiendaEfectiva)) : []);
+      const res = await exportarEventosExcel({ reports, stores: targetStores });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
         onClose();

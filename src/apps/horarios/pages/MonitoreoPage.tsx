@@ -213,7 +213,11 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
         return rankingEmpleados.filter(e => e.nombre.toLowerCase().includes(buscarEmpleadoRanking.toLowerCase().trim()));
     }, [rankingEmpleados, buscarEmpleadoRanking]);
 
-    const topEmpleado = rankingEmpleados[0] ? `${rankingEmpleados[0].nombre} (${rankingEmpleados[0].total})` : 'Ninguno';
+    const topEmpleado = useMemo(() => {
+        if (rankingBase.length === 0) return 'Ninguno';
+        const maxEmp = rankingBase.reduce((prev, current) => (prev.total > current.total) ? prev : current);
+        return `${maxEmp.nombre} (${maxEmp.total})`;
+    }, [rankingBase]);
 
     const edicionesFiltradas = useMemo(() => {
         return editedRecords.filter(r => {
@@ -296,7 +300,6 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     return { id: tienda.id, nombre: tienda.name, totalEmpleados, personasRegistradas, completados, pendientes };
                 });
                 setResumenTiendas(data);
-                setOrdenTiendas({ by: 'nombre', dir: 'asc' });
             } catch (error) {
                 console.error(error);
                 setErrorResumen('Error al cargar los datos. Intenta nuevamente.');
@@ -504,7 +507,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                     </Box>
                                     <Box sx={{ minWidth: 0, width: '100%' }}>
                                         <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>EMPLEADO CON MÁS EDICIONES</Typography>
-                                        <Typography variant="h6" fontWeight={700} color="#004680" noWrap title={String(topEmpleado)}>{topEmpleado}</Typography>
+                                        <Typography variant="body2" fontWeight={700} color="#004680" title={String(topEmpleado)} sx={{ lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{topEmpleado}</Typography>
                                     </Box>
                                 </Paper>
                             </Grid>

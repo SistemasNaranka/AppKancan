@@ -31,8 +31,10 @@ export const exportarEventosExcel = async ({
   reports,
   stores,
 }: ExportarParams): Promise<{ ok: boolean; mensaje?: string }> => {
+  // Crear un mapa con todas las tiendas que se van a exportar por su ID
   const storesMap = new Map<number, string>(stores.map((s) => [Number(s.id), s.name]));
 
+  // 1. Mapear los reportes a filas
   const filas: FilaExport[] = reports.map((ev) => {
     const fechaRaw = (ev.date ?? "").slice(0, 10);
     return {
@@ -47,11 +49,7 @@ export const exportarEventosExcel = async ({
     };
   });
 
-  if (filas.length === 0) {
-    return { ok: false, mensaje: "No hay datos para exportar con los filtros seleccionados" };
-  }
-
-  // Ordenar por tienda, luego por fecha y hora
+  // Ordenar las filas por tienda, fecha y hora
   filas.sort(
     (a, b) =>
       a.tienda.localeCompare(b.tienda) ||
@@ -60,9 +58,6 @@ export const exportarEventosExcel = async ({
       a.empleado.localeCompare(b.empleado)
   );
 
-  // Obtener tiendas únicas presentes en los datos
-  const tiendasUnicas = Array.from(new Set(filas.map((f) => f.tienda)));
-
   // Inicializar libro Excel
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Pausas Activas");
@@ -70,13 +65,16 @@ export const exportarEventosExcel = async ({
   // Configurar anchos de columna por defecto
   worksheet.getColumn(1).width = 15; // Número CC
   worksheet.getColumn(2).width = 30; // Nombre empleado
-  worksheet.getColumn(3).width = 12; // Fecha
+  worksheet.getColumn(3).width = 15; // Fecha (un poco más ancha para evitar ###)
   worksheet.getColumn(4).width = 10; // Hora
   worksheet.getColumn(5).width = 20; // Evento
   worksheet.getColumn(6).width = 45; // Observación
 
-  // Generar la estructura agrupada por tienda
-  tiendasUnicas.forEach((storeName) => {
+  // Iterar sobre las tiendas seleccionadas para mantenerlas en el reporte
+  stores.forEach((store, index) => {
+    const storeName = store.name;
+    const registrosTienda = filas.filter((f) => f.tienda === storeName);
+
     // 1. Agregar fila de encabezado de tienda (Combinada/Merged)
     const storeHeaderRow = worksheet.addRow([storeName]);
     worksheet.mergeCells(storeHeaderRow.number, 1, storeHeaderRow.number, 6);
@@ -91,31 +89,10 @@ export const exportarEventosExcel = async ({
     storeCell.alignment = { horizontal: "center", vertical: "middle" };
     storeHeaderRow.height = 26;
 
-    // 2. Agregar fila de títulos de columna
-    const columnHeaders = ["Número CC", "Nombre empleado", "Fecha", "Hora", "Evento", "Observación"];
-    const headersRow = worksheet.addRow(columnHeaders);
-    headersRow.height = 20;
-    
-    headersRow.eachCell((cell) => {
-      cell.font = { bold: true, color: { argb: "333333" } };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "E2E8F0" }, // Gris claro
-      };
-      cell.border = {
-        top: { style: "thin", color: { argb: "CBD5E1" } },
-        left: { style: "thin", color: { argb: "CBD5E1" } },
-        bottom: { style: "medium", color: { argb: "94A3B8" } },
-        right: { style: "thin", color: { argb: "CBD5E1" } },
-      };
-      cell.alignment = { vertical: "middle" };
-    });
-
-    // 3. Agregar los registros de esta tienda
-    const registrosTienda = filas.filter((f) => f.tienda === storeName);
-    registrosTienda.forEach((reg) => {
-      const dataRow = worksheet.addRow([
+    if (registrosTienda.length > 0) {
+      // Determinar la fila de inicio de la tabla (justo después del banner de la tienda)
+      const startRow = storeHeaderRow.number + 1;
+      const tableRows = registrosTienda.map((reg) => [
         reg.cc,
         reg.empleado,
         reg.fecha,
@@ -123,23 +100,80 @@ export const exportarEventosExcel = async ({
         reg.evento,
         reg.observacion,
       ]);
-      dataRow.height = 18;
-      dataRow.eachCell((cell) => {
+
+      // Agregar tabla de ExcelJS para habilitar botones de filtro automático por defecto
+      worksheet.addTable({
+        name: `Tabla_${store.id}_${index}`,
+        ref: `A${startRow}`,
+        headerRow: true,
+        columns: [
+          { name: "Número CC", filterButton: true },
+          { name: "Nombre empleado", filterButton: true },
+          { name: "Fecha", filterButton: true },
+          { name: "Hora", filterButton: true },
+          { name: "Evento", filterButton: true },
+          { name: "Observación", filterButton: true },
+        ],
+        rows: tableRows,
+      });
+
+      // Estilizar la fila de encabezado de la tabla (que addTable genera automáticamente en startRow)
+      const headersRow = worksheet.getRow(startRow);
+      headersRow.height = 20;
+      headersRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: "333333" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "E2E8F0" }, // Gris claro
+        };
         cell.border = {
-          bottom: { style: "thin", color: { argb: "E2E8F0" } },
-          left: { style: "thin", color: { argb: "F1F5F9" } },
-          right: { style: "thin", color: { argb: "F1F5F9" } },
+          top: { style: "thin", color: { argb: "CBD5E1" } },
+          left: { style: "thin", color: { argb: "CBD5E1" } },
+          bottom: { style: "medium", color: { argb: "94A3B8" } },
+          right: { style: "thin", color: { argb: "CBD5E1" } },
         };
         cell.alignment = { vertical: "middle" };
       });
-    });
 
-    // 4. Agregar espacio de separación (2 filas en blanco)
+      // Estilizar las filas de datos de la tabla
+      for (let r = startRow + 1; r <= startRow + tableRows.length; r++) {
+        const dataRow = worksheet.getRow(r);
+        dataRow.height = 18;
+        dataRow.eachCell((cell) => {
+          cell.border = {
+            bottom: { style: "thin", color: { argb: "E2E8F0" } },
+            left: { style: "thin", color: { argb: "F1F5F9" } },
+            right: { style: "thin", color: { argb: "F1F5F9" } },
+          };
+          cell.alignment = { vertical: "middle" };
+        });
+      }
+    } else {
+      // Si la tienda no contiene datos, mostrar un mensaje claro debajo de ella
+      const noDataRow = worksheet.addRow(["No contiene datos en este rango de tiempo"]);
+      worksheet.mergeCells(noDataRow.number, 1, noDataRow.number, 6);
+      
+      const noDataCell = noDataRow.getCell(1);
+      noDataCell.font = { italic: true, color: { argb: "64748B" } };
+      noDataCell.alignment = { horizontal: "center", vertical: "middle" };
+      noDataRow.height = 20;
+      
+      // Dibujar un borde delgado alrededor de la fila vacía
+      noDataCell.border = {
+        top: { style: "thin", color: { argb: "E2E8F0" } },
+        left: { style: "thin", color: { argb: "E2E8F0" } },
+        bottom: { style: "thin", color: { argb: "E2E8F0" } },
+        right: { style: "thin", color: { argb: "E2E8F0" } },
+      };
+    }
+
+    // Agregar espacio de separación (2 filas en blanco)
     worksheet.addRow([]);
     worksheet.addRow([]);
   });
 
-  // Generar y descargar el buffer
+  // Generar y descargar el archivo
   const buffer = await workbook.xlsx.writeBuffer();
   const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   const blob = new Blob([buffer], { type: fileType });
