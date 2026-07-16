@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
   Autocomplete, TextField, Checkbox, FormControlLabel, Divider, CircularProgress,
@@ -30,8 +31,9 @@ interface Props {
 
 export default function ExportHistorialDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault, searchNombre }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
-  const { esAdmin: originalEsAdmin, esReport } = useHorariosPolicies();
+  const { esAdmin: originalEsAdmin, esReport, esAreaManager } = useHorariosPolicies();
   const esAdmin = () => originalEsAdmin() || esReport();
+  const isAreaMgr = esAreaManager ? esAreaManager() : false;
   const { user } = useAuth();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
   const [detallada, setDetallada] = useState(false);
@@ -49,7 +51,26 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
     enabled: open,
   });
 
-  const todas = tiendas.length > 0 && tiendasSel.length === tiendas.length;
+  const { data: tiendasAcceso = [] } = useQuery<number[]>({
+    queryKey: ['tiendasAccesoUsuario'],
+    queryFn: obtenerTiendasIdsUsuarioActual,
+    enabled: open && isAreaMgr,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const tiendasFiltradas = isAreaMgr
+    ? tiendas.filter(t => {
+        const idsPermitidos = tiendasAcceso.map(id => {
+          if (id && typeof id === 'object') {
+            return Number((id as any).id ?? (id as any).store_id);
+          }
+          return Number(id);
+        }).filter(Boolean);
+        return idsPermitidos.includes(Number(t.id));
+      })
+    : tiendas;
+
+  const todas = tiendasFiltradas.length > 0 && tiendasSel.length === tiendasFiltradas.length;
 
   useEffect(() => {
     if (open) {
@@ -71,14 +92,13 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
   const handleExportar = async () => {
     setExportando(true);
     try {
-      const storeIds = esAdmin() ? (todas ? undefined : tiendasSel.map((t) => t.id)) : [Number(tiendaEfectiva)];
+      const storeIds = esAdmin()
+        ? (todas
+          ? (isAreaMgr ? tiendasFiltradas.map((t) => Number(t.id)) : undefined)
+          : tiendasSel.map((t) => Number(t.id)))
+        : [Number(tiendaEfectiva)];
       let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
       let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
-      if (!fIni && !fFin) {
-        const hoy = dayjs().format('YYYY-MM-DD');
-        fIni = hoy;
-        fFin = hoy;
-      }
       const records = await fetchTimeRecordsExport(fIni, fFin, storeIds, esAdmin());
 
       let filteredRecords = records;
@@ -100,7 +120,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
         ? await getReasonNamesForRecords(filteredRecords.map((r) => r.id))
         : new Map<number, string>();
 
-      const res = await exportarHistorialExcel({ records: filteredRecords, stores: tiendas, reasonsMap, detallada });
+      const res = await exportarHistorialExcel({ records: filteredRecords, stores: tiendasFiltradas, reasonsMap, detallada });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
         onClose();
@@ -137,7 +157,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
                 multiple
                 limitTags={2}
                 size="small"
-                options={tiendas}
+                options={tiendasFiltradas}
                 loading={loadingTiendas}
                 getOptionLabel={(o) => o.name}
                 isOptionEqualToValue={(o, v) => o.id === v.id}
@@ -166,7 +186,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
                     checked={todas}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setTiendasSel(tiendas);
+                        setTiendasSel(tiendasFiltradas);
                       } else {
                         setTiendasSel([]);
                       }
@@ -221,8 +241,8 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
                       </>
                     ) : (
                       <>
-                        No seleccionaste un rango de fechas: se exportará{' '}
-                        <Box component="span" sx={{ fontWeight: 700 }}>solo el día de hoy ({dayjs().format('DD-MM-YYYY')})</Box>.
+                        Se exportarán{' '}
+                        <Box component="span" sx={{ fontWeight: 700 }}>todos los registros disponibles</Box>.
                       </>
                     )}
                   </Typography>

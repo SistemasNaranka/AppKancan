@@ -29,6 +29,7 @@ interface ReportePageProps {
   onStoreChange: (id: number | null) => void;
   novedades: any[];
   esAdmin: boolean;
+  tiendasPermitidas?: Tienda[];
 }
 
 const AVATAR_COLORS = [
@@ -131,7 +132,7 @@ const formatMinutes = (totalMin: number): string => {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 };
 
-export default function ReportePage({ storeSel, onStoreChange, novedades: _, esAdmin }: ReportePageProps) {
+export default function ReportePage({ storeSel, onStoreChange, novedades: _, esAdmin, tiendasPermitidas }: ReportePageProps) {
   const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(dayjs().subtract(6, 'day'));
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(dayjs());
   const [searchNombre, setSearchNombre] = useState('');
@@ -158,22 +159,30 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
     staleTime: 30 * 60 * 1000,
   });
 
+  const tiendasAMostrar = tiendasPermitidas || tiendas;
+
+  const queryStoreId = storeSel !== null 
+    ? storeSel 
+    : (tiendasPermitidas ? tiendasAMostrar.map(t => Number(t.id)) : null);
+
   const { data: eventReports = [] } = useQuery<any[]>({
-    queryKey: ['storeEventReportsHistory', storeSel, rangoInicio?.format('YYYY-MM-DD'), rangoFin?.format('YYYY-MM-DD')],
+    queryKey: ['storeEventReportsHistory', queryStoreId, rangoInicio?.format('YYYY-MM-DD'), rangoFin?.format('YYYY-MM-DD')],
     queryFn: () => getStoreEventReports(
-      storeSel,
+      queryStoreId,
       rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined,
       rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined
     ),
+    enabled: visualizarTab === 'pausas',
   });
 
   useEffect(() => {
     setPagePausas(0);
-  }, [storeSel, rangoInicio, rangoFin, searchNombre]);
+  }, [queryStoreId, rangoInicio, rangoFin, searchNombre]);
 
   const { data: storeNovedades = [] } = useQuery<any[]>({
-    queryKey: ['storeNovedadesHistory', storeSel],
-    queryFn: () => getStoreNovedades(storeSel),
+    queryKey: ['storeNovedadesHistory', queryStoreId],
+    queryFn: () => getStoreNovedades(queryStoreId),
+    enabled: visualizarTab === 'novedades',
   });
 
   // Filtrar las novedades en pantalla según fechas y búsqueda por nombre de ReportePage
@@ -233,14 +242,14 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
     staleTime: 5 * 60 * 1000,
   });
 
+  const allStoreIds = useMemo(() => tiendasAMostrar.map(t => Number(t.id)), [tiendasAMostrar]);
+
   const { data: todosEmpleados = [], isLoading: cargandoTodosEmpleados } = useQuery({
-    queryKey: ['todosEmpleadosAutocomplete'],
-    queryFn: () => getEmpleadosBulk([]),
+    queryKey: ['todosEmpleadosAutocomplete', tiendasPermitidas ? allStoreIds : []],
+    queryFn: () => getEmpleadosBulk(tiendasPermitidas ? allStoreIds : []),
     enabled: visualizarTab === 'semanal',
     staleTime: 30 * 60 * 1000,
   });
-
-  const allStoreIds = useMemo(() => tiendas.map(t => Number(t.id)), [tiendas]);
 
   const { data: recordsMensualesGlobal = [], isLoading: cargandoRecordsGlobal } = useQuery({
     queryKey: ['recordsMensualesGlobal', allStoreIds, startRange, endRange],
@@ -259,13 +268,13 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
 
   const storesTrabajadas = useMemo(() => {
     if (recordsSelectedEmp.length === 0) return [];
-    const storesMap = new Map<number, string>(tiendas.map(t => [Number(t.id), t.name]));
+    const storesMap = new Map<number, string>(tiendasAMostrar.map(t => [Number(t.id), t.name]));
     const uniqueIds = Array.from(new Set(recordsSelectedEmp.map(r => Number(r.store_id))));
     return uniqueIds.map(id => ({
       id,
       name: storesMap.get(id) || `Tienda #${id}`
     }));
-  }, [recordsSelectedEmp, tiendas]);
+  }, [recordsSelectedEmp, tiendasAMostrar]);
 
   const empleadosFiltradosSemanales = useMemo(() => {
     return empleadosStore.filter((emp: any) => {
@@ -354,30 +363,32 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         >
           {/* Lado Izquierdo: Filtros de Búsqueda */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
-            {/* Filtro de Tienda */}
-            <Autocomplete
-              size="small"
-              options={tiendas}
-              getOptionLabel={(option) => option.name}
-              value={tiendas.find((t) => Number(t.id) === Number(storeSel)) || null}
-              onChange={(_, newValue) => {
-                onStoreChange(newValue ? Number(newValue.id) : null);
-              }}
-              renderInput={(params) => (
-                <TextField 
-                  {...params} 
-                  label="Tienda" 
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      bgcolor: '#f1f7fe',
-                      height: 40
-                    }
-                  }}
-                />
-              )}
-              sx={{ width: { xs: '100%', sm: 220 } }}
-            />
+            {/* Filtro de Tienda (Oculto para Area Manager porque usa el unificado en la cabecera) */}
+            {!tiendasPermitidas && (
+              <Autocomplete
+                size="small"
+                options={tiendasAMostrar}
+                getOptionLabel={(option) => option.name}
+                value={tiendasAMostrar.find((t) => Number(t.id) === Number(storeSel)) || null}
+                onChange={(_, newValue) => {
+                  onStoreChange(newValue ? Number(newValue.id) : null);
+                }}
+                renderInput={(params) => (
+                  <TextField 
+                    {...params} 
+                    label="Tienda" 
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        bgcolor: '#f1f7fe',
+                        height: 40
+                      }
+                    }}
+                  />
+                )}
+                sx={{ width: { xs: '100%', sm: 220 } }}
+              />
+            )}
 
             <Box sx={{ width: { xs: '100%', sm: 300 } }}>
               <DateRangeFilter
@@ -556,7 +567,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
 
         {visualizarTab === 'registros' ? (
           <HistorialPage 
-            storeIdAdmin={storeSel} 
+            storeIdAdmin={queryStoreId} 
             hideHeader={true}
             fechaInicioExternal={rangoInicio}
             fechaFinExternal={rangoFin}

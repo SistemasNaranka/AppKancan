@@ -52,7 +52,7 @@ const agruparRegistros = (records: TimeRecord[]): HistorialRow[] => {
   });
 };
 
-export const useHistorial = (fechaInicio?: string, fechaFin?: string, overrideStoreId?: number | null) => {
+export const useHistorial = (fechaInicio?: string, fechaFin?: string, overrideStoreId?: number | number[] | null) => {
   const { data: storeId = null } = useQuery<number | null>({
     queryKey: ['horariosStoreId'],
     queryFn: getStoreIdUsuarioActual,

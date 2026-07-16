@@ -195,11 +195,15 @@ export async function getNovedades(storeId: number): Promise<any[]> {
   }
 }
 
-export async function getStoreNovedades(storeId: number | null): Promise<any[]> {
+export async function getStoreNovedades(storeId: number | number[] | null): Promise<any[]> {
   try {
     const filter: any = {};
     if (storeId != null) {
-      filter.store_id = { _eq: storeId };
+      if (Array.isArray(storeId)) {
+        filter.store_id = { _in: storeId };
+      } else {
+        filter.store_id = { _eq: storeId };
+      }
     }
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -273,13 +277,17 @@ export interface TimeRecord {
 export const fetchTimeRecords = async (
   fechaInicio?: string,
   fechaFin?: string,
-  storeId?: number,
+  storeId?: number | number[],
   employeeId?: number | string
 ): Promise<TimeRecord[]> => {
   const filter: any = {};
 
   if (storeId != null) {
-    filter.store_id = { _eq: storeId };
+    if (Array.isArray(storeId)) {
+      filter.store_id = { _in: storeId };
+    } else {
+      filter.store_id = { _eq: storeId };
+    }
   }
   if (employeeId != null) {
     filter.employee_id = { _eq: Number(employeeId) };

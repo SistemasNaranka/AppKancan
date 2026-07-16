@@ -44,7 +44,7 @@ const getAvatarColor = (texto: string) => {
 };
 
 interface HistorialPageProps {
-  storeIdAdmin?: number | null;
+  storeIdAdmin?: number | number[] | null;
   fechaInicioExternal?: Dayjs | null;
   fechaFinExternal?: Dayjs | null;
   searchNombreExternal?: string;
@@ -517,7 +517,7 @@ export default function HistorialPage({
         onClose={() => setExportOpen(false)}
         fechaInicio={fechaInicio ? fechaInicio.format('YYYY-MM-DD') : undefined}
         fechaFin={fechaFin ? fechaFin.format('YYYY-MM-DD') : undefined}
-        tiendaDefault={storeIdAdmin ?? null}
+        tiendaDefault={typeof storeIdAdmin === 'number' ? storeIdAdmin : null}
         searchNombre={searchNombre}
       />
     </div>

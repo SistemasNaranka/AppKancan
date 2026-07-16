@@ -22,6 +22,7 @@ import dayjs from 'dayjs';
 // ===== IMPORTS =====
 import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedadesBulkRange, getEditedTimeRecords } from '../api/directus/read';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
+import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import { Tienda } from '../interfaces/horarios.interface';
 import ModalDetalleTienda from '../components/ModalDetalleTienda';
 
@@ -45,7 +46,8 @@ interface MonitoreoPageProps {
 //  COMPONENTE PRINCIPAL
 // ============================================================
 export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
-    const { esAdmin, esReport } = useHorariosPolicies();
+    const { esAdmin, esReport, esAreaManager } = useHorariosPolicies();
+    const isAreaMgr = esAreaManager ? esAreaManager() : false;
 
     const [subTab, setSubTab] = useState(0); // 0 = Asistencia, 1 = Auditoría Ediciones
 
@@ -68,10 +70,30 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
         staleTime: 30 * 60 * 1000,
     });
 
+    const { data: tiendasAcceso = [] } = useQuery<number[]>({
+        queryKey: ['tiendasAccesoUsuario'],
+        queryFn: obtenerTiendasIdsUsuarioActual,
+        enabled: isAreaMgr,
+        staleTime: 30 * 60 * 1000,
+    });
+
+    const tiendasFiltradas = useMemo(() => {
+        if (isAreaMgr) {
+            const idsPermitidos = tiendasAcceso.map(id => {
+                if (id && typeof id === 'object') {
+                    return Number((id as any).id ?? (id as any).store_id);
+                }
+                return Number(id);
+            }).filter(Boolean);
+            return todasLasTiendas.filter(t => idsPermitidos.includes(Number(t.id)));
+        }
+        return todasLasTiendas;
+    }, [todasLasTiendas, tiendasAcceso, isAreaMgr]);
+
     const { data: editedRecords = [], isLoading: cargandoEdiciones } = useQuery({
-        queryKey: ['editedRecords', storeId, fechaInicio, fechaFin, todasLasTiendas],
+        queryKey: ['editedRecords', storeId, fechaInicio, fechaFin, tiendasFiltradas],
         queryFn: () => {
-            const storeIds = storeId ? [storeId] : todasLasTiendas.map(t => t.id);
+            const storeIds = storeId ? [storeId] : tiendasFiltradas.map(t => t.id);
             return getEditedTimeRecords(storeIds, fechaInicio, fechaFin);
         },
         enabled: !cargandoTiendas && (esAdmin() || esReport()),
@@ -116,10 +138,10 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
 
     const tiendas = useMemo(() => {
         if (storeId) {
-            return todasLasTiendas.filter(t => t.id === storeId);
+            return tiendasFiltradas.filter(t => t.id === storeId);
         }
-        return todasLasTiendas;
-    }, [todasLasTiendas, storeId]);
+        return tiendasFiltradas;
+    }, [tiendasFiltradas, storeId]);
 
     const [resumenTiendas, setResumenTiendas] = useState<TiendaResumen[]>([]);
     const [cargandoResumen, setCargandoResumen] = useState(false);
@@ -426,7 +448,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                         <SupervisorAccountIcon sx={{ color: '#0d47a1', fontSize: 28 }} />
                                     </Box>
                                     <Box sx={{ minWidth: 0 }}>
-                                        <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>EMPLEADOS MONITOREADOS</Typography>
+                                        <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>EMPLEADOS</Typography>
                                         <Typography variant="h5" fontWeight={700} color="#0d47a1">{statsEdiciones.empleados}</Typography>
                                     </Box>
                                 </Paper>
@@ -437,7 +459,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                         <WarningIcon sx={{ color: '#f57f17', fontSize: 28 }} />
                                     </Box>
                                     <Box sx={{ minWidth: 0, width: '100%' }}>
-                                        <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>TIENDA CON MÁS CAMBIOS</Typography>
+                                        <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>TIENDA CON MÁS EDICIONES</Typography>
                                         <Typography variant="h6" fontWeight={700} color="#f57f17" noWrap title={statsEdiciones.topStore}>{statsEdiciones.topStore}</Typography>
                                     </Box>
                                 </Paper>

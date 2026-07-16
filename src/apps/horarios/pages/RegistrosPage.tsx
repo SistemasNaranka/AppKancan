@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box, Typography, Tooltip, Tabs, Tab, Paper,
   Chip, CircularProgress, Alert, TextField, InputAdornment, Button, Autocomplete,
@@ -17,6 +17,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 // --- NUEVAS IMPORTACIONES AÑADIDAS AQUÍ ---
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import MonitoreoPage from './MonitoreoPage';
+import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 // -------------------------------------------
 import EmployeeCard from '../components/EmployeeCard';
 import NovedadesTab from '../components/NovedadesTab';
@@ -66,8 +67,9 @@ const toTitleCase = (str: string) => {
 
 function RegistrosPageContent() {
   const { user } = useAuth();
-  const { esAdmin, esReport, puedeVerDemo } = useHorariosPolicies();
-  const isOnlyReport = esReport() && !esAdmin();
+  const { esAdmin, esReport, puedeVerDemo, esAreaManager } = useHorariosPolicies();
+  const isAreaMgr = esAreaManager();
+  const isOnlyReport = esReport() && !esAdmin() && !isAreaMgr;
 
   const [storeOverride, setStoreOverride] = useState<number | null>(null);
   const [actualizando, setActualizando] = useState(false);
@@ -78,6 +80,26 @@ function RegistrosPageContent() {
     enabled: esAdmin() || esReport(),
     staleTime: 30 * 60 * 1000,
   });
+
+  const { data: tiendasAcceso = [] } = useQuery<number[]>({
+    queryKey: ['tiendasAccesoUsuario'],
+    queryFn: obtenerTiendasIdsUsuarioActual,
+    enabled: isAreaMgr,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const tiendasFiltradas = useMemo(() => {
+    if (isAreaMgr) {
+      const idsPermitidos = tiendasAcceso.map(id => {
+        if (id && typeof id === 'object') {
+          return Number((id as any).id ?? (id as any).store_id);
+        }
+        return Number(id);
+      }).filter(Boolean);
+      return tiendasAdmin.filter(t => idsPermitidos.includes(Number(t.id)));
+    }
+    return tiendasAdmin;
+  }, [tiendasAdmin, tiendasAcceso, isAreaMgr]);
   const { data: miTienda = null } = useQuery<number | null>({
     queryKey: ['horariosStoreId'],
     queryFn: getStoreIdUsuarioActual,
@@ -100,7 +122,7 @@ function RegistrosPageContent() {
     guardarObservacion, agregarNovedad, reportarEvento,
   } = useHorarios(storeOverride);
 
-  const { normas, debeAceptar, manualOpen, setManualOpen, aceptar, aceptando } = useNormas();
+  const { normas, manualOpen, setManualOpen, aceptar, aceptando } = useNormas();
 
   const [demoEmpleado, setDemoEmpleado] = useState<EmpleadoAsistencia>({
     id: '99999',
@@ -174,11 +196,11 @@ function RegistrosPageContent() {
 
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
   const { activeTutorial, endTutorial } = useTutorial();
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(isAreaMgr ? 4 : 0);
 
 
   const [vistaAdmin, setVistaAdmin] = useState(false);
-  const [vistaReporte, setVistaReporte] = useState(esReport() && !esAdmin());
+  const [vistaReporte, setVistaReporte] = useState(esReport() && !esAdmin() && !isAreaMgr);
   const [exportEventosOpen, setExportEventosOpen] = useState(false);
 
   useEffect(() => {
@@ -204,8 +226,7 @@ function RegistrosPageContent() {
     'Gestiona las marcaciones de asistencia del día',
     'Gestiona y revisa las incidencias de asistencia en tiempo real',
     'Consulta y verifica los registros históricos de la jornada laboral',
-    'Visualiza la planificación de turnos y horarios',
-    'Monitoreo y analíticas en tiempo real' 
+    'Visualiza la planificación de turnos y horarios', 
   ];
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number | 'admin' | 'reporte') => {
@@ -307,18 +328,18 @@ function RegistrosPageContent() {
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-            {esAdmin() && !vistaAdmin && !vistaReporte && (
+            {((esAdmin() && !vistaAdmin && !vistaReporte) || (isAreaMgr && !vistaAdmin)) && (
               // ============================================================
               // 🔥 CAMBIO: "Todas las tiendas" sin emoji y con mismo diseño
               // ============================================================
               <Autocomplete
                 size="small"
-                options={[{ id: null, name: 'Todas las tiendas' }, ...tiendasAdmin]}
+                options={[{ id: null, name: 'Todas las tiendas' }, ...tiendasFiltradas]}
                 getOptionLabel={(o) => o.name}
                 value={
                   storeOverride === null
                     ? { id: null, name: 'Todas las tiendas' }
-                    : tiendasAdmin.find((t) => t.id === storeOverride) ?? null
+                    : tiendasFiltradas.find((t) => t.id === storeOverride) ?? null
                 }
                 onChange={(_, v) => setStoreOverride(v ? v.id : null)}
                 sx={{ width: 250 }}
@@ -340,24 +361,26 @@ function RegistrosPageContent() {
               />
               // ============================================================
             )}
-            {!vistaAdmin && !vistaReporte && (
+            {!vistaAdmin && (
               <>
-                <Tooltip title="Ver normas de uso">
-                  <Button
-                    onClick={() => setManualOpen(true)}
-                    variant="outlined"
-                    disableElevation
-                    startIcon={<GavelIcon sx={{ fontSize: 18 }} />}
-                    sx={{
-                      borderRadius: 2, textTransform: 'none', fontWeight: 700,
-                      color: '#991b1b', borderColor: '#fca5a5', px: 2, py: 0.75,
-                      '&:hover': { borderColor: '#f87171', bgcolor: '#fff5f5' },
-                    }}
-                  >
-                    Normas
-                  </Button>
-                </Tooltip>
-                {puedeVerDemo() && (
+                {(!vistaReporte || isAreaMgr) && (
+                  <Tooltip title="Ver normas de uso">
+                    <Button
+                      onClick={() => setManualOpen(true)}
+                      variant="outlined"
+                      disableElevation
+                      startIcon={<GavelIcon sx={{ fontSize: 18 }} />}
+                      sx={{
+                        borderRadius: 2, textTransform: 'none', fontWeight: 700,
+                        color: '#991b1b', borderColor: '#fca5a5', px: 2, py: 0.75,
+                        '&:hover': { borderColor: '#f87171', bgcolor: '#fff5f5' },
+                      }}
+                    >
+                      Normas
+                    </Button>
+                  </Tooltip>
+                )}
+                {!vistaReporte && puedeVerDemo() && (
                   <Tooltip title="Activar/Desactivar Empleado de Prueba (Local)">
                     <Button
                       onClick={() => setModoDemo(!modoDemo)}
@@ -379,37 +402,39 @@ function RegistrosPageContent() {
                     </Button>
                   </Tooltip>
                 )}
-                <TutorialButton />
-                <Tooltip title="Actualizar registros">
-                  <Button
-                    className="tour-refresh"
-                    onClick={async () => {
-                      setActualizando(true);
-                      try {
-                        await resetHorarios();
-                      } finally {
-                        setActualizando(false);
-                      }
-                    }}
-                    disabled={actualizando}
-                    variant="contained"
-                    disableElevation
-                    startIcon={actualizando ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: 18 }} />}
-                    sx={{
-                      bgcolor: '#004680',
-                      color: '#fff',
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      fontWeight: 'bold',
-                      px: 2,
-                      py: 0.75,
-                      boxShadow: 'none',
-                      '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
-                    }}
-                  >
-                    Actualizar
-                  </Button>
-                </Tooltip>
+                {!vistaReporte && !isAreaMgr && <TutorialButton />}
+                {(!vistaReporte || isAreaMgr) && (
+                  <Tooltip title="Actualizar registros">
+                    <Button
+                      className="tour-refresh"
+                      onClick={async () => {
+                        setActualizando(true);
+                        try {
+                          await resetHorarios();
+                        } finally {
+                          setActualizando(false);
+                        }
+                      }}
+                      disabled={actualizando}
+                      variant="contained"
+                      disableElevation
+                      startIcon={actualizando ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: 18 }} />}
+                      sx={{
+                        bgcolor: '#004680',
+                        color: '#fff',
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 'bold',
+                        px: 2,
+                        py: 0.75,
+                        boxShadow: 'none',
+                        '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
+                      }}
+                    >
+                      Actualizar
+                    </Button>
+                  </Tooltip>
+                )}
               </>
             )}
           </Box>
@@ -453,19 +478,23 @@ function RegistrosPageContent() {
                 },
               }}
             >
-              <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
-              <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
-              <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
-              <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
+              {!isAreaMgr && (
+                <>
+                  <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
+                  <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
+                  <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
+                  <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
+                </>
+              )}
               {/* --- SE AÑADIÓ LA PESTAÑA DE MONITOREO AQUÍ --- */}
-              {esAdmin() && (
+              {(esAdmin() || isAreaMgr) && (
                 <Tab value={4} icon={<AnalyticsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MONITOREO" />
               )}
               {/* ----------------------------------------------- */}
               {esAdmin() && (
                 <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
               )}
-              {esReport() && (
+              {(esReport() || isAreaMgr) && (
                 <Tab value="reporte" icon={<FileDownloadIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REPORTE" />
               )}
             </Tabs>
@@ -504,7 +533,7 @@ function RegistrosPageContent() {
       {vistaAdmin ? (
         <AdminEmpleadosPage storeSel={storeOverride} onStoreChange={setStoreOverride} />
       ) : vistaReporte ? (
-        <ReportePage storeSel={storeOverride} onStoreChange={setStoreOverride} novedades={novedades} esAdmin={esAdmin()} />
+        <ReportePage storeSel={storeOverride} onStoreChange={setStoreOverride} novedades={novedades} esAdmin={esAdmin() || isAreaMgr} tiendasPermitidas={isAreaMgr ? tiendasFiltradas : undefined} />
       ) : (
         <>
           <TabPanel value={tabValue} index={0}>
@@ -567,7 +596,7 @@ function RegistrosPageContent() {
           </TabPanel>
 
           {/* --- SE AÑADIÓ EL PANEL DE MONITOREO AQUÍ --- */}
-          {esAdmin() && (
+          {(esAdmin() || isAreaMgr) && (
             <TabPanel value={tabValue} index={4}>
               <MonitoreoPage storeId={storeOverride} />
             </TabPanel>

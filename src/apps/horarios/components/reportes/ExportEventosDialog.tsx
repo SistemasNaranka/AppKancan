@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, CircularProgress,
   Autocomplete, TextField, FormControlLabel, Checkbox
@@ -28,8 +29,9 @@ interface Props {
 
 export default function ExportEventosDialog({ open, onClose, storeId, fechaInicio, fechaFin }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
-  const { esAdmin: originalEsAdmin, esReport } = useHorariosPolicies();
+  const { esAdmin: originalEsAdmin, esReport, esAreaManager } = useHorariosPolicies();
   const esAdmin = () => originalEsAdmin() || esReport();
+  const isAreaMgr = esAreaManager ? esAreaManager() : false;
   const [exportando, setExportando] = useState(false);
   const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(null);
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(null);
@@ -50,6 +52,25 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
     staleTime: 30 * 60 * 1000,
     enabled: open,
   });
+
+  const { data: tiendasAcceso = [] } = useQuery<number[]>({
+    queryKey: ['tiendasAccesoUsuario'],
+    queryFn: obtenerTiendasIdsUsuarioActual,
+    enabled: open && isAreaMgr,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const tiendasFiltradas = isAreaMgr
+    ? tiendas.filter(t => {
+        const idsPermitidos = tiendasAcceso.map(id => {
+          if (id && typeof id === 'object') {
+            return Number((id as any).id ?? (id as any).store_id);
+          }
+          return Number(id);
+        }).filter(Boolean);
+        return idsPermitidos.includes(Number(t.id));
+      })
+    : tiendas;
 
   const { data: storeUsuario = null } = useQuery<number | null>({
     queryKey: ['horariosStoreId'],
@@ -74,16 +95,15 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
     if (!puedeExportar) return;
     setExportando(true);
     try {
-      const storeIds = esAdmin() ? (todas ? undefined : tiendasSel.map((t) => t.id)) : (tiendaEfectiva != null ? [Number(tiendaEfectiva)] : undefined);
+      const storeIds = esAdmin()
+        ? (todas
+          ? (isAreaMgr ? tiendasFiltradas.map((t) => Number(t.id)) : undefined)
+          : tiendasSel.map((t) => Number(t.id)))
+        : (tiendaEfectiva != null ? [Number(tiendaEfectiva)] : undefined);
       let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
       let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
-      if (!fIni && !fFin) {
-        const hoy = dayjs().format('YYYY-MM-DD');
-        fIni = hoy;
-        fFin = hoy;
-      }
       const reports = await fetchEventReportsExport(fIni, fFin, storeIds, esAdmin());
-      const res = await exportarEventosExcel({ reports, stores: tiendas });
+      const res = await exportarEventosExcel({ reports, stores: tiendasFiltradas });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
         onClose();
@@ -120,7 +140,7 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
                 multiple
                 limitTags={2}
                 size="small"
-                options={tiendas}
+                options={tiendasFiltradas}
                 loading={loadingTiendas}
                 getOptionLabel={(o) => o.name}
                 isOptionEqualToValue={(o, v) => o.id === v.id}
@@ -192,8 +212,8 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
                       </>
                     ) : (
                       <>
-                        No seleccionaste un rango de fechas: se exportará{' '}
-                        <Box component="span" sx={{ fontWeight: 700 }}>solo el día de hoy ({dayjs().format('DD-MM-YYYY')})</Box>.
+                        Se exportarán{' '}
+                        <Box component="span" sx={{ fontWeight: 700 }}>todas las pausas activas disponibles</Box>.
                       </>
                     )}
                   </Typography>

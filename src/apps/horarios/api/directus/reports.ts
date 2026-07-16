@@ -248,14 +248,18 @@ export async function getStoreEventReportsToday(
 }
 
 export async function getStoreEventReports(
-  storeId: number | null,
+  storeId: number | number[] | null,
   fechaInicio?: string,
   fechaFin?: string
 ): Promise<any[]> {
   try {
     const filter: any = {};
     if (storeId != null) {
-      filter.store_id = { _eq: storeId };
+      if (Array.isArray(storeId)) {
+        filter.store_id = { _in: storeId };
+      } else {
+        filter.store_id = { _eq: storeId };
+      }
     }
     if (fechaInicio || fechaFin) {
       filter.date = {};

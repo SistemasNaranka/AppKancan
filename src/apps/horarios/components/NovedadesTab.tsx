@@ -74,11 +74,13 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
             <Typography sx={{ fontWeight: 700, color: '#0f2c4a', fontSize: '1rem', lineHeight: 1.2 }}>
               Novedades registradas
             </Typography>
-            <Chip
-              label={novedadesFiltradas.length}
-              size="small"
-              sx={{ height: 22, fontWeight: 700, fontSize: '0.72rem', bgcolor: '#eaf2fb', color: '#004680' }}
-            />
+            {!esReporte && (
+              <Chip
+                label={novedadesFiltradas.length}
+                size="small"
+                sx={{ height: 22, fontWeight: 700, fontSize: '0.72rem', bgcolor: '#eaf2fb', color: '#004680' }}
+              />
+            )}
           </Box>
           {!esReporte && (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
