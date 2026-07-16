@@ -33,6 +33,8 @@ const colorAvatar = (t: string) => {
 
 const hhmm = (t: string | null | undefined) => (t ? String(t).slice(0, 5) : '—');
 
+
+
 function SeccionColapsable({
   titulo, count, vacio, hayDatos, defaultOpen = false, children,
 }: {
@@ -180,7 +182,6 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
     </Box>
   );
 
-
   const fila = (izq: React.ReactNode, der: React.ReactNode) => (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.85, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
       {izq}{der}
@@ -190,14 +191,14 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-      <DialogTitle component="div" sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Avatar sx={{ bgcolor: colorAvatar(nombre), width: 46, height: 46, fontWeight: 700 }}>{nombre.charAt(0).toUpperCase()}</Avatar>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.05rem', display: 'block', textTransform: 'capitalize', lineHeight: 1.2 }} noWrap>{nombre}</Typography>
-          <Typography component="span" variant="caption" sx={{ opacity: 0.85, display: 'block' }}>{empleado?.position_name || 'Sin cargo'}</Typography>
-        </Box>
-        <Chip label={(empleado?.status || '—').toUpperCase()} size="small" sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: inactivo ? '#fee2e2' : '#dcfce7', color: inactivo ? '#dc2626' : '#16a34a' }} />
-      </DialogTitle>
+        <DialogTitle component="div" sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar sx={{ bgcolor: colorAvatar(nombre), width: 46, height: 46, fontWeight: 700 }}>{nombre.charAt(0).toUpperCase()}</Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.05rem', display: 'block', textTransform: 'capitalize', lineHeight: 1.2 }} noWrap>{nombre}</Typography>
+            <Typography component="span" variant="caption" sx={{ opacity: 0.85, display: 'block' }}>{empleado?.position_name || 'Sin cargo'}</Typography>
+          </Box>
+          <Chip label={(empleado?.status || '—').toUpperCase()} size="small" sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: inactivo ? '#fee2e2' : '#dcfce7', color: inactivo ? '#dc2626' : '#16a34a' }} />
+        </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
         {cargando ? (
@@ -236,130 +237,132 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
 
             <Divider />
 
-            {/* Últimas jornadas */}
-            <SeccionColapsable titulo="ÚLTIMAS JORNADAS" count={jornadas.length} vacio="Sin jornadas este mes." hayDatos={jornadas.length > 0} defaultOpen>
-              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                {jornadas.slice(0, 5).map((j) => (
-                  <Box key={j.fecha} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                      <EventNoteIcon sx={{ fontSize: 18, color: AZUL, flexShrink: 0 }} />
-                      <Typography sx={{ fontSize: '0.82rem', color: '#0f2c4a', fontWeight: 600 }}>{dayjs(j.fecha).format('DD MMM')}</Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '0.8rem', color: '#475569' }}>{hhmm(j.entrada)} → {hhmm(j.salida)}</Typography>
-                    <Chip label={j.horas} size="small" sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, bgcolor: '#eaf2fb', color: AZUL }} />
-                  </Box>
-                ))}
-              </Box>
-            </SeccionColapsable>
 
-            {/* Últimas novedades */}
-            <SeccionColapsable titulo="ÚLTIMAS NOVEDADES" count={novedades.length} vacio="Sin novedades registradas." hayDatos={novedades.length > 0}>
-              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                {novedades.map((n) => {
-                  const tipo = n.newness_id?.name || 'Novedad';
-                  const c = getChipColor(tipo);
-                  return (
-                    <Box key={n.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
-                      <Chip
-                        icon={getIconForTipo(tipo)}
-                        label={tipo}
-                        size="small"
-                        sx={{ height: 24, fontWeight: 700, fontSize: '0.72rem', bgcolor: c.bg, color: c.text, '& .MuiChip-icon': { ml: 0.5 } }}
-                      />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8', flexShrink: 0 }}>
-                          {n.report_date ? dayjs(n.report_date).format('DD MMM YYYY') : '—'}
-                        </Typography>
-                        {isAdminUser && (
-                          <IconButton
-                            size="small"
-                            onClick={() => setConfirmDeleteId(n.id)}
-                            sx={{ color: '#ef4444', p: 0.25, '&:hover': { bgcolor: '#fef2f2' } }}
-                          >
-                            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                          </IconButton>
-                        )}
+
+              {/* Últimas jornadas */}
+              <SeccionColapsable titulo="ÚLTIMAS JORNADAS" count={jornadas.length} vacio="Sin jornadas este mes." hayDatos={jornadas.length > 0} defaultOpen>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  {jornadas.slice(0, 5).map((j) => (
+                    <Box key={j.fecha} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                        <EventNoteIcon sx={{ fontSize: 18, color: AZUL, flexShrink: 0 }} />
+                        <Typography sx={{ fontSize: '0.82rem', color: '#0f2c4a', fontWeight: 600 }}>{dayjs(j.fecha).format('DD MMM')}</Typography>
                       </Box>
+                      <Typography sx={{ fontSize: '0.8rem', color: '#475569' }}>{hhmm(j.entrada)} → {hhmm(j.salida)}</Typography>
+                      <Chip label={j.horas} size="small" sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, bgcolor: '#eaf2fb', color: AZUL }} />
                     </Box>
-                  );
-                })}
-              </Box>
-            </SeccionColapsable>
+                  ))}
+                </Box>
+              </SeccionColapsable>
 
-            {/* Últimas pausas */}
-            <SeccionColapsable titulo="ÚLTIMAS PAUSAS" count={eventos.length} vacio="Sin pausas este mes." hayDatos={eventos.length > 0}>
-              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                {eventos.slice(0, 5).map((e) => (
-                  <Box key={e.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                      <PauseCircleOutlineIcon sx={{ fontSize: 18, color: '#b45309', flexShrink: 0 }} />
-                      <Typography sx={{ fontSize: '0.82rem', color: '#0f2c4a', fontWeight: 600 }} noWrap>{e.event_type}</Typography>
+              {/* Últimas novedades */}
+              <SeccionColapsable titulo="ÚLTIMAS NOVEDADES" count={novedades.length} vacio="Sin novedades registradas." hayDatos={novedades.length > 0}>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  {novedades.map((n) => {
+                    const tipo = n.newness_id?.name || 'Novedad';
+                    const c = getChipColor(tipo);
+                    return (
+                      <Box key={n.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
+                        <Chip
+                          icon={getIconForTipo(tipo)}
+                          label={tipo}
+                          size="small"
+                          sx={{ height: 24, fontWeight: 700, fontSize: '0.72rem', bgcolor: c.bg, color: c.text, '& .MuiChip-icon': { ml: 0.5 } }}
+                        />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8', flexShrink: 0 }}>
+                            {n.report_date ? dayjs(n.report_date).format('DD MMM YYYY') : '—'}
+                          </Typography>
+                          {isAdminUser && (
+                            <IconButton
+                              size="small"
+                              onClick={() => setConfirmDeleteId(n.id)}
+                              sx={{ color: '#ef4444', p: 0.25, '&:hover': { bgcolor: '#fef2f2' } }}
+                            >
+                              <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </SeccionColapsable>
+
+              {/* Últimas pausas */}
+              <SeccionColapsable titulo="ÚLTIMAS PAUSAS" count={eventos.length} vacio="Sin pausas este mes." hayDatos={eventos.length > 0}>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  {eventos.slice(0, 5).map((e) => (
+                    <Box key={e.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                        <PauseCircleOutlineIcon sx={{ fontSize: 18, color: '#b45309', flexShrink: 0 }} />
+                        <Typography sx={{ fontSize: '0.82rem', color: '#0f2c4a', fontWeight: 600 }} noWrap>{e.event_type}</Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8', flexShrink: 0 }}>
+                        {e.date ? dayjs(e.date).format('DD MMM') : '—'} · {hhmm(e.hour)}
+                      </Typography>
                     </Box>
-                    <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8', flexShrink: 0 }}>
-                      {e.date ? dayjs(e.date).format('DD MMM') : '—'} · {hhmm(e.hour)}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </SeccionColapsable>
-          </Box>
-        )}
-      </DialogContent>
+                  ))}
+                </Box>
+              </SeccionColapsable>
+            </Box>
+          )}
+        </DialogContent>
 
-      <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 2, fontWeight: 600, color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cerrar</Button>
-        <Button onClick={onEditar} variant="contained" disableElevation startIcon={<EditOutlinedIcon />} sx={{ bgcolor: AZUL, borderRadius: 2, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#003a6b' } }}>Editar</Button>
-      </DialogActions>
-    </Dialog>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 2, fontWeight: 600, color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cerrar</Button>
+          <Button onClick={onEditar} variant="contained" disableElevation startIcon={<EditOutlinedIcon />} sx={{ bgcolor: AZUL, borderRadius: 2, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#003a6b' } }}>Editar</Button>
+        </DialogActions>
+      </Dialog>
 
-    {/* Diálogo de Confirmación para Eliminar Novedad */}
-    <Dialog
-      open={confirmDeleteId !== null}
-      onClose={() => setConfirmDeleteId(null)}
-      slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
-    >
-      <DialogTitle sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#0f2c4a' }}>
-        ¿Eliminar novedad?
-      </DialogTitle>
-      <DialogContent>
-        <Typography sx={{ fontSize: '0.85rem', color: '#64748b' }}>
-          ¿Estás seguro de que deseas eliminar esta novedad? Esta acción no se puede deshacer y el empleado volverá a figurar según sus marcaciones habituales.
-        </Typography>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-        <Button
-          onClick={() => setConfirmDeleteId(null)}
-          variant="outlined"
-          disabled={eliminarMutation.isPending}
-          sx={{
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 600,
-            color: '#475569',
-            borderColor: '#cbd5e1',
-            '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' },
-          }}
-        >
-          Cancelar
-        </Button>
-        <Button
-          onClick={handleConfirmDelete}
-          variant="contained"
-          disableElevation
-          disabled={eliminarMutation.isPending}
-          startIcon={eliminarMutation.isPending ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : null}
-          sx={{
-            bgcolor: '#dc2626',
-            borderRadius: 2,
-            fontWeight: 700,
-            textTransform: 'none',
-            '&:hover': { bgcolor: '#b91c1c' },
-          }}
-        >
-          {eliminarMutation.isPending ? 'Eliminando…' : 'Eliminar'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  </>
+      {/* Diálogo de Confirmación para Eliminar Novedad */}
+      <Dialog
+        open={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#0f2c4a' }}>
+          ¿Eliminar novedad?
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: '0.85rem', color: '#64748b' }}>
+            ¿Estás seguro de que deseas eliminar esta novedad? Esta acción no se puede deshacer y el empleado volverá a figurar según sus marcaciones habituales.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => setConfirmDeleteId(null)}
+            variant="outlined"
+            disabled={eliminarMutation.isPending}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              color: '#475569',
+              borderColor: '#cbd5e1',
+              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' },
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            disableElevation
+            disabled={eliminarMutation.isPending}
+            startIcon={eliminarMutation.isPending ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : null}
+            sx={{
+              bgcolor: '#dc2626',
+              borderRadius: 2,
+              fontWeight: 700,
+              textTransform: 'none',
+              '&:hover': { bgcolor: '#b91c1c' },
+            }}
+          >
+            {eliminarMutation.isPending ? 'Eliminando…' : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
