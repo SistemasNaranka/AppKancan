@@ -9,6 +9,7 @@ export interface AccessValidationResult {
 interface UserData {
   ultra_code?: string | number | null;
   company?: string | null;
+  policies?: string[];
 }
 
 export function useAccessValidation(
@@ -24,14 +25,17 @@ export function useAccessValidation(
     }
 
     const missingFields: string[] = [];
+    const tienePoliticaJefezona = user.policies?.includes("AreaManagerTransfers") ?? false;
 
     const ultraCodeValido =
-      user.ultra_code !== null &&
-      user.ultra_code !== undefined &&
-      String(user.ultra_code).trim() !== "";
+      tienePoliticaJefezona ||
+      (user.ultra_code !== null &&
+       user.ultra_code !== undefined &&
+       String(user.ultra_code).trim() !== "");
 
     const companyValida =
-      typeof user.company === "string" && user.company.trim() !== "";
+      tienePoliticaJefezona ||
+      (typeof user.company === "string" && user.company.trim() !== "");
 
     if (!ultraCodeValido) missingFields.push("ultra_code");
     if (!companyValida) missingFields.push("company");

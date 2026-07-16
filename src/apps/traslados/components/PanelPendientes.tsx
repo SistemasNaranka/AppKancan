@@ -47,6 +47,10 @@ type PanelPendientesProps = {
   onRetry?: () => void;
   tienePoliticaTrasladosJefezona?: boolean;
   tienePoliticaTrasladosTiendas?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  ordenFecha: "asc" | "desc";
+  setOrdenFecha: (v: "asc" | "desc") => void;
 };
 
 const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
@@ -71,6 +75,10 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
   onRetry,
   tienePoliticaTrasladosJefezona = false,
   tienePoliticaTrasladosTiendas = false,
+  onRefresh,
+  isRefreshing = false,
+  ordenFecha,
+  setOrdenFecha,
 }) => {
   const [dialogoAprobacionAbierto, setDialogoAprobacionAbierto] =
     useState(false);
@@ -286,6 +294,8 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                       ? new Set(filtrados.map((t) => t.traslado)).size
                       : filtrados.length
                   }
+                  onRefresh={onRefresh}
+                  isRefreshing={isRefreshing}
                 />
                 <StoreTrasladosFilters
                   filtroBodegaDestino={filtroBodegaDestino}
@@ -298,6 +308,9 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
                   setFiltroFecha={setFiltroFecha}
                   conteos={conteos}
                   bodegasDestino={bodegasDestino}
+                  ocultarTipo={tienePoliticaTrasladosJefezona}
+                  ordenFecha={ordenFecha}
+                  setOrdenFecha={setOrdenFecha}
                 />
               </Box>
             ) : (
@@ -408,6 +421,7 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
             totalPendientes={totalPendientes}
             onRetry={onRetry}
             tienePoliticaTrasladosTiendas={tienePoliticaTrasladosTiendas}
+            tienePoliticaTrasladosJefezona={tienePoliticaTrasladosJefezona}
             filtroTipo={filtroTipo}
           />
         </Box>

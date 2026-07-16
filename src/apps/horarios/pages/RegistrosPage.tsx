@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Tooltip, Tabs, Tab, Paper,
@@ -14,6 +15,10 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+// --- NUEVAS IMPORTACIONES AÑADIDAS AQUÍ ---
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import MonitoreoPage from './MonitoreoPage';
+// -------------------------------------------
 import EmployeeCard from '../components/EmployeeCard';
 import NovedadesTab from '../components/NovedadesTab';
 import { useHorarios } from '../hooks/useHorarios';
@@ -35,13 +40,16 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import { useAuth } from '@/auth/hooks/useAuth';
 import { syncTimeWithServer } from '../utils/timeSync';
 
+
 const MALLA_HORARIA_HABILITADA = false;
+
 
 interface TabPanelProps {
   children?: React.ReactNode;
   value: number;
   index: number;
 }
+
 
 function TabPanel({ children, value, index }: TabPanelProps) {
   return (
@@ -50,6 +58,7 @@ function TabPanel({ children, value, index }: TabPanelProps) {
     </div>
   );
 }
+
 
 const toTitleCase = (str: string) => {
   if (!str) return '';
@@ -60,10 +69,12 @@ const toTitleCase = (str: string) => {
     .join(' ');
 };
 
+
 function RegistrosPageContent() {
   const { user } = useAuth();
   const { esAdmin, esReport, puedeVerDemo } = useHorariosPolicies();
   const isOnlyReport = esReport() && !esAdmin();
+
 
   const [storeOverride, setStoreOverride] = useState<number | null>(null);
   const [actualizando, setActualizando] = useState(false);
@@ -90,13 +101,16 @@ function RegistrosPageContent() {
     }
   }, [miTienda, initializedStore, isOnlyReport]);
 
+
   const {
     empleados, novedades, tiposNovedad, reasons, loading, error,
     registrarEvento, resetHorarios, eliminarEmpleado,
     guardarObservacion, agregarNovedad, reportarEvento,
   } = useHorarios(storeOverride);
 
+
   const { normas, debeAceptar, manualOpen, setManualOpen, aceptar, aceptando } = useNormas();
+
 
   const [demoEmpleado, setDemoEmpleado] = useState<EmpleadoAsistencia>({
     id: '99999',
@@ -104,7 +118,7 @@ function RegistrosPageContent() {
     nombre: 'USUARIO DE EJEMPLO',
     cargo: '',
     estadoActual: 'entrada_pendiente',
-    pausaActivaRealizada: false,
+    pausasActivasCount: 0,
     registros: {
       inicioJornada: null,
       inicioAlmuerzo: null,
@@ -116,6 +130,7 @@ function RegistrosPageContent() {
       horasEditadas: {}
     }
   });
+
 
   const registrarEventoDemo = (idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string) => {
     const ahora = horaOverride || dayjs().format('HH:mm');
@@ -135,7 +150,8 @@ function RegistrosPageContent() {
         eventKey = 'finJornada';
         nuevo.estadoActual = 'jornada_finalizada';
       }
-      
+
+
       if (eventKey) {
         nuevo.registros[eventKey as keyof typeof nuevo.registros] = ahora as any;
         if (observacionOverride) nuevo.registros.observaciones[eventKey as keyof typeof nuevo.registros.observaciones] = observacionOverride;
@@ -144,12 +160,35 @@ function RegistrosPageContent() {
     });
   };
 
+
   const reportarEventoDemo = (idEmpleado: string, eventType: string, observaciones?: string) => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
     if (eventType === 'Terminar Pausa Activa') {
-      setDemoEmpleado(prev => ({ ...prev, pausaActivaRealizada: true }));
+      setDemoEmpleado(prev => ({ ...prev, pausasActivasCount: Math.min((prev.pausasActivasCount ?? 0) + 1, 2) }));
     }
     return true;
   };
+
 
   const guardarObservacionDemo = (idEmpleado: string, evento: string, texto: string) => {
     setDemoEmpleado(prev => {
@@ -168,20 +207,28 @@ function RegistrosPageContent() {
     });
   };
 
+
   const { setTabChangeCallback, startFullTour } = useHorariosTour();
   const { activeTutorial, endTutorial } = useTutorial();
   const [tabValue, setTabValue] = useState(0);
+
+
+
+
   const [vistaAdmin, setVistaAdmin] = useState(false);
   const [vistaReporte, setVistaReporte] = useState(esReport() && !esAdmin());
   const [exportEventosOpen, setExportEventosOpen] = useState(false);
+
 
   useEffect(() => {
     setTabChangeCallback((tab: HorariosTab) => setTabValue(tab));
   }, [setTabChangeCallback]);
 
+
   useEffect(() => {
     syncTimeWithServer();
   }, []);
+
 
   useEffect(() => {
     if (activeTutorial === 'horarios' && !loading) {
@@ -193,12 +240,17 @@ function RegistrosPageContent() {
     }
   }, [activeTutorial, loading, startFullTour, endTutorial]);
 
+
+  // --- SE AÑADIÓ EL 5to SUBTÍTULO PARA MONITOREO AQUÍ ---
   const subtitulosTab = [
     'Gestiona las marcaciones de asistencia del día',
     'Gestiona y revisa las incidencias de asistencia en tiempo real',
     'Consulta y verifica los registros históricos de la jornada laboral',
-    'Visualiza la planificación de turnos y horarios'
+    'Visualiza la planificación de turnos y horarios',
+    'Monitoreo y analíticas en tiempo real'
   ];
+
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number | 'admin' | 'reporte') => {
     if (newValue === 'admin') {
       setVistaAdmin(true);
@@ -215,15 +267,18 @@ function RegistrosPageContent() {
     setTabValue(newValue);
   };
 
+
   const getTituloPrincipal = () => {
     switch (tabValue) {
       case 0: return 'Panel de Asistencia';
       case 1: return 'Registro de Novedades';
       case 2: return 'Historial';
       case 3: return 'Malla Horaria';
+      case 4: return 'Monitoreo'; // --- SE AÑADIÓ EL TÍTULO DE MONITOREO AQUÍ ---
       default: return 'Panel de Asistencia';
     }
   };
+
 
   const getIconoPrincipal = () => {
     const iconSx = { fontSize: 26 };
@@ -232,11 +287,13 @@ function RegistrosPageContent() {
       case 1: return <AssignmentIcon sx={iconSx} />;
       case 2: return <HistoryIcon sx={iconSx} />;
       case 3: return <GridViewIcon sx={iconSx} />;
+      case 4: return <AnalyticsIcon sx={iconSx} />; // --- SE AÑADIÓ EL ÍCONO DE MONITOREO AQUÍ ---
       default: return <EventNoteIcon sx={iconSx} />;
     }
   };
 
-  if (loading) {
+
+  if (loading && !vistaAdmin && !vistaReporte && tabValue !== 4) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress size={50} sx={{ color: '#004680' }} />
@@ -245,6 +302,7 @@ function RegistrosPageContent() {
     );
   }
 
+
   return (
     <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: 'transparent', px: { xs: 2, md: 4 }, pt: 2, pb: 4 }}>
       {error && (
@@ -252,6 +310,7 @@ function RegistrosPageContent() {
           {error}
         </Alert>
       )}
+
 
       <Paper elevation={0} sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 1, mb: 2, bgcolor: '#fff' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, bgcolor: '#fff', p: { xs: 1.5, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
@@ -277,13 +336,13 @@ function RegistrosPageContent() {
                 {vistaAdmin
                   ? 'Panel Administrativo'
                   : vistaReporte
-                  ? `${isOnlyReport ? 'Informe Registro de Horarios' : 'Reporte de Asistencia'}${(() => {
+                    ? `${isOnlyReport ? 'Informe Registro de Horarios' : 'Reporte de Asistencia'}${(() => {
                       const nombre = storeOverride != null
                         ? (tiendasAdmin.find((t) => t.id === storeOverride)?.name ?? '')
                         : (user?.store_name ?? '');
                       return nombre ? ` - ${toTitleCase(nombre)}` : '';
                     })()}`
-                  : `${getTituloPrincipal()}${(() => {
+                    : `${getTituloPrincipal()}${(() => {
                       const nombre = storeOverride != null
                         ? (tiendasAdmin.find((t) => t.id === storeOverride)?.name ?? '')
                         : (user?.store_name ?? '');
@@ -297,17 +356,24 @@ function RegistrosPageContent() {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
             {esAdmin() && !vistaAdmin && !vistaReporte && (
+              // ============================================================
+              // 🔥 CAMBIO: "Todas las tiendas" sin emoji y con mismo diseño
+              // ============================================================
               <Autocomplete
                 size="small"
-                options={tiendasAdmin}
+                options={[{ id: null, name: 'Todas las tiendas' }, ...tiendasAdmin]}
                 getOptionLabel={(o) => o.name}
-                value={tiendasAdmin.find((t) => t.id === storeOverride) ?? null}
+                value={
+                  storeOverride === null
+                    ? { id: null, name: 'Todas las tiendas' }
+                    : tiendasAdmin.find((t) => t.id === storeOverride) ?? null
+                }
                 onChange={(_, v) => setStoreOverride(v ? v.id : null)}
-                sx={{ width: 230 }}
+                sx={{ width: 250 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    placeholder="Tiendas"
+                    placeholder="Seleccionar tienda"
                     InputProps={{
                       ...params.InputProps,
                       startAdornment: (
@@ -320,6 +386,7 @@ function RegistrosPageContent() {
                   />
                 )}
               />
+              // ============================================================
             )}
             {!vistaAdmin && !vistaReporte && (
               <>
@@ -396,6 +463,7 @@ function RegistrosPageContent() {
           </Box>
         </Box>
 
+
         {!isOnlyReport && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: { xs: 1, md: 2 } }}>
             <Tabs
@@ -438,6 +506,9 @@ function RegistrosPageContent() {
               <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
               <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
               <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
+              {/* --- SE AÑADIÓ LA PESTAÑA DE MONITOREO AQUÍ --- */}
+              <Tab value={4} icon={<AnalyticsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MONITOREO" />
+              {/* ----------------------------------------------- */}
               {esAdmin() && (
                 <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
               )}
@@ -445,6 +516,7 @@ function RegistrosPageContent() {
                 <Tab value="reporte" icon={<FileDownloadIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REPORTE" />
               )}
             </Tabs>
+
 
             {tabValue === 0 && !vistaAdmin && !vistaReporte && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 2 }}>
@@ -477,78 +549,91 @@ function RegistrosPageContent() {
         )}
       </Paper>
 
+
       {vistaAdmin ? (
         <AdminEmpleadosPage storeSel={storeOverride} onStoreChange={setStoreOverride} />
       ) : vistaReporte ? (
         <ReportePage storeSel={storeOverride} onStoreChange={setStoreOverride} novedades={novedades} esAdmin={esAdmin()} />
       ) : (
-      <>
-      <TabPanel value={tabValue} index={0}>
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)'
-          },
-          gap: 3,
-          width: '100%'
-        }}>
-          {modoDemo && (
-            <EmployeeCard
-              key="demo-99999"
-              empleado={demoEmpleado}
-              tiposNovedad={tiposNovedad as any}
-              reasons={reasons}
-              onRegistrarEvento={registrarEventoDemo}
-              onEliminarEmpleado={() => {}}
-              onGuardarObservacion={guardarObservacionDemo}
-              onAgregarNovedad={async () => true}
-              onReportarEvento={reportarEventoDemo}
-            />
-          )}
-          {empleados.map((empleado) => (
-            <EmployeeCard
-              key={empleado.id}
-              empleado={empleado}
-              tiposNovedad={tiposNovedad as any}
-              reasons={reasons}
-              onRegistrarEvento={registrarEvento}
-              onEliminarEmpleado={eliminarEmpleado}
-              onGuardarObservacion={guardarObservacion}
-              onAgregarNovedad={agregarNovedad}
-              onReportarEvento={reportarEvento}
-            />
-          ))}
-          {empleados.length === 0 && !modoDemo && (
-            <Typography variant="body1" sx={{ color: '#64748b', mt: 4 }}>
-              No hay empleados pendientes por gestionar.
-            </Typography>
-          )}
-        </Box>
-      </TabPanel>
+        <>
+          <TabPanel value={tabValue} index={0}>
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)'
+              },
+              gap: 3,
+              width: '100%'
+            }}>
+              {modoDemo && (
+                <EmployeeCard
+                  key="demo-99999"
+                  empleado={demoEmpleado}
+                  tiposNovedad={tiposNovedad as any}
+                  reasons={reasons}
+                  onRegistrarEvento={registrarEventoDemo}
+                  onEliminarEmpleado={() => { }}
+                  onGuardarObservacion={guardarObservacionDemo}
+                  onAgregarNovedad={async () => true}
+                  onReportarEvento={reportarEventoDemo}
+                />
+              )}
+              {empleados.map((empleado) => (
+                <EmployeeCard
+                  key={empleado.id}
+                  empleado={empleado}
+                  tiposNovedad={tiposNovedad as any}
+                  reasons={reasons}
+                  onRegistrarEvento={registrarEvento}
+                  onEliminarEmpleado={eliminarEmpleado}
+                  onGuardarObservacion={guardarObservacion}
+                  onAgregarNovedad={agregarNovedad}
+                  onReportarEvento={reportarEvento}
+                />
+              ))}
+              {empleados.length === 0 && !modoDemo && (
+                <Typography variant="body1" sx={{ color: '#64748b', mt: 4 }}>
+                  No hay empleados pendientes por gestionar.
+                </Typography>
+              )}
+            </Box>
+          </TabPanel>
 
-      <TabPanel value={tabValue} index={1}>
-        <NovedadesTab novedades={novedades} esAdmin={esAdmin()} storeOverride={storeOverride} />
-      </TabPanel>
 
-      <TabPanel value={tabValue} index={2}>
-        <HistorialPage storeIdAdmin={storeOverride} />
-      </TabPanel>
+          <TabPanel value={tabValue} index={1}>
+            <NovedadesTab novedades={novedades} esAdmin={esAdmin()} storeOverride={storeOverride} />
+          </TabPanel>
 
-      <TabPanel value={tabValue} index={3}>
-        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
-          <Typography variant="h6" color="#64748b">Malla Horaria</Typography>
-        </Paper>
-      </TabPanel>
-      </>
+
+          <TabPanel value={tabValue} index={2}>
+            <HistorialPage storeIdAdmin={storeOverride} />
+          </TabPanel>
+
+
+          <TabPanel value={tabValue} index={3}>
+            <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+              <Typography variant="h6" color="#64748b">Malla Horaria</Typography>
+            </Paper>
+          </TabPanel>
+
+
+          {/* --- SE AÑADIÓ EL PANEL DE MONITOREO AQUÍ --- */}
+          <TabPanel value={tabValue} index={4}>
+            <MonitoreoPage storeId={storeOverride} /> {/* 👈 CAMBIO AQUÍ */}
+          </TabPanel>
+          {/* -------------------------------------------- */}
+        </>
       )}
+
 
       <ExportEventosDialog
         open={exportEventosOpen}
         onClose={() => setExportEventosOpen(false)}
         storeId={storeOverride}
       />
+
 
       <NormasModal
         open={manualOpen}
@@ -562,6 +647,7 @@ function RegistrosPageContent() {
   );
 }
 
+
 export default function RegistrosPage() {
   return (
     <HorariosTourProvider>
@@ -571,3 +657,4 @@ export default function RegistrosPage() {
     </HorariosTourProvider>
   );
 }
+

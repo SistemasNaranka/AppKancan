@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import BadgeIcon from '@mui/icons-material/Badge';
 import { Tienda, Cargo, EmpleadoAdmin } from '../../interfaces/horarios.interface';
+import { useParseNombreIA } from '../../hooks/useParseNombreIA';
 
 const AZUL = '#004680';
 
@@ -16,7 +17,33 @@ interface Props {
   cargos: Cargo[];
   guardando: boolean;
   onClose: () => void;
-  onGuardar: (id: number, data: { store_id?: number; position_id?: number; status?: string }) => Promise<unknown>;
+  onGuardar: (
+    id: number,
+    data: {
+      store_id?: number;
+      position_id?: number;
+      status?: string;
+      first_name?: string;
+      middle_name?: string;
+      last_name?: string;
+      second_last_name?: string;
+    }
+  ) => Promise<unknown>;
+}
+
+function splitNombreLocal(nombre: string) {
+  const t = nombre.trim().split(/\s+/).filter(Boolean);
+  const r = { first_name: '', middle_name: '', last_name: '', second_last_name: '' };
+  if (t.length === 1) { r.first_name = t[0]; }
+  else if (t.length === 2) { r.first_name = t[0]; r.last_name = t[1]; }
+  else if (t.length === 3) { r.first_name = t[0]; r.last_name = t[1]; r.second_last_name = t[2]; }
+  else {
+    r.first_name = t[0];
+    r.middle_name = t[1];
+    r.second_last_name = t[t.length - 1];
+    r.last_name = t.slice(2, t.length - 1).join(' ');
+  }
+  return r;
 }
 
 export default function DialogEditarEmpleado({
@@ -25,30 +52,74 @@ export default function DialogEditarEmpleado({
   const [storeEdit, setStoreEdit] = useState(0);
   const [cargoEdit, setCargoEdit] = useState(0);
   const [statusEdit, setStatusEdit] = useState('Activo');
+  const [nombreCompleto, setNombreCompleto] = useState('');
+  const [errorNombre, setErrorNombre] = useState('');
+
+  const { separarNombre, procesando } = useParseNombreIA();
 
   useEffect(() => {
     if (open && empleado) {
       setStoreEdit(empleado.store_id ?? 0);
       setCargoEdit(empleado.position_id ?? 0);
       setStatusEdit(empleado.status ?? 'Activo');
+      
+      const full = [empleado.first_name, empleado.middle_name, empleado.last_name, empleado.second_last_name]
+        .filter((p) => p && p.trim()).join(' ');
+      setNombreCompleto(full);
+      setErrorNombre('');
     }
   }, [open, empleado]);
 
   if (!empleado) return null;
 
-  const nombreCompleto = [empleado.first_name, empleado.middle_name, empleado.last_name, empleado.second_last_name]
+  const originalNombre = [empleado.first_name, empleado.middle_name, empleado.last_name, empleado.second_last_name]
     .filter((p) => p && p.trim()).join(' ');
 
   const hayCambios =
     storeEdit !== (empleado.store_id ?? 0) ||
     cargoEdit !== (empleado.position_id ?? 0) ||
-    statusEdit !== (empleado.status ?? '');
+    statusEdit !== (empleado.status ?? '') ||
+    nombreCompleto.trim().replace(/\s+/g, ' ') !== originalNombre;
 
   const guardar = async () => {
-    const data: { store_id?: number; position_id?: number; status?: string } = {};
+    setErrorNombre('');
+    const nombre = nombreCompleto.trim().replace(/\s+/g, ' ');
+    if (!nombre) {
+      setErrorNombre('El nombre completo es obligatorio');
+      return;
+    }
+    if (nombre.split(' ').length < 2) {
+      setErrorNombre('Ingresa al menos un nombre y un apellido');
+      return;
+    }
+
+    const data: {
+      store_id?: number;
+      position_id?: number;
+      status?: string;
+      first_name?: string;
+      middle_name?: string;
+      last_name?: string;
+      second_last_name?: string;
+    } = {};
+
     if (storeEdit !== (empleado.store_id ?? 0)) data.store_id = storeEdit;
     if (cargoEdit !== (empleado.position_id ?? 0)) data.position_id = cargoEdit;
     if (statusEdit !== (empleado.status ?? '')) data.status = statusEdit;
+
+    if (nombre !== originalNombre) {
+      let partes;
+      try {
+        partes = await separarNombre(nombre);
+        if (!partes.first_name || !partes.last_name) partes = splitNombreLocal(nombre);
+      } catch {
+        partes = splitNombreLocal(nombre);
+      }
+      data.first_name = partes.first_name;
+      data.middle_name = partes.middle_name || '';
+      data.last_name = partes.last_name;
+      data.second_last_name = partes.second_last_name || '';
+    }
 
     if (Object.keys(data).length === 0) { onClose(); return; }
 
@@ -72,15 +143,30 @@ export default function DialogEditarEmpleado({
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <TextField
+          fullWidth
+          label="Nombre completo *"
+          placeholder="Ej: Juan Camilo Ortiz Grisales"
+          value={nombreCompleto}
+          onChange={(e) => {
+            setNombreCompleto(e.target.value);
+            if (errorNombre) setErrorNombre('');
+          }}
+          error={!!errorNombre}
+          helperText={errorNombre}
+          disabled={guardando || procesando}
+        />
+
         <Autocomplete
           options={tiendas}
           getOptionLabel={(o) => o.name}
           value={tiendas.find((t) => t.id === storeEdit) ?? null}
           onChange={(_, v) => setStoreEdit(v ? v.id : 0)}
+          disabled={guardando || procesando}
           renderInput={(params) => <TextField {...params} label="Tienda" placeholder="Buscar tienda..." />}
         />
 
-        <FormControl fullWidth>
+        <FormControl fullWidth disabled={guardando || procesando}>
           <InputLabel id="cargo-edit-label">Cargo</InputLabel>
           <Select labelId="cargo-edit-label" label="Cargo" value={cargoEdit === 0 ? '' : cargoEdit} onChange={(e) => setCargoEdit(Number(e.target.value))}>
             <MenuItem value="" disabled>Selecciona un cargo…</MenuItem>
@@ -97,10 +183,11 @@ export default function DialogEditarEmpleado({
                 <Chip
                   key={s}
                   label={s}
-                  onClick={() => setStatusEdit(s)}
+                  onClick={() => { if (!guardando && !procesando) setStatusEdit(s); }}
+                  disabled={guardando || procesando}
                   sx={{
                     fontWeight: 600,
-                    cursor: 'pointer',
+                    cursor: (guardando || procesando) ? 'default' : 'pointer',
                     borderRadius: '8px',
                     px: 0.5,
                     bgcolor: activo ? (s === 'Activo' ? '#dcfce7' : '#fee2e2') : '#f1f5f9',
@@ -117,16 +204,16 @@ export default function DialogEditarEmpleado({
       </DialogContent>
 
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" disabled={guardando} sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cerrar</Button>
+        <Button onClick={onClose} variant="outlined" disabled={guardando || procesando} sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
         <Button
           onClick={guardar}
           variant="contained"
           disableElevation
-          disabled={!hayCambios || guardando}
-          startIcon={guardando ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
+          disabled={!hayCambios || guardando || procesando}
+          startIcon={(guardando || procesando) ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
           sx={{ bgcolor: AZUL, textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#003a6b' } }}
         >
-          {guardando ? 'Guardando…' : 'Guardar cambios'}
+          {procesando ? 'Procesando nombre…' : guardando ? 'Guardando…' : 'Guardar cambios'}
         </Button>
       </DialogActions>
     </Dialog>

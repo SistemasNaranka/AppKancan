@@ -7,12 +7,14 @@ import {
   Alert,
   Snackbar,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import SmartToy from '@mui/icons-material/SmartToy';
 import ReceiptLong from '@mui/icons-material/ReceiptLong';
 import Cancel from '@mui/icons-material/Cancel';
 import Update from '@mui/icons-material/Update';
+import Refresh from '@mui/icons-material/Refresh';
 
 import { useHomeLogic } from "../hooks/useHomeLogic";
 
@@ -73,6 +75,9 @@ export default function Home() {
     handleUpdateResolution,
     handleSaveAutomatic,
     getProcessingMessage,
+    isRefreshingData,
+    handleRefreshData,
+    causacionInvoiceId,
   } = useHomeLogic();
 
   return (
@@ -89,6 +94,45 @@ export default function Home() {
               Sube tus facturas PDF para extraer datos con IA
             </Typography>
           </Box>
+
+          {/* Botón de Refrescar Datos en Tiempo Real */}
+          {!isProcessing && (
+            <Tooltip title="Refrescar entradas y proveedor" arrow>
+              <span>
+                <IconButton
+                  onClick={handleRefreshData}
+                  disabled={isRefreshingData}
+                  size="small"
+                  sx={{
+                    color: "primary.main",
+                    backgroundColor: "rgba(2, 132, 199, 0.04)",
+                    border: "1px solid rgba(2, 132, 199, 0.15)",
+                    borderRadius: 2.5,
+                    p: 0.8,
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      backgroundColor: "rgba(2, 132, 199, 0.1)",
+                      transform: isRefreshingData ? "none" : "scale(1.05)",
+                    },
+                    "&:active": {
+                      transform: "scale(0.95)",
+                    },
+                  }}
+                >
+                  <Refresh
+                    sx={{
+                      fontSize: 20,
+                      animation: isRefreshingData ? "spin 1s linear infinite" : "none",
+                      "@keyframes spin": {
+                        "0%": { transform: "rotate(0deg)" },
+                        "100%": { transform: "rotate(360deg)" },
+                      },
+                    }}
+                  />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
 
           {/* Indicador de estado */}
           {estado !== "idle" && (
@@ -295,6 +339,7 @@ export default function Home() {
           open={causacionProgressOpen}
           goodsReceiptId={causacionEntryId}
           goodsReceiptNumber={causacionEntryNumber}
+          invoiceId={causacionInvoiceId}
           onSuccess={handleCausacionSuccess}
           onFailure={handleCausacionFailure}
           onClose={() => setCausacionProgressOpen(false)}

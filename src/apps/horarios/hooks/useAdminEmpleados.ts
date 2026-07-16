@@ -63,6 +63,7 @@ export const useAdminEmpleados = (tiendaSel: number | null, setTiendaSel: (id: n
   const invalidarEmpleados = () => {
     queryClient.invalidateQueries({ queryKey: ['empleados'] });
     queryClient.invalidateQueries({ queryKey: ['adminEmpleadosTienda'] });
+    queryClient.invalidateQueries({ queryKey: ['adminTodosEmpleados'] });
   };
 
   const crearMutation = useMutation({

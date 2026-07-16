@@ -20,12 +20,14 @@ import NormasModal from './NormasModal';
 import { getRecordReasonId } from '../api/directus/read';
 import { getNormasActivas, yaAceptoNormasEmpleado, registrarAceptacionNormasEmpleado, Normas } from '../api/directus/rules';
 import { useQuery } from '@tanstack/react-query';
+import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import dayjs from 'dayjs';
 import * as yup from 'yup';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import 'dayjs/locale/es';
+
 
 interface EmployeeCardProps {
   empleado: EmpleadoAsistencia;
@@ -46,9 +48,11 @@ interface EmployeeCardProps {
   onReportarEvento: (idEmpleado: string, eventType: string, observaciones?: string) => Promise<boolean> | boolean | any;
 }
 
+
 const EVENTOS_PAUSA = [
   'Iniciar Pausa Activa',
 ];
+
 
 const getIcon = (etiqueta: string) => {
   switch (etiqueta) {
@@ -59,6 +63,7 @@ const getIcon = (etiqueta: string) => {
     default: return null;
   }
 };
+
 
 const formatTo12Hour = (timeStr: string | null): string => {
   if (!timeStr) return '';
@@ -76,14 +81,18 @@ const formatTo12Hour = (timeStr: string | null): string => {
 };
 
 
+
+
 function NombreEmpleado({ nombre }: { nombre: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [truncado, setTruncado] = useState(false);
+
 
   useEffect(() => {
     const el = ref.current;
     if (el) setTruncado(el.scrollWidth > el.clientWidth);
   }, [nombre]);
+
 
   const texto = (
     <Typography
@@ -94,6 +103,7 @@ function NombreEmpleado({ nombre }: { nombre: string }) {
       {nombre}
     </Typography>
   );
+
 
   return truncado ? (
     <Tooltip
@@ -127,9 +137,10 @@ function NombreEmpleado({ nombre }: { nombre: string }) {
   );
 }
 
+
 export default function EmployeeCard({
   empleado, tiposNovedad, reasons, onRegistrarEvento,
-  onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad, onReportarEvento,
+  onEliminarEmpleado, onGuardarObservacion, onAgregarNovedad, onReportarEvento
 }: EmployeeCardProps) {
   if (!empleado) {
     return (
@@ -140,10 +151,14 @@ export default function EmployeeCard({
     );
   }
 
-  const { id, nombre, estadoActual, registros, pausaActivaRealizada } = empleado;
+
+  const { id, nombre, estadoActual, registros, pausasActivasCount = 0 } = empleado;
+  const { tieneTemporal } = useHorariosPolicies();
+
 
   const [novedadModalOpen, setNovedadModalOpen] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState<number | null>(null);
+
 
   useEffect(() => {
     const checkActiveBreak = () => {
@@ -153,6 +168,7 @@ export default function EmployeeCard({
       } else {
         expirationStr = localStorage.getItem(`activeBreakExpires_${id}`);
       }
+
 
       if (expirationStr) {
         const expirationTime = parseInt(expirationStr, 10);
@@ -169,13 +185,16 @@ export default function EmployeeCard({
       }
     };
 
+
     checkActiveBreak();
     window.addEventListener('storage', checkActiveBreak);
     return () => window.removeEventListener('storage', checkActiveBreak);
   }, [id, onReportarEvento]);
 
+
   useEffect(() => {
     if (tiempoRestante === null) return;
+
 
     if (tiempoRestante <= 0) {
       if (String(id) === '99999') delete (window as any).__demoActiveBreakExpires;
@@ -185,6 +204,7 @@ export default function EmployeeCard({
       return;
     }
 
+
     const interval = setInterval(() => {
       let expirationStr;
       if (String(id) === '99999') {
@@ -192,7 +212,7 @@ export default function EmployeeCard({
       } else {
         expirationStr = localStorage.getItem(`activeBreakExpires_${id}`);
       }
-      
+     
       if (expirationStr) {
         const expirationTime = parseInt(expirationStr, 10);
         const now = Date.now();
@@ -212,9 +232,9 @@ export default function EmployeeCard({
       }
     }, 1000);
 
+
     return () => clearInterval(interval);
   }, [tiempoRestante, id, onReportarEvento]);
-
   const [formData, setFormData] = useState({
     novedad: '',
     fechaInicio: dayjs().format('YYYY-MM-DD'),
@@ -223,14 +243,17 @@ export default function EmployeeCard({
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+
   const [obsModalOpen, setObsModalOpen] = useState(false);
   const [eventoActualObs, setEventoActualObs] = useState('');
   const [observacionTexto, setObservacionTexto] = useState('');
   const [obsInicialModal, setObsInicialModal] = useState('');
 
+
   const [horaModalOpen, setHoraModalOpen] = useState(false);
   const [eventoActualHora, setEventoActualHora] = useState('');
   const [initialReasonId, setInitialReasonId] = useState<number | null>(null);
+
 
   const [eventoModalOpen, setEventoModalOpen] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState('');
@@ -241,11 +264,31 @@ export default function EmployeeCard({
   const [employeeNormasOpen, setEmployeeNormasOpen] = useState(false);
   const [aceptandoNormas, setAceptandoNormas] = useState(false);
 
+
   const { data: normasActivas = null } = useQuery<Normas | null>({
     queryKey: ['normasActivas'],
     queryFn: getNormasActivas,
     staleTime: 10 * 60 * 1000,
   });
+
+
+  const { data: yaAceptoVigente = true, refetch: refetchAceptacion } = useQuery<boolean>({
+    queryKey: ['yaAceptoNormasEmpleado', id, normasActivas?.id],
+    queryFn: async () => {
+      if (!normasActivas || String(id) === '99999') return true;
+      return await yaAceptoNormasEmpleado(Number(id), normasActivas.id, normasActivas.version);
+    },
+    enabled: !!normasActivas && !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+
+  const showAceptarNormasButton =
+    tieneTemporal() &&
+    String(id) !== '99999' &&
+    !!normasActivas &&
+    !yaAceptoVigente;
+
 
   const novedadSchema = yup.object().shape({
     novedad: yup.string().required('El tipo de novedad es obligatorio'),
@@ -259,6 +302,7 @@ export default function EmployeeCard({
     observaciones: yup.string().max(300, 'Máximo 300 caracteres')
   });
 
+
   const botones = [
     { etiqueta: 'Comenzar Jornada', activo: estadoActual === 'entrada_pendiente', hora: registros.inicioJornada },
     { etiqueta: 'Iniciar Almuerzo', activo: estadoActual === 'jornada_iniciada', hora: registros.inicioAlmuerzo },
@@ -266,9 +310,13 @@ export default function EmployeeCard({
     { etiqueta: 'Terminar Jornada', activo: estadoActual === 'regreso_almuerzo', hora: registros.finJornada },
   ];
 
+
+  const MAX_PAUSAS = 2;
   const novedadActiva = estadoActual === 'entrada_pendiente';
   const finalizado = estadoActual === 'jornada_finalizada';
-  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado && tiempoRestante === null;
+  const pausasAgotadas = pausasActivasCount >= MAX_PAUSAS;
+  const reporteActivo = estadoActual !== 'entrada_pendiente' && !finalizado && tiempoRestante === null && !pausasAgotadas;
+
 
   const getObservacion = (evento: string) => {
     if (!registros.observaciones) return '';
@@ -281,6 +329,7 @@ export default function EmployeeCard({
     }
   };
 
+
   const getHoraEvento = (evento: string): string | null => {
     switch (evento) {
       case 'Comenzar Jornada': return registros.inicioJornada;
@@ -290,6 +339,7 @@ export default function EmployeeCard({
       default: return null;
     }
   };
+
 
   const getEditadoStatus = (evento: string): boolean => {
     if (!registros.horasOriginales) return false;
@@ -303,12 +353,14 @@ export default function EmployeeCard({
     return !!registros.horasOriginales[eventKey];
   };
 
+
   const handleOpenNovedadModal = () => {
     setFormData({ novedad: '', fechaInicio: dayjs().format('YYYY-MM-DD'), fechaFin: dayjs().format('YYYY-MM-DD'), observaciones: '' });
     setFormErrors({});
     setNovedadModalOpen(true);
   };
   const handleCloseNovedadModal = () => setNovedadModalOpen(false);
+
 
   const handleGuardarNovedad = async () => {
     try {
@@ -328,6 +380,7 @@ export default function EmployeeCard({
       }
     }
   };
+
 
   const handleOpenEventoModal = () => {
     setEventoSeleccionado(EVENTOS_PAUSA[0]);
@@ -364,6 +417,7 @@ export default function EmployeeCard({
     }
   };
 
+
   const handleOpenObsModal = (evento: string) => {
     setEventoActualObs(evento);
     const obs = getObservacion(evento);
@@ -382,6 +436,7 @@ export default function EmployeeCard({
     handleCloseObsModal();
   };
 
+
   const getRecordIdEvento = (evento: string): number | undefined => {
     let eventKey = '';
     switch (evento) {
@@ -392,6 +447,7 @@ export default function EmployeeCard({
     }
     return registros.ids?.[eventKey];
   };
+
 
   const handleOpenHoraModal = (evento: string) => {
     setEventoActualHora(evento);
@@ -407,7 +463,7 @@ export default function EmployeeCard({
     try {
       await onRegistrarEvento(id, tipoEvento);
       if (tipoEvento === 'Comenzar Jornada' && normasActivas && String(id) !== '99999') {
-        const yaAcepto = await yaAceptoNormasEmpleado(Number(id), normasActivas.id);
+        const yaAcepto = await yaAceptoNormasEmpleado(Number(id), normasActivas.id, normasActivas.version);
         if (!yaAcepto) {
           setTimeout(() => {
             setEmployeeNormasOpen(true);
@@ -419,12 +475,14 @@ export default function EmployeeCard({
     }
   };
 
+
   const handleAceptarNormasEmpleado = async () => {
     if (!normasActivas) return;
     setAceptandoNormas(true);
     try {
       await registrarAceptacionNormasEmpleado(Number(id), normasActivas.version, normasActivas.id);
       setEmployeeNormasOpen(false);
+      refetchAceptacion();
     } catch (e) {
       console.error("Error al registrar aceptación de normas del empleado:", e);
     } finally {
@@ -432,7 +490,9 @@ export default function EmployeeCard({
     }
   };
 
+
   const maxLength = 300;
+
 
   return (
     <>
@@ -445,10 +505,39 @@ export default function EmployeeCard({
                 {empleado.cargo}
               </Typography>
             )}
-            {estadoActual !== 'entrada_pendiente' && !pausaActivaRealizada && (
+            {estadoActual !== 'entrada_pendiente' && !finalizado && (
               <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ffffff', opacity: 0.75, textTransform: 'uppercase', mt: 0.5, letterSpacing: '0.5px' }}>
-                Pausa activa pendiente
+                {pausasAgotadas
+                  ? null
+                  : pausasActivasCount === 0
+                    ? 'Pausa activa pendiente'
+                    : `Pausa activa ${pausasActivasCount} de ${MAX_PAUSAS} completada`
+                }
               </Typography>
+            )}
+            {showAceptarNormasButton && (
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => setEmployeeNormasOpen(true)}
+                sx={{
+                  mt: 0.75,
+                  alignSelf: 'flex-start',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  bgcolor: '#fbbf24',
+                  color: '#451a03',
+                  textTransform: 'uppercase',
+                  px: 1.25,
+                  py: 0.25,
+                  borderRadius: 1.5,
+                  boxShadow: 'none',
+                  letterSpacing: '0.4px',
+                  '&:hover': { bgcolor: '#f59e0b', boxShadow: 'none' }
+                }}
+              >
+                ⚠ Aceptar Normas
+              </Button>
             )}
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -472,7 +561,13 @@ export default function EmployeeCard({
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={reporteActivo ? 'Reportar evento' : 'No disponible'}>
+            <Tooltip title={
+              pausasAgotadas
+                ? `Pausas activas completadas (${MAX_PAUSAS} de ${MAX_PAUSAS})`
+                : reporteActivo
+                  ? 'Iniciar Pausa Activa'
+                  : 'No disponible'
+            }>
               <span className="tour-evento-btn">
                 <IconButton
                   size="medium"
@@ -496,18 +591,21 @@ export default function EmployeeCard({
           </Box>
         </Box>
 
+
+
+
         <Box sx={{ p: 3 }}>
           {tiempoRestante !== null && (
-            <Box 
-              sx={{ 
-                bgcolor: '#ecfeff', 
-                border: '1px solid #a5f3fc', 
-                borderRadius: 2, 
-                p: 1.5, 
-                mb: 2, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
+            <Box
+              sx={{
+                bgcolor: '#ecfeff',
+                border: '1px solid #a5f3fc',
+                borderRadius: 2,
+                p: 1.5,
+                mb: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
                 justifyContent: 'center',
                 animation: 'pulse 2s infinite ease-in-out',
                 '@keyframes pulse': {
@@ -543,6 +641,8 @@ export default function EmployeeCard({
           )}
 
 
+
+
           <Stack className="tour-marcacion" spacing={1.5}>
             {botones.map((btn, idx) => {
               const yaHecho = !!btn.hora;
@@ -556,6 +656,7 @@ export default function EmployeeCard({
                 : (yaHecho && editado
                     ? 'Esta hora ya fue editada y no se puede volver a editar. En caso de ser necesario, llamar a soporte.'
                     : 'No disponible');
+
 
               return (
                 <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -577,6 +678,7 @@ export default function EmployeeCard({
                       </IconButton>
                     </span>
                   </Tooltip>
+
 
                   <Button
                     fullWidth
@@ -622,6 +724,7 @@ export default function EmployeeCard({
                     {btn.hora && <span style={{ fontSize: '12px', fontWeight: 600 }}>{formatTo12Hour(btn.hora)}</span>}
                   </Button>
 
+
                   <Tooltip title={observacionGuardada ? `Observación: ${observacionGuardada.substring(0, 80)}...` : (obsEnabled ? 'Agregar observación' : 'No disponible')} arrow>
                     <span>
                       <IconButton
@@ -644,6 +747,10 @@ export default function EmployeeCard({
               );
             })}
           </Stack>
+
+
+
+
           {finalizado && (
             <Box sx={{ mt: 2, textAlign: 'center', bgcolor: '#f0fdf4', py: 1, borderRadius: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: '#16a34a' }}>Jornada completada</Typography>
@@ -651,6 +758,7 @@ export default function EmployeeCard({
           )}
         </Box>
       </Card>
+
 
       <EditHourModal
         open={horaModalOpen}
@@ -667,6 +775,7 @@ export default function EmployeeCard({
         }}
       />
 
+
       <NormasModal
         open={employeeNormasOpen}
         normas={normasActivas}
@@ -676,6 +785,7 @@ export default function EmployeeCard({
         onClose={() => setEmployeeNormasOpen(false)}
         onAceptar={handleAceptarNormasEmpleado}
       />
+
 
       {/* Modal observación */}
       <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
@@ -694,28 +804,15 @@ export default function EmployeeCard({
         </DialogActions>
       </Dialog>
 
+
       {/* Modal novedad */}
-      <Dialog 
-        open={novedadModalOpen} 
-        onClose={handleCloseNovedadModal}
-        maxWidth="sm" 
-        fullWidth 
-        PaperProps={{ sx: { borderRadius: 4 } }}
-      >
-        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>
-          Registro de Novedad
-        </DialogTitle>
+      <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-            
-            <FormControl fullWidth id="tour-modal-tipo" error={!!formErrors.novedad}>
+            <FormControl fullWidth error={!!formErrors.novedad}>
               <InputLabel id="novedad-select-label">Novedad</InputLabel>
-              <Select 
-                labelId="novedad-select-label" 
-                value={formData.novedad} 
-                label="Novedad" 
-                onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}
-              >
+              <Select labelId="novedad-select-label" value={formData.novedad} label="Novedad" onChange={(e) => setFormData({ ...formData, novedad: e.target.value })}>
                 {(tiposNovedad || []).map(tipo => (
                   <MenuItem key={tipo.id} value={tipo.name || tipo.nombre}>
                     {tipo.name || tipo.nombre}
@@ -724,7 +821,6 @@ export default function EmployeeCard({
               </Select>
               {formErrors.novedad && <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>{formErrors.novedad}</Typography>}
             </FormControl>
-
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <DatePicker
@@ -755,38 +851,63 @@ export default function EmployeeCard({
                 />
               </Box>
             </LocalizationProvider>
-
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Observaciones"
-              placeholder="Escriba aquí las observaciones de la novedad..."
-              value={formData.observaciones}
-              onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-              inputProps={{ maxLength: 300 }}
-            />
+            <TextField label="Observaciones" multiline rows={3} fullWidth value={formData.observaciones} onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })} placeholder="Detalle adicional..." error={!!formErrors.observaciones} helperText={formErrors.observaciones} />
           </Box>
         </DialogContent>
-        
-        <DialogActions sx={{ p: 3, gap: 2, bgcolor: '#f8fafc' }}>
-          <Button 
-            onClick={handleCloseNovedadModal} 
-            variant="outlined" 
-            sx={{ borderRadius: 2, px: 3, fontWeight: 600, color: '#475569', borderColor: '#cbd5e1' }}
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={handleCloseNovedadModal} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
+          <Button onClick={handleGuardarNovedad} variant="contained" disabled={!formData.novedad || !formData.fechaInicio || !formData.fechaFin} sx={{ bgcolor: '#004680' }}>Guardar</Button>
+        </DialogActions>
+      </Dialog>
+
+
+      {/* Modal reporte de evento / pausa */}
+      <Dialog open={eventoModalOpen} onClose={handleCloseEventoModal} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3, fontWeight: 700 }}>Reporta un evento</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          <Typography sx={{ fontSize: '0.85rem', color: '#475569', mb: 2 }}>
+            Escoja la novedad presentada para {nombre}:
+          </Typography>
+          <FormControl fullWidth error={!!eventoError}>
+            <InputLabel id="evento-select-label">Evento</InputLabel>
+            <Select
+              labelId="evento-select-label"
+              value={eventoSeleccionado}
+              label="Evento"
+              onChange={(e) => { setEventoSeleccionado(e.target.value); setEventoError(''); }}
+            >
+              {EVENTOS_PAUSA.map((ev) => (
+                <MenuItem key={ev} value={ev}>{ev}</MenuItem>
+              ))}
+            </Select>
+            {eventoError && <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>{eventoError}</Typography>}
+          </FormControl>
+          <TextField
+            label="Observaciones"
+            multiline
+            rows={3}
+            fullWidth
+            value={eventoObservaciones}
+            onChange={(e) => setEventoObservaciones(e.target.value.slice(0, 300))}
+            placeholder="Detalle adicional (opcional)..."
+            helperText={`${eventoObservaciones.length}/300 caracteres`}
+            slotProps={{ formHelperText: { sx: { textAlign: 'right' } } }}
+            sx={{ mt: 2.5 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={handleCloseEventoModal} disabled={guardandoEvento} variant="outlined" sx={{ color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}>Cancelar</Button>
+          <Button
+            onClick={handleGuardarEvento}
+            variant="contained"
+            disabled={guardandoEvento}
+            startIcon={guardandoEvento ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
+            sx={{ bgcolor: '#004680' }}
           >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleGuardarNovedad} 
-            variant="contained" 
-            sx={{ bgcolor: '#004680', borderRadius: 2, px: 4, fontWeight: 600 }}
-          >
-            Guardar Novedad
+            {guardandoEvento ? 'Guardando…' : 'Guardar'}
           </Button>
         </DialogActions>
       </Dialog>
     </>
   );
 }
-

@@ -22,7 +22,7 @@ interface TourContextType {
   isFullTourRunning: boolean;
   stepIndex: number;
 
-  startFullTour: () => void;
+  startTour: (phase?: TourPhase) => void;
   nextPhase: () => void;
   setStepIndex: (index: number) => void;
   stopTour: () => void;
@@ -60,19 +60,23 @@ export const HorariosTourProvider: React.FC<TourProviderProps> = ({ children }) 
 
   const isFullTourRunning = tourPhase !== "IDLE" && tourPhase !== "COMPLETED";
 
-  const startFullTour = useCallback(() => {
-    setStepIndex(0);
-    if (tabChangeCallback) tabChangeCallback(0);
-    setTimeout(() => setTourPhase("REGISTROS"), 100);
-  }, [tabChangeCallback]);
+  const startTour = useCallback(
+    (phase: TourPhase = "REGISTROS") => {
+      setStepIndex(0);
+      const tab = PHASE_TAB[phase];
+      if (tab !== undefined && tabChangeCallback) tabChangeCallback(tab);
+      setTimeout(() => setTourPhase(phase), 100);
+    },
+    [tabChangeCallback]
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("tour") === "start" && !isFullTourRunning) {
       navigate(location.pathname, { replace: true });
-      startFullTour();
+      startTour();
     }
-  }, [location.search, location.pathname, navigate, startFullTour, isFullTourRunning]);
+  }, [location.search, location.pathname, navigate, startTour, isFullTourRunning]);
 
   const nextPhase = useCallback(() => {
     const currentIndex = PHASE_ORDER.indexOf(tourPhase);
@@ -112,7 +116,7 @@ export const HorariosTourProvider: React.FC<TourProviderProps> = ({ children }) 
         tourPhase,
         isFullTourRunning,
         stepIndex,
-        startFullTour,
+        startTour,
         nextPhase,
         setStepIndex,
         stopTour,

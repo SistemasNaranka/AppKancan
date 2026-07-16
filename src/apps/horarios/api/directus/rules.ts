@@ -62,18 +62,24 @@ export async function registrarAceptacionNormas(userId: string, version: number)
   );
 }
 
-export async function yaAceptoNormasEmpleado(employeeId: number, ruleId: number): Promise<boolean> {
+export async function yaAceptoNormasEmpleado(employeeId: number, ruleId: number, version?: number): Promise<boolean> {
   try {
+    const filter: any = {
+      _and: [
+        { employee_id: { _eq: employeeId } },
+        {
+          _or: [
+            { rule_id: { _eq: ruleId } },
+            ...(version != null ? [{ version: { _eq: version } }] : []),
+          ]
+        }
+      ]
+    };
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("com_rules_acceptance", {
           fields: ["id"],
-          filter: {
-            _and: [
-              { employee_id: { _eq: employeeId } },
-              { rule_id: { _eq: ruleId } }
-            ]
-          },
+          filter,
           limit: 1,
         })
       )
@@ -81,7 +87,9 @@ export async function yaAceptoNormasEmpleado(employeeId: number, ruleId: number)
     return (items || []).length > 0;
   } catch (error) {
     console.error("❌ Error verificando aceptación de normas del empleado:", error);
-    return false;
+    // En caso de error (permisos, campo inexistente, etc.) asumimos que ya aceptó
+    // para no mostrar el botón innecesariamente a todos los colaboradores.
+    return true;
   }
 }
 

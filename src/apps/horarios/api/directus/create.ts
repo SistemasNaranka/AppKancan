@@ -1,5 +1,5 @@
 import directus from "@/services/directus/directus";
-import { createItem, createItems, updateItem, readItems } from "@directus/sdk";
+import { createItem, createItems, updateItem, readItems, deleteItem } from "@directus/sdk";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 
 export async function createNovedad(data: { 
@@ -209,5 +209,16 @@ export async function actualizarEmpleado(
   } catch (error: any) {
     console.error('❌ Error al actualizar empleado:', error);
     throw new Error(error?.errors?.[0]?.message || 'Error al actualizar el empleado');
+  }
+}
+
+export async function eliminarNovedad(id: number) {
+  try {
+    return await withAutoRefresh(() =>
+      directus.request(deleteItem('com_newness_reports', id))
+    );
+  } catch (error: any) {
+    console.error('❌ Error al eliminar novedad:', error);
+    throw new Error(error?.errors?.[0]?.message || 'Error al eliminar la novedad');
   }
 }

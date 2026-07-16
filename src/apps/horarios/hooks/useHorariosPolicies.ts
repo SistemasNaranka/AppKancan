@@ -19,10 +19,13 @@ export const useHorariosPolicies = () => {
       return s.includes('report');
     });
 
+  const tieneTemporal = (): boolean =>
+    (user?.policies ?? []).some((p) => p.toLowerCase() === 'temporal');
+
   const puedeVerDemo = (): boolean =>
     (user?.policies ?? []).some((p) => p.toLowerCase().includes('demo'));
 
-  return { hasPolicy, esAdmin, esReport, puedeVerDemo };
+  return { hasPolicy, esAdmin, esReport, puedeVerDemo, tieneTemporal };
 };
 
 export default useHorariosPolicies;
