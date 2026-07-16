@@ -38,6 +38,7 @@ import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import { Tienda } from '../interfaces/horarios.interface';
 import ModalDetalleTienda from '../components/ModalDetalleTienda';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
+import ReporteSemanalAreaManager from '../components/reportes/ReporteSemanalAreaManager';
 
 const COLORS_FOR_MOTIVO = [
     { bg: '#e3f2fd', text: '#0d47a1' }, { bg: '#e8f5e9', text: '#1b5e20' },
@@ -397,6 +398,9 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     <Tabs value={subTab} onChange={(_, v) => setSubTab(v)} textColor="primary" indicatorColor="primary">
                         <Tab label="Resumen de Asistencia" sx={{ fontWeight: 700, textTransform: 'none' }} />
                         <Tab label="Auditoría de Ediciones Manuales" sx={{ fontWeight: 700, textTransform: 'none' }} />
+                        {isAreaMgr && (
+                            <Tab label="Control de Horas" sx={{ fontWeight: 700, textTransform: 'none' }} />
+                        )}
                     </Tabs>
                 </Box>
 
@@ -653,7 +657,18 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     </>
                 )}
 
+
+                {isAreaMgr && subTab === 2 && (
+                    <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+                        <ReporteSemanalAreaManager
+                            storeId={storeId ?? null}
+                            storeName={storeId ? tiendas.find(t => t.id === storeId)?.name : undefined}
+                        />
+                    </Paper>
+                )}
+
                 {tiendaSeleccionada && (
+
                     <ModalDetalleTienda
                         tiendaId={tiendaSeleccionada}
                         tiendaNombre={tiendas.find(t => t.id === tiendaSeleccionada)?.name || 'Detalle de Tienda'}
