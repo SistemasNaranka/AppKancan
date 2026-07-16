@@ -61,7 +61,7 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
         queryKey: ['weekRecords', tiendaId, lunes.format('YYYY-MM-DD')],
         queryFn: () => fetchTimeRecords(
             lunes.format('YYYY-MM-DD'),
-            lunes.add(4, 'day').format('YYYY-MM-DD'),
+            lunes.add(6, 'day').format('YYYY-MM-DD'), // 🔥 CAMBIO: ahora incluye domingo (6 días después del lunes)
             tiendaId
         ),
         enabled: !!tiendaId,
@@ -281,7 +281,7 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
                             elevation={0}
                             sx={{
                                 borderRadius: 3,
-                                border: '1px solid #e0e0e0', // <--- BORDE SUTIL GRIS
+                                border: '1px solid #e0e0e0',
                                 mb: 2,
                                 bgcolor: '#ffffff',
                                 boxShadow: '0 1px 4px rgba(0,0,0,0.04)',

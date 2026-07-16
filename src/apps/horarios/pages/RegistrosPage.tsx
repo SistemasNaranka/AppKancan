@@ -14,11 +14,9 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-// --- NUEVAS IMPORTACIONES AÑADIDAS AQUÍ ---
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import MonitoreoPage from './MonitoreoPage';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
-// -------------------------------------------
 import EmployeeCard from '../components/EmployeeCard';
 import NovedadesTab from '../components/NovedadesTab';
 import { useHorarios } from '../hooks/useHorarios';
@@ -51,7 +49,7 @@ interface TabPanelProps {
 function TabPanel({ children, value, index }: TabPanelProps) {
   return (
     <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {value === index && <Box sx={{ pt: index === 4 ? 0.5 : 2 }}>{children}</Box>}
     </div>
   );
 }
@@ -68,7 +66,7 @@ const toTitleCase = (str: string) => {
 function RegistrosPageContent() {
   const { user } = useAuth();
   const { esAdmin, esReport, puedeVerDemo, esAreaManager } = useHorariosPolicies();
-  const isAreaMgr = esAreaManager();
+  const isAreaMgr = esAreaManager() && !esAdmin();
   const isOnlyReport = esReport() && !esAdmin() && !isAreaMgr;
 
   const [storeOverride, setStoreOverride] = useState<number | null>(null);
@@ -478,14 +476,10 @@ function RegistrosPageContent() {
                 },
               }}
             >
-              {!isAreaMgr && (
-                <>
-                  <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />
-                  <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />
-                  <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />
-                  <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />
-                </>
-              )}
+              {!isAreaMgr && <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />}
+              {!isAreaMgr && <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />}
+              {!isAreaMgr && <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />}
+              {!isAreaMgr && <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />}
               {/* --- SE AÑADIÓ LA PESTAÑA DE MONITOREO AQUÍ --- */}
               {(esAdmin() || isAreaMgr) && (
                 <Tab value={4} icon={<AnalyticsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MONITOREO" />

@@ -4,7 +4,6 @@ export function resolveNetworkUrl(url: string | undefined): string {
   if (typeof window === "undefined") return url;
 
   const hostname = window.location.hostname;
-  console.log("Hostname:", hostname);
 
   const localDirectusUrl = import.meta.env.VITE_DIRECTUS_URL;
   const externalDirectusUrl = import.meta.env.VITE_DIRECTUS_URL_EXTERNAL;
