@@ -101,22 +101,22 @@ export function FestivosChip({ count, total, onClick }: FestivosChipProps) {
   return (
     <Tooltip title={`Trabajados: ${count} de ${total} festivos del mes. Haz clic para ver detalle.`} arrow placement="top">
       <Chip
-        icon={<CelebrationIcon sx={{ fontSize: '0.75rem !important', color: tieneTrabajados ? '#6b21a8 !important' : '#94a3b8 !important' }} />}
+        icon={<CelebrationIcon sx={{ fontSize: '0.75rem !important', color: tieneTrabajados ? '#004680 !important' : '#94a3b8 !important' }} />}
         label={`${count}/${total}`}
         size="small"
         onClick={onClick}
         sx={{
-          backgroundColor: tieneTrabajados ? '#f3e8ff' : '#f8fafc',
-          color: tieneTrabajados ? '#6b21a8' : '#64748b',
-          border: `1px solid ${tieneTrabajados ? '#d8b4fe' : '#e2e8f0'}`,
+          backgroundColor: tieneTrabajados ? '#eff6ff' : '#f8fafc',
+          color: tieneTrabajados ? '#1e40af' : '#64748b',
+          border: `1px solid ${tieneTrabajados ? '#bfdbfe' : '#e2e8f0'}`,
           fontWeight: 700,
           fontSize: '0.72rem',
           height: 22,
           cursor: onClick ? 'pointer' : 'default',
           transition: 'all 0.2s',
           '&:hover': onClick && {
-            backgroundColor: tieneTrabajados ? '#e9d5ff' : '#f1f5f9',
-            borderColor: tieneTrabajados ? '#c084fc' : '#cbd5e1',
+            backgroundColor: tieneTrabajados ? '#dbeafe' : '#f1f5f9',
+            borderColor: tieneTrabajados ? '#93c5fd' : '#cbd5e1',
           },
         }}
       />
@@ -155,7 +155,7 @@ export default function FestivosDetalleModal({
       fullWidth
       PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}
     >
-      <DialogTitle component="div" sx={{ bgcolor: '#6b21a8', color: '#fff', py: 2, px: 2.5 }}>
+      <DialogTitle component="div" sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 2.5 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CelebrationIcon sx={{ fontSize: 20 }} />
@@ -173,17 +173,17 @@ export default function FestivosDetalleModal({
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 2.5, bgcolor: '#fbf9ff' }}>
+      <DialogContent sx={{ p: 2.5, bgcolor: '#f8fafc' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Tarjeta de Resumen */}
-          <Box sx={{ bgcolor: '#f3e8ff', p: 1.5, borderRadius: 3, border: '1px solid #e9d5ff' }}>
-            <Typography variant="caption" color="#6b21a8" fontWeight={800} display="block" sx={{ textTransform: 'uppercase', mb: 0.25 }}>
+          <Box sx={{ bgcolor: '#eaf2fb', p: 1.5, borderRadius: 3, border: '1px solid #d0e1f7' }}>
+            <Typography variant="caption" color="#004680" fontWeight={800} display="block" sx={{ textTransform: 'uppercase', mb: 0.25 }}>
               EMPLEADO
             </Typography>
-            <Typography variant="subtitle2" fontWeight={850} color="#3b0764">
+            <Typography variant="subtitle2" fontWeight={850} color="#0f2c4a">
               {empleadoNombre}
             </Typography>
-            <Typography variant="body2" fontWeight={750} color="#6b21a8" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" fontWeight={750} color="#004680" sx={{ mt: 0.5 }}>
               Total festivos laborados: {festivos.length}
             </Typography>
           </Box>
@@ -202,7 +202,7 @@ export default function FestivosDetalleModal({
                   sx={{ 
                     p: 1.5, 
                     borderRadius: 3, 
-                    border: '1px solid #e9d5ff', 
+                    border: '1px solid #d0e1f7', 
                     bgcolor: '#fff',
                     display: 'flex', 
                     flexDirection: 'column',
@@ -211,7 +211,7 @@ export default function FestivosDetalleModal({
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flexGrow: 1, pr: 1 }}>
-                      <Typography variant="body2" fontWeight={800} color="#3b0764">
+                      <Typography variant="body2" fontWeight={800} color="#0f2c4a">
                         {f.nombre}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
@@ -221,10 +221,10 @@ export default function FestivosDetalleModal({
                     <Chip 
                       label={formatMinutes(f.minutos)} 
                       size="small" 
-                      sx={{ bgcolor: '#f3e8ff', color: '#6b21a8', fontWeight: 800, fontSize: '0.72rem', height: 20 }} 
+                      sx={{ bgcolor: '#eaf2fb', color: '#004680', fontWeight: 800, fontSize: '0.72rem', height: 20 }} 
                     />
                   </Box>
-                  <Divider sx={{ borderColor: '#f3e8ff' }} />
+                  <Divider sx={{ borderColor: '#eaf2fb' }} />
                   <Button
                     size="small"
                     variant="text"
@@ -233,7 +233,7 @@ export default function FestivosDetalleModal({
                       textTransform: 'none', 
                       fontSize: '0.72rem', 
                       fontWeight: 700, 
-                      color: '#6b21a8', 
+                      color: '#004680', 
                       justifyContent: 'flex-start',
                       p: 0,
                       minWidth: 0,
@@ -249,7 +249,7 @@ export default function FestivosDetalleModal({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, borderTop: '1px solid #f3e8ff', bgcolor: '#fbf9ff' }}>
+      <DialogActions sx={{ p: 2, borderTop: '1px solid #eaf2fb', bgcolor: '#f8fafc' }}>
         <Button 
           onClick={onClose} 
           variant="outlined" 
@@ -258,9 +258,9 @@ export default function FestivosDetalleModal({
             borderRadius: 2, 
             textTransform: 'none', 
             fontWeight: 700, 
-            borderColor: '#e9d5ff', 
-            color: '#6b21a8', 
-            '&:hover': { bgcolor: '#f3e8ff', borderColor: '#d8b4fe' } 
+            borderColor: '#d0e1f7', 
+            color: '#0f2c4a', 
+            '&:hover': { bgcolor: '#eaf2fb', borderColor: '#bfdbfe' } 
           }}
         >
           Cerrar Detalle

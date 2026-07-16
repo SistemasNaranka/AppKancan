@@ -191,6 +191,7 @@ export default function ReporteSemanalAreaManager({
     empleado: string;
     fecha: string;
     observaciones: any[];
+    vieneDeFestivos?: boolean;
   }>({ open: false, empleado: '', fecha: '', observaciones: [] });
   const [festivosModalData, setFestivosModalData] = useState<{
     open: boolean;
@@ -670,7 +671,13 @@ export default function ReporteSemanalAreaManager({
       {diaDetalleData.open && (
         <ObservationModal
           open={diaDetalleData.open}
-          onClose={() => setDiaDetalleData({ open: false, empleado: '', fecha: '', observaciones: [] })}
+          onClose={() => {
+            const vieneDeFestivos = diaDetalleData.vieneDeFestivos;
+            setDiaDetalleData({ open: false, empleado: '', fecha: '', observaciones: [] });
+            if (vieneDeFestivos) {
+              setFestivosModalData(prev => ({ ...prev, open: true }));
+            }
+          }}
           empleado={diaDetalleData.empleado}
           fecha={diaDetalleData.fecha}
           observaciones={diaDetalleData.observaciones}
@@ -684,6 +691,8 @@ export default function ReporteSemanalAreaManager({
         empleadoNombre={festivosModalData.empleado}
         festivos={festivosModalData.festivos}
         onVerMarcas={(fechaStr, recordsFestivo) => {
+          // Ocultar modal de festivos sin borrar la data del empleado
+          setFestivosModalData(prev => ({ ...prev, open: false }));
           const obsMapeadas = recordsFestivo.map((r: any) => ({
             evento: r.log_type,
             hora: r.record_time || r.time || null,
@@ -694,6 +703,7 @@ export default function ReporteSemanalAreaManager({
             empleado: festivosModalData.empleado,
             fecha: dayjs(fechaStr).locale('es').format('dddd, D [de] MMMM [de] YYYY'),
             observaciones: obsMapeadas,
+            vieneDeFestivos: true,
           });
         }}
       />
