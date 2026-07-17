@@ -104,6 +104,97 @@ const normalizarBasico = (str: string): string => {
     .trim();
 };
 
+const validarCondicionesMapeo = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fila: any,
+  mapeo: TiendaMapeo,
+  valorNormalizado: string,
+): boolean => {
+  const tiendaOriginalNormalizada = mapeo.store_file
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const esMapeoGenericoNaranka =
+    tiendaOriginalNormalizada === "naranka sas" ||
+    tiendaOriginalNormalizada === "naranka" ||
+    tiendaOriginalNormalizada === "naranka s a s";
+
+  if (esMapeoGenericoNaranka) {
+    if (!mapeo.acquirer_id && !mapeo.terminal) {
+      return false;
+    }
+
+    if (mapeo.acquirer_id) {
+      const idAdquirienteMapeo = String(mapeo.acquirer_id).trim().toLowerCase();
+      const tieneIdAdquiriente = Object.values(fila).some((v) => {
+        if (v === null || v === undefined) return false;
+        const valorCelda = String(v).trim().toLowerCase();
+        return (
+          valorCelda === idAdquirienteMapeo ||
+          (valorCelda.includes(idAdquirienteMapeo) && idAdquirienteMapeo.length > 3) ||
+          (idAdquirienteMapeo.includes(valorCelda) && valorCelda.length > 3)
+        );
+      });
+      if (tieneIdAdquiriente) return true;
+    }
+
+    if (mapeo.terminal) {
+      const terminalMapeo = String(mapeo.terminal).trim().toLowerCase();
+      const tieneTerminal = Object.values(fila).some((v) => {
+        if (v === null || v === undefined) return false;
+        const valorCelda = String(v).trim().toLowerCase();
+        return (
+          valorCelda === terminalMapeo ||
+          (valorCelda.includes(terminalMapeo) && terminalMapeo.length > 3) ||
+          (terminalMapeo.includes(valorCelda) && valorCelda.length > 3)
+        );
+      });
+      if (tieneTerminal) return true;
+    }
+
+    return false;
+  }
+
+  if (
+    valorNormalizado.includes("naranka") ||
+    tiendaOriginalNormalizada.includes("naranka")
+  ) {
+    if (mapeo.acquirer_id) {
+      const idAdquirienteMapeo = String(mapeo.acquirer_id).trim().toLowerCase();
+      const tieneIdAdquiriente = Object.values(fila).some((v) => {
+        if (v === null || v === undefined) return false;
+        const valorCelda = String(v).trim().toLowerCase();
+        return (
+          valorCelda === idAdquirienteMapeo ||
+          (valorCelda.includes(idAdquirienteMapeo) && idAdquirienteMapeo.length > 3) ||
+          (idAdquirienteMapeo.includes(valorCelda) && valorCelda.length > 3)
+        );
+      });
+      if (!tieneIdAdquiriente) return false;
+    }
+
+    if (mapeo.terminal) {
+      const terminalMapeo = String(mapeo.terminal).trim().toLowerCase();
+      const tieneTerminal = Object.values(fila).some((v) => {
+        if (v === null || v === undefined) return false;
+        const valorCelda = String(v).trim().toLowerCase();
+        return (
+          valorCelda === terminalMapeo ||
+          (valorCelda.includes(terminalMapeo) && terminalMapeo.length > 3) ||
+          (terminalMapeo.includes(valorCelda) && valorCelda.length > 3)
+        );
+      });
+      if (!tieneTerminal) return false;
+    }
+  }
+
+  return true;
+};
+
 export const mapearNombresTiendasEnTodasLasCeldas = (
   datos: any[],
   mapeosTienda: TiendaMapeo[],
@@ -186,6 +277,9 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
       for (const mapeo of mapeosRelevantes) {
         const tiendaNormalizadaConNumeros = normalizarBasico(mapeo.store_file);
         if (valorNormalizadoConNumeros === tiendaNormalizadaConNumeros) {
+          if (!validarCondicionesMapeo(fila, mapeo, valorNormalizadoConNumeros)) {
+            continue;
+          }
           tiendaIdEncontrado = mapeo.store_id;
           tiendaEncontrada = mapeo.tiendaNormalizada;
           filaNueva[columna] = tiendaEncontrada;
@@ -204,70 +298,9 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
         );
 
         if (valorNormalizado === tiendaNormalizada) {
-          const tiendaOriginalNormalizada = mapeo.store_file
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
-
-          const esMapeoGenericoNaranka =
-            tiendaOriginalNormalizada === "naranka sas" ||
-            tiendaOriginalNormalizada === "naranka" ||
-            tiendaOriginalNormalizada === "naranka s a s";
-
-          if (esMapeoGenericoNaranka) {
-
-            if (mapeo.acquirer_id) {
-              const idAdquirienteMapeo = String(mapeo.acquirer_id)
-                .trim()
-                .toLowerCase();
-
-              const tieneIdAdquiriente = Object.values(fila).some((v) => {
-                if (v === null || v === undefined) return false;
-                const valorCelda = String(v).trim().toLowerCase();
-                const match =
-                  valorCelda === idAdquirienteMapeo ||
-                  (valorCelda.includes(idAdquirienteMapeo) &&
-                    idAdquirienteMapeo.length > 3) ||
-                  (idAdquirienteMapeo.includes(valorCelda) &&
-                    valorCelda.length > 3);
-
-                if (valorNormalizado.includes("naranka") && match) {
-                }
-                return match;
-              });
-
-              if (!tieneIdAdquiriente) {
-                continue;
-              }
-            } else {
-              continue;
-            }
-          } else if (
-            valorNormalizado.includes("naranka") &&
-            mapeo.acquirer_id
-          ) {
-          
-            const idAdquirienteMapeo = String(mapeo.acquirer_id)
-              .trim()
-              .toLowerCase();
-            const tieneIdAdquiriente = Object.values(fila).some((v) => {
-              if (v === null || v === undefined) return false;
-              const valorCelda = String(v).trim().toLowerCase();
-              return (
-                valorCelda === idAdquirienteMapeo ||
-                (valorCelda.includes(idAdquirienteMapeo) &&
-                  idAdquirienteMapeo.length > 3) ||
-                (idAdquirienteMapeo.includes(valorCelda) &&
-                  valorCelda.length > 3)
-              );
-            });
-
-            if (!tieneIdAdquiriente) continue;
+          if (!validarCondicionesMapeo(fila, mapeo, valorNormalizado)) {
+            continue;
           }
-
           tiendaIdEncontrado = mapeo.store_id;
           tiendaEncontrada = mapeo.tiendaNormalizada;
           filaNueva[columna] = tiendaEncontrada;
@@ -301,51 +334,8 @@ export const mapearNombresTiendasEnTodasLasCeldas = (
           if (tiendaNormalizada.length < 5) continue;
 
           if (valorNormalizado.includes(tiendaNormalizada)) {
-            const esMapeoGenericoNaranka =
-              tiendaNormalizada === "naranka sas" ||
-              tiendaNormalizada === "naranka";
-
-            if (esMapeoGenericoNaranka) {
-              if (mapeo.acquirer_id) {
-                const idAdquirienteMapeo = String(mapeo.acquirer_id)
-                  .trim()
-                  .toLowerCase();
-                const tieneIdAdquiriente = Object.values(fila).some((v) => {
-                  if (v === null || v === undefined) return false;
-                  const valorCelda = String(v).trim().toLowerCase();
-                  return (
-                    valorCelda === idAdquirienteMapeo ||
-                    (valorCelda.includes(idAdquirienteMapeo) &&
-                      idAdquirienteMapeo.length > 3) ||
-                    (idAdquirienteMapeo.includes(valorCelda) &&
-                      valorCelda.length > 3)
-                  );
-                });
-
-                if (!tieneIdAdquiriente) continue;
-              } else {
-                continue;
-              }
-            } else if (
-              valorNormalizado.includes("naranka") &&
-              mapeo.acquirer_id
-            ) {
-              const idAdquirienteMapeo = String(mapeo.acquirer_id)
-                .trim()
-                .toLowerCase();
-              const tieneIdAdquiriente = Object.values(fila).some((v) => {
-                if (v === null || v === undefined) return false;
-                const valorCelda = String(v).trim().toLowerCase();
-                return (
-                  valorCelda === idAdquirienteMapeo ||
-                  (valorCelda.includes(idAdquirienteMapeo) &&
-                    idAdquirienteMapeo.length > 3) ||
-                  (idAdquirienteMapeo.includes(valorCelda) &&
-                    valorCelda.length > 3)
-                );
-              });
-
-              if (!tieneIdAdquiriente) continue;
+            if (!validarCondicionesMapeo(fila, mapeo, valorNormalizado)) {
+              continue;
             }
 
             tiendaIdEncontrado = mapeo.store_id;

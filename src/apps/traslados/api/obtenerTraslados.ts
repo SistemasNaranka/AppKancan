@@ -1,14 +1,17 @@
 import type { Traslado } from "../hooks/types";
 import { type UserStoreAccess } from "@/services/directus/userStores";
+import { resolveNetworkUrl } from "@/shared/utils/network";
 
 const WEBHOOK_USERNAME = import.meta.env.VITE_WEBHOOK_USERNAME;
 const WEBHOOK_PASSWORD = import.meta.env.VITE_WEBHOOK_PASSWORD;
-const WEBHOOK_URL_POST = import.meta.env.VITE_WEBHOOK_URL_POST_TRASLADOS;
-const WEBHOOK_URL_TRASLADOS = import.meta.env.VITE_WEBHOOK_URL_TRASLADOS;
-const WEBHOOK_URL_TRASLADOS_TIENDAS = import.meta.env
-  .VITE_WEBHOOK_URL_TRASLADOS_TIENDAS;
-const WEBHOOK_URL_POST_TRASLADOS_COMERCIAL = import.meta.env
-  .VITE_WEBHOOK_URL_POST_TRASLADOS_COMERCIAL;
+const WEBHOOK_URL_POST = resolveNetworkUrl(import.meta.env.VITE_WEBHOOK_URL_POST_TRASLADOS);
+const WEBHOOK_URL_TRASLADOS = resolveNetworkUrl(import.meta.env.VITE_WEBHOOK_URL_TRASLADOS);
+const WEBHOOK_URL_TRASLADOS_TIENDAS = resolveNetworkUrl(
+  import.meta.env.VITE_WEBHOOK_URL_TRASLADOS_TIENDAS
+);
+const WEBHOOK_URL_POST_TRASLADOS_COMERCIAL = resolveNetworkUrl(
+  import.meta.env.VITE_WEBHOOK_URL_POST_TRASLADOS_COMERCIAL
+);
 
 export async function obtenerTrasladosJefeZona(
   ultra_code: string,

@@ -1,8 +1,7 @@
 import directus from "@/services/directus/directus";
 import { readItems } from "@directus/sdk";
-import { Promotion, PromotionType } from "../../types/promotion";
+import { Promotion } from "../../types/promotion";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
-// ==================== INTERFACES ====================
 
 export interface DirectusPromo {
   id: number;
@@ -40,25 +39,18 @@ export interface DirectusTienda {
 function formatDisplayTime(hora: string | null | undefined): string | null {
   if (!hora) return null;
 
-  // Si ya es HH:MM, retornar tal cual
   if (hora.length === 5 && hora.includes(":")) {
     return hora;
   }
 
-  // Si es HH:MM:SS, quitar los segundos
   if (hora.length === 8 && hora.split(":").length === 3) {
     return hora.substring(0, 5);
   }
 
-  // Caso inesperado
   console.warn(`⚠️ Formato de hora inesperado: ${hora}`);
   return hora;
 }
-// ==================== FUNCIONES DE LECTURA ====================
 
-/**
- * Obtener todas las tiendas
- */
 export async function getStores(): Promise<DirectusTienda[]> {
   try {
     const data = await withAutoRefresh(() =>
@@ -78,9 +70,6 @@ export async function getStores(): Promise<DirectusTienda[]> {
   }
 }
 
-/**
- * Obtener todos los tipos de promoción
- */
 export async function getPromotionTypes(): Promise<DirectusPromoTipo[]> {
   try {
     const data = await withAutoRefresh(() =>
@@ -99,12 +88,8 @@ export async function getPromotionTypes(): Promise<DirectusPromoTipo[]> {
   }
 }
 
-/**
- * Obtener todas las promociones con sus relaciones
- */
 export async function getPromotions(): Promise<Promotion[]> {
   try {
-    // 1. Obtener todas las promociones con el tipo expandido
     const promos = await withAutoRefresh(() =>
       directus.request(
         readItems("com_promotions", {
@@ -128,7 +113,6 @@ export async function getPromotions(): Promise<Promotion[]> {
       ),
     );
 
-    // 2. Obtener todas las relaciones promo-tiendas
     const promoTiendas = await withAutoRefresh(() =>
       directus.request(
         readItems("com_promotion_stores", {
@@ -144,12 +128,11 @@ export async function getPromotions(): Promise<Promotion[]> {
               _eq: "Activo",
             },
           },
-          limit: -1, // Obtener todos los registros, no solo los primeros 100
+          limit: -1,
         }),
       ),
     );
 
-    // 3. Crear un mapa de promotion_id -> stores
     const tiendasPorPromo = new Map<number, string[]>();
 
     promoTiendas.forEach((pt: any) => {
@@ -165,7 +148,6 @@ export async function getPromotions(): Promise<Promotion[]> {
       tiendasPorPromo.get(promoId)?.push(tiendaNombre);
     });
 
-    // 4. Mapear a formato de Promotion
     const promociones: Promotion[] = promos.map((promo: any) => {
       const tipo = promo.type_id;
       const tiendas = tiendasPorPromo.get(promo.id) || [];
@@ -193,12 +175,8 @@ export async function getPromotions(): Promise<Promotion[]> {
   }
 }
 
-/**
- * Obtener una promoción por ID con sus relaciones
- */
 export async function getPromotionById(id: number): Promise<Promotion | null> {
   try {
-    // 1. Obtener la promoción con el tipo expandido
     const promo = await withAutoRefresh(() =>
       directus.request(
         readItems("com_promotions", {
@@ -232,7 +210,6 @@ export async function getPromotionById(id: number): Promise<Promotion | null> {
 
     const promoData = promo[0] as any;
 
-    // 2. Obtener las tiendas asociadas
     const promoTiendas = await withAutoRefresh(() =>
       directus.request(
         readItems("com_promotion_stores", {
@@ -245,7 +222,7 @@ export async function getPromotionById(id: number): Promise<Promotion | null> {
               _eq: "Activo",
             },
           },
-          limit: -1, // Obtener todos los registros
+          limit: -1,
         }),
       ),
     );
@@ -276,9 +253,6 @@ export async function getPromotionById(id: number): Promise<Promotion | null> {
   }
 }
 
-/**
- * Obtener tiendas asociadas a una promoción específica
- */
 export async function getPromotionStores(
   promoId: number,
 ): Promise<DirectusTienda[]> {

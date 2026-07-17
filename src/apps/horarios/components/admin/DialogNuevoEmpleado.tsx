@@ -14,6 +14,7 @@ import { Tienda, Cargo, NuevoEmpleadoPayload } from '../../interfaces/horarios.i
 import { useParseNombreIA } from '../../hooks/useParseNombreIA';
 import { SILEO_STATE_FILL } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 import { existeDocumentoEmpleado } from '../../api/directus/read';
+import { formatDocumentNumber } from '../../utils/format';
 
 interface Props {
   open: boolean;
@@ -149,7 +150,7 @@ export default function DialogNuevoEmpleado({
 
     const empleadoInfo: EmpleadoCreado = {
       nombre,
-      documento: form.document_number,
+      documento: formatDocumentNumber(form.document_number),
       tienda: tiendas.find((t) => t.id === form.store_id)?.name ?? '',
       cargo: cargos.find((c) => c.id === form.position_id)?.name ?? '',
     };
@@ -215,7 +216,7 @@ export default function DialogNuevoEmpleado({
             <TextField
               fullWidth
               label="Número de documento"
-              value={form.document_number}
+              value={formatDocumentNumber(form.document_number)}
               onChange={(e) => {
                 const val = e.target.value.replace(/[^0-9]/g, '');
                 setCampo('document_number', val);
@@ -227,8 +228,8 @@ export default function DialogNuevoEmpleado({
                   });
                 }
               }}
-              onBlur={async (e) => {
-                const val = e.target.value.trim();
+              onBlur={async () => {
+                const val = form.document_number.trim();
                 if (val) {
                   const exists = await existeDocumentoEmpleado(val);
                   if (exists) {
@@ -243,7 +244,7 @@ export default function DialogNuevoEmpleado({
                 }
               }}
               error={!!errors.document_number}
-              helperText={errors.document_number}
+              helperText={errors.document_number || (form.document_number ? 'Los espacios son solo visuales para facilitar la lectura.' : '')}
             />
           </Box>
 

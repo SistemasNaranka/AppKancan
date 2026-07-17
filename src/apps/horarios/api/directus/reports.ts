@@ -43,7 +43,7 @@ export const fetchTimeRecordsExport = async (
   return await withAutoRefresh(() =>
     directus.request(
       readItems('com_time_records', {
-        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id', 'observations'],
+        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id.id', 'store_id.name', 'observations'],
         filter,
         sort: ['record_date'],
         limit: -1,
@@ -248,14 +248,18 @@ export async function getStoreEventReportsToday(
 }
 
 export async function getStoreEventReports(
-  storeId: number | null,
+  storeId: number | number[] | null,
   fechaInicio?: string,
   fechaFin?: string
 ): Promise<any[]> {
   try {
     const filter: any = {};
     if (storeId != null) {
-      filter.store_id = { _eq: storeId };
+      if (Array.isArray(storeId)) {
+        filter.store_id = { _in: storeId };
+      } else {
+        filter.store_id = { _eq: storeId };
+      }
     }
     if (fechaInicio || fechaFin) {
       filter.date = {};
@@ -276,7 +280,9 @@ export async function getStoreEventReports(
             'employee_id.middle_name',
             'employee_id.last_name',
             'employee_id.second_last_name',
-            'employee_id.document_number'
+            'employee_id.document_number',
+            'store_id.id',
+            'store_id.name'
           ],
           filter,
           sort: ['-date', '-hour'],

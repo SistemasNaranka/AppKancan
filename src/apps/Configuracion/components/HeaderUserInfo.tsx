@@ -6,7 +6,6 @@ interface Props {
   area?: string;
 }
 
-// 🎨 Paleta clara
 const avatarColorsLight = [
   "#1976d2",
   "#9c27b0",
@@ -20,7 +19,6 @@ const avatarColorsLight = [
   "#5d4037",
 ];
 
-// 🌙 Paleta oscura
 const avatarColorsDark = [
   "#64b5f6",
   "#ba68c8",

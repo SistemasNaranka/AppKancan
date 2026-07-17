@@ -29,7 +29,7 @@ export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_employees", {
-          fields: ["id", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
+          fields: ["id", "document_number", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
           filter: {
             store_id: { _eq: storeId },
             status: { _eq: "Activo" }
@@ -50,7 +50,7 @@ export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[
 
       return {
         id: String(emp.id),
-        documento: String(emp.id), 
+        documento: emp.document_number ? String(emp.document_number) : String(emp.id), 
         nombre: full_name,
         cargo: emp.position_id?.name || "Sin Cargo",
         estadoActual: "entrada_pendiente",
@@ -173,11 +173,14 @@ export async function getNovedades(storeId: number): Promise<any[]> {
             "newness_id.id",
             "newness_id.name",
             "employee_id.id",
+            "employee_id.document_number",
             "employee_id.first_name",
             "employee_id.middle_name",
             "employee_id.last_name",
             "employee_id.second_last_name",
-            "report_date"
+            "report_date",
+            "store_id.id",
+            "store_id.name"
           ],
           filter: { store_id: { _eq: storeId } },
           sort: ["-id"],
@@ -192,11 +195,15 @@ export async function getNovedades(storeId: number): Promise<any[]> {
   }
 }
 
-export async function getStoreNovedades(storeId: number | null): Promise<any[]> {
+export async function getStoreNovedades(storeId: number | number[] | null): Promise<any[]> {
   try {
     const filter: any = {};
     if (storeId != null) {
-      filter.store_id = { _eq: storeId };
+      if (Array.isArray(storeId)) {
+        filter.store_id = { _in: storeId };
+      } else {
+        filter.store_id = { _eq: storeId };
+      }
     }
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -208,11 +215,14 @@ export async function getStoreNovedades(storeId: number | null): Promise<any[]> 
             "newness_id.id",
             "newness_id.name",
             "employee_id.id",
+            "employee_id.document_number",
             "employee_id.first_name",
             "employee_id.middle_name",
             "employee_id.last_name",
             "employee_id.second_last_name",
-            "report_date"
+            "report_date",
+            "store_id.id",
+            "store_id.name"
           ],
           filter,
           sort: ["-report_date", "-id"],
@@ -233,9 +243,11 @@ export async function getStoreNovedades(storeId: number | null): Promise<any[]> 
         id: nov.id,
         fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
         empleadoNombre: fullName,
+        empleadoDocumento: nov.employee_id?.document_number ? String(nov.employee_id.document_number) : undefined,
         tipo: nov.newness_id?.name || "Sin tipo",
         observaciones: nov.observations || "",
         empleadoActivo: true,
+        tiendaNombre: nov.store_id?.name || "Sin tienda",
       };
     });
   } catch (error) {
@@ -258,20 +270,24 @@ export interface TimeRecord {
     last_name: string;
     second_last_name: string | null;
   } | null;
-  store_id: string;
+  store_id: { id: number; name: string } | string | null;
   observations: string | null;
 }
 
 export const fetchTimeRecords = async (
   fechaInicio?: string,
   fechaFin?: string,
-  storeId?: number,
+  storeId?: number | number[],
   employeeId?: number | string
 ): Promise<TimeRecord[]> => {
   const filter: any = {};
 
   if (storeId != null) {
-    filter.store_id = { _eq: storeId };
+    if (Array.isArray(storeId)) {
+      filter.store_id = { _in: storeId };
+    } else {
+      filter.store_id = { _eq: storeId };
+    }
   }
   if (employeeId != null) {
     filter.employee_id = { _eq: Number(employeeId) };
@@ -287,7 +303,7 @@ export const fetchTimeRecords = async (
     directus.request(
       readItems('com_time_records', {
 
-        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id', 'observations'],
+        fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id.id', 'store_id.name', 'observations'],
 
 
         filter,
@@ -480,17 +496,19 @@ export async function existeDocumentoEmpleado(documentNumber: string): Promise<b
   }
 }
 
-export async function getEmpleadosBulk(storeIds: number[]): Promise<EmpleadoAsistencia[]> {
-  if (!storeIds || storeIds.length === 0) return [];
+export async function getEmpleadosBulk(storeIds?: number[]): Promise<EmpleadoAsistencia[]> {
   try {
+    const filter: any = {
+      status: { _eq: "Activo" }
+    };
+    if (storeIds && storeIds.length > 0) {
+      filter.store_id = { _in: storeIds };
+    }
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems("adm_employees", {
-          fields: ["id", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
-          filter: {
-            store_id: { _in: storeIds },
-            status: { _eq: "Activo" }
-          },
+          fields: ["id", "document_number", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
+          filter,
           limit: -1,
         })
       )
@@ -507,7 +525,7 @@ export async function getEmpleadosBulk(storeIds: number[]): Promise<EmpleadoAsis
 
       return {
         id: String(emp.id),
-        documento: String(emp.id), 
+        documento: emp.document_number ? String(emp.document_number) : String(emp.id), 
         nombre: full_name,
         cargo: emp.position_id?.name || "Sin Cargo",
         estadoActual: "entrada_pendiente",
@@ -658,6 +676,31 @@ export async function getEditedTimeRecords(storeIds: number[], startDate: string
     console.error('❌ Error al obtener registros editados:', error);
     return [];
   }
+}
+
+export async function getPrimerPeriodoRegistro(): Promise<{ year: number; month: number }> {
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_time_records', {
+          fields: ['record_date'],
+          sort: ['record_date'],
+          limit: 1
+        })
+      )
+    );
+    if (items && items.length > 0 && items[0].record_date) {
+      const date = dayjs(items[0].record_date);
+      const year = date.year();
+      const month = date.month();
+      if (!isNaN(year) && !isNaN(month)) {
+        return { year, month };
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error al obtener el primer período de registro:', error);
+  }
+  return { year: dayjs().year(), month: 0 };
 }
 
 export * from "./reports";

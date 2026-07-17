@@ -21,6 +21,7 @@ import { EmpleadoAdmin } from '../../interfaces/horarios.interface';
 import { getIconForTipo, getChipColor } from '../../utils/novedadVisual';
 import { useHorariosPolicies } from '../../hooks/useHorariosPolicies';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
+import { formatDocumentNumber } from '../../utils/format';
 
 const AZUL = '#004680';
 const AVATAR_COLORS = ['#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777', '#0891b2', '#4f46e5', '#ca8a04', '#dc2626', '#059669', '#2563eb', '#9333ea'];
@@ -32,13 +33,7 @@ const colorAvatar = (t: string) => {
 
 const hhmm = (t: string | null | undefined) => (t ? String(t).slice(0, 5) : '—');
 
-// ============================================================
-//  FUNCIÓN PARA FORMATEAR NÚMERO DE DOCUMENTO CON PUNTOS
-// ============================================================
-const formatDocumentNumber = (numero: string | number): string => {
-  const str = String(numero).replace(/\D/g, '');
-  return str.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-};
+
 
 function SeccionColapsable({
   titulo, count, vacio, hayDatos, defaultOpen = false, children,
@@ -205,50 +200,44 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
           <Chip label={(empleado?.status || '—').toUpperCase()} size="small" sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: inactivo ? '#fee2e2' : '#dcfce7', color: inactivo ? '#dc2626' : '#16a34a' }} />
         </DialogTitle>
 
-        <DialogContent sx={{ p: 3 }}>
-          {cargando ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={30} sx={{ color: AZUL }} /></Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 0.5 }}>
-              {/* Datos del empleado con documento formateado */}
-              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                {fila(
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eaf2fb', color: AZUL }}>
-                      <BadgeIcon sx={{ fontSize: 17 }} />
-                    </Box>
-                    <Typography sx={{ fontSize: '0.82rem' }}>Documento</Typography>
-                  </Box>,
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    {empleado?.document_type && (
-                      <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>
-                        {empleado.document_type}
-                      </Typography>
-                    )}
-                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f2c4a', letterSpacing: '0.3px' }}>
-                      {empleado?.document_number ? formatDocumentNumber(empleado.document_number) : '—'}
-                    </Typography>
-                  </Box>
-                )}
-                {fila(
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eaf2fb', color: AZUL }}>
-                      <StorefrontIcon sx={{ fontSize: 17 }} />
-                    </Box>
-                    <Typography sx={{ fontSize: '0.82rem' }}>Tienda</Typography>
-                  </Box>,
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f2c4a' }}>{tiendaNombre || '—'}</Typography>
-                )}
-              </Box>
+      <DialogContent sx={{ p: 3 }}>
+        {cargando ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={30} sx={{ color: AZUL }} /></Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 0.5 }}>
+            {/* Datos que NO están en la tarjeta */}
+            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+              {fila(
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
+                  <Box sx={{ width: 28, height: 28, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eaf2fb', color: AZUL }}><BadgeIcon sx={{ fontSize: 17 }} /></Box>
+                  <Typography sx={{ fontSize: '0.82rem' }}>Documento</Typography>
+                </Box>,
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f2c4a' }}>
+                  {[
+                    empleado?.document_type,
+                    empleado?.document_number ? formatDocumentNumber(empleado.document_number) : ''
+                  ].filter(Boolean).join(' ') || '—'}
+                </Typography>
+              )}
+              {fila(
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
+                  <Box sx={{ width: 28, height: 28, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eaf2fb', color: AZUL }}><StorefrontIcon sx={{ fontSize: 17 }} /></Box>
+                  <Typography sx={{ fontSize: '0.82rem' }}>Tienda</Typography>
+                </Box>,
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f2c4a' }}>{tiendaNombre || '—'}</Typography>
+              )}
+            </Box>
 
-              {/* KPIs del mes */}
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-                {kpi(<EventNoteIcon sx={{ fontSize: 16 }} />, 'JORNADAS (MES)', jornadas.filter((j) => j.entrada).length, '#004680', '#eaf2fb')}
-                {kpi(<PauseCircleOutlineIcon sx={{ fontSize: 16 }} />, 'PAUSAS (MES)', eventos.length, '#b45309', '#fef3c7')}
-                {kpi(<AssignmentIcon sx={{ fontSize: 16 }} />, 'NOVEDADES', novedades.length, '#7c3aed', '#ede9fe')}
-              </Box>
+            {/* KPIs del mes */}
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              {kpi(<EventNoteIcon sx={{ fontSize: 16 }} />, 'JORNADAS (MES)', jornadas.filter((j) => j.entrada).length, '#004680', '#eaf2fb')}
+              {kpi(<PauseCircleOutlineIcon sx={{ fontSize: 16 }} />, 'PAUSAS (MES)', eventos.length, '#b45309', '#fef3c7')}
+              {kpi(<AssignmentIcon sx={{ fontSize: 16 }} />, 'NOVEDADES', novedades.length, '#7c3aed', '#ede9fe')}
+            </Box>
 
-              <Divider />
+            <Divider />
+
+
 
               {/* Últimas jornadas */}
               <SeccionColapsable titulo="ÚLTIMAS JORNADAS" count={jornadas.length} vacio="Sin jornadas este mes." hayDatos={jornadas.length > 0} defaultOpen>

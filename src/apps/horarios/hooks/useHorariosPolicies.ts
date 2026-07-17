@@ -1,6 +1,15 @@
 import { useAuth } from '@/auth/hooks/useAuth';
 
-export const useHorariosPolicies = () => {
+interface HorariosPolicies {
+  hasPolicy: (policyName: string) => boolean;
+  esAdmin: () => boolean;
+  esAreaManager: () => boolean;
+  esReport: () => boolean;
+  tieneTemporal: () => boolean;
+  puedeVerDemo: () => boolean;
+}
+
+export const useHorariosPolicies = (): HorariosPolicies => {
   const { user } = useAuth();
 
   const hasPolicy = (policyName: string): boolean =>
@@ -13,10 +22,18 @@ export const useHorariosPolicies = () => {
       return s.includes('admin') && MODULO_REGEX.test(s);
     });
 
+  const esAreaManager = (): boolean =>
+    (user?.policies ?? []).some((p) => {
+      const s = p.toLowerCase();
+      const hasTimeLog = s.includes('time_log') || s.includes('time-log') || s.includes('timelog');
+      const hasManagerOrArea = s.includes('manager') || s.includes('area');
+      return hasTimeLog && hasManagerOrArea;
+    });
+
   const esReport = (): boolean =>
     (user?.policies ?? []).some((p) => {
       const s = p.toLowerCase();
-      return s.includes('report');
+      return s.includes('report') || esAreaManager();
     });
 
   const tieneTemporal = (): boolean =>
@@ -25,7 +42,7 @@ export const useHorariosPolicies = () => {
   const puedeVerDemo = (): boolean =>
     (user?.policies ?? []).some((p) => p.toLowerCase().includes('demo'));
 
-  return { hasPolicy, esAdmin, esReport, puedeVerDemo, tieneTemporal };
+  return { hasPolicy, esAdmin, esReport, puedeVerDemo, tieneTemporal, esAreaManager };
 };
 
 export default useHorariosPolicies;

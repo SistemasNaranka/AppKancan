@@ -83,7 +83,8 @@ const agruparParaExport = (
 
   records.forEach((r) => {
     const cc = r.employee_id?.document_number ?? nombreEmpleado(r.employee_id);
-    const clave = `${r.store_id}|${cc}|${r.record_date}`;
+    const sId = r.store_id && typeof r.store_id === "object" ? r.store_id.id : r.store_id;
+    const clave = `${sId}|${cc}|${r.record_date}`;
     if (!grupos[clave]) grupos[clave] = [];
     grupos[clave].push(r);
   });
@@ -111,9 +112,10 @@ const agruparParaExport = (
       }
     });
 
-    const storeIdNum = Number(regs[0].store_id);
+    const storeId = regs[0].store_id;
+    const storeIdNum = storeId && typeof storeId === 'object' ? Number(storeId.id) : Number(storeId);
     return {
-      tienda: storesMap.get(storeIdNum) || String(regs[0].store_id ?? ""),
+      tienda: (storeId && typeof storeId === 'object' ? storeId.name : null) || storesMap.get(storeIdNum) || String(storeId ?? ""),
       cc: String(regs[0].employee_id?.document_number ?? ""),
       empleado: nombreEmpleado(regs[0].employee_id),
       fecha: regs[0].record_date,

@@ -42,7 +42,7 @@ function Login() {
 
       if (error?.response?.status === 401) {
         message = "Credenciales incorrectas.";
-        setValue("password", ""); // limpia solo la contraseña
+        setValue("password", "");
       } else if (
         error?.response?.data?.errors?.[0]?.message === "User suspended"
       ) {
@@ -87,7 +87,6 @@ function Login() {
           </IconButton>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg p-6 sm:p-8 mx-2 sm:mx-0 relative">
-          {/* Logo */}
           <h2 className="m-6 text-center">
             <img
               src={LogoBlack}
@@ -156,11 +155,10 @@ function Login() {
                 size="large"
                 disabled={loading}
                 sx={{
-                  backgroundColor: "#004680", // 🔹 azul fijo
+                  backgroundColor: "#004680",
                   color: "#FFF",
-                  // textTransform: "none",
                   "&:hover": {
-                    backgroundColor: "#002747", // 🔹 azul más oscuro al hover
+                    backgroundColor: "#002747",
                   },
                 }}
               >

@@ -31,7 +31,6 @@ export function AppSidebar({ open, setOpen }: Props) {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const location = useLocation();
 
-  // Estado local solo para expandir categorías del menú (NO controla si drawer está abierto)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   if (!isAuthenticated) return <Navigate to="/login" />;
@@ -40,9 +39,7 @@ export function AppSidebar({ open, setOpen }: Props) {
   const toggleCategory = (cat: string) =>
     setExpanded((prev) => ({ ...prev, [cat]: !prev[cat] }));
 
-  // Agrupar apps por categoría
   const groupedApps = useMemo(() => {
-    // Filtrar apps si el usuario es de bodega/logística
     const filteredApps = (area === 'logistica' || area === 'bodega')
       ? apps.filter(app => app.nombre === 'Curvas de Distribución')
       : apps;
@@ -62,18 +59,16 @@ export function AppSidebar({ open, setOpen }: Props) {
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        overflow: "hidden", // 🔹 evita que el footer sea desplazado
+        overflow: "hidden",
       }}
     >
-      {/* HEADER */}
       <SidebarHeader open={open} toggleDrawer={toggleDrawer} />
       <Divider />
 
-      {/* LISTA con scroll independiente */}
       <Box
         sx={{
           flexGrow: 1,
-          overflowY: "auto", // 🔹 solo la lista hace scroll
+          overflowY: "auto",
           overflowX: "hidden",
         }}
       >
@@ -89,11 +84,9 @@ export function AppSidebar({ open, setOpen }: Props) {
 
       <Divider />
 
-      {/* FOOTER fijo */}
       <Box
         sx={{
           flexShrink: 0,
-
           borderTop: "1px solid",
           borderColor: "divider",
           backgroundColor: "background.paper",
@@ -104,11 +97,9 @@ export function AppSidebar({ open, setOpen }: Props) {
     </Box>
   );
 
-  // === MÓVIL: Drawer temporal (overlay) ===
   if (isMobile) {
     return (
       <Box sx={{ position: "relative" }}>
-        {/* toolbar fijo en móvil */}
         <Toolbar
           sx={{
             display: "flex",
@@ -123,7 +114,6 @@ export function AppSidebar({ open, setOpen }: Props) {
             height: "64px",
           }}
         >
-          {/* Botón de menú */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <IconButton
               onClick={toggleDrawer}
@@ -137,9 +127,7 @@ export function AppSidebar({ open, setOpen }: Props) {
               style={{
                 height: "50px",
                 width: "auto",
-
                 objectFit: "contain",
-                // 🔹 evita que se expanda más de lo necesario
               }}
             />
           </Box>
@@ -162,7 +150,6 @@ export function AppSidebar({ open, setOpen }: Props) {
     );
   }
 
-  // === DESKTOP: Drawer permanente con ancho animado ===
   return (
     <Drawer
       variant="permanent"
