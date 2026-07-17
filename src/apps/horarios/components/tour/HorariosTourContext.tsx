@@ -62,6 +62,7 @@ export const HorariosTourProvider: React.FC<TourProviderProps> = ({ children }) 
 
   const startTour = useCallback(
     (phase: TourPhase = "REGISTROS") => {
+      window.scrollTo(0, 0);
       setStepIndex(0);
       const tab = PHASE_TAB[phase];
       if (tab !== undefined && tabChangeCallback) tabChangeCallback(tab);
@@ -102,6 +103,20 @@ export const HorariosTourProvider: React.FC<TourProviderProps> = ({ children }) 
     setTourPhase("IDLE");
     setStepIndex(0);
   }, []);
+
+  // Mientras el tour corre (cualquier fase), anulamos el sticky del header
+  // general para que no tape los targets al hacer scroll. Se retira al
+  // terminar, cancelar, o pasar a COMPLETED/IDLE.
+  useEffect(() => {
+    if (!isFullTourRunning) return;
+    const style = document.createElement("style");
+    style.id = "horarios-tour-sticky-override";
+    style.innerHTML = ".tour-sticky-header { position: static !important; }";
+    document.head.appendChild(style);
+    return () => {
+      document.getElementById("horarios-tour-sticky-override")?.remove();
+    };
+  }, [isFullTourRunning]);
 
   const setTabChangeCallback = useCallback(
     (callback: (tab: HorariosTab) => void) => {

@@ -29,6 +29,13 @@ const TrasladoListItem: React.FC<Props> = ({
   const esEnviado = traslado.bodega_origen === codigoUltra;
   const colorearBordes = tienePoliticaTrasladosTiendas && !tienePoliticaTrasladosJefezona;
 
+  // Lógica para bodegas 900+ solo visible para jefes de zona
+  // Aplica si bodega_origen O bodega_destino es >= 900 (bodegas centrales: 900, 903, 904, 910, 914, 915, etc.)
+  const esBodega900 = tienePoliticaTrasladosJefezona && (
+    (Number(traslado.bodega_origen) >= 900) ||
+    (Number(traslado.bodega_destino) >= 900)
+  );
+
   const diasTranscurridos = React.useMemo(() => {
     if (!traslado.fecha) return null;
     const fechaTraslado = dayjs(traslado.fecha);
@@ -66,32 +73,55 @@ const TrasladoListItem: React.FC<Props> = ({
           ? theme.palette.primary.light
           : theme.palette.background.paper,
 
-        border: `1px solid`,
+        border: esBodega900
+          ? `1px solid ${theme.palette.divider}`
+          : `1px solid`,
         borderColor: isSelected
           ? theme.palette.primary.main
-          : colorearBordes
+          : !esBodega900 && colorearBordes
             ? "#CBD5E1"
-            : theme.palette.divider,
+            : !esBodega900
+              ? theme.palette.divider
+              : undefined,
 
-        borderLeft: colorearBordes
-          ? `4px solid ${borderColor}`
+        // Franja L: izquierda + abajo en primary para bodegas 900+
+        borderLeft: esBodega900
+          ? `3px solid ${theme.palette.primary.main}`
+          : colorearBordes
+            ? `4px solid ${borderColor}`
+            : "",
+
+        borderBottom: esBodega900
+          ? `3px solid ${theme.palette.primary.main}`
+          : "",
+
+        borderTop: esBodega900
+          ? `1px solid ${theme.palette.divider}`
+          : "",
+
+        borderRight: esBodega900
+          ? `1px solid ${theme.palette.divider}`
           : "",
 
         boxShadow: isSelected
           ? `0 0 15px ${theme.palette.primary.main}44`
-          : colorearBordes
-            ? "0 10px 20px -10px rgba(0, 0, 0, 0.15)"
-            : theme.shadows[2],
-            
+          : esBodega900
+            ? `0 4px 14px -4px ${theme.palette.primary.main}30`
+            : colorearBordes
+              ? "0 10px 20px -10px rgba(0, 0, 0, 0.15)"
+              : theme.shadows[2],
+
         color: theme.palette.text.primary,
 
         cursor: onTrasladoClick ? "pointer" : "default",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         "&:hover": onTrasladoClick
           ? {
-              boxShadow: colorearBordes
-                ? "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
-                : theme.shadows[6],
+              boxShadow: esBodega900
+                ? `0 8px 20px -4px ${theme.palette.primary.main}40`
+                : colorearBordes
+                  ? "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                  : theme.shadows[6],
               transform: "translateY(-4px)",
             }
           : {},

@@ -194,6 +194,7 @@ export const HorariosTour: React.FC<HorariosTourProps> = ({ children }) => {
         disableOverlayClose
         disableScrollParentFix
         scrollToFirstStep
+        scrollOffset={90}
         spotlightClicks
         tooltipComponent={CustomTooltip}
         styles={{

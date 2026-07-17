@@ -160,8 +160,6 @@ const ADMIN_STEPS: Step[] = [
 
 /* ============================================================
  * 2. FAKE MODAL GENÉRICO
- * Cuando venga un segundo tour que lo necesite, se mueve a
- * shared/tour/FakeTourModal.tsx sin tocar más nada.
  * ============================================================ */
 
 interface FakeTourModalProps {
@@ -250,7 +248,7 @@ function FakeTourModal({
 }
 
 /* ============================================================
- * 3. CONTENIDO ESPECÍFICO — "Nuevo empleado"
+ * 3. CONTENIDO ESPECÍFICO
  * ============================================================ */
 
 function SeccionLabel({ texto }: { texto: string }) {
@@ -268,9 +266,11 @@ function FakeNuevoEmpleadoModal({ open }: { open: boolean }) {
   return (
     <FakeTourModal title="Nuevo empleado" primaryLabel="Crear empleado" secondaryLabel="Cancelar">
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
-        
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-          <Box className="tour-fake-datos-basicos" sx={{ display: "flex", gap: 2, p: "2px" }}>
+        <Box
+          className="tour-fake-datos-basicos"
+          sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
+        >
+          <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               size="small"
               label="Tipo de documento"
@@ -283,24 +283,22 @@ function FakeNuevoEmpleadoModal({ open }: { open: boolean }) {
           <SeccionLabel texto="NOMBRE" />
           <TextField size="small" label="Nombre completo *" disabled fullWidth />
         </Box>
-        
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+
+        <Box
+          className="tour-fake-asignacion"
+          sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
+        >
           <SeccionLabel texto="ASIGNACIÓN" />
-          <Box className="tour-fake-asignacion" sx={{ display: "flex", flexDirection: "column", gap: 2.5, p: "2px" }}>
-            <TextField size="small" label="Tienda *" disabled fullWidth />
-            <TextField size="small" label="Cargo" disabled fullWidth />
-          </Box>
+          <TextField size="small" label="Tienda *" disabled fullWidth />
+          <TextField size="small" label="Cargo" disabled fullWidth />
         </Box>
-        
       </Box>
     </FakeTourModal>
   );
 }
 
 /* ============================================================
- * 4. CONTEXT MÍNIMO
- * Solo expone startTour para que TutorialAdminButton pueda
- * dispararlo desde afuera del AdminTour.
+ * 4. CONTEXT Y COMPONENTE PRINCIPAL
  * ============================================================ */
 
 interface AdminTourCtx {
@@ -313,10 +311,6 @@ export const useAdminTour = (): AdminTourCtx => {
   if (!ctx) throw new Error("useAdminTour debe usarse dentro de <AdminTour>");
   return ctx;
 };
-
-/* ============================================================
- * 5. BOTÓN "TUTORIAL" (exportado)
- * ============================================================ */
 
 export const TutorialAdminButton: React.FC = () => {
   const { startTour } = useAdminTour();
@@ -340,12 +334,6 @@ export const TutorialAdminButton: React.FC = () => {
   );
 };
 
-/* ============================================================
- * 6. COMPONENTE PRINCIPAL — AdminTour
- * Mismo patrón de overlay-sync (doble RAF + remount) que
- * HorariosTour, adaptado a un solo overlay.
- * ============================================================ */
-
 const needsOverlay = (target?: string | null): boolean =>
   !!target && FAKE_MODAL_TARGETS.includes(target);
 
@@ -362,6 +350,7 @@ export const AdminTour: React.FC<AdminTourProps> = ({ children }) => {
   const [pendingStepIndex, setPendingStepIndex] = useState<number | null>(null);
 
   const startTour = useCallback(() => {
+    window.scrollTo(0, 0);
     setStepIndex(0);
     setIsRunning(true);
   }, []);
@@ -380,6 +369,17 @@ export const AdminTour: React.FC<AdminTourProps> = ({ children }) => {
     setRunTour(false);
     setShowOverlay(false);
     setPendingStepIndex(null);
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    const style = document.createElement("style");
+    style.id = "admin-tour-sticky-override";
+    style.innerHTML = ".tour-sticky-header { position: static !important; }";
+    document.head.appendChild(style);
+    return () => {
+      document.getElementById("admin-tour-sticky-override")?.remove();
+    };
   }, [isRunning]);
 
   useEffect(() => {
@@ -469,7 +469,8 @@ export const AdminTour: React.FC<AdminTourProps> = ({ children }) => {
         disableOverlayClose
         disableScrollParentFix
         scrollToFirstStep
-        spotlightClicks
+        scrollOffset={90}
+        spotlightClicks={false}
         tooltipComponent={CustomTooltip}
         styles={{
           options: {

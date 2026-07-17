@@ -1,6 +1,15 @@
 import { useAuth } from '@/auth/hooks/useAuth';
 
-export const useHorariosPolicies = () => {
+interface HorariosPolicies {
+  hasPolicy: (policyName: string) => boolean;
+  esAdmin: () => boolean;
+  esAreaManager: () => boolean;
+  esReport: () => boolean;
+  tieneTemporal: () => boolean;
+  puedeVerDemo: () => boolean;
+}
+
+export const useHorariosPolicies = (): HorariosPolicies => {
   const { user } = useAuth();
 
   const hasPolicy = (policyName: string): boolean =>

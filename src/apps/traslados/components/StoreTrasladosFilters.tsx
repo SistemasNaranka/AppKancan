@@ -474,6 +474,40 @@ export const StoreTrasladosFilters: React.FC<StoreTrasladosFiltersProps> = ({
         </Box>
       )}
 
+      {/* LEYENDA FRANJA L — solo para jefes de zona */}
+      {ocultarTipo && (
+        <Box
+          sx={{
+            ml: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            pb: 1,
+            pr: 1,
+          }}
+        >
+          {/* Ícono mini con forma de L */}
+          <Box
+            sx={(theme) => ({
+              width: 16,
+              height: 16,
+              flexShrink: 0,
+              borderLeft: `3px solid ${theme.palette.primary.main}`,
+              borderBottom: `3px solid ${theme.palette.primary.main}`,
+              borderTop: "1.5px solid #CBD5E1",
+              borderRight: "1.5px solid #CBD5E1",
+              borderRadius: "3px",
+            })}
+          />
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 600, color: "#64748B", fontSize: "0.72rem", lineHeight: 1.3 }}
+          >
+            Requiere cambio de razón social
+          </Typography>
+        </Box>
+      )}
+
       {/* LEYENDA DE COLORES */}
       {!ocultarTipo && (
         <Box
