@@ -57,7 +57,13 @@ export default function HistorialHorasModal({
     onDayClick,
 }: HistorialHorasModalProps) {
     const [mesActual, setMesActual] = useState(dayjs().startOf('month'));
-    const [diaSeleccionado, setDiaSeleccionado] = useState<{ fecha: string; records: any[]; minutos: number } | null>(null);
+    const [diaSeleccionado, setDiaSeleccionado] = useState<{
+        fecha: dayjs.Dayjs;
+        records: any[];
+        minutos: number;
+        tieneNovedad: boolean;
+        novedadTipo: string;
+    } | null>(null);
 
     const { data: registrosMes = [], isLoading } = useQuery({
         queryKey: ['historialMes', tiendaId, empleado?.id, mesActual.format('YYYY-MM')],
@@ -265,7 +271,7 @@ export default function HistorialHorasModal({
                                             const capitalizar = (str: string) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
 
                                             return (
-                                                <Grid item xs={6} sm={4} md={2.4} lg={1.71} key={dia.fecha.format('YYYY-MM-DD')}>
+                                                 <Grid size={{ xs: 6, sm: 4, md: 2.4, lg: 1.71 }} key={dia.fecha.format('YYYY-MM-DD')}>
                                                     <Box
                                                         onClick={() => {
                                                             if (tieneRegistros) {
