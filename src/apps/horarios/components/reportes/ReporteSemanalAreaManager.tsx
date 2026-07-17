@@ -437,9 +437,9 @@ export default function ReporteSemanalAreaManager({
                   },
                 }}
               >
-                <TableCell sx={{ minWidth: 210 }}>Empleado</TableCell>
+                <TableCell sx={{ minWidth: 150 }}>Empleado</TableCell>
                 {semanas.map((s, i) => (
-                  <TableCell key={i} align="center" sx={{ minWidth: 110 }}>
+                  <TableCell key={i} align="center" sx={{ minWidth: 80 }}>
                     Sem. {i + 1}
                     <br />
                     <Typography
@@ -450,10 +450,10 @@ export default function ReporteSemanalAreaManager({
                     </Typography>
                   </TableCell>
                 ))}
-                <TableCell align="center" sx={{ minWidth: 110 }}>Total Mes</TableCell>
-                <TableCell align="center" sx={{ minWidth: 130 }}>Domingos</TableCell>
-                <TableCell align="center" sx={{ minWidth: 130 }}>Festivos</TableCell>
-                <TableCell align="center" sx={{ minWidth: 90 }}>Acciones</TableCell>
+                <TableCell align="center" sx={{ minWidth: 80 }}>Total Mes</TableCell>
+                <TableCell align="center" sx={{ minWidth: 90 }}>Domingos</TableCell>
+                <TableCell align="center" sx={{ minWidth: 90 }}>Festivos</TableCell>
+                <TableCell align="center" sx={{ minWidth: 60 }}>Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
