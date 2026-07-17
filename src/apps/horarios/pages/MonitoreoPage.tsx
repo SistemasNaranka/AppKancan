@@ -195,16 +195,16 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     return Number((id as any).id ?? (id as any).store_id);
                 }
                 return Number(id);
-            }).filter(Boolean);
-            return todasLasTiendas.filter(t => idsPermitidos.includes(Number(t.id)));
+            }).filter(id => Boolean(id) && Number(id) !== 5);
+            return todasLasTiendas.filter(t => idsPermitidos.includes(Number(t.id)) && Number(t.id) !== 5);
         }
         return todasLasTiendas;
     }, [todasLasTiendas, tiendasAcceso, isAreaMgr]);
 
     const { data: editedRecords = [], isLoading: cargandoEdiciones } = useQuery({
-        queryKey: ['editedRecords', storeId, fechas.inicio?.format('YYYY-MM-DD'), fechas.fin?.format('YYYY-MM-DD'), todasLasTiendas],
+        queryKey: ['editedRecords', storeId, fechas.inicio?.format('YYYY-MM-DD'), fechas.fin?.format('YYYY-MM-DD'), tiendasFiltradas],
         queryFn: () => {
-            const storeIds = storeId ? [storeId] : todasLasTiendas.map(t => t.id);
+            const storeIds = storeId ? [storeId] : tiendasFiltradas.map(t => t.id);
             const inicio = fechas.inicio ? fechas.inicio.format('YYYY-MM-DD') : dayjs().startOf('month').format('YYYY-MM-DD');
             const fin = fechas.fin ? fechas.fin.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
             return getEditedTimeRecords(storeIds, inicio, fin);
