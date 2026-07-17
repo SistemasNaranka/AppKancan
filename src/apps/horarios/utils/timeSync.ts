@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { resolveNetworkUrl } from '@/shared/utils/network';
 
 let timeOffsetMs = 0;
 
@@ -10,7 +11,8 @@ export const syncTimeWithServer = async () => {
   try {
     const start = Date.now();
     // Intentar leer la URL del servidor desde las variables de entorno, o usar el origen actual
-    const url = import.meta.env.VITE_DIRECTUS_URL || window.location.origin;
+    const rawUrl = import.meta.env.VITE_DIRECTUS_URL || window.location.origin;
+    const url = resolveNetworkUrl(rawUrl);
     
     // Realizamos una petición HEAD rápida para obtener las cabeceras del servidor
     const response = await fetch(url, { method: 'HEAD' });
