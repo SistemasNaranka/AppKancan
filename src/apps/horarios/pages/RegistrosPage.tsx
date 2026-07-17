@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Box, Typography, Tooltip, Tabs, Tab, Paper,
-  Chip, CircularProgress, Alert, TextField, InputAdornment, Button, Autocomplete,
+  Chip, CircularProgress, Alert, TextField, InputAdornment, Button, Autocomplete, useMediaQuery, Theme,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { getStores, getStoreIdUsuarioActual } from '../api/directus/read';
@@ -68,6 +68,7 @@ function RegistrosPageContent() {
   const { esAdmin, esReport, puedeVerDemo, esAreaManager } = useHorariosPolicies();
   const isAreaMgr = esAreaManager() && !esAdmin();
   const isOnlyReport = esReport() && !esAdmin() && !isAreaMgr;
+  const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
 
   const [storeOverride, setStoreOverride] = useState<number | null>(null);
   const [actualizando, setActualizando] = useState(false);
@@ -196,7 +197,6 @@ function RegistrosPageContent() {
   const { activeTutorial, endTutorial } = useTutorial();
   const [tabValue, setTabValue] = useState(isAreaMgr ? 4 : 0);
 
-
   const [vistaAdmin, setVistaAdmin] = useState(false);
   const [vistaReporte, setVistaReporte] = useState(esReport() && !esAdmin() && !isAreaMgr);
   const [exportEventosOpen, setExportEventosOpen] = useState(false);
@@ -219,7 +219,6 @@ function RegistrosPageContent() {
     }
   }, [activeTutorial, loading, startFullTour, endTutorial]);
 
-  // --- SE AÑADIÓ EL 5to SUBTÍTULO PARA MONITOREO AQUÍ ---
   const subtitulosTab = [
     'Gestiona las marcaciones de asistencia del día',
     'Gestiona y revisa las incidencias de asistencia en tiempo real',
@@ -249,7 +248,7 @@ function RegistrosPageContent() {
       case 1: return 'Registro de Novedades';
       case 2: return 'Historial';
       case 3: return 'Malla Horaria';
-      case 4: return 'Monitoreo'; // --- SE AÑADIÓ EL TÍTULO DE MONITOREO AQUÍ ---
+      case 4: return 'Monitoreo';
       default: return 'Panel de Asistencia';
     }
   };
@@ -261,7 +260,7 @@ function RegistrosPageContent() {
       case 1: return <AssignmentIcon sx={iconSx} />;
       case 2: return <HistoryIcon sx={iconSx} />;
       case 3: return <GridViewIcon sx={iconSx} />;
-      case 4: return <AnalyticsIcon sx={iconSx} />; // --- SE AÑADIÓ EL ÍCONO DE MONITOREO AQUÍ ---
+      case 4: return <AnalyticsIcon sx={iconSx} />;
       default: return <EventNoteIcon sx={iconSx} />;
     }
   };
@@ -276,23 +275,24 @@ function RegistrosPageContent() {
   }
 
   return (
-    <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: 'transparent', px: { xs: 2, md: 4 }, pt: 2, pb: 4 }}>
+    <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: 'transparent', px: { xs: 0.5, sm: 2, md: 4 }, pt: { xs: 0.5, sm: 1 }, pb: 2 }}>
       {error && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+        <Alert severity="warning" sx={{ mb: 2, mx: { xs: 0.5, sm: 0 } }}>
           {error}
         </Alert>
       )}
 
-      <Paper elevation={0} sx={{ position: 'sticky', top: 0, zIndex: 1000, borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 0, mb: 2, bgcolor: '#fff' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, bgcolor: '#fff', p: { xs: 1.5, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
+      <Paper elevation={0} sx={{ position: 'sticky', top: 0, zIndex: 1000, borderRadius: { xs: 2, sm: 4 }, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mb: 2, bgcolor: '#fff' }}>
+        {/* Fila superior: título y selector/acciones */}
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 1, bgcolor: '#fff', p: { xs: 1, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box
               sx={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: { xs: 40, md: 48 },
-                height: { xs: 40, md: 48 },
+                width: { xs: 32, md: 48 },
+                height: { xs: 32, md: 48 },
                 borderRadius: 2.5,
                 flexShrink: 0,
                 color: '#004680',
@@ -300,10 +300,10 @@ function RegistrosPageContent() {
                 border: '1px solid #d6e6f7',
               }}
             >
-              {vistaAdmin ? <AdminPanelSettingsIcon sx={{ fontSize: 26 }} /> : vistaReporte ? <FileDownloadIcon sx={{ fontSize: 26 }} /> : getIconoPrincipal()}
+              {vistaAdmin ? <AdminPanelSettingsIcon sx={{ fontSize: { xs: 18, md: 26 } }} /> : vistaReporte ? <FileDownloadIcon sx={{ fontSize: { xs: 18, md: 26 } }} /> : getIconoPrincipal()}
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 700, color: '#0f2c4a', lineHeight: 1.2, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
+              <Typography sx={{ fontWeight: 700, color: '#0f2c4a', lineHeight: 1.2, fontSize: { xs: '0.9rem', md: '1.4rem' } }}>
                 {vistaAdmin
                   ? 'Panel Administrativo'
                   : vistaReporte
@@ -320,16 +320,17 @@ function RegistrosPageContent() {
                       return nombre ? ` - ${toTitleCase(nombre)}` : '';
                     })()}`}
               </Typography>
-              <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mt: 0.4, lineHeight: 1.35 }}>
-                {vistaAdmin ? 'Gestión de empleados de todas las tiendas' : vistaReporte ? 'Exporta informes y visualiza registros detallados' : subtitulosTab[tabValue]}
-              </Typography>
+              {!isMobile && (
+                <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mt: 0.4, lineHeight: 1.35 }}>
+                  {vistaAdmin ? 'Gestión de empleados de todas las tiendas' : vistaReporte ? 'Exporta informes y visualiza registros detallados' : subtitulosTab[tabValue]}
+                </Typography>
+              )}
             </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+
+          {/* Selector de tienda y botones - en móvil se apilan verticalmente */}
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 1, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
             {((esAdmin() && !vistaAdmin && !vistaReporte) || (isAreaMgr && !vistaAdmin)) && (
-              // ============================================================
-              // 🔥 CAMBIO: "Todas las tiendas" sin emoji y con mismo diseño
-              // ============================================================
               <Autocomplete
                 size="small"
                 options={[{ id: null, name: 'Todas las tiendas' }, ...tiendasFiltradas]}
@@ -340,7 +341,7 @@ function RegistrosPageContent() {
                     : tiendasFiltradas.find((t) => t.id === storeOverride) ?? null
                 }
                 onChange={(_, v) => setStoreOverride(v ? v.id : null)}
-                sx={{ width: 250 }}
+                sx={{ width: { xs: '100%', sm: 250 } }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -357,89 +358,98 @@ function RegistrosPageContent() {
                   />
                 )}
               />
-              // ============================================================
             )}
-            {!vistaAdmin && (
-              <>
-                {(!vistaReporte || isAreaMgr) && (
-                  <Tooltip title="Ver normas de uso">
-                    <Button
-                      onClick={() => setManualOpen(true)}
-                      variant="outlined"
-                      disableElevation
-                      startIcon={<GavelIcon sx={{ fontSize: 18 }} />}
-                      sx={{
-                        borderRadius: 2, textTransform: 'none', fontWeight: 700,
-                        color: '#991b1b', borderColor: '#fca5a5', px: 2, py: 0.75,
-                        '&:hover': { borderColor: '#f87171', bgcolor: '#fff5f5' },
-                      }}
-                    >
-                      Normas
-                    </Button>
-                  </Tooltip>
-                )}
-                {!vistaReporte && puedeVerDemo() && (
-                  <Tooltip title="Activar/Desactivar Empleado de Prueba (Local)">
-                    <Button
-                      onClick={() => setModoDemo(!modoDemo)}
-                      variant={modoDemo ? "contained" : "outlined"}
-                      disableElevation
-                      startIcon={<AssignmentIcon sx={{ fontSize: 18 }} />}
-                      sx={{
-                        borderRadius: 2, textTransform: 'none', fontWeight: 700,
-                        color: modoDemo ? '#fff' : '#0284c7',
-                        bgcolor: modoDemo ? '#0284c7' : 'transparent',
-                        borderColor: '#7dd3fc', px: 2, py: 0.75,
-                        '&:hover': {
-                          bgcolor: modoDemo ? '#0369a1' : '#f0f9ff',
-                          borderColor: '#38bdf8'
-                        },
-                      }}
-                    >
-                      {modoDemo ? 'Demo Activo' : 'Modo Demo'}
-                    </Button>
-                  </Tooltip>
-                )}
-                {!vistaReporte && !isAreaMgr && <TutorialButton />}
-                {(!vistaReporte || isAreaMgr) && (
-                  <Tooltip title="Actualizar registros">
-                    <Button
-                      className="tour-refresh"
-                      onClick={async () => {
-                        setActualizando(true);
-                        try {
-                          await resetHorarios();
-                        } finally {
-                          setActualizando(false);
-                        }
-                      }}
-                      disabled={actualizando}
-                      variant="contained"
-                      disableElevation
-                      startIcon={actualizando ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: 18 }} />}
-                      sx={{
-                        bgcolor: '#004680',
-                        color: '#fff',
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 'bold',
-                        px: 2,
-                        py: 0.75,
-                        boxShadow: 'none',
-                        '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
-                      }}
-                    >
-                      Actualizar
-                    </Button>
-                  </Tooltip>
-                )}
-              </>
-            )}
+
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5, justifyContent: { xs: 'center', sm: 'flex-end' }, width: { xs: '100%', sm: 'auto' } }}>
+              {!vistaAdmin && (
+                <>
+                  {(!vistaReporte || isAreaMgr) && (
+                    <Tooltip title="Ver normas de uso">
+                      <Button
+                        onClick={() => setManualOpen(true)}
+                        variant="outlined"
+                        disableElevation
+                        startIcon={<GavelIcon sx={{ fontSize: { xs: 14, sm: 18 } }} />}
+                        sx={{
+                          borderRadius: 2, textTransform: 'none', fontWeight: 700,
+                          color: '#991b1b', borderColor: '#fca5a5', px: { xs: 1, sm: 2 }, py: 0.5,
+                          '&:hover': { borderColor: '#f87171', bgcolor: '#fff5f5' },
+                          fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                          minHeight: { xs: 32, sm: 40 },
+                        }}
+                      >
+                        Normas
+                      </Button>
+                    </Tooltip>
+                  )}
+                  {!vistaReporte && puedeVerDemo() && (
+                    <Tooltip title="Activar/Desactivar Empleado de Prueba (Local)">
+                      <Button
+                        onClick={() => setModoDemo(!modoDemo)}
+                        variant={modoDemo ? "contained" : "outlined"}
+                        disableElevation
+                        startIcon={<AssignmentIcon sx={{ fontSize: { xs: 14, sm: 18 } }} />}
+                        sx={{
+                          borderRadius: 2, textTransform: 'none', fontWeight: 700,
+                          color: modoDemo ? '#fff' : '#0284c7',
+                          bgcolor: modoDemo ? '#0284c7' : 'transparent',
+                          borderColor: '#7dd3fc', px: { xs: 1, sm: 2 }, py: 0.5,
+                          fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                          minHeight: { xs: 32, sm: 40 },
+                          '&:hover': {
+                            bgcolor: modoDemo ? '#0369a1' : '#f0f9ff',
+                            borderColor: '#38bdf8'
+                          },
+                        }}
+                      >
+                        {modoDemo ? 'Demo' : 'Demo'}
+                      </Button>
+                    </Tooltip>
+                  )}
+                  {!vistaReporte && !isAreaMgr && <TutorialButton />}
+                  {(!vistaReporte || isAreaMgr) && (
+                    <Tooltip title="Actualizar registros">
+                      <Button
+                        className="tour-refresh"
+                        onClick={async () => {
+                          setActualizando(true);
+                          try {
+                            await resetHorarios();
+                          } finally {
+                            setActualizando(false);
+                          }
+                        }}
+                        disabled={actualizando}
+                        variant="contained"
+                        disableElevation
+                        startIcon={actualizando ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: { xs: 14, sm: 18 } }} />}
+                        sx={{
+                          bgcolor: '#004680',
+                          color: '#fff',
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 'bold',
+                          px: { xs: 1, sm: 2 },
+                          py: 0.5,
+                          boxShadow: 'none',
+                          fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                          minHeight: { xs: 32, sm: 40 },
+                          '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
+                        }}
+                      >
+                        Actualizar
+                      </Button>
+                    </Tooltip>
+                  )}
+                </>
+              )}
+            </Box>
           </Box>
         </Box>
 
+        {/* Tabs y acciones adicionales */}
         {!isOnlyReport && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: { xs: 1, md: 2 } }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', justifyContent: 'space-between', pr: { xs: 0.5, md: 2 }, px: { xs: 0.5, sm: 1.5 } }}>
             <Tabs
               className="tour-tabs"
               value={vistaAdmin ? 'admin' : vistaReporte ? 'reporte' : tabValue}
@@ -448,24 +458,26 @@ function RegistrosPageContent() {
               scrollButtons={false}
               TabIndicatorProps={{ sx: { display: 'none' } }}
               sx={{
-                px: { xs: 1, md: 1.5 },
-                py: 1.25,
+                px: { xs: 0, sm: 1.5 },
+                py: { xs: 0.5, sm: 1 },
                 minHeight: 'auto',
                 flex: 1,
-                '& .MuiTabs-flexContainer': { gap: 1 },
+                width: '100%',
+                '& .MuiTabs-flexContainer': { gap: { xs: 0.3, sm: 1 } },
                 '& .MuiTabs-scrollButtons.Mui-disabled': { display: 'none' },
                 '& .MuiTab-root': {
                   textTransform: 'none',
                   fontWeight: 600,
-                  fontSize: '0.8rem',
+                  fontSize: { xs: '0.6rem', sm: '0.8rem' },
                   letterSpacing: '0.2px',
-                  minHeight: 40,
+                  minHeight: { xs: 28, sm: 40 },
                   borderRadius: '10px',
-                  px: 2,
+                  px: { xs: 1, sm: 2 },
+                  py: { xs: 0.3, sm: 0.8 },
                   color: '#64748b',
                   boxShadow: 'none',
                   transition: 'background-color 0.2s ease, color 0.2s ease',
-                  '& .MuiTab-iconWrapper': { mr: 0.75 },
+                  '& .MuiTab-iconWrapper': { mr: 0.3, fontSize: { xs: 14, sm: 18 } },
                   '&:hover': { backgroundColor: '#eef4fb', color: '#004680', boxShadow: 'none' },
                   '&.Mui-selected': {
                     color: '#fff',
@@ -476,25 +488,24 @@ function RegistrosPageContent() {
                 },
               }}
             >
-              {!isAreaMgr && <Tab value={0} icon={<EventNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REGISTROS" />}
-              {!isAreaMgr && <Tab value={1} icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="NOVEDADES" />}
-              {!isAreaMgr && <Tab value={2} icon={<HistoryIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="HISTORIAL" />}
-              {!isAreaMgr && <Tab value={3} icon={<GridViewIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MALLA HORARIA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />}
-              {/* --- SE AÑADIÓ LA PESTAÑA DE MONITOREO AQUÍ --- */}
+              {!isAreaMgr && <Tab value={0} icon={<EventNoteIcon />} iconPosition="start" label="REGISTROS" />}
+              {!isAreaMgr && <Tab value={1} icon={<AssignmentIcon />} iconPosition="start" label="NOVEDADES" />}
+              {!isAreaMgr && <Tab value={2} icon={<HistoryIcon />} iconPosition="start" label="HISTORIAL" />}
+              {!isAreaMgr && <Tab value={3} icon={<GridViewIcon />} iconPosition="start" label="MALLA" sx={{ display: MALLA_HORARIA_HABILITADA ? undefined : 'none' }} />}
               {(esAdmin() || isAreaMgr) && (
-                <Tab value={4} icon={<AnalyticsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="MONITOREO" />
+                <Tab value={4} icon={<AnalyticsIcon />} iconPosition="start" label="MONITOREO" />
               )}
-              {/* ----------------------------------------------- */}
               {esAdmin() && (
-                <Tab value="admin" icon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="ADMIN" />
+                <Tab value="admin" icon={<AdminPanelSettingsIcon />} iconPosition="start" label="ADMIN" />
               )}
               {(esReport() || isAreaMgr) && (
-                <Tab value="reporte" icon={<FileDownloadIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="REPORTE" />
+                <Tab value="reporte" icon={<FileDownloadIcon />} iconPosition="start" label="REPORTE" />
               )}
             </Tabs>
 
-            {tabValue === 0 && !vistaAdmin && !vistaReporte && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 2 }}>
+            {/* Acciones de exportar y contador - solo visible en escritorio o en tab 0 */}
+            {tabValue === 0 && !vistaAdmin && !vistaReporte && !isMobile && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 2, flexShrink: 0 }}>
                 <Button
                   className="tour-export-eventos"
                   onClick={() => setExportEventosOpen(true)}
@@ -524,6 +535,7 @@ function RegistrosPageContent() {
         )}
       </Paper>
 
+      {/* Contenido de pestañas */}
       {vistaAdmin ? (
         <AdminEmpleadosPage storeSel={storeOverride} onStoreChange={setStoreOverride} />
       ) : vistaReporte ? (
@@ -538,8 +550,9 @@ function RegistrosPageContent() {
                 sm: 'repeat(2, 1fr)',
                 md: 'repeat(3, 1fr)'
               },
-              gap: 3,
-              width: '100%'
+              gap: { xs: 1.5, sm: 3 },
+              width: '100%',
+              mt: { xs: 0.5, sm: 0 }
             }}>
               {modoDemo && (
                 <EmployeeCard
@@ -589,13 +602,11 @@ function RegistrosPageContent() {
             </Paper>
           </TabPanel>
 
-          {/* --- SE AÑADIÓ EL PANEL DE MONITOREO AQUÍ --- */}
           {(esAdmin() || isAreaMgr) && (
             <TabPanel value={tabValue} index={4}>
               <MonitoreoPage storeId={storeOverride} />
             </TabPanel>
           )}
-          {/* -------------------------------------------- */}
         </>
       )}
 
