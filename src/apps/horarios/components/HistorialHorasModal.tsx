@@ -271,7 +271,7 @@ export default function HistorialHorasModal({
                                             const capitalizar = (str: string) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
 
                                             return (
-                                                <Grid xs={6} sm={4} md={2.4} lg={1.71} key={dia.fecha.format('YYYY-MM-DD')}>
+                                                 <Grid size={{ xs: 6, sm: 4, md: 2.4, lg: 1.71 }} key={dia.fecha.format('YYYY-MM-DD')}>
                                                     <Box
                                                         onClick={() => {
                                                             if (tieneRegistros) {
