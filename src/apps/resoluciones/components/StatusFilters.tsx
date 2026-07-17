@@ -1,61 +1,79 @@
 import React from "react";
-import { Button, Box } from "@mui/material";
+import { FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText } from "@mui/material";
 import { StatusResolution } from "../types";
 
 interface StatusFiltersProps {
-  estadoActivo: StatusResolution | null;
-  onFiltrar: (estado: StatusResolution | null) => void;
+  estadosSeleccionados: StatusResolution[];
+  onFiltrar: (estados: StatusResolution[]) => void;
 }
 
 const StatusFilters: React.FC<StatusFiltersProps> = ({
-  estadoActivo,
+  estadosSeleccionados,
   onFiltrar,
 }) => {
-  const estados: { valor: StatusResolution; color: string }[] = [
-    { valor: "Pendiente", color: "#9E9E9E" },
-    { valor: "Por vencer", color: "#FFA000" },
-    { valor: "Vigente", color: "#4CAF50" },
-    { valor: "Vencido", color: "#F44336" },
-  ];
+  const estados: StatusResolution[] = ["Pendiente", "Por vencer", "Vigente", "Vencido"];
+
+  const handleChange = (event: any) => {
+    const value = event.target.value;
+    if (value.includes("Todos")) {
+      onFiltrar([]);
+      return;
+    }
+    onFiltrar(typeof value === "string" ? (value.split(",") as StatusResolution[]) : value);
+  };
 
   return (
-    <Box
+    <FormControl
+      size="small"
       sx={{
-        display: "flex",
-        gap: 0.5,
-        flexWrap: { xs: "wrap", sm: "nowrap" },
+        minWidth: { xs: 120, sm: 140, md: 160 },
+        flex: { xs: "1 1 auto", sm: "none" },
       }}
     >
-      {estados.map((estado) => (
-        <Button
-          key={estado.valor}
-          size="small"
-          onClick={() =>
-            onFiltrar(estadoActivo === estado.valor ? null : estado.valor)
+      <InputLabel sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}>
+        Estados
+      </InputLabel>
+      <Select
+        multiple
+        value={estadosSeleccionados}
+        label="Estados"
+        onChange={handleChange}
+        renderValue={(selected) => {
+          if (selected.length === 0 || selected.length === estados.length) {
+            return "Todos";
           }
-          sx={{
-            backgroundColor:
-              estadoActivo === estado.valor ? estado.color : "#E0E0E0",
-            color: estadoActivo === estado.valor ? "white" : "#333",
-            boxShadow: "none",
-            border: "none",
-            fontSize: { xs: "0.75rem", sm: "0.85rem", md: "0.9rem" },
-            px: { xs: 1, sm: 1.5, md: 2 },
-            py: { xs: 0.5, sm: 0.6, md: 0.8 },
-            minWidth: { xs: "auto", sm: "auto" },
-            flex: { xs: "1 1 calc(50% - 4px)", sm: "none" },
-            transition: "all 0.3s ease",
-            "&:hover": {
-              backgroundColor: estado.color,
-              color: "white",
-              boxShadow: "none",
-            },
-          }}
+          return selected.join(", ");
+        }}
+        sx={{
+          fontSize: { xs: "0.875rem", sm: "1rem" },
+          backgroundColor: "white",
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#004680",
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#004680",
+          },
+        }}
+      >
+        <MenuItem
+          value="Todos"
+          sx={{ fontSize: { xs: "0.875rem", sm: "1rem" }, fontWeight: "bold" }}
         >
-          {estado.valor}
-        </Button>
-      ))}
-    </Box>
+          <Checkbox checked={estadosSeleccionados.length === 0} size="small" />
+          <ListItemText primary="Todos" />
+        </MenuItem>
+        {estados.map((estado) => (
+          <MenuItem
+            key={estado}
+            value={estado}
+            sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+          >
+            <Checkbox checked={estadosSeleccionados.indexOf(estado) > -1} size="small" />
+            <ListItemText primary={estado} />
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
   );
 };
 

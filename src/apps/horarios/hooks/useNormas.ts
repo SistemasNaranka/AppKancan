@@ -19,10 +19,10 @@ export function useNormas() {
 
   const version = normas?.version ?? null;
 
-  // Clave de localStorage para guardar la aceptación por usuario y versión de normas
+  // Clave de localStorage para guardar la aceptación por usuario y versión
   const storageKey = userId && version != null ? `kancan_rules_accepted_${userId}_v${version}` : null;
 
-  // Cargar estado de aceptación desde localStorage
+  // Cargar estado de aceptación
   useEffect(() => {
     if (storageKey) {
       const valor = localStorage.getItem(storageKey);
@@ -32,19 +32,17 @@ export function useNormas() {
     }
   }, [storageKey]);
 
-  // ⚠️ MODO PRUEBAS: el aviso de normas se muestra SIEMPRE al entrar si está en true.
-  // 👉 Para PRODUCCIÓN (que salga solo UNA vez por usuario/dispositivo), cambiar a: false
+  // Modo pruebas: el aviso se muestra siempre al entrar
   const SIEMPRE_MOSTRAR_NORMAS = false;
 
   const yaAceptoVigente = aceptadoLocal === true;
-  // Debe aceptar si hay normas vigentes, hay usuario y (modo pruebas) o aún no las aceptó.
+  // Debe aceptar si hay normas vigentes y no han sido aceptadas
   const debeAceptar = !!normas && !!userId && (SIEMPRE_MOSTRAR_NORMAS || !yaAceptoVigente);
 
   const aceptar = async () => {
     if (!storageKey) return;
     setAceptando(true);
     try {
-      // Guardar en localStorage
       localStorage.setItem(storageKey, 'true');
       setAceptadoLocal(true);
     } catch (error) {

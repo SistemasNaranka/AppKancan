@@ -1,5 +1,16 @@
 import { Resolution } from "../types";
 import { DirectusResolucion } from "../api/read";
+
+export function parseLocalDate(dateStr: string): Date {
+  if (!dateStr) return new Date(NaN);
+  // Extraer año, mes y día de los primeros 10 caracteres (YYYY-MM-DD)
+  const match = dateStr.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+  return new Date(dateStr);
+}
+
 export function calculateStatus(
   hasta: number,
   vigencia: number,
@@ -20,19 +31,23 @@ export function calculateStatus(
   if (!fecha_creacion) {
     return "Pendiente";
   }
-  const fechaCreacion = new Date(fecha_creacion);
+  const fechaCreacion = parseLocalDate(fecha_creacion);
   if (isNaN(fechaCreacion.getTime())) {
     return "Pendiente";
   }
   const fechaExpiracion = new Date(fechaCreacion);
   fechaExpiracion.setMonth(fechaExpiracion.getMonth() + vigencia);
 
+  // Normalizar fechas para comparar solo días calendario
+  fechaExpiracion.setHours(0, 0, 0, 0);
   const hoy = new Date();
-  const diasRestantes = Math.floor(
+  hoy.setHours(0, 0, 0, 0);
+
+  const diasRestantes = Math.round(
     (fechaExpiracion.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24),
   );
 
-  if (facturasRestantes <= 10 || diasRestantes < 1) {
+  if (facturasRestantes <= 10 || diasRestantes <= 0) {
     return "Vencido";
   }
 
@@ -77,12 +92,15 @@ export function calculateMaturity(
   vigencia: number,
 ): string {
   if (!fecha_creacion) return "";
-  const fechaCreacion = new Date(fecha_creacion);
+  const fechaCreacion = parseLocalDate(fecha_creacion);
   if (isNaN(fechaCreacion.getTime())) return "";
   const fechaExpiracion = new Date(fechaCreacion);
   fechaExpiracion.setMonth(fechaExpiracion.getMonth() + vigencia);
   try {
-    return fechaExpiracion.toISOString().split("T")[0];
+    const yyyy = fechaExpiracion.getFullYear();
+    const mm = String(fechaExpiracion.getMonth() + 1).padStart(2, '0');
+    const dd = String(fechaExpiracion.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   } catch {
     return "";
   }
@@ -93,13 +111,17 @@ export function DaysRemaining(
   fecha_creacion: string,
 ): { dias: number; texto: string } {
   if (!fecha_creacion) return { dias: 0, texto: "Sin fecha de creación" };
-  const fechaCreacion = new Date(fecha_creacion);
+  const fechaCreacion = parseLocalDate(fecha_creacion);
   if (isNaN(fechaCreacion.getTime())) return { dias: 0, texto: "Fecha inválida" };
   const fechaExpiracion = new Date(fechaCreacion);
   fechaExpiracion.setMonth(fechaExpiracion.getMonth() + vigencia);
 
+  // Normalizar fechas para comparar solo días calendario
+  fechaExpiracion.setHours(0, 0, 0, 0);
   const hoy = new Date();
-  const dias = Math.floor(
+  hoy.setHours(0, 0, 0, 0);
+
+  const dias = Math.round(
     (fechaExpiracion.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24),
   );
 

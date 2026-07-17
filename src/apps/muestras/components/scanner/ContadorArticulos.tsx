@@ -19,7 +19,7 @@ const ArticlesCounter: React.FC<Props> = ({ articulos, unidades }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
-  // 🔹 Detecta pantallas pequeñas (por debajo de 600px)
+  // Detecta pantallas pequeñas (por debajo de 600px)
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (

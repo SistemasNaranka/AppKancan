@@ -13,11 +13,13 @@ import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import useAdminEmpleados from '../hooks/useAdminEmpleados';
+import { AdminTour, TutorialAdminButton } from '../components/tour/AdminTour';
 import { listarTodosEmpleados } from '../api/directus/read';
 import DialogNuevoEmpleado from '../components/admin/DialogNuevoEmpleado';
 import DialogEditarEmpleado from '../components/admin/DialogEditarEmpleado';
 import DialogPerfilEmpleado from '../components/admin/DialogPerfilEmpleado';
 import { EmpleadoAdmin, Tienda } from '../interfaces/horarios.interface';
+import { formatDocumentNumber } from '../utils/format';
 
 const AZUL = '#004680';
 
@@ -38,7 +40,7 @@ interface Props {
   onStoreChange: (id: number | null) => void;
 }
 
-export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
+function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
   const {
     tiendas, cargos, tiposDocumento,
     tiendaSel, setTiendaSel, empleadosTienda, loadingTienda,
@@ -109,18 +111,22 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
             Busca por nombre o documento para reactivar o cambiar de tienda, o crea un empleado nuevo.
           </Typography>
         </Box>
-        <Button
-          variant="contained" disableElevation startIcon={<PersonAddIcon />} onClick={() => setModalNuevo(true)}
-          sx={{ bgcolor: AZUL, textTransform: 'none', fontWeight: 700, borderRadius: 2, '&:hover': { bgcolor: '#003a6b' } }}
-        >
-          Nuevo empleado
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <TutorialAdminButton />
+          <Button
+            className="tour-nuevo-empleado"
+            variant="contained" disableElevation startIcon={<PersonAddIcon />} onClick={() => setModalNuevo(true)}
+            sx={{ bgcolor: AZUL, textTransform: 'none', fontWeight: 700, borderRadius: 2, '&:hover': { bgcolor: '#003a6b' } }}
+          >
+            Nuevo empleado
+          </Button>
+        </Box>
       </Paper>
 
       {/* Selector de tienda + buscador */}
       <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: '1px solid #eef2f6' }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <Box sx={{ minWidth: 240, flex: { xs: '1 1 100%', md: '0 0 280px' } }}>
+          <Box className="tour-selector-tienda" sx={{ minWidth: 240, flex: { xs: '1 1 100%', md: '0 0 280px' } }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
               TIENDA
             </Typography>
@@ -149,7 +155,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
             />
           </Box>
 
-          <Box sx={{ flex: 1, minWidth: 260 }}>
+          <Box className="tour-buscador-empleado" sx={{ flex: 1, minWidth: 260 }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
               {(tiendaSel === null || vistaTodas) ? 'BUSCAR EMPLEADO EN TODAS LAS TIENDAS' : 'BUSCAR EMPLEADO EN LA TIENDA'}
             </Typography>
@@ -226,7 +232,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
                 </Typography>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', gap: 0.75, bgcolor: '#f4f8fd', p: 0.5, borderRadius: 2, border: '1px solid #e8eef5' }}>
+            <Box className="tour-contadores-estado" sx={{ display: 'flex', gap: 0.75, bgcolor: '#f4f8fd', p: 0.5, borderRadius: 2, border: '1px solid #e8eef5' }}>
               {([
                 { key: 'todos', label: 'Todos', n: base.length },
                 { key: 'activo', label: 'Activos', n: nActivos },
@@ -264,7 +270,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
               No hay empleados {filtroEstado === 'activo' ? 'activos' : 'inactivos'} en esta búsqueda.
             </Typography>
           ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+          <Box className="tour-lista-empleados" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
             {visiblesPag.map((emp) => {
               const nombre = nombreDe(emp);
               const inactivo = (emp.status || '').toLowerCase() !== 'activo';
@@ -292,7 +298,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
                         {nombre}
                       </Typography>
                       <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <BadgeIcon sx={{ fontSize: 13 }} /> {emp.document_number || '—'}
+                        <BadgeIcon sx={{ fontSize: 13 }} /> {emp.document_number ? formatDocumentNumber(emp.document_number) : '—'}
                       </Typography>
                     </Box>
                     <Chip
@@ -322,7 +328,7 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
           )}
 
           {/* Paginación */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: '#fff', border: '1px solid #eef2f6', borderRadius: 3, p: 2 }}>
+          <Box className="tour-paginacion" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: '#fff', border: '1px solid #eef2f6', borderRadius: 3, p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="caption" sx={{ color: '#64748b' }}>
                 Mostrando {visiblesPag.length} de {visibles.length} empleados
@@ -432,3 +438,13 @@ export default function AdminEmpleadosPage({ storeSel, onStoreChange }: Props) {
     </Box>
   );
 }
+
+export default function AdminEmpleadosPage(props: Props) {
+  return (
+    <AdminTour>
+      <AdminEmpleadosPageContent {...props} />
+    </AdminTour>
+  );
+}
+
+

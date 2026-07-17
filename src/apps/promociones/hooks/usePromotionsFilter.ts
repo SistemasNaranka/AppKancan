@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import PromotionsFilterContext from "./PromotionsFilterContext";
 
-// ✅ Named export para consistencia
+// Named export para consistencia
 export const usePromotionsFilter = () => {
   const context = useContext(PromotionsFilterContext);
   if (!context) {

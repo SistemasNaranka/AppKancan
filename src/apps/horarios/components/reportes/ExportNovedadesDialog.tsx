@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
-  Autocomplete, TextField, Checkbox, FormControlLabel, Divider, CircularProgress,
+  Autocomplete, TextField, Checkbox, FormControlLabel, CircularProgress,
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -9,12 +10,12 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
-import { getStores, fetchTimeRecordsExport, getReasonNamesForRecords } from '../api/directus/read';
-import { exportarHistorialExcel } from '../utils/exportarHistorial';
-import { Tienda } from '../interfaces/horarios.interface';
+import { getStores, fetchNewnessReportsExport } from '../../api/directus/read';
+import { exportarNovedadesExcel } from '../../utils/exportarNovedades';
+import { Tienda } from '../../interfaces/horarios.interface';
 import DateRangeFilter from './DateRangeFilter';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
-import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
+import { useHorariosPolicies } from '../../hooks/useHorariosPolicies';
 import { useAuth } from '@/auth/hooks/useAuth';
 
 const AZUL = '#004680';
@@ -28,13 +29,14 @@ interface Props {
   searchNombre?: string;
 }
 
-export default function ExportHistorialDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault, searchNombre }: Props) {
+export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fechaFin, tiendaDefault, searchNombre }: Props) {
   const { showSnackbar } = useGlobalSnackbar();
-  const { esAdmin: originalEsAdmin, esReport } = useHorariosPolicies();
+  const { esAdmin: originalEsAdmin, esReport, esAreaManager } = useHorariosPolicies();
   const esAdmin = () => originalEsAdmin() || esReport();
+  const isAreaMgr = esAreaManager ? esAreaManager() : false;
   const { user } = useAuth();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
-  const [detallada, setDetallada] = useState(false);
+  const [todasNovedades, setTodasNovedades] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(null);
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(null);
@@ -49,13 +51,33 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
     enabled: open,
   });
 
-  const todas = tiendas.length > 0 && tiendasSel.length === tiendas.length;
+  const { data: tiendasAcceso = [] } = useQuery<number[]>({
+    queryKey: ['tiendasAccesoUsuario'],
+    queryFn: obtenerTiendasIdsUsuarioActual,
+    enabled: open && isAreaMgr,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const tiendasFiltradas = isAreaMgr
+    ? tiendas.filter(t => {
+        const idsPermitidos = tiendasAcceso.map(id => {
+          if (id && typeof id === 'object') {
+            return Number((id as any).id ?? (id as any).store_id);
+          }
+          return Number(id);
+        }).filter(Boolean);
+        return idsPermitidos.includes(Number(t.id));
+      })
+    : tiendas;
+
+  const todas = tiendasFiltradas.length > 0 && tiendasSel.length === tiendasFiltradas.length;
 
   useEffect(() => {
     if (open) {
       setRangoInicio(fechaInicio ? dayjs(fechaInicio) : null);
       setRangoFin(fechaFin ? dayjs(fechaFin) : null);
       setTiendasSel([]);
+      setTodasNovedades(false);
     }
   }, [open, fechaInicio, fechaFin]);
 
@@ -66,27 +88,19 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
     }
   }, [open, tiendas, tiendaDefault]);
 
-  const puedeExportar = (esAdmin() ? (todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
+  const puedeExportar = (esAdmin() ? (todasNovedades || todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
 
-  const handleExportar = async () => {
+  const ejecutarExport = async (fIni?: string, fFin?: string, storeIds?: number[]) => {
     setExportando(true);
     try {
-      const storeIds = esAdmin() ? (todas ? undefined : tiendasSel.map((t) => t.id)) : [Number(tiendaEfectiva)];
-      let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
-      let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
-      if (!fIni && !fFin) {
-        const hoy = dayjs().format('YYYY-MM-DD');
-        fIni = hoy;
-        fFin = hoy;
-      }
-      const records = await fetchTimeRecordsExport(fIni, fFin, storeIds, esAdmin());
+      const reports = await fetchNewnessReportsExport(fIni, fFin, storeIds, esAdmin());
 
-      let filteredRecords = records;
+      let filteredReports = reports;
       if (searchNombre) {
         const normalizar = (texto: string) =>
           texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const searchClean = normalizar(searchNombre);
-        filteredRecords = records.filter((r) => {
+        filteredReports = reports.filter((r) => {
           const empName = r.employee_id
             ? [r.employee_id.first_name, r.employee_id.middle_name, r.employee_id.last_name, r.employee_id.second_last_name]
                 .filter((n) => n && String(n).trim())
@@ -96,11 +110,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
         });
       }
 
-      const reasonsMap = detallada
-        ? await getReasonNamesForRecords(filteredRecords.map((r) => r.id))
-        : new Map<number, string>();
-
-      const res = await exportarHistorialExcel({ records: filteredRecords, stores: tiendas, reasonsMap, detallada });
+      const res = await exportarNovedadesExcel({ reports: filteredReports, stores: tiendasFiltradas });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
         onClose();
@@ -108,10 +118,26 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
         showSnackbar(res.mensaje || 'No hay datos para exportar', 'error');
       }
     } catch (err: any) {
-      showSnackbar(err?.message || 'Error al exportar el historial', 'error');
+      showSnackbar(err?.message || 'Error al exportar las novedades', 'error');
     } finally {
       setExportando(false);
     }
+  };
+
+  const handleExportar = async () => {
+    if (esAdmin() && todasNovedades) {
+      const storeIds = isAreaMgr ? tiendasFiltradas.map((t) => Number(t.id)) : undefined;
+      await ejecutarExport(undefined, undefined, storeIds);
+      return;
+    }
+    const storeIds = esAdmin()
+      ? (todas
+        ? (isAreaMgr ? tiendasFiltradas.map((t) => Number(t.id)) : undefined)
+        : tiendasSel.map((t) => Number(t.id)))
+      : [Number(tiendaEfectiva)];
+    let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
+    let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
+    await ejecutarExport(fIni, fFin, storeIds);
   };
 
   return (
@@ -119,9 +145,9 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
       <DialogTitle component="div" sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <FileDownloadIcon />
         <Box>
-          <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Exportar historial</Typography>
+          <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Exportar novedades</Typography>
           <Typography component="span" variant="caption" sx={{ opacity: 0.85, display: 'block' }}>
-            {esAdmin() ? 'Selecciona tiendas, rango de fechas y nivel de detalle' : 'Selecciona el rango de fechas'}
+            {esAdmin() ? 'Selecciona tiendas y rango de fechas' : 'Selecciona el rango de fechas'}
           </Typography>
         </Box>
       </DialogTitle>
@@ -137,8 +163,9 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
                 multiple
                 limitTags={2}
                 size="small"
-                options={tiendas}
+                options={tiendasFiltradas}
                 loading={loadingTiendas}
+                disabled={todasNovedades}
                 getOptionLabel={(o) => o.name}
                 isOptionEqualToValue={(o, v) => o.id === v.id}
                 value={tiendasSel}
@@ -164,9 +191,10 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
                 control={
                   <Checkbox
                     checked={todas}
+                    disabled={todasNovedades}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setTiendasSel(tiendas);
+                        setTiendasSel(tiendasFiltradas);
                       } else {
                         setTiendasSel([]);
                       }
@@ -180,7 +208,7 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
             </Box>
           )}
 
-          <Box>
+          <Box sx={{ opacity: todasNovedades ? 0.5 : 1, pointerEvents: todasNovedades ? 'none' : 'auto' }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
               RANGO DE FECHAS
             </Typography>
@@ -221,8 +249,8 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
                       </>
                     ) : (
                       <>
-                        No seleccionaste un rango de fechas: se exportará{' '}
-                        <Box component="span" sx={{ fontWeight: 700 }}>solo el día de hoy ({dayjs().format('DD-MM-YYYY')})</Box>.
+                        Se exportarán{' '}
+                        <Box component="span" sx={{ fontWeight: 700 }}>todas las novedades disponibles</Box>.
                       </>
                     )}
                   </Typography>
@@ -231,19 +259,19 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
             })()}
           </Box>
 
-          <Divider />
-
-          <FormControlLabel
-            control={<Checkbox checked={detallada} onChange={(e) => setDetallada(e.target.checked)} sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }} />}
-            label={
-              <Box>
-                <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Descarga detallada</Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  Incluye el motivo del cambio, la observación/nota y la hora inicial de cada evento editado.
-                </Typography>
-              </Box>
-            }
-          />
+          {esAdmin() && (
+            <FormControlLabel
+              control={<Checkbox checked={todasNovedades} onChange={(e) => setTodasNovedades(e.target.checked)} sx={{ color: AZUL, '&.Mui-checked': { color: AZUL } }} />}
+              label={
+                <Box>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Descargar todas las novedades</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    Ignora las tiendas y el rango de fechas: exporta todas las novedades registradas.
+                  </Typography>
+                </Box>
+              }
+            />
+          )}
         </Box>
       </DialogContent>
 

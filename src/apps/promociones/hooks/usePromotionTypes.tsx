@@ -1,17 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { getPromotionTypes, DirectusPromoTipo } from "../api/directus/read";
 
-
-/**
- * Hook para obtener todos los tipos de promoción desde Directus
- */
 export const usePromotionTypes = () => {
   return useQuery<DirectusPromoTipo[], Error>({
     queryKey: ["tipos_promocion"],
     queryFn: getPromotionTypes,
-
-    staleTime: 1000 * 60 * 60, // 1 hora - los tipos rara vez cambian
-    gcTime: 1000 * 60 * 120, // 2 horas en caché
+    staleTime: 1000 * 60 * 60,
+    gcTime: 1000 * 60 * 120,
     refetchOnWindowFocus: false,
   });
 };

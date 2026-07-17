@@ -5,20 +5,13 @@ import { normalizeTokenResponse } from "@/auth/services/tokenDirectus";
 import { readMe } from "@directus/sdk";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 
-/**
- * Tipado de la respuesta a un login/refresh exitoso.
- * Solo usamos 'expires' (duración en ms) y calculamos expires_at nosotros
- */
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
-  expires_at: number; // Lo calculamos nosotros: Date.now() + expires
-  expires: number; // Lo que viene de Directus (duración en ms)
+  expires_at: number;
+  expires: number;
 }
 
-/**
- * Inicia sesión en Directus con email y password.
- */
 export async function loginDirectus(
   email: string,
   password: string,
@@ -27,28 +20,18 @@ export async function loginDirectus(
   return normalizeTokenResponse(res);
 }
 
-/**
- * Cierra la sesión activa usando el refresh_token.
- */
 export async function logoutDirectus(refresh_token: string): Promise<void> {
   await directus.request(
     logout({ refresh_token: refresh_token, mode: "json" }),
   );
 }
 
-/**
- * Cierra la sesión activa usando el refresh_token.
- */
 export async function setTokenDirectus(
   access_token: string | null,
 ): Promise<void> {
   await directus.setToken(access_token);
 }
 
-/**
- * Refresca los tokens de acceso.
- * IMPORTANTE: Directus NO envía expires_at en refresh, solo expires
- */
 export async function refreshDirectus(
   refresh_token: string,
 ): Promise<LoginResponse> {
@@ -56,17 +39,9 @@ export async function refreshDirectus(
 
   const res = await directus.request(refresh({ mode: "json", refresh_token }));
 
-  // Normalizar la respuesta (calculará expires_at)
   return normalizeTokenResponse(res);
 }
 
-/**
- * Obtiene los datos del usuario autenticado.
- * ✅ Ahora con refresh automático si el token está expirado
- * ✅ Consulta mejorada para obtener las políticas correctamente
- * ✅ Incluye key_gemini para extracción de facturas con IA
- * ✅ Incluye modelo_ia para configurar el modelo de IA a usar
- */
 export async function getCurrentUser() {
   return await withAutoRefresh(() =>
     directus.request(
@@ -84,7 +59,6 @@ export async function getCurrentUser() {
           "requires_password_change",
           "ia_key",
           "models_ia",
-          // 1. Políticas asignadas directamente al usuario
           {
             policies: [
               {
@@ -92,7 +66,6 @@ export async function getCurrentUser() {
               },
             ],
           },
-          // 2. Rol y sus políticas
           {
             role: [
               {
@@ -110,18 +83,11 @@ export async function getCurrentUser() {
   );
 }
 
-/**
- * Obtiene el token de acceso del storage
- */
 function getAccessToken(): string | null {
   const tokens = cargarTokenStorage();
   return tokens?.access || null;
 }
 
-/**
- * Obtiene todos los usuarios del sistema (solo para admins)
- * Usa REST API directamente para evitar restricción de core collections
- */
 export async function getAllUsers() {
   const directusUrl = import.meta.env.VITE_DIRECTUS_URL?.replace(/\/$/, "");
   const token = getAccessToken();
@@ -147,11 +113,6 @@ export async function getAllUsers() {
   });
 }
 
-/**
- * Reestablece la contraseña de un usuario y marca que debe cambiar contraseña
- * @param userId - ID del usuario
- * @param newPassword - Nueva contraseña
- */
 export async function resetUserPassword(userId: string, newPassword: string) {
   const directusUrl = import.meta.env.VITE_DIRECTUS_URL?.replace(/\/$/, "");
   const token = getAccessToken();
@@ -181,12 +142,6 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   });
 }
 
-/**
- * Actualiza la contraseña del usuario autenticado y quita la marca de cambio obligatorio.
- * Usa /users/me para evitar el error 403 (el usuario no necesita permisos de admin).
- * @param _userId - No se usa (mantenido por compatibilidad de firma)
- * @param newPassword - Nueva contraseña
- */
 export async function updateUserPassword(_userId: string, newPassword: string) {
   const directusUrl = import.meta.env.VITE_DIRECTUS_URL?.replace(/\/$/, "");
   const token = getAccessToken();

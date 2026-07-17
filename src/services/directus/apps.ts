@@ -2,10 +2,6 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems } from "@directus/sdk";
 
-/**
- * Obtiene el area del usuario autenticado
- * ✅ Ahora con refresh automático si el token está expirado
- */
 export async function getUserArea() {
   return await withAutoRefresh(() =>
     directus.request(
@@ -16,10 +12,6 @@ export async function getUserArea() {
   );
 }
 
-/**
- * Obtiene las bodegas asignadas al usuario actual desde ulti_bodega_usuario
- * ✅ Usa regla "current user" de Directus para filtrar automáticamente
- */
 export async function getUserBodegas() {
   try {
     const items = await withAutoRefresh(() =>
@@ -30,7 +22,6 @@ export async function getUserBodegas() {
       ),
     );
 
-    // 🔹 Aplanar los datos
     const bodegas = items.map((item: any) => ({
       codigo: item.warehouse?.toString() || "",
       nombre: `Bodega ${item.warehouse || ""}`,
@@ -43,10 +34,7 @@ export async function getUserBodegas() {
   }
 }
 
-/**
- * Retorna registros de la tabla Apps
- * ✅ Ahora con refresh automático si el token está expirado
- */ export async function getApps() {
+export async function getApps() {
   try {
     const items = await withAutoRefresh(() =>
       directus.request(
@@ -65,7 +53,6 @@ export async function getUserBodegas() {
       ),
     );
 
-    // 🔹 Aplanar los datos
     const apps = items.map((item: any) => ({
       id: item.app_id.id,
       nombre: item.app_id.name,

@@ -159,6 +159,12 @@ export default function AppRoutes() {
       } catch (err) {
         console.error("Error cargando rutas:", err);
         setErrorEnRutas(err);
+        
+        // Si no está en desarrollo y falla la carga de rutas, probablemente sea un chunk viejo en caché
+        if (!import.meta.env.DEV) {
+          console.warn("Detectado posible error de carga de código desactualizado, forzando recarga de página...");
+          window.location.reload();
+        }
       }
     };
 

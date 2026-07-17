@@ -13,32 +13,30 @@ import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { ConfigPanel } from "@/apps/Configuracion/pages/ConfigPanel";
 
-// 🎨 Paleta clara
 const avatarColorsLight = [
-  "#1976d2", // azul
-  "#9c27b0", // morado
-  "#2e7d32", // verde
-  "#f57c00", // naranja
-  "#d32f2f", // rojo
-  "#0288d1", // celeste
-  "#7b1fa2", // violeta
-  "#00897b", // verde azulado
-  "#c2185b", // rosa oscuro
-  "#5d4037", // marrón
+  "#1976d2", 
+  "#9c27b0", 
+  "#2e7d32",
+  "#f57c00",
+  "#d32f2f",
+  "#0288d1",
+  "#7b1fa2",
+  "#00897b",
+  "#c2185b",
+  "#5d4037",
 ];
 
-// 🌙 Paleta oscura (más suaves para contraste sobre fondo oscuro)
 const avatarColorsDark = [
-  "#64b5f6", // azul claro
-  "#ba68c8", // morado claro
-  "#81c784", // verde suave
-  "#ffb74d", // naranja suave
-  "#e57373", // rojo suave
-  "#4dd0e1", // celeste
-  "#9575cd", // violeta
-  "#4db6ac", // verde azulado claro
-  "#f06292", // rosa brillante
-  "#8d6e63", // marrón claro
+  "#64b5f6",
+  "#ba68c8",
+  "#81c784",
+  "#ffb74d",
+  "#e57373",
+  "#4dd0e1",
+  "#9575cd",
+  "#4db6ac",
+  "#f06292",
+  "#8d6e63",
 ];
 
 interface Props {
@@ -49,7 +47,7 @@ export const SidebarFooter = ({ open }: Props) => {
   const { user, logout } = useAuth();
   const { area } = useApps();
   const [openConfig, setOpenConfig] = useState(false);
-  const theme = useTheme(); // 🎨 Detecta si es dark o light
+  const theme = useTheme();
 
   const avatarColor = useMemo(() => {
     const palette =
@@ -58,11 +56,9 @@ export const SidebarFooter = ({ open }: Props) => {
       theme.palette.mode
     }`;
 
-    // ✅ Si ya hay color guardado para ese tema → úsalo
     const storedColor = sessionStorage.getItem(storageKey);
     if (storedColor) return storedColor;
 
-    // 🔄 Si no, genera uno nuevo
     const randomIndex = Math.floor(Math.random() * palette.length);
     const color = palette[randomIndex];
     sessionStorage.setItem(storageKey, color);
@@ -89,7 +85,6 @@ export const SidebarFooter = ({ open }: Props) => {
           gap: open ? 0 : 1.5,
         }}
       >
-        {/* Avatar e info */}
         <Box
           sx={{
             display: "flex",
@@ -125,7 +120,6 @@ export const SidebarFooter = ({ open }: Props) => {
           )}
         </Box>
 
-        {/* Botones */}
         <Box
           sx={{
             display: "flex",
@@ -162,7 +156,6 @@ export const SidebarFooter = ({ open }: Props) => {
         </Box>
       </Box>
 
-      {/* Modal de configuración */}
       <ConfigPanel
         open={openConfig}
         onClose={() => setOpenConfig(false)}

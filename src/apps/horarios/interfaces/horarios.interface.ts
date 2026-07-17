@@ -29,11 +29,13 @@ export interface ObservacionEvento {
 export interface HistorialRow {
   fecha: string;
   empleado: string;
+  documento?: string | null;
   inicio_turno: string | null;
   inicio_almuerzo: string | null;
   fin_almuerzo: string | null;
   fin_turno: string | null;
   observaciones_evento: ObservacionEvento[];
+  tiendaNombre?: string;
 }
 
 export interface Novedad {
@@ -66,6 +68,8 @@ export interface NovedadMapeada {
   tipo: string;
   observaciones: string;
   empleadoActivo?: boolean;
+  empleadoDocumento?: string | null;
+  tiendaNombre?: string;
 }
 
 

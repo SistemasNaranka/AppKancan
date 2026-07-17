@@ -376,9 +376,13 @@ export const useHorarios = (storeOverride?: number | null) => {
       id: nov.id,
       fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : new Date().toISOString()),
       empleadoNombre: nombreEmpleado,
+      empleadoDocumento: nov.employee_id?.document_number 
+        ? String(nov.employee_id.document_number) 
+        : (empLocal?.documento ? String(empLocal.documento) : undefined),
       tipo: tipoNovedadName,
       observaciones: nov.observations || '',
       empleadoActivo: !!empLocal, // empleadosDB solo trae empleados activos
+      tiendaNombre: nov.store_id?.name || 'Sin tienda',
     };
   });
 

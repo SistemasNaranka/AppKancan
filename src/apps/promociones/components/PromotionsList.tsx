@@ -56,7 +56,7 @@ const PromotionsList: React.FC<PromotionsListProps> = ({ onSelect }) => {
     }
   };
 
-  // ✅ Fechas simplificadas sin errores de zona horaria
+  // Fechas simplificadas sin errores de zona horaria
   const formatSimplifiedDate = (
     fechaInicio: string,
     fechaFinal: string | null,
