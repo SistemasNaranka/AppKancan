@@ -11,6 +11,9 @@ import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Joyride, { CallBackProps, STATUS, EVENTS, ACTIONS, Step } from 'react-joyride';
+import { CustomTooltip } from '../components/tour/TourTooltip';
 import dayjs, { Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 
@@ -152,6 +155,91 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
 
   const [pagePausas, setPagePausas] = useState(0);
   const ROWS_PER_PAGE_PAUSAS = 5;
+
+  // --- Tour guiado ---
+  const [runTour, setRunTour] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+  const TAB_SEMANAL_STEP_INDEX = 9; // índice del step que resalta la tab "Reporte Horas Semanal"
+
+  const tourText = (children: React.ReactNode) => (
+    <Typography variant="body2" sx={{ color: '#374151', lineHeight: 1.7, fontSize: '0.9rem' }}>
+      {children}
+    </Typography>
+  );
+
+  const tourSteps: Step[] = [
+    {
+      target: '[data-tour="reporte-tour-tienda"]',
+      content: tourText(<>Filtra el informe por <strong>tienda</strong>.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-fechas"]',
+      content: tourText(<>Filtra por <strong>rango de fechas</strong>. Afecta lo que ves en pantalla y lo que se exporta.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-buscar"]',
+      content: tourText(<>Busca por <strong>nombre de empleado</strong> dentro de los resultados filtrados.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-export-registros"]',
+      content: tourText(<>Exporta los <strong>registros de entrada/salida</strong> en un archivo descargable.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-export-novedades"]',
+      content: tourText(<>Exporta las <strong>novedades</strong> reportadas por los empleados.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-export-pausas"]',
+      content: tourText(<>Exporta el historial de <strong>pausas activas</strong>.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-tab-registros"]',
+      content: tourText(<>Aquí ves el detalle de <strong>entrada, almuerzo y salida</strong> de cada empleado.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-tab-novedades"]',
+      content: tourText(<>Aquí ves las <strong>novedades</strong> reportadas, filtradas por fecha y nombre.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-tab-pausas"]',
+      content: tourText(<>Aquí ves el historial de <strong>pausas activas</strong> de cada empleado.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-tab-semanal"]',
+      content: tourText(<>Este reporte suma las <strong>horas trabajadas por semana</strong> durante todo el mes.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-modo-tienda"]',
+      content: tourText(<><strong>Modo por Tienda</strong>: ves a todos los empleados de la tienda seleccionada y sus horas semanales.</>),
+    },
+    {
+      target: '[data-tour="reporte-tour-modo-empleado"]',
+      content: tourText(<><strong>Modo por Empleado</strong>: buscas a una persona específica y ves en qué tiendas trabajó y cuántas horas.</>),
+    },
+  ];
+
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { status, type, action, index } = data;
+
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED || action === ACTIONS.CLOSE) {
+      setRunTour(false);
+      setStepIndex(0);
+      return;
+    }
+
+    // Al avanzar desde la tab "Reporte Horas Semanal", forzamos el estado
+    // ANTES de que Joyride busque el target del siguiente step, y le damos
+    // un tick a React para que lo monte en el DOM.
+    if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT && index === TAB_SEMANAL_STEP_INDEX) {
+      setVisualizarTab('semanal');
+      setTimeout(() => setStepIndex(index + 1), 50);
+      return;
+    }
+
+    if (type === EVENTS.STEP_AFTER) {
+      setStepIndex(index + (action === ACTIONS.PREV ? -1 : 1));
+    }
+  };
 
   const { data: tiendas = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
@@ -365,32 +453,34 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
             {/* Filtro de Tienda (Oculto para Area Manager porque usa el unificado en la cabecera) */}
             {!tiendasPermitidas && (
-              <Autocomplete
-                size="small"
-                options={tiendasAMostrar}
-                getOptionLabel={(option) => option.name}
-                value={tiendasAMostrar.find((t) => Number(t.id) === Number(storeSel)) || null}
-                onChange={(_, newValue) => {
-                  onStoreChange(newValue ? Number(newValue.id) : null);
-                }}
-                renderInput={(params) => (
-                  <TextField 
-                    {...params} 
-                    label="Tienda" 
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        bgcolor: '#f1f7fe',
-                        height: 40
-                      }
-                    }}
-                  />
-                )}
-                sx={{ width: { xs: '100%', sm: 220 } }}
-              />
+              <Box data-tour="reporte-tour-tienda">
+                <Autocomplete
+                  size="small"
+                  options={tiendasAMostrar}
+                  getOptionLabel={(option) => option.name}
+                  value={tiendasAMostrar.find((t) => Number(t.id) === Number(storeSel)) || null}
+                  onChange={(_, newValue) => {
+                    onStoreChange(newValue ? Number(newValue.id) : null);
+                  }}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      label="Tienda" 
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          bgcolor: '#f1f7fe',
+                          height: 40
+                        }
+                      }}
+                    />
+                  )}
+                  sx={{ width: { xs: '100%', sm: 220 } }}
+                />
+              </Box>
             )}
 
-            <Box sx={{ width: { xs: '100%', sm: 300 } }}>
+            <Box data-tour="reporte-tour-fechas" sx={{ width: { xs: '100%', sm: 300 } }}>
               <DateRangeFilter
                 fechaInicio={rangoInicio}
                 fechaFin={rangoFin}
@@ -402,6 +492,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             </Box>
             
             <TextField
+              data-tour="reporte-tour-buscar"
               size="small"
               placeholder="Buscar por nombre..."
               value={searchNombre}
@@ -431,6 +522,33 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             <Button
+              onClick={() => { setStepIndex(0); setRunTour(true); }}
+              disabled={runTour}
+              variant="contained"
+              startIcon={<HelpOutlineIcon sx={{ fontSize: 18 }} />}
+              sx={{
+                backgroundColor: runTour ? '#9CA3AF' : '#004680',
+                color: '#ffffff',
+                borderRadius: 1.5,
+                textTransform: 'none',
+                fontWeight: 'bold',
+                px: 2,
+                py: 0.75,
+                boxShadow: 'none',
+                opacity: runTour ? 0.6 : 0.9,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  backgroundColor: runTour ? '#9CA3AF' : '#003366',
+                  boxShadow: 'none',
+                  transform: runTour ? 'none' : 'translateY(-1px)',
+                },
+                '&:disabled': { backgroundColor: '#9CA3AF', color: '#ffffff' },
+              }}
+            >
+              {runTour ? 'Tutorial...' : 'Tutorial'}
+            </Button>
+            <Button
+              data-tour="reporte-tour-export-registros"
               variant="contained"
               disableElevation
               startIcon={<HistoryIcon />}
@@ -450,6 +568,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             </Button>
 
             <Button
+              data-tour="reporte-tour-export-novedades"
               variant="contained"
               disableElevation
               startIcon={<AssignmentIcon />}
@@ -469,6 +588,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             </Button>
 
             <Button
+              data-tour="reporte-tour-export-pausas"
               variant="contained"
               disableElevation
               startIcon={<EventNoteIcon />}
@@ -504,6 +624,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         {/* Selector de Visualización */}
         <Box sx={{ display: 'flex', borderBottom: '1px solid #eef2f6', px: 2, bgcolor: '#f8fafc', gap: 2 }}>
           <Button 
+            data-tour="reporte-tour-tab-registros"
             onClick={() => setVisualizarTab('registros')}
             sx={{ 
               color: visualizarTab === 'registros' ? '#004680' : '#64748b', 
@@ -519,6 +640,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             Visualizar Registros
           </Button>
           <Button 
+            data-tour="reporte-tour-tab-novedades"
             onClick={() => setVisualizarTab('novedades')}
             sx={{ 
               color: visualizarTab === 'novedades' ? '#004680' : '#64748b', 
@@ -534,6 +656,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             Visualizar Novedades
           </Button>
           <Button
+            data-tour="reporte-tour-tab-pausas"
             onClick={() => setVisualizarTab('pausas')}
             sx={{ 
               color: visualizarTab === 'pausas' ? '#004680' : '#64748b', 
@@ -549,6 +672,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             Visualizar Pausas Activas
           </Button>
           <Button 
+            data-tour="reporte-tour-tab-semanal"
             onClick={() => setVisualizarTab('semanal')}
             sx={{ 
               color: visualizarTab === 'semanal' ? '#004680' : '#64748b', 
@@ -589,6 +713,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             <Box sx={{ p: 2, display: 'flex', gap: 2, borderBottom: '1px solid #eef2f6', bgcolor: '#f8fafc', flexWrap: 'wrap', alignItems: 'center' }}>
               <Typography variant="body2" sx={{ fontWeight: 700, color: '#475569' }}>Tipo de Reporte:</Typography>
               <Button
+                data-tour="reporte-tour-modo-tienda"
                 variant={reporteSemanalModo === 'tienda' ? 'contained' : 'outlined'}
                 onClick={() => setReporteSemanalModo('tienda')}
                 sx={{
@@ -607,6 +732,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
                 Ver por Tienda
               </Button>
               <Button
+                data-tour="reporte-tour-modo-empleado"
                 variant={reporteSemanalModo === 'empleado' ? 'contained' : 'outlined'}
                 onClick={() => setReporteSemanalModo('empleado')}
                 sx={{
@@ -1142,6 +1268,22 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         storeId={storeSel}
         fechaInicio={rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined}
         fechaFin={rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined}
+      />
+
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        stepIndex={stepIndex}
+        continuous
+        callback={handleJoyrideCallback}
+        tooltipComponent={CustomTooltip}
+        disableOverlayClose
+        styles={{
+          options: { zIndex: 10000, arrowColor: '#fff', overlayColor: 'rgba(0, 0, 0, 0.5)', primaryColor: '#004680' },
+          spotlight: { borderRadius: 8, boxShadow: '0 0 0 3px #004680, 0 0 25px rgba(0, 74, 153, 0.4)' },
+          beaconInner: { backgroundColor: '#004680' },
+          beaconOuter: { backgroundColor: 'rgba(0, 70, 128, 0.3)', border: '2px solid #004680' },
+        }}
       />
     </Box>
   );

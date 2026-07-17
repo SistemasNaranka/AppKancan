@@ -1,17 +1,38 @@
-import React from "react";
-import { Button } from "@mui/material";
+import React, { useState } from "react";
+import {
+  Button,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Typography,
+} from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import { useHorariosTour } from "./HorariosTourContext";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import EventNoteIcon from "@mui/icons-material/EventNote";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import HistoryIcon from "@mui/icons-material/History";
+import { useHorariosTour, TourPhase } from "./HorariosTourContext";
 
 const TutorialButton: React.FC = () => {
-  const { startFullTour, isFullTourRunning } = useHorariosTour();
+  const { startTour, isFullTourRunning } = useHorariosTour();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const handleClick = () => {
-    if (!isFullTourRunning) startFullTour();
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    if (!isFullTourRunning) setAnchorEl(e.currentTarget);
+  };
+
+  const handleClose = () => setAnchorEl(null);
+
+  const handleSelect = (phase?: TourPhase) => {
+    handleClose();
+    startTour(phase);
   };
 
   return (
-    <Button
+    <>
+      <Button
       onClick={handleClick}
       disabled={isFullTourRunning}
       variant="contained"
@@ -36,7 +57,47 @@ const TutorialButton: React.FC = () => {
       }}
     >
       {isFullTourRunning ? "Tutorial..." : "Tutorial"}
-    </Button>
+      </Button>
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
+        <MenuItem onClick={() => handleSelect(undefined)}>
+          <ListItemIcon>
+            <PlayCircleOutlineIcon fontSize="small" sx={{ color: "#004680" }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Tour completo"
+  
+          />
+        </MenuItem>
+
+        <Divider sx={{ my: 0.5 }} />
+
+        <Typography
+          variant="caption"
+          sx={{ px: 2, py: 0.5, color: "text.secondary", display: "block" }}
+        >
+          Ver una sección específica
+        </Typography>
+
+        <MenuItem onClick={() => handleSelect("REGISTROS")}>
+          <ListItemIcon>
+            <EventNoteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Registros" />
+        </MenuItem>
+        <MenuItem onClick={() => handleSelect("NOVEDADES")}>
+          <ListItemIcon>
+            <AssignmentIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Novedades" />
+        </MenuItem>
+        <MenuItem onClick={() => handleSelect("HISTORIAL")}>
+          <ListItemIcon>
+            <HistoryIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Historial" />
+        </MenuItem>
+      </Menu>
+    </>
   );
 };
 

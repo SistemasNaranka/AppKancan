@@ -22,7 +22,7 @@ interface TourContextType {
   isFullTourRunning: boolean;
   stepIndex: number;
 
-  startFullTour: () => void;
+  startTour: (phase?: TourPhase) => void;
   nextPhase: () => void;
   setStepIndex: (index: number) => void;
   stopTour: () => void;
@@ -60,19 +60,24 @@ export const HorariosTourProvider: React.FC<TourProviderProps> = ({ children }) 
 
   const isFullTourRunning = tourPhase !== "IDLE" && tourPhase !== "COMPLETED";
 
-  const startFullTour = useCallback(() => {
-    setStepIndex(0);
-    if (tabChangeCallback) tabChangeCallback(0);
-    setTimeout(() => setTourPhase("REGISTROS"), 100);
-  }, [tabChangeCallback]);
+  const startTour = useCallback(
+    (phase: TourPhase = "REGISTROS") => {
+      window.scrollTo(0, 0);
+      setStepIndex(0);
+      const tab = PHASE_TAB[phase];
+      if (tab !== undefined && tabChangeCallback) tabChangeCallback(tab);
+      setTimeout(() => setTourPhase(phase), 100);
+    },
+    [tabChangeCallback]
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("tour") === "start" && !isFullTourRunning) {
       navigate(location.pathname, { replace: true });
-      startFullTour();
+      startTour();
     }
-  }, [location.search, location.pathname, navigate, startFullTour, isFullTourRunning]);
+  }, [location.search, location.pathname, navigate, startTour, isFullTourRunning]);
 
   const nextPhase = useCallback(() => {
     const currentIndex = PHASE_ORDER.indexOf(tourPhase);
@@ -99,6 +104,20 @@ export const HorariosTourProvider: React.FC<TourProviderProps> = ({ children }) 
     setStepIndex(0);
   }, []);
 
+  // Mientras el tour corre (cualquier fase), anulamos el sticky del header
+  // general para que no tape los targets al hacer scroll. Se retira al
+  // terminar, cancelar, o pasar a COMPLETED/IDLE.
+  useEffect(() => {
+    if (!isFullTourRunning) return;
+    const style = document.createElement("style");
+    style.id = "horarios-tour-sticky-override";
+    style.innerHTML = ".tour-sticky-header { position: static !important; }";
+    document.head.appendChild(style);
+    return () => {
+      document.getElementById("horarios-tour-sticky-override")?.remove();
+    };
+  }, [isFullTourRunning]);
+
   const setTabChangeCallback = useCallback(
     (callback: (tab: HorariosTab) => void) => {
       setTabChangeCallbackState(() => callback);
@@ -112,7 +131,7 @@ export const HorariosTourProvider: React.FC<TourProviderProps> = ({ children }) 
         tourPhase,
         isFullTourRunning,
         stepIndex,
-        startFullTour,
+        startTour,
         nextPhase,
         setStepIndex,
         stopTour,
