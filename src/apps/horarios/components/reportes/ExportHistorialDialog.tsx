@@ -65,8 +65,8 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
             return Number((id as any).id ?? (id as any).store_id);
           }
           return Number(id);
-        }).filter(Boolean);
-        return idsPermitidos.includes(Number(t.id));
+        }).filter(id => Boolean(id) && Number(id) !== 5);
+        return idsPermitidos.includes(Number(t.id)) && Number(t.id) !== 5;
       })
     : tiendas;
 
