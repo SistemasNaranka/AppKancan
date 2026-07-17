@@ -6,8 +6,7 @@ import {
     Tabs, Tab, Grid, TextField, InputAdornment,
     Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip,
     FormControl, InputLabel, Select, MenuItem, OutlinedInput,
-    Avatar, List, ListItem, ListItemAvatar, ListItemText,
-    ListItemSecondaryAction
+    Avatar, List, ListItem, ListItemAvatar, ListItemText
 } from '@mui/material';
 import {
     Storefront as StorefrontIcon,
@@ -884,7 +883,25 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                     return pagina.map((emp, index) => {
                                         const absoluteRank = start + index + 1;
                                         return (
-                                            <ListItem key={emp.id} divider sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}>
+                                            <ListItem
+                                                key={emp.id}
+                                                divider
+                                                sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
+                                                secondaryAction={
+                                                    <>
+                                                        <Tooltip title="Ver registros">
+                                                            <IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}>
+                                                                <VisibilityIcon />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title="Ver calendario">
+                                                            <IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}>
+                                                                <CalendarTodayIcon />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </>
+                                                }
+                                            >
                                                 <ListItemAvatar>
                                                     <Avatar sx={{ bgcolor: '#004680', color: '#fff', width: 44, height: 44 }}>
                                                         {emp.nombre.charAt(0).toUpperCase()}
@@ -903,18 +920,6 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                                         </Box>
                                                     }
                                                 />
-                                                <ListItemSecondaryAction>
-                                                    <Tooltip title="Ver registros">
-                                                        <IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}>
-                                                            <VisibilityIcon />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                    <Tooltip title="Ver calendario">
-                                                        <IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}>
-                                                            <CalendarTodayIcon />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                </ListItemSecondaryAction>
                                             </ListItem>
                                         );
                                     });
