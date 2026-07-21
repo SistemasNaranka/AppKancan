@@ -48,7 +48,4 @@ LICENSE
 
 # Otros
 *.log
-.env
-.env.*
-!.env.example
-docs
+docs
