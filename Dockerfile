@@ -8,8 +8,8 @@ WORKDIR /app
 # Copiar archivos de dependencias
 COPY package*.json ./
 
-# Instalación limpia de dependencias de build
-RUN npm ci
+# Instalación de dependencias de build
+RUN npm install
 
 # Copiar todo el código fuente del frontend y compilar
 COPY . .
@@ -34,7 +34,7 @@ COPY server ./server
 
 # Instalar ÚNICAMENTE dependencias de producción del backend
 WORKDIR /app/server
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Volver a la raíz de la aplicación
 WORKDIR /app
