@@ -9,7 +9,7 @@ export interface NombreSeparado {
   second_last_name: string;
 }
 
-const MODELO_POR_DEFECTO = 'gemini-3.5-flash';
+const MODELO_POR_DEFECTO = 'gemini-3.6-flash';
 const API_URL = import.meta.env.VITE_VENTAS_API_URL || '/api';
 
 function obtenerModelosIA(modelosIA: any): string[] {
