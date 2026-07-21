@@ -1,44 +1,48 @@
 # ===========================
-# Etapa 1: Build 
+# Etapa 1: Build (Frontend)
 # ===========================
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Copiar archivos de dependencias
 COPY package*.json ./
 
-# Instalar solo lo necesario
-RUN npm install
-RUN npm install @rollup/rollup-linux-x64-musl
+# Instalación limpia de dependencias de build
+RUN npm ci
 
+# Copiar todo el código fuente del frontend y compilar
 COPY . .
-
-# Construir
 RUN npm run build
 
 # ===========================
-# Etapa 2: Producción
+# Etapa 2: Producción (Servidor unificado)
 # ===========================
-FROM node:22-alpine
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Copiar build
+# Definir variables de entorno de producción
+ENV PORT=11000 \
+    NODE_ENV=production
+
+# Copiar archivos estáticos del frontend desde el builder
 COPY --from=builder /app/dist ./dist
 
-# Copiar backend
+# Copiar el backend Express
 COPY server ./server
 
+# Instalar ÚNICAMENTE dependencias de producción del backend
 WORKDIR /app/server
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Instalar solo producción
-RUN npm install --omit=dev
-
+# Volver a la raíz de la aplicación
 WORKDIR /app
 
-EXPOSE 11000
+# Cambiar propiedad de archivos al usuario no privilegiado 'node'
+RUN chown -R node:node /app
+USER node
 
-ENV PORT=11000
-ENV NODE_ENV=production
+EXPOSE 11000
 
 CMD ["node", "server/index.js"]
