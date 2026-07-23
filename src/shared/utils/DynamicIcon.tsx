@@ -56,6 +56,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Contabilidad
   AccountBalance,
   PictureAsPdfIcon,
+  PictureAsPdf: PictureAsPdfIcon,
   Description,
   Calculate,
   Summarize,
@@ -74,6 +75,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Apps,
   Home,
   CircleNotificationsIcon,
+  CircleNotifications: CircleNotificationsIcon,
   // 🔸 Categoría: Aplicación
   DocumentScanner,
   GridView,
@@ -89,6 +91,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   ShoppingBag,
   WorkspacePremium,
   MoreTimeIcon,
+  MoreTime: MoreTimeIcon,
   HowToRegIcon,
   HowToReg: HowToRegIcon,
 
