@@ -20,7 +20,7 @@ export type User = {
   policies?: string[];
   requires_password_change?: boolean;
   ia_key?: string; // API key de Gemini para extracción de facturas (encriptada en Directus)
-  models_ia?: any; // Modelos de IA a usar para extracción en formato JSON (ej: [{"name": "gemini-3.1-flash-lite"}, ...])
+  models_ia?: any; // Modelos de IA a usar para extracción en formato JSON (ej: [{"name": "gemini-3.6-flash"}, ...])
 } | null;
 
 export type AuthContextType = {

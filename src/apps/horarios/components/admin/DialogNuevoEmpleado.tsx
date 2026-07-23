@@ -10,6 +10,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import BadgeIcon from '@mui/icons-material/Badge';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import WorkIcon from '@mui/icons-material/Work';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
 import { Tienda, Cargo, NuevoEmpleadoPayload } from '../../interfaces/horarios.interface';
 import { useParseNombreIA } from '../../hooks/useParseNombreIA';
 import { SILEO_STATE_FILL } from '@/shared/components/SnackbarsPosition/SnackbarContext';
@@ -45,6 +47,8 @@ const initialForm = (tipoDocDefault: string) => ({
   document_number: '',
   store_id: 0,
   position_id: 0,
+  email: '',      // 👈 NUEVO
+  phone: '',      // 👈 NUEVO
 });
 
 function splitNombreLocal(nombre: string) {
@@ -67,6 +71,8 @@ interface EmpleadoCreado {
   documento: string;
   tienda: string;
   cargo: string;
+  email: string;
+  phone: string;
 }
 
 function EmpleadoCreadoCard({ emp }: { emp: EmpleadoCreado }) {
@@ -105,6 +111,8 @@ function EmpleadoCreadoCard({ emp }: { emp: EmpleadoCreado }) {
       {fila(<BadgeIcon sx={{ fontSize: 16 }} />, 'Documento', emp.documento)}
       {fila(<StorefrontIcon sx={{ fontSize: 16 }} />, 'Tienda', emp.tienda)}
       {fila(<WorkIcon sx={{ fontSize: 16 }} />, 'Cargo', emp.cargo)}
+      {fila(<EmailIcon sx={{ fontSize: 16 }} />, 'Email', emp.email)}
+      {fila(<PhoneIcon sx={{ fontSize: 16 }} />, 'Teléfono', emp.phone)}
     </Box>
   );
 }
@@ -143,6 +151,7 @@ export default function DialogNuevoEmpleado({
     if (!nombre) nuevosErrores.nombreCompleto = 'El nombre completo es obligatorio';
     else if (nombre.split(' ').length < 2) nuevosErrores.nombreCompleto = 'Ingresa al menos un nombre y un apellido';
 
+    // Email y teléfono son opcionales, no se validan
     if (Object.keys(nuevosErrores).length > 0) {
       setErrors(nuevosErrores);
       return;
@@ -153,6 +162,8 @@ export default function DialogNuevoEmpleado({
       documento: formatDocumentNumber(form.document_number),
       tienda: tiendas.find((t) => t.id === form.store_id)?.name ?? '',
       cargo: cargos.find((c) => c.id === form.position_id)?.name ?? '',
+      email: form.email || '',
+      phone: form.phone || '',
     };
     const datosForm = { ...form };
 
@@ -176,6 +187,8 @@ export default function DialogNuevoEmpleado({
           second_last_name: partes.second_last_name || undefined,
           store_id: datosForm.store_id,
           position_id: datosForm.position_id,
+          email: datosForm.email || undefined,
+          phone: datosForm.phone || undefined,
         });
       })(),
       {
@@ -190,7 +203,7 @@ export default function DialogNuevoEmpleado({
       }
     );
   };
- 
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
       <DialogTitle sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, fontWeight: 700 }}>
@@ -296,6 +309,34 @@ export default function DialogNuevoEmpleado({
             </Select>
             {errors.position_id && <FormHelperText>{errors.position_id}</FormHelperText>}
           </FormControl>
+
+          <Divider textAlign="left">
+            <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>CONTACTO (opcional)</Typography>
+          </Divider>
+
+          {/* 👇 Campos opcionales de email y teléfono */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Correo electrónico"
+              placeholder="correo@dominio.com"
+              value={form.email}
+              onChange={(e) => setCampo('email', e.target.value)}
+              InputProps={{
+                startAdornment: <EmailIcon sx={{ color: '#94a3b8', mr: 1 }} />,
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Teléfono"
+              placeholder="Número de celular"
+              value={form.phone}
+              onChange={(e) => setCampo('phone', e.target.value)}
+              InputProps={{
+                startAdornment: <PhoneIcon sx={{ color: '#94a3b8', mr: 1 }} />,
+              }}
+            />
+          </Box>
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>

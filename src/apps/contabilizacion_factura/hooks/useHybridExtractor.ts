@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { DatosFacturaPDF, ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 
-const MODELO_POR_DEFECTO = "gemini-3.5-flash";
+const MODELO_POR_DEFECTO = "gemini-3.6-flash";
 
 const PROMPT_EXTRACCION = `Eres un experto en auditoría contable colombiana. Tu tarea es extraer datos de facturas electrónicas con precisión absoluta.
 

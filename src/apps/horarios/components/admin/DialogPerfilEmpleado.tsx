@@ -11,6 +11,8 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import {
@@ -32,8 +34,6 @@ const colorAvatar = (t: string) => {
 };
 
 const hhmm = (t: string | null | undefined) => (t ? String(t).slice(0, 5) : '—');
-
-
 
 function SeccionColapsable({
   titulo, count, vacio, hayDatos, defaultOpen = false, children,
@@ -172,6 +172,16 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
     : 'Empleado';
   const inactivo = (empleado?.status || '').toLowerCase() !== 'activo';
 
+  const filaInfo = (icon: React.ReactNode, label: string, value: string) => (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.85, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
+        <Box sx={{ width: 28, height: 28, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eaf2fb', color: AZUL }}>{icon}</Box>
+        <Typography sx={{ fontSize: '0.82rem' }}>{label}</Typography>
+      </Box>
+      <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f2c4a' }}>{value || '—'}</Typography>
+    </Box>
+  );
+
   const kpi = (icon: React.ReactNode, label: string, valor: number | string, color: string, bg: string) => (
     <Box sx={{ flex: 1, minWidth: 110, bgcolor: bg, border: `1px solid ${color}22`, borderRadius: 2.5, p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -179,12 +189,6 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
         <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.3px' }}>{label}</Typography>
       </Box>
       <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color, lineHeight: 1 }}>{valor}</Typography>
-    </Box>
-  );
-
-  const fila = (izq: React.ReactNode, der: React.ReactNode) => (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.85, borderBottom: '1px solid #f1f5f9', gap: 1 }}>
-      {izq}{der}
     </Box>
   );
 
@@ -200,46 +204,42 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
           <Chip label={(empleado?.status || '—').toUpperCase()} size="small" sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: inactivo ? '#fee2e2' : '#dcfce7', color: inactivo ? '#dc2626' : '#16a34a' }} />
         </DialogTitle>
 
-      <DialogContent sx={{ p: 3 }}>
-        {cargando ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={30} sx={{ color: AZUL }} /></Box>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 0.5 }}>
-            {/* Datos que NO están en la tarjeta */}
-            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-              {fila(
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
-                  <Box sx={{ width: 28, height: 28, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eaf2fb', color: AZUL }}><BadgeIcon sx={{ fontSize: 17 }} /></Box>
-                  <Typography sx={{ fontSize: '0.82rem' }}>Documento</Typography>
-                </Box>,
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f2c4a' }}>
-                  {[
-                    empleado?.document_type,
-                    empleado?.document_number ? formatDocumentNumber(empleado.document_number) : ''
-                  ].filter(Boolean).join(' ') || '—'}
-                </Typography>
-              )}
-              {fila(
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
-                  <Box sx={{ width: 28, height: 28, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eaf2fb', color: AZUL }}><StorefrontIcon sx={{ fontSize: 17 }} /></Box>
-                  <Typography sx={{ fontSize: '0.82rem' }}>Tienda</Typography>
-                </Box>,
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f2c4a' }}>{tiendaNombre || '—'}</Typography>
-              )}
-            </Box>
+        <DialogContent sx={{ p: 3 }}>
+          {cargando ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={30} sx={{ color: AZUL }} /></Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 0.5 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                {filaInfo(
+                  <BadgeIcon sx={{ fontSize: 17 }} />,
+                  'Documento',
+                  [empleado?.document_type, empleado?.document_number ? formatDocumentNumber(empleado.document_number) : ''].filter(Boolean).join(' ') || '—'
+                )}
+                {filaInfo(
+                  <StorefrontIcon sx={{ fontSize: 17 }} />,
+                  'Tienda',
+                  tiendaNombre || '—'
+                )}
+                {filaInfo(
+                  <EmailIcon sx={{ fontSize: 17 }} />,
+                  'Email',
+                  empleado?.email || '—'
+                )}
+                {filaInfo(
+                  <PhoneIcon sx={{ fontSize: 17 }} />,
+                  'Teléfono',
+                  empleado?.phone_number || '—'
+                )}
+              </Box>
 
-            {/* KPIs del mes */}
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              {kpi(<EventNoteIcon sx={{ fontSize: 16 }} />, 'JORNADAS (MES)', jornadas.filter((j) => j.entrada).length, '#004680', '#eaf2fb')}
-              {kpi(<PauseCircleOutlineIcon sx={{ fontSize: 16 }} />, 'PAUSAS (MES)', eventos.length, '#b45309', '#fef3c7')}
-              {kpi(<AssignmentIcon sx={{ fontSize: 16 }} />, 'NOVEDADES', novedades.length, '#7c3aed', '#ede9fe')}
-            </Box>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                {kpi(<EventNoteIcon sx={{ fontSize: 16 }} />, 'JORNADAS (MES)', jornadas.filter((j) => j.entrada).length, '#004680', '#eaf2fb')}
+                {kpi(<PauseCircleOutlineIcon sx={{ fontSize: 16 }} />, 'PAUSAS (MES)', eventos.length, '#b45309', '#fef3c7')}
+                {kpi(<AssignmentIcon sx={{ fontSize: 16 }} />, 'NOVEDADES', novedades.length, '#7c3aed', '#ede9fe')}
+              </Box>
 
-            <Divider />
+              <Divider />
 
-
-
-              {/* Últimas jornadas */}
               <SeccionColapsable titulo="ÚLTIMAS JORNADAS" count={jornadas.length} vacio="Sin jornadas este mes." hayDatos={jornadas.length > 0} defaultOpen>
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                   {jornadas.slice(0, 5).map((j) => (
@@ -255,7 +255,6 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
                 </Box>
               </SeccionColapsable>
 
-              {/* Últimas novedades */}
               <SeccionColapsable titulo="ÚLTIMAS NOVEDADES" count={novedades.length} vacio="Sin novedades registradas." hayDatos={novedades.length > 0}>
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                   {novedades.map((n) => {
@@ -289,7 +288,6 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
                 </Box>
               </SeccionColapsable>
 
-              {/* Últimas pausas */}
               <SeccionColapsable titulo="ÚLTIMAS PAUSAS" count={eventos.length} vacio="Sin pausas este mes." hayDatos={eventos.length > 0}>
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                   {eventos.slice(0, 5).map((e) => (
@@ -315,7 +313,6 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
         </DialogActions>
       </Dialog>
 
-      {/* Diálogo de Confirmación para Eliminar Novedad */}
       <Dialog
         open={confirmDeleteId !== null}
         onClose={() => setConfirmDeleteId(null)}
@@ -334,14 +331,7 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
             onClick={() => setConfirmDeleteId(null)}
             variant="outlined"
             disabled={eliminarMutation.isPending}
-            sx={{
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-              color: '#475569',
-              borderColor: '#cbd5e1',
-              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' },
-            }}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, color: '#475569', borderColor: '#cbd5e1', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}
           >
             Cancelar
           </Button>
@@ -351,13 +341,7 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
             disableElevation
             disabled={eliminarMutation.isPending}
             startIcon={eliminarMutation.isPending ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : null}
-            sx={{
-              bgcolor: '#dc2626',
-              borderRadius: 2,
-              fontWeight: 700,
-              textTransform: 'none',
-              '&:hover': { bgcolor: '#b91c1c' },
-            }}
+            sx={{ bgcolor: '#dc2626', borderRadius: 2, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#b91c1c' } }}
           >
             {eliminarMutation.isPending ? 'Eliminando…' : 'Eliminar'}
           </Button>

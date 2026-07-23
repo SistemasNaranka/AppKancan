@@ -43,7 +43,8 @@ interface EditHourModalProps {
     finAlmuerzo?: string | null;
     finJornada?: string | null;
   };
-  onConfirm: (timeFormatted: string, observation: string, reasonId: number) => Promise<void> | void;
+  onConfirm: (timeFormatted: string, observation: string, reasonId: number | null) => Promise<void> | void;
+  motivoRequerido?: boolean;
 }
 
 export default function EditHourModal({
@@ -57,11 +58,12 @@ export default function EditHourModal({
   initialReasonId,
   registros,
   onConfirm,
+  motivoRequerido = true,
 }: EditHourModalProps) {
-  const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs>(dayjs());
+  const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs | null>(dayjs());
   const [horaInicial, setHoraInicial] = useState<dayjs.Dayjs | null>(null);
   const [horaObservacion, setHoraObservacion] = useState('');
-  const [reasonId, setReasonId] = useState<number | ''>('');
+  const [reasonId, setReasonId] = useState<number | null>(null);
   const [errorValidacion, setErrorValidacion] = useState<string | null>(null);
 
   useEffect(() => {
@@ -88,16 +90,15 @@ export default function EditHourModal({
       setHoraSeleccionada(horaDayjs);
       setHoraInicial(horaDayjs);
       setHoraObservacion(initialObservation || '');
-      setReasonId(initialReasonId ?? '');
+      setReasonId(initialReasonId ?? null);
     }
   }, [open, initialTimeStr, initialObservation, initialReasonId]);
 
-  // Validaciones cronológicas para evitar traslapes o almuerzos/jornadas negativas
   useEffect(() => {
     if (!open || !registros) return;
     setErrorValidacion(null);
 
-    const selStr = horaSeleccionada.format('HH:mm');
+    const selStr = horaSeleccionada?.format('HH:mm') || '';
 
     const checkMin = (targetTime: string | null | undefined, label: string) => {
       if (!targetTime) return true;
@@ -134,20 +135,19 @@ export default function EditHourModal({
     }
   }, [horaSeleccionada, open, eventName, registros]);
 
-  const motivoSeleccionado = reasonId === '' ? undefined : reasons.find((r) => Number(r.id) === Number(reasonId));
+  const motivoSeleccionado = reasonId === null ? undefined : reasons.find((r) => Number(r.id) === Number(reasonId));
   const esOtro = (motivoSeleccionado?.name || '').trim().toLowerCase() === 'otro';
 
   const handleConfirmarHora = async () => {
-    if (reasonId === '') return;
     if (esOtro && horaObservacion.trim().length < NOTA_MIN_OTRO) return;
-    const horaFormateada = horaSeleccionada.format('hh:mm A');
-    await onConfirm(horaFormateada, horaObservacion, reasonId as number);
+    const horaFormateada = horaSeleccionada?.format('hh:mm A') || '';
+    await onConfirm(horaFormateada, horaObservacion, reasonId);
     onClose();
   };
 
-  const horaCambiada = !horaSeleccionada || !horaInicial || !horaSeleccionada.isSame(horaInicial, 'minute');
+  const horaCambiada = horaSeleccionada && horaInicial && !horaSeleccionada.isSame(horaInicial, 'minute');
   const notaValida = !esOtro || horaObservacion.trim().length >= NOTA_MIN_OTRO;
-  const puedeGuardar = horaCambiada && reasonId !== '' && notaValida && !errorValidacion;
+  const puedeGuardar = horaCambiada && notaValida && !errorValidacion && (motivoRequerido ? reasonId !== null : true);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
@@ -167,22 +167,25 @@ export default function EditHourModal({
             <TimePicker
               label="Hora"
               value={horaSeleccionada}
-              onChange={(val: any) => { if (val) setHoraSeleccionada(val); }}
+              onChange={(val) => setHoraSeleccionada(val as dayjs.Dayjs | null)}
               ampm
               slotProps={{ textField: { fullWidth: true, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
             />
           </LocalizationProvider>
 
           <FormControl fullWidth>
-            <InputLabel id="motivo-edit-label">Motivo</InputLabel>
+            <InputLabel id="motivo-edit-label">{motivoRequerido ? 'Motivo' : 'Motivo (opcional)'}</InputLabel>
             <Select
               labelId="motivo-edit-label"
-              label="Motivo"
-              value={reasonId === '' ? '' : reasonId}
-              onChange={(e) => setReasonId(Number(e.target.value))}
+              label={motivoRequerido ? 'Motivo' : 'Motivo (opcional)'}
+              value={reasonId === null ? '' : reasonId}
+              onChange={(e) => {
+                const value = e.target.value;
+                setReasonId(value === '' ? null : Number(value));
+              }}
               sx={{ borderRadius: 2 }}
             >
-              <MenuItem value="" disabled>Selecciona un motivo…</MenuItem>
+              {!motivoRequerido && <MenuItem value="">Sin motivo</MenuItem>}
               {reasons.map((r) => (
                 <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
               ))}
@@ -190,19 +193,7 @@ export default function EditHourModal({
           </FormControl>
 
           {esOtro && (
-            <Alert
-              severity="warning"
-              icon={<InfoOutlinedIcon fontSize="inherit" />}
-              sx={{
-                borderRadius: 2,
-                bgcolor: '#fff8e1',
-                color: '#7a5b00',
-                border: '1px solid #ffe49c',
-                '& .MuiAlert-icon': { color: '#c08a00' },
-                fontSize: '0.82rem',
-                alignItems: 'center',
-              }}
-            >
+            <Alert severity="warning" icon={<InfoOutlinedIcon fontSize="inherit" />} sx={{ borderRadius: 2, bgcolor: '#fff8e1', color: '#7a5b00', border: '1px solid #ffe49c', '& .MuiAlert-icon': { color: '#c08a00' }, fontSize: '0.82rem', alignItems: 'center' }}>
               Al seleccionar <b>"Otro"</b> debes agregar una nota (mínimo {NOTA_MIN_OTRO} caracteres) para especificar el motivo.
             </Alert>
           )}
@@ -215,7 +206,7 @@ export default function EditHourModal({
             value={horaObservacion}
             onChange={(e) => setHoraObservacion(e.target.value)}
             placeholder={esOtro ? `Describe qué pasó (mínimo ${NOTA_MIN_OTRO} caracteres)...` : 'Escriba una nota (opcional)...'}
-            helperText={esOtro ? `${horaObservacion.trim().length}/${NOTA_MIN_OTRO} Caracteres ` : 'Opcional'}
+            helperText={esOtro ? `${horaObservacion.trim().length}/${NOTA_MIN_OTRO} Caracteres` : 'Opcional'}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
         </Box>

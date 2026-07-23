@@ -85,6 +85,9 @@ export interface Cargo {
   name: string;
 }
 
+// ============================================================
+// 👇 AQUÍ AGREGAMOS email y phone_number
+// ============================================================
 export interface EmpleadoAdmin {
   id: number;
   document_type: string | null;
@@ -97,8 +100,13 @@ export interface EmpleadoAdmin {
   position_id: number | null;
   position_name?: string | null;
   status: string | null;
+  email?: string;               // 👈 NUEVO
+  phone_number?: string;        // 👈 NUEVO (o phone según tu BD)
 }
 
+// ============================================================
+// 👇 AQUÍ AGREGAMOS email y phone (opcional)
+// ============================================================
 export interface NuevoEmpleadoPayload {
   document_type: string;
   document_number: string;
@@ -108,4 +116,6 @@ export interface NuevoEmpleadoPayload {
   second_last_name?: string;
   store_id: number;
   position_id: number;
+  email?: string;        // 👈 NUEVO
+  phone?: string;        // 👈 NUEVO
 }

@@ -23,7 +23,9 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
       ),
     );
 
-    const tiendaIds = (data as any[]).map((item: any) => item.store_id);
+    const tiendaIds = (data as any[])
+      .map((item: any) => Number(item.store_id))
+      .filter((id) => !isNaN(id) && id !== 5);
     return tiendaIds;
   } catch (error: any) {
     if (error.response?.status === 404) {
@@ -49,10 +51,12 @@ export async function obtenerTiendasUsuarioActual(): Promise<UserStoreAccess[]> 
       ),
     );
 
-    return (data as any[]).map((item: any) => ({
-      store_id: Number(item.store_id?.id ?? item.store_id),
-      company: String(item.store_id?.company ?? ""),
-    }));
+    return (data as any[])
+      .map((item: any) => ({
+        store_id: Number(item.store_id?.id ?? item.store_id),
+        company: String(item.store_id?.company ?? ""),
+      }))
+      .filter((item) => item.store_id !== 5);
   } catch (error: any) {
     if (error.response?.status === 404) {
       return [];
