@@ -90,7 +90,7 @@ export const exportPagesToExcel = async (options: ExportOptions): Promise<void> 
 
   // Si existe resumen de auditoría, creamos la pestaña de Verificación
   if (audit) {
-    const auditSheet = workbook.addWorksheet("Verificación Auditoría");
+    const auditSheet = workbook.addWorksheet("Verificación");
     auditSheet.columns = [
       { header: "Métrica de Auditoría", key: "metrica", width: 35 },
       { header: "Valor", key: "valor", width: 30 },

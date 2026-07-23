@@ -314,9 +314,7 @@ export const extractTransactionsFromPdf = async (
 
     const esConciliado = allTx.length > 0 && porcentajeContinuidad >= 85;
 
-    const saldoInicial = allTx[0]
-      ? allTx[0].saldo - allTx[0].creditos + allTx[0].debitos
-      : 0;
+    const saldoInicial = allTx[0]?.saldo || 0;
     const saldoFinal = allTx[allTx.length - 1]?.saldo || 0;
 
     return {
