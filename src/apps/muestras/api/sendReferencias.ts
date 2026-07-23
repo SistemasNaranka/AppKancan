@@ -1,6 +1,8 @@
+import { resolveNetworkUrl } from "@/shared/utils/network";
+
 const WEBHOOK_USERNAME = import.meta.env.VITE_WEBHOOK_USERNAME;
 const WEBHOOK_PASSWORD = import.meta.env.VITE_WEBHOOK_PASSWORD;
-const WEBHOOK_URL_POST = import.meta.env.VITE_WEBHOOK_URL_POST_MUESTRAS;
+const WEBHOOK_URL_POST = resolveNetworkUrl(import.meta.env.VITE_WEBHOOK_URL_POST_MUESTRAS);
 
 export interface EnvioMuestrasRequest {
   records: Array<{

@@ -4,6 +4,7 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { normalizeTokenResponse } from "@/auth/services/tokenDirectus";
 import { readMe } from "@directus/sdk";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
+import { resolveNetworkUrl } from "@/shared/utils/network";
 
 export interface LoginResponse {
   access_token: string;
@@ -89,7 +90,7 @@ function getAccessToken(): string | null {
 }
 
 export async function getAllUsers() {
-  const directusUrl = import.meta.env.VITE_DIRECTUS_URL?.replace(/\/$/, "");
+  const directusUrl = resolveNetworkUrl(import.meta.env.VITE_DIRECTUS_URL)?.replace(/\/$/, "");
   const token = getAccessToken();
 
   if (!token) {
@@ -114,7 +115,7 @@ export async function getAllUsers() {
 }
 
 export async function resetUserPassword(userId: string, newPassword: string) {
-  const directusUrl = import.meta.env.VITE_DIRECTUS_URL?.replace(/\/$/, "");
+  const directusUrl = resolveNetworkUrl(import.meta.env.VITE_DIRECTUS_URL)?.replace(/\/$/, "");
   const token = getAccessToken();
 
   if (!token) {
@@ -143,7 +144,7 @@ export async function resetUserPassword(userId: string, newPassword: string) {
 }
 
 export async function updateUserPassword(_userId: string, newPassword: string) {
-  const directusUrl = import.meta.env.VITE_DIRECTUS_URL?.replace(/\/$/, "");
+  const directusUrl = resolveNetworkUrl(import.meta.env.VITE_DIRECTUS_URL)?.replace(/\/$/, "");
   const token = getAccessToken();
 
   if (!token) {

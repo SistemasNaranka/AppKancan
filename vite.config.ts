@@ -192,6 +192,7 @@ export default defineConfig({
       "@mui/icons-material/LocalOffer",
       "@mui/icons-material/LocalShipping",
       "@mui/icons-material/Lock",
+      "@mui/icons-material/LockOpen",
       "@mui/icons-material/LockOutlined",
       "@mui/icons-material/LockReset",
       "@mui/icons-material/Logout",

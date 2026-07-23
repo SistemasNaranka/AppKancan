@@ -38,6 +38,7 @@ import ContactPhone from '@mui/icons-material/ContactPhone';
 import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
 import MoreTimeIcon from '@mui/icons-material/MoreTime';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 /**
  * Mapa de íconos permitidos.
  * Los nombres deben coincidir con los valores en la base de datos.
@@ -54,6 +55,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
   // 🔸 Categoría: Contabilidad
   AccountBalance,
+  PictureAsPdfIcon,
+  PictureAsPdf: PictureAsPdfIcon,
   Description,
   Calculate,
   Summarize,
@@ -72,6 +75,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Apps,
   Home,
   CircleNotificationsIcon,
+  CircleNotifications: CircleNotificationsIcon,
   // 🔸 Categoría: Aplicación
   DocumentScanner,
   GridView,
@@ -87,6 +91,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   ShoppingBag,
   WorkspacePremium,
   MoreTimeIcon,
+  MoreTime: MoreTimeIcon,
   HowToRegIcon,
   HowToReg: HowToRegIcon,
 
