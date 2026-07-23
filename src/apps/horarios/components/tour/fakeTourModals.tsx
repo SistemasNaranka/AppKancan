@@ -266,7 +266,7 @@ export const FakeEventoModal: React.FC<{ open: boolean; activeField: string | nu
           }}
         >
           <div style={{ fontSize: "0.85rem", color: "#475569" }}>
-            Escoja la novedad presentada para Felix Vergara:
+            Escoja la novedad presentada para ej. Andrea Soto:
           </div>
 
           <div>

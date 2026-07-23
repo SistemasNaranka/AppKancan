@@ -1,0 +1,103 @@
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+import type { PageText } from "./pdfExtractor";
+
+export interface ExportOptions {
+  pages: PageText[];
+  fileName: string;
+}
+
+/**
+ * Exporta las páginas extraídas a un archivo Excel (.xlsx) con formato:
+ * - Encabezado azul con texto blanco en negrita
+ * - Filtros automáticos en las columnas
+ * - Columnas CREDITOS, DEBITOS y SALDO con formato moneda
+ */
+export const exportPagesToExcel = async (options: ExportOptions): Promise<void> => {
+  const { pages, fileName } = options;
+
+  if (pages.length === 0) return;
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Extracto Bancario");
+
+  const allTransactions = pages.flatMap((p) =>
+    p.transactions.map((tx) => ({
+      paginaPdf: p.pageNumber,
+      dia: tx.dia,
+      transaccion: tx.transaccion,
+      ident: tx.ident,
+      debitos: tx.debitos,
+      creditos: tx.creditos,
+      saldo: tx.saldo,
+    }))
+  );
+
+  const hayTransacciones = allTransactions.length > 0;
+
+  if (hayTransacciones) {
+    worksheet.columns = [
+      { header: "Página PDF", key: "paginaPdf", width: 12 },
+      { header: "DÍA", key: "dia", width: 8 },
+      { header: "TRANSACCIÓN", key: "transaccion", width: 45 },
+      { header: "IDENT.", key: "ident", width: 12 },
+      { header: "DEBITOS", key: "debitos", width: 15 },
+      { header: "CREDITOS", key: "creditos", width: 15 },
+      { header: "SALDO", key: "saldo", width: 18 },
+    ];
+
+    worksheet.addRows(allTransactions);
+
+    // Formato moneda para las columnas monetarias
+    const formatoMoneda = '"$"#,##0.00;[Red]"$"-#,##0.00';
+    worksheet.getColumn("debitos").numFmt = formatoMoneda;
+    worksheet.getColumn("creditos").numFmt = formatoMoneda;
+    worksheet.getColumn("saldo").numFmt = formatoMoneda;
+  } else {
+    // Fallback: solo líneas crudas si no hubo transacciones parseadas
+    worksheet.columns = [
+      { header: "Página", key: "pagina", width: 10 },
+      { header: "N° Línea", key: "linea", width: 10 },
+      { header: "Contenido", key: "contenido", width: 100 },
+    ];
+
+    const filas = pages.flatMap((p) =>
+      p.lines.map((line, idx) => ({
+        pagina: p.pageNumber,
+        linea: idx + 1,
+        contenido: line,
+      }))
+    );
+
+    worksheet.addRows(filas);
+  }
+
+  // Estilo del encabezado: azul con texto blanco en negrita
+  const headerRow = worksheet.getRow(1);
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF004680" }, // el mismo azul que ya usa el botón "Convertir PDF"
+    };
+    cell.font = {
+      color: { argb: "FFFFFFFF" },
+      bold: true,
+    };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+  });
+  headerRow.height = 22;
+
+  // Filtro automático sobre todas las columnas con datos
+  worksheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: worksheet.columnCount },
+  };
+
+  // Generar el archivo y disparar la descarga
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  saveAs(blob, fileName);
+};
