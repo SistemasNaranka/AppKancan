@@ -532,13 +532,13 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                         <Grid container spacing={2} sx={{ mb: 2 }}>
                             {TARJETAS_ESTADISTICAS.map((k, idx) => (
                                 <Grid size={{ xs: 12, md: 3 }} key={idx}>
-                                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box sx={{ bgcolor: k.bg, p: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <k.icon sx={{ color: k.color, fontSize: 28 }} />
+                                    <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                        <Box sx={{ bgcolor: k.bg, p: 1, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <k.icon sx={{ color: k.color, fontSize: 22 }} />
                                         </Box>
                                         <Box sx={{ minWidth: 0, width: '100%' }}>
                                             <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>{k.label}</Typography>
-                                            <Typography variant={k.label === 'TIENDA CON MÁS CAMBIOS' ? 'h6' : 'h5'} fontWeight={700} color={k.color} noWrap title={String(k.label === 'TOTAL MODIFICACIONES' ? statsEdiciones.total : k.label === 'EMPLEADOS MONITOREADOS' ? statsEdiciones.empleados : statsEdiciones.topStore)}>
+                                            <Typography variant="body2" fontWeight={700} color={k.color} noWrap title={String(k.label === 'TOTAL MODIFICACIONES' ? statsEdiciones.total : k.label === 'EMPLEADOS MONITOREADOS' ? statsEdiciones.empleados : statsEdiciones.topStore)}>
                                                 {k.label === 'TOTAL MODIFICACIONES' ? statsEdiciones.total : k.label === 'EMPLEADOS MONITOREADOS' ? statsEdiciones.empleados : statsEdiciones.topStore}
                                             </Typography>
                                         </Box>
@@ -546,9 +546,9 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                 </Grid>
                             ))}
                             <Grid size={{ xs: 12, md: 3 }}>
-                                <Paper elevation={0} onClick={() => setModalEmpleadosOpen(true)} sx={{ p: 2.5, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', transition: 'all 0.2s', '&:hover': { borderColor: '#004680', boxShadow: '0 2px 8px rgba(0,70,128,0.15)' } }}>
-                                    <Box sx={{ bgcolor: '#e3f2fd', p: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <PersonIcon sx={{ color: '#004680', fontSize: 28 }} />
+                                <Paper elevation={0} onClick={() => setModalEmpleadosOpen(true)} sx={{ p: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', transition: 'all 0.2s', '&:hover': { borderColor: '#004680', boxShadow: '0 2px 8px rgba(0,70,128,0.15)' } }}>
+                                    <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <PersonIcon sx={{ color: '#004680', fontSize: 22 }} />
                                     </Box>
                                     <Box sx={{ minWidth: 0, width: '100%' }}>
                                         <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>EMPLEADO CON MÁS EDICIONES</Typography>
@@ -693,7 +693,6 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     </>
                 )}
 
-
                 {isAreaMgr && subTab === 2 && (
                     <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0', overflow: 'hidden' }}>
                         <ReporteSemanalAreaManager
@@ -704,7 +703,6 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                 )}
 
                 {tiendaSeleccionada && (
-
                     <ModalDetalleTienda
                         tiendaId={tiendaSeleccionada}
                         tiendaNombre={tiendas.find(t => t.id === tiendaSeleccionada)?.name || 'Detalle de Tienda'}
@@ -733,96 +731,19 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     </DialogActions>
                 </Dialog>
 
-                {/* ----- MODAL DE RANKING (con la tienda añadida y diseño mejorado) ----- */}
-                <Dialog open={modalEmpleadosOpen} onClose={() => setModalEmpleadosOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-                    <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, px: 3 }}>
+                {/* ====== MODAL DE RANKING (altura fija + espaciado corregido) ====== */}
+                <Dialog open={modalEmpleadosOpen} onClose={() => setModalEmpleadosOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3, height: '85vh', maxHeight: '85vh', display: 'flex', flexDirection: 'column' } }}>
+                    <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, px: 3, flexShrink: 0 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                             <PersonIcon sx={{ fontSize: 28 }} />
                             <Typography variant="h6" fontWeight={700}>Ranking de Ediciones</Typography>
                         </Box>
                         <IconButton onClick={() => setModalEmpleadosOpen(false)} sx={{ color: '#ffffff' }}><CloseIcon /></IconButton>
                     </DialogTitle>
-                    <DialogContent sx={{ p: 3, pt: 2 }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-                            {/* Fila de Filtros (Mes y Motivos) */}
-                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                                {/* Selector de Mes */}
-                                <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 240, border: '1px solid #d0d7de', borderRadius: 2, px: 2, py: 0.5, bgcolor: '#ffffff', minHeight: 40 }}>
-                                    <CalendarTodayIcon sx={{ color: '#004680', fontSize: 18, mr: 1 }} />
-                                    <Typography variant="body2" fontWeight={600} color="#004680" sx={{ textTransform: 'capitalize', flexGrow: 1 }}>{rankingMes.format('MMMM YYYY')}</Typography>
-                                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                        <IconButton size="small" onClick={() => handleCambiarMesRanking(rankingMes.subtract(1, 'month'))} sx={{ color: '#004680', p: 0.5 }}>
-                                            <ArrowBackIosIcon fontSize="small" sx={{ fontSize: 14 }} />
-                                        </IconButton>
-                                        <IconButton size="small" onClick={() => handleCambiarMesRanking(rankingMes.add(1, 'month'))} disabled={rankingMes.isSame(dayjs(), 'month')} sx={{ color: '#004680', p: 0.5 }}>
-                                            <ArrowForwardIosIcon fontSize="small" sx={{ fontSize: 14 }} />
-                                        </IconButton>
-                                    </Box>
-                                </Box>
-
-                                {/* Selector de Motivos */}
-                                <FormControl size="small" sx={{ minWidth: 320, flex: 1, '& .MuiOutlinedInput-notchedOutline': { borderColor: rankingMotivos.length > 0 ? '#004680' : '#d0d7de', borderWidth: rankingMotivos.length > 0 ? '2px' : '1px' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#004680' } }}>
-                                    <InputLabel id="ranking-motivos-label">Filtrar por Motivos</InputLabel>
-                                    <Select
-                                        labelId="ranking-motivos-label"
-                                        multiple
-                                        value={rankingMotivos}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            if (Array.isArray(value) && value.includes('limpiar')) { setRankingMotivos([]); setPaginaRanking(0); return; }
-                                            if (Array.isArray(value) && value.includes('todos')) setRankingMotivos(motivosUnicos);
-                                            else setRankingMotivos(typeof value === 'string' ? value.split(',') : value);
-                                            setPaginaRanking(0);
-                                        }}
-                                        input={
-                                            <OutlinedInput
-                                                label="Filtrar por Motivos"
-                                                endAdornment={
-                                                    rankingMotivos.length > 0 ? (
-                                                        <InputAdornment position="end">
-                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos([]); setPaginaRanking(0); }} onMouseDown={(e) => e.stopPropagation()} sx={{ p: 0.5, mr: 0.5 }}>
-                                                                <CloseIcon fontSize="small" sx={{ color: '#64748b' }} />
-                                                            </IconButton>
-                                                        </InputAdornment>
-                                                    ) : null
-                                                }
-                                                sx={{ borderRadius: 2 }}
-                                            />
-                                        }
-                                        renderValue={(selected) => (
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 60, overflow: 'auto' }}>
-                                                {selected.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Todos los motivos</Typography> :
-                                                selected.map((value) => {
-                                                    const colors = getColorForMotivo(value);
-                                                    return (
-                                                        <Box key={value} sx={{ display: 'flex', alignItems: 'center', bgcolor: colors.bg, color: colors.text, px: 1, py: 0.25, borderRadius: 1, height: '22px' }}>
-                                                            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>{value}</Typography>
-                                                        </Box>
-                                                    );
-                                                })}
-                                            </Box>
-                                        )}
-                                        MenuProps={{ PaperProps: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } }}
-                                    >
-                                        <MenuItem value="todos" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e8e8e8', border: '1px solid #9e9e9e' }} />Todos</Box>
-                                            {rankingMotivos.length === motivosUnicos.length && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}
-                                        </MenuItem>
-                                        <MenuItem value="limpiar" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ffebee', border: '1px solid #c62828' }} />Limpiar</Box>
-                                            {rankingMotivos.length === 0 && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}
-                                        </MenuItem>
-                                        {motivosUnicos.map((motivo) => (
-                                            <MenuItem key={motivo} value={motivo} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, fontWeight: rankingMotivos.includes(motivo) ? 700 : 400 }}>
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: getColorForMotivo(motivo).bg, border: `1px solid ${getColorForMotivo(motivo).text}` }} />{motivo}</Box>
-                                                {rankingMotivos.includes(motivo) && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Box>
-
-                            {/* Fila de Buscador y Botón de Ordenar */}
+                    <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        {/* Contenedor de filtros, separado del título con padding-top generoso */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, px: 3, pt: 4, pb: 3, flexShrink: 0 }}>
+                            {/* Buscador y botón de orden - ARRIBA */}
                             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                                 <TextField
                                     label="Buscar empleado"
@@ -866,9 +787,89 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                     </Button>
                                 </Tooltip>
                             </Box>
+
+                            {/* Filtros de mes y motivos - DEBAJO */}
+                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 240, border: '1px solid #d0d7de', borderRadius: 2, px: 2, py: 0.5, bgcolor: '#ffffff', minHeight: 40 }}>
+                                    <CalendarTodayIcon sx={{ color: '#004680', fontSize: 18, mr: 1 }} />
+                                    <Typography variant="body2" fontWeight={600} color="#004680" sx={{ textTransform: 'capitalize', flexGrow: 1 }}>{rankingMes.format('MMMM YYYY')}</Typography>
+                                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                        <IconButton size="small" onClick={() => handleCambiarMesRanking(rankingMes.subtract(1, 'month'))} sx={{ color: '#004680', p: 0.5 }}>
+                                            <ArrowBackIosIcon fontSize="small" sx={{ fontSize: 14 }} />
+                                        </IconButton>
+                                        <IconButton size="small" onClick={() => handleCambiarMesRanking(rankingMes.add(1, 'month'))} disabled={rankingMes.isSame(dayjs(), 'month')} sx={{ color: '#004680', p: 0.5 }}>
+                                            <ArrowForwardIosIcon fontSize="small" sx={{ fontSize: 14 }} />
+                                        </IconButton>
+                                    </Box>
+                                </Box>
+
+                                <FormControl size="small" sx={{ minWidth: 320, flex: 1, '& .MuiOutlinedInput-notchedOutline': { borderColor: rankingMotivos.length > 0 ? '#004680' : '#d0d7de', borderWidth: rankingMotivos.length > 0 ? '2px' : '1px' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#004680' } }}>
+                                    <InputLabel id="ranking-motivos-label">Filtrar por Motivos</InputLabel>
+                                    <Select
+                                        labelId="ranking-motivos-label"
+                                        multiple
+                                        value={rankingMotivos}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (Array.isArray(value) && value.includes('limpiar')) { setRankingMotivos([]); setPaginaRanking(0); return; }
+                                            if (Array.isArray(value) && value.includes('todos')) setRankingMotivos(motivosUnicos);
+                                            else setRankingMotivos(typeof value === 'string' ? value.split(',') : value);
+                                            setPaginaRanking(0);
+                                        }}
+                                        input={
+                                            <OutlinedInput
+                                                label="Filtrar por Motivos"
+                                                endAdornment={
+                                                    rankingMotivos.length > 0 ? (
+                                                        <InputAdornment position="end">
+                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos([]); setPaginaRanking(0); }} onMouseDown={(e) => e.stopPropagation()} sx={{ p: 0.5, mr: 0.5 }}>
+                                                                <CloseIcon fontSize="small" sx={{ color: '#64748b' }} />
+                                                            </IconButton>
+                                                        </InputAdornment>
+                                                    ) : null
+                                                }
+                                                sx={{ borderRadius: 2 }}
+                                            />
+                                        }
+                                        renderValue={(selected) => (
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 60, overflow: 'auto' }}>
+                                                {selected.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Todos los motivos</Typography> :
+                                                selected.map((value) => {
+                                                    const colors = getColorForMotivo(value);
+                                                    return (
+                                                        <Box key={value} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: colors.bg, color: colors.text, pl: 1, pr: 0.5, py: 0.25, borderRadius: 1, height: '22px', cursor: 'default' }} onMouseDown={(e) => e.stopPropagation()}>
+                                                            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>{value}</Typography>
+                                                            <Box component="span" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%', '&:hover': { bgcolor: 'rgba(0,0,0,0.12)' } }} onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos(rankingMotivos.filter(item => item !== value)); setPaginaRanking(0); }} onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                                                                <CloseIcon sx={{ fontSize: '0.85rem', color: colors.text }} />
+                                                            </Box>
+                                                        </Box>
+                                                    );
+                                                })}
+                                            </Box>
+                                        )}
+                                        MenuProps={{ PaperProps: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } }}
+                                    >
+                                        <MenuItem value="todos" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e8e8e8', border: '1px solid #9e9e9e' }} />Todos</Box>
+                                            {rankingMotivos.length === motivosUnicos.length && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}
+                                        </MenuItem>
+                                        <MenuItem value="limpiar" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ffebee', border: '1px solid #c62828' }} />Limpiar</Box>
+                                            {rankingMotivos.length === 0 && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}
+                                        </MenuItem>
+                                        {motivosUnicos.map((motivo) => (
+                                            <MenuItem key={motivo} value={motivo} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, fontWeight: rankingMotivos.includes(motivo) ? 700 : 400 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: getColorForMotivo(motivo).bg, border: `1px solid ${getColorForMotivo(motivo).text}` }} />{motivo}</Box>
+                                                {rankingMotivos.includes(motivo) && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Box>
                         </Box>
 
-                        <Paper elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, overflow: 'hidden' }}>
+                        {/* Lista con scroll propio */}
+                        <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: 3, mx: 3 }}>
                             <List disablePadding>
                                 {(() => {
                                     const start = paginaRanking * rowsPerPage.ranking;
@@ -880,55 +881,54 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                                             </Box>
                                         );
                                     }
-                                    return pagina.map((emp, index) => {
-                                        const absoluteRank = start + index + 1;
-                                        return (
-                                            <ListItem
-                                                key={emp.id}
-                                                divider
-                                                sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
-                                                secondaryAction={
-                                                    <>
-                                                        <Tooltip title="Ver registros">
-                                                            <IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}>
-                                                                <VisibilityIcon />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                        <Tooltip title="Ver calendario">
-                                                            <IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}>
-                                                                <CalendarTodayIcon />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    </>
+                                    return pagina.map((emp) => (
+                                        <ListItem
+                                            key={emp.id}
+                                            divider
+                                            sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
+                                            secondaryAction={
+                                                <>
+                                                    <Tooltip title="Ver registros">
+                                                        <IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}>
+                                                            <VisibilityIcon />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Ver calendario">
+                                                        <IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}>
+                                                            <CalendarTodayIcon />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </>
+                                            }
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar sx={{ bgcolor: '#004680', color: '#fff', width: 44, height: 44 }}>
+                                                    {emp.nombre.charAt(0).toUpperCase()}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <Typography variant="body1" fontWeight={600} color="#0a1929">{emp.nombre}</Typography>
                                                 }
-                                            >
-                                                <ListItemAvatar>
-                                                    <Avatar sx={{ bgcolor: '#004680', color: '#fff', width: 44, height: 44 }}>
-                                                        {emp.nombre.charAt(0).toUpperCase()}
-                                                    </Avatar>
-                                                </ListItemAvatar>
-                                                <ListItemText
-                                                    primary={
-                                                        <Typography variant="body1" fontWeight={600} color="#0a1929">{emp.nombre}</Typography>
-                                                    }
-                                                    secondary={
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
-                                                            {/* 👇 NUEVO CHIP DE TIENDA */}
-                                                            <Chip size="small" label={emp.tienda} sx={{ bgcolor: '#e8eaf6', color: '#1a237e', fontWeight: 500, fontSize: '0.7rem' }} />
-                                                            <Chip size="small" label={`${emp.total} edición${emp.total !== 1 ? 'es' : ''}`} sx={{ bgcolor: '#e1f5fe', color: '#0288d1', fontWeight: 600, fontSize: '0.7rem' }} />
-                                                            <Typography variant="caption" color="text.secondary">#{absoluteRank}</Typography>
-                                                        </Box>
-                                                    }
-                                                />
-                                            </ListItem>
-                                        );
-                                    });
+                                                secondary={
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+                                                        <Chip size="small" label={emp.tienda} sx={{ bgcolor: '#e8eaf6', color: '#1a237e', fontWeight: 500, fontSize: '0.7rem' }} />
+                                                        <Chip size="small" label={`${emp.total} edición${emp.total !== 1 ? 'es' : ''}`} sx={{ bgcolor: '#e1f5fe', color: '#0288d1', fontWeight: 600, fontSize: '0.7rem' }} />
+                                                    </Box>
+                                                }
+                                            />
+                                        </ListItem>
+                                    ));
                                 })()}
                             </List>
-                        </Paper>
-                        {renderPagination(Math.ceil(rankingFiltrado.length / rowsPerPage.ranking), paginaRanking, setPaginaRanking, 'registros', rankingFiltrado.length)}
+                        </Box>
+
+                        {/* Paginación fija, siempre visible debajo de la lista */}
+                        <Box sx={{ flexShrink: 0, bgcolor: 'white', borderTop: '1px solid #e0e0e0', mt: 2 }}>
+                            {renderPagination(Math.ceil(rankingFiltrado.length / rowsPerPage.ranking), paginaRanking, setPaginaRanking, 'registros', rankingFiltrado.length)}
+                        </Box>
                     </DialogContent>
-                    <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #e2e8f0' }}>
+                    <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
                         <Button onClick={() => setModalEmpleadosOpen(false)} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
                     </DialogActions>
                 </Dialog>
