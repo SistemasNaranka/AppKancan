@@ -1,20 +1,20 @@
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import type { PageText } from "./pdfExtractor";
+import type { PageText, AuditSummary } from "./pdfExtractor";
 
 export interface ExportOptions {
   pages: PageText[];
   fileName: string;
+  audit?: AuditSummary | null;
 }
 
 /**
  * Exporta las páginas extraídas a un archivo Excel (.xlsx) con formato:
- * - Encabezado azul con texto blanco en negrita
- * - Filtros automáticos en las columnas
- * - Columnas CREDITOS, DEBITOS y SALDO con formato moneda
+ * - Pestaña 'Extracto Bancario' con filtros y encabezado en azul primario
+ * - Pestaña opcional 'Conciliación Auditoría' con el resumen contable comprobado
  */
 export const exportPagesToExcel = async (options: ExportOptions): Promise<void> => {
-  const { pages, fileName } = options;
+  const { pages, fileName, audit } = options;
 
   if (pages.length === 0) return;
 
@@ -47,12 +47,6 @@ export const exportPagesToExcel = async (options: ExportOptions): Promise<void> 
     ];
 
     worksheet.addRows(allTransactions);
-
-    // Formato moneda para las columnas monetarias
-    const formatoMoneda = '"$"#,##0.00;[Red]"$"-#,##0.00';
-    worksheet.getColumn("debitos").numFmt = formatoMoneda;
-    worksheet.getColumn("creditos").numFmt = formatoMoneda;
-    worksheet.getColumn("saldo").numFmt = formatoMoneda;
   } else {
     // Fallback: solo líneas crudas si no hubo transacciones parseadas
     worksheet.columns = [
@@ -78,7 +72,7 @@ export const exportPagesToExcel = async (options: ExportOptions): Promise<void> 
     cell.fill = {
       type: "pattern",
       pattern: "solid",
-      fgColor: { argb: "FF004680" }, // el mismo azul que ya usa el botón "Convertir PDF"
+      fgColor: { argb: "FF004680" },
     };
     cell.font = {
       color: { argb: "FFFFFFFF" },
@@ -93,6 +87,37 @@ export const exportPagesToExcel = async (options: ExportOptions): Promise<void> 
     from: { row: 1, column: 1 },
     to: { row: 1, column: worksheet.columnCount },
   };
+
+  // Si existe resumen de auditoría, creamos la pestaña de Verificación
+  if (audit) {
+    const auditSheet = workbook.addWorksheet("Verificación Auditoría");
+    auditSheet.columns = [
+      { header: "Métrica de Auditoría", key: "metrica", width: 35 },
+      { header: "Valor", key: "valor", width: 30 },
+    ];
+
+    auditSheet.addRows([
+      {
+        metrica: "Estado de Verificación",
+        valor: `${audit.porcentajeContinuidad}% Verificado`,
+      },
+      { metrica: "Total Movimientos Leídos", valor: audit.totalRegistros },
+      { metrica: "Suma Total de Débitos", valor: audit.totalDebitos },
+      { metrica: "Suma Total de Créditos", valor: audit.totalCreditos },
+      { metrica: "Saldo Inicial (Primer Registro)", valor: audit.saldoInicial },
+      { metrica: "Saldo Final (Último Registro)", valor: audit.saldoFinal },
+    ]);
+
+    const auditHeader = auditSheet.getRow(1);
+    auditHeader.eachCell((cell) => {
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF004680" },
+      };
+      cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+    });
+  }
 
   // Generar el archivo y disparar la descarga
   const buffer = await workbook.xlsx.writeBuffer();
