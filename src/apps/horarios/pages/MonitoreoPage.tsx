@@ -48,19 +48,35 @@ interface MonitoreoPageProps { storeId?: number | null; }
 const rowsPerPage = { tiendas: 10, ediciones: 10, ranking: 10 };
 
 // ---------- COMPONENTES AUXILIARES ----------
-const Paginador = ({ count, page, setPage, label, total }: any) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2.5, py: 1.5, borderTop: '1px solid #e0e0e0', flexWrap: 'wrap', gap: 1 }}>
-    <Typography variant="body2" color="text.secondary" fontWeight={500}>
-      Mostrando <strong>{Math.min(rowsPerPage.tiendas, total - page * rowsPerPage.tiendas)}</strong> de <strong>{total}</strong> {label}
-    </Typography>
-    {total > rowsPerPage.tiendas && (
-      <Pagination count={count} page={page + 1} onChange={(_, p) => setPage(p - 1)} color="primary" shape="rounded" size="small" showFirstButton showLastButton
-        sx={{ '& .MuiPaginationItem-root': { borderRadius: 2, border: '1px solid #e0e0e0', margin: '0 2px',
-          '&.Mui-selected': { bgcolor: '#004680', color: '#fff', borderColor: '#004680', '&:hover': { bgcolor: '#003366' } },
-          '&:hover': { bgcolor: '#f5f7fa' } } }} />
-    )}
-  </Box>
-);
+const Paginador = ({ count, page, setPage, label, total }: any) => {
+  // Calcular cuántos elementos se están mostrando en esta página
+  const start = page * rowsPerPage.tiendas;
+  const end = Math.min(start + rowsPerPage.tiendas, total);
+  const showing = Math.max(0, end - start); // Nunca negativo
+
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2.5, py: 1.5, borderTop: '1px solid #e0e0e0', flexWrap: 'wrap', gap: 1 }}>
+      <Typography variant="body2" color="text.secondary" fontWeight={500}>
+        Mostrando <strong>{showing}</strong> de <strong>{total}</strong> {label}
+      </Typography>
+      {total > rowsPerPage.tiendas && (
+        <Pagination 
+          count={count} 
+          page={page + 1} 
+          onChange={(_, p) => setPage(p - 1)} 
+          color="primary" 
+          shape="rounded" 
+          size="small" 
+          showFirstButton 
+          showLastButton
+          sx={{ '& .MuiPaginationItem-root': { borderRadius: 2, border: '1px solid #e0e0e0', margin: '0 2px',
+            '&.Mui-selected': { bgcolor: '#004680', color: '#fff', borderColor: '#004680', '&:hover': { bgcolor: '#003366' } },
+            '&:hover': { bgcolor: '#f5f7fa' } } }} 
+        />
+      )}
+    </Box>
+  );
+};
 
 const TarjetaResumen = ({ icon: Icon, label, value, color }: any) => (
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -197,7 +213,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   // Resumen de tiendas (custom hook)
   const { resumen: resumenTiendas, loading: cargandoResumen, error: errorResumen } = useTiendasResumen(tiendas, fechas);
 
-  // Memorizados
+  // ---------- DECLARACIONES DE useMemo ----------
   const motivosUnicos = useMemo(() => { const s = new Set<string>(); editedRecords.forEach(r => r.motivo && s.add(r.motivo)); return Array.from(s).sort(); }, [editedRecords]);
   const statsEdiciones = useMemo(() => {
     const uniqueEmpleados = new Set(editedRecords.map(r => r.empleadoId));
@@ -275,7 +291,20 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const diasConEdicionesMes = useMemo(() => { const s = new Set<string>(); edicionesDelMes.forEach(r => s.add(r.fecha)); return s; }, [edicionesDelMes]);
   const promedioEdicionesMes = useMemo(() => diasConEdicionesMes.size ? edicionesDelMes.length / diasConEdicionesMes.size : 0, [edicionesDelMes, diasConEdicionesMes]);
 
-  // Handlers
+  // ---------- EFECTOS PARA REINICIAR PÁGINAS (CORREGIDOS y después de las declaraciones) ----------
+  useEffect(() => {
+    setPaginaTiendas(0);
+  }, [resumenTiendas, storeId]);
+
+  useEffect(() => {
+    setPaginaEdiciones(0);
+  }, [buscarEmpleado, fechas, motivosSeleccionados, storeId]);
+
+  useEffect(() => {
+    setPaginaRanking(0);
+  }, [rankingFiltrado, storeId]);
+
+  // ---------- HANDLERS ----------
   const handleOrdenTiendas = (field: SortField) => {
     if (ordenTiendas.by === field) setOrdenTiendas(prev => ({ ...prev, dir: prev.dir === 'asc' ? 'desc' : 'asc' }));
     else setOrdenTiendas({ by: field, dir: 'asc' });
@@ -289,11 +318,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const handleAbrirCalendario = (empleadoId: number) => setCalendario({ empleadoId, mes: dayjs(), dia: null, open: true });
   const handleCerrarCalendario = () => setCalendario({ empleadoId: null, mes: dayjs(), dia: null, open: false });
 
-  useEffect(() => { setPaginaEdiciones(0); }, [buscarEmpleado, fechas, motivosSeleccionados]);
-  useEffect(() => { setPaginaRanking(0); }, [rankingFiltrado]);
-  useEffect(() => { if (modalEmpleadosOpen && fechas.inicio) setRankingMes(fechas.inicio); }, [modalEmpleadosOpen, fechas.inicio]);
-
-  // Cálculos de totales
+  // ---------- CÁLCULOS DE TOTALES ----------
   const totalTiendas = tiendas.length;
   const totalEmpleados = resumenTiendas.reduce((acc, t) => acc + t.totalEmpleados, 0);
   const totalCompletados = resumenTiendas.reduce((acc, t) => acc + t.completados, 0);
@@ -308,7 +333,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
     return <Container><Alert severity="error" action={<Button color="inherit" size="small" onClick={() => {}}>Reintentar</Button>}>{errorResumen}</Alert></Container>;
   }
 
-  // Renderizado principal
+  // Renderizado principal (el mismo que ya tenías, no lo repito para no alargar)
   return (
     <Box sx={{ backgroundColor: 'transparent', pt: 0, pb: 2 }}>
       <Container maxWidth="xl" disableGutters>
@@ -581,7 +606,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                   if (!pagina.length) return <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>{buscarEmpleadoRanking ? 'No se encontraron empleados' : 'No hay ediciones registradas'}</Box>;
                   return pagina.map(emp => (
                     <ListItem key={emp.id} divider sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
-                      secondaryAction={<>
+                      secondaryAction={<> 
                         <Tooltip title="Ver registros"><IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}><VisibilityIcon /></IconButton></Tooltip>
                         <Tooltip title="Ver calendario"><IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}><CalendarTodayIcon /></IconButton></Tooltip>
                       </>}>
