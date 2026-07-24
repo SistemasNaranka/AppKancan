@@ -173,7 +173,7 @@ export default function HistorialHorasModal({
             <DialogContent sx={{ p: 3, bgcolor: '#f8fafc' }}>
                 
                 {/* Selector de Mes */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, mb: 3, mt: 1 }}>
+                <Box className="tour-hh-navegacion" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, mb: 3, mt: 1 }}>
                     <MuiIconButton onClick={handleMesAnterior} sx={{ border: '1px solid #e2e8f0', bgcolor: '#fff', '&:hover': { bgcolor: '#f1f5f9' } }}>
                         <NavigateBeforeIcon />
                     </MuiIconButton>
@@ -199,7 +199,7 @@ export default function HistorialHorasModal({
                         <Typography variant="body1" color="text.secondary">No se encontraron registros de asistencia para este mes.</Typography>
                     </Paper>
                 ) : (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+                    <Box className="tour-hh-semanas" sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
                         {semanas.map((semana, idx) => {
                             const inicio = semana.inicio;
                             const fin = inicio.add(6, 'day'); // Lunes a Domingo
@@ -273,6 +273,7 @@ export default function HistorialHorasModal({
                                             return (
                                                  <Grid size={{ xs: 6, sm: 4, md: 2.4, lg: 1.71 }} key={dia.fecha.format('YYYY-MM-DD')}>
                                                     <Box
+                                                        className={dia.fecha.format('YYYY-MM-DD') === diasDetalle[0].fecha.format('YYYY-MM-DD') ? 'tour-hh-dia' : undefined}
                                                         onClick={() => {
                                                             if (tieneRegistros) {
                                                                 setDiaSeleccionado(dia);

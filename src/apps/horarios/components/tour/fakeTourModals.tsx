@@ -1,8 +1,13 @@
 import React from "react";
+import { GenericTourModal, fakeFieldStyle, FakeCancelButton, FakePrimaryButton } from "./GenericTourModal";
 
-// ============================================================
-// MODAL SIMULADO - NOVEDAD
-// ============================================================
+export const novedadModalTargets = [
+  "#tour-modal-tipo",
+  "#tour-modal-fecha-desde-field",
+  "#tour-modal-fecha-hasta-field",
+  "#tour-modal-observaciones-field",
+];
+
 export const FakeNovedadModal: React.FC<{ open: boolean; activeField: string | null }> = ({
   open,
   activeField,
@@ -14,187 +19,100 @@ export const FakeNovedadModal: React.FC<{ open: boolean; activeField: string | n
   const isTipoActive = activeField === "#tour-modal-tipo";
   const isObsActive = activeField === "#tour-modal-observaciones-field";
 
-  const fieldStyle = (isActive: boolean): React.CSSProperties => ({
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    height: "56px",
-    boxSizing: "border-box",
-    border: isActive ? "3px solid #008CFF" : "1px solid #cbd5e1",
-    borderRadius: 8,
-    padding: isActive ? "0 13px" : "0 14px",
-    backgroundColor: "#ffffff",
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    fontSize: "16px",
-    boxShadow: isActive ? "0 0 8px rgba(0, 140, 255, 0.35)" : "none",
-    transition: "all 0.1s ease",
-    position: "relative",
-    zIndex: isActive ? 6 : 1,
-  });
-
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9000,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-      }}
+    <GenericTourModal
+      title="Registro de Novedad"
+      dimContent={isModalStep}
+      footer={
+        <>
+          <FakeCancelButton />
+          <FakePrimaryButton />
+        </>
+      }
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 600,
-          backgroundColor: "#fff",
-          borderRadius: 16,
-          overflow: "hidden",
-          boxShadow: "0px 11px 15px -7px rgba(0,0,0,0.2), 0px 24px 38px 3px rgba(0,0,0,0.14), 0px 9px 46px 8px rgba(0,0,0,0.12)",
-          margin: 16,
-          position: "relative",
-        }}
-      >
-        {isModalStep && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
-              zIndex: 5,
-              pointerEvents: "none",
-              borderRadius: 16,
-            }}
-          />
-        )}
-
+      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         <div
-          style={{
-            backgroundColor: "#004680",
-            color: "#fff",
-            padding: "16px 24px",
-            fontSize: "18px",
-            fontWeight: 500,
-          }}
-        >
-          Registro de Novedad
-        </div>
-
-        <div
-          style={{
-            padding: 24,
+          id="tour-modal-tipo"
+          style={fakeFieldStyle(isTipoActive, {
             display: "flex",
-            flexDirection: "column",
-            gap: 22,
-            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-          }}
-        >
-          <div id="tour-modal-tipo" style={fieldStyle(isTipoActive)}>
-            <span style={{ color: "#94a3b8" }}>Novedad</span>
-            <svg style={{ width: 20, height: 20, fill: "#64748b" }} viewBox="0 0 24 24">
-              <path d="M7 10l5 5 5-5z" />
-            </svg>
-          </div>
-
-          <div style={{ display: "flex", gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Desde el día</div>
-              <div id="tour-modal-fecha-desde-field" style={fieldStyle(isDatesActive)}>
-                <span style={{ color: "#1e293b" }}>15/07/2026</span>
-                <svg style={{ width: 18, height: 18, fill: "#64748b" }} viewBox="0 0 24 24">
-                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v16c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H5V8h14v13z" />
-                </svg>
-              </div>
-            </div>
-
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Hasta el día</div>
-              <div
-                id="tour-modal-fecha-hasta-field"
-                style={fieldStyle(isDatesActive || activeField === "#tour-modal-fecha-hasta-field")}
-              >
-                <span style={{ color: "#1e293b" }}>15/07/2026</span>
-                <svg style={{ width: 18, height: 18, fill: "#64748b" }} viewBox="0 0 24 24">
-                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v16c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H5V8h14v13z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div
-            id="tour-modal-observaciones-field"
-            style={{
-              ...fieldStyle(isObsActive),
-              height: "auto",
-              minHeight: "92px",
-              alignItems: "flex-start",
-              padding: isObsActive ? "15px 13px" : "16px 14px",
-            }}
-          >
-            <span style={{ color: "#94a3b8", marginTop: "1px" }}>Observaciones</span>
-          </div>
-        </div>
-
-        <div
-          style={{
-            padding: "16px 24px",
-            display: "flex",
-            justifyContent: "flex-end",
             alignItems: "center",
-            gap: 16,
-            backgroundColor: "#f8fafc",
-          }}
+            justifyContent: "space-between",
+            height: 56,
+            padding: isTipoActive ? "0 13px" : "0 14px",
+            fontSize: 16,
+          })}
         >
-          <div
-            style={{
-              padding: "6px 16px",
-              borderRadius: 8,
-              border: "1px solid #cbd5e1",
-              color: "#475569",
-              fontWeight: 600,
-              fontSize: "0.875rem",
-              letterSpacing: "0.02857em",
-              cursor: "not-allowed",
-              textTransform: "uppercase",
-            }}
-          >
-            Cancelar
+          <span style={{ color: "#94a3b8" }}>Novedad</span>
+          <svg style={{ width: 20, height: 20, fill: "#64748b" }} viewBox="0 0 24 24">
+            <path d="M7 10l5 5 5-5z" />
+          </svg>
+        </div>
+
+        <div style={{ display: "flex", gap: 16 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Desde el día</div>
+            <div
+              id="tour-modal-fecha-desde-field"
+              style={fakeFieldStyle(isDatesActive, {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                height: 56,
+                padding: isDatesActive ? "0 13px" : "0 14px",
+                fontSize: 16,
+              })}
+            >
+              <span style={{ color: "#1e293b" }}>15/07/2026</span>
+              <svg style={{ width: 18, height: 18, fill: "#64748b" }} viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v16c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H5V8h14v13z" />
+              </svg>
+            </div>
           </div>
-          <div
-            style={{
-              padding: "6px 22px",
-              borderRadius: 8,
-              backgroundColor: "#004680",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: "0.875rem",
-              letterSpacing: "0.02857em",
-              cursor: "not-allowed",
-              textTransform: "uppercase",
-              boxShadow: "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)"
-            }}
-          >
-            Guardar
+
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Hasta el día</div>
+            <div
+              id="tour-modal-fecha-hasta-field"
+              style={fakeFieldStyle(isDatesActive || activeField === "#tour-modal-fecha-hasta-field", {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                height: 56,
+                padding: isDatesActive ? "0 13px" : "0 14px",
+                fontSize: 16,
+              })}
+            >
+              <span style={{ color: "#1e293b" }}>15/07/2026</span>
+              <svg style={{ width: 18, height: 18, fill: "#64748b" }} viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v16c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H5V8h14v13z" />
+              </svg>
+            </div>
           </div>
+        </div>
+
+        <div
+          id="tour-modal-observaciones-field"
+          style={fakeFieldStyle(isObsActive, {
+            display: "flex",
+            alignItems: "flex-start",
+            minHeight: 92,
+            padding: isObsActive ? "15px 13px" : "16px 14px",
+            fontSize: 16,
+          })}
+        >
+          <span style={{ color: "#94a3b8" }}>Observaciones</span>
         </div>
       </div>
-    </div>
+    </GenericTourModal>
   );
 };
 
-export const novedadModalTargets = [
-  "#tour-modal-tipo",
-  "#tour-modal-fecha-desde-field",
-  "#tour-modal-fecha-hasta-field",
-  "#tour-modal-observaciones-field",
+export const eventoModalTargets = [
+  "#tour-evento-tipo",
+  "#tour-evento-observaciones-field",
+  "#tour-evento-acciones",
 ];
 
-// ============================================================
-// MODAL SIMULADO - REPORTAR EVENTO / PAUSA ACTIVA
-// ============================================================
 export const FakeEventoModal: React.FC<{ open: boolean; activeField: string | null }> = ({
   open,
   activeField,
@@ -207,195 +125,83 @@ export const FakeEventoModal: React.FC<{ open: boolean; activeField: string | nu
   const isAccionesActive = activeField === "#tour-evento-acciones";
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9000,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 444,
-          backgroundColor: "#fff",
-          borderRadius: 16,
-          overflow: "hidden",
-          boxShadow: "0px 11px 15px -7px rgba(0,0,0,0.2), 0px 24px 38px 3px rgba(0,0,0,0.14), 0px 9px 46px 8px rgba(0,0,0,0.12)",
-          margin: 16,
-          position: "relative",
-        }}
-      >
-        {isModalStep && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
-              zIndex: 5,
-              pointerEvents: "none",
-              borderRadius: 16,
-            }}
-          />
-        )}
-
-        <div
-          style={{
-            backgroundColor: "#004680",
-            color: "#fff",
-            padding: "16px 24px",
-            fontSize: "18px",
-            fontWeight: 500,
-          }}
-        >
-          Reporta un evento
-        </div>
-
-        <div
-          style={{
-            padding: 24,
-            display: "flex",
-            flexDirection: "column",
-            gap: 20,
-            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-          }}
-        >
-          <div style={{ fontSize: "0.85rem", color: "#475569" }}>
-            Escoja la novedad presentada para ej. Andrea Soto:
-          </div>
-
-          <div>
-            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Evento</div>
-            <div
-              id="tour-evento-tipo"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-                height: "56px",
-                boxSizing: "border-box",
-                border: isTipoActive ? "3px solid #008CFF" : "1px solid rgba(0, 0, 0, 0.23)",
-                borderRadius: 8,
-                padding: isTipoActive ? "0 13px" : "0 14px",
-                backgroundColor: "#ffffff",
-                fontSize: "16px",
-                cursor: "not-allowed",
-                position: "relative",
-                zIndex: isTipoActive ? 6 : 1,
-                boxShadow: isTipoActive
-                  ? "0 0 8px rgba(0, 140, 255, 0.35)"
-                  : "none",
-                transition: "all 0.1s ease",
-              }}
-            >
-              <span style={{ color: "rgba(0, 0, 0, 0.87)" }}>Iniciar Pausa Activa</span>
-              <svg style={{ width: 24, height: 24, fill: "rgba(0, 0, 0, 0.54)" }} viewBox="0 0 24 24">
-                <path d="M7 10l5 5 5-5z" />
-              </svg>
-            </div>
-          </div>
-
-          <div style={{ position: "relative", zIndex: isObsActive ? 6 : 1 }}>
-            <div
-              id="tour-evento-observaciones-field"
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                width: "100%",
-                minHeight: "92px",
-                boxSizing: "border-box",
-                border: isObsActive ? "3px solid #008CFF" : "1px solid rgba(0, 0, 0, 0.23)",
-                borderRadius: 8,
-                padding: isObsActive ? "15px 13px" : "16.5px 14px",
-                backgroundColor: "#ffffff",
-                fontSize: "16px",
-                cursor: "not-allowed",
-                boxShadow: isObsActive ? "0 0 8px rgba(0, 140, 255, 0.35)" : "none",
-                transition: "all 0.1s ease",
-              }}
-            >
-              <span style={{ color: "rgba(0, 0, 0, 0.6)" }}>Observaciones</span>
-            </div>
-            <div
-              style={{
-                textAlign: "right",
-                fontSize: "0.75rem",
-                color: "rgba(0, 0, 0, 0.6)",
-                marginTop: 4,
-                fontWeight: 500,
-              }}
-            >
-              0/300 caracteres
-            </div>
-          </div>
-        </div>
-
+    <GenericTourModal
+      title="Reporta un evento"
+      maxWidth={444}
+      dimContent={isModalStep}
+      dimFooter={!isAccionesActive}
+      footer={
         <div
           id="tour-evento-acciones"
           style={{
-            padding: "16px 24px",
             display: "flex",
             justifyContent: "flex-end",
             alignItems: "center",
             gap: 16,
-            backgroundColor: "#f8fafc",
+            width: "100%",
             position: "relative",
             zIndex: isAccionesActive ? 6 : 1,
             border: isAccionesActive ? "3px solid #008CFF" : "3px solid transparent",
             borderRadius: isAccionesActive ? 8 : 0,
-            margin: isAccionesActive ? 6 : 0,
+            padding: isAccionesActive ? 6 : 0,
             boxShadow: isAccionesActive ? "0 0 8px rgba(0, 140, 255, 0.35)" : "none",
             transition: "all 0.1s ease",
           }}
         >
+          <FakeCancelButton />
+          <FakePrimaryButton />
+        </div>
+      }
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ fontSize: "0.85rem", color: "#475569" }}>
+          Escoja la novedad presentada para ej. Andrea Soto:
+        </div>
+
+        <div>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Evento</div>
           <div
-            style={{
-              padding: "6px 16px",
-              borderRadius: 8,
-              border: "1px solid #cbd5e1",
-              color: "#475569",
-              fontWeight: 600,
-              fontSize: "0.875rem",
-              letterSpacing: "0.02857em",
-              cursor: "not-allowed",
-              textTransform: "uppercase",
-            }}
+            id="tour-evento-tipo"
+            style={fakeFieldStyle(isTipoActive, {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              height: 56,
+              padding: isTipoActive ? "0 13px" : "0 14px",
+              fontSize: 16,
+            })}
           >
-            Cancelar
+            <span style={{ color: "rgba(0, 0, 0, 0.87)" }}>Iniciar Pausa Activa</span>
+            <svg style={{ width: 24, height: 24, fill: "rgba(0, 0, 0, 0.54)" }} viewBox="0 0 24 24">
+              <path d="M7 10l5 5 5-5z" />
+            </svg>
           </div>
+        </div>
+
+        <div>
           <div
-            style={{
-              padding: "6px 22px",
-              borderRadius: 8,
-              backgroundColor: "#004680",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: "0.875rem",
-              letterSpacing: "0.02857em",
-              cursor: "not-allowed",
-              textTransform: "uppercase",
-              boxShadow: "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
-            }}
+            id="tour-evento-observaciones-field"
+            style={fakeFieldStyle(isObsActive, {
+              display: "flex",
+              alignItems: "flex-start",
+              minHeight: 92,
+              padding: isObsActive ? "15px 13px" : "16.5px 14px",
+              fontSize: 16,
+            })}
           >
-            Guardar
+            <span style={{ color: "rgba(0, 0, 0, 0.6)" }}>Observaciones</span>
+          </div>
+          <div style={{ textAlign: "right", fontSize: "0.75rem", color: "rgba(0, 0, 0, 0.6)", marginTop: 4, fontWeight: 500 }}>
+            0/300 caracteres
           </div>
         </div>
       </div>
-    </div>
+    </GenericTourModal>
   );
 };
 
-export const eventoModalTargets = ["#tour-evento-tipo", "#tour-evento-observaciones-field", "#tour-evento-acciones"];
+export const countdownTargets = ["#tour-countdown-box"];
 
-// ============================================================
-// TARJETA FALSA DE EMPLEADO EN PAUSA ACTIVA (foto estatica, no funcional)
-// ============================================================
 export const FakeCountdownCard: React.FC<{ open: boolean }> = ({ open }) => {
   if (!open) return null;
 
@@ -621,5 +427,3 @@ export const FakeCountdownCard: React.FC<{ open: boolean }> = ({ open }) => {
     </div>
   );
 };
-
-export const countdownTargets = ["#tour-countdown-box"];
