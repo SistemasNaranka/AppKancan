@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/auth/hooks/useAuth';
 import { cargarTokenStorage } from '@/auth/services/tokenDirectus';
+import { ensureValidToken } from '@/auth/services/directusInterceptor';
 
 export interface NombreSeparado {
   first_name: string;
@@ -90,6 +91,7 @@ export const useParseNombreIA = () => {
 
     setProcesando(true);
     try {
+      await ensureValidToken();
       const tokens = cargarTokenStorage();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (tokens?.access) headers['Authorization'] = `Bearer ${tokens.access}`;
@@ -106,12 +108,18 @@ export const useParseNombreIA = () => {
             body: JSON.stringify({ model, contents }),
           });
           if (!resp.ok) {
+            if (resp.status === 401) {
+              await ensureValidToken();
+            }
             const e = await resp.json().catch(() => ({}));
             throw new Error(e?.message || `Error de IA (${resp.status})`);
           }
           const data = await resp.json();
           return parsearJSON(data.text || '');
         } catch (err: any) {
+          if (err?.message?.includes("Sesión") || err?.message?.includes("autenticación")) {
+            throw err;
+          }
           ultimoError = err;
         }
       }
