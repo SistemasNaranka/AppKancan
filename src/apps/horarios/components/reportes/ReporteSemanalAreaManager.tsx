@@ -21,12 +21,10 @@ import { getEmpleadosBulk, getTimeRecordsBulkRange, getPrimerPeriodoRegistro, ge
 import HistorialHorasModal from '../HistorialHorasModal';
 import { ObservationModal } from '../ObservationModal';
 import { useHolidays } from '../../../reservas/hooks/useHolidays';
-import EventIcon from '@mui/icons-material/Event';
 import FestivosDetalleModal, { FestivosChip, obtenerFestivosTrabajadosEmp } from './FestivosDetalleModal';
+import { MonitoreoTourProvider, TutorialMonitoreoButton, useMonitoreoTour } from '../tour/MonitoreoTour';
 
-// ─── Constantes ──────────────────────────────────────────────────────────────
-
-const LIMITE_HORAS_SEMANALES = 42; // Colombia: 42h/semana desde 2026
+const LIMITE_HORAS_SEMANALES = 42;
 
 const AVATAR_COLORS = [
   '#0284c7', '#7c3aed', '#16a34a', '#ea580c', '#db2777',
@@ -43,8 +41,6 @@ const NOMBRES_MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
-
-// ─── Utilidades ──────────────────────────────────────────────────────────────
 
 function getSemanasDelMes(anio: number, mes: number) {
   const startOfMonth = dayjs().year(anio).month(mes).startOf('month');
@@ -138,8 +134,6 @@ const contarDomingosEmp = (empId: unknown, records: any[]): number => {
   return dias.size;
 };
 
-// ─── Chip de domingos ────────────────────────────────────────────────────────
-
 function DomingosChip({ count, total }: { count: number; total: number }) {
   const config =
     count === 1
@@ -170,17 +164,25 @@ function DomingosChip({ count, total }: { count: number; total: number }) {
   );
 }
 
-// ─── Componente principal ────────────────────────────────────────────────────
-
 interface ReporteSemanalAreaManagerProps {
   storeId: number | null;
   storeName?: string;
 }
 
-export default function ReporteSemanalAreaManager({
+export default function ReporteSemanalAreaManager(props: ReporteSemanalAreaManagerProps) {
+  return (
+    <MonitoreoTourProvider>
+      <ReporteSemanalAreaManagerContent {...props} />
+    </MonitoreoTourProvider>
+  );
+}
+
+function ReporteSemanalAreaManagerContent({
   storeId,
   storeName,
 }: ReporteSemanalAreaManagerProps) {
+  const { run: tourRun, stepIndex: tourStepIndex, setStepIndex: setTourStepIndex } = useMonitoreoTour();
+
   const [selectedYear, setSelectedYear] = useState(dayjs().year());
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month());
   const [buscar, setBuscar] = useState('');
@@ -236,22 +238,18 @@ export default function ReporteSemanalAreaManager({
   const startRange = semanas[0]?.start;
   const endRange = semanas[semanas.length - 1]?.end;
 
-  // Calcular el total de domingos que caen en este mes
   const totalDomingosMes = useMemo(() => {
     let count = 0;
     const startOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
     const endOfMonth = startOfMonth.endOf('month');
     let cursor = startOfMonth;
     while (cursor.isBefore(endOfMonth) || cursor.isSame(endOfMonth, 'day')) {
-      if (cursor.day() === 0) {
-        count++;
-      }
+      if (cursor.day() === 0) count++;
       cursor = cursor.add(1, 'day');
     }
     return count;
   }, [selectedYear, selectedMonth]);
 
-  // Calcular el total de festivos que caen en este mes
   const totalFestivosMes = useMemo(() => {
     let count = 0;
     const startOfMonth = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
@@ -259,9 +257,7 @@ export default function ReporteSemanalAreaManager({
     let cursor = startOfMonth;
     while (cursor.isBefore(endOfMonth) || cursor.isSame(endOfMonth, 'day')) {
       const dateStr = cursor.format('YYYY-MM-DD');
-      if (holidayMap[dateStr]) {
-        count++;
-      }
+      if (holidayMap[dateStr]) count++;
       cursor = cursor.add(1, 'day');
     }
     return count;
@@ -297,7 +293,6 @@ export default function ReporteSemanalAreaManager({
     );
   }, [empleados, buscar]);
 
-  // ── Sin tienda seleccionada ────────────────────────────────────────────
   if (!storeId) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, gap: 2 }}>
@@ -312,7 +307,6 @@ export default function ReporteSemanalAreaManager({
     );
   }
 
-  // ── Cargando ───────────────────────────────────────────────────────────
   if (cargando) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8, gap: 2 }}>
@@ -327,7 +321,6 @@ export default function ReporteSemanalAreaManager({
   return (
     <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-      {/* ── Encabezado ─────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f2c4a' }}>
@@ -340,51 +333,53 @@ export default function ReporteSemanalAreaManager({
           )}
         </Box>
 
-        {/* Controles: año, mes, búsqueda */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
-          <FormControl size="small">
-            <Select
-              value={selectedYear}
-              onChange={e => setSelectedYear(Number(e.target.value))}
-              sx={{ minWidth: 90, bgcolor: '#f8fafc', borderRadius: 2, fontSize: '0.85rem' }}
-            >
-              {listadoAnios.map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
-            </Select>
-          </FormControl>
-          <FormControl size="small">
-            <Select
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(Number(e.target.value))}
-              sx={{ minWidth: 120, bgcolor: '#f8fafc', borderRadius: 2, fontSize: '0.85rem' }}
-            >
-              {listadoMeses.map(m => (
-                <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            size="small"
-            placeholder="Buscar empleado..."
-            value={buscar}
-            onChange={e => setBuscar(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ fontSize: 16, color: '#94A3B8' }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              width: 200,
-              '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f8fafc', fontSize: '0.85rem' },
-            }}
-          />
+          <TutorialMonitoreoButton />
+          <Box className="tour-ch-filtros" sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+            <FormControl size="small">
+              <Select
+                value={selectedYear}
+                onChange={e => setSelectedYear(Number(e.target.value))}
+                sx={{ minWidth: 90, bgcolor: '#f8fafc', borderRadius: 2, fontSize: '0.85rem' }}
+              >
+                {listadoAnios.map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <FormControl size="small">
+              <Select
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(Number(e.target.value))}
+                sx={{ minWidth: 120, bgcolor: '#f8fafc', borderRadius: 2, fontSize: '0.85rem' }}
+              >
+                {listadoMeses.map(m => (
+                  <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              size="small"
+              placeholder="Buscar empleado..."
+              value={buscar}
+              onChange={e => setBuscar(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: 16, color: '#94A3B8' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                width: 200,
+                '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f8fafc', fontSize: '0.85rem' },
+              }}
+            />
+          </Box>
         </Box>
       </Box>
 
-      {/* ── Leyenda ────────────────────────────────────────────────────── */}
       <Paper
         elevation={0}
+        className="tour-ch-indicadores"
         sx={{
           p: 2, borderRadius: 3, border: '1px solid #E2E8F0',
           display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center',
@@ -413,7 +408,6 @@ export default function ReporteSemanalAreaManager({
         </Box>
       </Paper>
 
-      {/* ── Tabla ──────────────────────────────────────────────────────── */}
       {empleadosFiltrados.length === 0 ? (
         <Alert severity="info" sx={{ borderRadius: 3 }}>
           {(empleados as any[]).length === 0
@@ -439,7 +433,7 @@ export default function ReporteSemanalAreaManager({
               >
                 <TableCell sx={{ minWidth: 150 }}>Empleado</TableCell>
                 {semanas.map((s, i) => (
-                  <TableCell key={i} align="center" sx={{ minWidth: 80 }}>
+                  <TableCell key={i} align="center" className={i === 0 ? 'tour-ch-semanas' : undefined} sx={{ minWidth: 80 }}>
                     Sem. {i + 1}
                     <br />
                     <Typography
@@ -450,14 +444,14 @@ export default function ReporteSemanalAreaManager({
                     </Typography>
                   </TableCell>
                 ))}
-                <TableCell align="center" sx={{ minWidth: 80 }}>Total Mes</TableCell>
-                <TableCell align="center" sx={{ minWidth: 90 }}>Domingos</TableCell>
-                <TableCell align="center" sx={{ minWidth: 90 }}>Festivos</TableCell>
+                <TableCell align="center" className="tour-ch-total-mes" sx={{ minWidth: 80 }}>Total Mes</TableCell>
+                <TableCell align="center" className="tour-ch-domingos" sx={{ minWidth: 90 }}>Domingos</TableCell>
+                <TableCell align="center" className="tour-ch-festivos" sx={{ minWidth: 90 }}>Festivos</TableCell>
                 <TableCell align="center" sx={{ minWidth: 60 }}>Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {empleadosFiltrados.map((emp: any) => {
+              {empleadosFiltrados.map((emp: any, idx: number) => {
                 const minutosSemanales = semanas.map(s =>
                   calcularMinutosSemanales(emp.id, s.start, s.end, records),
                 );
@@ -487,7 +481,6 @@ export default function ReporteSemanalAreaManager({
                       '& td': { py: 1.25, borderColor: '#F1F5F9' },
                     }}
                   >
-                    {/* Empleado */}
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                         <Avatar
@@ -512,7 +505,6 @@ export default function ReporteSemanalAreaManager({
                       </Box>
                     </TableCell>
 
-                    {/* Horas por semana */}
                     {minutosSemanales.map((min, i) => {
                       const horas = min / 60;
                       const esExtra = horas > LIMITE_HORAS_SEMANALES;
@@ -562,7 +554,6 @@ export default function ReporteSemanalAreaManager({
                       );
                     })}
 
-                    {/* Total del mes */}
                     <TableCell align="center">
                       <Typography
                         variant="body2"
@@ -576,32 +567,30 @@ export default function ReporteSemanalAreaManager({
                       </Typography>
                     </TableCell>
 
-                    {/* Domingos trabajados */}
                     <TableCell align="center">
                       <DomingosChip count={domingos} total={totalDomingosMes} />
                     </TableCell>
 
-                    {/* Festivos trabajados */}
                     <TableCell align="center">
-                      <FestivosChip 
-                        count={festivosCount} 
-                        total={totalFestivosMes} 
+                      <FestivosChip
+                        count={festivosCount}
+                        total={totalFestivosMes}
                         onClick={() => {
                           setFestivosModalData({
                             open: true,
                             empleado: emp.nombre,
                             festivos: festivosTrabajados,
                           });
-                        }} 
+                        }}
                       />
                     </TableCell>
 
-                    {/* Acciones para ver historial detallado */}
                     <TableCell align="center">
                       <Tooltip title="Ver detalle de horas diarias" arrow>
                         <IconButton
                           size="small"
                           color="primary"
+                          className={idx === 0 ? 'tour-ch-acciones' : undefined}
                           onClick={() => {
                             const mapFila = {
                               id: String(emp.id),
@@ -617,6 +606,10 @@ export default function ReporteSemanalAreaManager({
                               horasDia: '',
                               horasSemana: '',
                             };
+                            if (tourRun && tourStepIndex === 6) {
+                              setTourStepIndex(7);
+                              return;
+                            }
                             setEmpleadoSeleccionado(mapFila);
                             setHistorialOpen(true);
                           }}
@@ -634,7 +627,6 @@ export default function ReporteSemanalAreaManager({
         </TableContainer>
       )}
 
-      {/* Modal de Historial Reutilizado */}
       {historialOpen && empleadoSeleccionado && (
         <HistorialHorasModal
           open={historialOpen}
@@ -646,7 +638,6 @@ export default function ReporteSemanalAreaManager({
           tiendaId={storeId!}
           todasNovedades={todasNovedades}
           onDayClick={(fechaStr, empNombre) => {
-            // Filtrar y mapear marcas del día seleccionado
             const empRecords = records.filter(
               r =>
                 Number(r.employee_id?.id || r.employee_id) === Number(empleadoSeleccionado.id) &&
@@ -667,7 +658,6 @@ export default function ReporteSemanalAreaManager({
         />
       )}
 
-      {/* Modal Detallado de Observaciones y Marcaciones */}
       {diaDetalleData.open && (
         <ObservationModal
           open={diaDetalleData.open}
@@ -684,14 +674,12 @@ export default function ReporteSemanalAreaManager({
         />
       )}
 
-      {/* Modal Detallado de Festivos Trabajados Modular */}
       <FestivosDetalleModal
         open={festivosModalData.open}
         onClose={() => setFestivosModalData({ open: false, empleado: '', festivos: [] })}
         empleadoNombre={festivosModalData.empleado}
         festivos={festivosModalData.festivos}
         onVerMarcas={(fechaStr, recordsFestivo) => {
-          // Ocultar modal de festivos sin borrar la data del empleado
           setFestivosModalData(prev => ({ ...prev, open: false }));
           const obsMapeadas = recordsFestivo.map((r: any) => ({
             evento: r.log_type,
