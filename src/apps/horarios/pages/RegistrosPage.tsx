@@ -356,6 +356,7 @@ function RegistrosPageContent() {
           {/* Selector de tienda y botones - en móvil se apilan verticalmente */}
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 1, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
             {((esAdmin() && !vistaAdmin && !vistaReporte) || (isAreaMgr && !vistaAdmin)) && (
+              <Box data-tour="reporte-tour-tienda-header">
               <Autocomplete
                 size="small"
                 options={[{ id: null, name: 'Todas las tiendas' }, ...tiendasFiltradas]}
@@ -383,6 +384,7 @@ function RegistrosPageContent() {
                   />
                 )}
               />
+              </Box>
             )}
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5, justifyContent: { xs: 'center', sm: 'flex-end' }, width: { xs: '100%', sm: 'auto' } }}>
