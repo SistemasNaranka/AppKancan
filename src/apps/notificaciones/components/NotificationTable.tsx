@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Paper, Box, Typography, IconButton, LinearProgress, Tooltip } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Paper, Box, Typography, IconButton, LinearProgress, Tooltip,
+} from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { INotification, EstadoVisibilidad } from '../interfaces/notification.interface';
@@ -8,9 +10,7 @@ interface TableProps {
   registros: INotification[];
   cargando?: boolean;
   onSelect: (n: INotification | null) => void;
-  /** Marca/desmarca un cambio pendiente para la notificación (no llega al backend). */
   onTogglePendiente?: (id: string, nuevoStatus: EstadoVisibilidad) => void;
-  /** Mapa id → nuevoStatus de cambios aún no confirmados. */
   pendingChanges?: Record<string, EstadoVisibilidad>;
   onRefrescar?: () => Promise<void> | void;
 }
@@ -25,9 +25,68 @@ export default function NotificationTable({
   const [pagina, setPagina] = useState(1);
   const porPagina = 5;
 
-  const totalPaginas = Math.ceil(registros.length / porPagina) || 1;
-  const dataVisible = registros.slice((pagina - 1) * porPagina, pagina * porPagina);
+  // Calcular total de páginas
+  const totalPaginas = Math.max(1, Math.ceil(registros.length / porPagina));
 
+  // Si la página actual supera el total, ajustar a la última
+  useEffect(() => {
+    if (pagina > totalPaginas) {
+      setPagina(totalPaginas);
+    }
+  }, [totalPaginas, pagina]);
+
+  // Datos visibles en la página actual
+  const dataVisible = useMemo(() => {
+    const inicio = (pagina - 1) * porPagina;
+    const fin = inicio + porPagina;
+    return registros.slice(inicio, fin);
+  }, [registros, pagina, porPagina]);
+
+  // Generar array de números de página a mostrar (con elipses)
+  const paginasMostradas = useMemo(() => {
+    const total = totalPaginas;
+    const actual = pagina;
+    const delta = 2; // páginas a cada lado de la actual
+    const rango: (number | string)[] = [];
+
+    // Siempre mostrar la primera
+    rango.push(1);
+
+    // Calcular límites
+    let inicio = Math.max(2, actual - delta);
+    let fin = Math.min(total - 1, actual + delta);
+
+    if (actual - delta > 2) {
+      rango.push('...');
+    }
+
+    for (let i = inicio; i <= fin; i++) {
+      rango.push(i);
+    }
+
+    if (actual + delta < total - 1) {
+      rango.push('...');
+    }
+
+    if (total > 1) {
+      rango.push(total);
+    }
+
+    // Eliminar duplicados (puede pasar si total es pequeño)
+    return rango.filter((v, i, a) => a.indexOf(v) === i);
+  }, [totalPaginas, pagina]);
+
+  // Handlers de navegación
+  const irPagina = (num: number) => {
+    if (num >= 1 && num <= totalPaginas) {
+      setPagina(num);
+    }
+  };
+
+  const siguiente = () => irPagina(pagina + 1);
+  const anterior = () => irPagina(pagina - 1);
+
+  // Estilos para el badge de estado
   const getBadgeConfig = (tipo: string) => {
     switch (tipo?.toUpperCase()) {
       case 'ENTREGADO': return { bg: '#e2f4f2', color: '#16a34a' };
@@ -58,7 +117,7 @@ export default function NotificationTable({
           bgcolor: '#ffffff',
           overflow: 'hidden',
           boxShadow: '0px 2px 8px rgba(15, 23, 42, 0.02)',
-          position: 'relative'
+          position: 'relative',
         }}
       >
         {cargando && (
@@ -70,11 +129,12 @@ export default function NotificationTable({
               right: 0,
               height: '3px',
               bgcolor: 'transparent',
-              '& .MuiLinearProgress-bar': { bgcolor: '#004a99' }
+              '& .MuiLinearProgress-bar': { bgcolor: '#004a99' },
             }}
           />
         )}
-        {/* ENCABEZADO DE LA TABLA */}
+
+        {/* ENCABEZADO */}
         <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, gap: 3, px: 3, py: 1.5, bgcolor: '#eff6ff' }}>
           <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', fontFamily: 'Inter' }}>ASUNTO</Typography>
           <Typography variant="caption" sx={{ color: '#424754', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', fontFamily: 'Inter', textAlign: 'center' }}>MENSAJE</Typography>
@@ -106,11 +166,10 @@ export default function NotificationTable({
                   opacity: inactiva ? 0.55 : 1,
                   bgcolor: pendiente ? '#fff7ed' : 'transparent',
                   '&:hover': { bgcolor: pendiente ? '#ffedd5' : '#f8fafc' },
-                  transition: 'background-color 0.2s, opacity 0.2s'
+                  transition: 'background-color 0.2s, opacity 0.2s',
                 }}
               >
                 <Box sx={{ display: 'grid', gridTemplateColumns: gridLayout, alignItems: 'center', gap: 3, p: 2.5, px: 3 }}>
-
                   {/* Asunto */}
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body1" sx={{ fontWeight: 800, color: '#191b23', fontSize: '0.92rem', fontFamily: 'Inter', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -118,7 +177,7 @@ export default function NotificationTable({
                     </Typography>
                   </Box>
 
-                  {/* Mensaje — multilínea centrado con límite de 4 líneas */}
+                  {/* Mensaje */}
                   <Typography
                     variant="body2"
                     sx={{
@@ -156,7 +215,7 @@ export default function NotificationTable({
                     </Typography>
                   </Box>
 
-                  {/* Acciones — botón único de ojo (marca cambio pendiente) */}
+                  {/* Acciones */}
                   <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                     <Tooltip
                       title={
@@ -186,20 +245,107 @@ export default function NotificationTable({
           })
         )}
 
-        {/* PIE DE TABLA */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, px: 3, bgcolor: '#f8fafc' }}>
+        {/* PIE DE TABLA con paginación mejorada */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, px: 3, bgcolor: '#f8fafc', flexWrap: 'wrap', gap: 1 }}>
           <Typography sx={{ color: '#424754', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Inter' }}>
             Mostrando <b style={{ color: '#004a99' }}>{dataVisible.length}</b> de <b style={{ color: '#004a99' }}>{registros.length}</b> registros
           </Typography>
-          <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center' }}>
-            <Box onClick={() => setPagina(prev => Math.max(prev - 1, 1))} sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer', border: '1px solid #cbd5e1', bgcolor: '#ffffff', color: '#004a99', fontWeight: 700, fontSize: '0.85rem', userSelect: 'none', '&:hover': { bgcolor: '#f1f5f9' } }}>‹</Box>
-            {[...Array(totalPaginas)].map((_, i) => (
-              <Box key={i} onClick={() => setPagina(i + 1)} sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer', bgcolor: pagina === i + 1 ? '#004a99' : '#ffffff', color: pagina === i + 1 ? '#ffffff' : '#004a99', border: pagina === i + 1 ? '1px solid #004a99' : '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.85rem', userSelect: 'none', '&:hover': { bgcolor: pagina === i + 1 ? '#004a99' : '#f1f5f9' } }}>{i + 1}</Box>
-            ))}
-            <Box onClick={() => setPagina(prev => Math.min(prev + 1, totalPaginas))} sx={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer', border: '1px solid #cbd5e1', bgcolor: '#ffffff', color: '#004a99', fontWeight: 700, fontSize: '0.85rem', userSelect: 'none', '&:hover': { bgcolor: '#f1f5f9' } }}>›</Box>
+
+          <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center', flexWrap: 'wrap', overflowX: 'auto', py: 0.5 }}>
+            {/* Flecha izquierda */}
+            <Box
+              onClick={anterior}
+              sx={{
+                width: 32,
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '6px',
+                cursor: pagina === 1 ? 'default' : 'pointer',
+                border: '1px solid #cbd5e1',
+                bgcolor: '#ffffff',
+                color: pagina === 1 ? '#cbd5e1' : '#004a99',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                userSelect: 'none',
+                '&:hover': { bgcolor: pagina === 1 ? '#ffffff' : '#f1f5f9' },
+                opacity: pagina === 1 ? 0.5 : 1,
+              }}
+            >
+              ‹
+            </Box>
+
+            {/* Números de página (con elipses) */}
+            {paginasMostradas.map((num, idx) =>
+              typeof num === 'number' ? (
+                <Box
+                  key={idx}
+                  onClick={() => irPagina(num)}
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    bgcolor: pagina === num ? '#004a99' : '#ffffff',
+                    color: pagina === num ? '#ffffff' : '#004a99',
+                    border: pagina === num ? '1px solid #004a99' : '1px solid #cbd5e1',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    userSelect: 'none',
+                    '&:hover': { bgcolor: pagina === num ? '#004a99' : '#f1f5f9' },
+                  }}
+                >
+                  {num}
+                </Box>
+              ) : (
+                <Box
+                  key={idx}
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#64748b',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    userSelect: 'none',
+                  }}
+                >
+                  …
+                </Box>
+              )
+            )}
+
+            {/* Flecha derecha */}
+            <Box
+              onClick={siguiente}
+              sx={{
+                width: 32,
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '6px',
+                cursor: pagina === totalPaginas ? 'default' : 'pointer',
+                border: '1px solid #cbd5e1',
+                bgcolor: '#ffffff',
+                color: pagina === totalPaginas ? '#cbd5e1' : '#004a99',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                userSelect: 'none',
+                '&:hover': { bgcolor: pagina === totalPaginas ? '#ffffff' : '#f1f5f9' },
+                opacity: pagina === totalPaginas ? 0.5 : 1,
+              }}
+            >
+              ›
+            </Box>
           </Box>
         </Box>
-
       </Paper>
     </Box>
   );

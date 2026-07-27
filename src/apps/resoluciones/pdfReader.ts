@@ -1,5 +1,6 @@
 import * as pdfjsLib from "pdfjs-dist";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
+import { ensureValidToken } from "@/auth/services/directusInterceptor";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
@@ -166,7 +167,13 @@ export async function LearnPDF(
       }
       const base64Data = btoa(binary);
 
-      // Obtener el token de Directus para autenticar la petición al proxy
+      // Asegurar token válido antes de hacer la petición
+      try {
+        await ensureValidToken();
+      } catch (authErr: any) {
+        return `Error de autenticación: ${authErr.message || "Sesión expirada"}`;
+      }
+
       const tokens = cargarTokenStorage();
       const headers: HeadersInit = {
         "Content-Type": "application/json",
@@ -205,6 +212,10 @@ export async function LearnPDF(
           });
 
           if (!response.ok) {
+            if (response.status === 401) {
+              // Si fue 401, re-verificar token (esto limpiará sesión y redirigirá si el refresh falla)
+              await ensureValidToken();
+            }
             const errData = await response.json().catch(() => ({}));
             throw new Error(errData.message || errData.error || `HTTP ${response.status}`);
           }
@@ -230,6 +241,9 @@ export async function LearnPDF(
             throw new Error("La respuesta de la IA no contenía el formato JSON esperado o le faltaba el número de resolución.");
           }
         } catch (geminiError: any) {
+          if (geminiError?.message?.includes("Sesión") || geminiError?.message?.includes("autenticación")) {
+            return `Error de sesión: ${geminiError.message}`;
+          }
           console.error(`Error con modelo: ${modeloAUsar}`);
           geminiErrorDetails = geminiError?.message || String(geminiError);
         }
