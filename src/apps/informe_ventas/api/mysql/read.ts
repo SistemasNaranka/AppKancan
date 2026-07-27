@@ -9,13 +9,19 @@ import {
   Agrupacion,
 } from "../../types";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
+import { ensureValidToken } from "@/auth/services/directusInterceptor";
 
 const API_URL = import.meta.env.VITE_VENTAS_API_URL || "/api";
 
 /**
- * Obtiene los headers de autenticación con el token de Directus
+ * Obtiene los headers de autenticación con el token de Directus (renovando automáticamente si es necesario)
  */
-function getAuthHeaders(): HeadersInit {
+async function getAuthHeaders(): Promise<HeadersInit> {
+  try {
+    await ensureValidToken();
+  } catch (err) {
+    console.error("❌ Error de autenticación en getAuthHeaders:", err);
+  }
   const tokens = cargarTokenStorage();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -65,7 +71,7 @@ export async function obtenerZonas(
 
     const url = `${API_URL}/zonas${params.toString() ? `?${params.toString()}` : ""}`;
     const response = await fetch(url, {
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
     const data = await handleResponse<Zona[]>(response);
     return data.map((z) => ({ nombre: z.nombre?.trim() || "" }));
@@ -91,7 +97,7 @@ export async function obtenerCiudades(
 
     const url = `${API_URL}/ciudades${params.toString() ? `?${params.toString()}` : ""}`;
     const response = await fetch(url, {
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
     const data = await handleResponse<Ciudad[]>(response);
     return data.map((c) => ({ nombre: c.nombre?.trim() || "" }));
@@ -117,7 +123,7 @@ export async function obtenerTiendas(
 
     const url = `${API_URL}/tiendas${params.toString() ? `?${params.toString()}` : ""}`;
     const response = await fetch(url, {
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
     const data = await handleResponse<Tienda[]>(response);
     return data.map((t) => ({
@@ -138,7 +144,7 @@ export async function obtenerTiendas(
 export async function obtenerGruposHomogeneos(): Promise<GrupoHomogeneo[]> {
   try {
     const response = await fetch(`${API_URL}/grupos-homogeneos`, {
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
     const data = await handleResponse<any[]>(response);
     return data.map((item: any) => ({
@@ -176,7 +182,7 @@ export async function obtenerVentas(
 
     const url = `${API_URL}/ventas?${params.toString()}`;
     const response = await fetch(url, {
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
     const responseData = await handleResponse<{ data: any[], total: number }>(response);
     const data = responseData.data || [];
@@ -206,7 +212,7 @@ export async function obtenerVentas(
 export async function obtenerAsesores(): Promise<string[]> {
   try {
     const response = await fetch(`${API_URL}/asesores`, {
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
     const data = await handleResponse<string[]>(response);
     return data.map((a) => a?.trim() || "").sort();
@@ -223,7 +229,7 @@ export async function obtenerAsesores(): Promise<string[]> {
 export async function obtenerLineasVenta(): Promise<LineaVenta[]> {
   try {
     const response = await fetch(`${API_URL}/lineas-venta`, {
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
     const data = await handleResponse<any[]>(response);
     return data.map((item: any) => item.id as LineaVenta);
@@ -240,7 +246,7 @@ export async function obtenerLineasVenta(): Promise<LineaVenta[]> {
 export async function obtenerAgrupaciones(): Promise<Agrupacion[]> {
   try {
     const response = await fetch(`${API_URL}/agrupaciones`, {
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
     const data = await handleResponse<any[]>(response);
     return data.map((item: any) => item.id as Agrupacion);

@@ -29,31 +29,29 @@ function refreshTokensOnce(refreshToken: string): Promise<void> {
 
 export async function ensureValidToken(): Promise<void> {
   const tokens = cargarTokenStorage();
-  // Si no hay tokens, no hacer nada (el usuario no está autenticado)
+  // Si no hay tokens, limpiar y lanzar error inmediatamente
   if (!tokens) {
-    return;
+    borrarTokenStorage();
+    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+      window.location.href = "/";
+    }
+    throw new Error("Sesión no encontrada. Por favor inicie sesión.");
   }
 
-  // Si el token está expirado, refrescarlo
+  // Si el token está expirado, refrescarlo usando el mutex singleton
   if (isExpired(tokens.expires_at)) {
     try {
-      const newTokens = await refreshDirectus(tokens.refresh);
-      // Guardar los nuevos tokens
-      guardarTokenStorage(
-        newTokens.access_token,
-        newTokens.refresh_token,
-        newTokens.expires_at,
-      );
-
-      // Actualizar el token en el cliente de Directus
-      await setTokenDirectus(newTokens.access_token);
+      await refreshTokensOnce(tokens.refresh);
     } catch (error) {
       borrarTokenStorage();
-      window.location.href = "/";
       console.error("❌ Error al refrescar token:", error);
+      if (typeof window !== "undefined" && window.location.pathname !== "/") {
+        window.location.href = "/";
+      }
+      throw new Error("Sesión expirada. Por favor inicie sesión de nuevo.");
     }
   } else {
-    // Si no está expirado, igual nos aseguramos que el cliente de Directus lo tenga (evita 403 en reloads)
+    // Si no está expirado, aseguramos que el cliente de Directus lo tenga (evita 403 en reloads)
     await setTokenDirectus(tokens.access);
   }
 }
@@ -69,23 +67,19 @@ export async function requestWithAutoRefresh<T>(
   try {
     return await requestFn();
   } catch (error: any) {
-    // Si falla por token inválido (401), intentar refrescar y reintentar una vez
-    if (error?.response?.status === 401) {
+    // Si falla por token inválido (401), intentar refrescar con el mutex y reintentar una vez
+    if (error?.response?.status === 401 || error?.status === 401) {
       const tokens = cargarTokenStorage();
       if (!tokens) {
-        throw error;
+        borrarTokenStorage();
+        if (typeof window !== "undefined" && window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
+        throw new Error("Sesión no encontrada. Por favor inicie sesión.");
       }
 
       try {
-        // Forzar refresh
-        const newTokens = await refreshDirectus(tokens.refresh);
-        guardarTokenStorage(
-          newTokens.access_token,
-          newTokens.refresh_token,
-          newTokens.expires_at,
-        );
-        await setTokenDirectus(newTokens.access_token);
-
+        await refreshTokensOnce(tokens.refresh);
         // Reintentar la petición
         return await requestFn();
       } catch (refreshError) {
@@ -93,7 +87,11 @@ export async function requestWithAutoRefresh<T>(
           "❌ Error al refrescar token después de 401:",
           refreshError,
         );
-        // Manejar sesión expirada (cierra sesión y redirige)
+        borrarTokenStorage();
+        if (typeof window !== "undefined" && window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
+        throw new Error("Sesión expirada. Por favor inicie sesión de nuevo.");
       }
     }
 

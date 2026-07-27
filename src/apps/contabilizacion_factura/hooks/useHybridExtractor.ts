@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { DatosFacturaPDF, ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
+import { ensureValidToken } from "@/auth/services/directusInterceptor";
 
 const MODELO_POR_DEFECTO = "gemini-3.6-flash";
 
@@ -152,6 +153,7 @@ const parseResponse = useCallback((response: string): RespuestaExtraccion => {
   const extractWithGemini = useCallback(
     async (file: File, modeloAUsar: string): Promise<string> => {
       try {
+        await ensureValidToken();
         const base64Data = await convertFileToBase64(file);
 
         const tokens = cargarTokenStorage();
@@ -189,13 +191,19 @@ const parseResponse = useCallback((response: string): RespuestaExtraccion => {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            await ensureValidToken();
+          }
           const errData = await response.json().catch(() => ({}));
           throw new Error(errData.message || errData.error || `HTTP ${response.status}`);
         }
 
         const resData = await response.json();
         return resData.text || "";
-      } catch (geminiError) {
+      } catch (geminiError: any) {
+        if (geminiError?.message?.includes("Sesión") || geminiError?.message?.includes("autenticación")) {
+          throw geminiError;
+        }
         const errorMsg =
           geminiError instanceof Error
             ? geminiError.message
