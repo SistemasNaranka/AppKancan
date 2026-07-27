@@ -63,7 +63,7 @@ export default function EditHourModal({
   const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs | null>(dayjs());
   const [horaInicial, setHoraInicial] = useState<dayjs.Dayjs | null>(null);
   const [horaObservacion, setHoraObservacion] = useState('');
-  const [reasonId, setReasonId] = useState<number | null>(null);
+  const [reasonId, setReasonId] = useState<number>(0); // 👈 0 = sin motivo
   const [errorValidacion, setErrorValidacion] = useState<string | null>(null);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function EditHourModal({
       setHoraSeleccionada(horaDayjs);
       setHoraInicial(horaDayjs);
       setHoraObservacion(initialObservation || '');
-      setReasonId(initialReasonId ?? null);
+      setReasonId(initialReasonId ?? 0); // 👈 0 si no hay motivo
     }
   }, [open, initialTimeStr, initialObservation, initialReasonId]);
 
@@ -135,19 +135,20 @@ export default function EditHourModal({
     }
   }, [horaSeleccionada, open, eventName, registros]);
 
-  const motivoSeleccionado = reasonId === null ? undefined : reasons.find((r) => Number(r.id) === Number(reasonId));
+  const motivoSeleccionado = reasonId === 0 ? undefined : reasons.find((r) => Number(r.id) === Number(reasonId));
   const esOtro = (motivoSeleccionado?.name || '').trim().toLowerCase() === 'otro';
 
   const handleConfirmarHora = async () => {
     if (esOtro && horaObservacion.trim().length < NOTA_MIN_OTRO) return;
     const horaFormateada = horaSeleccionada?.format('hh:mm A') || '';
-    await onConfirm(horaFormateada, horaObservacion, reasonId);
+    // 👈 Si reasonId es 0, enviamos null (sin motivo)
+    await onConfirm(horaFormateada, horaObservacion, reasonId === 0 ? null : reasonId);
     onClose();
   };
 
   const horaCambiada = horaSeleccionada && horaInicial && !horaSeleccionada.isSame(horaInicial, 'minute');
   const notaValida = !esOtro || horaObservacion.trim().length >= NOTA_MIN_OTRO;
-  const puedeGuardar = horaCambiada && notaValida && !errorValidacion && (motivoRequerido ? reasonId !== null : true);
+  const puedeGuardar = horaCambiada && notaValida && !errorValidacion && (motivoRequerido ? reasonId !== 0 : true);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
@@ -178,14 +179,13 @@ export default function EditHourModal({
             <Select
               labelId="motivo-edit-label"
               label={motivoRequerido ? 'Motivo' : 'Motivo (opcional)'}
-              value={reasonId === null ? '' : reasonId}
+              value={reasonId}
               onChange={(e) => {
-                const value = e.target.value;
-                setReasonId(value === '' ? null : Number(value));
+                setReasonId(Number(e.target.value));
               }}
               sx={{ borderRadius: 2 }}
             >
-              {!motivoRequerido && <MenuItem value="">Sin motivo</MenuItem>}
+              {!motivoRequerido && <MenuItem value={0}>Sin motivo</MenuItem>}
               {reasons.map((r) => (
                 <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
               ))}
