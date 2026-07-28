@@ -758,7 +758,7 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
                         onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                         fullWidth
                         sx={{ mb: 3, bgcolor: '#ffffff', borderRadius: 2 }}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment> }}
+                        slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment> } }}
                     />
 
                     {loading ? (

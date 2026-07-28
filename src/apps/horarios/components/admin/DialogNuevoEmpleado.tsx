@@ -323,8 +323,10 @@ export default function DialogNuevoEmpleado({
               placeholder="correo@dominio.com"
               value={form.email}
               onChange={(e) => setCampo('email', e.target.value)}
-              InputProps={{
-                startAdornment: <EmailIcon sx={{ color: '#94a3b8', mr: 1 }} />,
+              slotProps={{
+                input: {
+                  startAdornment: <EmailIcon sx={{ color: '#94a3b8', mr: 1 }} />,
+                },
               }}
             />
             <TextField
@@ -333,8 +335,10 @@ export default function DialogNuevoEmpleado({
               placeholder="Número de celular"
               value={form.phone}
               onChange={(e) => setCampo('phone', e.target.value)}
-              InputProps={{
-                startAdornment: <PhoneIcon sx={{ color: '#94a3b8', mr: 1 }} />,
+              slotProps={{
+                input: {
+                  startAdornment: <PhoneIcon sx={{ color: '#94a3b8', mr: 1 }} />,
+                },
               }}
             />
           </Box>

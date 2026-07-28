@@ -8,6 +8,8 @@ import CompletadaIcon from '@mui/icons-material/TaskAlt';
 import CanceladaIcon from '@mui/icons-material/Block';
 import TotalIcon from '@mui/icons-material/Inventory';
 
+import { GarantiaStats } from "../types";
+
 interface StatCardProps {
   title: string;
   value: number;
@@ -72,30 +74,19 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, isLoadin
 );
 
 interface GarantiaStatsCardsProps {
-  stats?: {
-    total: number;
-    pendientes: number;
-    enRevision: number;
-    aprobadas: number;
-    rechazadas: number;
-    completadas: number;
-    canceladas: number;
-  };
+  stats?: GarantiaStats;
   isLoading: boolean;
 }
 
 export const WarrantyStatsCards: React.FC<GarantiaStatsCardsProps> = ({ stats, isLoading }) => {
-  const defaultStats = {
-    total: 0,
-    pendientes: 0,
-    enRevision: 0,
-    aprobadas: 0,
-    rechazadas: 0,
-    completadas: 0,
-    canceladas: 0,
+  const displayStats = {
+    total: stats?.total ?? 0,
+    pendientes: stats?.pendiente ?? 0,
+    enRevision: stats?.en_revision ?? 0,
+    aprobadas: stats?.aprobada ?? 0,
+    rechazadas: stats?.rechazada ?? 0,
+    completadas: stats?.completada ?? 0,
   };
-
-  const displayStats = stats || defaultStats;
 
   return (
     <Grid container spacing={2}>

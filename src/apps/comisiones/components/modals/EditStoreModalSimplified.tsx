@@ -477,7 +477,7 @@ export const EditStoreModalSimplified: React.FC<
                   }}
                   onKeyDown={handleKeyPress}
                   type="number"
-                  inputProps={{ maxLength: 4 }}
+                  slotProps={{ htmlInput: { maxLength: 4 } }}
                   sx={{
                     bgcolor: "white",
                     "& .MuiInputBase-input": {

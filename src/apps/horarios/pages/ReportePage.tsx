@@ -497,12 +497,14 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
               placeholder="Buscar por nombre..."
               value={searchNombre}
               onChange={(e) => setSearchNombre(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PersonSearchIcon sx={{ color: '#004680' }} />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonSearchIcon sx={{ color: '#004680' }} />
+                    </InputAdornment>
+                  ),
+                },
               }}
               sx={{ 
                 width: { xs: '100%', sm: 220 },

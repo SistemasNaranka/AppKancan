@@ -157,14 +157,16 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
                   <TextField
                     {...params}
                     placeholder="Selecciona una o varias tiendas…"
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <>
-                          <StorefrontIcon sx={{ color: '#94a3b8', mr: 1, fontSize: 20 }} />
-                          {params.InputProps.startAdornment}
-                        </>
-                      ),
+                    slotProps={{
+                      input: {
+                        ...params.InputProps,
+                        startAdornment: (
+                          <>
+                            <StorefrontIcon sx={{ color: '#94a3b8', mr: 1, fontSize: 20 }} />
+                            {params.InputProps.startAdornment}
+                          </>
+                        ),
+                      },
                     }}
                   />
                 )}

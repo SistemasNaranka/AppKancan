@@ -55,9 +55,11 @@ export const AnalisisTopBar = ({ data, exportFn }: any) => {
       </Tooltip>
 
       <TextField size="small" placeholder="Tienda…" value={filtroTienda} onChange={(e) => setFiltroTienda(e.target.value)} sx={{ width: { xs: 0, md: 130 }, flexShrink: 0, display: { xs: "none", md: "flex" }, bgcolor: "#0052a3", borderRadius: 2, "& .MuiOutlinedInput-root": { color: "#ffffff", fontSize: "0.78rem", fontWeight: 700, height: 36, bgcolor: "transparent", "& fieldset": { borderColor: "#4da6ff", borderWidth: "2px" } } }}
-        InputProps={{
-          startAdornment: <InputAdornment position="start"><StoreIcon sx={{ fontSize: 16, color: "#b8dcff" }} /></InputAdornment>,
-          endAdornment: filtroTienda ? <InputAdornment position="end"><IconButton size="small" onClick={() => setFiltroTienda("")} sx={{ color: "#b8dcff", p: 0.2 }}><CloseIcon sx={{ fontSize: 14 }} /></IconButton></InputAdornment> : null,
+        slotProps={{
+          input: {
+            startAdornment: <InputAdornment position="start"><StoreIcon sx={{ fontSize: 16, color: "#b8dcff" }} /></InputAdornment>,
+            endAdornment: filtroTienda ? <InputAdornment position="end"><IconButton size="small" onClick={() => setFiltroTienda("")} sx={{ color: "#b8dcff", p: 0.2 }}><CloseIcon sx={{ fontSize: 14 }} /></IconButton></InputAdornment> : null,
+          },
         }}
       />
 

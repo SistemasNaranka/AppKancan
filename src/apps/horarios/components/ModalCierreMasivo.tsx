@@ -506,12 +506,14 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
                                 fullWidth
                                 value={busqueda}
                                 onChange={e => setBusqueda(e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} />
-                                        </InputAdornment>
-                                    ),
+                                slotProps={{
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} />
+                                            </InputAdornment>
+                                        ),
+                                    },
                                 }}
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />

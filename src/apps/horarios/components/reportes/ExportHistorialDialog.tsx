@@ -169,14 +169,16 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
                   <TextField
                     {...params}
                     placeholder="Selecciona una o varias tiendas…"
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <>
-                          <StorefrontIcon sx={{ fontSize: 18, color: AZUL, ml: 0.5, mr: 0.5 }} />
-                          {params.InputProps.startAdornment}
-                        </>
-                      ),
+                    slotProps={{
+                      input: {
+                        ...params.InputProps,
+                        startAdornment: (
+                          <>
+                            <StorefrontIcon sx={{ fontSize: 18, color: AZUL, ml: 0.5, mr: 0.5 }} />
+                            {params.InputProps.startAdornment}
+                          </>
+                        ),
+                      },
                     }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
                   />

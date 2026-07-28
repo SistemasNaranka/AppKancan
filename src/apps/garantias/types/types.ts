@@ -78,7 +78,7 @@ export interface Garantia {
   // obligar a crear el cliente primero — se crea junto con la garantía)
   cliente_nombre: string;
   cliente_documento: string;
-  cliente_telefono: string;
+  cliente_telefono?: string;
   cliente_email?: string;
   cliente_direccion?: string;
 

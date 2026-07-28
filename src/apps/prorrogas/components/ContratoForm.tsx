@@ -428,9 +428,11 @@ export const ContratoForm: React.FC<ContractFormProps> = ({
                 value={formData.duracion_meses || ''}
                 onChange={handleChange('duracion_meses')}
                 fullWidth disabled={saving} size="small"
-                inputProps={{ min: 1, max: 36 }}
+                slotProps={{
+                  htmlInput: { min: 1, max: 36 },
+                  input: { startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" sx={{ color: 'text.secondary' }} /></InputAdornment> },
+                }}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" sx={{ color: 'text.secondary' }} /></InputAdornment> }}
               />
             </Box>
           </Box>

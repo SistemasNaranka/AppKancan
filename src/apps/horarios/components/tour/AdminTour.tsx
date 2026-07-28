@@ -499,7 +499,6 @@ export const AdminTour: React.FC<AdminTourProps> = ({ children }) => {
           next: "Siguiente",
           skip: "Salir del tour",
         }}
-        floaterProps={{ disableAnimation: true }}
       />
     </AdminTourContext.Provider>
   );

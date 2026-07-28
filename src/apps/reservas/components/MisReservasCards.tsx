@@ -441,12 +441,14 @@ const MisReservasCards: React.FC<MisReservasCardsProps> = ({
             placeholder="Buscar reserva"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ fontSize: 18, color: "#94a3b8" }} />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: 18, color: "#94a3b8" }} />
+                  </InputAdornment>
+                ),
+              },
             }}
             sx={{
               minWidth: 240,

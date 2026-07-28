@@ -109,14 +109,16 @@ export const DebouncedSearchInput = ({ value, onChange, placeholder, sx, disable
     <TextField
       size="small" value={localValue} onChange={(e) => setLocalValue(e.target.value)}
       placeholder={placeholder} disabled={disabled}
-      InputProps={{
-        endAdornment: localValue ? (
-          <InputAdornment position="end">
-            <IconButton onClick={() => { setLocalValue(""); onChange(""); }} size="small" sx={{ color: "rgba(255,255,255,0.7)", p: 0.2 }}>
-              <Close fontSize="small" />
-            </IconButton>
-          </InputAdornment>
-        ) : null,
+      slotProps={{
+        input: {
+          endAdornment: localValue ? (
+            <InputAdornment position="end">
+              <IconButton onClick={() => { setLocalValue(""); onChange(""); }} size="small" sx={{ color: "rgba(255,255,255,0.7)", p: 0.2 }}>
+                <Close fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ) : null,
+        },
       }}
       sx={{
         ...sx,

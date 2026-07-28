@@ -127,13 +127,15 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
         placeholder="Selecciona un rango…"
         value={etiquetaCampo}
         onClick={handleOpen}
-        InputProps={{
-          readOnly: true,
-          startAdornment: (
-            <InputAdornment position="start">
-              <CalendarMonthIcon sx={{ fontSize: 18, color: AZUL }} />
-            </InputAdornment>
-          ),
+        slotProps={{
+          input: {
+            readOnly: true,
+            startAdornment: (
+              <InputAdornment position="start">
+                <CalendarMonthIcon sx={{ fontSize: 18, color: AZUL }} />
+              </InputAdornment>
+            ),
+          },
         }}
         sx={{
           cursor: 'pointer',

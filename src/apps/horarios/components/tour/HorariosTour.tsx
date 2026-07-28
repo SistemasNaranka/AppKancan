@@ -224,7 +224,6 @@ export const HorariosTour: React.FC<HorariosTourProps> = ({ children }) => {
           next: "Siguiente",
           skip: "Salir del tour",
         }}
-        floaterProps={{ disableAnimation: true }}
       />
     </>
   );

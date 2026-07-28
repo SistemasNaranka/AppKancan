@@ -375,13 +375,15 @@ function RegistrosPageContent() {
                   <TextField
                     {...params}
                     placeholder="Seleccionar tienda"
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <StorefrontIcon sx={{ fontSize: 18, color: '#004680' }} />
-                        </InputAdornment>
-                      ),
+                    slotProps={{
+                      input: {
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <StorefrontIcon sx={{ fontSize: 18, color: '#004680' }} />
+                          </InputAdornment>
+                        ),
+                      },
                     }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
                   />

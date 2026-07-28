@@ -512,7 +512,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
               </FormControl>
 
               <TextField label="Buscar Empleado" placeholder="Nombre del empleado..." value={buscarEmpleado} onChange={(e) => { setBuscarEmpleado(e.target.value); setPaginaEdiciones(0); }} size="small" sx={{ flexGrow: 1, minWidth: 200 }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment>, endAdornment: buscarEmpleado ? <InputAdornment position="end"><IconButton size="small" onClick={() => { setBuscarEmpleado(''); setPaginaEdiciones(0); }}><CloseIcon fontSize="small" /></IconButton></InputAdornment> : null }} />
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment>, endAdornment: buscarEmpleado ? <InputAdornment position="end"><IconButton size="small" onClick={() => { setBuscarEmpleado(''); setPaginaEdiciones(0); }}><CloseIcon fontSize="small" /></IconButton></InputAdornment> : null } }} />
             </Paper>
 
             {cargandoEdiciones ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress sx={{ color: '#004680' }} /></Box> :
@@ -592,7 +592,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, px: 3, pt: 4, pb: 3, flexShrink: 0 }}>
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <TextField label="Buscar empleado" placeholder="Escribe el nombre del empleado..." value={buscarEmpleadoRanking} onChange={(e) => { setBuscarEmpleadoRanking(e.target.value); setPaginaRanking(0); }} size="small" sx={{ flex: 1, minWidth: 220 }}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment>, endAdornment: buscarEmpleadoRanking ? <InputAdornment position="end"><IconButton size="small" onClick={() => { setBuscarEmpleadoRanking(''); setPaginaRanking(0); }}><CloseIcon fontSize="small" /></IconButton></InputAdornment> : null }} />
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment>, endAdornment: buscarEmpleadoRanking ? <InputAdornment position="end"><IconButton size="small" onClick={() => { setBuscarEmpleadoRanking(''); setPaginaRanking(0); }}><CloseIcon fontSize="small" /></IconButton></InputAdornment> : null } }} />
                 <Chip label={`${rankingFiltrado.length} empleados`} size="small" sx={{ bgcolor: '#e3f2fd', color: '#004680', fontWeight: 600 }} />
                 <Tooltip title={ordenEdiciones === 'desc' ? 'Ordenar de menor a mayor' : 'Ordenar de mayor a menor'}>
                   <Button variant="outlined" size="small" onClick={() => { setOrdenEdiciones(p => p === 'asc' ? 'desc' : 'asc'); setPaginaRanking(0); }}
