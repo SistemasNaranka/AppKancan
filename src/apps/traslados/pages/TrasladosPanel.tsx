@@ -9,7 +9,7 @@ import { obtenerTraslados, obtenerTrasladosJefeZona } from "../api/obtenerTrasla
 import { aprobarTraslados } from "../api/obtenerTraslados";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { obtenerTiendasUsuarioActual } from "@/services/directus/userStores";
+import { obtenerTiendasUsuarioActual, type UserStoreAccess } from "@/services/directus/userStores";
 
 const TrasladosPanel: React.FC = () => {
   const { user } = useAuth();
@@ -39,9 +39,9 @@ const TrasladosPanel: React.FC = () => {
     tienePoliticaTrasladosTiendas || tienePoliticaTrasladosJefezona;
 
   // Obtener tiendas asignadas con sus empresas si el usuario es Jefe de Zona
-  const { data: tiendasAcceso } = useQuery({
+  const { data: tiendasAcceso } = useQuery<UserStoreAccess[]>({
     queryKey: ["tiendas_usuario_actual_con_empresa", user?.id],
-    queryFn: obtenerTiendasUsuarioActual,
+    queryFn: () => obtenerTiendasUsuarioActual(),
     enabled: !!user && tienePoliticaTrasladosJefezona,
   });
 

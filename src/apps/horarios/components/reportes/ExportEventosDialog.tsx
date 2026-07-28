@@ -55,7 +55,7 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
 
   const { data: tiendasAcceso = [] } = useQuery<number[]>({
     queryKey: ['tiendasAccesoUsuario'],
-    queryFn: obtenerTiendasIdsUsuarioActual,
+    queryFn: () => obtenerTiendasIdsUsuarioActual({ excludeOnline: true }),
     enabled: open && isAreaMgr,
     staleTime: 30 * 60 * 1000,
   });

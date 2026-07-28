@@ -134,6 +134,93 @@ export async function guardarPresupuestosEmpleados(
 }
 
 /**
+ * Sincronizar diferencialmente (Upsert/Diff) presupuestos diarios de empleados
+ * para una tienda y fecha específicas sin hacer borrado masivo.
+ */
+export async function sincronizarPresupuestosEmpleados(
+  tiendaId: number,
+  fecha: string,
+  nuevosPresupuestos: Omit<DirectusStaffDailyBudget, "id">[],
+): Promise<void> {
+  try {
+    const existentes = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_employee_daily_budgets", {
+          fields: ["id", "advisor_id", "position_id", "budget", "date", "store_id"],
+          filter: {
+            store_id: { _eq: tiendaId },
+            date: { _eq: fecha },
+          },
+          limit: -1,
+        }),
+      ),
+    );
+
+    const existentesMap = new Map<number, any>();
+    (existentes as any[]).forEach((item: any) => {
+      const advId = Number(item.advisor_id?.id ?? item.advisor_id);
+      existentesMap.set(advId, item);
+    });
+
+    const nuevosAdvisorIds = new Set<number>();
+    const aCrear: Omit<DirectusStaffDailyBudget, "id">[] = [];
+
+    for (const nuevo of nuevosPresupuestos) {
+      const advId = Number(nuevo.advisor_id);
+      nuevosAdvisorIds.add(advId);
+
+      const existe = existentesMap.get(advId);
+      if (existe) {
+        const existePosId = Number(existe.position_id?.id ?? existe.position_id);
+        const nuevoPosId = Number(nuevo.position_id);
+
+        const budgetDiferente =
+          Math.round(Number(existe.budget) * 100) !==
+          Math.round(Number(nuevo.budget) * 100);
+        const positionDiferente = existePosId !== nuevoPosId;
+
+        if (budgetDiferente || positionDiferente) {
+          await withAutoRefresh(() =>
+            directus.request(
+              updateItem("com_employee_daily_budgets", existe.id, {
+                budget: nuevo.budget,
+                position_id: nuevo.position_id,
+              }),
+            ),
+          );
+        }
+      } else {
+        aCrear.push(nuevo);
+      }
+    }
+
+    if (aCrear.length > 0) {
+      await withAutoRefresh(() =>
+        directus.request(createItems("com_employee_daily_budgets", aCrear)),
+      );
+    }
+
+    const idsAEliminar: number[] = [];
+    existentesMap.forEach((item, advId) => {
+      if (!nuevosAdvisorIds.has(advId)) {
+        idsAEliminar.push(item.id);
+      }
+    });
+
+    if (idsAEliminar.length > 0) {
+      await withAutoRefresh(() =>
+        directus.request(
+          deleteItems("com_employee_daily_budgets", idsAEliminar),
+        ),
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error al sincronizar presupuestos empleados:", error);
+    throw error;
+  }
+}
+
+/**
  * Eliminar presupuestos diarios de empleados para una fecha y tienda
  */
 export async function eliminarPresupuestosEmpleados(
@@ -318,6 +405,101 @@ export async function guardarPresupuestosTienda(
     return results;
   } catch (error) {
     console.error("❌ Error al guardar presupuestos tienda:", error);
+    throw error;
+  }
+}
+
+/**
+ * Guardar/Actualizar presupuestos diarios de tienda en lote (Bulk Upsert)
+ */
+export async function guardarPresupuestosTiendaMasivo(
+  presupuestos: Omit<DirectusStoreDailyBudget, "id">[],
+): Promise<{ creados: number; actualizados: number }> {
+  try {
+    if (presupuestos.length === 0) return { creados: 0, actualizados: 0 };
+
+    // Extraer fechas e IDs de tienda únicos
+    const storeIds = Array.from(new Set(presupuestos.map((p) => Number(p.store_id)).filter(Boolean)));
+    const dates = Array.from(new Set(presupuestos.map((p) => p.date).filter(Boolean)));
+
+    const existentes = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_store_daily_budgets", {
+          fields: ["id", "store_id", "date", "budget"],
+          filter: {
+            store_id: { _in: storeIds },
+            date: { _in: dates },
+          },
+          limit: -1,
+        }),
+      ),
+    );
+
+    const existentesMap = new Map<string, any>();
+    (existentes as any[]).forEach((item: any) => {
+      const sId = Number(item.store_id?.id ?? item.store_id);
+      const key = `${sId}_${item.date}`;
+      existentesMap.set(key, item);
+    });
+
+    const aCrear: Omit<DirectusStoreDailyBudget, "id">[] = [];
+    const aActualizar: { id: number; budget: number }[] = [];
+
+    for (const item of presupuestos) {
+      const sId = Number(item.store_id);
+      if (!sId) continue;
+
+      const key = `${sId}_${item.date}`;
+      const existe = existentesMap.get(key);
+
+      if (existe) {
+        if (Math.round(Number(existe.budget)) !== Math.round(Number(item.budget))) {
+          aActualizar.push({
+            id: existe.id,
+            budget: item.budget,
+          });
+        }
+      } else {
+        aCrear.push({
+          store_id: sId,
+          date: item.date,
+          budget: item.budget,
+        });
+      }
+    }
+
+    // Ejecutar actualizaciones en lotes paralelos ultra-rápidos
+    if (aActualizar.length > 0) {
+      const BATCH_SIZE = 15;
+      for (let i = 0; i < aActualizar.length; i += BATCH_SIZE) {
+        const batch = aActualizar.slice(i, i + BATCH_SIZE);
+        await withAutoRefresh(() =>
+          Promise.all(
+            batch.map((up) =>
+              directus.request(
+                updateItem("com_store_daily_budgets", up.id, {
+                  budget: up.budget,
+                })
+              )
+            )
+          )
+        );
+      }
+    }
+
+    // Ejecutar creaciones en lotes de 100
+    if (aCrear.length > 0) {
+      for (let i = 0; i < aCrear.length; i += 100) {
+        const chunk = aCrear.slice(i, i + 100);
+        await withAutoRefresh(() =>
+          directus.request(createItems("com_store_daily_budgets", chunk)),
+        );
+      }
+    }
+
+    return { creados: aCrear.length, actualizados: aActualizar.length };
+  } catch (error) {
+    console.error("❌ Error al guardar presupuestos tienda en lote:", error);
     throw error;
   }
 }

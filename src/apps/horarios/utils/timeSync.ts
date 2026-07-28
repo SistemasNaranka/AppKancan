@@ -23,7 +23,6 @@ export const syncTimeWithServer = async () => {
       const latency = (Date.now() - start) / 2;
       const actualServerTime = serverTime + latency;
       timeOffsetMs = actualServerTime - Date.now();
-      console.log(`⏱️ Hora sincronizada con servidor. Desfase local: ${timeOffsetMs} ms (Latencia: ${latency} ms)`);
     }
   } catch (e) {
     console.warn("⚠️ No se pudo sincronizar la hora con el servidor, se usará la hora del dispositivo:", e);

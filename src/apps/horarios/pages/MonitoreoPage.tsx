@@ -186,7 +186,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
     queryKey: ['adminTiendas'], queryFn: getStores, enabled: esAdmin() || esReport(), staleTime: 30 * 60 * 1000
   });
   const { data: tiendasAcceso = [] } = useQuery<number[]>({
-    queryKey: ['tiendasAccesoUsuario'], queryFn: obtenerTiendasIdsUsuarioActual, enabled: isAreaMgr, staleTime: 30 * 60 * 1000
+    queryKey: ['tiendasAccesoUsuario'], queryFn: () => obtenerTiendasIdsUsuarioActual({ excludeOnline: true }), enabled: isAreaMgr, staleTime: 30 * 60 * 1000
   });
   const tiendasFiltradas = useMemo(() => {
     if (isAreaMgr) {

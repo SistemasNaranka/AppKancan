@@ -14,8 +14,7 @@ import {
 } from "../api/directus/read";
 import {
   guardarPresupuestosTienda,
-  guardarPresupuestosEmpleados,
-  eliminarPresupuestosEmpleados,
+  sincronizarPresupuestosEmpleados,
 } from "../api/directus/create";
 import { calculateMesResumenAgrupado } from "../lib/calculations.summary";
 import { calcularDiasLaboradosPorEmpleado } from "../lib/utils";
@@ -235,22 +234,25 @@ export const useStoreManagement = (
 
       await guardarPresupuestosTienda([presupuestoTienda] as any);
 
-      await eliminarPresupuestosEmpleados(tienda!.id, fecha);
-
       const nuevosPresupuestosEmpleados = empleadosSeleccionados.map(
         (empleado) => ({
-          advisor_id: empleado.id,
-          store_id: tienda!.id,
-          position_id:
+          advisor_id: Number(empleado.id),
+          store_id: Number(tienda!.id),
+          position_id: Number(
             typeof empleado.position_id === "object"
               ? empleado.position_id.id
               : empleado.position_id,
+          ),
           date: fecha,
           budget: presupuestoPorEmpleado,
         }),
       );
 
-      await guardarPresupuestosEmpleados(nuevosPresupuestosEmpleados as any);
+      await sincronizarPresupuestosEmpleados(
+        tienda!.id,
+        fecha,
+        nuevosPresupuestosEmpleados as any,
+      );
 
       setPresupuestosEmpleados(nuevosPresupuestosEmpleados);
       setSuccess("Cambios guardados correctamente");

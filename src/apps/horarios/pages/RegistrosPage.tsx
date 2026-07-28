@@ -90,7 +90,7 @@ function RegistrosPageContent() {
 
   const { data: tiendasAcceso = [] } = useQuery<number[]>({
     queryKey: ['tiendasAccesoUsuario'],
-    queryFn: obtenerTiendasIdsUsuarioActual,
+    queryFn: () => obtenerTiendasIdsUsuarioActual({ excludeOnline: true }),
     enabled: isAreaMgr,
     staleTime: 30 * 60 * 1000,
   });
@@ -114,6 +114,10 @@ function RegistrosPageContent() {
     staleTime: 30 * 60 * 1000,
   });
   const [initializedStore, setInitializedStore] = useState(false);
+  useEffect(() => {
+    syncTimeWithServer();
+  }, []);
+
   useEffect(() => {
     if (miTienda != null && !initializedStore) {
       if (!isOnlyReport) {

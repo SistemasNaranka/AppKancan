@@ -85,12 +85,14 @@ const Home: React.FC = () => {
             Registro y seguimiento de proyectos desarrollados por el área de sistemas
           </Typography>
         </Box>
-        <Button
-          sx={{ backgroundColor: "#004680", boxShadow: "none", "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" } }}
-          variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/gestion_proyectos/nuevo")}
-        >
-          Nuevo Proyecto
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5 }}>
+          <Button
+            sx={{ backgroundColor: "#004680", boxShadow: "none", "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" } }}
+            variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/gestion_proyectos/nuevo")}
+          >
+            Nuevo Proyecto
+          </Button>
+        </Box>
       </Paper>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>

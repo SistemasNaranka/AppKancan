@@ -16,7 +16,7 @@ import { Tienda, Cargo, NuevoEmpleadoPayload } from '../../interfaces/horarios.i
 import { useParseNombreIA } from '../../hooks/useParseNombreIA';
 import { SILEO_STATE_FILL } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 import { existeDocumentoEmpleado } from '../../api/directus/read';
-import { formatDocumentNumber } from '../../utils/format';
+import { formatDocumentNumber, formatNombrePropio } from '../../utils/format';
 
 interface Props {
   open: boolean;
@@ -52,7 +52,8 @@ const initialForm = (tipoDocDefault: string) => ({
 });
 
 function splitNombreLocal(nombre: string) {
-  const t = nombre.trim().split(/\s+/).filter(Boolean);
+  const nombreFormateado = formatNombrePropio(nombre);
+  const t = nombreFormateado.split(/\s+/).filter(Boolean);
   const r = { first_name: '', middle_name: '', last_name: '', second_last_name: '' };
   if (t.length === 1) { r.first_name = t[0]; }
   else if (t.length === 2) { r.first_name = t[0]; r.last_name = t[1]; }
@@ -147,7 +148,7 @@ export default function DialogNuevoEmpleado({
         err.inner.forEach((i) => { if (i.path) nuevosErrores[i.path] = i.message; });
       }
     }
-    const nombre = nombreCompleto.trim().replace(/\s+/g, ' ');
+    const nombre = formatNombrePropio(nombreCompleto);
     if (!nombre) nuevosErrores.nombreCompleto = 'El nombre completo es obligatorio';
     else if (nombre.split(' ').length < 2) nuevosErrores.nombreCompleto = 'Ingresa al menos un nombre y un apellido';
 
