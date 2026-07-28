@@ -161,16 +161,40 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   const [stepIndex, setStepIndex] = useState(0);
   const TAB_SEMANAL_STEP_INDEX = 9; // índice del step que resalta la tab "Reporte Horas Semanal"
 
+  useEffect(() => {
+    if (!runTour) return;
+
+    const main = document.querySelector<HTMLElement>("main");
+    if (!main) return;
+
+    main.scrollTop = 0;
+
+    const block = (e: Event) => e.preventDefault();
+
+    main.addEventListener("wheel", block, { passive: false });
+    main.addEventListener("touchmove", block, { passive: false });
+
+    return () => {
+      main.removeEventListener("wheel", block);
+      main.removeEventListener("touchmove", block);
+    };
+  }, [runTour]);
+
   const tourText = (children: React.ReactNode) => (
     <Typography variant="body2" sx={{ color: '#374151', lineHeight: 1.7, fontSize: '0.9rem' }}>
       {children}
     </Typography>
   );
 
+  const tiendaTourTarget = tiendasPermitidas
+    ? '[data-tour="reporte-tour-tienda-header"]'
+    : '[data-tour="reporte-tour-tienda"]';
+
   const tourSteps: Step[] = [
     {
-      target: '[data-tour="reporte-tour-tienda"]',
-      content: tourText(<>Filtra el informe por <strong>tienda</strong>.</>),
+      target: tiendaTourTarget,
+      content: tourText(<>Selecciona la <strong>tienda</strong> cuyos registros quieres consultar y exportar.</>),
+      disableBeacon: true,
     },
     {
       target: '[data-tour="reporte-tour-fechas"]',
@@ -194,29 +218,22 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
     },
     {
       target: '[data-tour="reporte-tour-tab-registros"]',
-      content: tourText(<>Aquí ves el detalle de <strong>entrada, almuerzo y salida</strong> de cada empleado.</>),
+      content: tourText(<>En esta pestaña ves el detalle de <strong>entrada, almuerzo y salida</strong> de cada empleado.</>),
     },
     {
       target: '[data-tour="reporte-tour-tab-novedades"]',
-      content: tourText(<>Aquí ves las <strong>novedades</strong> reportadas, filtradas por fecha y nombre.</>),
+      content: tourText(<>En esta pestaña ves las <strong>novedades</strong> reportadas, filtradas por fecha y nombre.</>),
     },
     {
       target: '[data-tour="reporte-tour-tab-pausas"]',
-      content: tourText(<>Aquí ves el historial de <strong>pausas activas</strong> de cada empleado.</>),
-    },
-    {
-      target: '[data-tour="reporte-tour-tab-semanal"]',
-      content: tourText(<>Este reporte suma las <strong>horas trabajadas por semana</strong> durante todo el mes.</>),
-    },
-    {
-      target: '[data-tour="reporte-tour-modo-tienda"]',
-      content: tourText(<><strong>Modo por Tienda</strong>: ves a todos los empleados de la tienda seleccionada y sus horas semanales.</>),
-    },
-    {
-      target: '[data-tour="reporte-tour-modo-empleado"]',
-      content: tourText(<><strong>Modo por Empleado</strong>: buscas a una persona específica y ves en qué tiendas trabajó y cuántas horas.</>),
+      content: tourText(<>En esta pestaña ves el historial de <strong>pausas activas</strong> de cada empleado.</>),
     },
   ];
+
+  // Índices de los steps que resaltan cada pestaña de visualización.
+  const STEP_TAB_REGISTROS = 6;
+  const STEP_TAB_NOVEDADES = 7;
+  const STEP_TAB_PAUSAS = 8;
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, type, action, index } = data;
@@ -227,17 +244,24 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
       return;
     }
 
-    // Al avanzar desde la tab "Reporte Horas Semanal", forzamos el estado
-    // ANTES de que Joyride busque el target del siguiente step, y le damos
-    // un tick a React para que lo monte en el DOM.
-    if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT && index === TAB_SEMANAL_STEP_INDEX) {
-      setVisualizarTab('semanal');
-      setTimeout(() => setStepIndex(index + 1), 50);
-      return;
-    }
-
     if (type === EVENTS.STEP_AFTER) {
-      setStepIndex(index + (action === ACTIONS.PREV ? -1 : 1));
+      const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);
+
+      // Al ENTRAR a cada step de pestaña, cambiamos primero la pestaña activa
+      // y damos un tick a React para que monte el contenido antes de que
+      // Joyride recalcule la posición. Evita el desalineado y el crash de DOM.
+      let tabParaMostrar: typeof visualizarTab | null = null;
+      if (nextIndex === STEP_TAB_REGISTROS) tabParaMostrar = 'registros';
+      else if (nextIndex === STEP_TAB_NOVEDADES) tabParaMostrar = 'novedades';
+      else if (nextIndex === STEP_TAB_PAUSAS) tabParaMostrar = 'pausas';
+
+      if (tabParaMostrar) {
+        setVisualizarTab(tabParaMostrar);
+        setTimeout(() => setStepIndex(nextIndex), 80);
+        return;
+      }
+
+      setStepIndex(nextIndex);
     }
   };
 
@@ -1280,6 +1304,8 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         callback={handleJoyrideCallback}
         tooltipComponent={CustomTooltip}
         disableOverlayClose
+        disableScrolling
+        disableScrollParentFix
         styles={{
           options: { zIndex: 10000, arrowColor: '#fff', overlayColor: 'rgba(0, 0, 0, 0.5)', primaryColor: '#004680' },
           overlay: { transition: 'none' },
