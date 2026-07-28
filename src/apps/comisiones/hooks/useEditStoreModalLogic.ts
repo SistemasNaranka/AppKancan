@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type KeyboardEvent } from "react";
+import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import { 
   getStores, obtenerEmpleadosPorFechaExacta, 

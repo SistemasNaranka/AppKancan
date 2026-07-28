@@ -87,16 +87,18 @@ export default function ExportHistorialDialog({ open, onClose, fechaInicio, fech
     }
   }, [open, tiendas, tiendaDefault]);
 
-  const puedeExportar = (esAdmin() ? (todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
+  const puedeExportar = (esAdmin() ? (todas || tiendasSel.length > 0 || (isAreaMgr && tiendasFiltradas.length > 0)) : tiendaEfectiva != null) && !exportando;
 
   const handleExportar = async () => {
     setExportando(true);
     try {
-      const storeIds = esAdmin()
-        ? (todas
-          ? (isAreaMgr ? tiendasFiltradas.map((t) => Number(t.id)) : undefined)
-          : tiendasSel.map((t) => Number(t.id)))
-        : [Number(tiendaEfectiva)];
+      const storeIds = isAreaMgr
+        ? (todas || tiendasSel.length === 0
+            ? tiendasFiltradas.map((t) => Number(t.id))
+            : tiendasSel.map((t) => Number(t.id)))
+        : (esAdmin()
+          ? (todas ? undefined : tiendasSel.map((t) => Number(t.id)))
+          : [Number(tiendaEfectiva)]);
       let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
       let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
       const records = await fetchTimeRecordsExport(fIni, fFin, storeIds, esAdmin());

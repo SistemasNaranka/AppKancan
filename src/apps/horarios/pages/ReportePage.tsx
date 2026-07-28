@@ -1280,10 +1280,12 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         disableOverlayClose
         styles={{
           options: { zIndex: 10000, arrowColor: '#fff', overlayColor: 'rgba(0, 0, 0, 0.5)', primaryColor: '#004680' },
-          spotlight: { borderRadius: 8, boxShadow: '0 0 0 3px #004680, 0 0 25px rgba(0, 74, 153, 0.4)' },
+          overlay: { transition: 'none' },
+          spotlight: { borderRadius: 8, boxShadow: '0 0 0 3px #004680, 0 0 25px rgba(0, 74, 153, 0.4)', transition: 'all 0.2s ease-in-out' },
           beaconInner: { backgroundColor: '#004680' },
           beaconOuter: { backgroundColor: 'rgba(0, 70, 128, 0.3)', border: '2px solid #004680' },
         }}
+        floaterProps={{ disableAnimation: true }}
       />
     </Box>
   );

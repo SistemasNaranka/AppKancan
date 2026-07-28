@@ -312,7 +312,7 @@ function RegistrosPageContent() {
         </Alert>
       )}
 
-      <Paper className="tour-sticky-header" elevation={0} sx={{ position: 'sticky', top: 0, zIndex: 1000, borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 0, mb: 2, bgcolor: '#fff' }}>
+      <Paper className="tour-sticky-header" elevation={0} sx={{ position: 'sticky', top: 0, zIndex: 10, borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 0, mb: 2, bgcolor: '#fff' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, bgcolor: '#fff', p: { xs: 1.5, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
             <Box
@@ -615,16 +615,13 @@ function RegistrosPageContent() {
             </Box>
           </TabPanel>
 
-
           <TabPanel value={tabValue} index={1}>
             <NovedadesTab novedades={novedades} esAdmin={esAdmin()} storeOverride={storeOverride} />
           </TabPanel>
 
-
           <TabPanel value={tabValue} index={2}>
             <HistorialPage storeIdAdmin={storeOverride} />
           </TabPanel>
-
 
           <TabPanel value={tabValue} index={3}>
             <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
@@ -632,8 +629,6 @@ function RegistrosPageContent() {
             </Paper>
           </TabPanel>
 
-
-          {/* --- SE AÑADIÓ EL PANEL DE MONITOREO AQUÍ --- */}
           {(esAdmin() || isAreaMgr) && (
             <TabPanel value={tabValue} index={4}>
               <MonitoreoPage storeId={storeOverride} />
@@ -641,7 +636,6 @@ function RegistrosPageContent() {
           )}
         </>
       )}
-
 
       <ExportEventosDialog
         open={exportEventosOpen}

@@ -1,15 +1,16 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Box, Container, Typography, Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert, Pagination, Tabs, Tab, Grid, TextField, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Avatar, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
-import { Storefront as StorefrontIcon, Person as PersonIcon, CheckCircle as CheckCircleIcon, Pending as PendingIcon, Visibility as VisibilityIcon, EditNote as EditNoteIcon, Warning as WarningIcon, SupervisorAccount as SupervisorAccountIcon, Search as SearchIcon, Close as CloseIcon, Assignment as AssignmentIcon, Message as MessageIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon, CalendarToday as CalendarTodayIcon, ArrowBackIos as ArrowBackIosIcon, ArrowForwardIos as ArrowForwardIosIcon, Today as TodayIcon, Sort as SortIcon } from '@mui/icons-material';
+import { Storefront as StorefrontIcon, Person as PersonIcon, CheckCircle as CheckCircleIcon, Pending as PendingIcon, Visibility as VisibilityIcon, EditNote as EditNoteIcon, Warning as WarningIcon, SupervisorAccount as SupervisorAccountIcon, Search as SearchIcon, Close as CloseIcon, Assignment as AssignmentIcon, Message as MessageIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon, CalendarToday as CalendarTodayIcon, ArrowBackIos as ArrowBackIosIcon, ArrowForwardIos as ArrowForwardIosIcon, Today as TodayIcon, Sort as SortIcon, Block as BlockIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
-import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedadesBulkRange, getEditedTimeRecords } from '../api/directus/read';
+import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedadesBulkRange, getEditedTimeRecords, getStoreClosedDays } from '../api/directus/read';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import { Tienda } from '../interfaces/horarios.interface';
 import ModalDetalleTienda from '../components/ModalDetalleTienda';
+import ModalCierreMasivo from '../components/ModalCierreMasivo';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
 import ReporteSemanalAreaManager from '../components/reportes/ReporteSemanalAreaManager';
 
@@ -102,17 +103,23 @@ function useTiendasResumen(tiendas: Tienda[], fechas: { inicio: Dayjs | null; fi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const fechaInicioStr = fechas.inicio ? fechas.inicio.format('YYYY-MM-DD') : '';
+  const fechaFinStr = fechas.fin ? fechas.fin.format('YYYY-MM-DD') : '';
+  const tiendasIdsStr = tiendas.map(t => t.id).join(',');
+
   useEffect(() => {
+    let cancelado = false;
     const cargar = async () => {
       if (!tiendas.length) { setResumen([]); return; }
       setLoading(true); setError(null);
-      const inicio = fechas.inicio ? fechas.inicio.format('YYYY-MM-DD') : dayjs().startOf('month').format('YYYY-MM-DD');
-      const fin = fechas.fin ? fechas.fin.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
+      const inicio = fechaInicioStr || dayjs().startOf('month').format('YYYY-MM-DD');
+      const fin = fechaFinStr || dayjs().format('YYYY-MM-DD');
       try {
         const storeIds = tiendas.map(t => t.id);
-        const [empleados, records, novedades] = await Promise.all([
-          getEmpleadosBulk(storeIds), getTimeRecordsBulkRange(storeIds, inicio, fin), getNovedadesBulkRange(storeIds, inicio, fin)
+        const [empleados, records, novedades, diasCerrados] = await Promise.all([
+          getEmpleadosBulk(storeIds), getTimeRecordsBulkRange(storeIds, inicio, fin), getNovedadesBulkRange(storeIds, inicio, fin), getStoreClosedDays(storeIds, inicio, fin)
         ]);
+        if (cancelado) return;
         const empPorTienda: Record<number, any[]> = {};
         empleados.forEach((e: any) => { if (e.storeId != null) (empPorTienda[e.storeId] ||= []).push(e); });
         const recPorTienda: Record<number, any[]> = {};
@@ -125,6 +132,12 @@ function useTiendasResumen(tiendas: Tienda[], fechas: { inicio: Dayjs | null; fi
           const sId = n.store_id ? Number(typeof n.store_id === 'object' ? n.store_id.id : n.store_id) : null;
           if (sId != null) (novPorTienda[sId] ||= []).push(n);
         });
+        const cerradosPorTienda: Record<number, Set<string>> = {};
+        diasCerrados.forEach((c: any) => {
+          const sId = c.store_id ? Number(typeof c.store_id === 'object' ? c.store_id.id : c.store_id) : null;
+          if (sId != null) (cerradosPorTienda[sId] ||= new Set()).add(c.date);
+        });
+
         const dias: string[] = [];
         let cursor = dayjs(inicio);
         while (cursor.isSameOrBefore(dayjs(fin), 'day')) { dias.push(cursor.format('YYYY-MM-DD')); cursor = cursor.add(1, 'day'); }
@@ -146,14 +159,16 @@ function useTiendasResumen(tiendas: Tienda[], fechas: { inicio: Dayjs | null; fi
           const fechasActividad = new Set<string>();
           rec.forEach(r => fechasActividad.add(r.record_date));
           nov.forEach(n => { if (n.report_date) fechasActividad.add(n.report_date); });
-          const pendientes = dias.filter(d => !fechasActividad.has(d)).length;
+          const fechasCerradas = cerradosPorTienda[tienda.id] || new Set();
+          const pendientes = dias.filter(d => !fechasActividad.has(d) && !fechasCerradas.has(d)).length;
           return { id: tienda.id, nombre: tienda.name, totalEmpleados, personasRegistradas, completados, pendientes };
         });
         setResumen(data);
-      } catch (e) { console.error(e); setError('Error al cargar los datos. Intenta nuevamente.'); } finally { setLoading(false); }
+      } catch (e) { if (!cancelado) { console.error(e); setError('Error al cargar los datos. Intenta nuevamente.'); } } finally { if (!cancelado) setLoading(false); }
     };
     cargar();
-  }, [tiendas, fechas]);
+    return () => { cancelado = true; };
+  }, [tiendasIdsStr, fechaInicioStr, fechaFinStr]);
 
   return { resumen, loading, error };
 }
@@ -183,7 +198,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
 
   // Queries
   const { data: todasLasTiendas = [], isLoading: cargandoTiendas } = useQuery<Tienda[]>({
-    queryKey: ['adminTiendas'], queryFn: getStores, enabled: esAdmin() || esReport(), staleTime: 30 * 60 * 1000
+    queryKey: ['adminTiendas'], queryFn: getStores, enabled: esAdmin() || esReport() || isAreaMgr, staleTime: 30 * 60 * 1000
   });
   const { data: tiendasAcceso = [] } = useQuery<number[]>({
     queryKey: ['tiendasAccesoUsuario'], queryFn: () => obtenerTiendasIdsUsuarioActual({ excludeOnline: true }), enabled: isAreaMgr, staleTime: 30 * 60 * 1000
@@ -196,18 +211,25 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
     return todasLasTiendas;
   }, [todasLasTiendas, tiendasAcceso, isAreaMgr]);
 
-  const tiendas = useMemo(() => storeId ? tiendasFiltradas.filter(t => t.id === storeId) : tiendasFiltradas, [tiendasFiltradas, storeId]);
+  const tiendas = useMemo(() => {
+    if (Array.isArray(storeId)) return tiendasFiltradas.filter(t => (storeId as number[]).includes(Number(t.id)));
+    if (storeId != null) return tiendasFiltradas.filter(t => Number(t.id) === Number(storeId));
+    return tiendasFiltradas;
+  }, [tiendasFiltradas, storeId]);
 
   const { data: editedRecords = [], isLoading: cargandoEdiciones } = useQuery({
-    queryKey: ['editedRecords', storeId, fechas.inicio?.format('YYYY-MM-DD'), fechas.fin?.format('YYYY-MM-DD'), todasLasTiendas],
+    queryKey: ['editedRecords', storeId, fechas.inicio?.format('YYYY-MM-DD'), fechas.fin?.format('YYYY-MM-DD'), todasLasTiendas, tiendasFiltradas],
     queryFn: () => {
-      const storeIds = storeId ? [storeId] : todasLasTiendas.map(t => t.id);
+      const storeIds = isAreaMgr
+        ? tiendasFiltradas.map(t => Number(t.id))
+        : (storeId
+          ? (Array.isArray(storeId) ? storeId : [Number(storeId)])
+          : todasLasTiendas.map(t => Number(t.id)));
       const inicio = fechas.inicio ? fechas.inicio.format('YYYY-MM-DD') : dayjs().startOf('month').format('YYYY-MM-DD');
       const fin = fechas.fin ? fechas.fin.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
       return getEditedTimeRecords(storeIds, inicio, fin);
     },
-    enabled: !cargandoTiendas && (esAdmin() || esReport()),
-    staleTime: 5 * 60 * 1000,
+    enabled: !!(isAreaMgr ? tiendasFiltradas.length : todasLasTiendas.length), staleTime: 5 * 60 * 1000,
   });
 
   // Resumen de tiendas (custom hook)
@@ -318,6 +340,9 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const handleAbrirCalendario = (empleadoId: number) => setCalendario({ empleadoId, mes: dayjs(), dia: null, open: true });
   const handleCerrarCalendario = () => setCalendario({ empleadoId: null, mes: dayjs(), dia: null, open: false });
 
+  // Estado modal de cierre masivo
+  const [cierreMasivoOpen, setCierreMasivoOpen] = useState(false);
+
   // ---------- CÁLCULOS DE TOTALES ----------
   const totalTiendas = tiendas.length;
   const totalEmpleados = resumenTiendas.reduce((acc, t) => acc + t.totalEmpleados, 0);
@@ -355,7 +380,22 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                 <TarjetaResumen icon={CheckCircleIcon} label="COMPLETADOS" value={totalCompletados} color="#2e7d32" />
                 <TarjetaResumen icon={PendingIcon} label="PENDIENTES" value={totalPendientes} color="#d32f2f" />
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto', flexWrap: 'wrap' }}>
+                {(isAreaMgr || esAdmin()) && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<BlockIcon />}
+                    onClick={() => setCierreMasivoOpen(true)}
+                    sx={{
+                      borderColor: '#004680', color: '#004680', borderRadius: 2,
+                      textTransform: 'none', fontWeight: 600,
+                      '&:hover': { borderColor: '#003366', bgcolor: 'rgba(0,70,128,0.05)' },
+                    }}
+                  >
+                    Marcar Días de Cierre
+                  </Button>
+                )}
                 <Typography variant="caption" fontWeight={600} color="#64748b" sx={{ letterSpacing: '0.5px' }}>Ordenar por</Typography>
                 <FormControl size="small" sx={{ minWidth: 140 }}>
                   <Select value={ordenTiendas.by} onChange={(e) => handleOrdenTiendas(e.target.value as SortField)} variant="outlined" size="small"
@@ -405,6 +445,12 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
               </Table>
               <Paginador count={Math.ceil(tiendasOrdenadas.length / rowsPerPage.tiendas)} page={paginaTiendas} setPage={setPaginaTiendas} label="tiendas" total={tiendasOrdenadas.length} />
             </TableContainer>
+
+            <ModalCierreMasivo
+              open={cierreMasivoOpen}
+              onClose={() => setCierreMasivoOpen(false)}
+              tiendas={tiendasFiltradas.map(t => ({ id: Number(t.id), nombre: t.name }))}
+            />
           </>
         )}
 

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
     Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Chip, CircularProgress, Pagination, TextField, InputAdornment, Dialog, DialogTitle, DialogContent,
-    IconButton, Tooltip, Button, Avatar, DialogActions, Alert,
+    IconButton, Tooltip, Button, Avatar, DialogActions, Alert, List, ListItem, ListItemText,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -15,6 +15,10 @@ import {
     Storefront as StorefrontIcon,
     Edit as EditIcon,
     AddCircle as AddCircleIcon,
+    Block as BlockIcon,
+    WarningAmber as WarningAmberIcon,
+    DateRange as DateRangeIcon,
+    Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -23,10 +27,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
-import { getTimeRecords, getNovedades, fetchTimeRecords, getRecordReasonId } from '../api/directus/read';
-import { createTimeRecord, updateTimeRecord, upsertRecordReason } from '../api/directus/create';
+import { getTimeRecords, getNovedades, fetchTimeRecords, getRecordReasonId, getStoreClosedDays, StoreClosedDay } from '../api/directus/read';
+import { createTimeRecord, updateTimeRecord, upsertRecordReason, createStoreClosedDay, deleteStoreClosedDay, setStoreClosedDayStatus } from '../api/directus/create';
 import { useHorarios } from '../hooks/useHorarios';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
+import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
 import {
     EmpleadoFila,
@@ -160,7 +165,7 @@ function CreateHourModal({ open, onClose, employeeName, eventName, onConfirm }: 
 //  COMPONENTE PRINCIPAL
 // ============================================================
 export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: { tiendaId: number; tiendaNombre: string; onClose: () => void }) {
-    const { esAdmin } = useHorariosPolicies();
+    const { esAdmin, esAreaManager } = useHorariosPolicies();
     const { empleados, loading, reasons } = useHorarios(tiendaId);
     const queryClient = useQueryClient();
 
@@ -172,6 +177,80 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
     const [novedadSeleccionada, setNovedadSeleccionada] = useState<any>(null);
     const [historialOpen, setHistorialOpen] = useState(false);
     const [empleadoHistorial, setEmpleadoHistorial] = useState<EmpleadoFila | null>(null);
+
+    const { showSnackbar } = useGlobalSnackbar();
+    const puedeGestionarDiasCerrados = esAdmin() || esAreaManager();
+
+    const [confirmClosedModalOpen, setConfirmClosedModalOpen] = useState(false);
+    const [guardandoDiaCerrado, setGuardandoDiaCerrado] = useState(false);
+
+    // ============================================================
+    // ESTADO: MODO SELECCIÓN MÚLTIPLE
+    // ============================================================
+    const [modoSeleccion, setModoSeleccion] = useState(false);
+    const [diasSeleccionadosSet, setDiasSeleccionadosSet] = useState<Set<string>>(new Set());
+    const [confirmMasivoOpen, setConfirmMasivoOpen] = useState(false);
+    const [guardandoMasivo, setGuardandoMasivo] = useState(false);
+    // Registros por fecha para el modal masivo (cargados solo al confirmar)
+    const [registrosPorFechaSeleccionada, setRegistrosPorFechaSeleccionada] = useState<Record<string, number>>({});
+
+    const handleToggleDia = useCallback((fecha: string) => {
+        setDiasSeleccionadosSet(prev => {
+            const next = new Set(prev);
+            if (next.has(fecha)) next.delete(fecha);
+            else next.add(fecha);
+            return next;
+        });
+    }, []);
+
+    const handleActivarModoSeleccion = () => {
+        setModoSeleccion(true);
+        setDiasSeleccionadosSet(new Set());
+    };
+
+    const handleCancelarSeleccion = () => {
+        setModoSeleccion(false);
+        setDiasSeleccionadosSet(new Set());
+    };
+
+    const handleAbrirConfirmMasivo = async () => {
+        // Cargar conteo de registros por fecha seleccionada
+        const fechas = Array.from(diasSeleccionadosSet);
+        const counts: Record<string, number> = {};
+        await Promise.all(
+            fechas.map(async (fecha) => {
+                try {
+                    const recs = await import('../api/directus/read').then(m => m.fetchTimeRecords(fecha, fecha, tiendaId));
+                    counts[fecha] = (recs as any[]).length;
+                } catch {
+                    counts[fecha] = 0;
+                }
+            })
+        );
+        setRegistrosPorFechaSeleccionada(counts);
+        setConfirmMasivoOpen(true);
+    };
+
+    const handleGuardarMasivo = async () => {
+        setGuardandoMasivo(true);
+        const fechas = Array.from(diasSeleccionadosSet);
+        try {
+            await Promise.all(
+                fechas.map(fecha => setStoreClosedDayStatus(tiendaId, fecha, true))
+            );
+            queryClient.invalidateQueries({ queryKey: ['diasCerradosTienda', tiendaId] });
+            queryClient.invalidateQueries({ queryKey: ['calendarioAsistencia', tiendaId] });
+            showSnackbar(`${fechas.length} día(s) marcados como Tienda Cerrada`, 'success');
+            setConfirmMasivoOpen(false);
+            setModoSeleccion(false);
+            setDiasSeleccionadosSet(new Set());
+        } catch (err: any) {
+            console.error('Error al guardar masivo:', err);
+            showSnackbar(err?.message || 'Error al guardar los días', 'error');
+        } finally {
+            setGuardandoMasivo(false);
+        }
+    };
 
     // Estados para EditHourModal (edición)
     const [editHourOpen, setEditHourOpen] = useState(false);
@@ -221,6 +300,49 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
         staleTime: 5 * 60 * 1000,
     });
     const novedadesDia = todasNovedades.filter((n: any) => n.report_date === fechaSeleccionada);
+
+    const { data: diasCerrados = [] } = useQuery({
+        queryKey: ['diasCerradosTienda', tiendaId],
+        queryFn: () => getStoreClosedDays(tiendaId),
+        enabled: !!tiendaId,
+        staleTime: 5 * 60 * 1000,
+    });
+    const diaCerradoActual = diasCerrados.find((d: StoreClosedDay) => d.date === fechaSeleccionada);
+    const esDiaCerrado = !!(diaCerradoActual && diaCerradoActual.status === true);
+
+    const handleToggleDiaCerradoClick = () => {
+        if (esDiaCerrado) {
+            executeToggleDiaCerrado(true);
+        } else {
+            const numRecords = recordsDia.length;
+            if (numRecords > 0) {
+                setConfirmClosedModalOpen(true);
+            } else {
+                executeToggleDiaCerrado(false);
+            }
+        }
+    };
+
+    const executeToggleDiaCerrado = async (actualmenteCerrado: boolean) => {
+        setGuardandoDiaCerrado(true);
+        try {
+            if (actualmenteCerrado && diaCerradoActual) {
+                await setStoreClosedDayStatus(tiendaId, fechaSeleccionada, false, diaCerradoActual.id);
+                showSnackbar(`Se restableció el ${fechaSeleccionada} como día laboral normal`, 'success');
+            } else {
+                await setStoreClosedDayStatus(tiendaId, fechaSeleccionada, true, diaCerradoActual?.id);
+                showSnackbar(`Se marcó el ${fechaSeleccionada} como Tienda Cerrada`, 'success');
+            }
+            queryClient.invalidateQueries({ queryKey: ['diasCerradosTienda', tiendaId] });
+            queryClient.invalidateQueries({ queryKey: ['calendarioAsistencia', tiendaId] });
+        } catch (err: any) {
+            console.error('Error al guardar día cerrado:', err);
+            showSnackbar(err?.message || 'Error al actualizar el estado del día', 'error');
+        } finally {
+            setGuardandoDiaCerrado(false);
+            setConfirmClosedModalOpen(false);
+        }
+    };
 
     const getHora = (empId: string | number, logType: string) => {
         const record = recordsDia.find(r => Number(r.employee_id?.id || r.employee_id) === Number(empId) && r.log_type === logType);
@@ -504,13 +626,103 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
                             setPage(0);
                         }}
                         todasNovedades={todasNovedades}
+                        puedeGestionar={puedeGestionarDiasCerrados}
+                        modoSeleccion={modoSeleccion}
+                        diasSeleccionados={diasSeleccionadosSet}
+                        onToggleDia={handleToggleDia}
                     />
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-                        <Typography variant="subtitle2" fontWeight={700} color="#0a1929">
-                            Registros del {fechaDisplay}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {/* Barra flotante de modo selección */}
+                    {modoSeleccion && (
+                        <Box sx={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            bgcolor: '#004680', color: '#fff', borderRadius: 3, px: 3, py: 1.5, mb: 2,
+                            boxShadow: '0 4px 16px rgba(0,70,128,0.25)',
+                        }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <DateRangeIcon sx={{ fontSize: 22 }} />
+                                <Typography fontWeight={700} fontSize="0.95rem">
+                                    {diasSeleccionadosSet.size === 0
+                                        ? 'Selecciona días del calendario'
+                                        : `${diasSeleccionadosSet.size} día(s) seleccionado(s)`}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<CancelIcon />}
+                                    onClick={handleCancelarSeleccion}
+                                    sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)', textTransform: 'none', fontWeight: 600, '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    size="small"
+                                    startIcon={<BlockIcon />}
+                                    onClick={handleAbrirConfirmMasivo}
+                                    disabled={diasSeleccionadosSet.size === 0}
+                                    sx={{ bgcolor: '#fff', color: '#004680', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#e3f2fd' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.5)' } }}
+                                >
+                                    Marcar como Tienda Cerrada
+                                </Button>
+                            </Box>
+                        </Box>
+                    )}
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                            <Typography variant="subtitle2" fontWeight={700} color="#0a1929">
+                                Registros del {fechaDisplay}
+                            </Typography>
+                            {esDiaCerrado && (
+                                <Chip
+                                    label="Tienda Cerrada"
+                                    size="small"
+                                    sx={{ bgcolor: '#e2e8f0', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 600 }}
+                                />
+                            )}
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            {puedeGestionarDiasCerrados && !modoSeleccion && (
+                                <>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<DateRangeIcon />}
+                                        onClick={handleActivarModoSeleccion}
+                                        sx={{
+                                            borderColor: '#004680',
+                                            color: '#004680',
+                                            borderRadius: 2,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            '&:hover': { borderColor: '#003366', bgcolor: 'rgba(0, 70, 128, 0.05)' },
+                                        }}
+                                    >
+                                        Marcar Días de Cierre
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={esDiaCerrado ? <CheckCircleIcon /> : <BlockIcon />}
+                                        onClick={handleToggleDiaCerradoClick}
+                                        disabled={guardandoDiaCerrado}
+                                        sx={{
+                                            borderColor: '#004680',
+                                            color: '#004680',
+                                            borderRadius: 2,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            '&:hover': { borderColor: '#003366', bgcolor: 'rgba(0, 70, 128, 0.05)' },
+                                        }}
+                                    >
+                                        {guardandoDiaCerrado ? <CircularProgress size={16} sx={{ color: '#004680' }} /> : (esDiaCerrado ? "Restablecer Día Laboral" : "Marcar Tienda Cerrada")}
+                                    </Button>
+                                </>
+                            )}
+
                             <Chip
                                 size="medium"
                                 icon={<CalendarMonthIcon sx={{ fontSize: 18 }} />}
@@ -775,6 +987,119 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
                     onConfirm={handleConfirmCreate}
                 />
             )}
+
+            {/* ============================================================
+                MODAL DE CONFIRMACIÓN DE DÍA NO LABORAL (CON MARCAS PREVIAS)
+            ============================================================ */}
+            <Dialog
+                open={confirmClosedModalOpen}
+                onClose={() => setConfirmClosedModalOpen(false)}
+                PaperProps={{ sx: { borderRadius: 3, p: 1, maxWidth: 480 } }}
+            >
+                <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
+                    <WarningAmberIcon sx={{ fontSize: 28, color: '#d97706' }} />
+                    <Typography variant="h6" fontWeight={700} sx={{ color: '#d97706' }}>
+                        Confirmar Tienda Cerrada
+                    </Typography>
+                </DialogTitle>
+                <DialogContent sx={{ py: 1 }}>
+                    <Typography variant="body1" sx={{ color: '#0a1929', fontWeight: 500, mb: 1.5 }}>
+                        La fecha <strong>{fechaDisplay}</strong> tiene actualmente <strong style={{ color: '#d97706' }}>{recordsDia.length} registro(s)</strong> reportados por los empleados.
+                    </Typography>
+                    <Alert severity="warning" sx={{ borderRadius: 2, bgcolor: '#fffbe6', borderColor: '#ffe58f', color: '#0a1929', '& .MuiAlert-icon': { color: '#d97706' } }}>
+                        ¿Estás seguro de marcar este día como <strong>Tienda Cerrada</strong>? Esta fecha se mostrará como deshabilitada y no contabilizará en los días pendientes de la tienda.
+                    </Alert>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
+                    <Button
+                        onClick={() => setConfirmClosedModalOpen(false)}
+                        variant="outlined"
+                        sx={{ color: '#004680', borderColor: '#004680', borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={() => executeToggleDiaCerrado(false)}
+                        variant="contained"
+                        disabled={guardandoDiaCerrado}
+                        sx={{ bgcolor: '#004680', '&:hover': { bgcolor: '#003366' }, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+                    >
+                        {guardandoDiaCerrado ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Sí, marcar como cerrada'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* ============================================================
+                MODAL DE CONFIRMACIÓN MASIVA (MULTISELECCION)
+            ============================================================ */}
+            <Dialog
+                open={confirmMasivoOpen}
+                onClose={() => !guardandoMasivo && setConfirmMasivoOpen(false)}
+                PaperProps={{ sx: { borderRadius: 3, p: 1, maxWidth: 520 } }}
+            >
+                <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
+                    <WarningAmberIcon sx={{ fontSize: 28, color: '#d97706' }} />
+                    <Typography variant="h6" fontWeight={700} sx={{ color: '#d97706' }}>
+                        Confirmar cierre de {diasSeleccionadosSet.size} día(s)
+                    </Typography>
+                </DialogTitle>
+                <DialogContent sx={{ py: 1 }}>
+                    <Typography variant="body2" sx={{ color: '#0a1929', fontWeight: 500, mb: 1.5 }}>
+                        Se marcarán los siguientes días como <strong>Tienda Cerrada</strong> para <strong>{tiendaNombre}</strong>:
+                    </Typography>
+
+                    {/* Lista de días con o sin registros */}
+                    <List dense disablePadding sx={{ mb: 1.5, maxHeight: 220, overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: 2 }}>
+                        {Array.from(diasSeleccionadosSet).sort().map(fecha => {
+                            const count = registrosPorFechaSeleccionada[fecha] ?? 0;
+                            const label = dayjs(fecha).locale('es').format('dddd, D [de] MMMM');
+                            return (
+                                <ListItem key={fecha} sx={{ py: 0.5, borderBottom: '1px solid #f0f0f0' }}>
+                                    <ListItemText
+                                        primary={
+                                            <Typography variant="body2" fontWeight={600} color="#0a1929">
+                                                {label}
+                                            </Typography>
+                                        }
+                                        secondary={
+                                            count > 0
+                                                ? <Typography variant="caption" color="#d97706" fontWeight={600}>{count} registro(s) de empleados</Typography>
+                                                : <Typography variant="caption" color="#94a3b8">Sin registros</Typography>
+                                        }
+                                    />
+                                    {count > 0 && <WarningAmberIcon sx={{ fontSize: 18, color: '#d97706', flexShrink: 0 }} />}
+                                </ListItem>
+                            );
+                        })}
+                    </List>
+
+                    {Object.values(registrosPorFechaSeleccionada).some(c => c > 0) && (
+                        <Alert severity="warning" sx={{ borderRadius: 2, bgcolor: '#fffbe6', color: '#0a1929', '& .MuiAlert-icon': { color: '#d97706' } }}>
+                            Algunos días tienen registros de empleados. De todas formas se marcarán como <strong>Tienda Cerrada</strong>.
+                        </Alert>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
+                    <Button
+                        onClick={() => setConfirmMasivoOpen(false)}
+                        disabled={guardandoMasivo}
+                        variant="outlined"
+                        sx={{ color: '#004680', borderColor: '#004680', borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleGuardarMasivo}
+                        variant="contained"
+                        disabled={guardandoMasivo}
+                        sx={{ bgcolor: '#004680', '&:hover': { bgcolor: '#003366' }, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+                    >
+                        {guardandoMasivo
+                            ? <><CircularProgress size={16} sx={{ color: '#fff', mr: 1 }} />Guardando...</>
+                            : `Confirmar ${diasSeleccionadosSet.size} día(s)`}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Dialog>
     );
 }

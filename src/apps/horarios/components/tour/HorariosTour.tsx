@@ -198,20 +198,25 @@ export const HorariosTour: React.FC<HorariosTourProps> = ({ children }) => {
         spotlightClicks
         tooltipComponent={CustomTooltip}
         styles={{
-  options: {
-    zIndex: 10000,
-    arrowColor: "#fff",
-    overlayColor: "rgba(0, 0, 0, 0.5)",
-  },
-  spotlight: {
-    borderRadius: 8,
-    boxShadow: "0 0 0 3px #004680, 0 0 25px rgba(0, 74, 153, 0.4)",
-  },
-  buttonClose: { display: "none" },
-  buttonBack: { display: "none" },
-  buttonNext: { display: "none" },
-  buttonSkip: { display: "none" },
-}}
+          options: {
+            zIndex: 10000,
+            arrowColor: "#fff",
+            overlayColor: "rgba(0, 0, 0, 0.5)",
+          },
+          overlay: {
+            transition: "none",
+          },
+          spotlight: {
+            borderRadius: 8,
+            boxShadow: "0 0 0 3px #004680, 0 0 25px rgba(0, 74, 153, 0.4)",
+            transition: "all 0.2s ease-in-out",
+          },
+          buttonClose: { display: "none" },
+          buttonBack: { display: "none" },
+          buttonNext: { display: "none" },
+          buttonSkip: { display: "none" },
+        }}
+        floaterProps={{ disableAnimation: true }}
         locale={{
           back: "Atrás",
           close: "Cerrar",

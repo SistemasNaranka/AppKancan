@@ -80,7 +80,7 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
   });
 
   const tiendaEfectiva = storeId != null ? storeId : storeUsuario;
-  const todas = tiendas.length > 0 && tiendasSel.length === tiendas.length;
+  const todas = tiendasFiltradas.length > 0 && tiendasSel.length === tiendasFiltradas.length;
 
   useEffect(() => {
     if (open && storeId != null && tiendas.length > 0) {
@@ -89,23 +89,27 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
     }
   }, [open, tiendas, storeId]);
 
-  const puedeExportar = (esAdmin() ? (todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
+  const puedeExportar = (esAdmin() ? (todas || tiendasSel.length > 0 || (isAreaMgr && tiendasFiltradas.length > 0)) : tiendaEfectiva != null) && !exportando;
 
   const handleExportar = async () => {
     if (!puedeExportar) return;
     setExportando(true);
     try {
-      const storeIds = esAdmin()
-        ? (todas
-          ? (isAreaMgr ? tiendasFiltradas.map((t) => Number(t.id)) : undefined)
-          : tiendasSel.map((t) => Number(t.id)))
-        : (tiendaEfectiva != null ? [Number(tiendaEfectiva)] : undefined);
+      const storeIds = isAreaMgr
+        ? (todas || tiendasSel.length === 0
+            ? tiendasFiltradas.map((t) => Number(t.id))
+            : tiendasSel.map((t) => Number(t.id)))
+        : (esAdmin()
+          ? (todas ? undefined : tiendasSel.map((t) => Number(t.id)))
+          : (tiendaEfectiva != null ? [Number(tiendaEfectiva)] : undefined));
       let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
       let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
       const reports = await fetchEventReportsExport(fIni, fFin, storeIds, esAdmin());
-      const targetStores = esAdmin()
-        ? (todas ? tiendasFiltradas : tiendasSel)
-        : (tiendaEfectiva != null ? tiendas.filter((t) => Number(t.id) === Number(tiendaEfectiva)) : []);
+      const targetStores = isAreaMgr
+        ? (todas || tiendasSel.length === 0 ? tiendasFiltradas : tiendasSel)
+        : (esAdmin()
+          ? (todas ? tiendasFiltradas : tiendasSel)
+          : (tiendaEfectiva != null ? tiendas.filter((t) => Number(t.id) === Number(tiendaEfectiva)) : []));
       const res = await exportarEventosExcel({ reports, stores: targetStores });
       if (res.ok) {
         showSnackbar('Exportación generada con éxito', 'success');
@@ -171,7 +175,7 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
                     checked={todas}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setTiendasSel(tiendas);
+                        setTiendasSel(tiendasFiltradas);
                       } else {
                         setTiendasSel([]);
                       }

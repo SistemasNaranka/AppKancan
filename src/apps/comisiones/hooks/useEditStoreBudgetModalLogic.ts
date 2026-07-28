@@ -8,7 +8,6 @@ import {
   obtenerPresupuestosDiarios,
 } from "../api/directus/read";
 import {
-  guardarPresupuestosEmpleados,
   sincronizarPresupuestosEmpleados,
 } from "../api/directus/create";
 import { useBudgetCalculations } from "./useBudgetCalculations";
@@ -70,9 +69,6 @@ export const useEditStoreBudgetModalLogic = ({
     }
 
     if (error && error.includes("no existe")) setError("");
-
-    const cleanCodigo = codigoEmpleado.trim();
-    const codigoNum = parseInt(cleanCodigo);
 
     const asesor = todosEmpleados.find(
       (a: any) => String(a.id) === String(codigoEmpleado),

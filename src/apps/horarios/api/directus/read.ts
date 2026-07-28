@@ -705,5 +705,54 @@ export async function getPrimerPeriodoRegistro(): Promise<{ year: number; month:
 
 export * from "./reports";
 
+export interface StoreClosedDay {
+  id: number;
+  store_id: number;
+  date: string;
+  status?: boolean;
+  user_created?: string;
+  date_created?: string;
+}
+
+export async function getStoreClosedDays(
+  storeIds?: number | number[],
+  fechaInicio?: string,
+  fechaFin?: string
+): Promise<StoreClosedDay[]> {
+  try {
+    const filter: any = {};
+    if (storeIds != null) {
+      if (Array.isArray(storeIds)) {
+        filter.store_id = { _in: storeIds };
+      } else {
+        filter.store_id = { _eq: storeIds };
+      }
+    }
+    if (fechaInicio) filter.date = { ...filter.date, _gte: fechaInicio };
+    if (fechaFin) filter.date = { ...filter.date, _lte: fechaFin };
+
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_store_closed_days", {
+          fields: ["id", "store_id", "date", "status", "user_created", "date_created"],
+          filter,
+          limit: -1,
+        })
+      )
+    );
+    return (items || []).map((item: any) => ({
+      id: item.id,
+      store_id: Number(typeof item.store_id === "object" ? item.store_id.id : item.store_id),
+      date: item.date,
+      status: item.status !== false,
+      user_created: item.user_created,
+      date_created: item.date_created,
+    })) as StoreClosedDay[];
+  } catch (error) {
+    console.error("❌ Error cargando días cerrados de tienda:", error);
+    return [];
+  }
+}
+
 
 

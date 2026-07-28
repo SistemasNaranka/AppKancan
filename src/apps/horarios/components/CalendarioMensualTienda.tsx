@@ -16,7 +16,7 @@ import 'dayjs/locale/es';
 
 dayjs.extend(isSameOrBefore);
 
-import { fetchTimeRecords } from '../api/directus/read';
+import { fetchTimeRecords, getStoreClosedDays, StoreClosedDay } from '../api/directus/read';
 import { EstadoDia } from './ModalDetalleTiendaUtils';
 
 interface CalendarioMensualTiendaProps {
@@ -25,6 +25,11 @@ interface CalendarioMensualTiendaProps {
     fechaSeleccionada: string;
     onDateSelect: (fecha: string) => void;
     todasNovedades: any[];
+    puedeGestionar?: boolean;
+    // Props de multiselección
+    modoSeleccion?: boolean;
+    diasSeleccionados?: Set<string>;
+    onToggleDia?: (fecha: string) => void;
 }
 
 export default function CalendarioMensualTienda({
@@ -33,6 +38,10 @@ export default function CalendarioMensualTienda({
     fechaSeleccionada,
     onDateSelect,
     todasNovedades,
+    puedeGestionar = false,
+    modoSeleccion = false,
+    diasSeleccionados,
+    onToggleDia,
 }: CalendarioMensualTiendaProps) {
     const [mesActual, setMesActual] = useState(() => dayjs(fechaSeleccionada).startOf('month'));
 
@@ -45,17 +54,28 @@ export default function CalendarioMensualTienda({
     const inicioMes = mesActual.startOf('month');
     const finMes = mesActual.endOf('month');
 
-    const { data: diasEstado = {}, isLoading } = useQuery({
-        queryKey: ['calendarioAsistencia', tiendaId, mesActual.format('YYYY-MM'), todasNovedades.length],
+    const { data: { diasEstado = {}, diasCerradosMap = {} } = {}, isLoading } = useQuery({
+        queryKey: ['calendarioAsistencia', tiendaId, mesActual.format('YYYY-MM'), todasNovedades.length, puedeGestionar],
         queryFn: async () => {
-            if (mesActual.isAfter(hoy, 'month')) return {};
-            const limite = mesActual.isSame(hoy, 'month') ? hoy : finMes;
-            
-            const recordsMes = await fetchTimeRecords(
-                inicioMes.format('YYYY-MM-DD'),
-                limite.format('YYYY-MM-DD'),
-                tiendaId
-            );
+            const limite = (mesActual.isSame(hoy, 'month') && !puedeGestionar) ? hoy : finMes;
+
+            const [recordsMes, diasCerrados] = await Promise.all([
+                fetchTimeRecords(
+                    inicioMes.format('YYYY-MM-DD'),
+                    limite.format('YYYY-MM-DD'),
+                    tiendaId
+                ),
+                getStoreClosedDays(
+                    tiendaId,
+                    inicioMes.format('YYYY-MM-DD'),
+                    limite.format('YYYY-MM-DD')
+                )
+            ]);
+
+            const closedMap: Record<string, StoreClosedDay> = {};
+            diasCerrados.forEach((d) => {
+                closedMap[d.date] = d;
+            });
 
             // Agrupar registros en memoria por fecha
             const recordsPorDia: Record<string, any[]> = {};
@@ -81,6 +101,10 @@ export default function CalendarioMensualTienda({
             }
 
             const resultados = dias.map((fecha) => {
+                if (closedMap[fecha] && closedMap[fecha].status === true) {
+                    return { fecha, estado: 'tienda_cerrada' as EstadoDia };
+                }
+
                 const records = recordsPorDia[fecha] || [];
                 const novelties = novedadesPorDia[fecha] || [];
 
@@ -88,7 +112,6 @@ export default function CalendarioMensualTienda({
                     return { fecha, estado: 'sin_registro' as EstadoDia };
                 }
 
-                // Identificar los empleados únicos que tuvieron marcas en esta fecha
                 const employeeIdsWithRecords = Array.from(
                     new Set(records.map((r: any) => Number(r.employee_id?.id || r.employee_id)))
                 );
@@ -113,16 +136,16 @@ export default function CalendarioMensualTienda({
                 if (hasIncomplete) {
                     estado = 'parcial';
                 } else if (hasComplete || novelties.length > 0) {
-                    // Si todos los que trabajaron completaron su jornada, o si solo hay novedades justificadas
                     estado = 'completo';
                 }
 
                 return { fecha, estado };
             });
 
-            return resultados.reduce((acc, { fecha, estado }) => ({ ...acc, [fecha]: estado }), {} as Record<string, EstadoDia>);
+            const estadoDict = resultados.reduce((acc, { fecha, estado }) => ({ ...acc, [fecha]: estado }), {} as Record<string, EstadoDia>);
+            return { diasEstado: estadoDict, diasCerradosMap: closedMap };
         },
-        enabled: !!tiendaId && !mesActual.isAfter(hoy, 'month'),
+        enabled: !!tiendaId,
         staleTime: 5 * 60 * 1000,
     });
 
@@ -135,22 +158,31 @@ export default function CalendarioMensualTienda({
     ];
 
     const colorPorEstado = (estado?: EstadoDia, esFuturo?: boolean) => {
-        if (esFuturo || !estado) return { bg: 'transparent', color: '#cfd8dc' };
-        if (estado === 'completo') return { bg: '#2e7d32', color: '#fff' };
-        if (estado === 'parcial') return { bg: '#ef6c00', color: '#fff' };
-        return { bg: '#d32f2f', color: '#fff' };
+        if (estado === 'tienda_cerrada') return { bg: '#e2e8f0', color: '#475569', border: '1.5px solid #cbd5e1' };
+        if (esFuturo) {
+            if (puedeGestionar) {
+                return { bg: 'transparent', color: '#0a1929', border: '1.5px dashed #0a1929' };
+            }
+            return { bg: 'transparent', color: '#cfd8dc', border: 'none' };
+        }
+        if (!estado) return { bg: 'transparent', color: '#cfd8dc', border: 'none' };
+        if (estado === 'completo') return { bg: '#2e7d32', color: '#fff', border: 'none' };
+        if (estado === 'parcial') return { bg: '#ef6c00', color: '#fff', border: 'none' };
+        return { bg: '#d32f2f', color: '#fff', border: 'none' };
     };
 
-    const handleDateClick = (fecha: string) => {
+    const handleDateClick = (fecha: string, esCerrado: boolean) => {
+        if (modoSeleccion) {
+            // En modo selección: no se pueden seleccionar días ya cerrados
+            if (!esCerrado && onToggleDia) onToggleDia(fecha);
+            return;
+        }
         onDateSelect(fecha);
         setMesActual(dayjs(fecha).startOf('month'));
     };
 
     const handleMesAnterior = () => setMesActual(mesActual.subtract(1, 'month'));
-    const handleMesSiguiente = () => {
-        const sig = mesActual.add(1, 'month');
-        if (!sig.isAfter(hoy, 'month')) setMesActual(sig);
-    };
+    const handleMesSiguiente = () => setMesActual(mesActual.add(1, 'month'));
 
     return (
         <Box sx={{ mb: 3 }}>
@@ -180,7 +212,7 @@ export default function CalendarioMensualTienda({
                         <Typography variant="subtitle2" fontWeight={600} color="#004680" sx={{ minWidth: 100, textAlign: 'center' }}>
                             {mesActual.locale('es').format('MMM YYYY')}
                         </Typography>
-                        <MuiIconButton size="small" onClick={handleMesSiguiente} disabled={mesActual.isSame(dayjs(), 'month')}>
+                        <MuiIconButton size="small" onClick={handleMesSiguiente}>
                             <NavigateNextIcon />
                         </MuiIconButton>
                     </Box>
@@ -201,35 +233,106 @@ export default function CalendarioMensualTienda({
                                 const esFuturo = fechaDayjs.isAfter(hoy, 'day');
                                 const esHoy = fechaDayjs.isSame(hoy, 'day');
                                 const estado = diasEstado[fecha];
-                                const { bg, color } = colorPorEstado(estado, esFuturo);
+                                const esCerrado = estado === 'tienda_cerrada';
+
+                                // --- Modo selección múltiple ---
+                                if (modoSeleccion) {
+                                    const estaSeleccionado = diasSeleccionados?.has(fecha) ?? false;
+                                    // Días cerrados no son seleccionables en modo selección
+                                    const seleccionable = !esCerrado && (!esFuturo || puedeGestionar);
+
+                                    let selBg = 'transparent';
+                                    let selColor = '#cfd8dc';
+                                    let selBorder = 'none';
+                                    let selCursor = 'default';
+
+                                    if (esCerrado) {
+                                        selBg = '#e2e8f0'; selColor = '#94a3b8'; selBorder = '1.5px solid #cbd5e1';
+                                    } else if (estaSeleccionado) {
+                                        selBg = '#004680'; selColor = '#fff'; selBorder = 'none'; selCursor = 'pointer';
+                                    } else if (seleccionable) {
+                                        const baseStyle = colorPorEstado(estado, esFuturo);
+                                        selBg = baseStyle.bg; selColor = baseStyle.color;
+                                        selBorder = esFuturo ? '1.5px dashed #0a1929' : (baseStyle.border !== 'none' ? baseStyle.border : 'none');
+                                        selCursor = 'pointer';
+                                    }
+
+                                    const selCell = (
+                                        <Box
+                                            key={fecha}
+                                            onClick={() => seleccionable && handleDateClick(fecha, esCerrado)}
+                                            sx={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                bgcolor: selBg, color: selColor, fontWeight: 700, fontSize: '0.85rem',
+                                                mx: 'auto', cursor: selCursor,
+                                                border: selBorder !== 'none' ? selBorder : esHoy ? '1.5px dashed #0a1929' : 'none',
+                                                outline: 'none',
+                                                boxShadow: estaSeleccionado ? '0 4px 12px rgba(0,70,128,0.35)' : 'none',
+                                                transform: estaSeleccionado ? 'scale(1.15)' : 'none',
+                                                zIndex: estaSeleccionado ? 2 : 1,
+                                                transition: 'all 0.15s ease-in-out',
+                                                opacity: !seleccionable && !esCerrado ? 0.35 : 1,
+                                                '&:hover': seleccionable ? { transform: estaSeleccionado ? 'scale(1.15)' : 'scale(1.1)', boxShadow: 2 } : {},
+                                            }}
+                                        >
+                                            {dia}
+                                        </Box>
+                                    );
+
+                                    if (esCerrado) {
+                                        return <Tooltip key={fecha} title="Ya marcado como Tienda Cerrada" arrow>{selCell}</Tooltip>;
+                                    }
+                                    return selCell;
+                                }
+
+                                // --- Modo normal ---
+                                const { bg, color, border } = colorPorEstado(estado, esFuturo);
                                 const selected = fecha === fechaSeleccionada;
-                                return (
+                                const permiteClick = !esFuturo || puedeGestionar;
+                                const cellContent = (
                                     <Box
-                                        key={fecha}
-                                        onClick={() => !esFuturo && handleDateClick(fecha)}
+                                        onClick={() => permiteClick && handleDateClick(fecha, esCerrado)}
                                         sx={{
                                             width: 36, height: 36, borderRadius: '50%',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             bgcolor: bg, color: color, fontWeight: 700, fontSize: '0.85rem',
-                                            mx: 'auto', cursor: esFuturo ? 'default' : 'pointer',
-                                            border: selected ? '2px solid #ffffff' : esHoy ? '1.5px dashed #0a1929' : 'none',
+                                            mx: 'auto', cursor: permiteClick ? 'pointer' : 'default',
+                                            border: border !== 'none' ? border : selected ? '2px solid #ffffff' : esHoy ? '1.5px dashed #0a1929' : 'none',
                                             outline: selected ? '3px solid #004680' : 'none',
                                             boxShadow: selected ? '0 4px 10px rgba(0,0,0,0.25)' : 'none',
                                             transform: selected ? 'scale(1.15)' : 'none',
                                             zIndex: selected ? 2 : 1,
                                             transition: 'all 0.15s ease-in-out',
-                                            '&:hover': { transform: esFuturo ? 'none' : selected ? 'scale(1.15)' : 'scale(1.1)', boxShadow: esFuturo ? 'none' : 2 },
+                                            '&:hover': { transform: !permiteClick ? 'none' : selected ? 'scale(1.15)' : 'scale(1.1)', boxShadow: !permiteClick ? 'none' : 2 },
                                         }}
                                     >
                                         {dia}
                                     </Box>
                                 );
+
+                                if (esCerrado) {
+                                    return (
+                                        <Tooltip key={fecha} title="Tienda Cerrada" arrow>
+                                            {cellContent}
+                                        </Tooltip>
+                                    );
+                                }
+
+                                return <Box key={fecha}>{cellContent}</Box>;
                             })}
                         </Box>
-                        <Box sx={{ display: 'flex', gap: 3, mt: 2.5, flexWrap: 'wrap' }}>
+                        <Box sx={{ display: 'flex', gap: 2.5, mt: 2.5, flexWrap: 'wrap' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#2e7d32' }} /><Typography variant="caption" color="text.secondary">Registrado Correctamente</Typography></Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ef6c00' }} /><Typography variant="caption" color="text.secondary">Incompleto / Tarde</Typography></Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#d32f2f' }} /><Typography variant="caption" color="text.secondary">Sin Registro</Typography></Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e2e8f0', border: '1.5px solid #cbd5e1' }} /><Typography variant="caption" color="text.secondary">Tienda Cerrada</Typography></Box>
+                            {puedeGestionar && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'transparent', border: '1.5px dashed #0a1929' }} /><Typography variant="caption" color="#0a1929" fontWeight={600}>Día Futuro Habilitado</Typography></Box>
+                            )}
+                            {modoSeleccion && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#004680' }} /><Typography variant="caption" color="#004680" fontWeight={600}>Día Seleccionado</Typography></Box>
+                            )}
                         </Box>
                     </Box>
                 )}

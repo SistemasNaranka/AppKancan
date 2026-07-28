@@ -222,3 +222,75 @@ export async function eliminarNovedad(id: number) {
     throw new Error(error?.errors?.[0]?.message || 'Error al eliminar la novedad');
   }
 }
+
+export async function setStoreClosedDayStatus(
+  storeId: number,
+  date: string,
+  newStatus: boolean,
+  providedId?: number
+): Promise<any> {
+  try {
+    let targetId = providedId;
+
+    if (!targetId) {
+      const existing = await withAutoRefresh(() =>
+        directus.request(
+          readItems("com_store_closed_days", {
+            fields: ["id"],
+            filter: {
+              store_id: { _eq: Number(storeId) },
+              date: { _eq: date },
+            },
+            limit: 1,
+          })
+        )
+      );
+      if (existing && existing.length > 0) {
+        targetId = existing[0].id;
+      }
+    }
+
+    if (targetId) {
+      return await withAutoRefresh(() =>
+        directus.request(
+          updateItem("com_store_closed_days", targetId as number, {
+            status: newStatus,
+          })
+        )
+      );
+    } else if (newStatus) {
+      return await withAutoRefresh(() =>
+        directus.request(
+          createItem("com_store_closed_days", {
+            store_id: Number(storeId),
+            date: date,
+            status: true,
+          })
+        )
+      );
+    }
+    return null;
+  } catch (error: any) {
+    console.error('❌ Error al actualizar estado de día cerrado:', error);
+    throw new Error(error?.errors?.[0]?.message || 'Error al actualizar estado de día cerrado');
+  }
+}
+
+export async function createStoreClosedDay(storeId: number, date: string): Promise<any> {
+  return setStoreClosedDayStatus(storeId, date, true);
+}
+
+export async function deleteStoreClosedDay(id: number): Promise<void> {
+  try {
+    await withAutoRefresh(() =>
+      directus.request(
+        updateItem("com_store_closed_days", id, {
+          status: false,
+        })
+      )
+    );
+  } catch (error: any) {
+    console.error('❌ Error al actualizar estado de día cerrado de tienda:', error);
+    throw new Error(error?.errors?.[0]?.message || 'Error al actualizar día cerrado');
+  }
+}
