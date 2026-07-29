@@ -17,7 +17,7 @@ import {
     AddCircle as AddCircleIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -77,7 +77,6 @@ function CreateHourModal({ open, onClose, employeeName, eventName, onConfirm }: 
         }
     };
 
-    // Inicial del empleado
     const initial = employeeName ? employeeName.charAt(0).toUpperCase() : '?';
 
     return (
@@ -159,7 +158,17 @@ function CreateHourModal({ open, onClose, employeeName, eventName, onConfirm }: 
 // ============================================================
 //  COMPONENTE PRINCIPAL
 // ============================================================
-export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: { tiendaId: number; tiendaNombre: string; onClose: () => void }) {
+export default function ModalDetalleTienda({
+    tiendaId,
+    tiendaNombre,
+    onClose,
+    initialMonth, // nueva prop
+}: {
+    tiendaId: number;
+    tiendaNombre: string;
+    onClose: () => void;
+    initialMonth?: Dayjs; // opcional, para sincronizar el mes
+}) {
     const { esAdmin } = useHorariosPolicies();
     const { empleados, loading, reasons } = useHorarios(tiendaId);
     const queryClient = useQueryClient();
@@ -167,7 +176,10 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(0);
     const rowsPerPage = 10;
-    const [fechaSeleccionada, setFechaSeleccionada] = useState(dayjs().format('YYYY-MM-DD'));
+    const [fechaSeleccionada, setFechaSeleccionada] = useState(() => {
+        if (initialMonth) return initialMonth.startOf('month').format('YYYY-MM-DD');
+        return dayjs().format('YYYY-MM-DD');
+    });
     const [novedadModalOpen, setNovedadModalOpen] = useState(false);
     const [novedadSeleccionada, setNovedadSeleccionada] = useState<any>(null);
     const [historialOpen, setHistorialOpen] = useState(false);
