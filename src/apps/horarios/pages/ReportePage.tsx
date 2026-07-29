@@ -666,6 +666,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         onClose={() => setExportSemanalOpen(false)}
         fechaInicioDefault={rangoInicio}
         fechaFinDefault={rangoFin}
+        tiendasPermitidas={tiendasPermitidas}
       />
 
       <Joyride

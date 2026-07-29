@@ -14,33 +14,38 @@ import { Tienda } from '../../interfaces/horarios.interface';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 import DateRangeFilter from './DateRangeFilter';
 
-interface Props {
+interface ExportSemanalDialogProps {
   open: boolean;
   onClose: () => void;
-  tiendaDefault?: number | null;
   fechaInicioDefault?: Dayjs | null;
   fechaFinDefault?: Dayjs | null;
+  tiendasPermitidas?: Tienda[];
 }
 
 export default function ExportSemanalDialog({
   open,
   onClose,
   fechaInicioDefault,
-  fechaFinDefault
-}: Props) {
+  fechaFinDefault,
+  tiendasPermitidas,
+}: ExportSemanalDialogProps) {
   const { showSnackbar } = useGlobalSnackbar();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
   const [todas, setTodas] = useState(true);
-  const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(fechaInicioDefault || dayjs().startOf('month'));
+  const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(fechaInicioDefault || dayjs().subtract(6, 'day'));
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(fechaFinDefault || dayjs());
   const [exportando, setExportando] = useState(false);
 
-  const { data: tiendas = [], isLoading: loadingTiendas } = useQuery<Tienda[]>({
+  const { data: todasLasTiendas = [], isLoading: loadingTiendas } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
     staleTime: 30 * 60 * 1000,
-    enabled: open,
+    enabled: open && (!tiendasPermitidas || tiendasPermitidas.length === 0),
   });
+
+  const tiendas = (tiendasPermitidas && tiendasPermitidas.length > 0)
+    ? tiendasPermitidas
+    : todasLasTiendas;
 
   // Solo al abrir el diálogo inicializamos las tiendas y fechas
   useEffect(() => {
