@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo, useCallback, forwardRef } from 'react';
-import { Box, Container, Typography, Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert, Pagination, Tabs, Tab, Grid, TextField, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Avatar, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
-import { Storefront as StorefrontIcon, Person as PersonIcon, CheckCircle as CheckCircleIcon, Pending as PendingIcon, Visibility as VisibilityIcon, EditNote as EditNoteIcon, Warning as WarningIcon, SupervisorAccount as SupervisorAccountIcon, Search as SearchIcon, Close as CloseIcon, Assignment as AssignmentIcon, Message as MessageIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon, CalendarToday as CalendarTodayIcon, ArrowBackIos as ArrowBackIosIcon, ArrowForwardIos as ArrowForwardIosIcon, Today as TodayIcon, Sort as SortIcon, Block as BlockIcon } from '@mui/icons-material';
+import { useState, useEffect, useMemo } from 'react';
+import { Box, Container, Typography, Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert, Tabs, Tab, Grid, TextField, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Avatar, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
+import { Storefront as StorefrontIcon, Person as PersonIcon, CheckCircle as CheckCircleIcon, Pending as PendingIcon, Visibility as VisibilityIcon, EditNote as EditNoteIcon, Warning as WarningIcon, Search as SearchIcon, Close as CloseIcon, Assignment as AssignmentIcon, Message as MessageIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon, CalendarToday as CalendarTodayIcon, ArrowBackIos as ArrowBackIosIcon, ArrowForwardIos as ArrowForwardIosIcon, Today as TodayIcon, Sort as SortIcon, Block as BlockIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
-import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedadesBulkRange, getEditedTimeRecords, getStoreClosedDays } from '../api/directus/read';
+
+import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getEditedTimeRecords } from '../api/directus/read';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import { Tienda } from '../interfaces/horarios.interface';
@@ -13,222 +14,21 @@ import ModalDetalleTienda from '../components/ModalDetalleTienda';
 import ModalCierreMasivo from '../components/ModalCierreMasivo';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
 import ReporteSemanalAreaManager from '../components/reportes/ReporteSemanalAreaManager';
-import DetallePlanillaPage from '../pages/DetallePlanillaPage';
 
-// ---------- CONSTANTES Y UTILIDADES ----------
-const COLORS_FOR_MOTIVO = [
-  { bg: '#e3f2fd', text: '#0d47a1' }, { bg: '#e8f5e9', text: '#1b5e20' }, { bg: '#fff3e0', text: '#e65100' }, { bg: '#fce4ec', text: '#880e4f' },
-  { bg: '#f3e5f5', text: '#4a148c' }, { bg: '#e0f7fa', text: '#006064' }, { bg: '#f1f8e9', text: '#33691e' }, { bg: '#ffebee', text: '#b71c1c' },
-  { bg: '#fff8e1', text: '#f57f17' }, { bg: '#e8eaf6', text: '#1a237e' }, { bg: '#fbe9e7', text: '#bf360c' }, { bg: '#e0f2f1', text: '#004d40' }
-];
-const getColorForMotivo = (m: string) => {
-  let h = 0;
-  for (let i = 0; i < m.length; i++) h = m.charCodeAt(i) + ((h << 5) - h);
-  return COLORS_FOR_MOTIVO[Math.abs(h) % COLORS_FOR_MOTIVO.length];
-};
-type SortField = 'nombre' | 'totalEmpleados' | 'personasRegistradas' | 'incompletos' | 'sinRegistro';
-const OPCIONES_ORDEN: { value: SortField; label: string }[] = [
-  { value: 'nombre', label: 'Tienda' }, { value: 'totalEmpleados', label: 'Empleados Act.' }, { value: 'personasRegistradas', label: 'Pers. Registradas' },
-  { value: 'incompletos', label: 'Faltante de Marcación' }, { value: 'sinRegistro', label: 'Sin Marcar' }
-];
-const COLUMNAS_TIENDAS: { label: string; value: SortField | null }[] = [
-  { label: 'TIENDA', value: 'nombre' }, { label: 'EMPLEADOS ACT.', value: 'totalEmpleados' }, { label: 'PERS. REGISTRADAS', value: 'personasRegistradas' },
-  { label: 'FALTANTE DE MARCACIÓN', value: 'incompletos' }, { label: 'SIN MARCAR', value: 'sinRegistro' }, { label: 'ACCIONES', value: null }
-];
-const COLUMNAS_EDICIONES = ['FECHA', 'EMPLEADO', 'TIENDA', 'REGISTRO', 'HORA ORIG.', 'HORA MOD.', 'MOTIVO', 'OBSERVACIONES'];
-const TARJETAS_ESTADISTICAS = [
-  { icon: EditNoteIcon, label: 'TOTAL MODIFICACIONES', color: '#c62828', bg: '#ffebee' },
-  { icon: SupervisorAccountIcon, label: 'EMPLEADOS MONITOREADOS', color: '#0d47a1', bg: '#e3f2fd' },
-  { icon: WarningIcon, label: 'TIENDA CON MÁS CAMBIOS', color: '#f57f17', bg: '#fff8e1' }
-];
-interface TiendaResumen { id: number; nombre: string; totalEmpleados: number; personasRegistradas: number; completados: number; incompletos: number; sinRegistro: number; }
-interface MonitoreoPageProps { storeId?: number | null; }
-const rowsPerPage = { tiendas: 10, ediciones: 10, ranking: 10 };
+// Modules extraídos
+import {
+  getColorForMotivo,
+  SortField,
+  OPCIONES_ORDEN,
+  COLUMNAS_TIENDAS,
+  COLUMNAS_EDICIONES,
+  TARJETAS_ESTADISTICAS,
+  MonitoreoPageProps,
+  rowsPerPage
+} from './monitoreo/MonitoreoUtils';
+import { Paginador, TarjetaResumen, TarjetaEstadistica } from './monitoreo/MonitoreoComponents';
+import { useTiendasResumen } from './monitoreo/useTiendasResumen';
 
-// ---------- COMPONENTES AUXILIARES ----------
-const Paginador = ({ count, page, setPage, label, total }: any) => {
-  const start = page * rowsPerPage.tiendas;
-  const end = Math.min(start + rowsPerPage.tiendas, total);
-  const showing = Math.max(0, end - start);
-
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2.5, py: 1.5, borderTop: '1px solid #e0e0e0', flexWrap: 'wrap', gap: 1 }}>
-      <Typography variant="body2" color="text.secondary" fontWeight={500}>
-        Mostrando <strong>{showing}</strong> de <strong>{total}</strong> {label}
-      </Typography>
-      {total > rowsPerPage.tiendas && (
-        <Pagination
-          count={count}
-          page={page + 1}
-          onChange={(_, p) => setPage(p - 1)}
-          color="primary"
-          shape="rounded"
-          size="small"
-          showFirstButton
-          showLastButton
-          sx={{ '& .MuiPaginationItem-root': { borderRadius: 2, border: '1px solid #e0e0e0', margin: '0 2px',
-            '&.Mui-selected': { bgcolor: '#004680', color: '#fff', borderColor: '#004680', '&:hover': { bgcolor: '#003366' } },
-            '&:hover': { bgcolor: '#f5f7fa' } } }}
-        />
-      )}
-    </Box>
-  );
-};
-
-const TarjetaResumen = forwardRef<HTMLDivElement, any>(({ icon: Icon, label, value, color, ...props }, ref) => (
-  <Box ref={ref} {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-    <Icon sx={{ color }} />
-    <Box><Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>{label}</Typography>
-      <Typography variant="h6" fontWeight={700} color={color}>{value}</Typography></Box>
-  </Box>
-));
-
-const TarjetaEstadistica = ({ icon: Icon, label, value, color, bg, onClick }: any) => (
-  <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 1.5, ...(onClick ? { cursor: 'pointer', transition: 'all 0.2s', '&:hover': { borderColor: '#004680', boxShadow: '0 2px 8px rgba(0,70,128,0.15)' } } : {}) }} onClick={onClick}>
-    <Box sx={{ bgcolor: bg, p: 1, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon sx={{ color, fontSize: 22 }} /></Box>
-    <Box sx={{ minWidth: 0, width: '100%' }}>
-      <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>{label}</Typography>
-      <Typography variant="body2" fontWeight={700} color={color} noWrap title={String(value)} sx={{ lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{value}</Typography>
-    </Box>
-  </Paper>
-);
-
-// ---------- HOOK PERSONALIZADO PARA RESUMEN DE TIENDAS ----------
-function useTiendasResumen(tiendas: Tienda[], fechas: { inicio: Dayjs | null; fin: Dayjs | null }) {
-  const [resumen, setResumen] = useState<TiendaResumen[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fechaInicioStr = fechas.inicio ? fechas.inicio.format('YYYY-MM-DD') : '';
-  const fechaFinStr = fechas.fin ? fechas.fin.format('YYYY-MM-DD') : '';
-  const tiendasIdsStr = tiendas.map(t => t.id).join(',');
-
-  useEffect(() => {
-    let cancelado = false;
-    const cargar = async () => {
-      if (!tiendas.length) { setResumen([]); return; }
-      setLoading(true); setError(null);
-      const inicio = fechaInicioStr || dayjs().startOf('month').format('YYYY-MM-DD');
-      const fin = fechaFinStr || dayjs().format('YYYY-MM-DD');
-      try {
-        const storeIds = tiendas.map(t => t.id);
-        const [empleados, records, novedades, diasCerrados] = await Promise.all([
-          getEmpleadosBulk(storeIds), getTimeRecordsBulkRange(storeIds, inicio, fin), getNovedadesBulkRange(storeIds, inicio, fin), getStoreClosedDays(storeIds, inicio, fin)
-        ]);
-        if (cancelado) return;
-        const empPorTienda: Record<number, any[]> = {};
-        empleados.forEach((e: any) => { if (e.storeId != null) (empPorTienda[e.storeId] ||= []).push(e); });
-        const recPorTienda: Record<number, any[]> = {};
-        records.forEach((r: any) => {
-          const sId = r.store_id ? Number(typeof r.store_id === 'object' ? r.store_id.id : r.store_id) : null;
-          if (sId != null) (recPorTienda[sId] ||= []).push(r);
-        });
-        const novPorTienda: Record<number, any[]> = {};
-        novedades.forEach((n: any) => {
-          const sId = n.store_id ? Number(typeof n.store_id === 'object' ? n.store_id.id : n.store_id) : null;
-          if (sId != null) (novPorTienda[sId] ||= []).push(n);
-        });
-        const cerradosPorTienda: Record<number, Set<string>> = {};
-        diasCerrados.forEach((c: any) => {
-          const sId = c.store_id ? Number(typeof c.store_id === 'object' ? c.store_id.id : c.store_id) : null;
-          if (sId != null) (cerradosPorTienda[sId] ||= new Set()).add(c.date);
-        });
-
-        const dias: string[] = [];
-        let cursor = dayjs(inicio);
-        while (cursor.isSameOrBefore(dayjs(fin), 'day')) { dias.push(cursor.format('YYYY-MM-DD')); cursor = cursor.add(1, 'day'); }
-        const hoy = dayjs().startOf('day');
-
-        const data = tiendas.map(tienda => {
-          const emp = empPorTienda[tienda.id] || [];
-          const rec = recPorTienda[tienda.id] || [];
-          const nov = novPorTienda[tienda.id] || [];
-
-          const totalEmpleados = emp.length;
-          const employeeIds = new Set<number>();
-          emp.forEach(e => employeeIds.add(Number(e.id)));
-          rec.forEach(r => { const id = r.employee_id?.id || r.employee_id; if (id) employeeIds.add(Number(id)); });
-          nov.forEach(n => { const id = n.employee_id?.id || n.employee_id; if (id) employeeIds.add(Number(id)); });
-          const personasRegistradas = employeeIds.size;
-
-          const recPorDia: Record<string, any[]> = {};
-          rec.forEach((r: any) => {
-            const fecha = r.record_date;
-            if (!recPorDia[fecha]) recPorDia[fecha] = [];
-            recPorDia[fecha].push(r);
-          });
-          const novPorDia: Set<string> = new Set();
-          nov.forEach((n: any) => { if (n.report_date) novPorDia.add(n.report_date); });
-
-          let incompletos = 0;
-          let sinRegistro = 0;
-          const fechasCerradas = cerradosPorTienda[tienda.id] || new Set();
-
-          dias.forEach(d => {
-            const fecha = dayjs(d);
-            const esHoy = fecha.isSame(hoy, 'day');
-            const esFuturo = fecha.isAfter(hoy, 'day');
-
-            // Skip today and future days for summary totals
-            if (esHoy || esFuturo) return;
-
-            // Skip closed store days
-            if (fechasCerradas.has(d)) return;
-
-            const registrosDia = recPorDia[d] || [];
-
-            if (registrosDia.length === 0) {
-              sinRegistro++;
-              return;
-            }
-
-            const empleadosConRegistro = Array.from(new Set(registrosDia.map((r: any) => Number(r.employee_id?.id || r.employee_id))));
-
-            let hasIncomplete = false;
-            let hasComplete = false;
-            empleadosConRegistro.forEach(empId => {
-              const empRegs = registrosDia.filter((r: any) => Number(r.employee_id?.id || r.employee_id) === empId);
-              const tieneEntrada = empRegs.some((r: any) => r.log_type === 'Comenzar Jornada');
-              const tieneSalida = empRegs.some((r: any) => r.log_type === 'Terminar Jornada');
-              if (tieneEntrada && tieneSalida) hasComplete = true;
-              else hasIncomplete = true;
-            });
-
-            if (hasIncomplete) {
-              incompletos++;
-            } else if (hasComplete) {
-              // completo
-            } else {
-              sinRegistro++;
-            }
-          });
-
-          const recordsHoy = rec.filter(r => r.record_date === fin);
-          const idsHoy = new Set(recordsHoy.map((r: any) => Number(r.employee_id?.id || r.employee_id)));
-          let completados = 0;
-          idsHoy.forEach(id => {
-            const rEmp = recordsHoy.filter((r: any) => Number(r.employee_id?.id || r.employee_id) === id);
-            if (rEmp.some(r => r.log_type === 'Comenzar Jornada') && rEmp.some(r => r.log_type === 'Terminar Jornada')) completados++;
-          });
-          return {
-            id: tienda.id,
-            nombre: tienda.name,
-            totalEmpleados,
-            personasRegistradas,
-            completados,
-            incompletos,
-            sinRegistro
-          };
-        });
-        setResumen(data);
-      } catch (e) { if (!cancelado) { console.error(e); setError('Error al cargar los datos. Intenta nuevamente.'); } } finally { if (!cancelado) setLoading(false); }
-    };
-    cargar();
-    return () => { cancelado = true; };
-  }, [tiendasIdsStr, fechaInicioStr, fechaFinStr]);
-
-  return { resumen, loading, error };
-}
 
 // ---------- COMPONENTE PRINCIPAL ----------
 export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {

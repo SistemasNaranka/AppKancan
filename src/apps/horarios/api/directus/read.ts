@@ -3,9 +3,9 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, readMe } from "@directus/sdk";
 import { EmpleadoAsistencia, TipoNovedad, Tienda, Cargo, EmpleadoAdmin, Motivo } from "../../interfaces/horarios.interface";
+import { getEmpleadosBulk } from "./readBulk";
 
-// Tienda "Oficina" usada para pruebas. Se excluye de las exportaciones salvo
-// que quien exporta sea admin (incluirPruebas = true).
+// Tienda "Oficina" usada para pruebas.
 export const STORE_PRUEBAS = 90;
 
 export async function getStoreIdUsuarioActual(): Promise<number | null> {
@@ -22,51 +22,11 @@ export async function getStoreIdUsuarioActual(): Promise<number | null> {
   }
 }
 
-
-
+/**
+ * Reutiliza getEmpleadosBulk([storeId]) para evitar duplicar código de mapeo de empleados.
+ */
 export async function getEmpleados(storeId: number): Promise<EmpleadoAsistencia[]> {
-  try {
-    const items = await withAutoRefresh(() =>
-      directus.request(
-        readItems("adm_employees", {
-          fields: ["id", "document_number", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
-          filter: {
-            store_id: { _eq: storeId },
-            status: { _eq: "Activo" }
-          },
-          limit: -1,
-        })
-      )
-    );
-
-    return (items || []).map((emp: any) => {
-      const parts = [
-        emp.first_name,
-        emp.middle_name,
-        emp.last_name,
-        emp.second_last_name
-      ].filter(part => part && part.trim() !== "");
-      const full_name = parts.join(" ").trim() || "Empleado Sin Nombre";
-
-      return {
-        id: String(emp.id),
-        documento: emp.document_number ? String(emp.document_number) : String(emp.id), 
-        nombre: full_name,
-        cargo: emp.position_id?.name || "Sin Cargo",
-        estadoActual: "entrada_pendiente",
-        registros: {
-          inicioJornada: null,
-          inicioAlmuerzo: null,
-          finAlmuerzo: null,
-          finJornada: null,
-          observaciones: {},
-        },
-      };
-    });
-  } catch (error) {
-    console.error("❌ Error cargando la tabla adm_employees:", error);
-    return [];
-  }
+  return getEmpleadosBulk([storeId]);
 }
 
 export async function getTiposNovedad(): Promise<TipoNovedad[]> {
@@ -75,12 +35,11 @@ export async function getTiposNovedad(): Promise<TipoNovedad[]> {
       directus.request(
         readItems("com_newness", {
           fields: ["id", "name"],
-       
         })
       )
     );
     return (items || []).map((t: any) => ({
-      id: t.id, 
+      id: t.id,
       nombre: t.name,
       name: t.name,
     }));
@@ -161,38 +120,11 @@ export async function getRecordReasonId(recordId: number): Promise<number | null
   }
 }
 
+/**
+ * Reutiliza getStoreNovedades para evitar duplicar código de la tabla com_newness_reports.
+ */
 export async function getNovedades(storeId: number): Promise<any[]> {
-  try {
-    const items = await withAutoRefresh(() =>
-      directus.request(
-        readItems("com_newness_reports", {
-          fields: [
-            "id",
-            "date_created",
-            "observations",
-            "newness_id.id",
-            "newness_id.name",
-            "employee_id.id",
-            "employee_id.document_number",
-            "employee_id.first_name",
-            "employee_id.middle_name",
-            "employee_id.last_name",
-            "employee_id.second_last_name",
-            "report_date",
-            "store_id.id",
-            "store_id.name"
-          ],
-          filter: { store_id: { _eq: storeId } },
-          sort: ["-id"],
-          limit: -1,
-        })
-      )
-    );
-    return items || [];
-  } catch (error) {
-    console.error("❌ Error cargando la tabla com_newness_reports:", error);
-    return [];
-  }
+  return getStoreNovedades(storeId);
 }
 
 export async function getStoreNovedades(storeId: number | number[] | null): Promise<any[]> {
@@ -302,10 +234,7 @@ export const fetchTimeRecords = async (
   return await withAutoRefresh(() =>
     directus.request(
       readItems('com_time_records', {
-
         fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'employee_id.document_number', 'employee_id.first_name', 'employee_id.middle_name', 'employee_id.last_name', 'employee_id.second_last_name', 'store_id.id', 'store_id.name', 'observations'],
-
-
         filter,
         sort: ['-record_date'],
         limit: -1,
@@ -314,24 +243,11 @@ export const fetchTimeRecords = async (
   ) as TimeRecord[];
 };
 
+/**
+ * Reutiliza fetchTimeRecords(date, date, storeId) para evitar duplicar peticiones a com_time_records.
+ */
 export async function getTimeRecords(storeId: number, date: string): Promise<any[]> {
-  try {
-    return await withAutoRefresh(() =>
-      directus.request(
-        readItems('com_time_records', {
-          fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'store_id', 'observations'],
-          filter: {
-            store_id: { _eq: storeId },
-            record_date: { _eq: date }
-          },
-          limit: -1
-        })
-      )
-    );
-  } catch (error) {
-    console.error('❌ Error al obtener registros de tiempo:', error);
-    return [];
-  }
+  return fetchTimeRecords(date, date, storeId);
 }
 
 export async function getStores(): Promise<Tienda[]> {
@@ -369,7 +285,6 @@ export async function getCargos(): Promise<Cargo[]> {
     return [];
   }
 }
-
 
 const idRelacion = (val: any): number | null => {
   const raw = val != null && typeof val === "object" ? val.id : val;
@@ -496,118 +411,6 @@ export async function existeDocumentoEmpleado(documentNumber: string): Promise<b
   }
 }
 
-export async function getEmpleadosBulk(storeIds?: number[]): Promise<EmpleadoAsistencia[]> {
-  try {
-    const filter: any = {
-      status: { _eq: "Activo" }
-    };
-    if (storeIds && storeIds.length > 0) {
-      filter.store_id = { _in: storeIds };
-    }
-    const items = await withAutoRefresh(() =>
-      directus.request(
-        readItems("adm_employees", {
-          fields: ["id", "document_number", "first_name", "middle_name", "last_name", "second_last_name", "store_id", "position_id.name"],
-          filter,
-          limit: -1,
-        })
-      )
-    );
-
-    return (items || []).map((emp: any) => {
-      const parts = [
-        emp.first_name,
-        emp.middle_name,
-        emp.last_name,
-        emp.second_last_name
-      ].filter(part => part && part.trim() !== "");
-      const full_name = parts.join(" ").trim() || "Empleado Sin Nombre";
-
-      return {
-        id: String(emp.id),
-        documento: emp.document_number ? String(emp.document_number) : String(emp.id), 
-        nombre: full_name,
-        cargo: emp.position_id?.name || "Sin Cargo",
-        estadoActual: "entrada_pendiente",
-        storeId: emp.store_id ? Number(typeof emp.store_id === 'object' ? emp.store_id.id : emp.store_id) : null,
-        registros: {
-          inicioJornada: null,
-          inicioAlmuerzo: null,
-          finAlmuerzo: null,
-          finJornada: null,
-          observaciones: {},
-        },
-      };
-    });
-  } catch (error) {
-    console.error("❌ Error cargando empleados en bulk:", error);
-    return [];
-  }
-}
-
-export async function getTimeRecordsBulk(storeIds: number[], date: string): Promise<any[]> {
-  if (!storeIds || storeIds.length === 0) return [];
-  try {
-    return await withAutoRefresh(() =>
-      directus.request(
-        readItems('com_time_records', {
-          fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'store_id', 'observations'],
-          filter: {
-            store_id: { _in: storeIds },
-            record_date: { _eq: date }
-          },
-          limit: -1
-        })
-      )
-    );
-  } catch (error) {
-    console.error('❌ Error al obtener registros de tiempo en bulk:', error);
-    return [];
-  }
-}
-
-export async function getTimeRecordsBulkRange(storeIds: number[], startDate: string, endDate: string): Promise<any[]> {
-  if (!storeIds || storeIds.length === 0) return [];
-  try {
-    return await withAutoRefresh(() =>
-      directus.request(
-        readItems('com_time_records', {
-          fields: ['id', 'record_date', 'record_time', 'original_record_time', 'log_type', 'employee_id.id', 'store_id', 'observations'],
-          filter: {
-            store_id: { _in: storeIds },
-            record_date: { _gte: startDate, _lte: endDate }
-          },
-          limit: -1
-        })
-      )
-    );
-  } catch (error) {
-    console.error('❌ Error al obtener registros de tiempo por rango en bulk:', error);
-    return [];
-  }
-}
-
-export async function getNovedadesBulkRange(storeIds: number[], startDate: string, endDate: string): Promise<any[]> {
-  if (!storeIds || storeIds.length === 0) return [];
-  try {
-    return await withAutoRefresh(() =>
-      directus.request(
-        readItems('com_newness_reports', {
-          fields: ['id', 'report_date', 'employee_id.id', 'store_id'],
-          filter: {
-            store_id: { _in: storeIds },
-            report_date: { _gte: startDate, _lte: endDate }
-          },
-          limit: -1
-        })
-      )
-    );
-  } catch (error) {
-    console.error('❌ Error al obtener novedades por rango en bulk:', error);
-    return [];
-  }
-}
-
 export async function getEditedTimeRecords(storeIds: number[], startDate: string, endDate: string): Promise<any[]> {
   try {
     const filter: any = {
@@ -622,15 +425,15 @@ export async function getEditedTimeRecords(storeIds: number[], startDate: string
       directus.request(
         readItems('com_time_records', {
           fields: [
-            'id', 
-            'record_date', 
-            'record_time', 
-            'original_record_time', 
-            'log_type', 
-            'employee_id.id', 
-            'employee_id.first_name', 
-            'employee_id.middle_name', 
-            'employee_id.last_name', 
+            'id',
+            'record_date',
+            'record_time',
+            'original_record_time',
+            'log_type',
+            'employee_id.id',
+            'employee_id.first_name',
+            'employee_id.middle_name',
+            'employee_id.last_name',
             'employee_id.second_last_name',
             'store_id.id',
             'store_id.name',
@@ -703,56 +506,6 @@ export async function getPrimerPeriodoRegistro(): Promise<{ year: number; month:
   return { year: dayjs().year(), month: 0 };
 }
 
+// Reexportar todas las consultas bulk y reportes
+export * from "./readBulk";
 export * from "./reports";
-
-export interface StoreClosedDay {
-  id: number;
-  store_id: number;
-  date: string;
-  status?: boolean;
-  user_created?: string;
-  date_created?: string;
-}
-
-export async function getStoreClosedDays(
-  storeIds?: number | number[],
-  fechaInicio?: string,
-  fechaFin?: string
-): Promise<StoreClosedDay[]> {
-  try {
-    const filter: any = {};
-    if (storeIds != null) {
-      if (Array.isArray(storeIds)) {
-        filter.store_id = { _in: storeIds };
-      } else {
-        filter.store_id = { _eq: storeIds };
-      }
-    }
-    if (fechaInicio) filter.date = { ...filter.date, _gte: fechaInicio };
-    if (fechaFin) filter.date = { ...filter.date, _lte: fechaFin };
-
-    const items = await withAutoRefresh(() =>
-      directus.request(
-        readItems("com_store_closed_days", {
-          fields: ["id", "store_id", "date", "status", "user_created", "date_created"],
-          filter,
-          limit: -1,
-        })
-      )
-    );
-    return (items || []).map((item: any) => ({
-      id: item.id,
-      store_id: Number(typeof item.store_id === "object" ? item.store_id.id : item.store_id),
-      date: item.date,
-      status: item.status !== false,
-      user_created: item.user_created,
-      date_created: item.date_created,
-    })) as StoreClosedDay[];
-  } catch (error) {
-    console.error("❌ Error cargando días cerrados de tienda:", error);
-    return [];
-  }
-}
-
-
-

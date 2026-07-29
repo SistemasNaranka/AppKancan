@@ -1,11 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box, Container, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Avatar, Chip,
   CircularProgress, Pagination, IconButton, Tooltip, Button,
-  Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel,
-  TextField, Alert,
-  ToggleButtonGroup, ToggleButton,
+  ToggleButtonGroup, ToggleButton, TextField
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -18,17 +16,11 @@ import {
   Today as TodayIcon,
   Warning as WarningIcon,
   AddCircle as AddCircleIcon,
-  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
-
-// MUI X Date Pickers
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
 // Hooks y APIs
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
@@ -38,24 +30,7 @@ import { updateTimeRecord, upsertRecordReason, createTimeRecord } from '../api/d
 import { Tienda } from '../interfaces/horarios.interface';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import EditHourModal from '../components/EditHourModal';
-
-// -------- FUNCIONES AUXILIARES --------
-const calcularMinutosDia = (records: any[], empleadoId: string | number): number => {
-  const empRecords = records.filter(r => Number(r.employee_id?.id || r.employee_id) === Number(empleadoId));
-  const entrada = empRecords.find(r => r.log_type === 'Comenzar Jornada');
-  const salida = empRecords.find(r => r.log_type === 'Terminar Jornada');
-  if (!entrada || !salida) return 0;
-  const inicio = dayjs(`2000-01-01 ${entrada.record_time.substring(0,5)}`);
-  const fin = dayjs(`2000-01-01 ${salida.record_time.substring(0,5)}`);
-  return fin.diff(inicio, 'minute');
-};
-
-const formatearHoras = (minutos: number): string => {
-  if (minutos <= 0) return '0h 0m';
-  const horas = Math.floor(minutos / 60);
-  const mins = minutos % 60;
-  return `${horas}h ${mins}m`;
-};
+import { calcularMinutosDia, formatearHoras } from './planilla/DetallePlanillaUtils';
 
 const calcularHorasSemana = (empleadoId: string | number, weekRecords: any[]): string => {
   const empRecords = weekRecords.filter(r => Number(r.employee_id?.id || r.employee_id) === Number(empleadoId));
@@ -631,7 +606,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               size="small"
               placeholder="Buscar empleado..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               sx={{ width: 220 }}
             />
           </Box>
