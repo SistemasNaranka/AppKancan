@@ -400,62 +400,140 @@ export default function ReporteSemanalTab({
             </Box>
           ) : (
             <Box sx={{ p: 3 }}>
-              {storesTrabajadas.map((st) => {
-                const recordsTienda = recordsSelectedEmp.filter(r => Number(r.store_id?.id || r.store_id) === st.id);
-                let totalMinutesStore = 0;
-
-                return (
-                  <Paper key={st.id} elevation={0} sx={{ p: 2, mb: 2.5, border: '1px solid #e2e8f0', borderRadius: 2.5, bgcolor: '#ffffff' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#004680', mb: 1.5 }}>
-                      {st.name}
-                    </Typography>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead sx={{ bgcolor: '#f8fafc' }}>
-                          <TableRow>
-                            {semanasDelMes.map((sem, idx) => (
-                              <TableCell key={idx} align="center" sx={{ fontWeight: 700, py: 1 }}>
-                                Semana {idx + 1}
-                                <Typography variant="caption" display="block" sx={{ color: '#64748b' }}>
-                                  {sem.label}
-                                </Typography>
-                              </TableCell>
-                            ))}
-                            <TableCell align="center" sx={{ fontWeight: 700, py: 1, bgcolor: '#e6f4ea', color: '#137333' }}>
-                              Total Tienda
-                            </TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          <TableRow>
-                            {semanasDelMes.map((sem, sIdx) => {
-                              const minSemana = calcularMinutosSemanales(selectedEmpleadoId, sem.start, sem.end, recordsTienda);
-                              totalMinutesStore += minSemana;
-                              return (
-                                <TableCell key={sIdx} align="center" sx={{ py: 1.5 }}>
-                                  <Typography variant="body2" sx={{ fontWeight: minSemana > 0 ? 600 : 400 }}>
-                                    {formatMinutes(minSemana)}
-                                  </Typography>
-                                </TableCell>
-                              );
-                            })}
-                            <TableCell align="center" sx={{ py: 1.5, bgcolor: '#f4fbf7', fontWeight: 700, color: '#137333' }}>
-                              {formatMinutes(totalMinutesStore)}
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Paper>
-                );
-              })}
-
-              {storesTrabajadas.length === 0 && (
+              {storesTrabajadas.length === 0 ? (
                 <Box sx={{ p: 4, textAlign: 'center' }}>
                   <Typography variant="body2" color="#94a3b8">
                     El empleado no registra horas trabajadas en el mes seleccionado.
                   </Typography>
                 </Box>
+              ) : (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 2.5,
+                    overflow: 'hidden',
+                    bgcolor: '#ffffff',
+                  }}
+                >
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                        <TableRow>
+                          <TableCell sx={{ color: '#1e293b', fontWeight: 700, py: 1.5 }}>
+                            Tienda
+                          </TableCell>
+                          {semanasDelMes.map((sem, idx) => (
+                            <TableCell key={idx} align="center" sx={{ color: '#1e293b', fontWeight: 700, py: 1.5 }}>
+                              Semana {idx + 1}
+                              <Typography variant="caption" display="block" sx={{ color: '#64748b', fontSize: '0.72rem' }}>
+                                {sem.label}
+                              </Typography>
+                            </TableCell>
+                          ))}
+                          <TableCell align="center" sx={{ color: '#137333', fontWeight: 700, py: 1.5, bgcolor: '#e6f4ea' }}>
+                            Total Tienda
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+
+                      <TableBody>
+                        {/* Filas por cada tienda donde laboró el empleado */}
+                        {storesTrabajadas.map((st, idx) => {
+                          const recordsTienda = recordsSelectedEmp.filter(
+                            (r) => Number(r.store_id?.id || r.store_id) === st.id
+                          );
+                          let totalMinutesStore = 0;
+                          const isEven = idx % 2 === 0;
+
+                          return (
+                            <TableRow key={st.id} sx={{ bgcolor: isEven ? '#ffffff' : '#f8fafc' }}>
+                              <TableCell sx={{ fontWeight: 700, color: '#1e293b', py: 1.75 }}>
+                                {st.name}
+                              </TableCell>
+                              {semanasDelMes.map((sem, sIdx) => {
+                                const minSemana = calcularMinutosSemanales(
+                                  selectedEmpleadoId,
+                                  sem.start,
+                                  sem.end,
+                                  recordsTienda
+                                );
+                                totalMinutesStore += minSemana;
+                                return (
+                                  <TableCell key={sIdx} align="center" sx={{ py: 1.75 }}>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        fontWeight: minSemana > 0 ? 600 : 400,
+                                        color: minSemana > 0 ? '#0f172a' : '#94a3b8',
+                                      }}
+                                    >
+                                      {formatMinutes(minSemana)}
+                                    </Typography>
+                                  </TableCell>
+                                );
+                              })}
+                              <TableCell
+                                align="center"
+                                sx={{ py: 1.75, bgcolor: isEven ? '#f4fbf7' : '#eaf7f0', fontWeight: 700, color: '#137333' }}
+                              >
+                                {formatMinutes(totalMinutesStore)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+
+                        {/* Fila Final Unificada de TOTAL EMPLEADO (Solo si laboró en más de 1 tienda) */}
+                        {storesTrabajadas.length > 1 && (() => {
+                          let grandTotalAllStores = 0;
+                          return (
+                            <TableRow sx={{ bgcolor: '#eef6ff', borderTop: '2px solid #004680' }}>
+                              <TableCell sx={{ fontWeight: 800, color: '#004680', py: 2 }}>
+                                TOTAL EMPLEADO
+                              </TableCell>
+
+                              {semanasDelMes.map((sem, sIdx) => {
+                                const minSemanaEmp = calcularMinutosSemanales(
+                                  selectedEmpleadoId,
+                                  sem.start,
+                                  sem.end,
+                                  recordsSelectedEmp
+                                );
+                                grandTotalAllStores += minSemanaEmp;
+                                return (
+                                  <TableCell key={sIdx} align="center" sx={{ py: 2 }}>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        fontWeight: minSemanaEmp > 0 ? 800 : 400,
+                                        color: minSemanaEmp > 0 ? '#004680' : '#94a3b8',
+                                      }}
+                                    >
+                                      {formatMinutes(minSemanaEmp)}
+                                    </Typography>
+                                  </TableCell>
+                                );
+                              })}
+
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  py: 2,
+                                  bgcolor: '#d4edda',
+                                  fontWeight: 900,
+                                  fontSize: '0.95rem',
+                                  color: '#155724',
+                                }}
+                              >
+                                {formatMinutes(grandTotalAllStores)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })()}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
               )}
             </Box>
           )}

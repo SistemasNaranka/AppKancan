@@ -340,6 +340,20 @@ export const useHorarios = (storeOverride?: number | null) => {
   };
 
   const novedadesMapped: NovedadMapeada[] = (novedadesDB || []).map((nov: any) => {
+    // Si ya viene previamente formateado desde la API (read.ts)
+    if (nov.empleadoNombre && nov.empleadoNombre !== 'Empleado #' && nov.empleadoNombre !== 'Empleado Sin Nombre') {
+      return {
+        id: nov.id,
+        fecha: nov.fecha || nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : new Date().toISOString()),
+        empleadoNombre: nov.empleadoNombre,
+        empleadoDocumento: nov.empleadoDocumento,
+        tipo: nov.tipo || nov.newness_id?.name || 'Novedad',
+        observaciones: nov.observaciones || nov.observations || '',
+        empleadoActivo: nov.empleadoActivo ?? true,
+        tiendaNombre: nov.tiendaNombre || nov.store_id?.name || 'Sin tienda',
+      };
+    }
+
     const empId = nov.employee_id?.id || nov.employee_id;
     const empLocal = empleadosDB.find((e) => String(e.id) === String(empId));
     
@@ -375,7 +389,7 @@ export const useHorarios = (storeOverride?: number | null) => {
         : (empLocal?.documento ? String(empLocal.documento) : undefined),
       tipo: tipoNovedadName,
       observaciones: nov.observations || '',
-      empleadoActivo: !!empLocal, // empleadosDB solo trae empleados activos
+      empleadoActivo: !!empLocal,
       tiendaNombre: nov.store_id?.name || 'Sin tienda',
     };
   });
