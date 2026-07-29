@@ -124,7 +124,37 @@ export async function getRecordReasonId(recordId: number): Promise<number | null
  * Reutiliza getStoreNovedades para evitar duplicar código de la tabla com_newness_reports.
  */
 export async function getNovedades(storeId: number): Promise<any[]> {
-  return getStoreNovedades(storeId);
+  try {
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems('com_newness_reports', {
+          fields: ['*', 'newness_id.*', 'employee_id.*', 'store_id.*'],
+          filter: {
+            store_id: { _eq: storeId }
+          },
+          sort: ['-report_date', '-id'],
+          limit: -1
+        })
+      )
+    );
+    return (items || []).map((nov: any) => {
+      const emp = nov.employee_id || {};
+      const parts = [emp.first_name, emp.middle_name, emp.last_name, emp.second_last_name].filter(Boolean);
+      const fullName = parts.join(' ');
+      return {
+        id: nov.id,
+        fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
+        empleadoNombre: fullName || `Empleado #${emp.id || ''}`,
+        tipo: nov.newness_id?.name || 'Novedad',
+        observaciones: nov.observations || '',
+        empleadoActivo: emp.status === 'Activo',
+        tiendaNombre: nov.store_id?.name || ''
+      };
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener novedades:', error);
+    return [];
+  }
 }
 
 export async function getStoreNovedades(storeId: number | number[] | null): Promise<any[]> {
@@ -139,51 +169,31 @@ export async function getStoreNovedades(storeId: number | number[] | null): Prom
     }
     const items = await withAutoRefresh(() =>
       directus.request(
-        readItems("com_newness_reports", {
-          fields: [
-            "id",
-            "date_created",
-            "observations",
-            "newness_id.id",
-            "newness_id.name",
-            "employee_id.id",
-            "employee_id.document_number",
-            "employee_id.first_name",
-            "employee_id.middle_name",
-            "employee_id.last_name",
-            "employee_id.second_last_name",
-            "report_date",
-            "store_id.id",
-            "store_id.name"
-          ],
+        readItems('com_newness_reports', {
+          fields: ['*', 'newness_id.*', 'employee_id.*', 'store_id.*'],
           filter,
-          sort: ["-report_date", "-id"],
-          limit: -1,
+          sort: ['-report_date', '-id'],
+          limit: -1
         })
       )
     );
     return (items || []).map((nov: any) => {
-      const parts = [
-        nov.employee_id?.first_name,
-        nov.employee_id?.middle_name,
-        nov.employee_id?.last_name,
-        nov.employee_id?.second_last_name
-      ].filter(Boolean);
-      const fullName = parts.join(" ").trim() || `Empleado #${nov.employee_id?.id || ''}`;
-
+      const emp = nov.employee_id || {};
+      const parts = [emp.first_name, emp.middle_name, emp.last_name, emp.second_last_name].filter(Boolean);
+      const fullName = parts.join(' ');
       return {
         id: nov.id,
         fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
-        empleadoNombre: fullName,
-        empleadoDocumento: nov.employee_id?.document_number ? String(nov.employee_id.document_number) : undefined,
-        tipo: nov.newness_id?.name || "Sin tipo",
-        observaciones: nov.observations || "",
-        empleadoActivo: true,
-        tiendaNombre: nov.store_id?.name || "Sin tienda",
+        empleadoNombre: fullName || `Empleado #${emp.id || ''}`,
+        empleadoDocumento: emp.document_number ? String(emp.document_number) : undefined,
+        tipo: nov.newness_id?.name || 'Novedad',
+        observaciones: nov.observations || '',
+        empleadoActivo: emp.status === 'Activo',
+        tiendaNombre: nov.store_id?.name || ''
       };
     });
   } catch (error) {
-    console.error("❌ Error cargando novedades por tienda:", error);
+    console.error('❌ Error cargando novedades por tienda:', error);
     return [];
   }
 }
