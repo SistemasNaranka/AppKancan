@@ -106,9 +106,8 @@ export default function CalendarioMensualTienda({
                 }
 
                 const records = recordsPorDia[fecha] || [];
-                const novelties = novedadesPorDia[fecha] || [];
 
-                if (records.length === 0 && novelties.length === 0) {
+                if (records.length === 0) {
                     return { fecha, estado: 'sin_registro' as EstadoDia };
                 }
 
@@ -135,7 +134,7 @@ export default function CalendarioMensualTienda({
                 let estado: EstadoDia = 'sin_registro';
                 if (hasIncomplete) {
                     estado = 'parcial';
-                } else if (hasComplete || novelties.length > 0) {
+                } else if (hasComplete) {
                     estado = 'completo';
                 }
 
@@ -149,7 +148,8 @@ export default function CalendarioMensualTienda({
         staleTime: 5 * 60 * 1000,
     });
 
-    const diasSinRegistro = Object.values(diasEstado).filter(e => e === 'sin_registro').length;
+    const hoyStr = dayjs().format('YYYY-MM-DD');
+    const diasSinRegistro = Object.entries(diasEstado).filter(([fecha, e]) => e === 'sin_registro' && fecha < hoyStr).length;
     const primerDiaSemana = (inicioMes.day() + 6) % 7;
     const totalDiasMes = finMes.date();
     const celdas: (number | null)[] = [

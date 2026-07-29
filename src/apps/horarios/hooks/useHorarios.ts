@@ -264,14 +264,8 @@ export const useHorarios = (storeOverride?: number | null) => {
 
   const resetHorarios = async () => {
     setError(null);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['empleados'] }),
-      queryClient.invalidateQueries({ queryKey: ['novedades'] }),
-      queryClient.invalidateQueries({ queryKey: ['timeRecords'] }),
-      queryClient.invalidateQueries({ queryKey: ['eventReportsToday'] }),
-      queryClient.invalidateQueries({ queryKey: ['adminTodosEmpleados'] }),
-      queryClient.invalidateQueries({ queryKey: ['adminEmpleadosTienda'] }),
-    ]);
+    await queryClient.invalidateQueries();
+    await queryClient.refetchQueries({ type: 'active' });
   };
 
   const agregarNovedad = async (novedad: {

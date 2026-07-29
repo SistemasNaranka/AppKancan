@@ -427,10 +427,10 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
                 onClose={!guardando ? handleCerrar : undefined}
                 maxWidth="md"
                 fullWidth
-                slotProps={{ paper: { sx: { borderRadius: 3, maxWidth: 920 } } }}
+                slotProps={{ paper: { sx: { borderRadius: 3, maxWidth: 920, maxHeight: '90vh', display: 'flex', flexDirection: 'column' } } }}
             >
                 {/* Cabecera */}
-                <Box sx={{ bgcolor: mainColor, color: '#fff', px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', transition: 'background-color 0.2s' }}>
+                <Box sx={{ bgcolor: mainColor, color: '#fff', px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', transition: 'background-color 0.2s', flexShrink: 0 }}>
                     {isCerrar ? <BlockIcon sx={{ fontSize: 26 }} /> : <LockOpenIcon sx={{ fontSize: 26 }} />}
                     <Box>
                         <Typography variant="h6" fontWeight={700}>
@@ -470,12 +470,13 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
                     </IconButton>
                 </Box>
 
-                <DialogContent sx={{ p: 0 }}>
+                <DialogContent sx={{ p: 0, overflowY: 'auto', flex: 1 }}>
                     <Box sx={{
                         display: 'grid',
                         gridTemplateColumns: { xs: '1fr', md: '1fr 1.1fr' },
                         gap: 2.5,
                         p: 2.5,
+                        alignItems: 'start',
                     }}>
                         {/* ── Columna izquierda: Tiendas ── */}
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -535,7 +536,17 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
                             />
                             <Divider sx={{ mt: -0.5 }} />
 
-                            <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                            <Box sx={{
+                                maxHeight: 300,
+                                overflowY: 'auto',
+                                pr: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 0.3,
+                                '&::-webkit-scrollbar': { width: 6 },
+                                '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 3 },
+                                '&::-webkit-scrollbar-thumb:hover': { bgcolor: '#94a3b8' },
+                            }}>
                                 {tiendasFiltradas.length === 0 ? (
                                     <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                                         No se encontraron tiendas

@@ -21,14 +21,14 @@ import {
     Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
-import { getTimeRecords, getNovedades, fetchTimeRecords, getRecordReasonId, getStoreClosedDays, StoreClosedDay } from '../api/directus/read';
-import { createTimeRecord, updateTimeRecord, upsertRecordReason, createStoreClosedDay, deleteStoreClosedDay, setStoreClosedDayStatus } from '../api/directus/create';
+import { getNovedades, fetchTimeRecords, getRecordReasonId, getStoreClosedDays, StoreClosedDay } from '../api/directus/read';
+import { createTimeRecord, updateTimeRecord, upsertRecordReason, setStoreClosedDayStatus } from '../api/directus/create';
 import { useHorarios } from '../hooks/useHorarios';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
@@ -82,7 +82,6 @@ function CreateHourModal({ open, onClose, employeeName, eventName, onConfirm }: 
         }
     };
 
-    // Inicial del empleado
     const initial = employeeName ? employeeName.charAt(0).toUpperCase() : '?';
 
     return (
@@ -164,7 +163,17 @@ function CreateHourModal({ open, onClose, employeeName, eventName, onConfirm }: 
 // ============================================================
 //  COMPONENTE PRINCIPAL
 // ============================================================
-export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: { tiendaId: number; tiendaNombre: string; onClose: () => void }) {
+export default function ModalDetalleTienda({
+    tiendaId,
+    tiendaNombre,
+    onClose,
+    initialMonth,
+}: {
+    tiendaId: number;
+    tiendaNombre: string;
+    onClose: () => void;
+    initialMonth?: Dayjs;
+}) {
     const { esAdmin, esAreaManager } = useHorariosPolicies();
     const { empleados, loading, reasons } = useHorarios(tiendaId);
     const queryClient = useQueryClient();
@@ -172,7 +181,10 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(0);
     const rowsPerPage = 10;
-    const [fechaSeleccionada, setFechaSeleccionada] = useState(dayjs().format('YYYY-MM-DD'));
+    const [fechaSeleccionada, setFechaSeleccionada] = useState(() => {
+        if (initialMonth) return initialMonth.startOf('month').format('YYYY-MM-DD');
+        return dayjs().format('YYYY-MM-DD');
+    });
     const [novedadModalOpen, setNovedadModalOpen] = useState(false);
     const [novedadSeleccionada, setNovedadSeleccionada] = useState<any>(null);
     const [historialOpen, setHistorialOpen] = useState(false);
@@ -510,15 +522,21 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
         setEditData(null);
     };
 
-    // ✅ Edición: SOLO actualiza record_time y observations (SIN original_record_time)
+    // ✅ Edición: Guarda original_record_time (hora original inicial) y actualiza record_time con la nueva hora editada
     const handleConfirmEdit = async (horaFormateada: string, observacion: string, reasonId: number | null) => {
         if (!editData || !editData.recordId) return;
         try {
             const parsed = dayjs(horaFormateada, 'hh:mm A');
             const recordTime = parsed.format('HH:mm:ss');
 
+            const existingRecord = recordsDia.find(r => r.id === editData.recordId);
+            const originalTime = existingRecord
+                ? (existingRecord.original_record_time || existingRecord.record_time)
+                : undefined;
+
             await updateTimeRecord(editData.recordId, {
                 record_time: recordTime,
+                original_record_time: originalTime,
                 observations: observacion,
             });
 
@@ -971,7 +989,7 @@ export default function ModalDetalleTienda({ tiendaId, tiendaNombre, onClose }: 
                     initialReasonId={editData.initialReasonId}
                     registros={editData.registros}
                     onConfirm={handleConfirmEdit}
-                    motivoRequerido={false}
+                    motivoRequerido={true}
                 />
             )}
 

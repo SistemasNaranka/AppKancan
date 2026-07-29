@@ -440,42 +440,42 @@ function RegistrosPageContent() {
                     </Tooltip>
                   )}
                   {!vistaReporte && !isAreaMgr && <TutorialButton />}
-                  {(!vistaReporte || isAreaMgr) && (
-                    <Tooltip title="Actualizar registros">
-                      <Button
-                        className="tour-refresh"
-                        onClick={async () => {
-                          setActualizando(true);
-                          try {
-                            await resetHorarios();
-                          } finally {
-                            setActualizando(false);
-                          }
-                        }}
-                        disabled={actualizando}
-                        variant="contained"
-                        disableElevation
-                        startIcon={actualizando ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: { xs: 14, sm: 18 } }} />}
-                        sx={{
-                          bgcolor: '#004680',
-                          color: '#fff',
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          fontWeight: 'bold',
-                          px: { xs: 1, sm: 2 },
-                          py: 0.5,
-                          boxShadow: 'none',
-                          fontSize: { xs: '0.7rem', sm: '0.875rem' },
-                          minHeight: { xs: 32, sm: 40 },
-                          '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
-                        }}
-                      >
-                        Actualizar
-                      </Button>
-                    </Tooltip>
-                  )}
                 </>
               )}
+
+              {/* Botón de Actualizar Global (Siempre visible en el header principal en todas las vistas) */}
+              <Tooltip title="Actualizar información de la base de datos">
+                <Button
+                  className="tour-refresh"
+                  onClick={async () => {
+                    setActualizando(true);
+                    try {
+                      await resetHorarios();
+                    } finally {
+                      setActualizando(false);
+                    }
+                  }}
+                  disabled={actualizando}
+                  variant="contained"
+                  disableElevation
+                  startIcon={actualizando ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: { xs: 14, sm: 18 } }} />}
+                  sx={{
+                    bgcolor: '#004680',
+                    color: '#fff',
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    px: { xs: 1, sm: 2 },
+                    py: 0.5,
+                    boxShadow: 'none',
+                    fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                    minHeight: { xs: 32, sm: 40 },
+                    '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
+                  }}
+                >
+                  Actualizar
+                </Button>
+              </Tooltip>
             </Box>
           </Box>
         </Box>
