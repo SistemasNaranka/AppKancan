@@ -2,6 +2,7 @@ import React from "react";
 import { Button, Box } from "@mui/material";
 import Settings from '@mui/icons-material/Settings';
 import Person from '@mui/icons-material/Person';
+import PersonAdd from '@mui/icons-material/PersonAdd';
 import Store from '@mui/icons-material/Store';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { ExportButtons } from "./ExportButtons";
@@ -21,6 +22,7 @@ interface HomeHeaderProps {
   onTiendaChange: (tiendas: string[]) => void;
   onShowCodesModal: () => void;
   onShowConfigModal: () => void;
+  onShowCreateAdvisorModal?: () => void;
   onShowEditStoreModal: () => void;
   onShowEditStoreBudgetModal: () => void;
   onToggleAllStores: () => void;
@@ -51,6 +53,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onTiendaChange,
   onShowCodesModal,
   onShowConfigModal,
+  onShowCreateAdvisorModal,
   onShowEditStoreModal,
   onShowEditStoreBudgetModal,
   onToggleAllStores,
@@ -125,6 +128,34 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                     >
                       <span className="hidden xs:inline">Configuración</span>
                       <span className="xs:hidden">Conf</span>
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (onShowCreateAdvisorModal) onShowCreateAdvisorModal();
+                      }}
+                      variant="contained"
+                      startIcon={<PersonAdd />}
+                      size="small"
+                      sx={{
+                        lineHeight: 2.2,
+                        minWidth: "auto",
+                        px: { xs: 1.5, sm: 2 },
+                        backgroundColor: "#004680",
+                        color: "white",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        "&:hover": {
+                          backgroundColor: "#003663",
+                          boxShadow: "0 4px 8px rgba(0, 70, 128, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                      }}
+                    >
+                      <span className="hidden xs:inline">Crear Asesor</span>
+                      <span className="xs:hidden">Asesor</span>
                     </Button>
                   </>
                 )}

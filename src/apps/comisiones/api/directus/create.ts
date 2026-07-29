@@ -674,3 +674,36 @@ export async function guardarUmbralesComisiones(data: {
     throw new Error(directusError || "Error desconocido al guardar umbrales.");
   }
 }
+
+export interface CrearAsesorPayload {
+  id: number;
+  position_id: number;
+  store_id: number;
+  name: string;
+  document: number | string;
+}
+
+/**
+ * Crear un nuevo asesor en com_advisors
+ */
+export async function crearAsesor(payload: CrearAsesorPayload): Promise<any> {
+  try {
+    const data = await withAutoRefresh(() =>
+      directus.request(
+        createItem("com_advisors", {
+          id: payload.id,
+          position_id: payload.position_id,
+          store_id: payload.store_id,
+          name: payload.name,
+          document: Number(payload.document) || payload.document,
+        }),
+      ),
+    );
+    return data;
+  } catch (error: any) {
+    console.error("❌ Error al crear asesor:", error);
+    const directusError = error.errors?.[0]?.message || error.message;
+    throw new Error(directusError || "Error al crear asesor.");
+  }
+}
+

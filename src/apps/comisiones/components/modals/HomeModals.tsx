@@ -3,11 +3,13 @@ import { CodesModal } from "./CodesModal";
 import { NoDataModal } from "./NoDataModal";
 import { EditStoreModalSimplified } from "./EditStoreModalSimplified";
 import { EditStoreBudgetModal } from "./EditStoreBudgetModal";
+import { CreateAdvisorModal } from "./CreateAdvisorModal";
 
 interface HomeModalsProps {
   showCodesModal: boolean;
   showEditStoreModal: boolean;
   showEditStoreBudgetModal: boolean;
+  showCreateAdvisorModal?: boolean;
   showNoDataModal: boolean;
   modalTitle: string;
   modalMessage: string;
@@ -18,6 +20,7 @@ interface HomeModalsProps {
   onCloseCodesModal: () => void;
   onCloseEditStoreModal: () => void;
   onCloseEditStoreBudgetModal: () => void;
+  onCloseCreateAdvisorModal?: () => void;
   onCloseNoDataModal: () => void;
   onAssignmentComplete?: (ventasData: any) => void;
   onShowSaveLoading?: (error?: any) => void;
@@ -28,6 +31,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   showCodesModal,
   showEditStoreModal,
   showEditStoreBudgetModal,
+  showCreateAdvisorModal = false,
   showNoDataModal,
   modalTitle,
   modalMessage,
@@ -37,6 +41,7 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
   onCloseCodesModal,
   onCloseEditStoreModal,
   onCloseEditStoreBudgetModal,
+  onCloseCreateAdvisorModal,
   onCloseNoDataModal,
   onAssignmentComplete,
   onShowSaveLoading,
@@ -103,6 +108,16 @@ export const HomeModals: React.FC<HomeModalsProps> = ({
         tiendaProp={tiendaSeleccionada}
         onSaveComplete={handleSaveCompleteWrapper}
       />
+
+      {/* Create Advisor Modal - PARA ADMINISTRADORES */}
+      <CreateAdvisorModal
+        isOpen={showCreateAdvisorModal}
+        onClose={() => {
+          if (onCloseCreateAdvisorModal) onCloseCreateAdvisorModal();
+        }}
+        onSuccess={handleSaveCompleteWrapper}
+      />
     </>
   );
 };
+
