@@ -11,7 +11,7 @@ import {
     Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 
-export type EstadoDia = 'completo' | 'parcial' | 'sin_registro';
+export type EstadoDia = 'completo' | 'parcial' | 'sin_registro' | 'tienda_cerrada';
 
 export interface EmpleadoFila {
     id: string;

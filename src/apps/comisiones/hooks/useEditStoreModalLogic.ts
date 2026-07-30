@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, type KeyboardEvent } from "react";
+import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import { 
   getStores, obtenerEmpleadosPorFechaExacta, 
   obtenerAsesores, obtenerCargos, obtenerPresupuestosDiarios 
 } from "../api/directus/read";
-import { guardarPresupuestosEmpleados, eliminarPresupuestosEmpleados } from "../api/directus/create";
+import { sincronizarPresupuestosEmpleados } from "../api/directus/create";
 import { useBudgetCalculations } from "./useBudgetCalculations";
 import { useBudgetCalendar } from "./useBudgetCalendar";
 
@@ -139,12 +139,19 @@ export const useEditStoreModalLogic = ({ isOpen, onSaveComplete, tiendaProp }: a
       }
 
       for (const dia of diasAGuardar) {
-        await eliminarPresupuestosEmpleados(tiendaSeleccionada as number, dia);
         const res = await recalculateBudgets(empleadosAsignados, dia);
         const listaFinal = res.calculated ? res.empleados : empleadosAsignados;
-        await guardarPresupuestosEmpleados(listaFinal.map(emp => ({
-          advisor_id: emp.id, store_id: tiendaSeleccionada, position_id: emp.cargo_id, date: dia, budget: emp.presupuesto || 0,
-        })));
+        await sincronizarPresupuestosEmpleados(
+          tiendaSeleccionada as number,
+          dia,
+          listaFinal.map((emp) => ({
+            advisor_id: Number(emp.id),
+            store_id: Number(tiendaSeleccionada),
+            position_id: Number(emp.cargo_id),
+            date: dia,
+            budget: emp.presupuesto || 0,
+          })),
+        );
       }
       setSuccess(`✅ Asignación actualizada (${diasAGuardar.length} días)`);
       setSelectedDays([]);

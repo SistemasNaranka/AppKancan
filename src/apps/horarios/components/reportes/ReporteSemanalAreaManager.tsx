@@ -361,12 +361,14 @@ function ReporteSemanalAreaManagerContent({
               placeholder="Buscar empleado..."
               value={buscar}
               onChange={e => setBuscar(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ fontSize: 16, color: '#94A3B8' }} />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 16, color: '#94A3B8' }} />
+                    </InputAdornment>
+                  ),
+                },
               }}
               sx={{
                 width: 200,

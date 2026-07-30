@@ -8,8 +8,7 @@ import {
   obtenerPresupuestosDiarios,
 } from "../api/directus/read";
 import {
-  guardarPresupuestosEmpleados,
-  eliminarPresupuestosEmpleados,
+  sincronizarPresupuestosEmpleados,
 } from "../api/directus/create";
 import { useBudgetCalculations } from "./useBudgetCalculations";
 import { useBudgetCalendar } from "./useBudgetCalendar";
@@ -70,9 +69,6 @@ export const useEditStoreBudgetModalLogic = ({
     }
 
     if (error && error.includes("no existe")) setError("");
-
-    const cleanCodigo = codigoEmpleado.trim();
-    const codigoNum = parseInt(cleanCodigo);
 
     const asesor = todosEmpleados.find(
       (a: any) => String(a.id) === String(codigoEmpleado),
@@ -260,17 +256,18 @@ export const useEditStoreBudgetModalLogic = ({
       }
 
       for (const dia of diasAGuardar) {
-        await eliminarPresupuestosEmpleados(tiendaId as number, dia);
         const { empleados, calculated } = await recalculateBudgets(
           empleadosAsignados,
           dia,
         );
         const listaFinal = calculated ? empleados : empleadosAsignados;
-        await guardarPresupuestosEmpleados(
+        await sincronizarPresupuestosEmpleados(
+          tiendaId as number,
+          dia,
           listaFinal.map((emp) => ({
-            advisor_id: emp.id,
-            store_id: tiendaId,
-            position_id: emp.cargo_id,
+            advisor_id: Number(emp.id),
+            store_id: Number(tiendaId),
+            position_id: Number(emp.cargo_id),
             date: dia,
             budget: emp.presupuesto || 0,
           })),

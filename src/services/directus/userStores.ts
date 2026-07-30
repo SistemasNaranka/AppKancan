@@ -8,8 +8,18 @@ export interface UserStoreAccess {
   company: string;
 }
 
+export interface GetUserStoresOptions {
+  excludeOnline?: boolean;
+}
+
 // Obtener IDs de tiendas asignadas al usuario actual.
-export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
+export async function obtenerTiendasIdsUsuarioActual(
+  options?: GetUserStoresOptions | Record<string, unknown>,
+): Promise<number[]> {
+  const excludeOnline =
+    options && typeof options === "object" && "excludeOnline" in options
+      ? Boolean((options as GetUserStoresOptions).excludeOnline)
+      : false;
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
@@ -25,7 +35,7 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
 
     const tiendaIds = (data as any[])
       .map((item: any) => Number(item.store_id))
-      .filter((id) => !isNaN(id) && id !== 5);
+      .filter((id) => !isNaN(id) && (!excludeOnline || id !== 5));
     return tiendaIds;
   } catch (error: any) {
     if (error.response?.status === 404) {
@@ -37,7 +47,13 @@ export async function obtenerTiendasIdsUsuarioActual(): Promise<number[]> {
 }
 
 // Obtener tiendas (ID y empresa) asignadas al usuario actual.
-export async function obtenerTiendasUsuarioActual(): Promise<UserStoreAccess[]> {
+export async function obtenerTiendasUsuarioActual(
+  options?: GetUserStoresOptions | Record<string, unknown>,
+): Promise<UserStoreAccess[]> {
+  const excludeOnline =
+    options && typeof options === "object" && "excludeOnline" in options
+      ? Boolean((options as GetUserStoresOptions).excludeOnline)
+      : false;
   try {
     const data = await withAutoRefresh(() =>
       directus.request(
@@ -56,7 +72,9 @@ export async function obtenerTiendasUsuarioActual(): Promise<UserStoreAccess[]> 
         store_id: Number(item.store_id?.id ?? item.store_id),
         company: String(item.store_id?.company ?? ""),
       }))
-      .filter((item) => item.store_id !== 5);
+      .filter(
+        (item) => !isNaN(item.store_id) && (!excludeOnline || item.store_id !== 5),
+      );
   } catch (error: any) {
     if (error.response?.status === 404) {
       return [];

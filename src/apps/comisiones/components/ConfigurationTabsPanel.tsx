@@ -18,12 +18,15 @@ import Close from "@mui/icons-material/Close";
 import SettingsSuggest from "@mui/icons-material/SettingsSuggest";
 import BadgeIcon from "@mui/icons-material/Badge";
 import TrendingUp from "@mui/icons-material/TrendingUp";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 
 import { PeriodSelector } from "./configurationPanel/PeriodSelector";
 import { RoleConfigTab } from "./configurationPanel/RoleConfigTab";
 import { ThresholdConfigTab } from "./configurationPanel/ThresholdConfigTab";
+import { UploadExcelBudgetTab } from "./configurationPanel/UploadExcelBudgetTab";
 import { useRoleConfigs } from "./configurationPanel/useRoleConfigs";
 import { useThresholdConfigs } from "./configurationPanel/useThresholdConfigs";
+import { useUserPolicies } from "../hooks/useUserPolicies";
 
 interface ConfigurationTabsPanelProps {
   open: boolean;
@@ -79,6 +82,9 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
       return () => clearTimeout(timer);
     }
   }, [open]);
+
+  const { canSeeConfig } = useUserPolicies();
+  const isAdmin = canSeeConfig();
 
   const roleHook = useRoleConfigs({
     open,
@@ -198,6 +204,13 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
             icon={<TrendingUp />}
             iconPosition="start"
           />
+          {isAdmin && (
+            <Tab
+              label="Cargar Presupuestos (Excel)"
+              icon={<UploadFileIcon />}
+              iconPosition="start"
+            />
+          )}
         </Tabs>
 
         {activeTab === 0 && (
@@ -222,6 +235,10 @@ export const ConfigurationTabsPanel: React.FC<ConfigurationTabsPanelProps> = ({
             onRemoveRow={thresholdHook.handleRemoveThresholdRow}
             onRowChange={thresholdHook.handleThresholdRowChange}
           />
+        )}
+
+        {activeTab === 2 && isAdmin && (
+          <UploadExcelBudgetTab />
         )}
       </DialogContent>
 

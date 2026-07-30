@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box, Container, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Avatar, Chip,
   CircularProgress, Pagination, IconButton, Tooltip, Button,
-  TextField, Dialog, DialogContent, DialogActions,
+  TextField
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -12,16 +12,18 @@ import {
   Warning as WarningIcon,
   AddCircle as AddCircleIcon,
   Edit as EditIcon,
-  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
+// MUI X Date Pickers
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
+dayjs.locale('es');
+
+// Hooks y APIs
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { useHorarios } from '../hooks/useHorarios';
 import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedades, getRecordReasonId } from '../api/directus/read';
@@ -29,139 +31,13 @@ import { updateTimeRecord, upsertRecordReason, createTimeRecord } from '../api/d
 import { Tienda } from '../interfaces/horarios.interface';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import EditHourModal from '../components/EditHourModal';
+import { calcularMinutosDia, formatearHoras } from './planilla/DetallePlanillaUtils';
+import CreateHourModal from '../components/detalle-tienda/CreateHourModal';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
-dayjs.locale('es');
-
 // ============================================================
-//  MODAL DE CREACIÓN
+//  INTERFACES
 // ============================================================
-interface CreateHourModalProps {
-  open: boolean;
-  onClose: () => void;
-  employeeName: string;
-  eventName: string;
-  onConfirm: (hora: string, observacion: string) => Promise<void>;
-}
-
-function CreateHourModal({ open, onClose, employeeName, eventName, onConfirm }: CreateHourModalProps) {
-  const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs | null>(dayjs().hour(8).minute(0));
-  const [observacion, setObservacion] = useState('');
-  const [guardando, setGuardando] = useState(false);
-  const { showSnackbar } = useGlobalSnackbar();
-
-  const handleGuardar = async () => {
-    if (!horaSeleccionada) {
-      showSnackbar('Selecciona una hora', 'warning');
-      return;
-    }
-    setGuardando(true);
-    try {
-      const horaFormateada = horaSeleccionada.format('hh:mm A');
-      await onConfirm(horaFormateada, observacion);
-      showSnackbar('Hora registrada correctamente', 'success');
-      onClose();
-    } catch (err: any) {
-      console.error('Error en handleGuardar:', err);
-      showSnackbar(err?.message || 'Error al crear la hora. Revisa la consola.', 'error');
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  const initial = employeeName ? employeeName.charAt(0).toUpperCase() : '?';
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}>
-      <Box sx={{ bgcolor: '#004680', color: '#fff', py: 2.5, px: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Avatar sx={{ bgcolor: '#fff', color: '#004680', width: 44, height: 44, fontWeight: 700, fontSize: '1.1rem' }}>
-          {initial}
-        </Avatar>
-        <Box>
-          <Typography variant="h6" fontWeight={700}>
-            {eventName}
-          </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.85, display: 'block', mt: 0.3 }}>
-            {employeeName}
-          </Typography>
-        </Box>
-        <IconButton onClick={onClose} sx={{ color: '#fff', ml: 'auto' }}>
-          <CloseIcon />
-        </IconButton>
-      </Box>
-
-      <DialogContent sx={{ p: 3, pt: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-            <TimePicker
-              label="Hora de marcación"
-              value={horaSeleccionada}
-              onChange={(val) => setHoraSeleccionada(val as dayjs.Dayjs | null)}
-              ampm
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
-                },
-              }}
-            />
-          </LocalizationProvider>
-
-          <TextField
-            label="Nota / observación (opcional)"
-            multiline
-            rows={3}
-            fullWidth
-            value={observacion}
-            onChange={(e) => setObservacion(e.target.value)}
-            placeholder="Escriba una nota (opcional)..."
-            helperText="Opcional"
-          />
-        </Box>
-      </DialogContent>
-
-      <DialogActions sx={{ p: 2, gap: 1, bgcolor: '#f8fafc' }}>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 2, fontWeight: 600 }}>
-          Cancelar
-        </Button>
-        <Button
-          onClick={handleGuardar}
-          variant="contained"
-          disabled={!horaSeleccionada || guardando}
-          sx={{
-            bgcolor: '#004680',
-            borderRadius: 2,
-            fontWeight: 600,
-            '&:hover': { bgcolor: '#003366' },
-          }}
-        >
-          {guardando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Registrar'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
-// ============================================================
-//  FUNCIONES AUXILIARES
-// ============================================================
-const calcularMinutosDia = (records: any[], empleadoId: string | number): number => {
-  const empRecords = records.filter(r => Number(r.employee_id?.id || r.employee_id) === Number(empleadoId));
-  const entrada = empRecords.find(r => r.log_type === 'Comenzar Jornada');
-  const salida = empRecords.find(r => r.log_type === 'Terminar Jornada');
-  if (!entrada || !salida) return 0;
-  const inicio = dayjs(`2000-01-01 ${entrada.record_time.substring(0,5)}`);
-  const fin = dayjs(`2000-01-01 ${salida.record_time.substring(0,5)}`);
-  return fin.diff(inicio, 'minute');
-};
-
-const formatearHoras = (minutos: number): string => {
-  if (minutos <= 0) return '0h 0m';
-  const horas = Math.floor(minutos / 60);
-  const mins = minutos % 60;
-  return `${horas}h ${mins}m`;
-};
-
 interface EmpleadoFila {
   id: string;
   nombre: string;
@@ -641,7 +517,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               <DatePicker
                 label="Seleccionar día"
                 value={fechaSeleccionada}
-                // ¡AQUÍ ESTÁ LA CORRECCIÓN!
                 onChange={(value) => handleFechaChange(value as Dayjs | null)}
                 slotProps={{
                   textField: {
@@ -649,7 +524,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                     sx: { width: { xs: '100%', sm: 300 } },
                   },
                   actionBar: {
-                    actions: [], 
+                    actions: [],
                   },
                   layout: {
                     sx: {
@@ -659,7 +534,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                   }
                 }}
                 slots={{
-                  actionBar: CustomActionBar, 
+                  actionBar: CustomActionBar,
                 }}
               />
             </LocalizationProvider>
@@ -668,13 +543,8 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               size="small"
               placeholder="Buscar empleado..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ width: { xs: '100%', sm: 550 } }}
-            />
-
-            <Chip
-              label={`Empleados: ${filasEmpleados.length}`}
-              sx={{ bgcolor: '#FFFFFF', color: '#004680', fontWeight: 700 }}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              sx={{ width: 220 }}
             />
           </Box>
         </Paper>

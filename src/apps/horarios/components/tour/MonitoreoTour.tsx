@@ -86,14 +86,18 @@ export const MonitoreoTourProvider: React.FC<{ children: React.ReactNode }> = ({
             arrowColor: "#fff",
             overlayColor: "rgba(0, 0, 0, 0.5)",
           },
+          overlay: {
+            transition: "none",
+          },
           spotlight: {
             borderRadius: 8,
             boxShadow: "0 0 0 3px #004680, 0 0 25px rgba(0, 74, 153, 0.4)",
+            transition: "all 0.2s ease-in-out",
           },
           buttonClose: { display: "none" },
         }}
         locale={{
-          back: "Atras",
+          back: "Atrás",
           close: "Cerrar",
           last: "Continuar",
           next: "Siguiente",

@@ -185,8 +185,10 @@ const ContactDirectory: React.FC = () => {
               size="small"
               value={busqueda}
               onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ fontSize: 20, color: '#004a99', mr: 1 }} />,
+              slotProps={{
+                input: {
+                  startAdornment: <SearchIcon sx={{ fontSize: 20, color: '#004a99', mr: 1 }} />,
+                },
               }}
               sx={{
                 width: 260,

@@ -88,7 +88,7 @@ export const calculateMesResumenAgrupado = (
     : ventasData.filter((v) => getMonthYear(v.fecha) === mes);
 
   const todasTiendas = new Set<string>();
-  mesBudgetsFiltrados.forEach((b) => todasTiendas.add(b.tienda));
+  mesBudgets.forEach((b) => todasTiendas.add(b.tienda));
   staffFiltrado.forEach((s) => todasTiendas.add(s.tienda));
   ventasFiltradas.forEach((v) => todasTiendas.add(v.tienda));
 

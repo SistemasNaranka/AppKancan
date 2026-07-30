@@ -144,7 +144,7 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
               value={form.phone_number}
               onChange={(e) => handleChange('phone_number', e.target.value)}
               error={!!errores.phone_number} helperText={errores.phone_number}
-              InputProps={{ startAdornment: <InputAdornment position="start"><PhoneIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment> }}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start"><PhoneIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment> } }}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
           </Box>
           <Box flex={1}>
@@ -155,7 +155,7 @@ export const AddContactModal: React.FC<Props> = ({ open, onClose, onGuardar }) =
               value={form.email}
               onChange={(e) => handleChange('email', e.target.value)}
               error={!!errores.email} helperText={errores.email}
-              InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment> }}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment> } }}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
           </Box>
         </Box>

@@ -1,0 +1,272 @@
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import dayjs, { Dayjs } from 'dayjs';
+import { calcularMinutosSemanales, formatMinutes } from '../pages/reporte/ReporteUtils';
+import { Tienda } from '../interfaces/horarios.interface';
+
+export interface TramoSemana {
+  start: string;
+  end: string;
+  label: string;
+}
+
+/**
+ * Genera tramos quincenales/semanales óptimos según el rango seleccionado:
+ * - Si es una quincena (hasta 16 días, ej: 11 al 25), divide en 2 Semanas Quincenales (Semana 1: 7 días, Semana 2: días restantes).
+ * - Si es un período más largo (un mes entero), divide en bloques de 7 días.
+ */
+export function getSemanasRango(inicio: Dayjs, fin: Dayjs): TramoSemana[] {
+  const totalDias = fin.diff(inicio, 'day') + 1;
+  const semanas: TramoSemana[] = [];
+
+  // Si es un período quincenal típico (ej. 11 al 25, 12 a 16 días)
+  if (totalDias >= 12 && totalDias <= 16) {
+    const corteSemana1 = inicio.add(6, 'day'); // 7 días (ej. 11 al 17)
+    
+    semanas.push({
+      start: inicio.format('YYYY-MM-DD'),
+      end: corteSemana1.format('YYYY-MM-DD'),
+      label: `${inicio.format('DD/MM')} - ${corteSemana1.format('DD/MM')}`
+    });
+
+    const inicioSemana2 = corteSemana1.add(1, 'day'); // (ej. 18 al 25)
+    semanas.push({
+      start: inicioSemana2.format('YYYY-MM-DD'),
+      end: fin.format('YYYY-MM-DD'),
+      label: `${inicioSemana2.format('DD/MM')} - ${fin.format('DD/MM')}`
+    });
+
+    return semanas;
+  }
+
+  // Si es un período regular (ej. mes completo), bloques estándar de 7 días
+  let cursor = inicio.clone();
+  while (cursor.isBefore(fin) || cursor.isSame(fin, 'day')) {
+    const endSemana = cursor.add(6, 'day');
+    const realEnd = endSemana.isAfter(fin, 'day') ? fin.clone() : endSemana;
+
+    semanas.push({
+      start: cursor.format('YYYY-MM-DD'),
+      end: realEnd.format('YYYY-MM-DD'),
+      label: `${cursor.format('DD/MM')} - ${realEnd.format('DD/MM')}`
+    });
+
+    cursor = realEnd.add(1, 'day');
+  }
+
+  return semanas;
+}
+
+interface ExportarSemanalParams {
+  tiendaNombre: string;
+  fechaInicio: Dayjs;
+  fechaFin: Dayjs;
+  empleados: any[];
+  records: any[];
+  tiendas?: Tienda[];
+}
+
+export async function exportarSemanalExcel({
+  tiendaNombre,
+  fechaInicio,
+  fechaFin,
+  empleados,
+  records,
+  tiendas = [],
+}: ExportarSemanalParams) {
+  const workbook = new ExcelJS.Workbook();
+  const inicioStr = fechaInicio.format('DD/MM/YYYY');
+  const finStr = fechaFin.format('DD/MM/YYYY');
+
+  const worksheet = workbook.addWorksheet(`Reporte Semanal`);
+  const semanas = getSemanasRango(fechaInicio, fechaFin);
+
+  const tiendasMap = new Map<number, string>(tiendas.map(t => [Number(t.id), t.name]));
+
+  // Preparar listado de empleados agrupando sus tiendas trabajadas
+  const empleadosProcesados = empleados.map((emp) => {
+    // Buscar todas las tiendas distintas donde el empleado registró marcas en los registros traídos
+    const recordsEmp = records.filter(r => Number(r.employee_id?.id || r.employee_id) === Number(emp.id));
+    const storeIdsLaboradas = new Set<number>();
+
+    // Tienda principal asignada
+    if (emp.storeId) storeIdsLaboradas.add(Number(emp.storeId));
+
+    // Tiendas donde registró tiempo
+    recordsEmp.forEach(r => {
+      const stId = Number(r.store_id?.id || r.store_id);
+      if (Number.isFinite(stId) && stId > 0) storeIdsLaboradas.add(stId);
+    });
+
+    const nombresTiendas = Array.from(storeIdsLaboradas)
+      .map(id => tiendasMap.get(id) || `Tienda #${id}`)
+      .filter(Boolean);
+
+    const tiendasTexto = nombresTiendas.length > 0 ? nombresTiendas.join(' / ') : 'Sin tienda';
+
+    return {
+      ...emp,
+      tiendasTexto,
+      tiendaPrincipal: nombresTiendas[0] || 'Sin tienda',
+    };
+  });
+
+  // Ordenar empleados primero por la primera tienda y luego por Nombre
+  const empleadosOrdenados = [...empleadosProcesados].sort((a, b) => {
+    const compTienda = a.tiendaPrincipal.localeCompare(b.tiendaPrincipal, 'es', { sensitivity: 'base' });
+    if (compTienda !== 0) return compTienda;
+
+    const nombreA = a.nombre || '';
+    const nombreB = b.nombre || '';
+    return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+  });
+
+  // 1. Encabezado principal
+  worksheet.mergeCells('A1', `${String.fromCharCode(69 + semanas.length)}1`);
+  const titleCell = worksheet.getCell('A1');
+  titleCell.value = `REPORTE DE HORAS TRABAJADAS - ${tiendaNombre.toUpperCase()}`;
+  titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFF' } };
+  titleCell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: '004680' },
+  };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getRow(1).height = 35;
+
+  // Subtítulo
+  worksheet.mergeCells('A2', `${String.fromCharCode(69 + semanas.length)}2`);
+  const subCell = worksheet.getCell('A2');
+  subCell.value = `Período del ${inicioStr} al ${finStr} | Generado: ${new Date().toLocaleDateString('es-CO')}`;
+  subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: '555555' } };
+  subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getRow(2).height = 20;
+
+  worksheet.addRow([]); // Fila vacía
+
+  // 2. Cabeceras de tabla
+  const headers = ['Tienda(s) Laborada(s)', 'Empleado', 'Documento', 'Cargo'];
+  semanas.forEach((sem, idx) => {
+    headers.push(`Semana ${idx + 1}\n(${sem.label})`);
+  });
+  headers.push('Total');
+
+  const headerRow = worksheet.addRow(headers);
+  headerRow.height = 28;
+
+  headerRow.eachCell((cell, colNumber) => {
+    const isTotal = colNumber === headers.length;
+    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: isTotal ? '137333' : 'FFFFFF' } };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: isTotal ? 'E6F4EA' : '004680' },
+    };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'CCCCCC' } },
+      bottom: { style: 'medium', color: { argb: '004680' } },
+      left: { style: 'thin', color: { argb: 'CCCCCC' } },
+      right: { style: 'thin', color: { argb: 'CCCCCC' } },
+    };
+  });
+
+  // Acumuladores de totales por columna de semana y total general
+  const totalesSemanasMinutos: number[] = new Array(semanas.length).fill(0);
+  let totalGeneralPeriodoMinutos = 0;
+
+  // 3. Filas de empleados
+  empleadosOrdenados.forEach((emp, index) => {
+    const nombreEmpleado = emp.nombre || `Empleado #${emp.id}`;
+    const documento = emp.documento || '--';
+    const cargo = emp.cargo || 'Sin cargo';
+    const tiendasTexto = emp.tiendasTexto || 'Sin tienda';
+
+    let totalMinutesPeriod = 0;
+    const rowValues: (string | number)[] = [tiendasTexto, nombreEmpleado, documento, cargo];
+
+    semanas.forEach((sem, sIdx) => {
+      const minSemana = calcularMinutosSemanales(emp.id, sem.start, sem.end, records);
+      totalMinutesPeriod += minSemana;
+      totalesSemanasMinutos[sIdx] += minSemana;
+      rowValues.push(formatMinutes(minSemana));
+    });
+
+    totalGeneralPeriodoMinutos += totalMinutesPeriod;
+    rowValues.push(formatMinutes(totalMinutesPeriod));
+
+    const row = worksheet.addRow(rowValues);
+    row.height = 22;
+
+    const isEven = index % 2 === 0;
+
+    row.eachCell((cell, colNumber) => {
+      const isTotal = colNumber === rowValues.length;
+      cell.font = { name: 'Calibri', size: 10, bold: isTotal };
+      cell.alignment = {
+        horizontal: colNumber <= 4 ? 'left' : 'center',
+        vertical: 'middle',
+      };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: isTotal ? 'F4FBF7' : isEven ? 'FFFFFF' : 'FAFCFF' },
+      };
+      if (isTotal) {
+        cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: '137333' } };
+      }
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'E2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+        left: { style: 'thin', color: { argb: 'E2E8F0' } },
+        right: { style: 'thin', color: { argb: 'E2E8F0' } },
+      };
+    });
+  });
+
+  // 4. Fila de TOTAL GENERAL al pie de la tabla
+  const totalRowValues: (string | number)[] = ['TOTAL GENERAL', `${empleadosOrdenados.length} Empleados`, '--', '--'];
+  totalesSemanasMinutos.forEach((minSem) => {
+    totalRowValues.push(formatMinutes(minSem));
+  });
+  totalRowValues.push(formatMinutes(totalGeneralPeriodoMinutos));
+
+  const totalRow = worksheet.addRow(totalRowValues);
+  totalRow.height = 26;
+
+  totalRow.eachCell((cell, colNumber) => {
+    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: '004680' } };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'EAF2FB' },
+    };
+    cell.alignment = {
+      horizontal: colNumber <= 4 ? 'left' : 'center',
+      vertical: 'middle',
+    };
+    cell.border = {
+      top: { style: 'medium', color: { argb: '004680' } },
+      bottom: { style: 'double', color: { argb: '004680' } },
+      left: { style: 'thin', color: { argb: 'CCCCCC' } },
+      right: { style: 'thin', color: { argb: 'CCCCCC' } },
+    };
+  });
+
+  // Ajustar anchos de columnas
+  worksheet.getColumn(1).width = 32; // Tienda(s) Laborada(s)
+  worksheet.getColumn(2).width = 30; // Empleado
+  worksheet.getColumn(3).width = 16; // Documento
+  worksheet.getColumn(4).width = 20; // Cargo
+  for (let i = 5; i <= 4 + semanas.length; i++) {
+    worksheet.getColumn(i).width = 22;
+  }
+  worksheet.getColumn(5 + semanas.length).width = 20; // Total
+
+  // 5. Descargar archivo con nombre estandarizado y timestamp (YYYYMMDD-HHmmss)
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const timestamp = dayjs().format('YYYYMMDD-HHmmss');
+  const fileName = `Reporte_Semanal_${timestamp}.xlsx`;
+  saveAs(blob, fileName);
+}

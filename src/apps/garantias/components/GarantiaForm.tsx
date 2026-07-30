@@ -345,8 +345,10 @@ export const GarantiaForm: React.FC<GarantiaFormProps> = ({
                 type="number"
                 value={formData.valor_compra}
                 onChange={handleTextChange}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                slotProps={{
+                  input: {
+                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  },
                 }}
               />
             </Grid>

@@ -35,7 +35,6 @@ export const useBudgetValidation = (
   const [missingDaysCount, setMissingDaysCount] = useState(0);
   const [validationCompleted, setValidationCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [refreshVersion, setRefreshVersion] = useState(0);
 
   const getCurrentDate = (): string => {
     const now = new Date();
@@ -43,30 +42,6 @@ export const useBudgetValidation = (
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const day = String(now.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
-  };
-
-  const isCurrentMonth = (mes: string): boolean => {
-    const [mesNombre, anioStr] = mes.split(" ");
-    const mesesMap: { [key: string]: number } = {
-      Ene: 0,
-      Feb: 1,
-      Mar: 2,
-      Abr: 3,
-      May: 4,
-      Jun: 5,
-      Jul: 6,
-      Ago: 7,
-      Sep: 8,
-      Oct: 9,
-      Nov: 10,
-      Dic: 11,
-    };
-
-    const mesNumero = mesesMap[mesNombre];
-    const anio = parseInt(anioStr);
-
-    const ahora = new Date();
-    return ahora.getFullYear() === anio && ahora.getMonth() === mesNumero;
   };
 
   const getCurrentMonth = (): string => {
@@ -122,18 +97,19 @@ export const useBudgetValidation = (
       }
 
       setCurrentStore(targetStore);
+      const storeId = targetStore.id;
 
       const currentMonth = getCurrentMonth();
       const fechaActual = getCurrentDate();
 
       const presupuestosEmpleados = await obtenerPresupuestosEmpleados(
-        targetStore.id,
+        storeId,
         undefined,
         currentMonth,
       );
 
       const presupuestosHoy = presupuestosEmpleados.filter((pe: any) => {
-        return pe.store_id === targetStore.id && pe.date === fechaActual;
+        return pe.store_id === storeId && pe.date === fechaActual;
       });
 
       const budgetCount = presupuestosHoy.length;
@@ -146,7 +122,7 @@ export const useBudgetValidation = (
         .split("T")[0];
 
       const presupuestosCasa = await obtenerPresupuestosDiarios(
-        targetStore.id,
+        storeId,
         startOfMonth,
         endOfMonth,
       );
@@ -231,23 +207,22 @@ export const useBudgetValidation = (
       }
 
       setCurrentStore(targetStore);
+      const storeId = targetStore.id;
 
       const currentMonth = getCurrentMonth();
       const fechaActual = getCurrentDate();
       const presupuestosEmpleados = await obtenerPresupuestosEmpleados(
-        targetStore.id,
+        storeId,
         undefined,
         currentMonth,
       );
 
       const presupuestosHoy = presupuestosEmpleados.filter((pe: any) => {
-        return pe.store_id === targetStore.id && pe.date === fechaActual;
+        return pe.store_id === storeId && pe.date === fechaActual;
       });
 
       const budgetCount = presupuestosHoy.length;
-      setTodayBudgetCount((prev) => {
-        return budgetCount;
-      });
+      setTodayBudgetCount(budgetCount);
 
       const ahora = new Date();
       const startOfMonth = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-01`;
@@ -256,7 +231,7 @@ export const useBudgetValidation = (
         .split("T")[0];
 
       const presupuestosCasa = await obtenerPresupuestosDiarios(
-        targetStore.id,
+        storeId,
         startOfMonth,
         endOfMonth,
       );
@@ -281,7 +256,6 @@ export const useBudgetValidation = (
       }
 
       setMissingDaysCount(missingCount);
-      setRefreshVersion((prev) => prev + 1);
 
       const hasBudget = budgetCount > 0;
       setHasBudgetData(hasBudget);

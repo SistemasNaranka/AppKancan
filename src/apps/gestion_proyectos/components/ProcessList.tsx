@@ -96,7 +96,7 @@ export function ProcessList({
           fullWidth
           size="small"
           helperText="Veces que se repite"
-          inputProps={{ min: 1 }}
+          slotProps={{ htmlInput: { min: 1 } }}
         />
 
         {frequencyType === "diaria" && (
@@ -108,7 +108,7 @@ export function ProcessList({
             fullWidth
             size="small"
             helperText="Días que se realiza"
-            inputProps={{ min: 1, max: 7 }}
+            slotProps={{ htmlInput: { min: 1, max: 7 } }}
           />
         )}
       </Box>

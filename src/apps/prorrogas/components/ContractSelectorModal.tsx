@@ -83,13 +83,15 @@ const ContractSelectorModal: React.FC<ContractSelectorModalProps> = ({
             placeholder="Buscar empleado o contrato"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "text.disabled" }} />
-                </InputAdornment>
-              ),
-              sx: { bgcolor: "background.paper" },
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: "text.disabled" }} />
+                  </InputAdornment>
+                ),
+                sx: { bgcolor: "background.paper" },
+              },
             }}
           />
         </Box>

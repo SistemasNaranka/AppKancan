@@ -116,7 +116,7 @@ export function AutomaticModal({
             error={!!errorStr}
             helperText={errorStr}
             disabled={loading}
-            inputProps={{ maxLength: 4 }}
+            slotProps={{ htmlInput: { maxLength: 4 } }}
         />
     </Box>
 </DialogContent>

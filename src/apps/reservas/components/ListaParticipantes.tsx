@@ -95,14 +95,16 @@ export const ListaParticipantes: React.FC<ListaParticipantesProps> = ({ fields, 
                 variant="standard"
                 size="small"
                 fullWidth
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <React.Fragment>
-                      {buscandoUsuarios ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.InputProps.endAdornment}
-                    </React.Fragment>
-                  ),
+                slotProps={{
+                  input: {
+                    ...params.InputProps,
+                    endAdornment: (
+                      <React.Fragment>
+                        {buscandoUsuarios ? <CircularProgress color="inherit" size={16} /> : null}
+                        {params.InputProps.endAdornment}
+                      </React.Fragment>
+                    ),
+                  },
                 }}
               />
             )}

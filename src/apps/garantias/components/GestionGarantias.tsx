@@ -162,7 +162,7 @@ export default function WarrantyManagement() {
       {/* ── Stat Cards ──────────────────────────────────────────────────────── */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {STAT_CARDS.map((card) => (
-          <Grid item xs={6} sm={4} md={2} key={card.label}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }} key={card.label}>
             <Card
               elevation={0}
               sx={{
@@ -201,13 +201,15 @@ export default function WarrantyManagement() {
               placeholder="Buscar por cliente, producto, factura..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: "#94a3b8" }} />
-                  </InputAdornment>
-                ),
-                sx: { borderRadius: "8px", bgcolor: SURFACE_LOWEST },
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "#94a3b8" }} />
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: "8px", bgcolor: SURFACE_LOWEST },
+                },
               }}
             />
             <FormControl size="small" sx={{ minWidth: 160 }}>
@@ -301,7 +303,7 @@ export default function WarrantyManagement() {
 
       {/* ── Bento header + mini stats ─────────────────────────────────────────── */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card
             elevation={0}
             sx={{
@@ -331,9 +333,9 @@ export default function WarrantyManagement() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Grid container spacing={2} height="100%">
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <Card
                 elevation={0}
                 sx={{
@@ -356,7 +358,7 @@ export default function WarrantyManagement() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <Card elevation={0} sx={{ border: `1px solid ${OUTLINE_VARIANT}`, borderRadius: 2, height: "100%" }}>
                 <CardContent sx={{ p: "24px !important", display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
                   <SpeedIcon sx={{ color: PRIMARY }} />

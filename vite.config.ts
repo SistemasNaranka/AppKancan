@@ -99,6 +99,7 @@ export default defineConfig({
       "@mui/icons-material/Cloud",
       "@mui/icons-material/CloudSync",
       "@mui/icons-material/CloudUpload",
+      "@mui/icons-material/CloudOff",
       "@mui/icons-material/Coffee",
       "@mui/icons-material/CoffeeMaker",
       "@mui/icons-material/Comment",

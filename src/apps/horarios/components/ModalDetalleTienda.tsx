@@ -1,39 +1,33 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
-    Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Chip, CircularProgress, Pagination, TextField, InputAdornment, Dialog, DialogTitle, DialogContent,
-    IconButton, Tooltip, Button, Avatar, DialogActions, Alert,
+  Box, Typography, Chip, CircularProgress, Dialog, DialogTitle, DialogContent,
+  IconButton, Button
 } from '@mui/material';
 import {
-    Close as CloseIcon,
-    Search as SearchIcon,
-    CalendarMonth as CalendarMonthIcon,
-    CheckCircle as CheckCircleIcon,
-    AccessTime as AccessTimeIcon,
-    History as HistoryIcon,
-    Refresh as RefreshIcon,
-    Storefront as StorefrontIcon,
-    Edit as EditIcon,
-    AddCircle as AddCircleIcon,
+  Close as CloseIcon,
+  CalendarMonth as CalendarMonthIcon,
+  CheckCircle as CheckCircleIcon,
+  Block as BlockIcon,
+  Refresh as RefreshIcon,
+  Storefront as StorefrontIcon,
+  DateRange as DateRangeIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
-import { getTimeRecords, getNovedades, fetchTimeRecords, getRecordReasonId } from '../api/directus/read';
-import { createTimeRecord, updateTimeRecord, upsertRecordReason } from '../api/directus/create';
+import { getNovedades, fetchTimeRecords, getRecordReasonId, getStoreClosedDays, StoreClosedDay } from '../api/directus/read';
+import { createTimeRecord, updateTimeRecord, upsertRecordReason, setStoreClosedDayStatus } from '../api/directus/create';
 import { useHorarios } from '../hooks/useHorarios';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
+import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
 import {
-    EmpleadoFila,
-    getNovedadIcon,
-    calcularMinutosDia,
-    formatearHoras,
-    calcularHorasSemana,
+  EmpleadoFila,
+  calcularMinutosDia,
+  formatearHoras,
+  calcularHorasSemana,
 } from './ModalDetalleTiendaUtils';
 
 import NovedadDetalleModal from './NovedadDetalleModal';
@@ -41,119 +35,10 @@ import HistorialHorasModal from './HistorialHorasModal';
 import CalendarioMensualTienda from './CalendarioMensualTienda';
 import EditHourModal from './EditHourModal';
 
-// ============================================================
-//  MODAL DE CREACIÓN (CON AVATAR, SIN EMOJIS)
-// ============================================================
-interface CreateHourModalProps {
-    open: boolean;
-    onClose: () => void;
-    employeeName: string;
-    eventName: string;
-    onConfirm: (hora: string, observacion: string) => Promise<void>;
-}
-
-function CreateHourModal({ open, onClose, employeeName, eventName, onConfirm }: CreateHourModalProps) {
-    const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs | null>(dayjs().hour(8).minute(0));
-    const [observacion, setObservacion] = useState('');
-    const [guardando, setGuardando] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const handleGuardar = async () => {
-        if (!horaSeleccionada) {
-            setError('Selecciona una hora');
-            return;
-        }
-        setError(null);
-        setGuardando(true);
-        try {
-            const horaFormateada = horaSeleccionada.format('hh:mm A');
-            await onConfirm(horaFormateada, observacion);
-            onClose();
-        } catch (err: any) {
-            console.error('Error en handleGuardar:', err);
-            setError(err?.message || 'Error al crear la hora. Revisa la consola.');
-        } finally {
-            setGuardando(false);
-        }
-    };
-
-    const initial = employeeName ? employeeName.charAt(0).toUpperCase() : '?';
-
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}>
-            <Box sx={{ bgcolor: '#004680', color: '#fff', py: 2.5, px: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: '#fff', color: '#004680', width: 44, height: 44, fontWeight: 700, fontSize: '1.1rem' }}>
-                    {initial}
-                </Avatar>
-                <Box>
-                    <Typography variant="h6" fontWeight={700}>
-                        {eventName}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.85, display: 'block', mt: 0.3 }}>
-                        {employeeName}
-                    </Typography>
-                </Box>
-                <IconButton onClick={onClose} sx={{ color: '#fff', ml: 'auto' }}>
-                    <CloseIcon />
-                </IconButton>
-            </Box>
-
-            <DialogContent sx={{ p: 3, pt: 3 }}>
-                {error && (
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: 2, fontSize: '0.85rem' }}>
-                        <strong>Error:</strong> {error}
-                    </Alert>
-                )}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-                        <TimePicker
-                            label="Hora de marcación"
-                            value={horaSeleccionada}
-                            onChange={(val) => setHoraSeleccionada(val as dayjs.Dayjs | null)}
-                            ampm
-                            slotProps={{
-                                textField: {
-                                    fullWidth: true,
-                                    sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
-                                },
-                            }}
-                        />
-                    </LocalizationProvider>
-
-                    <TextField
-                        label="Nota / observación (opcional)"
-                        multiline
-                        rows={3}
-                        fullWidth
-                        value={observacion}
-                        onChange={(e) => setObservacion(e.target.value)}
-                        placeholder="Escriba una nota (opcional)..."
-                        helperText="Opcional"
-                    />
-                </Box>
-            </DialogContent>
-
-            <DialogActions sx={{ p: 2, gap: 1, bgcolor: '#f8fafc' }}>
-                <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 2, fontWeight: 600 }}>
-                    Cancelar
-                </Button>
-                <Button
-                    onClick={handleGuardar}
-                    variant="contained"
-                    disabled={!horaSeleccionada || guardando}
-                    sx={{
-                        bgcolor: '#004680',
-                        borderRadius: 2,
-                        fontWeight: 600,
-                        '&:hover': { bgcolor: '#003366' },
-                    }}
-                >
-                    {guardando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Registrar'}
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
-}
+// Componentes extraídos
+import CreateHourModal from './detalle-tienda/CreateHourModal';
+import ConfirmClosedDayDialogs from './detalle-tienda/ConfirmClosedDayDialogs';
+import EmpleadosTable from './detalle-tienda/EmpleadosTable';
 
 // ============================================================
 //  COMPONENTE PRINCIPAL
@@ -162,14 +47,14 @@ export default function ModalDetalleTienda({
     tiendaId,
     tiendaNombre,
     onClose,
-    initialMonth, // nueva prop
+    initialMonth,
 }: {
     tiendaId: number;
     tiendaNombre: string;
     onClose: () => void;
-    initialMonth?: Dayjs; // opcional, para sincronizar el mes
+    initialMonth?: Dayjs;
 }) {
-    const { esAdmin } = useHorariosPolicies();
+    const { esAdmin, esAreaManager } = useHorariosPolicies();
     const { empleados, loading, reasons } = useHorarios(tiendaId);
     const queryClient = useQueryClient();
 
@@ -184,6 +69,79 @@ export default function ModalDetalleTienda({
     const [novedadSeleccionada, setNovedadSeleccionada] = useState<any>(null);
     const [historialOpen, setHistorialOpen] = useState(false);
     const [empleadoHistorial, setEmpleadoHistorial] = useState<EmpleadoFila | null>(null);
+
+    const { showSnackbar } = useGlobalSnackbar();
+    const puedeGestionarDiasCerrados = esAdmin() || esAreaManager();
+
+    const [confirmClosedModalOpen, setConfirmClosedModalOpen] = useState(false);
+    const [guardandoDiaCerrado, setGuardandoDiaCerrado] = useState(false);
+
+    // ============================================================
+    // ESTADO: MODO SELECCIÓN MÚLTIPLE
+    // ============================================================
+    const [modoSeleccion, setModoSeleccion] = useState(false);
+    const [diasSeleccionadosSet, setDiasSeleccionadosSet] = useState<Set<string>>(new Set());
+    const [confirmMasivoOpen, setConfirmMasivoOpen] = useState(false);
+    const [guardandoMasivo, setGuardandoMasivo] = useState(false);
+    // Registros por fecha para el modal masivo (cargados solo al confirmar)
+    const [registrosPorFechaSeleccionada, setRegistrosPorFechaSeleccionada] = useState<Record<string, number>>({});
+
+    const handleToggleDia = useCallback((fecha: string) => {
+        setDiasSeleccionadosSet(prev => {
+            const next = new Set(prev);
+            if (next.has(fecha)) next.delete(fecha);
+            else next.add(fecha);
+            return next;
+        });
+    }, []);
+
+    const handleActivarModoSeleccion = () => {
+        setModoSeleccion(true);
+        setDiasSeleccionadosSet(new Set());
+    };
+
+    const handleCancelarSeleccion = () => {
+        setModoSeleccion(false);
+        setDiasSeleccionadosSet(new Set());
+    };
+
+    const handleAbrirConfirmMasivo = async () => {
+        const fechas = Array.from(diasSeleccionadosSet);
+        const counts: Record<string, number> = {};
+        await Promise.all(
+            fechas.map(async (fecha) => {
+                try {
+                    const recs = await import('../api/directus/read').then(m => m.fetchTimeRecords(fecha, fecha, tiendaId));
+                    counts[fecha] = (recs as any[]).length;
+                } catch {
+                    counts[fecha] = 0;
+                }
+            })
+        );
+        setRegistrosPorFechaSeleccionada(counts);
+        setConfirmMasivoOpen(true);
+    };
+
+    const handleGuardarMasivo = async () => {
+        setGuardandoMasivo(true);
+        const fechas = Array.from(diasSeleccionadosSet);
+        try {
+            await Promise.all(
+                fechas.map(fecha => setStoreClosedDayStatus(tiendaId, fecha, true))
+            );
+            queryClient.invalidateQueries({ queryKey: ['diasCerradosTienda', tiendaId] });
+            queryClient.invalidateQueries({ queryKey: ['calendarioAsistencia', tiendaId] });
+            showSnackbar(`${fechas.length} día(s) marcados como Tienda Cerrada`, 'success');
+            setConfirmMasivoOpen(false);
+            setModoSeleccion(false);
+            setDiasSeleccionadosSet(new Set());
+        } catch (err: any) {
+            console.error('Error al guardar masivo:', err);
+            showSnackbar(err?.message || 'Error al guardar los días', 'error');
+        } finally {
+            setGuardandoMasivo(false);
+        }
+    };
 
     // Estados para EditHourModal (edición)
     const [editHourOpen, setEditHourOpen] = useState(false);
@@ -233,6 +191,49 @@ export default function ModalDetalleTienda({
         staleTime: 5 * 60 * 1000,
     });
     const novedadesDia = todasNovedades.filter((n: any) => n.report_date === fechaSeleccionada);
+
+    const { data: diasCerrados = [] } = useQuery({
+        queryKey: ['diasCerradosTienda', tiendaId],
+        queryFn: () => getStoreClosedDays(tiendaId),
+        enabled: !!tiendaId,
+        staleTime: 5 * 60 * 1000,
+    });
+    const diaCerradoActual = diasCerrados.find((d: StoreClosedDay) => d.date === fechaSeleccionada);
+    const esDiaCerrado = !!(diaCerradoActual && diaCerradoActual.status === true);
+
+    const handleToggleDiaCerradoClick = () => {
+        if (esDiaCerrado) {
+            executeToggleDiaCerrado(true);
+        } else {
+            const numRecords = recordsDia.length;
+            if (numRecords > 0) {
+                setConfirmClosedModalOpen(true);
+            } else {
+                executeToggleDiaCerrado(false);
+            }
+        }
+    };
+
+    const executeToggleDiaCerrado = async (actualmenteCerrado: boolean) => {
+        setGuardandoDiaCerrado(true);
+        try {
+            if (actualmenteCerrado && diaCerradoActual) {
+                await setStoreClosedDayStatus(tiendaId, fechaSeleccionada, false, diaCerradoActual.id);
+                showSnackbar(`Se restableció el ${fechaSeleccionada} como día laboral normal`, 'success');
+            } else {
+                await setStoreClosedDayStatus(tiendaId, fechaSeleccionada, true, diaCerradoActual?.id);
+                showSnackbar(`Se marcó el ${fechaSeleccionada} como Tienda Cerrada`, 'success');
+            }
+            queryClient.invalidateQueries({ queryKey: ['diasCerradosTienda', tiendaId] });
+            queryClient.invalidateQueries({ queryKey: ['calendarioAsistencia', tiendaId] });
+        } catch (err: any) {
+            console.error('Error al guardar día cerrado:', err);
+            showSnackbar(err?.message || 'Error al actualizar el estado del día', 'error');
+        } finally {
+            setGuardandoDiaCerrado(false);
+            setConfirmClosedModalOpen(false);
+        }
+    };
 
     const getHora = (empId: string | number, logType: string) => {
         const record = recordsDia.find(r => Number(r.employee_id?.id || r.employee_id) === Number(empId) && r.log_type === logType);
@@ -350,7 +351,7 @@ export default function ModalDetalleTienda({
     };
 
     // ============================================================
-    // FUNCIÓN PARA ABRIR MODAL DE EDICIÓN (con lápiz)
+    // FUNCIÓN PARA ABRIR MODAL DE EDICIÓN
     // ============================================================
     const handleOpenEditHour = async (empleadoId: string, empleadoNombre: string, evento: string, recordId: number) => {
         if (!esAdmin()) return;
@@ -400,15 +401,20 @@ export default function ModalDetalleTienda({
         setEditData(null);
     };
 
-    // ✅ Edición: SOLO actualiza record_time y observations (SIN original_record_time)
     const handleConfirmEdit = async (horaFormateada: string, observacion: string, reasonId: number | null) => {
         if (!editData || !editData.recordId) return;
         try {
             const parsed = dayjs(horaFormateada, 'hh:mm A');
             const recordTime = parsed.format('HH:mm:ss');
 
+            const existingRecord = recordsDia.find(r => r.id === editData.recordId);
+            const originalTime = existingRecord
+                ? (existingRecord.original_record_time || existingRecord.record_time)
+                : undefined;
+
             await updateTimeRecord(editData.recordId, {
                 record_time: recordTime,
+                original_record_time: originalTime,
                 observations: observacion,
             });
 
@@ -426,7 +432,7 @@ export default function ModalDetalleTienda({
     };
 
     // ============================================================
-    // FUNCIÓN PARA ABRIR MODAL DE CREACIÓN (con icono "+")
+    // FUNCIÓN PARA ABRIR MODAL DE CREACIÓN
     // ============================================================
     const handleOpenCreateHour = (empleadoId: string, empleadoNombre: string, evento: string) => {
         if (!esAdmin()) return;
@@ -446,15 +452,6 @@ export default function ModalDetalleTienda({
             const recordTime = parsed.format('HH:mm:ss');
             const recordDate = fechaSeleccionada;
 
-            console.log('Creando registro con:', {
-                employee_id: Number(createData.employeeId),
-                store_id: tiendaId,
-                log_type: createData.eventName,
-                record_date: recordDate,
-                record_time: recordTime,
-                observations: observacion,
-            });
-
             const nuevo = await createTimeRecord({
                 employee_id: Number(createData.employeeId),
                 store_id: tiendaId,
@@ -463,8 +460,6 @@ export default function ModalDetalleTienda({
                 record_time: recordTime,
                 observations: observacion,
             });
-
-            console.log('Respuesta de createTimeRecord:', nuevo);
 
             if (!nuevo || !nuevo.id) {
                 throw new Error('No se recibió respuesta del servidor o el ID está vacío');
@@ -479,9 +474,6 @@ export default function ModalDetalleTienda({
         }
     };
 
-    // ============================================================
-    // RENDER
-    // ============================================================
     return (
         <Dialog
             open
@@ -516,13 +508,103 @@ export default function ModalDetalleTienda({
                             setPage(0);
                         }}
                         todasNovedades={todasNovedades}
+                        puedeGestionar={puedeGestionarDiasCerrados}
+                        modoSeleccion={modoSeleccion}
+                        diasSeleccionados={diasSeleccionadosSet}
+                        onToggleDia={handleToggleDia}
                     />
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-                        <Typography variant="subtitle2" fontWeight={700} color="#0a1929">
-                            Registros del {fechaDisplay}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {/* Barra flotante de modo selección */}
+                    {modoSeleccion && (
+                        <Box sx={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            bgcolor: '#004680', color: '#fff', borderRadius: 3, px: 3, py: 1.5, mb: 2,
+                            boxShadow: '0 4px 16px rgba(0,70,128,0.25)',
+                        }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <DateRangeIcon sx={{ fontSize: 22 }} />
+                                <Typography fontWeight={700} fontSize="0.95rem">
+                                    {diasSeleccionadosSet.size === 0
+                                        ? 'Selecciona días del calendario'
+                                        : `${diasSeleccionadosSet.size} día(s) seleccionado(s)`}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<CancelIcon />}
+                                    onClick={handleCancelarSeleccion}
+                                    sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)', textTransform: 'none', fontWeight: 600, '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    size="small"
+                                    startIcon={<BlockIcon />}
+                                    onClick={handleAbrirConfirmMasivo}
+                                    disabled={diasSeleccionadosSet.size === 0}
+                                    sx={{ bgcolor: '#fff', color: '#004680', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#e3f2fd' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.5)' } }}
+                                >
+                                    Marcar como Tienda Cerrada
+                                </Button>
+                            </Box>
+                        </Box>
+                    )}
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                            <Typography variant="subtitle2" fontWeight={700} color="#0a1929">
+                                Registros del {fechaDisplay}
+                            </Typography>
+                            {esDiaCerrado && (
+                                <Chip
+                                    label="Tienda Cerrada"
+                                    size="small"
+                                    sx={{ bgcolor: '#e2e8f0', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 600 }}
+                                />
+                            )}
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            {puedeGestionarDiasCerrados && !modoSeleccion && (
+                                <>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<DateRangeIcon />}
+                                        onClick={handleActivarModoSeleccion}
+                                        sx={{
+                                            borderColor: '#004680',
+                                            color: '#004680',
+                                            borderRadius: 2,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            '&:hover': { borderColor: '#003366', bgcolor: 'rgba(0, 70, 128, 0.05)' },
+                                        }}
+                                    >
+                                        Marcar Días de Cierre
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={esDiaCerrado ? <CheckCircleIcon /> : <BlockIcon />}
+                                        onClick={handleToggleDiaCerradoClick}
+                                        disabled={guardandoDiaCerrado}
+                                        sx={{
+                                            borderColor: '#004680',
+                                            color: '#004680',
+                                            borderRadius: 2,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            '&:hover': { borderColor: '#003366', bgcolor: 'rgba(0, 70, 128, 0.05)' },
+                                        }}
+                                    >
+                                        {guardandoDiaCerrado ? <CircularProgress size={16} sx={{ color: '#004680' }} /> : (esDiaCerrado ? "Restablecer Día Laboral" : "Marcar Tienda Cerrada")}
+                                    </Button>
+                                </>
+                            )}
+
                             <Chip
                                 size="medium"
                                 icon={<CalendarMonthIcon sx={{ fontSize: 18 }} />}
@@ -551,189 +633,24 @@ export default function ModalDetalleTienda({
                         </Box>
                     </Box>
 
-                    <TextField
-                        placeholder="Buscar por nombre o documento..."
-                        size="small"
-                        value={search}
-                        onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                        fullWidth
-                        sx={{ mb: 3, bgcolor: '#ffffff', borderRadius: 2 }}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment> }}
+                    {/* Tabla de Empleados Extraída */}
+                    <EmpleadosTable
+                        loading={loading}
+                        search={search}
+                        setSearch={setSearch}
+                        page={page}
+                        setPage={setPage}
+                        rowsPerPage={rowsPerPage}
+                        empleadosPagina={empleadosPagina}
+                        empleadosFiltrados={empleadosFiltrados}
+                        fechaSeleccionada={fechaSeleccionada}
+                        esAdminUser={esAdmin()}
+                        getRecordId={getRecordId}
+                        handleOpenEditHour={handleOpenEditHour}
+                        handleOpenCreateHour={handleOpenCreateHour}
+                        handleOpenHistorial={handleOpenHistorial}
+                        handleNovedadClick={handleNovedadClick}
                     />
-
-                    {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress sx={{ color: '#004680' }} /></Box>
-                    ) : (
-                        <TableContainer
-                            key={fechaSeleccionada}
-                            component={Paper}
-                            elevation={0}
-                            sx={{
-                                borderRadius: 3,
-                                border: '1px solid #e0e0e0',
-                                mb: 2,
-                                bgcolor: '#ffffff',
-                                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-                            }}
-                        >
-                            <Table size="small">
-                                <TableHead sx={{ bgcolor: '#e8edf3' }}>
-                                    <TableRow>
-                                        {['EMPLEADO', 'INICIO JORNADA', 'INICIO ALMUERZO', 'FIN ALMUERZO', 'FIN JORNADA', 'ESTADO', 'HORAS DÍA', 'HORAS SEMANA', 'NOVEDADES'].map(text => (
-                                            <TableCell key={text} sx={{ fontWeight: 700, fontSize: '0.75rem' }} align={text === 'NOVEDADES' ? 'center' : 'left'}>{text}</TableCell>
-                                        ))}
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {empleadosPagina.length === 0 ? (
-                                        <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>No hay registros</TableCell></TableRow>
-                                    ) : (
-                                        empleadosPagina.map((fila, idx) => {
-                                            const eventos = [
-                                                { key: 'inicioJornada', label: 'Comenzar Jornada' },
-                                                { key: 'inicioAlmuerzo', label: 'Iniciar Almuerzo' },
-                                                { key: 'finAlmuerzo', label: 'Finalizar Almuerzo' },
-                                                { key: 'finJornada', label: 'Terminar Jornada' },
-                                            ];
-                                            return (
-                                                <TableRow key={fila.id} hover sx={{ bgcolor: idx % 2 === 0 ? '#ffffff' : '#fafbfc' }}>
-                                                    <TableCell>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                            <Avatar sx={{ width: 32, height: 32, bgcolor: '#004680', fontSize: '0.75rem' }}>{fila.nombre.charAt(0)}</Avatar>
-                                                            <Box>
-                                                                <Typography variant="body2" fontWeight={600} fontSize="0.82rem">{fila.nombre}</Typography>
-                                                                <Typography variant="caption" color="text.secondary" fontSize="0.7rem" display="block">{fila.cargo}</Typography>
-                                                            </Box>
-                                                        </Box>
-                                                    </TableCell>
-                                                    {eventos.map(({ key, label }) => {
-                                                        const hora = fila[key as keyof EmpleadoFila] as string | null;
-                                                        const recordId = getRecordId(fila.id, label);
-                                                        const esAdminUser = esAdmin();
-                                                        const isHoraExistente = !!hora;
-
-                                                        return (
-                                                            <TableCell key={key}>
-                                                                {isHoraExistente ? (
-                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                                        <Chip
-                                                                            size="small"
-                                                                            icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
-                                                                            label={hora}
-                                                                            sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600, fontSize: '0.7rem' }}
-                                                                        />
-                                                                        {esAdminUser && (
-                                                                            <Tooltip title="Editar hora">
-                                                                                <IconButton
-                                                                                    size="small"
-                                                                                    onClick={() => {
-                                                                                        if (recordId) {
-                                                                                            handleOpenEditHour(fila.id, fila.nombre, label, recordId);
-                                                                                        }
-                                                                                    }}
-                                                                                    sx={{ p: 0.5, color: '#004680' }}
-                                                                                >
-                                                                                    <EditIcon fontSize="small" />
-                                                                                </IconButton>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                    </Box>
-                                                                ) : (
-                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                                        <Chip
-                                                                            size="small"
-                                                                            icon={<AccessTimeIcon sx={{ fontSize: 14 }} />}
-                                                                            label="Pendiente"
-                                                                            sx={{ bgcolor: '#f5f5f5', color: '#757575', fontWeight: 600, fontSize: '0.7rem' }}
-                                                                        />
-                                                                        {esAdminUser && (
-                                                                            <Tooltip title="Agregar hora">
-                                                                                <IconButton
-                                                                                    size="small"
-                                                                                    onClick={() => {
-                                                                                        handleOpenCreateHour(fila.id, fila.nombre, label);
-                                                                                    }}
-                                                                                    sx={{ p: 0.5, color: '#004680' }}
-                                                                                >
-                                                                                    <AddCircleIcon fontSize="small" />
-                                                                                </IconButton>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                    </Box>
-                                                                )}
-                                                            </TableCell>
-                                                        );
-                                                    })}
-                                                    <TableCell>
-                                                        {(() => {
-                                                            let labelEstado = 'Sin Registro';
-                                                            let colorEstado = '#757575';
-                                                            let bgEstado = '#f5f5f5';
-
-                                                            if (fila.tieneNovedad) {
-                                                                labelEstado = 'No Aplica';
-                                                                colorEstado = '#0d47a1';
-                                                                bgEstado = '#e3f2fd';
-                                                            } else if (fila.estado === 'jornada_finalizada') {
-                                                                labelEstado = 'Finalizado';
-                                                                colorEstado = '#2e7d32';
-                                                                bgEstado = '#e8f5e9';
-                                                            } else if (fila.estado === 'Pendiente') {
-                                                                labelEstado = 'Sin Registro';
-                                                                colorEstado = '#757575';
-                                                                bgEstado = '#f5f5f5';
-                                                            } else {
-                                                                labelEstado = 'En curso';
-                                                                colorEstado = '#856404';
-                                                                bgEstado = '#fff3cd';
-                                                            }
-
-                                                            return (
-                                                                <Chip
-                                                                    size="small"
-                                                                    label={labelEstado}
-                                                                    sx={{
-                                                                        bgcolor: bgEstado,
-                                                                        color: colorEstado,
-                                                                        fontWeight: 700,
-                                                                        fontSize: '0.7rem'
-                                                                    }}
-                                                                />
-                                                            );
-                                                        })()}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Typography variant="body2" fontWeight={600} color="#0a1929">{fila.horasDia}</Typography>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                            <Typography variant="body2" fontWeight={700} color="#004680">{fila.horasSemana}</Typography>
-                                                            <IconButton size="small" onClick={() => handleOpenHistorial(fila)} sx={{ color: '#004680', bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' }, p: 0.5 }}>
-                                                                <HistoryIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </Box>
-                                                    </TableCell>
-                                                    <TableCell align="center">
-                                                        {fila.tieneNovedad ? (
-                                                            <Chip size="small" label={fila.novedadTipo} onClick={() => handleNovedadClick(fila)} icon={getNovedadIcon(fila.novedadTipo || 'Novedad')} sx={{ bgcolor: '#fde8e8', color: '#b71c1c', fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer', '&:hover': { bgcolor: '#fccfcf' } }} />
-                                                        ) : (
-                                                            <Chip size="small" label="Sin novedad" variant="outlined" sx={{ color: '#9e9e9e', fontWeight: 400, fontSize: '0.7rem', borderColor: '#e0e0e0' }} />
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })
-                                    )}
-                                </TableBody>
-                            </Table>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2.5, py: 1.5, borderTop: '1px solid #e0e0e0', bgcolor: '#fafbfc' }}>
-                                <Typography variant="caption" color="text.secondary">Mostrando {empleadosPagina.length} de {empleadosFiltrados.length} empleados</Typography>
-                                {empleadosFiltrados.length > rowsPerPage && (
-                                    <Pagination count={Math.ceil(empleadosFiltrados.length / rowsPerPage)} page={page + 1} onChange={(_, p) => setPage(p - 1)} color="primary" shape="rounded" size="small" />
-                                )}
-                            </Box>
-                        </TableContainer>
-                    )}
                 </DialogContent>
             </Box>
 
@@ -756,9 +673,7 @@ export default function ModalDetalleTienda({
                 />
             )}
 
-            {/* ============================================================
-                MODAL DE EDICIÓN (motivo OPCIONAL para admin)
-            ============================================================ */}
+            {/* MODAL DE EDICIÓN */}
             {editData && (
                 <EditHourModal
                     open={editHourOpen}
@@ -771,13 +686,11 @@ export default function ModalDetalleTienda({
                     initialReasonId={editData.initialReasonId}
                     registros={editData.registros}
                     onConfirm={handleConfirmEdit}
-                    motivoRequerido={false}
+                    motivoRequerido={true}
                 />
             )}
 
-            {/* ============================================================
-                MODAL DE CREACIÓN (con avatar del empleado - SIN EMOJIS)
-            ============================================================ */}
+            {/* MODAL DE CREACIÓN EXTRAÍDO */}
             {createData && (
                 <CreateHourModal
                     open={createHourOpen}
@@ -787,6 +700,23 @@ export default function ModalDetalleTienda({
                     onConfirm={handleConfirmCreate}
                 />
             )}
+
+            {/* DIÁLOGOS DE CONFIRMACIÓN EXTRAÍDOS */}
+            <ConfirmClosedDayDialogs
+                confirmClosedModalOpen={confirmClosedModalOpen}
+                setConfirmClosedModalOpen={setConfirmClosedModalOpen}
+                fechaDisplay={fechaDisplay}
+                recordsDiaCount={recordsDia.length}
+                guardandoDiaCerrado={guardandoDiaCerrado}
+                executeToggleDiaCerrado={executeToggleDiaCerrado}
+                confirmMasivoOpen={confirmMasivoOpen}
+                setConfirmMasivoOpen={setConfirmMasivoOpen}
+                diasSeleccionadosSet={diasSeleccionadosSet}
+                tiendaNombre={tiendaNombre}
+                registrosPorFechaSeleccionada={registrosPorFechaSeleccionada}
+                guardandoMasivo={guardandoMasivo}
+                handleGuardarMasivo={handleGuardarMasivo}
+            />
         </Dialog>
     );
 }

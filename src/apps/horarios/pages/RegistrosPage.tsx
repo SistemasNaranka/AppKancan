@@ -90,7 +90,7 @@ function RegistrosPageContent() {
 
   const { data: tiendasAcceso = [] } = useQuery<number[]>({
     queryKey: ['tiendasAccesoUsuario'],
-    queryFn: obtenerTiendasIdsUsuarioActual,
+    queryFn: () => obtenerTiendasIdsUsuarioActual({ excludeOnline: true }),
     enabled: isAreaMgr,
     staleTime: 30 * 60 * 1000,
   });
@@ -114,6 +114,10 @@ function RegistrosPageContent() {
     staleTime: 30 * 60 * 1000,
   });
   const [initializedStore, setInitializedStore] = useState(false);
+  useEffect(() => {
+    syncTimeWithServer();
+  }, []);
+
   useEffect(() => {
     if (miTienda != null && !initializedStore) {
       if (!isOnlyReport) {
@@ -308,7 +312,7 @@ function RegistrosPageContent() {
         </Alert>
       )}
 
-      <Paper className="tour-sticky-header" elevation={0} sx={{ position: 'sticky', top: 0, zIndex: 1000, borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 0, mb: 2, bgcolor: '#fff' }}>
+      <Paper className="tour-sticky-header" elevation={0} sx={{ position: 'sticky', top: 0, zIndex: 10, borderRadius: 4, overflow: 'hidden', border: '1px solid #f0e2e2ff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', mt: 0, mb: 2, bgcolor: '#fff' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, bgcolor: '#fff', p: { xs: 1.5, md: 2 }, borderBottom: '1px solid #eef2f6' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
             <Box
@@ -372,13 +376,15 @@ function RegistrosPageContent() {
                   <TextField
                     {...params}
                     placeholder="Seleccionar tienda"
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <StorefrontIcon sx={{ fontSize: 18, color: '#004680' }} />
-                        </InputAdornment>
-                      ),
+                    slotProps={{
+                      input: {
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <StorefrontIcon sx={{ fontSize: 18, color: '#004680' }} />
+                          </InputAdornment>
+                        ),
+                      },
                     }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
                   />
@@ -434,42 +440,42 @@ function RegistrosPageContent() {
                     </Tooltip>
                   )}
                   {!vistaReporte && !isAreaMgr && <TutorialButton />}
-                  {(!vistaReporte || isAreaMgr) && (
-                    <Tooltip title="Actualizar registros">
-                      <Button
-                        className="tour-refresh"
-                        onClick={async () => {
-                          setActualizando(true);
-                          try {
-                            await resetHorarios();
-                          } finally {
-                            setActualizando(false);
-                          }
-                        }}
-                        disabled={actualizando}
-                        variant="contained"
-                        disableElevation
-                        startIcon={actualizando ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: { xs: 14, sm: 18 } }} />}
-                        sx={{
-                          bgcolor: '#004680',
-                          color: '#fff',
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          fontWeight: 'bold',
-                          px: { xs: 1, sm: 2 },
-                          py: 0.5,
-                          boxShadow: 'none',
-                          fontSize: { xs: '0.7rem', sm: '0.875rem' },
-                          minHeight: { xs: 32, sm: 40 },
-                          '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
-                        }}
-                      >
-                        Actualizar
-                      </Button>
-                    </Tooltip>
-                  )}
                 </>
               )}
+
+              {/* Botón de Actualizar Global (Siempre visible en el header principal en todas las vistas) */}
+              <Tooltip title="Actualizar información de la base de datos">
+                <Button
+                  className="tour-refresh"
+                  onClick={async () => {
+                    setActualizando(true);
+                    try {
+                      await resetHorarios();
+                    } finally {
+                      setActualizando(false);
+                    }
+                  }}
+                  disabled={actualizando}
+                  variant="contained"
+                  disableElevation
+                  startIcon={actualizando ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <RefreshIcon sx={{ fontSize: { xs: 14, sm: 18 } }} />}
+                  sx={{
+                    bgcolor: '#004680',
+                    color: '#fff',
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    px: { xs: 1, sm: 2 },
+                    py: 0.5,
+                    boxShadow: 'none',
+                    fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                    minHeight: { xs: 32, sm: 40 },
+                    '&:hover': { bgcolor: '#003366', boxShadow: 'none' },
+                  }}
+                >
+                  Actualizar
+                </Button>
+              </Tooltip>
             </Box>
           </Box>
         </Box>
@@ -613,16 +619,13 @@ function RegistrosPageContent() {
             </Box>
           </TabPanel>
 
-
           <TabPanel value={tabValue} index={1}>
             <NovedadesTab novedades={novedades} esAdmin={esAdmin()} storeOverride={storeOverride} />
           </TabPanel>
 
-
           <TabPanel value={tabValue} index={2}>
             <HistorialPage storeIdAdmin={storeOverride} />
           </TabPanel>
-
 
           <TabPanel value={tabValue} index={3}>
             <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 4, bgcolor: '#fff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
@@ -630,8 +633,6 @@ function RegistrosPageContent() {
             </Paper>
           </TabPanel>
 
-
-          {/* --- SE AÑADIÓ EL PANEL DE MONITOREO AQUÍ --- */}
           {(esAdmin() || isAreaMgr) && (
             <TabPanel value={tabValue} index={4}>
               <MonitoreoPage storeId={storeOverride} />
@@ -639,7 +640,6 @@ function RegistrosPageContent() {
           )}
         </>
       )}
-
 
       <ExportEventosDialog
         open={exportEventosOpen}

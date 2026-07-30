@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/auth/hooks/useAuth';
 import { cargarTokenStorage } from '@/auth/services/tokenDirectus';
 import { ensureValidToken } from '@/auth/services/directusInterceptor';
+import { formatNombrePropio } from '../utils/format';
 
 export interface NombreSeparado {
   first_name: string;
@@ -26,7 +27,7 @@ function obtenerModelosIA(modelosIA: any): string[] {
   return [MODELO_POR_DEFECTO];
 }
 
-const PROMPT = (nombre: string) => `Eres un experto en onomástica colombiana. Tu tarea es separar un nombre completo en sus 4 componentes.
+const PROMPT = (nombre: string) => `Eres un experto en onomástica e identificación de nombres colombianos. Tu tarea es separar un nombre completo en sus 4 componentes.
 
 Devuelve EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin explicaciones, sin bloques de código) con esta forma exacta:
 {"first_name":"","middle_name":"","last_name":"","second_last_name":""}
@@ -37,24 +38,23 @@ Donde:
 - last_name = PRIMER apellido
 - second_last_name = SEGUNDO apellido
 
-Estructura de un nombre en Colombia (en este orden): [primer nombre] [segundo nombre] [primer apellido] [segundo apellido].
-La parte de NOMBRES va primero y la parte de APELLIDOS va al final. Normalmente cada persona tiene DOS apellidos (los dos últimos tokens) y uno o dos nombres.
+Detección de formato en Colombia:
+En Colombia se digitan los nombres en dos órdenes principales:
+1. Formato Estándar: [Primer Nombre] [Segundo Nombre] [Primer Apellido] [Segundo Apellido] (Ej. "Freddy Albeiro Burbano Silvia")
+2. Formato Nómina/Registraduría: [Primer Apellido] [Segundo Apellido] [Primer Nombre] [Segundo Nombre] (Ej. "BURBANO SILVIA FREDDY ALBEIRO")
 
-REGLAS según la cantidad de palabras:
-- 4 palabras  -> first_name=1ª, middle_name=2ª, last_name=3ª, second_last_name=4ª. (DEBES llenar los 4 campos)
-- 3 palabras  -> first_name=1ª, middle_name="", last_name=2ª, second_last_name=3ª.
-- 2 palabras  -> first_name=1ª, middle_name="", last_name=2ª, second_last_name="".
-- 5 o más     -> los DOS últimos tokens son los apellidos (last_name y second_last_name); el resto son nombres (first_name = 1º, middle_name = el resto de los nombres unidos).
+Analiza los tokens y determina con precisión cuáles son los NOMBRES de pila (ej. Freddy, Albeiro, Maria, Juan, Carlos) y cuáles son los APELLIDOS (ej. Burbano, Silvia, Gomez, Perez, Rodriguez, de la Cruz), independientemente de si se escribió primero el apellido o primero el nombre.
+
+REGLAS:
 - Apellidos/partículas compuestas ("de", "del", "la", "los", "san", "santa", "da", "di", "van", "von") se unen al apellido que les sigue (ej. "de la Cruz" => un solo apellido "de la Cruz").
-
-IMPORTANTE: cuando haya 4 o más palabras, NUNCA dejes middle_name ni second_last_name vacíos por defecto; complétalos según las reglas. Respeta tildes y mayúsculas iniciales. Si un campo no aplica, déjalo en "".
+- Formatea cada componente en Title Case (primera letra Mayúscula, resto minúsculas) y conserva en minúsculas las partículas compuestas intermedias ("de", "del", "la", "los", "y").
 
 EJEMPLOS:
-"Maria Camila Mendes Rey" => {"first_name":"Maria","middle_name":"Camila","last_name":"Mendes","second_last_name":"Rey"}
-"Lycet Paola Luna Rincon" => {"first_name":"Lycet","middle_name":"Paola","last_name":"Luna","second_last_name":"Rincon"}
-"Juan Perez Gomez" => {"first_name":"Juan","middle_name":"","last_name":"Perez","second_last_name":"Gomez"}
-"Ana Lopez" => {"first_name":"Ana","middle_name":"","last_name":"Lopez","second_last_name":""}
+"BURBANO SILVIA FREDDY ALBEIRO" => {"first_name":"Freddy","middle_name":"Albeiro","last_name":"Burbano","second_last_name":"Silvia"}
+"Freddy Albeiro Burbano Silvia" => {"first_name":"Freddy","middle_name":"Albeiro","last_name":"Burbano","second_last_name":"Silvia"}
+"GOMEZ PEREZ JUAN CARLOS" => {"first_name":"Juan","middle_name":"Carlos","last_name":"Gomez","second_last_name":"Perez"}
 "Jose Luis de la Cruz Romero" => {"first_name":"Jose","middle_name":"Luis","last_name":"de la Cruz","second_last_name":"Romero"}
+"Maria Camila Mendes Rey" => {"first_name":"Maria","middle_name":"Camila","last_name":"Mendes","second_last_name":"Rey"}
 
 Ahora separa este nombre: "${nombre}"`;
 
@@ -71,10 +71,10 @@ function parsearJSON(texto: string): NombreSeparado {
     obj = JSON.parse(m[0]);
   }
   return {
-    first_name: (obj.first_name || '').trim(),
-    middle_name: (obj.middle_name || '').trim(),
-    last_name: (obj.last_name || '').trim(),
-    second_last_name: (obj.second_last_name || '').trim(),
+    first_name: formatNombrePropio(obj.first_name),
+    middle_name: formatNombrePropio(obj.middle_name),
+    last_name: formatNombrePropio(obj.last_name),
+    second_last_name: formatNombrePropio(obj.second_last_name),
   };
 }
 

@@ -93,17 +93,19 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
                   placeholder="Nombre del empleado..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end" sx={{ gap: 0.5 }}>
-                        {searchQuery && (
-                          <IconButton size="small" onClick={() => { setSearchQuery(''); setPage(0); }}>
-                            <ClearIcon sx={{ fontSize: 16, color: '#8a9bb5' }} />
-                          </IconButton>
-                        )}
-                        <PersonSearchIcon sx={{ color: '#004680', fontSize: 20, mr: 0.5 }} />
-                      </InputAdornment>
-                    )
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end" sx={{ gap: 0.5 }}>
+                          {searchQuery && (
+                            <IconButton size="small" onClick={() => { setSearchQuery(''); setPage(0); }}>
+                              <ClearIcon sx={{ fontSize: 16, color: '#8a9bb5' }} />
+                            </IconButton>
+                          )}
+                          <PersonSearchIcon sx={{ color: '#004680', fontSize: 20, mr: 0.5 }} />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
                   sx={{
                     width: '100%',
