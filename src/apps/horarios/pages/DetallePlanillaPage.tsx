@@ -3,34 +3,25 @@ import {
   Box, Container, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Avatar, Chip,
   CircularProgress, Pagination, IconButton, Tooltip, Button,
-  Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel,
-  TextField, Alert,
-  ToggleButtonGroup, ToggleButton,
+  TextField, Dialog, DialogContent, DialogActions,
 } from '@mui/material';
 import {
-  Refresh as RefreshIcon,
   CheckCircle as CheckCircleIcon,
   AccessTime as AccessTimeIcon,
   Storefront as StorefrontIcon,
-  Edit as EditIcon,
-  ArrowBackIos as ArrowBackIosIcon,
-  ArrowForwardIos as ArrowForwardIosIcon,
-  Today as TodayIcon,
   Warning as WarningIcon,
   AddCircle as AddCircleIcon,
+  Edit as EditIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
-dayjs.locale('es');
-
-// MUI X Date Pickers
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
-// Hooks y APIs
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { useHorarios } from '../hooks/useHorarios';
 import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedades, getRecordReasonId } from '../api/directus/read';
@@ -38,8 +29,122 @@ import { updateTimeRecord, upsertRecordReason, createTimeRecord } from '../api/d
 import { Tienda } from '../interfaces/horarios.interface';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import EditHourModal from '../components/EditHourModal';
+import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
-// -------- FUNCIONES AUXILIARES --------
+dayjs.locale('es');
+
+// ============================================================
+//  MODAL DE CREACIÓN
+// ============================================================
+interface CreateHourModalProps {
+  open: boolean;
+  onClose: () => void;
+  employeeName: string;
+  eventName: string;
+  onConfirm: (hora: string, observacion: string) => Promise<void>;
+}
+
+function CreateHourModal({ open, onClose, employeeName, eventName, onConfirm }: CreateHourModalProps) {
+  const [horaSeleccionada, setHoraSeleccionada] = useState<dayjs.Dayjs | null>(dayjs().hour(8).minute(0));
+  const [observacion, setObservacion] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const { showSnackbar } = useGlobalSnackbar();
+
+  const handleGuardar = async () => {
+    if (!horaSeleccionada) {
+      showSnackbar('Selecciona una hora', 'warning');
+      return;
+    }
+    setGuardando(true);
+    try {
+      const horaFormateada = horaSeleccionada.format('hh:mm A');
+      await onConfirm(horaFormateada, observacion);
+      showSnackbar('Hora registrada correctamente', 'success');
+      onClose();
+    } catch (err: any) {
+      console.error('Error en handleGuardar:', err);
+      showSnackbar(err?.message || 'Error al crear la hora. Revisa la consola.', 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const initial = employeeName ? employeeName.charAt(0).toUpperCase() : '?';
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}>
+      <Box sx={{ bgcolor: '#004680', color: '#fff', py: 2.5, px: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Avatar sx={{ bgcolor: '#fff', color: '#004680', width: 44, height: 44, fontWeight: 700, fontSize: '1.1rem' }}>
+          {initial}
+        </Avatar>
+        <Box>
+          <Typography variant="h6" fontWeight={700}>
+            {eventName}
+          </Typography>
+          <Typography variant="caption" sx={{ opacity: 0.85, display: 'block', mt: 0.3 }}>
+            {employeeName}
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} sx={{ color: '#fff', ml: 'auto' }}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      <DialogContent sx={{ p: 3, pt: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+            <TimePicker
+              label="Hora de marcación"
+              value={horaSeleccionada}
+              onChange={(val) => setHoraSeleccionada(val as dayjs.Dayjs | null)}
+              ampm
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                },
+              }}
+            />
+          </LocalizationProvider>
+
+          <TextField
+            label="Nota / observación (opcional)"
+            multiline
+            rows={3}
+            fullWidth
+            value={observacion}
+            onChange={(e) => setObservacion(e.target.value)}
+            placeholder="Escriba una nota (opcional)..."
+            helperText="Opcional"
+          />
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2, gap: 1, bgcolor: '#f8fafc' }}>
+        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 2, fontWeight: 600 }}>
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleGuardar}
+          variant="contained"
+          disabled={!horaSeleccionada || guardando}
+          sx={{
+            bgcolor: '#004680',
+            borderRadius: 2,
+            fontWeight: 600,
+            '&:hover': { bgcolor: '#003366' },
+          }}
+        >
+          {guardando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Registrar'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+// ============================================================
+//  FUNCIONES AUXILIARES
+// ============================================================
 const calcularMinutosDia = (records: any[], empleadoId: string | number): number => {
   const empRecords = records.filter(r => Number(r.employee_id?.id || r.employee_id) === Number(empleadoId));
   const entrada = empRecords.find(r => r.log_type === 'Comenzar Jornada');
@@ -57,28 +162,6 @@ const formatearHoras = (minutos: number): string => {
   return `${horas}h ${mins}m`;
 };
 
-const calcularHorasSemana = (empleadoId: string | number, weekRecords: any[]): string => {
-  const empRecords = weekRecords.filter(r => Number(r.employee_id?.id || r.employee_id) === Number(empleadoId));
-  const days = new Map<string, any[]>();
-  empRecords.forEach(r => {
-    const fecha = r.record_date;
-    if (!days.has(fecha)) days.set(fecha, []);
-    days.get(fecha)!.push(r);
-  });
-  let totalMinutos = 0;
-  days.forEach((dayRecs) => {
-    const entrada = dayRecs.find(r => r.log_type === 'Comenzar Jornada');
-    const salida = dayRecs.find(r => r.log_type === 'Terminar Jornada');
-    if (entrada && salida) {
-      const inicio = dayjs(`2000-01-01 ${entrada.record_time.substring(0,5)}`);
-      const fin = dayjs(`2000-01-01 ${salida.record_time.substring(0,5)}`);
-      totalMinutos += fin.diff(inicio, 'minute');
-    }
-  });
-  return formatearHoras(totalMinutos);
-};
-
-// -------- INTERFAZ --------
 interface EmpleadoFila {
   id: string;
   nombre: string;
@@ -96,10 +179,11 @@ interface EmpleadoFila {
   tieneNovedad: boolean;
   novedadTipo?: string;
   horasDia: string;
-  horasSemana: string;
 }
 
-// -------- COMPONENTE PRINCIPAL --------
+// ============================================================
+//  COMPONENTE PRINCIPAL
+// ============================================================
 interface DetallePlanillaPageProps {
   storeId?: number | null;
 }
@@ -108,20 +192,23 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
   const { esAdmin, esAreaManager } = useHorariosPolicies();
   const isAreaMgr = esAreaManager() && !esAdmin();
   const queryClient = useQueryClient();
+  const { showSnackbar } = useGlobalSnackbar();
 
-  // Búsqueda y Rangos Rápidos
   const [searchTerm, setSearchTerm] = useState('');
-  const [rapidoSeleccionado, setRapidoSeleccionado] = useState<string | null>(null);
-
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Dayjs>(dayjs());
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
 
-  // Estados para Modal de Edición (Edit)
   const [editHourModalOpen, setEditHourModalOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
+  const [createHourOpen, setCreateHourOpen] = useState(false);
+  const [createData, setCreateData] = useState<{
+    employeeId: string;
+    employeeName: string;
+    eventName: string;
+    tiendaId: number;
+  } | null>(null);
 
-  // Obtener tiendas disponibles
   const { data: todasLasTiendas = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
@@ -151,7 +238,82 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
 
   const fechaStr = fechaSeleccionada.format('YYYY-MM-DD');
 
-  // Multi-Queries
+  const handleFechaChange = (newDate: Dayjs | null) => {
+    if (newDate) {
+      setFechaSeleccionada(newDate);
+      setPage(0);
+      queryClient.invalidateQueries({ queryKey: ['recordsDiaMulti'] });
+    }
+  };
+
+  // ================ CUSTOM ACTION BAR (lateral izquierdo) =================
+  const CustomActionBar = (props: any) => {
+    const { setOpen } = props;
+
+    const handleAyer = () => {
+      handleFechaChange(dayjs().subtract(1, 'day'));
+      setOpen(false);
+    };
+
+    const handleHoy = () => {
+      handleFechaChange(dayjs());
+      setOpen(false);
+    };
+
+    return (
+      <Box sx={{
+        p: 2,
+        bgcolor: '#fafbfc',
+        borderRight: '1px solid #e0e0e0',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 2,
+        minWidth: 140,
+      }}>
+        <Typography variant="caption" fontWeight={700} color="#004680" sx={{
+          fontSize: '0.75rem',
+          letterSpacing: '0.5px',
+          textAlign: 'center'
+        }}>
+          RANGOS RÁPIDOS
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
+          <Button
+            size="small"
+            variant="contained"
+            fullWidth
+            sx={{
+              bgcolor: '#004680',
+              '&:hover': { bgcolor: '#003366' },
+              fontWeight: 600,
+              py: 1,
+            }}
+            onClick={handleAyer}
+          >
+            Ayer
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            fullWidth
+            sx={{
+              bgcolor: '#004680',
+              '&:hover': { bgcolor: '#003366' },
+              fontWeight: 600,
+              py: 1,
+            }}
+            onClick={handleHoy}
+          >
+            Hoy
+          </Button>
+        </Box>
+      </Box>
+    );
+  };
+  // =======================================================================
+
   const { data: empleadosPorTienda = {}, isLoading: loadingEmpleados } = useQuery({
     queryKey: ['empleadosBulkMulti', tiendasAConsultar.map(t => t.id).join(',')],
     queryFn: async () => {
@@ -194,33 +356,9 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     staleTime: 5 * 60 * 1000,
   });
 
-  const diaSemana = fechaSeleccionada.day();
-  const lunes = fechaSeleccionada.subtract((diaSemana + 6) % 7, 'day');
-  const domingo = lunes.add(6, 'day');
-  
-  const { data: weekRecordsPorTienda = {} } = useQuery({
-    queryKey: ['weekRecordsMulti', tiendasAConsultar.map(t => t.id).join(','), lunes.format('YYYY-MM-DD')],
-    queryFn: async () => {
-      const result: Record<number, any[]> = {};
-      for (const tienda of tiendasAConsultar) {
-        const recs = await getTimeRecordsBulkRange(
-          [tienda.id],
-          lunes.format('YYYY-MM-DD'),
-          domingo.format('YYYY-MM-DD')
-        );
-        result[tienda.id] = recs;
-      }
-      return result;
-    },
-    enabled: tiendasAConsultar.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // 🔥 OBTENER MOTIVOS (USANDO LA PRIMERA TIENDA DISPONIBLE)
   const firstStoreId = tiendasAConsultar.length > 0 ? tiendasAConsultar[0].id : undefined;
   const { reasons } = useHorarios(firstStoreId);
 
-  // Construir filas base
   const filasEmpleadosBase: EmpleadoFila[] = useMemo(() => {
     const rows: EmpleadoFila[] = [];
 
@@ -228,7 +366,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
       const empleados = empleadosPorTienda[tienda.id] || [];
       const recordsDia = recordsPorTienda[tienda.id] || [];
       const novedadesDia = (novedadesPorTienda[tienda.id] || []).filter((n: any) => n.report_date === fechaStr);
-      const weekRecords = weekRecordsPorTienda[tienda.id] || [];
 
       const empMap = new Map<string, { id: string; nombre: string; cargo: string }>();
       
@@ -288,7 +425,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
         const novedad = getNovedadEmpleado(empId);
         const minutosDia = calcularMinutosDia(recordsDia, empId);
         const horasDia = formatearHoras(minutosDia);
-        const horasSemana = calcularHorasSemana(empId, weekRecords);
 
         rows.push({
           id: `${tienda.id}_${empId}`,
@@ -307,7 +443,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
           tieneNovedad: !!novedad,
           novedadTipo: novedad?.tipo,
           horasDia,
-          horasSemana,
         });
       });
     });
@@ -318,9 +453,8 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     });
 
     return rows;
-  }, [tiendasAConsultar, empleadosPorTienda, recordsPorTienda, novedadesPorTienda, weekRecordsPorTienda, fechaStr]);
+  }, [tiendasAConsultar, empleadosPorTienda, recordsPorTienda, novedadesPorTienda, fechaStr]);
 
-  // FILTRADO POR BÚSQUEDA
   const filasEmpleados = useMemo(() => {
     if (!searchTerm.trim()) return filasEmpleadosBase;
     return filasEmpleadosBase.filter(fila =>
@@ -335,68 +469,29 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
   }, [filasEmpleados, page]);
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage - 1);
-  
-  // Handlers de fecha
-  const handleDateSelect = (day: number) => {
-    setFechaSeleccionada(fechaSeleccionada.date(day));
-    setRapidoSeleccionado(null);
-    setPage(0);
-  };
-  
-  const handlePrevMonth = () => {
-    setFechaSeleccionada(fechaSeleccionada.subtract(1, 'month'));
-    setRapidoSeleccionado(null);
-    setPage(0);
-  };
-
-  const handleNextMonth = () => {
-    setFechaSeleccionada(fechaSeleccionada.add(1, 'month'));
-    setRapidoSeleccionado(null);
-    setPage(0);
-  };
-
-  const handleToday = () => {
-    setFechaSeleccionada(dayjs());
-    setRapidoSeleccionado(null);
-    setPage(0);
-  };
-
-  // Handler para rangos rápidos
-  const handleRapido = (tipo: string) => {
-    let nuevaFecha = dayjs();
-    switch (tipo) {
-      case 'hoy': nuevaFecha = dayjs(); break;
-      case '7dias': nuevaFecha = dayjs().subtract(7, 'day'); break;
-      case 'mes': nuevaFecha = dayjs().startOf('month'); break;
-      case 'mesPasado': nuevaFecha = dayjs().subtract(1, 'month').startOf('month'); break;
-      case '30dias': nuevaFecha = dayjs().subtract(30, 'day'); break;
-      case 'anio': nuevaFecha = dayjs().startOf('year'); break;
-      case 'todo': nuevaFecha = dayjs('2020-01-01'); break;
-      default: return;
-    }
-    setFechaSeleccionada(nuevaFecha);
-    setPage(0);
-  };
 
   // ============================================================
   //  LÓGICA DE EDICIÓN
   // ============================================================
 
-  // Abrir modal de edición (edit)
   const handleOpenEditHour = async (fila: EmpleadoFila, evento: string, recordId: number, horaActual: string | null) => {
-    if (!esAdmin() && !isAreaMgr) return; 
+    if (!esAdmin() && !isAreaMgr) return;
+
+    const numericRecordId = Number(recordId);
+    if (isNaN(numericRecordId) || numericRecordId <= 0) {
+      console.error('RecordId inválido:', recordId);
+      return;
+    }
 
     const tiendaId = fila.tiendaId;
     const recordsStore = recordsPorTienda[tiendaId] || [];
-    const observacionActual = recordsStore.find(r => r.id === recordId)?.observations || '';
+    const observacionActual = recordsStore.find(r => r.id === numericRecordId)?.observations || '';
 
     let reasonId: number | null = null;
-    if (recordId) {
-      try {
-        reasonId = await getRecordReasonId(recordId);
-      } catch (e) {
-        console.error('Error al obtener motivo:', e);
-      }
+    try {
+      reasonId = await getRecordReasonId(numericRecordId);
+    } catch (e) {
+      console.error('Error al obtener motivo:', e);
     }
 
     const registros = {
@@ -418,11 +513,11 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     setEditData({
       employeeName: fila.nombre,
       eventName: evento,
-      initialTimeStr: horaActual, 
+      initialTimeStr: horaActual,
       initialObservation: observacionActual,
-      reasons: reasons || [], // 🔥 Los motivos globales
+      reasons: reasons || [],
       initialReasonId: reasonId,
-      recordId: recordId,
+      recordId: numericRecordId,
       registros: registros,
     });
     setEditHourModalOpen(true);
@@ -433,9 +528,12 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     setEditData(null);
   };
 
-  // Confirmar edición
   const handleConfirmEdit = async (horaFormateada: string, observacion: string, reasonId: number | null) => {
-    if (!editData || !editData.recordId) return;
+    if (!editData || !editData.recordId) {
+      console.error('No hay datos de edición o recordId ausente');
+      return;
+    }
+
     try {
       const parsed = dayjs(horaFormateada, 'hh:mm A');
       const recordTime = parsed.format('HH:mm:ss');
@@ -450,10 +548,61 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
       }
 
       queryClient.invalidateQueries({ queryKey: ['recordsDiaMulti'] });
-      queryClient.invalidateQueries({ queryKey: ['weekRecordsMulti'] });
+      queryClient.invalidateQueries({ queryKey: ['timeRecords'] });
+
+      showSnackbar('Hora actualizada correctamente', 'success');
       handleCloseEditHour();
     } catch (error) {
       console.error('Error al editar hora:', error);
+      showSnackbar('Error al editar la hora', 'error');
+      throw error;
+    }
+  };
+
+  // ============================================================
+  //  LÓGICA DE CREACIÓN
+  // ============================================================
+
+  const handleOpenCreateHour = (empleadoId: string, empleadoNombre: string, evento: string, tiendaId: number) => {
+    if (!esAdmin() && !isAreaMgr) return;
+    setCreateData({
+      employeeId: empleadoId,
+      employeeName: empleadoNombre,
+      eventName: evento,
+      tiendaId: tiendaId,
+    });
+    setCreateHourOpen(true);
+  };
+
+  const handleCloseCreateHour = () => {
+    setCreateHourOpen(false);
+    setCreateData(null);
+  };
+
+  const handleConfirmCreate = async (horaFormateada: string, observacion: string) => {
+    if (!createData) return;
+    try {
+      const parsed = dayjs(horaFormateada, 'hh:mm A');
+      const recordTime = parsed.format('HH:mm:ss');
+      const recordDate = fechaStr;
+
+      await createTimeRecord({
+        employee_id: Number(createData.employeeId),
+        store_id: createData.tiendaId,
+        log_type: createData.eventName,
+        record_date: recordDate,
+        record_time: recordTime,
+        observations: observacion,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['recordsDiaMulti'] });
+      queryClient.invalidateQueries({ queryKey: ['timeRecords'] });
+
+      showSnackbar('Hora registrada correctamente', 'success');
+      handleCloseCreateHour();
+    } catch (error) {
+      console.error('Error al crear hora:', error);
+      showSnackbar('Error al crear la hora', 'error');
       throw error;
     }
   };
@@ -470,195 +619,96 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     );
   }
 
-  // ----- CALENDARIO CON RANGOS RÁPIDOS Y SELECCIÓN AZUL -----
-  const renderCalendar = () => {
-    const startOfMonth = fechaSeleccionada.startOf('month');
-    const endOfMonth = fechaSeleccionada.endOf('month');
-    const startDayOfWeek = startOfMonth.day();
-    const daysInMonth = endOfMonth.date();
-    const offset = (startDayOfWeek + 6) % 7;
-
-    const isToday = (day: number) => {
-      const today = dayjs();
-      return day === today.date() && fechaSeleccionada.month() === today.month() && fechaSeleccionada.year() === today.year();
-    };
-
-    const isSelected = (day: number) => day === fechaSeleccionada.date();
-
-    const daysArray = [];
-    for (let i = 0; i < offset; i++) daysArray.push(null);
-    for (let d = 1; d <= daysInMonth; d++) daysArray.push(d);
-
-    return (
-      <Paper elevation={2} sx={{ p: 2, borderRadius: 4, bgcolor: '#ffffff', border: '1px solid #e0e0e0', mt: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TodayIcon sx={{ color: '#004680', fontSize: 22 }} />
-            <Typography variant="h6" fontWeight={700} color="#0a1929" sx={{ textTransform: 'capitalize' }}>
-              {fechaSeleccionada.format('MMMM YYYY')}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button size="small" startIcon={<TodayIcon />} onClick={handleToday} sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#004680', color: '#004680', fontSize: '0.75rem', py: 0.5 }} variant="outlined">Hoy</Button>
-            <IconButton size="small" onClick={handlePrevMonth} sx={{ color: '#004680' }}><ArrowBackIosIcon fontSize="small" /></IconButton>
-            <IconButton size="small" onClick={handleNextMonth} sx={{ color: '#004680' }}><ArrowForwardIosIcon fontSize="small" /></IconButton>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center', mb: 1.5 }}>
-          <ToggleButtonGroup
-            size="small"
-            value={rapidoSeleccionado}
-            exclusive
-            onChange={(_, value) => {
-              setRapidoSeleccionado(value);
-              if (value) handleRapido(value);
-            }}
-            sx={{ flexWrap: 'wrap', gap: 0.5 }}
-          >
-            {[
-              { value: 'hoy', label: 'Hoy' },
-              { value: '7dias', label: 'Últimos 7 días' },
-              { value: 'mes', label: 'Este mes' },
-              { value: 'mesPasado', label: 'Mes pasado' },
-              { value: '30dias', label: 'Últimos 30 días' },
-              { value: 'anio', label: 'Este año' },
-              { value: 'todo', label: 'Todo' },
-            ].map((item) => (
-              <ToggleButton
-                key={item.value}
-                value={item.value}
-                sx={{
-                  borderRadius: 1.5,
-                  px: 1,
-                  py: 0.3,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.65rem',
-                  border: '1px solid #d0d7de',
-                  '&.Mui-selected': {
-                    bgcolor: '#004680',
-                    color: '#fff',
-                    borderColor: '#004680',
-                  },
-                  '&.Mui-selected:hover': {
-                    bgcolor: '#003366',
-                  },
-                }}
-              >
-                {item.label}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        </Box>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', mb: 1 }}>
-          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((d) => (
-            <Typography key={d} align="center" variant="caption" fontWeight={700} color="primary.main" sx={{ py: 0.5 }}>
-              {d}
-            </Typography>
-          ))}
-        </Box>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-          {Array.from({ length: offset }, (_, i) => <Box key={`empty-${i}`} />)}
-          {Array.from({ length: daysInMonth }, (_, i) => {
-            const day = i + 1;
-            const selected = isSelected(day);
-            const today = isToday(day);
-
-            return (
-              <Paper
-                key={day}
-                elevation={0}
-                onClick={() => handleDateSelect(day)}
-                sx={{
-                  p: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 2,
-                  bgcolor: selected ? '#004680' : 'transparent',
-                  color: selected ? '#ffffff' : '#0a1929',
-                  border: today && !selected ? '2px solid #004680' : '1px solid #e0e0e0',
-                  cursor: 'pointer', minHeight: 48, transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: selected ? '#003366' : '#f0f4f8',
-                  }
-                }}
-              >
-                <Typography variant="body2" fontWeight={selected || today ? 700 : 400} sx={{ fontSize: '0.9rem' }}>
-                  {day}
-                </Typography>
-              </Paper>
-            );
-          })}
-        </Box>
-      </Paper>
-    );
-  };
-
-  // ----- RENDER -----
   return (
-    <Box sx={{ backgroundColor: '#f5f7fa', minHeight: '100vh', pt: 1, pb: 4 }}>
+    <Box sx={{ backgroundColor: '#f5f7fa', pt: 0.5, pb: 1.5 }}>
       <Container maxWidth="xl">
-        <Paper elevation={0} sx={{ p: 2, mb: 3, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: '#ffffff' }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-            <Typography variant="h5" fontWeight={700} color="#0a1929" sx={{ textTransform: 'uppercase' }}>
+        {/* Encabezado */}
+        <Paper elevation={0} sx={{ p: { xs: 1, sm: 2 }, mb: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: 'transparent' }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+            <Typography variant="h5" fontWeight={700} color="#0a1929" sx={{ textTransform: 'uppercase', fontSize: { xs: '1rem', sm: '1.3rem' } }}>
               DETALLE DE PLANILLA
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton
-                onClick={() => {
-                  queryClient.invalidateQueries({ queryKey: ['recordsDiaMulti'] });
-                  queryClient.invalidateQueries({ queryKey: ['weekRecordsMulti'] });
-                  queryClient.invalidateQueries({ queryKey: ['novedadesMulti'] });
-                }}
-                sx={{ color: '#004680', bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }}
-              >
-                <RefreshIcon />
-              </IconButton>
-              <Typography variant="caption" fontWeight={600} color="#64748b">
-                {fechaSeleccionada.format('dddd, D [de] MMMM [de] YYYY')}
-              </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ mt: 2 }}>
-            {renderCalendar()}
+            <Typography variant="caption" fontWeight={600} color="#64748b" sx={{ fontSize: { xs: '0.6rem', sm: '0.75rem' } }}>
+              {fechaSeleccionada.format('dddd, D [de] MMMM [de] YYYY')}
+            </Typography>
           </Box>
         </Paper>
 
-        <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: '#ffffff', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-            <Chip label={`Empleados: ${filasEmpleados.length}`} sx={{ bgcolor: '#e3f2fd', color: '#004680', fontWeight: 700 }} />
+        {/* Filtros con DatePicker personalizado */}
+        <Paper elevation={0} sx={{ p: 1.5, mb: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: 'transparent' }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+              <DatePicker
+                label="Seleccionar día"
+                value={fechaSeleccionada}
+                // ¡AQUÍ ESTÁ LA CORRECCIÓN!
+                onChange={(value) => handleFechaChange(value as Dayjs | null)}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    sx: { width: { xs: '100%', sm: 300 } },
+                  },
+                  actionBar: {
+                    actions: [], 
+                  },
+                  layout: {
+                    sx: {
+                      display: 'flex',
+                      flexDirection: 'row-reverse',
+                    }
+                  }
+                }}
+                slots={{
+                  actionBar: CustomActionBar, 
+                }}
+              />
+            </LocalizationProvider>
+
             <TextField
               size="small"
               placeholder="Buscar empleado..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ width: 220 }}
+              sx={{ width: { xs: '100%', sm: 550 } }}
+            />
+
+            <Chip
+              label={`Empleados: ${filasEmpleados.length}`}
+              sx={{ bgcolor: '#FFFFFF', color: '#004680', fontWeight: 700 }}
             />
           </Box>
         </Paper>
 
-        {/* Tabla modificada según los requerimientos exactos */}
-        <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0', overflow: 'hidden' }}>
-          <Table size="medium">
+        {/* Tabla */}
+        <TableContainer 
+          component={Paper} 
+          elevation={0} 
+          sx={{ 
+            borderRadius: 3, 
+            border: '1px solid #e0e0e0', 
+            overflowX: 'auto',
+            bgcolor: 'transparent',
+          }}
+        >
+          <Table size="medium" sx={{ minWidth: { xs: 700, md: '80%' } }}>
             <TableHead sx={{ bgcolor: '#f8fafc' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: '#546e7a' }}>TIENDA</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#546e7a' }}>EMPLEADO</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#546e7a' }}>CARGO</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd' }}>INICIO JORNADA</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd' }}>INICIO ALMUERZO</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd' }}>FIN ALMUERZO</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd' }}>FIN JORNADA</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a' }}>HORAS DÍA</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a' }}>HORAS SEMANA</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a' }}>NOVEDADES</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>TIENDA</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>EMPLEADO</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>CARGO</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>INICIO JORNADA</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>INICIO ALMUERZO</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>FIN ALMUERZO</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>FIN JORNADA</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>HORAS DÍA</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>NOVEDADES</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 4 }}><CircularProgress sx={{ color: '#004680' }} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4 }}><CircularProgress sx={{ color: '#004680' }} /></TableCell></TableRow>
               ) : filasPagina.length === 0 ? (
-                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 4, color: 'text.secondary' }}>{searchTerm ? 'No hay empleados con ese nombre.' : 'No hay registros para este día.'}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>{searchTerm ? 'No hay empleados con ese nombre.' : 'No hay registros para este día.'}</TableCell></TableRow>
               ) : (
                 filasPagina.map((fila, idx) => {
                   const eventosHoras = [
@@ -668,69 +718,93 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                     { key: 'finJornada', label: 'Terminar Jornada', hora: fila.finJornada, recordId: fila.recordIdFinJornada },
                   ];
 
+                  const employeeId = fila.id.includes('_') ? fila.id.split('_')[1] : fila.id;
+
                   return (
                     <TableRow key={fila.id} hover sx={{ bgcolor: idx % 2 === 0 ? '#ffffff' : '#fafbfc' }}>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <StorefrontIcon sx={{ color: '#004680', fontSize: 18 }} />
-                          <Typography variant="body2" fontWeight={600}>{fila.tienda}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <StorefrontIcon sx={{ color: '#004680', fontSize: 16 }} />
+                          <Typography variant="body2" fontWeight={600} noWrap>{fila.tienda}</Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Avatar sx={{ width: 32, height: 32, bgcolor: '#004680' }}>{fila.nombre.charAt(0)}</Avatar>
-                          <Typography variant="body2" fontWeight={600}>{fila.nombre}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Avatar sx={{ width: 28, height: 28, bgcolor: '#004680', fontSize: '0.7rem' }}>{fila.nombre.charAt(0)}</Avatar>
+                          <Typography variant="body2" fontWeight={600} noWrap>{fila.nombre}</Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>{fila.cargo}</TableCell>
+                      <TableCell><Typography variant="body2" noWrap>{fila.cargo}</Typography></TableCell>
 
-                      {/* 🔥 Solo aparece el botón de EDICIÓN (con icono +) en horas registradas */}
-                      {eventosHoras.map((evento) => (
-                        <TableCell key={evento.key} align="center">
-                          {evento.hora ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                              <Chip
-                                size="small"
-                                icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
-                                label={evento.hora}
-                                sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600 }}
-                              />
-                              {(esAdmin() || isAreaMgr) && (
-                                <Tooltip title="Editar hora">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => {
-                                      if (evento.recordId) {
-                                        handleOpenEditHour(fila, evento.label, evento.recordId, evento.hora);
-                                      }
-                                    }}
-                                    sx={{ p: 0.5, color: '#004680' }}
-                                  >
-                                    <AddCircleIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            </Box>
-                          ) : (
-                            <Chip
-                              size="small"
-                              icon={<AccessTimeIcon sx={{ fontSize: 14 }} />}
-                              label="Pendiente"
-                              sx={{ bgcolor: '#f5f5f5', color: '#757575', fontWeight: 600 }}
-                            />
-                          )}
-                        </TableCell>
-                      ))}
+                      {eventosHoras.map((evento) => {
+                        const esHoraExistente = !!evento.hora;
+                        const puedeEditar = esAdmin() || isAreaMgr;
+
+                        return (
+                          <TableCell key={evento.key} align="center">
+                            {esHoraExistente ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.3 }}>
+                                <Chip
+                                  size="small"
+                                  icon={<CheckCircleIcon sx={{ fontSize: 12 }} />}
+                                  label={evento.hora}
+                                  sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
+                                />
+                                {puedeEditar && (
+                                  <Tooltip title="Editar hora">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => {
+                                        if (evento.recordId) {
+                                          handleOpenEditHour(fila, evento.label, evento.recordId, evento.hora);
+                                        }
+                                      }}
+                                      sx={{ p: 0.2, color: '#004680' }}
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+                              </Box>
+                            ) : (
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.3 }}>
+                                <Chip
+                                  size="small"
+                                  icon={<AccessTimeIcon sx={{ fontSize: 12 }} />}
+                                  label="Pendiente"
+                                  sx={{ bgcolor: '#f5f5f5', color: '#757575', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
+                                />
+                                {puedeEditar && (
+                                  <Tooltip title="Agregar hora">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => {
+                                        handleOpenCreateHour(
+                                          employeeId,
+                                          fila.nombre,
+                                          evento.label,
+                                          fila.tiendaId
+                                        );
+                                      }}
+                                      sx={{ p: 0.2, color: '#004680' }}
+                                    >
+                                      <AddCircleIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+                              </Box>
+                            )}
+                          </TableCell>
+                        );
+                      })}
 
                       <TableCell align="center"><Typography variant="body2" fontWeight={600}>{fila.horasDia}</Typography></TableCell>
-                      <TableCell align="center"><Typography variant="body2" fontWeight={700} color="#004680">{fila.horasSemana}</Typography></TableCell>
                       
-                      {/* COLUMNA NOVEDADES CON ICONOS */}
                       <TableCell align="center">
                         {fila.tieneNovedad ? (
-                          <Chip size="small" icon={<WarningIcon sx={{ fontSize: 14 }} />} label={fila.novedadTipo || 'Novedad'} sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 600 }} />
+                          <Chip size="small" icon={<WarningIcon sx={{ fontSize: 12 }} />} label={fila.novedadTipo || 'Novedad'} sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 600, height: 24, fontSize: '0.7rem' }} />
                         ) : (
-                          <Chip size="small" icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} label="Sin novedad" sx={{ bgcolor: '#f5f5f5', color: '#757575' }} />
+                          <Chip size="small" icon={<CheckCircleIcon sx={{ fontSize: 12 }} />} label="Sin novedad" sx={{ bgcolor: '#f5f5f5', color: '#757575', height: 24, fontSize: '0.7rem' }} />
                         )}
                       </TableCell>
                     </TableRow>
@@ -739,7 +813,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               )}
             </TableBody>
           </Table>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2.5, py: 1.5, borderTop: '1px solid #e0e0e0', bgcolor: '#fafbfc' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1, borderTop: '1px solid #e0e0e0', bgcolor: '#fafbfc' }}>
             <Typography variant="caption" color="text.secondary">
               Mostrando {Math.min((page + 1) * rowsPerPage, totalFilas)} de {totalFilas} empleados
             </Typography>
@@ -757,7 +831,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
         </TableContainer>
       </Container>
 
-      {/* MODAL DE EDICIÓN (YA CON MOTIVOS CARGADOS) */}
+      {/* MODALES */}
       {editData && (
         <EditHourModal
           open={editHourModalOpen}
@@ -770,7 +844,17 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
           initialReasonId={editData.initialReasonId}
           registros={editData.registros || {}}
           onConfirm={handleConfirmEdit}
-          motivoRequerido={false}
+          motivoRequerido={!esAdmin()}
+        />
+      )}
+
+      {createData && (
+        <CreateHourModal
+          open={createHourOpen}
+          onClose={handleCloseCreateHour}
+          employeeName={createData.employeeName}
+          eventName={createData.eventName}
+          onConfirm={handleConfirmCreate}
         />
       )}
     </Box>

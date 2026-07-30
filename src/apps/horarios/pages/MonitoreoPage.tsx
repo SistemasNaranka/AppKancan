@@ -27,12 +27,19 @@ const getColorForMotivo = (m: string) => {
 };
 type SortField = 'nombre' | 'totalEmpleados' | 'personasRegistradas' | 'incompletos' | 'sinRegistro';
 const OPCIONES_ORDEN: { value: SortField; label: string }[] = [
-  { value: 'nombre', label: 'Tienda' }, { value: 'totalEmpleados', label: 'Empleados Act.' }, { value: 'personasRegistradas', label: 'Pers. Registradas' },
-  { value: 'incompletos', label: 'Faltante de Marcación' }, { value: 'sinRegistro', label: 'Sin Marcar' }
+  { value: 'nombre', label: 'Tienda' },
+  { value: 'totalEmpleados', label: 'Empleados Act.' },
+  { value: 'personasRegistradas', label: 'Pers. Registradas' },
+  { value: 'incompletos', label: 'Días Incompletos' },
+  { value: 'sinRegistro', label: 'Días sin Marcar' }
 ];
 const COLUMNAS_TIENDAS: { label: string; value: SortField | null }[] = [
-  { label: 'TIENDA', value: 'nombre' }, { label: 'EMPLEADOS ACT.', value: 'totalEmpleados' }, { label: 'PERS. REGISTRADAS', value: 'personasRegistradas' },
-  { label: 'FALTANTE DE MARCACIÓN', value: 'incompletos' }, { label: 'SIN MARCAR', value: 'sinRegistro' }, { label: 'ACCIONES', value: null }
+  { label: 'TIENDA', value: 'nombre' },
+  { label: 'EMPLEADOS ACT.', value: 'totalEmpleados' },
+  { label: 'PERS. REGISTRADAS', value: 'personasRegistradas' },
+  { label: 'DÍAS INCOMPLETOS', value: 'incompletos' },
+  { label: 'DÍAS SIN MARCAR', value: 'sinRegistro' },
+  { label: 'ACCIONES', value: null }
 ];
 const COLUMNAS_EDICIONES = ['FECHA', 'EMPLEADO', 'TIENDA', 'REGISTRO', 'HORA ORIG.', 'HORA MOD.', 'MOTIVO', 'OBSERVACIONES'];
 const TARJETAS_ESTADISTICAS = [
@@ -414,16 +421,16 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                 <Tooltip title="Total de empleados activos en todas las tiendas">
                   <TarjetaResumen icon={PersonIcon} label="EMPLEADOS" value={totalEmpleados} color="#004680" />
                 </Tooltip>
-                <Tooltip title="Empleados con faltante de marcación en el mes">
-                  <TarjetaResumen icon={WarningIcon} label="FALTANTE DE MARCACIÓN" value={totalIncompletos} color="#e65100" />
+                <Tooltip title="Días incompletos en el mes">
+                  <TarjetaResumen icon={WarningIcon} label="DÍAS INCOMPLETOS" value={totalIncompletos} color="#e65100" />
                 </Tooltip>
-                <Tooltip title="Empleados sin registro en algún día del mes (sin contar hoy)">
-                  <TarjetaResumen icon={PendingIcon} label="SIN MARCAR" value={totalSinRegistro} color="#d32f2f" />
+                <Tooltip title="Días sin marcar en el mes">
+                  <TarjetaResumen icon={PendingIcon} label="DÍAS SIN MARCAR" value={totalSinRegistro} color="#d32f2f" />
                 </Tooltip>
               </Box>
 
               {/* DERECHA: FILTROS COMO SE MUESTRA EN LA IMAGEN */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #d0d7de', borderRadius: 2, px: 1.5, py: 0.5, bgcolor: '#ffffff' }}>
                   <CalendarTodayIcon sx={{ color: '#004680', fontSize: 16, mr: 1 }} />
                   <Typography variant="body2" fontWeight={600} color="#004680" sx={{ textTransform: 'capitalize', minWidth: 90 }}>{resumenMes.format('MMMM YYYY')}</Typography>
@@ -440,8 +447,9 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
               </Box>
             </Paper>
 
-            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0' }}>
-              <Table size="medium">
+            {/* Tabla con scroll horizontal para portátil */}
+            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0', overflowX: 'auto' }}>
+              <Table size="medium" sx={{ minWidth: 700 }}>
                 <TableHead sx={{ bgcolor: '#f8fafc' }}>
                   <TableRow>
                     {COLUMNAS_TIENDAS.map(col => (
