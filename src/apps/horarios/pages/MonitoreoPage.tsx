@@ -13,6 +13,7 @@ import { Tienda } from '../interfaces/horarios.interface';
 import ModalDetalleTienda from '../components/ModalDetalleTienda';
 import ModalCierreMasivo from '../components/ModalCierreMasivo';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
+import DetallePlanillaPage from '../pages/DetallePlanillaPage';
 import ReporteSemanalAreaManager from '../components/reportes/ReporteSemanalAreaManager';
 
 // Modules extraídos
@@ -216,7 +217,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
     </Box>;
   }
   if (errorResumen) {
-    return <Container><Alert severity="error" action={<Button color="inherit" size="small" onClick={() => {}}>Reintentar</Button>}>{errorResumen}</Alert></Container>;
+    return <Container><Alert severity="error" action={<Button color="inherit" size="small" onClick={() => { }}>Reintentar</Button>}>{errorResumen}</Alert></Container>;
   }
 
   return (
@@ -227,7 +228,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Tab label="Resumen de Asistencia" sx={{ fontWeight: 700, textTransform: 'none' }} />
             <Tab label="Auditoría de Ediciones Manuales" sx={{ fontWeight: 700, textTransform: 'none' }} />
             {isAreaMgr && <Tab label="Control de Horas" sx={{ fontWeight: 700, textTransform: 'none' }} />}
-            {/* {isAreaMgr && <Tab label="Detalle de Planilla" sx={{ fontWeight: 700, textTransform: 'none' }} />} */}
+            {isAreaMgr && <Tab label="Detalle de Planilla" sx={{ fontWeight: 700, textTransform: 'none' }} />}
           </Tabs>
         </Box>
 
@@ -235,7 +236,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
         {subTab === 0 && (
           <>
             <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-              
+
               {/* IZQUIERDA: TARJETAS DE ESTADÍSTICAS */}
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                 <Tooltip title="Número total de tiendas en el mes seleccionado">
@@ -267,8 +268,8 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     Marcar Días de Cierre
                   </Button>
                 )}
-              {/* DERECHA: FILTROS COMO SE MUESTRA EN LA IMAGEN */}
-              <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #d0d7de', borderRadius: 2, px: 1.5, py: 0.5, bgcolor: '#ffffff' }}>
+                {/* DERECHA: FILTROS COMO SE MUESTRA EN LA IMAGEN */}
+                <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #d0d7de', borderRadius: 2, px: 1.5, py: 0.5, bgcolor: '#ffffff' }}>
                   <CalendarTodayIcon sx={{ color: '#004680', fontSize: 16, mr: 1 }} />
                   <Typography variant="body2" fontWeight={600} color="#004680" sx={{ textTransform: 'capitalize', minWidth: 90 }}>{resumenMes.format('MMMM YYYY')}</Typography>
                   <IconButton size="small" onClick={() => handleCambiarMesResumen(resumenMes.subtract(1, 'month'))} sx={{ color: '#004680', p: 0.5 }}><ArrowBackIosIcon fontSize="small" sx={{ fontSize: 14 }} /></IconButton>
@@ -433,10 +434,9 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
           </Paper>
         )}
 
-        {/* ⭐ TAB 3: DETALLE DE PLANILLA (DESHABILITADO TEMPORALMENTE)
         {isAreaMgr && subTab === 3 && (
           <DetallePlanillaPage storeId={storeId} />
-        )} */}
+        )}
 
         {/* Modal Detalle Tienda */}
         {tiendaSeleccionada && (
@@ -507,152 +507,154 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     else setRankingMotivos(typeof value === 'string' ? value.split(',') : value);
                     setPaginaRanking(0);
                   }} input={<OutlinedInput label="Filtrar por Motivos" endAdornment={rankingMotivos.length > 0 ? <InputAdornment position="end"><IconButton size="small" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos([]); setPaginaRanking(0); }} onMouseDown={(e) => e.stopPropagation()} sx={{ p: 0.5, mr: 0.5 }}><CloseIcon fontSize="small" sx={{ color: '#64748b' }} /></IconButton></InputAdornment> : null} sx={{ borderRadius: 2 }} />}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 60, overflow: 'auto' }}>
-                      {selected.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Todos los motivos</Typography> :
-                        selected.map((value) => {
-                          const colors = getColorForMotivo(value);
-                          return <Box key={value} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: colors.bg, color: colors.text, pl: 1, pr: 0.5, py: 0.25, borderRadius: 1, height: '22px', cursor: 'default' }} onMouseDown={(e) => e.stopPropagation()}>
-                            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>{value}</Typography>
-                            <Box component="span" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%', '&:hover': { bgcolor: 'rgba(0,0,0,0.12)' } }}
-                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos(rankingMotivos.filter(item => item !== value)); setPaginaRanking(0); }}
-                              onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}>
-                              <CloseIcon sx={{ fontSize: '0.85rem', color: colors.text }} />
-                            </Box>
-                          </Box>;
-                        })}
-                    </Box>
-                  )}
-                  MenuProps={{ PaperProps: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } }}
-                >
-                  <MenuItem value="todos" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e8e8e8', border: '1px solid #9e9e9e' }} />Todos</Box>{rankingMotivos.length === motivosUnicos.length && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
-                  <MenuItem value="limpiar" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ffebee', border: '1px solid #c62828' }} />Limpiar</Box>{rankingMotivos.length === 0 && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
-                  {motivosUnicos.map(motivo => <MenuItem key={motivo} value={motivo} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, fontWeight: rankingMotivos.includes(motivo) ? 700 : 400 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: getColorForMotivo(motivo).bg, border: `1px solid ${getColorForMotivo(motivo).text}` }} />{motivo}</Box>{rankingMotivos.includes(motivo) && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Box>
-          </Box>
-          <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: 3, mx: 3 }}>
-            <List disablePadding>
-              {(() => {
-                const start = paginaRanking * rowsPerPage.ranking;
-                const pagina = rankingFiltrado.slice(start, start + rowsPerPage.ranking);
-                if (!pagina.length) return <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>{buscarEmpleadoRanking ? 'No se encontraron empleados' : 'No hay ediciones registradas'}</Box>;
-                return pagina.map(emp => (
-                  <ListItem key={emp.id} divider sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
-                    secondaryAction={<> 
-                      <Tooltip title="Ver registros"><IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}><VisibilityIcon /></IconButton></Tooltip>
-                      <Tooltip title="Ver calendario"><IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}><CalendarTodayIcon /></IconButton></Tooltip>
-                    </>}>
-                    <ListItemAvatar><Avatar sx={{ bgcolor: '#004680', color: '#fff', width: 44, height: 44 }}>{emp.nombre.charAt(0).toUpperCase()}</Avatar></ListItemAvatar>
-                    <ListItemText primary={<Typography variant="body1" fontWeight={600} color="#0a1929">{emp.nombre}</Typography>}
-                      secondary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
-                        <Chip size="small" label={emp.tienda} sx={{ bgcolor: '#e8eaf6', color: '#1a237e', fontWeight: 500, fontSize: '0.7rem' }} />
-                        <Chip size="small" label={`${emp.total} edición${emp.total !== 1 ? 'es' : ''}`} sx={{ bgcolor: '#e1f5fe', color: '#0288d1', fontWeight: 600, fontSize: '0.7rem' }} />
-                      </Box>} />
-                  </ListItem>
-                ));
-              })()}
-            </List>
-          </Box>
-          <Box sx={{ flexShrink: 0, bgcolor: 'white', borderTop: '1px solid #e0e0e0', mt: 2 }}>
-            <Paginador count={Math.ceil(rankingFiltrado.length / rowsPerPage.ranking)} page={paginaRanking} setPage={setPaginaRanking} label="registros" total={rankingFiltrado.length} />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
-          <Button onClick={() => setModalEmpleadosOpen(false)} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Modal Calendario */}
-      <Dialog open={calendario.open} onClose={handleCerrarCalendario} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3, maxHeight: '85vh' } }}>
-        <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ bgcolor: '#ffffff', color: '#004680', width: 36, height: 36 }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre.charAt(0).toUpperCase() : '?'}</Avatar>
-            <Box><Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre : 'Empleado'}</Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8 }}>Histórial total: {edicionesPorEmpleado.length} ediciones en {diasConEdiciones.size} días</Typography></Box>
-          </Box>
-          <IconButton onClick={handleCerrarCalendario} sx={{ color: '#ffffff' }}><CloseIcon /></IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 2, bgcolor: '#f5f7fa' }}>
-          <Paper elevation={0} sx={{ p: 1, mb: 2, borderRadius: 3, bgcolor: '#ffffff', border: '1px solid #e0e0e0', display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><EditNoteIcon sx={{ color: '#004680', fontSize: 16 }} /><Typography variant="body2" fontWeight={700}>Ediciones en {calendario.mes.format('MMMM YYYY')}: <span style={{ color: '#004680' }}>{edicionesDelMes.length}</span></Typography></Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CalendarTodayIcon sx={{ color: '#004680', fontSize: 16 }} /><Typography variant="body2" fontWeight={600}>Días: <span style={{ color: '#004680' }}>{diasConEdicionesMes.size}</span></Typography></Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Typography variant="body2" fontWeight={600}>Promedio: <span style={{ color: '#004680' }}>{promedioEdicionesMes.toFixed(1)}</span></Typography></Box>
-          </Paper>
-
-          <Paper elevation={2} sx={{ p: 2, borderRadius: 4, bgcolor: '#ffffff', border: '1px solid #e0e0e0' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CalendarTodayIcon sx={{ color: '#004680', fontSize: 22 }} /><Typography variant="h6" fontWeight={700} color="#0a1929">{calendario.mes.format('MMMM YYYY')}</Typography></Box>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button size="small" startIcon={<TodayIcon />} onClick={() => setCalendario(p => ({ ...p, mes: dayjs() }))} sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#004680', color: '#004680', fontSize: '0.75rem', py: 0.5 }} variant="outlined">Hoy</Button>
-                <IconButton size="small" onClick={() => setCalendario(p => ({ ...p, mes: p.mes.subtract(1, 'month') }))} sx={{ color: '#004680' }}><ArrowBackIosIcon fontSize="small" /></IconButton>
-                <IconButton size="small" onClick={() => setCalendario(p => ({ ...p, mes: p.mes.add(1, 'month') }))} sx={{ color: '#004680' }} disabled={calendario.mes.isSame(dayjs(), 'month')}><ArrowForwardIosIcon fontSize="small" /></IconButton>
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 60, overflow: 'auto' }}>
+                        {selected.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Todos los motivos</Typography> :
+                          selected.map((value) => {
+                            const colors = getColorForMotivo(value);
+                            return <Box key={value} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: colors.bg, color: colors.text, pl: 1, pr: 0.5, py: 0.25, borderRadius: 1, height: '22px', cursor: 'default' }} onMouseDown={(e) => e.stopPropagation()}>
+                              <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>{value}</Typography>
+                              <Box component="span" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%', '&:hover': { bgcolor: 'rgba(0,0,0,0.12)' } }}
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos(rankingMotivos.filter(item => item !== value)); setPaginaRanking(0); }}
+                                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                                <CloseIcon sx={{ fontSize: '0.85rem', color: colors.text }} />
+                              </Box>
+                            </Box>;
+                          })}
+                      </Box>
+                    )}
+                    MenuProps={{ PaperProps: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } }}
+                  >
+                    <MenuItem value="todos" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e8e8e8', border: '1px solid #9e9e9e' }} />Todos</Box>{rankingMotivos.length === motivosUnicos.length && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
+                    <MenuItem value="limpiar" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ffebee', border: '1px solid #c62828' }} />Limpiar</Box>{rankingMotivos.length === 0 && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
+                    {motivosUnicos.map(motivo => <MenuItem key={motivo} value={motivo} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, fontWeight: rankingMotivos.includes(motivo) ? 700 : 400 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: getColorForMotivo(motivo).bg, border: `1px solid ${getColorForMotivo(motivo).text}` }} />{motivo}</Box>{rankingMotivos.includes(motivo) && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>)}
+                  </Select>
+                </FormControl>
               </Box>
             </Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px', mb: 1 }}>
-              {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => <Typography key={d} align="center" variant="caption" fontWeight={700} color="primary.main" sx={{ py: 0.5 }}>{d}</Typography>)}
+            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: 3, mx: 3 }}>
+              <List disablePadding>
+                {(() => {
+                  const start = paginaRanking * rowsPerPage.ranking;
+                  const pagina = rankingFiltrado.slice(start, start + rowsPerPage.ranking);
+                  if (!pagina.length) return <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>{buscarEmpleadoRanking ? 'No se encontraron empleados' : 'No hay ediciones registradas'}</Box>;
+                  return pagina.map(emp => (
+                    <ListItem key={emp.id} divider sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
+                      secondaryAction={<>
+                        <Tooltip title="Ver registros"><IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}><VisibilityIcon /></IconButton></Tooltip>
+                        <Tooltip title="Ver calendario"><IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}><CalendarTodayIcon /></IconButton></Tooltip>
+                      </>}>
+                      <ListItemAvatar><Avatar sx={{ bgcolor: '#004680', color: '#fff', width: 44, height: 44 }}>{emp.nombre.charAt(0).toUpperCase()}</Avatar></ListItemAvatar>
+                      <ListItemText primary={<Typography variant="body1" fontWeight={600} color="#0a1929">{emp.nombre}</Typography>}
+                        secondary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+                          <Chip size="small" label={emp.tienda} sx={{ bgcolor: '#e8eaf6', color: '#1a237e', fontWeight: 500, fontSize: '0.7rem' }} />
+                          <Chip size="small" label={`${emp.total} edición${emp.total !== 1 ? 'es' : ''}`} sx={{ bgcolor: '#e1f5fe', color: '#0288d1', fontWeight: 600, fontSize: '0.7rem' }} />
+                        </Box>} />
+                    </ListItem>
+                  ));
+                })()}
+              </List>
             </Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px' }}>
-              {Array.from({ length: (calendario.mes.startOf('month').day() + 6) % 7 }, (_, i) => <Box key={`empty-${i}`} />)}
-              {Array.from({ length: calendario.mes.daysInMonth() }, (_, i) => {
-                const day = calendario.mes.date(i + 1);
-                const fecha = day.format('YYYY-MM-DD');
-                const count = conteoPorDia[fecha] || 0;
-                const isSelected = calendario.dia === fecha;
-                const isToday = day.isSame(dayjs(), 'day');
-                const esFuturo = day.isAfter(dayjs(), 'day');
-                const isEdited = count > 0 && !esFuturo;
-                return <Tooltip key={fecha} title={isEdited ? `${count} edición(es)` : 'Sin ediciones'} arrow>
-                  <Paper elevation={isEdited ? 2 : 0} sx={{ p: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 2,
-                    bgcolor: isSelected ? '#004680' : (isEdited ? '#e3f2fd' : 'transparent'),
-                    color: isSelected ? '#ffffff' : (esFuturo ? '#bdbdbd' : '#0a1929'),
-                    border: isToday ? '2px solid #004680' : (isEdited ? '1px solid #004680' : '1px solid #e0e0e0'),
-                    cursor: isEdited ? 'pointer' : 'default', minHeight: 48, transition: 'all 0.15s ease',
-                    '&:hover': { transform: isEdited ? 'scale(1.02)' : 'none', boxShadow: isEdited ? 2 : 0 } }}
-                    onClick={() => isEdited && setCalendario(p => ({ ...p, dia: fecha }))}>
-                    <Typography variant="body2" fontWeight={isSelected || isEdited || isToday ? 700 : 400} sx={{ fontSize: '0.9rem' }}>{day.date()}</Typography>
-                    {isEdited && <Chip size="small" label={count} sx={{ mt: 0.25, bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : '#004680', color: '#ffffff', fontWeight: 700, fontSize: '0.6rem', height: 18, minWidth: 20 }} />}
-                    {isToday && !isSelected && <Box sx={{ position: 'absolute', top: 2, right: 2, width: 6, height: 6, borderRadius: '50%', bgcolor: '#004680' }} />}
-                  </Paper>
-                </Tooltip>;
-              })}
+            <Box sx={{ flexShrink: 0, bgcolor: 'white', borderTop: '1px solid #e0e0e0', mt: 2 }}>
+              <Paginador count={Math.ceil(rankingFiltrado.length / rowsPerPage.ranking)} page={paginaRanking} setPage={setPaginaRanking} label="registros" total={rankingFiltrado.length} />
             </Box>
-          </Paper>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
+            <Button onClick={() => setModalEmpleadosOpen(false)} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
+          </DialogActions>
+        </Dialog>
 
-          {calendario.dia && (
-            <Box sx={{ mt: 2 }}>
-              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: '#ffffff' }}>
-                <Typography variant="subtitle2" fontWeight={700} color="#004680" gutterBottom>
-                  Ediciones del {dayjs(calendario.dia).format('dddd, D [de] MMMM [de] YYYY')}
-                  <Chip size="small" label={`${edicionesDelDia.length} registros`} sx={{ ml: 1, bgcolor: '#e3f2fd', color: '#004680', fontWeight: 600, fontSize: '0.7rem' }} />
-                </Typography>
-                {edicionesDelDia.length ? <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2, mt: 1 }}>
-                  <Table size="small"><TableHead sx={{ bgcolor: '#f8fafc' }}><TableRow>
-                    {['Registro', 'Hora Original', 'Hora Modificada', 'Motivo', 'Observación'].map(h => <TableCell key={h} sx={{ fontWeight: 700, color: '#546e7a', fontSize: '0.75rem' }}>{h}</TableCell>)}
-                  </TableRow></TableHead><TableBody>
-                    {edicionesDelDia.map(r => <TableRow key={r.id} hover>
-                      <TableCell sx={{ fontSize: '0.75rem' }}>{r.tipoRegistro}</TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem' }}><Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through', fontSize: '0.75rem' }}>{r.horaOriginal ? r.horaOriginal.substring(0,5) : '--:--'}</Typography></TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem' }}><Typography variant="body2" fontWeight={700} color="#c62828" sx={{ fontSize: '0.75rem' }}>{r.horaModificada ? r.horaModificada.substring(0,5) : '--:--'}</Typography></TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem' }}><Chip size="small" label={r.motivo} sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 600, fontSize: '0.6rem' }} /></TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem' }}>
-                        {r.observaciones && r.observaciones.toLowerCase() !== 'sin comentarios' ?
-                          <Tooltip title={r.observaciones}><IconButton size="small" sx={{ color: '#004680', p: 0.2 }}><MessageIcon fontSize="small" /></IconButton></Tooltip> :
-                          <Typography variant="caption" color="#94a3b8" fontStyle="italic" sx={{ fontSize: '0.65rem' }}>Sin obs.</Typography>}
-                      </TableCell>
-                    </TableRow>)}
-                  </TableBody></Table>
-                </TableContainer> : <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1 }}>No hay ediciones para este día.</Typography>}
-              </Paper>
+        {/* Modal Calendario */}
+        <Dialog open={calendario.open} onClose={handleCerrarCalendario} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3, maxHeight: '85vh' } }}>
+          <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ bgcolor: '#ffffff', color: '#004680', width: 36, height: 36 }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre.charAt(0).toUpperCase() : '?'}</Avatar>
+              <Box><Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre : 'Empleado'}</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>Histórial total: {edicionesPorEmpleado.length} ediciones en {diasConEdiciones.size} días</Typography></Box>
             </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 1.5, px: 3, borderTop: '1px solid #e2e8f0' }}>
-          <Button onClick={handleCerrarCalendario} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
-  </Box>
+            <IconButton onClick={handleCerrarCalendario} sx={{ color: '#ffffff' }}><CloseIcon /></IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ p: 2, bgcolor: '#f5f7fa' }}>
+            <Paper elevation={0} sx={{ p: 1, mb: 2, borderRadius: 3, bgcolor: '#ffffff', border: '1px solid #e0e0e0', display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><EditNoteIcon sx={{ color: '#004680', fontSize: 16 }} /><Typography variant="body2" fontWeight={700}>Ediciones en {calendario.mes.format('MMMM YYYY')}: <span style={{ color: '#004680' }}>{edicionesDelMes.length}</span></Typography></Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CalendarTodayIcon sx={{ color: '#004680', fontSize: 16 }} /><Typography variant="body2" fontWeight={600}>Días: <span style={{ color: '#004680' }}>{diasConEdicionesMes.size}</span></Typography></Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Typography variant="body2" fontWeight={600}>Promedio: <span style={{ color: '#004680' }}>{promedioEdicionesMes.toFixed(1)}</span></Typography></Box>
+            </Paper>
+
+            <Paper elevation={2} sx={{ p: 2, borderRadius: 4, bgcolor: '#ffffff', border: '1px solid #e0e0e0' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CalendarTodayIcon sx={{ color: '#004680', fontSize: 22 }} /><Typography variant="h6" fontWeight={700} color="#0a1929">{calendario.mes.format('MMMM YYYY')}</Typography></Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button size="small" startIcon={<TodayIcon />} onClick={() => setCalendario(p => ({ ...p, mes: dayjs() }))} sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#004680', color: '#004680', fontSize: '0.75rem', py: 0.5 }} variant="outlined">Hoy</Button>
+                  <IconButton size="small" onClick={() => setCalendario(p => ({ ...p, mes: p.mes.subtract(1, 'month') }))} sx={{ color: '#004680' }}><ArrowBackIosIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" onClick={() => setCalendario(p => ({ ...p, mes: p.mes.add(1, 'month') }))} sx={{ color: '#004680' }} disabled={calendario.mes.isSame(dayjs(), 'month')}><ArrowForwardIosIcon fontSize="small" /></IconButton>
+                </Box>
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px', mb: 1 }}>
+                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => <Typography key={d} align="center" variant="caption" fontWeight={700} color="primary.main" sx={{ py: 0.5 }}>{d}</Typography>)}
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px' }}>
+                {Array.from({ length: (calendario.mes.startOf('month').day() + 6) % 7 }, (_, i) => <Box key={`empty-${i}`} />)}
+                {Array.from({ length: calendario.mes.daysInMonth() }, (_, i) => {
+                  const day = calendario.mes.date(i + 1);
+                  const fecha = day.format('YYYY-MM-DD');
+                  const count = conteoPorDia[fecha] || 0;
+                  const isSelected = calendario.dia === fecha;
+                  const isToday = day.isSame(dayjs(), 'day');
+                  const esFuturo = day.isAfter(dayjs(), 'day');
+                  const isEdited = count > 0 && !esFuturo;
+                  return <Tooltip key={fecha} title={isEdited ? `${count} edición(es)` : 'Sin ediciones'} arrow>
+                    <Paper elevation={isEdited ? 2 : 0} sx={{
+                      p: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 2,
+                      bgcolor: isSelected ? '#004680' : (isEdited ? '#e3f2fd' : 'transparent'),
+                      color: isSelected ? '#ffffff' : (esFuturo ? '#bdbdbd' : '#0a1929'),
+                      border: isToday ? '2px solid #004680' : (isEdited ? '1px solid #004680' : '1px solid #e0e0e0'),
+                      cursor: isEdited ? 'pointer' : 'default', minHeight: 48, transition: 'all 0.15s ease',
+                      '&:hover': { transform: isEdited ? 'scale(1.02)' : 'none', boxShadow: isEdited ? 2 : 0 }
+                    }}
+                      onClick={() => isEdited && setCalendario(p => ({ ...p, dia: fecha }))}>
+                      <Typography variant="body2" fontWeight={isSelected || isEdited || isToday ? 700 : 400} sx={{ fontSize: '0.9rem' }}>{day.date()}</Typography>
+                      {isEdited && <Chip size="small" label={count} sx={{ mt: 0.25, bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : '#004680', color: '#ffffff', fontWeight: 700, fontSize: '0.6rem', height: 18, minWidth: 20 }} />}
+                      {isToday && !isSelected && <Box sx={{ position: 'absolute', top: 2, right: 2, width: 6, height: 6, borderRadius: '50%', bgcolor: '#004680' }} />}
+                    </Paper>
+                  </Tooltip>;
+                })}
+              </Box>
+            </Paper>
+
+            {calendario.dia && (
+              <Box sx={{ mt: 2 }}>
+                <Paper elevation={0} sx={{ p: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: '#ffffff' }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="#004680" gutterBottom>
+                    Ediciones del {dayjs(calendario.dia).format('dddd, D [de] MMMM [de] YYYY')}
+                    <Chip size="small" label={`${edicionesDelDia.length} registros`} sx={{ ml: 1, bgcolor: '#e3f2fd', color: '#004680', fontWeight: 600, fontSize: '0.7rem' }} />
+                  </Typography>
+                  {edicionesDelDia.length ? <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2, mt: 1 }}>
+                    <Table size="small"><TableHead sx={{ bgcolor: '#f8fafc' }}><TableRow>
+                      {['Registro', 'Hora Original', 'Hora Modificada', 'Motivo', 'Observación'].map(h => <TableCell key={h} sx={{ fontWeight: 700, color: '#546e7a', fontSize: '0.75rem' }}>{h}</TableCell>)}
+                    </TableRow></TableHead><TableBody>
+                        {edicionesDelDia.map(r => <TableRow key={r.id} hover>
+                          <TableCell sx={{ fontSize: '0.75rem' }}>{r.tipoRegistro}</TableCell>
+                          <TableCell sx={{ fontSize: '0.75rem' }}><Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through', fontSize: '0.75rem' }}>{r.horaOriginal ? r.horaOriginal.substring(0, 5) : '--:--'}</Typography></TableCell>
+                          <TableCell sx={{ fontSize: '0.75rem' }}><Typography variant="body2" fontWeight={700} color="#c62828" sx={{ fontSize: '0.75rem' }}>{r.horaModificada ? r.horaModificada.substring(0, 5) : '--:--'}</Typography></TableCell>
+                          <TableCell sx={{ fontSize: '0.75rem' }}><Chip size="small" label={r.motivo} sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 600, fontSize: '0.6rem' }} /></TableCell>
+                          <TableCell sx={{ fontSize: '0.75rem' }}>
+                            {r.observaciones && r.observaciones.toLowerCase() !== 'sin comentarios' ?
+                              <Tooltip title={r.observaciones}><IconButton size="small" sx={{ color: '#004680', p: 0.2 }}><MessageIcon fontSize="small" /></IconButton></Tooltip> :
+                              <Typography variant="caption" color="#94a3b8" fontStyle="italic" sx={{ fontSize: '0.65rem' }}>Sin obs.</Typography>}
+                          </TableCell>
+                        </TableRow>)}
+                      </TableBody></Table>
+                  </TableContainer> : <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1 }}>No hay ediciones para este día.</Typography>}
+                </Paper>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 1.5, px: 3, borderTop: '1px solid #e2e8f0' }}>
+            <Button onClick={handleCerrarCalendario} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </Box>
   );
 }

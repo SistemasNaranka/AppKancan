@@ -544,7 +544,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               placeholder="Buscar empleado..."
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              sx={{ width: 220 }}
+              sx={{ width: 520 }}
             />
           </Box>
         </Paper>
@@ -589,6 +589,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                   ];
 
                   const employeeId = fila.id.includes('_') ? fila.id.split('_')[1] : fila.id;
+                  const recordsTienda = recordsPorTienda[fila.tiendaId] || [];
 
                   return (
                     <TableRow key={fila.id} hover sx={{ bgcolor: idx % 2 === 0 ? '#ffffff' : '#fafbfc' }}>
@@ -609,61 +610,57 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                       {eventosHoras.map((evento) => {
                         const esHoraExistente = !!evento.hora;
                         const puedeEditar = esAdmin() || isAreaMgr;
+                        
+                        // Obtener la observación del registro correspondiente
+                        const record = recordsTienda.find(r => r.id === evento.recordId);
+                        const observacion = record?.observations || '';
+
+                        // Tooltip con encabezado "Observación:" o mensaje para pendiente
+                        const tooltipTitle = esHoraExistente
+                          ? (observacion ? `Observación: ${observacion}` : 'Sin observación')
+                          : 'Sin observación registrada';
 
                         return (
                           <TableCell key={evento.key} align="center">
-                            {esHoraExistente ? (
+                            <Tooltip title={tooltipTitle} arrow>
                               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.3 }}>
-                                <Chip
-                                  size="small"
-                                  icon={<CheckCircleIcon sx={{ fontSize: 12 }} />}
-                                  label={evento.hora}
-                                  sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
-                                />
-                                {puedeEditar && (
-                                  <Tooltip title="Editar hora">
-                                    <IconButton
-                                      size="small"
-                                      onClick={() => {
-                                        if (evento.recordId) {
-                                          handleOpenEditHour(fila, evento.label, evento.recordId, evento.hora);
-                                        }
-                                      }}
-                                      sx={{ p: 0.2, color: '#004680' }}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
+                                {esHoraExistente ? (
+                                  <Chip
+                                    size="small"
+                                    icon={<CheckCircleIcon sx={{ fontSize: 12 }} />}
+                                    label={evento.hora}
+                                    sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
+                                  />
+                                ) : (
+                                  <Chip
+                                    size="small"
+                                    icon={<AccessTimeIcon sx={{ fontSize: 12 }} />}
+                                    label="Pendiente"
+                                    sx={{ bgcolor: '#f5f5f5', color: '#757575', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
+                                  />
                                 )}
-                              </Box>
-                            ) : (
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.3 }}>
-                                <Chip
-                                  size="small"
-                                  icon={<AccessTimeIcon sx={{ fontSize: 12 }} />}
-                                  label="Pendiente"
-                                  sx={{ bgcolor: '#f5f5f5', color: '#757575', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
-                                />
                                 {puedeEditar && (
-                                  <Tooltip title="Agregar hora">
-                                    <IconButton
-                                      size="small"
-                                      onClick={() => {
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      if (esHoraExistente && evento.recordId) {
+                                        handleOpenEditHour(fila, evento.label, evento.recordId, evento.hora);
+                                      } else {
                                         handleOpenCreateHour(
                                           employeeId,
                                           fila.nombre,
                                           evento.label,
                                           fila.tiendaId
                                         );
-                                      }}
-                                      sx={{ p: 0.2, color: '#004680' }}
-                                    >
-                                      <AddCircleIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
+                                      }
+                                    }}
+                                    sx={{ p: 0.2, color: '#004680' }}
+                                  >
+                                    {esHoraExistente ? <EditIcon fontSize="small" /> : <AddCircleIcon fontSize="small" />}
+                                  </IconButton>
                                 )}
                               </Box>
-                            )}
+                            </Tooltip>
                           </TableCell>
                         );
                       })}

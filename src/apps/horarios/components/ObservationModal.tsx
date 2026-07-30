@@ -11,7 +11,6 @@ interface ObservationModalProps {
   observaciones: ObservacionEvento[];
 }
 
-
 const EVENTO_META: Record<
   string,
   { orden: number; icon: typeof Play; color: string; bg: string }
@@ -114,7 +113,7 @@ export function ObservationModal({
                         {/* Contenido */}
                         <div className={`flex-1 min-w-0 ${esUltimo ? '' : 'pb-4'}`}>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-semibold text-[#0f2c4a]">{obs.evento}</span>
+                            <span className="text-sm font-semibold text-[#0f2c4a] truncate">{obs.evento}</span>
                             {obs.hora && (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
                                 <Clock size={11} />
@@ -123,7 +122,10 @@ export function ObservationModal({
                             )}
                           </div>
                           {obs.observacion && obs.observacion.trim() ? (
-                            <p className="text-sm text-slate-600 leading-relaxed mt-0.5">
+                            <p 
+                              className="text-sm text-slate-600 leading-relaxed mt-0.5"
+                              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                            >
                               {obs.observacion}
                             </p>
                           ) : (

@@ -467,8 +467,8 @@ export default function HistorialHorasModal({
                                                     )}
                                                 </Box>
 
-                                                {/* Información de la Marca */}
-                                                <Box sx={{ flexGrow: 1, pb: esUltimo ? 0 : 3 }}>
+                                                {/* Información de la Marca con ajuste de minWidth para flex container */}
+                                                <Box sx={{ flexGrow: 1, minWidth: 0, pb: esUltimo ? 0 : 3 }}>
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                                                         <Typography variant="body2" fontWeight={800} color="#0f2c4a">
                                                             {r.log_type}
@@ -480,11 +480,30 @@ export default function HistorialHorasModal({
                                                         />
                                                     </Box>
                                                     
-                                                    {/* Comentarios */}
+                                                    {/* Comentarios con ajuste de rompimiento de palabras */}
                                                     {comentario && comentario.trim() && (
-                                                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.75, p: 1, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #f1f5f9' }}>
-                                                            <CommentIcon sx={{ fontSize: 12, color: '#94a3b8', mt: 0.25 }} />
-                                                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem', lineHeight: 1.35 }}>
+                                                        <Box sx={{ 
+                                                            display: 'flex', 
+                                                            alignItems: 'flex-start', 
+                                                            gap: 0.75, 
+                                                            mt: 0.75, 
+                                                            p: 1, 
+                                                            bgcolor: '#f8fafc', 
+                                                            borderRadius: 2, 
+                                                            border: '1px solid #f1f5f9',
+                                                            maxWidth: '100%'
+                                                        }}>
+                                                            <CommentIcon sx={{ fontSize: 12, color: '#94a3b8', mt: 0.25, flexShrink: 0 }} />
+                                                            <Typography 
+                                                                variant="caption" 
+                                                                color="text.secondary" 
+                                                                sx={{ 
+                                                                    fontSize: '0.72rem', 
+                                                                    lineHeight: 1.35,
+                                                                    wordBreak: 'break-word',
+                                                                    overflowWrap: 'anywhere'
+                                                                }}
+                                                            >
                                                                 {comentario}
                                                             </Typography>
                                                         </Box>
@@ -530,4 +549,3 @@ export default function HistorialHorasModal({
         </Dialog>
     );
 }
-
