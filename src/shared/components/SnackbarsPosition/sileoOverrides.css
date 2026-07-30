@@ -12,6 +12,15 @@
   --sileo-state-action: #004680;
 }
 
+/* Forzar que el contenedor de toasts de Sileo esté SIEMPRE visible por encima de cualquier Dialog / Modal de MUI (MUI z-index = 1300/1400) */
+[data-sileo-toaster],
+[data-sileo-toast],
+[data-sileo-viewport],
+.sileo-toaster,
+#sileo-toaster {
+  z-index: 99999 !important;
+}
+
 /* El color de fondo lo da TODO el toast (la opción `fill` por estado, definida
    en SnackbarContext). Aquí solo dejamos el contenido legible en blanco, así
    no hay dos fondos: un único color por toast con texto blanco. */
@@ -36,11 +45,3 @@
 [data-sileo-description] {
   color: #fff;
 }
-
-
-
-
-
-
-
-

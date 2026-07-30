@@ -30,6 +30,7 @@ export default function Home() {
       onMonthChange: actions.handleMonthChange,
       onTiendaChange: filters.setFilterTienda,
       onShowConfigModal: () => actions.setShowTabsConfigModal(true),
+      onShowCreateAdvisorModal: () => actions.setShowCreateAdvisorModal(true),
       onShowCodesModal: () => actions.setShowCodesModal(true),
       onShowEditStoreModal: () => actions.setShowEditStoreModal(true),
       onShowEditStoreBudgetModal: () => actions.setShowEditStoreBudgetModal(true),
@@ -172,6 +173,7 @@ export default function Home() {
           showCodesModal={state.showCodesModal}
           showEditStoreModal={state.showEditStoreModal}
           showEditStoreBudgetModal={state.showEditStoreBudgetModal}
+          showCreateAdvisorModal={state.showCreateAdvisorModal}
           showNoDataModal={state.showNoDataModal}
           modalTitle={state.modalTitle}
           modalMessage={state.modalMessage}
@@ -181,6 +183,7 @@ export default function Home() {
           onCloseCodesModal={() => actions.setShowCodesModal(false)}
           onCloseEditStoreModal={() => actions.setShowEditStoreModal(false)}
           onCloseEditStoreBudgetModal={() => actions.setShowEditStoreBudgetModal(false)}
+          onCloseCreateAdvisorModal={() => actions.setShowCreateAdvisorModal(false)}
           onCloseNoDataModal={() => actions.setShowNoDataModal(false)}
           onAssignmentComplete={actions.handleAssignmentComplete}
           onSaveComplete={actions.handleAssignmentComplete}

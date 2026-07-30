@@ -145,9 +145,11 @@ function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
                 <TextField
                   {...params}
                   placeholder="Selecciona una tienda…"
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: <InputAdornment position="start"><StorefrontIcon sx={{ fontSize: 18, color: AZUL }} /></InputAdornment>,
+                  slotProps={{
+                    input: {
+                      ...params.InputProps,
+                      startAdornment: <InputAdornment position="start"><StorefrontIcon sx={{ fontSize: 18, color: AZUL }} /></InputAdornment>,
+                    },
                   }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
                 />
@@ -166,17 +168,19 @@ function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             sx={{ flex: 1, minWidth: 260, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  {query && (
-                    <IconButton size="small" onClick={() => setQuery('')}>
-                      <ClearIcon sx={{ fontSize: 16, color: '#8a9bb5' }} />
-                    </IconButton>
-                  )}
-                  <PersonSearchIcon sx={{ color: AZUL, fontSize: 20, ml: 0.5 }} />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {query && (
+                      <IconButton size="small" onClick={() => setQuery('')}>
+                        <ClearIcon sx={{ fontSize: 16, color: '#8a9bb5' }} />
+                      </IconButton>
+                    )}
+                    <PersonSearchIcon sx={{ color: AZUL, fontSize: 20, ml: 0.5 }} />
+                  </InputAdornment>
+                ),
+              },
             }}
           />
             </Box>

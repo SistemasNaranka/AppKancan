@@ -227,8 +227,10 @@ const EmployeesView: React.FC = () => {
                   width: 200,
                   '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: '#f8fafc', fontSize: '0.82rem' },
                 }}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16, color: 'text.disabled' }} /></InputAdornment>,
+                slotProps={{
+                  input: {
+                    startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16, color: 'text.disabled' }} /></InputAdornment>,
+                  },
                 }}
               />
               <ToggleButtonGroup

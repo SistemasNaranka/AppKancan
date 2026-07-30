@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+  import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, TextField, Avatar, Chip, Stack,
   Paper, CircularProgress, Alert, Divider, InputAdornment,
   RadioGroup, FormControlLabel, Radio, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  FormControl, InputLabel, Select, MenuItem, Autocomplete,
+  Autocomplete,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -440,12 +440,14 @@ export default function ContactoDetallePage() {
                   disabled={!editMode}
                   error={!!errores.email}
                   helperText={errores.email}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon fontSize="small" sx={{ color: '#94a3b8' }} />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <EmailIcon fontSize="small" sx={{ color: '#94a3b8' }} />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
                 />
@@ -467,12 +469,14 @@ export default function ContactoDetallePage() {
                   disabled={!editMode}
                   error={!!errores.phone_number}
                   helperText={errores.phone_number}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PhoneIcon fontSize="small" sx={{ color: '#94a3b8' }} />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PhoneIcon fontSize="small" sx={{ color: '#94a3b8' }} />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
                 />

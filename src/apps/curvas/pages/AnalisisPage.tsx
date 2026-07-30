@@ -60,7 +60,7 @@ const AnalisisPage = () => {
 
         <Container maxWidth="xl" sx={{ py: 2, fontFamily: MAIN_FONT }}>
           <Paper elevation={0} sx={{ display: { xs: "flex", md: "none" }, gap: 1, p: 1.5, mb: 2, borderRadius: 2, border: "1px solid #e2e8f0", flexWrap: "wrap" }}>
-            <TextField size="small" fullWidth placeholder="Buscar tienda…" value={data.filtroTienda} onChange={(e) => data.setFiltroTienda(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16 }} /></InputAdornment> }} />
+            <TextField size="small" fullWidth placeholder="Buscar tienda…" value={data.filtroTienda} onChange={(e) => data.setFiltroTienda(e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16 }} /></InputAdornment> } }} />
           </Paper>
 
           {!data.selectedRef ? (

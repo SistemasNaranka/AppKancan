@@ -53,7 +53,7 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
 
   const { data: tiendasAcceso = [] } = useQuery<number[]>({
     queryKey: ['tiendasAccesoUsuario'],
-    queryFn: obtenerTiendasIdsUsuarioActual,
+    queryFn: () => obtenerTiendasIdsUsuarioActual({ excludeOnline: true }),
     enabled: open && isAreaMgr,
     staleTime: 30 * 60 * 1000,
   });
@@ -88,7 +88,7 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
     }
   }, [open, tiendas, tiendaDefault]);
 
-  const puedeExportar = (esAdmin() ? (todasNovedades || todas || tiendasSel.length > 0) : tiendaEfectiva != null) && !exportando;
+  const puedeExportar = (esAdmin() ? (todasNovedades || todas || tiendasSel.length > 0 || (isAreaMgr && tiendasFiltradas.length > 0)) : tiendaEfectiva != null) && !exportando;
 
   const ejecutarExport = async (fIni?: string, fFin?: string, storeIds?: number[]) => {
     setExportando(true);
@@ -130,11 +130,13 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
       await ejecutarExport(undefined, undefined, storeIds);
       return;
     }
-    const storeIds = esAdmin()
-      ? (todas
-        ? (isAreaMgr ? tiendasFiltradas.map((t) => Number(t.id)) : undefined)
-        : tiendasSel.map((t) => Number(t.id)))
-      : [Number(tiendaEfectiva)];
+    const storeIds = isAreaMgr
+      ? (todas || tiendasSel.length === 0
+          ? tiendasFiltradas.map((t) => Number(t.id))
+          : tiendasSel.map((t) => Number(t.id)))
+      : (esAdmin()
+        ? (todas ? undefined : tiendasSel.map((t) => Number(t.id)))
+        : [Number(tiendaEfectiva)]);
     let fIni = rangoInicio ? rangoInicio.format('YYYY-MM-DD') : undefined;
     let fFin = rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined;
     await ejecutarExport(fIni, fFin, storeIds);
@@ -174,14 +176,16 @@ export default function ExportNovedadesDialog({ open, onClose, fechaInicio, fech
                   <TextField
                     {...params}
                     placeholder="Selecciona una o varias tiendas…"
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <>
-                          <StorefrontIcon sx={{ fontSize: 18, color: AZUL, ml: 0.5, mr: 0.5 }} />
-                          {params.InputProps.startAdornment}
-                        </>
-                      ),
+                    slotProps={{
+                      input: {
+                        ...params.InputProps,
+                        startAdornment: (
+                          <>
+                            <StorefrontIcon sx={{ fontSize: 18, color: AZUL, ml: 0.5, mr: 0.5 }} />
+                            {params.InputProps.startAdornment}
+                          </>
+                        ),
+                      },
                     }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
                   />

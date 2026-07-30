@@ -25,6 +25,7 @@ export const useHomeLogic = () => {
   const [modalMessage, setModalMessage] = useState("");
   const [showEditStoreModal, setShowEditStoreModal] = useState(false);
   const [showEditStoreBudgetModal, setShowEditStoreBudgetModal] = useState(false);
+  const [showCreateAdvisorModal, setShowCreateAdvisorModal] = useState(false);
   const [headerKey, setHeaderKey] = useState(0);
 
   const skipEffectRef = useRef(false);
@@ -215,8 +216,8 @@ export const useHomeLogic = () => {
   }, [budgetValidation.validationCompleted, budgetValidation.hasBudgetData, hasPolicy]);
 
   return {
-    state: { selectedMonth, showCodesModal, showTabsConfigModal, showSaveLoading, saveSuccess, saveError, showNoDataModal, modalTitle, modalMessage, showEditStoreModal, showEditStoreBudgetModal, headerKey },
-    actions: { setShowCodesModal, setShowTabsConfigModal, setShowEditStoreModal, setShowEditStoreBudgetModal, setShowNoDataModal, handleAssignmentComplete, handleCodesModalSave, setVentas, handleMonthChange, handleToggleAllStoresWrapper, handleRoleFilterToggleWithExpansion, handleRoleFilterClear },
+    state: { selectedMonth, showCodesModal, showTabsConfigModal, showSaveLoading, saveSuccess, saveError, showNoDataModal, modalTitle, modalMessage, showEditStoreModal, showEditStoreBudgetModal, showCreateAdvisorModal, headerKey },
+    actions: { setShowCodesModal, setShowTabsConfigModal, setShowEditStoreModal, setShowEditStoreBudgetModal, setShowCreateAdvisorModal, setShowNoDataModal, handleAssignmentComplete, handleCodesModalSave, setVentas, handleMonthChange, handleToggleAllStoresWrapper, handleRoleFilterToggleWithExpansion, handleRoleFilterClear },
     computed: { shouldShowLoading, shouldShowMainContent, getCurrentFormattedDate, availableMonthsFinal, availableTiendas },
     data: { commissionData, mesResumen, mesResumenFiltrado, cargos, thresholdConfig, isRefetching, error, dataLoadAttempted, isLoading },
     contextState: state,

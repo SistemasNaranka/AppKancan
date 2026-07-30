@@ -80,7 +80,7 @@ const processCommissionData = async (selectedMonth: string) => {
         tienda: tienda.name,
         tienda_id: tienda.id,
         empresa: tienda.company || "Empresa Desconocida",
-        fecha: fechaFin,
+        fecha: fechaInicio,
         presupuesto_total: 0,
       });
     }

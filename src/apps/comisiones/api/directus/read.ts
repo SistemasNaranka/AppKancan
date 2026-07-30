@@ -648,3 +648,49 @@ export async function obtenerUmbralesComisiones(
     return null;
   }
 }
+
+/**
+ * Verificar si un ID de asesor ya existe en com_advisors
+ */
+export async function checkAdvisorIdExists(id: number | string): Promise<boolean> {
+  try {
+    const numId = Number(id);
+    if (isNaN(numId)) return false;
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("com_advisors", {
+          filter: {
+            id: { _eq: numId },
+          },
+          limit: 1,
+        }),
+      ),
+    );
+    return Boolean(items && items.length > 0);
+  } catch (error) {
+    console.error("Error al verificar ID de asesor:", error);
+    return false;
+  }
+}
+
+/**
+ * Obtener todas las tiendas de core_stores sin restricciones
+ */
+export async function obtenerTodasLasTiendas(): Promise<DirectusTienda[]> {
+  try {
+    const data = await withAutoRefresh(() =>
+      directus.request(
+        readItems("core_stores", {
+          fields: ["id", "name", "ultra_code", "company"],
+          sort: ["name"],
+          limit: -1,
+        }),
+      ),
+    );
+    return data as DirectusTienda[];
+  } catch (error) {
+    console.error("Error al obtener todas las tiendas:", error);
+    throw error;
+  }
+}
+

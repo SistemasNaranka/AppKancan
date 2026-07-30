@@ -154,7 +154,7 @@ export const AddEmployeeSection: React.FC<AddEmployeeSectionProps> = ({
             onChange={(e) => onCodigoChange(e.target.value.slice(0, 4))}
             onKeyDown={onKeyPress}
             type="number"
-            inputProps={{ maxLength: 4 }}
+            slotProps={{ htmlInput: { maxLength: 4 } }}
             sx={{
               bgcolor: "white",
               "& .MuiInputBase-input": {

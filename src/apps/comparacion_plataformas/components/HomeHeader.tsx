@@ -255,16 +255,18 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                       "&.Mui-focused fieldset": { borderColor: "#017ce1" },
                     },
                   }}
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon
-                          fontSize="small"
-                          sx={{ color: "#64748b" }}
-                        />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon
+                            fontSize="small"
+                            sx={{ color: "#64748b" }}
+                          />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
                 />
               )}

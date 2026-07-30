@@ -18,28 +18,7 @@ import ViewIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { StatusChip } from "./GarantiaStatsCards";
-
-interface DirectusGarantia {
-  id: number;
-  cliente_nombre: string;
-  cliente_documento: string;
-  cliente_telefono?: string;
-  cliente_email?: string;
-  producto_nombre: string;
-  producto_referencia: string;
-  producto_sku?: string;
-  numero_factura?: string;
-  fecha_compra?: string;
-  valor_compra?: number;
-  tipo_garantia: string;
-  descripcion_problema: string;
-  fecha_solicitud: string;
-  fecha_vence_garantia?: string;
-  estado: string;
-  nota_interna?: string;
-  resolucion?: string;
-  fecha_resolucion?: string;
-}
+import { Garantia } from "../types";
 
 const getTipoLabel = (tipo: string): string => {
   const labels: Record<string, string> = {
@@ -54,16 +33,16 @@ const getTipoLabel = (tipo: string): string => {
 };
 
 interface GarantiaTableProps {
-  garantias: DirectusGarantia[];
+  garantias: Garantia[];
   total: number;
   page: number;
   limit: number;
   isLoading: boolean;
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
-  onView: (garantia: DirectusGarantia) => void;
-  onEdit: (garantia: DirectusGarantia) => void;
-  onDelete: (garantia: DirectusGarantia) => void;
+  onView: (garantia: Garantia) => void;
+  onEdit: (garantia: Garantia) => void;
+  onDelete: (garantia: Garantia) => void;
 }
 
 export const GarantiaTable: React.FC<GarantiaTableProps> = ({

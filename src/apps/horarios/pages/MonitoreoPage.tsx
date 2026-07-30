@@ -1,169 +1,40 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Box, Container, Typography, Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert, Pagination, Tabs, Tab, Grid, TextField, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Avatar, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
-import { Storefront as StorefrontIcon, Person as PersonIcon, CheckCircle as CheckCircleIcon, Pending as PendingIcon, Visibility as VisibilityIcon, EditNote as EditNoteIcon, Warning as WarningIcon, SupervisorAccount as SupervisorAccountIcon, Search as SearchIcon, Close as CloseIcon, Assignment as AssignmentIcon, Message as MessageIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon, CalendarToday as CalendarTodayIcon, ArrowBackIos as ArrowBackIosIcon, ArrowForwardIos as ArrowForwardIosIcon, Today as TodayIcon, Sort as SortIcon } from '@mui/icons-material';
+import { useState, useEffect, useMemo } from 'react';
+import { Box, Container, Typography, Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert, Tabs, Tab, Grid, TextField, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Avatar, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
+import { Storefront as StorefrontIcon, Person as PersonIcon, CheckCircle as CheckCircleIcon, Pending as PendingIcon, Visibility as VisibilityIcon, EditNote as EditNoteIcon, Warning as WarningIcon, Search as SearchIcon, Close as CloseIcon, Assignment as AssignmentIcon, Message as MessageIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon, CalendarToday as CalendarTodayIcon, ArrowBackIos as ArrowBackIosIcon, ArrowForwardIos as ArrowForwardIosIcon, Today as TodayIcon, Sort as SortIcon, Block as BlockIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
-import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedadesBulkRange, getEditedTimeRecords } from '../api/directus/read';
+
+import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getEditedTimeRecords } from '../api/directus/read';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import { Tienda } from '../interfaces/horarios.interface';
 import ModalDetalleTienda from '../components/ModalDetalleTienda';
+import ModalCierreMasivo from '../components/ModalCierreMasivo';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
 import ReporteSemanalAreaManager from '../components/reportes/ReporteSemanalAreaManager';
+import DetallePlanillaPage from '../pages/DetallePlanillaPage';
+// Modules extraídos
+import {
+  getColorForMotivo,
+  SortField,
+  OPCIONES_ORDEN,
+  COLUMNAS_TIENDAS,
+  COLUMNAS_EDICIONES,
+  TARJETAS_ESTADISTICAS,
+  MonitoreoPageProps,
+  rowsPerPage
+} from './monitoreo/MonitoreoUtils';
+import { Paginador, TarjetaResumen, TarjetaEstadistica } from './monitoreo/MonitoreoComponents';
+import { useTiendasResumen } from './monitoreo/useTiendasResumen';
 
-// ---------- CONSTANTES Y UTILIDADES ----------
-const COLORS_FOR_MOTIVO = [
-  { bg: '#e3f2fd', text: '#0d47a1' }, { bg: '#e8f5e9', text: '#1b5e20' }, { bg: '#fff3e0', text: '#e65100' }, { bg: '#fce4ec', text: '#880e4f' },
-  { bg: '#f3e5f5', text: '#4a148c' }, { bg: '#e0f7fa', text: '#006064' }, { bg: '#f1f8e9', text: '#33691e' }, { bg: '#ffebee', text: '#b71c1c' },
-  { bg: '#fff8e1', text: '#f57f17' }, { bg: '#e8eaf6', text: '#1a237e' }, { bg: '#fbe9e7', text: '#bf360c' }, { bg: '#e0f2f1', text: '#004d40' }
-];
-const getColorForMotivo = (m: string) => {
-  let h = 0;
-  for (let i = 0; i < m.length; i++) h = m.charCodeAt(i) + ((h << 5) - h);
-  return COLORS_FOR_MOTIVO[Math.abs(h) % COLORS_FOR_MOTIVO.length];
-};
-type SortField = 'nombre' | 'totalEmpleados' | 'personasRegistradas' | 'completados' | 'pendientes';
-const OPCIONES_ORDEN: { value: SortField; label: string }[] = [
-  { value: 'nombre', label: 'Tienda' }, { value: 'totalEmpleados', label: 'Empleados Act.' }, { value: 'personasRegistradas', label: 'Pers. Registradas' },
-  { value: 'completados', label: 'Completados Hoy' }, { value: 'pendientes', label: 'Días Pendientes' }
-];
-const COLUMNAS_TIENDAS: { label: string; value: SortField | null }[] = [
-  { label: 'TIENDA', value: 'nombre' }, { label: 'EMPLEADOS ACT.', value: 'totalEmpleados' }, { label: 'PERS. REGISTRADAS', value: 'personasRegistradas' },
-  { label: 'COMPLETADOS HOY', value: 'completados' }, { label: 'DÍAS PENDIENTES', value: 'pendientes' }, { label: 'ACCIONES', value: null }
-];
-const COLUMNAS_EDICIONES = ['FECHA', 'EMPLEADO', 'TIENDA', 'REGISTRO', 'HORA ORIG.', 'HORA MOD.', 'MOTIVO', 'OBSERVACIONES'];
-const TARJETAS_RESUMEN = [
-  { icon: StorefrontIcon, label: 'TIENDAS', color: '#004680' }, { icon: PersonIcon, label: 'EMPLEADOS', color: '#004680' },
-  { icon: CheckCircleIcon, label: 'COMPLETADOS', color: '#2e7d32' }, { icon: PendingIcon, label: 'PENDIENTES', color: '#d32f2f' }
-];
-const TARJETAS_ESTADISTICAS = [
-  { icon: EditNoteIcon, label: 'TOTAL MODIFICACIONES', color: '#c62828', bg: '#ffebee' },
-  { icon: SupervisorAccountIcon, label: 'EMPLEADOS MONITOREADOS', color: '#0d47a1', bg: '#e3f2fd' },
-  { icon: WarningIcon, label: 'TIENDA CON MÁS CAMBIOS', color: '#f57f17', bg: '#fff8e1' }
-];
-interface TiendaResumen { id: number; nombre: string; totalEmpleados: number; personasRegistradas: number; completados: number; pendientes: number; }
-interface MonitoreoPageProps { storeId?: number | null; }
-const rowsPerPage = { tiendas: 10, ediciones: 10, ranking: 10 };
-
-// ---------- COMPONENTES AUXILIARES ----------
-const Paginador = ({ count, page, setPage, label, total }: any) => {
-  // Calcular cuántos elementos se están mostrando en esta página
-  const start = page * rowsPerPage.tiendas;
-  const end = Math.min(start + rowsPerPage.tiendas, total);
-  const showing = Math.max(0, end - start); // Nunca negativo
-
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2.5, py: 1.5, borderTop: '1px solid #e0e0e0', flexWrap: 'wrap', gap: 1 }}>
-      <Typography variant="body2" color="text.secondary" fontWeight={500}>
-        Mostrando <strong>{showing}</strong> de <strong>{total}</strong> {label}
-      </Typography>
-      {total > rowsPerPage.tiendas && (
-        <Pagination 
-          count={count} 
-          page={page + 1} 
-          onChange={(_, p) => setPage(p - 1)} 
-          color="primary" 
-          shape="rounded" 
-          size="small" 
-          showFirstButton 
-          showLastButton
-          sx={{ '& .MuiPaginationItem-root': { borderRadius: 2, border: '1px solid #e0e0e0', margin: '0 2px',
-            '&.Mui-selected': { bgcolor: '#004680', color: '#fff', borderColor: '#004680', '&:hover': { bgcolor: '#003366' } },
-            '&:hover': { bgcolor: '#f5f7fa' } } }} 
-        />
-      )}
-    </Box>
-  );
-};
-
-const TarjetaResumen = ({ icon: Icon, label, value, color }: any) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-    <Icon sx={{ color }} />
-    <Box><Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>{label}</Typography>
-      <Typography variant="h6" fontWeight={700} color={color}>{value}</Typography></Box>
-  </Box>
-);
-
-const TarjetaEstadistica = ({ icon: Icon, label, value, color, bg, onClick }: any) => (
-  <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 1.5, ...(onClick ? { cursor: 'pointer', transition: 'all 0.2s', '&:hover': { borderColor: '#004680', boxShadow: '0 2px 8px rgba(0,70,128,0.15)' } } : {}) }} onClick={onClick}>
-    <Box sx={{ bgcolor: bg, p: 1, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon sx={{ color, fontSize: 22 }} /></Box>
-    <Box sx={{ minWidth: 0, width: '100%' }}>
-      <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>{label}</Typography>
-      <Typography variant="body2" fontWeight={700} color={color} noWrap title={String(value)} sx={{ lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{value}</Typography>
-    </Box>
-  </Paper>
-);
-
-// ---------- HOOK PERSONALIZADO PARA RESUMEN DE TIENDAS ----------
-function useTiendasResumen(tiendas: Tienda[], fechas: { inicio: Dayjs | null; fin: Dayjs | null }) {
-  const [resumen, setResumen] = useState<TiendaResumen[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const cargar = async () => {
-      if (!tiendas.length) { setResumen([]); return; }
-      setLoading(true); setError(null);
-      const inicio = fechas.inicio ? fechas.inicio.format('YYYY-MM-DD') : dayjs().startOf('month').format('YYYY-MM-DD');
-      const fin = fechas.fin ? fechas.fin.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
-      try {
-        const storeIds = tiendas.map(t => t.id);
-        const [empleados, records, novedades] = await Promise.all([
-          getEmpleadosBulk(storeIds), getTimeRecordsBulkRange(storeIds, inicio, fin), getNovedadesBulkRange(storeIds, inicio, fin)
-        ]);
-        const empPorTienda: Record<number, any[]> = {};
-        empleados.forEach((e: any) => { if (e.storeId != null) (empPorTienda[e.storeId] ||= []).push(e); });
-        const recPorTienda: Record<number, any[]> = {};
-        records.forEach((r: any) => {
-          const sId = r.store_id ? Number(typeof r.store_id === 'object' ? r.store_id.id : r.store_id) : null;
-          if (sId != null) (recPorTienda[sId] ||= []).push(r);
-        });
-        const novPorTienda: Record<number, any[]> = {};
-        novedades.forEach((n: any) => {
-          const sId = n.store_id ? Number(typeof n.store_id === 'object' ? n.store_id.id : n.store_id) : null;
-          if (sId != null) (novPorTienda[sId] ||= []).push(n);
-        });
-        const dias: string[] = [];
-        let cursor = dayjs(inicio);
-        while (cursor.isSameOrBefore(dayjs(fin), 'day')) { dias.push(cursor.format('YYYY-MM-DD')); cursor = cursor.add(1, 'day'); }
-        const data = tiendas.map(tienda => {
-          const emp = empPorTienda[tienda.id] || [], rec = recPorTienda[tienda.id] || [], nov = novPorTienda[tienda.id] || [];
-          const totalEmpleados = emp.length;
-          const employeeIds = new Set<number>();
-          emp.forEach(e => employeeIds.add(Number(e.id)));
-          rec.forEach(r => { const id = r.employee_id?.id || r.employee_id; if (id) employeeIds.add(Number(id)); });
-          nov.forEach(n => { const id = n.employee_id?.id || n.employee_id; if (id) employeeIds.add(Number(id)); });
-          const personasRegistradas = employeeIds.size;
-          const recordsHoy = rec.filter(r => r.record_date === fin);
-          const idsHoy = new Set(recordsHoy.map((r: any) => Number(r.employee_id?.id || r.employee_id)));
-          let completados = 0;
-          idsHoy.forEach(id => {
-            const rEmp = recordsHoy.filter((r: any) => Number(r.employee_id?.id || r.employee_id) === id);
-            if (rEmp.some(r => r.log_type === 'Comenzar Jornada') && rEmp.some(r => r.log_type === 'Terminar Jornada')) completados++;
-          });
-          const fechasActividad = new Set<string>();
-          rec.forEach(r => fechasActividad.add(r.record_date));
-          nov.forEach(n => { if (n.report_date) fechasActividad.add(n.report_date); });
-          const pendientes = dias.filter(d => !fechasActividad.has(d)).length;
-          return { id: tienda.id, nombre: tienda.name, totalEmpleados, personasRegistradas, completados, pendientes };
-        });
-        setResumen(data);
-      } catch (e) { console.error(e); setError('Error al cargar los datos. Intenta nuevamente.'); } finally { setLoading(false); }
-    };
-    cargar();
-  }, [tiendas, fechas]);
-
-  return { resumen, loading, error };
-}
 
 // ---------- COMPONENTE PRINCIPAL ----------
 export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const { esAdmin, esReport, esAreaManager } = useHorariosPolicies();
   const isAreaMgr = esAreaManager() && !esAdmin();
 
-  // Estados
   const [subTab, setSubTab] = useState(0);
   const [fechas, setFechas] = useState<{ inicio: Dayjs | null; fin: Dayjs | null }>({ inicio: dayjs().startOf('month'), fin: dayjs() });
   const [buscarEmpleado, setBuscarEmpleado] = useState('');
@@ -178,15 +49,15 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const [rankingMotivos, setRankingMotivos] = useState<string[]>([]);
   const [rankingMes, setRankingMes] = useState<Dayjs>(dayjs());
   const [ordenTiendas, setOrdenTiendas] = useState<{ by: SortField; dir: 'asc' | 'desc' }>({ by: 'nombre', dir: 'asc' });
+  const [resumenMes, setResumenMes] = useState<Dayjs>(dayjs());
   const [ordenEdiciones, setOrdenEdiciones] = useState<'asc' | 'desc'>('desc');
   const [calendario, setCalendario] = useState<{ empleadoId: number | null; mes: Dayjs; dia: string | null; open: boolean }>({ empleadoId: null, mes: dayjs(), dia: null, open: false });
 
-  // Queries
   const { data: todasLasTiendas = [], isLoading: cargandoTiendas } = useQuery<Tienda[]>({
-    queryKey: ['adminTiendas'], queryFn: getStores, enabled: esAdmin() || esReport(), staleTime: 30 * 60 * 1000
+    queryKey: ['adminTiendas'], queryFn: getStores, enabled: esAdmin() || esReport() || isAreaMgr, staleTime: 30 * 60 * 1000
   });
   const { data: tiendasAcceso = [] } = useQuery<number[]>({
-    queryKey: ['tiendasAccesoUsuario'], queryFn: obtenerTiendasIdsUsuarioActual, enabled: isAreaMgr, staleTime: 30 * 60 * 1000
+    queryKey: ['tiendasAccesoUsuario'], queryFn: () => obtenerTiendasIdsUsuarioActual({ excludeOnline: true }), enabled: isAreaMgr, staleTime: 30 * 60 * 1000
   });
   const tiendasFiltradas = useMemo(() => {
     if (isAreaMgr) {
@@ -196,22 +67,33 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
     return todasLasTiendas;
   }, [todasLasTiendas, tiendasAcceso, isAreaMgr]);
 
-  const tiendas = useMemo(() => storeId ? tiendasFiltradas.filter(t => t.id === storeId) : tiendasFiltradas, [tiendasFiltradas, storeId]);
+  const tiendas = useMemo(() => {
+    if (Array.isArray(storeId)) return tiendasFiltradas.filter(t => (storeId as number[]).includes(Number(t.id)));
+    if (storeId != null) return tiendasFiltradas.filter(t => Number(t.id) === Number(storeId));
+    return tiendasFiltradas;
+  }, [tiendasFiltradas, storeId]);
 
   const { data: editedRecords = [], isLoading: cargandoEdiciones } = useQuery({
-    queryKey: ['editedRecords', storeId, fechas.inicio?.format('YYYY-MM-DD'), fechas.fin?.format('YYYY-MM-DD'), todasLasTiendas],
+    queryKey: ['editedRecords', storeId, fechas.inicio?.format('YYYY-MM-DD'), fechas.fin?.format('YYYY-MM-DD'), todasLasTiendas, tiendasFiltradas],
     queryFn: () => {
-      const storeIds = storeId ? [storeId] : todasLasTiendas.map(t => t.id);
+      const storeIds = isAreaMgr
+        ? tiendasFiltradas.map(t => Number(t.id))
+        : (storeId
+          ? (Array.isArray(storeId) ? storeId : [Number(storeId)])
+          : todasLasTiendas.map(t => Number(t.id)));
       const inicio = fechas.inicio ? fechas.inicio.format('YYYY-MM-DD') : dayjs().startOf('month').format('YYYY-MM-DD');
       const fin = fechas.fin ? fechas.fin.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
       return getEditedTimeRecords(storeIds, inicio, fin);
     },
-    enabled: !cargandoTiendas && (esAdmin() || esReport()),
-    staleTime: 5 * 60 * 1000,
+    enabled: !!(isAreaMgr ? tiendasFiltradas.length : todasLasTiendas.length), staleTime: 5 * 60 * 1000,
   });
 
-  // Resumen de tiendas (custom hook)
-  const { resumen: resumenTiendas, loading: cargandoResumen, error: errorResumen } = useTiendasResumen(tiendas, fechas);
+  const fechasResumen = useMemo(() => ({
+    inicio: resumenMes.startOf('month'),
+    fin: resumenMes.isSame(dayjs(), 'month') ? dayjs() : resumenMes.endOf('month')
+  }), [resumenMes]);
+
+  const { resumen: resumenTiendas, loading: cargandoResumen, error: errorResumen } = useTiendasResumen(tiendas, fechasResumen);
 
   // ---------- DECLARACIONES DE useMemo ----------
   const motivosUnicos = useMemo(() => { const s = new Set<string>(); editedRecords.forEach(r => r.motivo && s.add(r.motivo)); return Array.from(s).sort(); }, [editedRecords]);
@@ -291,7 +173,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const diasConEdicionesMes = useMemo(() => { const s = new Set<string>(); edicionesDelMes.forEach(r => s.add(r.fecha)); return s; }, [edicionesDelMes]);
   const promedioEdicionesMes = useMemo(() => diasConEdicionesMes.size ? edicionesDelMes.length / diasConEdicionesMes.size : 0, [edicionesDelMes, diasConEdicionesMes]);
 
-  // ---------- EFECTOS PARA REINICIAR PÁGINAS (CORREGIDOS y después de las declaraciones) ----------
+  // ---------- EFECTOS PARA REINICIAR PÁGINAS ----------
   useEffect(() => {
     setPaginaTiendas(0);
   }, [resumenTiendas, storeId]);
@@ -315,14 +197,18 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
     setFechas({ inicio: nuevoMes.startOf('month'), fin: nuevoMes.isSame(dayjs(), 'month') ? dayjs() : nuevoMes.endOf('month') });
     setPaginaRanking(0);
   };
+  const handleCambiarMesResumen = (nuevoMes: Dayjs) => { setResumenMes(nuevoMes); setPaginaTiendas(0); };
   const handleAbrirCalendario = (empleadoId: number) => setCalendario({ empleadoId, mes: dayjs(), dia: null, open: true });
   const handleCerrarCalendario = () => setCalendario({ empleadoId: null, mes: dayjs(), dia: null, open: false });
+
+  // Estado modal de cierre masivo
+  const [cierreMasivoOpen, setCierreMasivoOpen] = useState(false);
 
   // ---------- CÁLCULOS DE TOTALES ----------
   const totalTiendas = tiendas.length;
   const totalEmpleados = resumenTiendas.reduce((acc, t) => acc + t.totalEmpleados, 0);
-  const totalCompletados = resumenTiendas.reduce((acc, t) => acc + t.completados, 0);
-  const totalPendientes = resumenTiendas.reduce((acc, t) => acc + t.pendientes, 0);
+  const totalIncompletos = resumenTiendas.reduce((acc, t) => acc + t.incompletos, 0);
+  const totalSinRegistro = resumenTiendas.reduce((acc, t) => acc + t.sinRegistro, 0);
 
   if (cargandoTiendas || (cargandoResumen && !resumenTiendas.length)) {
     return <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
@@ -333,7 +219,6 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
     return <Container><Alert severity="error" action={<Button color="inherit" size="small" onClick={() => {}}>Reintentar</Button>}>{errorResumen}</Alert></Container>;
   }
 
-  // Renderizado principal (el mismo que ya tenías, no lo repito para no alargar)
   return (
     <Box sx={{ backgroundColor: 'transparent', pt: 0, pb: 2 }}>
       <Container maxWidth="xl" disableGutters>
@@ -342,20 +227,53 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Tab label="Resumen de Asistencia" sx={{ fontWeight: 700, textTransform: 'none' }} />
             <Tab label="Auditoría de Ediciones Manuales" sx={{ fontWeight: 700, textTransform: 'none' }} />
             {isAreaMgr && <Tab label="Control de Horas" sx={{ fontWeight: 700, textTransform: 'none' }} />}
+            {isAreaMgr && <Tab label="Detalle de Planilla" sx={{ fontWeight: 700, textTransform: 'none' }} />}
           </Tabs>
         </Box>
 
         {/* TAB 0: RESUMEN DE ASISTENCIA */}
         {subTab === 0 && (
           <>
-            <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
+            <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+              
+              {/* IZQUIERDA: TARJETAS DE ESTADÍSTICAS */}
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
-                <TarjetaResumen icon={StorefrontIcon} label="TIENDAS" value={totalTiendas} color="#004680" />
-                <TarjetaResumen icon={PersonIcon} label="EMPLEADOS" value={totalEmpleados} color="#004680" />
-                <TarjetaResumen icon={CheckCircleIcon} label="COMPLETADOS" value={totalCompletados} color="#2e7d32" />
-                <TarjetaResumen icon={PendingIcon} label="PENDIENTES" value={totalPendientes} color="#d32f2f" />
+                <Tooltip title="Número total de tiendas en el mes seleccionado">
+                  <TarjetaResumen icon={StorefrontIcon} label="TIENDAS" value={totalTiendas} color="#004680" />
+                </Tooltip>
+                <Tooltip title="Total de empleados activos en todas las tiendas">
+                  <TarjetaResumen icon={PersonIcon} label="EMPLEADOS" value={totalEmpleados} color="#004680" />
+                </Tooltip>
+                <Tooltip title="Días incompletos en el mes">
+                  <TarjetaResumen icon={WarningIcon} label="DÍAS INCOMPLETOS" value={totalIncompletos} color="#e65100" />
+                </Tooltip>
+                <Tooltip title="Días sin marcar en el mes">
+                  <TarjetaResumen icon={PendingIcon} label="DÍAS SIN MARCAR" value={totalSinRegistro} color="#d32f2f" />
+                </Tooltip>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto', flexWrap: 'wrap' }}>
+                {(isAreaMgr || esAdmin()) && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<BlockIcon />}
+                    onClick={() => setCierreMasivoOpen(true)}
+                    sx={{
+                      borderColor: '#004680', color: '#004680', borderRadius: 2,
+                      textTransform: 'none', fontWeight: 600,
+                      '&:hover': { borderColor: '#003366', bgcolor: 'rgba(0,70,128,0.05)' },
+                    }}
+                  >
+                    Marcar Días de Cierre
+                  </Button>
+                )}
+              {/* DERECHA: FILTROS COMO SE MUESTRA EN LA IMAGEN */}
+              <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #d0d7de', borderRadius: 2, px: 1.5, py: 0.5, bgcolor: '#ffffff' }}>
+                  <CalendarTodayIcon sx={{ color: '#004680', fontSize: 16, mr: 1 }} />
+                  <Typography variant="body2" fontWeight={600} color="#004680" sx={{ textTransform: 'capitalize', minWidth: 90 }}>{resumenMes.format('MMMM YYYY')}</Typography>
+                  <IconButton size="small" onClick={() => handleCambiarMesResumen(resumenMes.subtract(1, 'month'))} sx={{ color: '#004680', p: 0.5 }}><ArrowBackIosIcon fontSize="small" sx={{ fontSize: 14 }} /></IconButton>
+                  <IconButton size="small" onClick={() => handleCambiarMesResumen(resumenMes.add(1, 'month'))} disabled={resumenMes.isSame(dayjs(), 'month')} sx={{ color: '#004680', p: 0.5 }}><ArrowForwardIosIcon fontSize="small" sx={{ fontSize: 14 }} /></IconButton>
+                </Box>
                 <Typography variant="caption" fontWeight={600} color="#64748b" sx={{ letterSpacing: '0.5px' }}>Ordenar por</Typography>
                 <FormControl size="small" sx={{ minWidth: 140 }}>
                   <Select value={ordenTiendas.by} onChange={(e) => handleOrdenTiendas(e.target.value as SortField)} variant="outlined" size="small"
@@ -366,8 +284,9 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
               </Box>
             </Paper>
 
-            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0' }}>
-              <Table size="medium">
+            {/* Tabla con scroll horizontal para portátil */}
+            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0', overflowX: 'auto' }}>
+              <Table size="medium" sx={{ minWidth: 700 }}>
                 <TableHead sx={{ bgcolor: '#f8fafc' }}>
                   <TableRow>
                     {COLUMNAS_TIENDAS.map(col => (
@@ -393,8 +312,8 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                       <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}><StorefrontIcon sx={{ color: '#004680' }} /><Typography fontWeight={600} color="#0a1929">{tienda.nombre}</Typography></Box></TableCell>
                       <TableCell align="center"><Chip size="small" label={tienda.totalEmpleados} sx={{ bgcolor: '#e3f2fd', color: '#0a1929', fontWeight: 700 }} /></TableCell>
                       <TableCell align="center"><Chip size="small" label={tienda.personasRegistradas} sx={{ bgcolor: '#ede7f6', color: '#5e35b1', fontWeight: 700 }} /></TableCell>
-                      <TableCell align="center"><Chip size="small" label={tienda.completados} sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 700 }} /></TableCell>
-                      <TableCell align="center"><Chip size="small" label={tienda.pendientes} sx={{ bgcolor: '#fbe9e7', color: '#d32f2f', fontWeight: 700 }} /></TableCell>
+                      <TableCell align="center"><Chip size="small" label={tienda.incompletos} sx={{ bgcolor: '#fff3e0', color: '#e65100', fontWeight: 700 }} /></TableCell>
+                      <TableCell align="center"><Chip size="small" label={tienda.sinRegistro} sx={{ bgcolor: '#fbe9e7', color: '#d32f2f', fontWeight: 700 }} /></TableCell>
                       <TableCell align="center">
                         <Button variant="contained" size="small" startIcon={<VisibilityIcon />} onClick={() => setTiendaSeleccionada(tienda.id)}
                           sx={{ bgcolor: '#004680', '&:hover': { bgcolor: '#003a6b' }, textTransform: 'none', borderRadius: 2 }}>Ver empleados</Button>
@@ -405,6 +324,12 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
               </Table>
               <Paginador count={Math.ceil(tiendasOrdenadas.length / rowsPerPage.tiendas)} page={paginaTiendas} setPage={setPaginaTiendas} label="tiendas" total={tiendasOrdenadas.length} />
             </TableContainer>
+
+            <ModalCierreMasivo
+              open={cierreMasivoOpen}
+              onClose={() => setCierreMasivoOpen(false)}
+              tiendas={tiendasFiltradas.map(t => ({ id: Number(t.id), nombre: t.name }))}
+            />
           </>
         )}
 
@@ -427,7 +352,6 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                 <DateRangeFilter fechaInicio={fechas.inicio} fechaFin={fechas.fin} onChange={(inicio, fin) => { setFechas({ inicio, fin }); setPaginaEdiciones(0); }} />
               </Box>
 
-              {/* Selector múltiple de motivos */}
               <FormControl size="small" sx={{ minWidth: 300, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
                 <InputLabel id="motivo-multi-label">Motivos</InputLabel>
                 <Select
@@ -466,7 +390,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
               </FormControl>
 
               <TextField label="Buscar Empleado" placeholder="Nombre del empleado..." value={buscarEmpleado} onChange={(e) => { setBuscarEmpleado(e.target.value); setPaginaEdiciones(0); }} size="small" sx={{ flexGrow: 1, minWidth: 200 }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment>, endAdornment: buscarEmpleado ? <InputAdornment position="end"><IconButton size="small" onClick={() => { setBuscarEmpleado(''); setPaginaEdiciones(0); }}><CloseIcon fontSize="small" /></IconButton></InputAdornment> : null }} />
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment>, endAdornment: buscarEmpleado ? <InputAdornment position="end"><IconButton size="small" onClick={() => { setBuscarEmpleado(''); setPaginaEdiciones(0); }}><CloseIcon fontSize="small" /></IconButton></InputAdornment> : null } }} />
             </Paper>
 
             {cargandoEdiciones ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress sx={{ color: '#004680' }} /></Box> :
@@ -509,9 +433,19 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
           </Paper>
         )}
 
+       
+        {isAreaMgr && subTab === 3 && (
+          <DetallePlanillaPage storeId={storeId} />
+        )}
+
         {/* Modal Detalle Tienda */}
         {tiendaSeleccionada && (
-          <ModalDetalleTienda tiendaId={tiendaSeleccionada} tiendaNombre={tiendas.find(t => t.id === tiendaSeleccionada)?.name || 'Detalle de Tienda'} onClose={() => setTiendaSeleccionada(null)} />
+          <ModalDetalleTienda
+            tiendaId={tiendaSeleccionada}
+            tiendaNombre={tiendas.find(t => t.id === tiendaSeleccionada)?.name || 'Detalle de Tienda'}
+            onClose={() => setTiendaSeleccionada(null)}
+            initialMonth={resumenMes}
+          />
         )}
 
         {/* Modal Observación */}
@@ -546,7 +480,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, px: 3, pt: 4, pb: 3, flexShrink: 0 }}>
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <TextField label="Buscar empleado" placeholder="Escribe el nombre del empleado..." value={buscarEmpleadoRanking} onChange={(e) => { setBuscarEmpleadoRanking(e.target.value); setPaginaRanking(0); }} size="small" sx={{ flex: 1, minWidth: 220 }}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment>, endAdornment: buscarEmpleadoRanking ? <InputAdornment position="end"><IconButton size="small" onClick={() => { setBuscarEmpleadoRanking(''); setPaginaRanking(0); }}><CloseIcon fontSize="small" /></IconButton></InputAdornment> : null }} />
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#94a3b8' }} /></InputAdornment>, endAdornment: buscarEmpleadoRanking ? <InputAdornment position="end"><IconButton size="small" onClick={() => { setBuscarEmpleadoRanking(''); setPaginaRanking(0); }}><CloseIcon fontSize="small" /></IconButton></InputAdornment> : null } }} />
                 <Chip label={`${rankingFiltrado.length} empleados`} size="small" sx={{ bgcolor: '#e3f2fd', color: '#004680', fontWeight: 600 }} />
                 <Tooltip title={ordenEdiciones === 'desc' ? 'Ordenar de menor a mayor' : 'Ordenar de mayor a menor'}>
                   <Button variant="outlined" size="small" onClick={() => { setOrdenEdiciones(p => p === 'asc' ? 'desc' : 'asc'); setPaginaRanking(0); }}
@@ -573,152 +507,152 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                     else setRankingMotivos(typeof value === 'string' ? value.split(',') : value);
                     setPaginaRanking(0);
                   }} input={<OutlinedInput label="Filtrar por Motivos" endAdornment={rankingMotivos.length > 0 ? <InputAdornment position="end"><IconButton size="small" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos([]); setPaginaRanking(0); }} onMouseDown={(e) => e.stopPropagation()} sx={{ p: 0.5, mr: 0.5 }}><CloseIcon fontSize="small" sx={{ color: '#64748b' }} /></IconButton></InputAdornment> : null} sx={{ borderRadius: 2 }} />}
-                    renderValue={(selected) => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 60, overflow: 'auto' }}>
-                        {selected.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Todos los motivos</Typography> :
-                          selected.map((value) => {
-                            const colors = getColorForMotivo(value);
-                            return <Box key={value} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: colors.bg, color: colors.text, pl: 1, pr: 0.5, py: 0.25, borderRadius: 1, height: '22px', cursor: 'default' }} onMouseDown={(e) => e.stopPropagation()}>
-                              <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>{value}</Typography>
-                              <Box component="span" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%', '&:hover': { bgcolor: 'rgba(0,0,0,0.12)' } }}
-                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos(rankingMotivos.filter(item => item !== value)); setPaginaRanking(0); }}
-                                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}>
-                                <CloseIcon sx={{ fontSize: '0.85rem', color: colors.text }} />
-                              </Box>
-                            </Box>;
-                          })}
-                      </Box>
-                    )}
-                    MenuProps={{ PaperProps: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } }}
-                  >
-                    <MenuItem value="todos" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e8e8e8', border: '1px solid #9e9e9e' }} />Todos</Box>{rankingMotivos.length === motivosUnicos.length && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
-                    <MenuItem value="limpiar" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ffebee', border: '1px solid #c62828' }} />Limpiar</Box>{rankingMotivos.length === 0 && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
-                    {motivosUnicos.map(motivo => <MenuItem key={motivo} value={motivo} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, fontWeight: rankingMotivos.includes(motivo) ? 700 : 400 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: getColorForMotivo(motivo).bg, border: `1px solid ${getColorForMotivo(motivo).text}` }} />{motivo}</Box>{rankingMotivos.includes(motivo) && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Box>
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 60, overflow: 'auto' }}>
+                      {selected.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Todos los motivos</Typography> :
+                        selected.map((value) => {
+                          const colors = getColorForMotivo(value);
+                          return <Box key={value} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: colors.bg, color: colors.text, pl: 1, pr: 0.5, py: 0.25, borderRadius: 1, height: '22px', cursor: 'default' }} onMouseDown={(e) => e.stopPropagation()}>
+                            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>{value}</Typography>
+                            <Box component="span" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%', '&:hover': { bgcolor: 'rgba(0,0,0,0.12)' } }}
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRankingMotivos(rankingMotivos.filter(item => item !== value)); setPaginaRanking(0); }}
+                              onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                              <CloseIcon sx={{ fontSize: '0.85rem', color: colors.text }} />
+                            </Box>
+                          </Box>;
+                        })}
+                    </Box>
+                  )}
+                  MenuProps={{ PaperProps: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } }}
+                >
+                  <MenuItem value="todos" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e8e8e8', border: '1px solid #9e9e9e' }} />Todos</Box>{rankingMotivos.length === motivosUnicos.length && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
+                  <MenuItem value="limpiar" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ffebee', border: '1px solid #c62828' }} />Limpiar</Box>{rankingMotivos.length === 0 && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
+                  {motivosUnicos.map(motivo => <MenuItem key={motivo} value={motivo} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, fontWeight: rankingMotivos.includes(motivo) ? 700 : 400 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: getColorForMotivo(motivo).bg, border: `1px solid ${getColorForMotivo(motivo).text}` }} />{motivo}</Box>{rankingMotivos.includes(motivo) && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>)}
+                </Select>
+              </FormControl>
             </Box>
-            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: 3, mx: 3 }}>
-              <List disablePadding>
-                {(() => {
-                  const start = paginaRanking * rowsPerPage.ranking;
-                  const pagina = rankingFiltrado.slice(start, start + rowsPerPage.ranking);
-                  if (!pagina.length) return <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>{buscarEmpleadoRanking ? 'No se encontraron empleados' : 'No hay ediciones registradas'}</Box>;
-                  return pagina.map(emp => (
-                    <ListItem key={emp.id} divider sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
-                      secondaryAction={<> 
-                        <Tooltip title="Ver registros"><IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}><VisibilityIcon /></IconButton></Tooltip>
-                        <Tooltip title="Ver calendario"><IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}><CalendarTodayIcon /></IconButton></Tooltip>
-                      </>}>
-                      <ListItemAvatar><Avatar sx={{ bgcolor: '#004680', color: '#fff', width: 44, height: 44 }}>{emp.nombre.charAt(0).toUpperCase()}</Avatar></ListItemAvatar>
-                      <ListItemText primary={<Typography variant="body1" fontWeight={600} color="#0a1929">{emp.nombre}</Typography>}
-                        secondary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
-                          <Chip size="small" label={emp.tienda} sx={{ bgcolor: '#e8eaf6', color: '#1a237e', fontWeight: 500, fontSize: '0.7rem' }} />
-                          <Chip size="small" label={`${emp.total} edición${emp.total !== 1 ? 'es' : ''}`} sx={{ bgcolor: '#e1f5fe', color: '#0288d1', fontWeight: 600, fontSize: '0.7rem' }} />
-                        </Box>} />
-                    </ListItem>
-                  ));
-                })()}
-              </List>
-            </Box>
-            <Box sx={{ flexShrink: 0, bgcolor: 'white', borderTop: '1px solid #e0e0e0', mt: 2 }}>
-              <Paginador count={Math.ceil(rankingFiltrado.length / rowsPerPage.ranking)} page={paginaRanking} setPage={setPaginaRanking} label="registros" total={rankingFiltrado.length} />
-            </Box>
-          </DialogContent>
-          <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
-            <Button onClick={() => setModalEmpleadosOpen(false)} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
-          </DialogActions>
-        </Dialog>
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: 3, mx: 3 }}>
+            <List disablePadding>
+              {(() => {
+                const start = paginaRanking * rowsPerPage.ranking;
+                const pagina = rankingFiltrado.slice(start, start + rowsPerPage.ranking);
+                if (!pagina.length) return <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>{buscarEmpleadoRanking ? 'No se encontraron empleados' : 'No hay ediciones registradas'}</Box>;
+                return pagina.map(emp => (
+                  <ListItem key={emp.id} divider sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
+                    secondaryAction={<> 
+                      <Tooltip title="Ver registros"><IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}><VisibilityIcon /></IconButton></Tooltip>
+                      <Tooltip title="Ver calendario"><IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}><CalendarTodayIcon /></IconButton></Tooltip>
+                    </>}>
+                    <ListItemAvatar><Avatar sx={{ bgcolor: '#004680', color: '#fff', width: 44, height: 44 }}>{emp.nombre.charAt(0).toUpperCase()}</Avatar></ListItemAvatar>
+                    <ListItemText primary={<Typography variant="body1" fontWeight={600} color="#0a1929">{emp.nombre}</Typography>}
+                      secondary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+                        <Chip size="small" label={emp.tienda} sx={{ bgcolor: '#e8eaf6', color: '#1a237e', fontWeight: 500, fontSize: '0.7rem' }} />
+                        <Chip size="small" label={`${emp.total} edición${emp.total !== 1 ? 'es' : ''}`} sx={{ bgcolor: '#e1f5fe', color: '#0288d1', fontWeight: 600, fontSize: '0.7rem' }} />
+                      </Box>} />
+                  </ListItem>
+                ));
+              })()}
+            </List>
+          </Box>
+          <Box sx={{ flexShrink: 0, bgcolor: 'white', borderTop: '1px solid #e0e0e0', mt: 2 }}>
+            <Paginador count={Math.ceil(rankingFiltrado.length / rowsPerPage.ranking)} page={paginaRanking} setPage={setPaginaRanking} label="registros" total={rankingFiltrado.length} />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
+          <Button onClick={() => setModalEmpleadosOpen(false)} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
 
-        {/* Modal Calendario */}
-        <Dialog open={calendario.open} onClose={handleCerrarCalendario} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3, maxHeight: '85vh' } }}>
-          <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar sx={{ bgcolor: '#ffffff', color: '#004680', width: 36, height: 36 }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre.charAt(0).toUpperCase() : '?'}</Avatar>
-              <Box><Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre : 'Empleado'}</Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>Histórial total: {edicionesPorEmpleado.length} ediciones en {diasConEdiciones.size} días</Typography></Box>
+      {/* Modal Calendario */}
+      <Dialog open={calendario.open} onClose={handleCerrarCalendario} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3, maxHeight: '85vh' } }}>
+        <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: '#ffffff', color: '#004680', width: 36, height: 36 }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre.charAt(0).toUpperCase() : '?'}</Avatar>
+            <Box><Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre : 'Empleado'}</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.8 }}>Histórial total: {edicionesPorEmpleado.length} ediciones en {diasConEdiciones.size} días</Typography></Box>
+          </Box>
+          <IconButton onClick={handleCerrarCalendario} sx={{ color: '#ffffff' }}><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 2, bgcolor: '#f5f7fa' }}>
+          <Paper elevation={0} sx={{ p: 1, mb: 2, borderRadius: 3, bgcolor: '#ffffff', border: '1px solid #e0e0e0', display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><EditNoteIcon sx={{ color: '#004680', fontSize: 16 }} /><Typography variant="body2" fontWeight={700}>Ediciones en {calendario.mes.format('MMMM YYYY')}: <span style={{ color: '#004680' }}>{edicionesDelMes.length}</span></Typography></Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CalendarTodayIcon sx={{ color: '#004680', fontSize: 16 }} /><Typography variant="body2" fontWeight={600}>Días: <span style={{ color: '#004680' }}>{diasConEdicionesMes.size}</span></Typography></Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Typography variant="body2" fontWeight={600}>Promedio: <span style={{ color: '#004680' }}>{promedioEdicionesMes.toFixed(1)}</span></Typography></Box>
+          </Paper>
+
+          <Paper elevation={2} sx={{ p: 2, borderRadius: 4, bgcolor: '#ffffff', border: '1px solid #e0e0e0' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CalendarTodayIcon sx={{ color: '#004680', fontSize: 22 }} /><Typography variant="h6" fontWeight={700} color="#0a1929">{calendario.mes.format('MMMM YYYY')}</Typography></Box>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" startIcon={<TodayIcon />} onClick={() => setCalendario(p => ({ ...p, mes: dayjs() }))} sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#004680', color: '#004680', fontSize: '0.75rem', py: 0.5 }} variant="outlined">Hoy</Button>
+                <IconButton size="small" onClick={() => setCalendario(p => ({ ...p, mes: p.mes.subtract(1, 'month') }))} sx={{ color: '#004680' }}><ArrowBackIosIcon fontSize="small" /></IconButton>
+                <IconButton size="small" onClick={() => setCalendario(p => ({ ...p, mes: p.mes.add(1, 'month') }))} sx={{ color: '#004680' }} disabled={calendario.mes.isSame(dayjs(), 'month')}><ArrowForwardIosIcon fontSize="small" /></IconButton>
+              </Box>
             </Box>
-            <IconButton onClick={handleCerrarCalendario} sx={{ color: '#ffffff' }}><CloseIcon /></IconButton>
-          </DialogTitle>
-          <DialogContent sx={{ p: 2, bgcolor: '#f5f7fa' }}>
-            <Paper elevation={0} sx={{ p: 1, mb: 2, borderRadius: 3, bgcolor: '#ffffff', border: '1px solid #e0e0e0', display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><EditNoteIcon sx={{ color: '#004680', fontSize: 16 }} /><Typography variant="body2" fontWeight={700}>Ediciones en {calendario.mes.format('MMMM YYYY')}: <span style={{ color: '#004680' }}>{edicionesDelMes.length}</span></Typography></Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CalendarTodayIcon sx={{ color: '#004680', fontSize: 16 }} /><Typography variant="body2" fontWeight={600}>Días: <span style={{ color: '#004680' }}>{diasConEdicionesMes.size}</span></Typography></Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Typography variant="body2" fontWeight={600}>Promedio: <span style={{ color: '#004680' }}>{promedioEdicionesMes.toFixed(1)}</span></Typography></Box>
-            </Paper>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px', mb: 1 }}>
+              {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => <Typography key={d} align="center" variant="caption" fontWeight={700} color="primary.main" sx={{ py: 0.5 }}>{d}</Typography>)}
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px' }}>
+              {Array.from({ length: (calendario.mes.startOf('month').day() + 6) % 7 }, (_, i) => <Box key={`empty-${i}`} />)}
+              {Array.from({ length: calendario.mes.daysInMonth() }, (_, i) => {
+                const day = calendario.mes.date(i + 1);
+                const fecha = day.format('YYYY-MM-DD');
+                const count = conteoPorDia[fecha] || 0;
+                const isSelected = calendario.dia === fecha;
+                const isToday = day.isSame(dayjs(), 'day');
+                const esFuturo = day.isAfter(dayjs(), 'day');
+                const isEdited = count > 0 && !esFuturo;
+                return <Tooltip key={fecha} title={isEdited ? `${count} edición(es)` : 'Sin ediciones'} arrow>
+                  <Paper elevation={isEdited ? 2 : 0} sx={{ p: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 2,
+                    bgcolor: isSelected ? '#004680' : (isEdited ? '#e3f2fd' : 'transparent'),
+                    color: isSelected ? '#ffffff' : (esFuturo ? '#bdbdbd' : '#0a1929'),
+                    border: isToday ? '2px solid #004680' : (isEdited ? '1px solid #004680' : '1px solid #e0e0e0'),
+                    cursor: isEdited ? 'pointer' : 'default', minHeight: 48, transition: 'all 0.15s ease',
+                    '&:hover': { transform: isEdited ? 'scale(1.02)' : 'none', boxShadow: isEdited ? 2 : 0 } }}
+                    onClick={() => isEdited && setCalendario(p => ({ ...p, dia: fecha }))}>
+                    <Typography variant="body2" fontWeight={isSelected || isEdited || isToday ? 700 : 400} sx={{ fontSize: '0.9rem' }}>{day.date()}</Typography>
+                    {isEdited && <Chip size="small" label={count} sx={{ mt: 0.25, bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : '#004680', color: '#ffffff', fontWeight: 700, fontSize: '0.6rem', height: 18, minWidth: 20 }} />}
+                    {isToday && !isSelected && <Box sx={{ position: 'absolute', top: 2, right: 2, width: 6, height: 6, borderRadius: '50%', bgcolor: '#004680' }} />}
+                  </Paper>
+                </Tooltip>;
+              })}
+            </Box>
+          </Paper>
 
-            <Paper elevation={2} sx={{ p: 2, borderRadius: 4, bgcolor: '#ffffff', border: '1px solid #e0e0e0' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CalendarTodayIcon sx={{ color: '#004680', fontSize: 22 }} /><Typography variant="h6" fontWeight={700} color="#0a1929">{calendario.mes.format('MMMM YYYY')}</Typography></Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button size="small" startIcon={<TodayIcon />} onClick={() => setCalendario(p => ({ ...p, mes: dayjs() }))} sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#004680', color: '#004680', fontSize: '0.75rem', py: 0.5 }} variant="outlined">Hoy</Button>
-                  <IconButton size="small" onClick={() => setCalendario(p => ({ ...p, mes: p.mes.subtract(1, 'month') }))} sx={{ color: '#004680' }}><ArrowBackIosIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" onClick={() => setCalendario(p => ({ ...p, mes: p.mes.add(1, 'month') }))} sx={{ color: '#004680' }} disabled={calendario.mes.isSame(dayjs(), 'month')}><ArrowForwardIosIcon fontSize="small" /></IconButton>
-                </Box>
-              </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px', mb: 1 }}>
-                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => <Typography key={d} align="center" variant="caption" fontWeight={700} color="primary.main" sx={{ py: 0.5 }}>{d}</Typography>)}
-              </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px' }}>
-                {Array.from({ length: (calendario.mes.startOf('month').day() + 6) % 7 }, (_, i) => <Box key={`empty-${i}`} />)}
-                {Array.from({ length: calendario.mes.daysInMonth() }, (_, i) => {
-                  const day = calendario.mes.date(i + 1);
-                  const fecha = day.format('YYYY-MM-DD');
-                  const count = conteoPorDia[fecha] || 0;
-                  const isSelected = calendario.dia === fecha;
-                  const isToday = day.isSame(dayjs(), 'day');
-                  const esFuturo = day.isAfter(dayjs(), 'day');
-                  const isEdited = count > 0 && !esFuturo;
-                  return <Tooltip key={fecha} title={isEdited ? `${count} edición(es)` : 'Sin ediciones'} arrow>
-                    <Paper elevation={isEdited ? 2 : 0} sx={{ p: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 2,
-                      bgcolor: isSelected ? '#004680' : (isEdited ? '#e3f2fd' : 'transparent'),
-                      color: isSelected ? '#ffffff' : (esFuturo ? '#bdbdbd' : '#0a1929'),
-                      border: isToday ? '2px solid #004680' : (isEdited ? '1px solid #004680' : '1px solid #e0e0e0'),
-                      cursor: isEdited ? 'pointer' : 'default', minHeight: 48, transition: 'all 0.15s ease',
-                      '&:hover': { transform: isEdited ? 'scale(1.02)' : 'none', boxShadow: isEdited ? 2 : 0 } }}
-                      onClick={() => isEdited && setCalendario(p => ({ ...p, dia: fecha }))}>
-                      <Typography variant="body2" fontWeight={isSelected || isEdited || isToday ? 700 : 400} sx={{ fontSize: '0.9rem' }}>{day.date()}</Typography>
-                      {isEdited && <Chip size="small" label={count} sx={{ mt: 0.25, bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : '#004680', color: '#ffffff', fontWeight: 700, fontSize: '0.6rem', height: 18, minWidth: 20 }} />}
-                      {isToday && !isSelected && <Box sx={{ position: 'absolute', top: 2, right: 2, width: 6, height: 6, borderRadius: '50%', bgcolor: '#004680' }} />}
-                    </Paper>
-                  </Tooltip>;
-                })}
-              </Box>
-            </Paper>
-
-            {calendario.dia && (
-              <Box sx={{ mt: 2 }}>
-                <Paper elevation={0} sx={{ p: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: '#ffffff' }}>
-                  <Typography variant="subtitle2" fontWeight={700} color="#004680" gutterBottom>
-                    Ediciones del {dayjs(calendario.dia).format('dddd, D [de] MMMM [de] YYYY')}
-                    <Chip size="small" label={`${edicionesDelDia.length} registros`} sx={{ ml: 1, bgcolor: '#e3f2fd', color: '#004680', fontWeight: 600, fontSize: '0.7rem' }} />
-                  </Typography>
-                  {edicionesDelDia.length ? <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2, mt: 1 }}>
-                    <Table size="small"><TableHead sx={{ bgcolor: '#f8fafc' }}><TableRow>
-                      {['Registro', 'Hora Original', 'Hora Modificada', 'Motivo', 'Observación'].map(h => <TableCell key={h} sx={{ fontWeight: 700, color: '#546e7a', fontSize: '0.75rem' }}>{h}</TableCell>)}
-                    </TableRow></TableHead><TableBody>
-                      {edicionesDelDia.map(r => <TableRow key={r.id} hover>
-                        <TableCell sx={{ fontSize: '0.75rem' }}>{r.tipoRegistro}</TableCell>
-                        <TableCell sx={{ fontSize: '0.75rem' }}><Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through', fontSize: '0.75rem' }}>{r.horaOriginal ? r.horaOriginal.substring(0,5) : '--:--'}</Typography></TableCell>
-                        <TableCell sx={{ fontSize: '0.75rem' }}><Typography variant="body2" fontWeight={700} color="#c62828" sx={{ fontSize: '0.75rem' }}>{r.horaModificada ? r.horaModificada.substring(0,5) : '--:--'}</Typography></TableCell>
-                        <TableCell sx={{ fontSize: '0.75rem' }}><Chip size="small" label={r.motivo} sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 600, fontSize: '0.6rem' }} /></TableCell>
-                        <TableCell sx={{ fontSize: '0.75rem' }}>
-                          {r.observaciones && r.observaciones.toLowerCase() !== 'sin comentarios' ?
-                            <Tooltip title={r.observaciones}><IconButton size="small" sx={{ color: '#004680', p: 0.2 }}><MessageIcon fontSize="small" /></IconButton></Tooltip> :
-                            <Typography variant="caption" color="#94a3b8" fontStyle="italic" sx={{ fontSize: '0.65rem' }}>Sin obs.</Typography>}
-                        </TableCell>
-                      </TableRow>)}
-                    </TableBody></Table>
-                  </TableContainer> : <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1 }}>No hay ediciones para este día.</Typography>}
-                </Paper>
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ p: 1.5, px: 3, borderTop: '1px solid #e2e8f0' }}>
-            <Button onClick={handleCerrarCalendario} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
-          </DialogActions>
-        </Dialog>
-      </Container>
-    </Box>
+          {calendario.dia && (
+            <Box sx={{ mt: 2 }}>
+              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: '#ffffff' }}>
+                <Typography variant="subtitle2" fontWeight={700} color="#004680" gutterBottom>
+                  Ediciones del {dayjs(calendario.dia).format('dddd, D [de] MMMM [de] YYYY')}
+                  <Chip size="small" label={`${edicionesDelDia.length} registros`} sx={{ ml: 1, bgcolor: '#e3f2fd', color: '#004680', fontWeight: 600, fontSize: '0.7rem' }} />
+                </Typography>
+                {edicionesDelDia.length ? <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2, mt: 1 }}>
+                  <Table size="small"><TableHead sx={{ bgcolor: '#f8fafc' }}><TableRow>
+                    {['Registro', 'Hora Original', 'Hora Modificada', 'Motivo', 'Observación'].map(h => <TableCell key={h} sx={{ fontWeight: 700, color: '#546e7a', fontSize: '0.75rem' }}>{h}</TableCell>)}
+                  </TableRow></TableHead><TableBody>
+                    {edicionesDelDia.map(r => <TableRow key={r.id} hover>
+                      <TableCell sx={{ fontSize: '0.75rem' }}>{r.tipoRegistro}</TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem' }}><Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through', fontSize: '0.75rem' }}>{r.horaOriginal ? r.horaOriginal.substring(0,5) : '--:--'}</Typography></TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem' }}><Typography variant="body2" fontWeight={700} color="#c62828" sx={{ fontSize: '0.75rem' }}>{r.horaModificada ? r.horaModificada.substring(0,5) : '--:--'}</Typography></TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem' }}><Chip size="small" label={r.motivo} sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 600, fontSize: '0.6rem' }} /></TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem' }}>
+                        {r.observaciones && r.observaciones.toLowerCase() !== 'sin comentarios' ?
+                          <Tooltip title={r.observaciones}><IconButton size="small" sx={{ color: '#004680', p: 0.2 }}><MessageIcon fontSize="small" /></IconButton></Tooltip> :
+                          <Typography variant="caption" color="#94a3b8" fontStyle="italic" sx={{ fontSize: '0.65rem' }}>Sin obs.</Typography>}
+                      </TableCell>
+                    </TableRow>)}
+                  </TableBody></Table>
+                </TableContainer> : <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1 }}>No hay ediciones para este día.</Typography>}
+              </Paper>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 1.5, px: 3, borderTop: '1px solid #e2e8f0' }}>
+          <Button onClick={handleCerrarCalendario} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  </Box>
   );
 }

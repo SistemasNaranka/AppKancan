@@ -42,6 +42,7 @@ import type {
   Garantia as DirectusGarantia,
   CreateGarantia,
   UpdateGarantia,
+  EstadoGarantia,
 } from "../types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ const SURFACE_HIGH = "#e7e8e9";
 const OUTLINE_VARIANT = "#c3c6d1";
 
 // ── Tab config ────────────────────────────────────────────────────────────────
-const TABS = [
+const TABS: { label: string; icon: React.ReactNode; estadoFilter?: EstadoGarantia }[] = [
   { label: "Resumen",      icon: <DashboardIcon fontSize="small" />,      estadoFilter: undefined },
   { label: "Pendientes",   icon: <PendingActionsIcon fontSize="small" />,  estadoFilter: "pendiente" },
   { label: "En Revisión",  icon: <FindInPageIcon fontSize="small" />,      estadoFilter: "en_revision" },
@@ -267,7 +268,7 @@ export default function Home() {
       {activeTab === 1 && (
         <Grid container spacing={3}>
           {/* Texto contextual */}
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Card
               elevation={0}
               sx={{
@@ -299,9 +300,9 @@ export default function Home() {
           </Grid>
 
           {/* Mini stats */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Grid container spacing={2} height="100%">
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Card
                   elevation={0}
                   sx={{
@@ -344,7 +345,7 @@ export default function Home() {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Card
                   elevation={0}
                   sx={{

@@ -515,7 +515,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
                   fullWidth size="small"
                   placeholder="Título (opcional)"
                   value={titulo} onChange={(e) => setTitulo(e.target.value)}
-                  inputProps={{ maxLength: 100 }}
+                  slotProps={{ htmlInput: { maxLength: 100 } }}
                   sx={{ mb: 2, ...inputStyle }}
                 />
 
@@ -524,7 +524,7 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
                     fullWidth multiline rows={4}
                     placeholder="Mensaje (obligatorio)"
                     value={mensaje} onChange={(e) => setMensaje(e.target.value)}
-                    inputProps={{ maxLength: 600 }}
+                    slotProps={{ htmlInput: { maxLength: 600 } }}
                     sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { ...(inputStyle as any)['& .MuiOutlinedInput-root'], padding: '12px 14px' }, '& .MuiOutlinedInput-input': { padding: 0, color: '#191b23' } }}
                   />
                   <Typography sx={{ position: 'absolute', bottom: 10, right: 12, fontSize: '11px', color: mensaje.length >= 600 ? '#dc2626' : '#94a3b8' }}>

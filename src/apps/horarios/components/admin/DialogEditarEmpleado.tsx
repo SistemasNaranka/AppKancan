@@ -7,7 +7,7 @@ import {
 import BadgeIcon from '@mui/icons-material/Badge';
 import { Tienda, Cargo, EmpleadoAdmin } from '../../interfaces/horarios.interface';
 import { useParseNombreIA } from '../../hooks/useParseNombreIA';
-import { formatDocumentNumber } from '../../utils/format';
+import { formatDocumentNumber, formatNombrePropio } from '../../utils/format';
 
 const AZUL = '#004680';
 
@@ -33,7 +33,8 @@ interface Props {
 }
 
 function splitNombreLocal(nombre: string) {
-  const t = nombre.trim().split(/\s+/).filter(Boolean);
+  const nombreFormateado = formatNombrePropio(nombre);
+  const t = nombreFormateado.split(/\s+/).filter(Boolean);
   const r = { first_name: '', middle_name: '', last_name: '', second_last_name: '' };
   if (t.length === 1) { r.first_name = t[0]; }
   else if (t.length === 2) { r.first_name = t[0]; r.last_name = t[1]; }
@@ -84,7 +85,7 @@ export default function DialogEditarEmpleado({
 
   const guardar = async () => {
     setErrorNombre('');
-    const nombre = nombreCompleto.trim().replace(/\s+/g, ' ');
+    const nombre = formatNombrePropio(nombreCompleto);
     if (!nombre) {
       setErrorNombre('El nombre completo es obligatorio');
       return;

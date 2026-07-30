@@ -437,7 +437,7 @@ export default function HistorialPage({
                 <MenuItem value={5}>5</MenuItem>
                 <MenuItem value={10}>10</MenuItem>
                 <MenuItem value={20}>20</MenuItem>
-                <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={25}>25</MenuItem>
               </Select>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
