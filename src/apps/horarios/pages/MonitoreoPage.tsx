@@ -244,11 +244,11 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                 <Tooltip title="Total de empleados activos en todas las tiendas">
                   <TarjetaResumen icon={PersonIcon} label="EMPLEADOS" value={totalEmpleados} color="#004680" />
                 </Tooltip>
-                <Tooltip title="Empleados con faltante de marcación en el mes">
-                  <TarjetaResumen icon={WarningIcon} label="FALTANTE DE MARCACIÓN" value={totalIncompletos} color="#e65100" />
+                <Tooltip title="Días incompletos en el mes">
+                  <TarjetaResumen icon={WarningIcon} label="DÍAS INCOMPLETOS" value={totalIncompletos} color="#e65100" />
                 </Tooltip>
-                <Tooltip title="Empleados sin registro en algún día del mes (sin contar hoy)">
-                  <TarjetaResumen icon={PendingIcon} label="SIN MARCAR" value={totalSinRegistro} color="#d32f2f" />
+                <Tooltip title="Días sin marcar en el mes">
+                  <TarjetaResumen icon={PendingIcon} label="DÍAS SIN MARCAR" value={totalSinRegistro} color="#d32f2f" />
                 </Tooltip>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto', flexWrap: 'wrap' }}>
@@ -284,8 +284,9 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
               </Box>
             </Paper>
 
-            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0' }}>
-              <Table size="medium">
+            {/* Tabla con scroll horizontal para portátil */}
+            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0', overflowX: 'auto' }}>
+              <Table size="medium" sx={{ minWidth: 700 }}>
                 <TableHead sx={{ bgcolor: '#f8fafc' }}>
                   <TableRow>
                     {COLUMNAS_TIENDAS.map(col => (
