@@ -147,7 +147,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   const { data: storeNovedades = [] } = useQuery<any[]>({
     queryKey: ['storeNovedadesHistory', queryStoreId],
     queryFn: () => getStoreNovedades(queryStoreId),
-    enabled: visualizarTab === 'novedades',
+    enabled: visualizarTab === 'novedades' || visualizarTab === 'semanal',
     staleTime: 5 * 60 * 1000,
   });
 
@@ -576,7 +576,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             cargandoTodosEmpleados={cargandoTodosEmpleados}
             cargandoRecordsGlobal={cargandoRecordsGlobal}
             storesTrabajadas={storesTrabajadas}
-            todasNovedades={novedadesFiltradas}
+            todasNovedades={storeNovedades}
             diaInicioSemana={diaInicioSemana}
             setDiaInicioSemana={setDiaInicioSemana}
             diaFinSemana={diaFinSemana}

@@ -14,7 +14,7 @@ import ModalDetalleTienda from '../components/ModalDetalleTienda';
 import ModalCierreMasivo from '../components/ModalCierreMasivo';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
 import ReporteSemanalAreaManager from '../components/reportes/ReporteSemanalAreaManager';
-
+import DetallePlanillaPage from '../pages/DetallePlanillaPage';
 // Modules extraídos
 import {
   getColorForMotivo,
@@ -227,7 +227,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Tab label="Resumen de Asistencia" sx={{ fontWeight: 700, textTransform: 'none' }} />
             <Tab label="Auditoría de Ediciones Manuales" sx={{ fontWeight: 700, textTransform: 'none' }} />
             {isAreaMgr && <Tab label="Control de Horas" sx={{ fontWeight: 700, textTransform: 'none' }} />}
-            {/* {isAreaMgr && <Tab label="Detalle de Planilla" sx={{ fontWeight: 700, textTransform: 'none' }} />} */}
+            {isAreaMgr && <Tab label="Detalle de Planilla" sx={{ fontWeight: 700, textTransform: 'none' }} />}
           </Tabs>
         </Box>
 
@@ -433,10 +433,10 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
           </Paper>
         )}
 
-        {/* ⭐ TAB 3: DETALLE DE PLANILLA (DESHABILITADO TEMPORALMENTE)
+       
         {isAreaMgr && subTab === 3 && (
           <DetallePlanillaPage storeId={storeId} />
-        )} */}
+        )}
 
         {/* Modal Detalle Tienda */}
         {tiendaSeleccionada && (

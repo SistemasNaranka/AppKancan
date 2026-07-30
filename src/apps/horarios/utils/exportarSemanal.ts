@@ -83,7 +83,7 @@ interface ExportarSemanalParams {
 }
 
 export async function exportarSemanalExcel({
-  tiendaNombre,
+  tiendaNombre: _tiendaNombre,
   fechaInicio,
   fechaFin,
   empleados,
@@ -93,9 +93,6 @@ export async function exportarSemanalExcel({
   diaFinSemana = 0,
 }: ExportarSemanalParams) {
   const workbook = new ExcelJS.Workbook();
-  const inicioStr = fechaInicio.format('DD/MM/YYYY');
-  const finStr = fechaFin.format('DD/MM/YYYY');
-
   const worksheet = workbook.addWorksheet(`Reporte Semanal`);
   const semanas = getSemanasRango(fechaInicio, fechaFin, diaInicioSemana, diaFinSemana);
 
@@ -139,31 +136,8 @@ export async function exportarSemanalExcel({
     return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
   });
 
-  // 1. Encabezado principal
-  worksheet.mergeCells('A1', `${String.fromCharCode(69 + semanas.length)}1`);
-  const titleCell = worksheet.getCell('A1');
-  titleCell.value = `REPORTE DE HORAS TRABAJADAS - ${tiendaNombre.toUpperCase()}`;
-  titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFF' } };
-  titleCell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: '004680' },
-  };
-  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getRow(1).height = 35;
-
-  // Subtítulo
-  worksheet.mergeCells('A2', `${String.fromCharCode(69 + semanas.length)}2`);
-  const subCell = worksheet.getCell('A2');
-  subCell.value = `Período del ${inicioStr} al ${finStr} | Generado: ${new Date().toLocaleDateString('es-CO')}`;
-  subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: '555555' } };
-  subCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getRow(2).height = 20;
-
-  worksheet.addRow([]); // Fila vacía
-
-  // 2. Cabeceras de tabla
-  const headers = ['Tienda(s) Laborada(s)', 'Empleado', 'Documento', 'Cargo'];
+  // 1. Cabeceras de tabla directamente en la fila 1
+  const headers = ['Tiendas', 'Empleado', 'Documento', 'Cargo'];
   semanas.forEach((sem, idx) => {
     headers.push(`Semana ${idx + 1}\n(${sem.label})`);
   });
@@ -189,11 +163,7 @@ export async function exportarSemanalExcel({
     };
   });
 
-  // Acumuladores de totales por columna de semana y total general
-  const totalesSemanasMinutos: number[] = new Array(semanas.length).fill(0);
-  let totalGeneralPeriodoMinutos = 0;
-
-  // 3. Filas de empleados
+  // 2. Filas de empleados
   empleadosOrdenados.forEach((emp, index) => {
     const nombreEmpleado = emp.nombre || `Empleado #${emp.id}`;
     const documento = emp.documento || '--';
@@ -203,14 +173,12 @@ export async function exportarSemanalExcel({
     let totalMinutesPeriod = 0;
     const rowValues: (string | number)[] = [tiendasTexto, nombreEmpleado, documento, cargo];
 
-    semanas.forEach((sem, sIdx) => {
+    semanas.forEach((sem) => {
       const minSemana = calcularMinutosSemanales(emp.id, sem.start, sem.end, records);
       totalMinutesPeriod += minSemana;
-      totalesSemanasMinutos[sIdx] += minSemana;
       rowValues.push(formatMinutes(minSemana));
     });
 
-    totalGeneralPeriodoMinutos += totalMinutesPeriod;
     rowValues.push(formatMinutes(totalMinutesPeriod));
 
     const row = worksheet.addRow(rowValues);
@@ -240,35 +208,6 @@ export async function exportarSemanalExcel({
         right: { style: 'thin', color: { argb: 'E2E8F0' } },
       };
     });
-  });
-
-  // 4. Fila de TOTAL GENERAL al pie de la tabla
-  const totalRowValues: (string | number)[] = ['TOTAL GENERAL', `${empleadosOrdenados.length} Empleados`, '--', '--'];
-  totalesSemanasMinutos.forEach((minSem) => {
-    totalRowValues.push(formatMinutes(minSem));
-  });
-  totalRowValues.push(formatMinutes(totalGeneralPeriodoMinutos));
-
-  const totalRow = worksheet.addRow(totalRowValues);
-  totalRow.height = 26;
-
-  totalRow.eachCell((cell, colNumber) => {
-    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: '004680' } };
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'EAF2FB' },
-    };
-    cell.alignment = {
-      horizontal: colNumber <= 4 ? 'left' : 'center',
-      vertical: 'middle',
-    };
-    cell.border = {
-      top: { style: 'medium', color: { argb: '004680' } },
-      bottom: { style: 'double', color: { argb: '004680' } },
-      left: { style: 'thin', color: { argb: 'CCCCCC' } },
-      right: { style: 'thin', color: { argb: 'CCCCCC' } },
-    };
   });
 
   // Ajustar anchos de columnas

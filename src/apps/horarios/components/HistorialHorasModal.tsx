@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     Box, Typography, Paper, Button, CircularProgress, Dialog, DialogTitle,
     DialogContent, DialogActions, IconButton as MuiIconButton, Tooltip, Badge,
-    Grid, Divider, Avatar, Chip
+    Grid, Avatar, Chip, TextField
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -15,6 +15,7 @@ import {
     Assignment as AssignmentIcon,
     AccessTime as AccessTimeIcon,
     Comment as CommentIcon,
+    Lock as LockIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -24,6 +25,7 @@ import 'dayjs/locale/es';
 dayjs.extend(isSameOrBefore);
 
 import { fetchTimeRecords } from '../api/directus/read';
+import { getStoreClosedDays } from '../api/directus/readBulk';
 import {
     EmpleadoFila,
     getNovedadIcon,
@@ -57,6 +59,8 @@ export default function HistorialHorasModal({
     onDayClick,
 }: HistorialHorasModalProps) {
     const [mesActual, setMesActual] = useState(dayjs().startOf('month'));
+    const [fechaInicioFiltro, setFechaInicioFiltro] = useState<string>('');
+    const [fechaFinFiltro, setFechaFinFiltro] = useState<string>('');
     const [diaSeleccionado, setDiaSeleccionado] = useState<{
         fecha: dayjs.Dayjs;
         records: any[];
@@ -71,13 +75,12 @@ export default function HistorialHorasModal({
             if (!empleado) return [];
             const inicioMes = mesActual.startOf('month');
             const finMes = mesActual.endOf('month');
-            const hoy = dayjs();
-            const limite = hoy.isBefore(finMes) ? hoy : finMes;
 
+            const storeFilter = tiendaId > 0 ? tiendaId : undefined;
             const recordsMes = await fetchTimeRecords(
                 inicioMes.format('YYYY-MM-DD'),
-                limite.format('YYYY-MM-DD'),
-                tiendaId,
+                finMes.format('YYYY-MM-DD'),
+                storeFilter,
                 empleado.id
             );
 
@@ -90,7 +93,7 @@ export default function HistorialHorasModal({
 
             const dias: string[] = [];
             let cursor = inicioMes;
-            while (cursor.isSameOrBefore(limite, 'day')) {
+            while (cursor.isSameOrBefore(finMes, 'day')) {
                 dias.push(cursor.format('YYYY-MM-DD'));
                 cursor = cursor.add(1, 'day');
             }
@@ -105,6 +108,28 @@ export default function HistorialHorasModal({
         enabled: !!empleado && open,
         staleTime: 5 * 60 * 1000,
     });
+
+    // Consultar días cerrados de la tienda del mes activo
+    const storeIdParaCerrados = tiendaId > 0 ? tiendaId : (empleado as any)?.storeId > 0 ? (empleado as any).storeId : undefined;
+    const { data: diasCerrados = [] } = useQuery({
+        queryKey: ['storeClosedDays', storeIdParaCerrados, mesActual.format('YYYY-MM')],
+        queryFn: () => {
+            if (!storeIdParaCerrados) return Promise.resolve([]);
+            return getStoreClosedDays(
+                storeIdParaCerrados,
+                mesActual.startOf('month').format('YYYY-MM-DD'),
+                mesActual.endOf('month').format('YYYY-MM-DD')
+            );
+        },
+        enabled: !!open && !!storeIdParaCerrados,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const diasCerradosSet = React.useMemo(() => {
+        const s = new Set<string>();
+        diasCerrados.forEach(d => { if (d.status !== false) s.add(d.date); });
+        return s;
+    }, [diasCerrados]);
 
     const semanas = React.useMemo(() => {
         if (!registrosMes || registrosMes.length === 0) return [];
@@ -131,7 +156,11 @@ export default function HistorialHorasModal({
     };
 
     const getNovedadDelDia = (fecha: string) => {
-        return todasNovedades.find(n => n.report_date === fecha && Number(n.employee_id?.id || n.employee_id) === Number(empleado?.id));
+        return todasNovedades.find(n => {
+            const nFecha = n.report_date || n.fecha;
+            const nEmpId = Number(n.employee_id?.id || n.employee_id || n.empleadoId || n.idEmpleado);
+            return nFecha === fecha && nEmpId === Number(empleado?.id);
+        });
     };
 
     const iniciales = (empleado?.nombre || 'XX')
@@ -173,7 +202,7 @@ export default function HistorialHorasModal({
             <DialogContent sx={{ p: 3, bgcolor: '#f8fafc' }}>
                 
                 {/* Selector de Mes */}
-                <Box className="tour-hh-navegacion" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, mb: 3, mt: 1 }}>
+                <Box className="tour-hh-navegacion" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, mb: 1.5, mt: 1 }}>
                     <MuiIconButton onClick={handleMesAnterior} sx={{ border: '1px solid #e2e8f0', bgcolor: '#fff', '&:hover': { bgcolor: '#f1f5f9' } }}>
                         <NavigateBeforeIcon />
                     </MuiIconButton>
@@ -187,6 +216,39 @@ export default function HistorialHorasModal({
                     >
                         <NavigateNextIcon />
                     </MuiIconButton>
+                </Box>
+
+                {/* Filtro de Rango de Fechas */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                    <TextField
+                        label="Desde"
+                        type="date"
+                        size="small"
+                        value={fechaInicioFiltro}
+                        onChange={(e) => setFechaInicioFiltro(e.target.value)}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        sx={{ bgcolor: '#fff', borderRadius: 2, width: 165, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                    <TextField
+                        label="Hasta"
+                        type="date"
+                        size="small"
+                        value={fechaFinFiltro}
+                        onChange={(e) => setFechaFinFiltro(e.target.value)}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        sx={{ bgcolor: '#fff', borderRadius: 2, width: 165, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                    {(fechaInicioFiltro || fechaFinFiltro) && (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            onClick={() => { setFechaInicioFiltro(''); setFechaFinFiltro(''); }}
+                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, height: 38 }}
+                        >
+                            Limpiar Rango
+                        </Button>
+                    )}
                 </Box>
 
                 {isLoading ? (
@@ -206,20 +268,36 @@ export default function HistorialHorasModal({
                             const esActual = inicio.isSame(dayjs().startOf('week').add(1, 'day'), 'day');
                             
                             let totalMinutos = 0;
+                            let diasEnRangoCount = 0;
+
                             const diasDetalle = semana.dias.map(({ fecha, records }) => {
-                                const minutos = calcularMinutosDia(records, empleado!.id);
-                                totalMinutos += minutos;
+                                const dayObj = dayjs(fecha);
+                                const esAntes = fechaInicioFiltro ? dayObj.isBefore(dayjs(fechaInicioFiltro), 'day') : false;
+                                const esDespues = fechaFinFiltro ? dayObj.isAfter(dayjs(fechaFinFiltro), 'day') : false;
+                                const fueraDeRango = esAntes || esDespues;
+
+                                const minutos = fueraDeRango ? 0 : calcularMinutosDia(records, empleado!.id);
+                                if (!fueraDeRango) {
+                                    totalMinutos += minutos;
+                                    diasEnRangoCount++;
+                                }
+
                                 const novedad = getNovedadDelDia(fecha);
+                                const tiendaCerrada = diasCerradosSet.has(fecha);
                                 return {
-                                    fecha: dayjs(fecha),
+                                    fecha: dayObj,
                                     records,
                                     minutos,
                                     tieneNovedad: !!novedad,
-                                    novedadTipo: novedad?.newness_id?.name || '',
+                                    novedadTipo: novedad?.newness_id?.name || novedad?.tipo || '',
+                                    fueraDeRango,
+                                    tiendaCerrada,
                                 };
                             });
                             
                             diasDetalle.sort((a, b) => a.fecha.diff(b.fecha));
+
+                            if (diasEnRangoCount === 0) return null;
 
                             return (
                                 <Paper 
@@ -254,6 +332,14 @@ export default function HistorialHorasModal({
                                     {/* Grid de Tarjetas Diarias */}
                                     <Grid container spacing={1.5}>
                                         {diasDetalle.map((dia) => {
+                                            if (dia.fueraDeRango) {
+                                                return (
+                                                    <Grid size={{ xs: 6, sm: 4, md: 2.4, lg: 1.71 }} key={dia.fecha.format('YYYY-MM-DD')}>
+                                                        <Box sx={{ visibility: 'hidden', minHeight: 90 }} />
+                                                    </Grid>
+                                                );
+                                            }
+
                                             const tieneRegistros = dia.records.length > 0;
                                             const esDomingo = dia.fecha.day() === 0;
 
@@ -269,6 +355,71 @@ export default function HistorialHorasModal({
 
                                             const novedadEstilo = dia.tieneNovedad && !tieneRegistros ? getNovedadEstilo(dia.novedadTipo) : null;
                                             const capitalizar = (str: string) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
+
+                                            // --- TIENDA CERRADA ---
+                                            if (dia.tiendaCerrada) {
+                                                const tooltipRegistros = tieneRegistros
+                                                    ? `${formatearHoras(dia.minutos)} registrados (${dia.records.length} marcación${dia.records.length > 1 ? 'es' : ''})`
+                                                    : '';
+
+                                                const cardContent = (
+                                                    <Box
+                                                        onClick={() => { if (tieneRegistros) setDiaSeleccionado(dia); }}
+                                                        sx={{
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            p: 1.5,
+                                                            borderRadius: 3,
+                                                            bgcolor: tieneRegistros ? '#fdf4ff' : '#f3f4f6',
+                                                            border: '1px dashed',
+                                                            borderColor: tieneRegistros ? '#c084fc' : '#9ca3af',
+                                                            cursor: tieneRegistros ? 'pointer' : 'default',
+                                                            height: '100%',
+                                                            minHeight: 90,
+                                                            justifyContent: 'space-between',
+                                                            transition: 'all 0.2s ease',
+                                                            ...(tieneRegistros && {
+                                                                '&:hover': {
+                                                                    borderColor: '#a855f7',
+                                                                    boxShadow: '0 4px 12px rgba(168,85,247,0.15)',
+                                                                    transform: 'translateY(-2px)'
+                                                                }
+                                                            }),
+                                                        }}
+                                                    >
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                                            <Typography variant="caption" fontWeight={700} sx={{ color: '#6b7280', textTransform: 'capitalize' }}>
+                                                                {dia.fecha.locale('es').format('ddd D')}
+                                                            </Typography>
+                                                            <LockIcon sx={{ fontSize: 18, color: tieneRegistros ? '#c084fc' : '#9ca3af' }} />
+                                                        </Box>
+                                                        <Box>
+                                                            <Typography variant="body2" fontWeight={700} sx={{ color: tieneRegistros ? '#7c3aed' : '#9ca3af', fontSize: '0.78rem' }}>
+                                                                Tienda Cerrada
+                                                            </Typography>
+                                                            {tieneRegistros && (
+                                                                <Typography variant="caption" sx={{ color: '#7c3aed', fontSize: '0.62rem', mt: 0.25, display: 'block' }}>
+                                                                    {formatearHoras(dia.minutos)} marcados →
+                                                                </Typography>
+                                                            )}
+                                                        </Box>
+                                                    </Box>
+                                                );
+
+                                                return (
+                                                    <Grid size={{ xs: 6, sm: 4, md: 2.4, lg: 1.71 }} key={dia.fecha.format('YYYY-MM-DD')}>
+                                                        {tieneRegistros ? (
+                                                            <Tooltip
+                                                                title={<Box><Typography variant="caption" fontWeight={700}>La tienda estaba cerrada este día</Typography><br /><Typography variant="caption">{tooltipRegistros}</Typography></Box>}
+                                                                placement="top"
+                                                            >
+                                                                <Box sx={{ height: '100%' }}>{cardContent}</Box>
+                                                            </Tooltip>
+                                                        ) : cardContent}
+                                                    </Grid>
+                                                );
+                                            }
+                                            // --- FIN TIENDA CERRADA ---
 
                                             return (
                                                  <Grid size={{ xs: 6, sm: 4, md: 2.4, lg: 1.71 }} key={dia.fecha.format('YYYY-MM-DD')}>

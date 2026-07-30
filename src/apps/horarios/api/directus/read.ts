@@ -125,13 +125,15 @@ export async function getRecordReasonId(recordId: number): Promise<number | null
  */
 export async function getNovedades(storeId: number): Promise<any[]> {
   try {
+    const filter: any = {};
+    if (storeId != null && Number(storeId) > 0) {
+      filter.store_id = { _eq: storeId };
+    }
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems('com_newness_reports', {
           fields: ['*', 'newness_id.*', 'employee_id.*', 'store_id.*'],
-          filter: {
-            store_id: { _eq: storeId }
-          },
+          filter,
           sort: ['-report_date', '-id'],
           limit: -1
         })
@@ -142,8 +144,12 @@ export async function getNovedades(storeId: number): Promise<any[]> {
       const parts = [emp.first_name, emp.middle_name, emp.last_name, emp.second_last_name].filter(Boolean);
       const fullName = parts.join(' ');
       return {
+        ...nov,
         id: nov.id,
         fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
+        report_date: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
+        employee_id: emp,
+        empleadoId: emp.id,
         empleadoNombre: fullName || `Empleado #${emp.id || ''}`,
         tipo: nov.newness_id?.name || 'Novedad',
         observaciones: nov.observations || '',
@@ -160,7 +166,7 @@ export async function getNovedades(storeId: number): Promise<any[]> {
 export async function getStoreNovedades(storeId: number | number[] | null): Promise<any[]> {
   try {
     const filter: any = {};
-    if (storeId != null) {
+    if (storeId != null && (Array.isArray(storeId) ? storeId.length > 0 : Number(storeId) > 0)) {
       if (Array.isArray(storeId)) {
         filter.store_id = { _in: storeId };
       } else {
@@ -182,8 +188,12 @@ export async function getStoreNovedades(storeId: number | number[] | null): Prom
       const parts = [emp.first_name, emp.middle_name, emp.last_name, emp.second_last_name].filter(Boolean);
       const fullName = parts.join(' ');
       return {
+        ...nov,
         id: nov.id,
         fecha: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
+        report_date: nov.report_date || (nov.date_created ? dayjs(nov.date_created).format('YYYY-MM-DD') : ''),
+        employee_id: emp,
+        empleadoId: emp.id,
         empleadoNombre: fullName || `Empleado #${emp.id || ''}`,
         empleadoDocumento: emp.document_number ? String(emp.document_number) : undefined,
         tipo: nov.newness_id?.name || 'Novedad',
@@ -224,7 +234,7 @@ export const fetchTimeRecords = async (
 ): Promise<TimeRecord[]> => {
   const filter: any = {};
 
-  if (storeId != null) {
+  if (storeId != null && (Array.isArray(storeId) ? storeId.length > 0 : Number(storeId) > 0)) {
     if (Array.isArray(storeId)) {
       filter.store_id = { _in: storeId };
     } else {
