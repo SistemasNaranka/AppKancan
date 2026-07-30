@@ -274,6 +274,7 @@ export async function getStoreEventReports(
             'event_type',
             'date',
             'hour',
+            'date_created',
             'observations',
             'employee_id.id',
             'employee_id.first_name',

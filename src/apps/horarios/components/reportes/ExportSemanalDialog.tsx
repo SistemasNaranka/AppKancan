@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
-  Autocomplete, TextField, Checkbox, FormControlLabel, CircularProgress
+  Autocomplete, TextField, Checkbox, FormControlLabel, CircularProgress,
+  FormControl, InputLabel, Select, MenuItem, Chip
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import DateRangeIcon from '@mui/icons-material/DateRange';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange } from '../../api/directus/read';
@@ -13,6 +15,7 @@ import { exportarSemanalExcel } from '../../utils/exportarSemanal';
 import { Tienda } from '../../interfaces/horarios.interface';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 import DateRangeFilter from './DateRangeFilter';
+import { DIAS_DE_LA_SEMANA } from '../../pages/reporte/ReporteUtils';
 
 interface ExportSemanalDialogProps {
   open: boolean;
@@ -20,6 +23,8 @@ interface ExportSemanalDialogProps {
   fechaInicioDefault?: Dayjs | null;
   fechaFinDefault?: Dayjs | null;
   tiendasPermitidas?: Tienda[];
+  diaInicioSemana?: number;
+  diaFinSemana?: number;
 }
 
 export default function ExportSemanalDialog({
@@ -28,12 +33,16 @@ export default function ExportSemanalDialog({
   fechaInicioDefault,
   fechaFinDefault,
   tiendasPermitidas,
+  diaInicioSemana = 1,
+  diaFinSemana = 0,
 }: ExportSemanalDialogProps) {
   const { showSnackbar } = useGlobalSnackbar();
   const [tiendasSel, setTiendasSel] = useState<Tienda[]>([]);
   const [todas, setTodas] = useState(true);
   const [rangoInicio, setRangoInicio] = useState<Dayjs | null>(fechaInicioDefault || dayjs().subtract(6, 'day'));
   const [rangoFin, setRangoFin] = useState<Dayjs | null>(fechaFinDefault || dayjs());
+  const [diaInicio, setDiaInicio] = useState<number>(diaInicioSemana);
+  const [diaFin, setDiaFin] = useState<number>(diaFinSemana);
   const [exportando, setExportando] = useState(false);
 
   const { data: todasLasTiendas = [], isLoading: loadingTiendas } = useQuery<Tienda[]>({
@@ -52,13 +61,15 @@ export default function ExportSemanalDialog({
     if (open) {
       if (fechaInicioDefault) setRangoInicio(fechaInicioDefault);
       if (fechaFinDefault) setRangoFin(fechaFinDefault);
+      setDiaInicio(diaInicioSemana);
+      setDiaFin(diaFinSemana);
 
       if (tiendas.length > 0) {
         setTodas(true);
         setTiendasSel(tiendas);
       }
     }
-  }, [open, tiendas]);
+  }, [open, tiendas, fechaInicioDefault, fechaFinDefault, diaInicioSemana, diaFinSemana]);
 
   const handleToggleTodas = (checked: boolean) => {
     setTodas(checked);
@@ -114,6 +125,8 @@ export default function ExportSemanalDialog({
         empleados,
         records,
         tiendas,
+        diaInicioSemana: diaInicio,
+        diaFinSemana: diaFin,
       });
 
       showSnackbar('Reporte semanal exportado exitosamente', 'success');
@@ -148,25 +161,20 @@ export default function ExportSemanalDialog({
           <Autocomplete
             multiple
             limitTags={3}
-            size="small"
             options={tiendas}
-            loading={loadingTiendas}
-            getOptionLabel={(o) => o.name}
-            isOptionEqualToValue={(o, v) => Number(o.id) === Number(v.id)}
-            value={tiendasSel}
-            onChange={(_, newValue) => {
-              setTiendasSel(newValue);
-              setTodas(newValue.length === tiendas.length);
-            }}
+            getOptionLabel={(option) => option.name}
+            value={todas ? tiendas : tiendasSel}
+            disabled={todas}
+            onChange={(_, newValue) => setTiendasSel(newValue)}
             renderInput={(params) => (
               <TextField
                 {...params}
-                placeholder="Selecciona una o varias tiendas..."
+                placeholder={todas ? "Todas las tiendas seleccionadas" : "Buscar y seleccionar tiendas..."}
                 InputProps={{
                   ...params.InputProps,
                   startAdornment: (
                     <>
-                      <StorefrontIcon sx={{ fontSize: 18, color: '#004680', ml: 0.5, mr: 0.5 }} />
+                      <StorefrontIcon sx={{ color: '#004680', mr: 1, ml: 0.5 }} />
                       {params.InputProps.startAdornment}
                     </>
                   ),
@@ -205,6 +213,73 @@ export default function ExportSemanalDialog({
               setRangoFin(fin);
             }}
           />
+        </Box>
+
+        {/* Estructura de Semana */}
+        <Box>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', mb: 1, display: 'block' }}>
+            ESTRUCTURA DE SEMANA:
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <FormControl size="small" fullWidth>
+              <InputLabel id="export-dia-inicio-label">Inicio Semana</InputLabel>
+              <Select
+                labelId="export-dia-inicio-label"
+                value={diaInicio}
+                label="Inicio Semana"
+                onChange={(e) => setDiaInicio(Number(e.target.value))}
+                sx={{ borderRadius: 2 }}
+              >
+                {DIAS_DE_LA_SEMANA.map((d) => (
+                  <MenuItem key={`exp-ini-${d.value}`} value={d.value}>{d.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" fullWidth>
+              <InputLabel id="export-dia-fin-label">Fin Semana</InputLabel>
+              <Select
+                labelId="export-dia-fin-label"
+                value={diaFin}
+                label="Fin Semana"
+                onChange={(e) => setDiaFin(Number(e.target.value))}
+                sx={{ borderRadius: 2 }}
+              >
+                {DIAS_DE_LA_SEMANA.map((d) => (
+                  <MenuItem key={`exp-fin-${d.value}`} value={d.value}>{d.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          {(() => {
+            const nombreIni = DIAS_DE_LA_SEMANA.find(d => d.value === diaInicio)?.label || 'Lunes';
+            const endDayVal = (diaInicio + 6) % 7;
+            const nombreFinAuto = DIAS_DE_LA_SEMANA.find(d => d.value === endDayVal)?.label || 'Domingo';
+            const nombreFin = DIAS_DE_LA_SEMANA.find(d => d.value === diaFin)?.label || 'Domingo';
+            const totalDias = diaInicio === diaFin
+              ? 7
+              : (diaFin - diaInicio + (diaFin < diaInicio ? 7 : 0) + 1);
+            const textoRango = diaInicio === diaFin
+              ? `${nombreIni} a ${nombreFinAuto} (7 días completos)`
+              : `${nombreIni} a ${nombreFin} (${totalDias} días por columna)`;
+            return (
+              <Chip
+                icon={<InfoOutlinedIcon sx={{ fontSize: '1rem !important', color: '#0284c7 !important' }} />}
+                label={`Estructura: ${textoRango}`}
+                size="small"
+                sx={{
+                  bgcolor: '#e0f2fe',
+                  color: '#0369a1',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  height: 32,
+                  mt: 1.5,
+                  fontSize: '0.78rem',
+                  border: '1px solid #bae6fd'
+                }}
+              />
+            );
+          })()}
         </Box>
       </DialogContent>
 

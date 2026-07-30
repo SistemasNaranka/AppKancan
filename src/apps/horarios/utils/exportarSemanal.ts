@@ -15,21 +15,25 @@ export interface TramoSemana {
  * - Si es una quincena (hasta 16 días, ej: 11 al 25), divide en 2 Semanas Quincenales (Semana 1: 7 días, Semana 2: días restantes).
  * - Si es un período más largo (un mes entero), divide en bloques de 7 días.
  */
-export function getSemanasRango(inicio: Dayjs, fin: Dayjs): TramoSemana[] {
+export function getSemanasRango(
+  inicio: Dayjs, 
+  fin: Dayjs, 
+  diaInicio: number = 1, 
+  diaFin: number = 0
+): TramoSemana[] {
   const totalDias = fin.diff(inicio, 'day') + 1;
-  const semanas: TramoSemana[] = [];
 
-  // Si es un período quincenal típico (ej. 11 al 25, 12 a 16 días)
   if (totalDias >= 12 && totalDias <= 16) {
-    const corteSemana1 = inicio.add(6, 'day'); // 7 días (ej. 11 al 17)
-    
-    semanas.push({
-      start: inicio.format('YYYY-MM-DD'),
-      end: corteSemana1.format('YYYY-MM-DD'),
-      label: `${inicio.format('DD/MM')} - ${corteSemana1.format('DD/MM')}`
-    });
+    const corteSemana1 = inicio.add(6, 'day');
+    const semanas: TramoSemana[] = [
+      {
+        start: inicio.format('YYYY-MM-DD'),
+        end: corteSemana1.format('YYYY-MM-DD'),
+        label: `${inicio.format('DD/MM')} - ${corteSemana1.format('DD/MM')}`
+      }
+    ];
 
-    const inicioSemana2 = corteSemana1.add(1, 'day'); // (ej. 18 al 25)
+    const inicioSemana2 = corteSemana1.add(1, 'day');
     semanas.push({
       start: inicioSemana2.format('YYYY-MM-DD'),
       end: fin.format('YYYY-MM-DD'),
@@ -39,19 +43,29 @@ export function getSemanasRango(inicio: Dayjs, fin: Dayjs): TramoSemana[] {
     return semanas;
   }
 
-  // Si es un período regular (ej. mes completo), bloques estándar de 7 días
-  let cursor = inicio.clone();
-  while (cursor.isBefore(fin) || cursor.isSame(fin, 'day')) {
-    const endSemana = cursor.add(6, 'day');
-    const realEnd = endSemana.isAfter(fin, 'day') ? fin.clone() : endSemana;
+  let diff = inicio.day() - diaInicio;
+  if (diff < 0) diff += 7;
+  let currentStart = inicio.subtract(diff, 'day');
+
+  let daysSpan = diaFin - diaInicio;
+  if (diaInicio === diaFin) {
+    daysSpan = 6;
+  } else if (daysSpan < 0) {
+    daysSpan += 7;
+  }
+
+  const semanas: TramoSemana[] = [];
+  while (currentStart.isBefore(fin) || currentStart.isSame(fin, 'day')) {
+    const currentEnd = currentStart.add(daysSpan, 'day');
+    const realEnd = currentEnd.isAfter(fin, 'day') ? fin.clone() : currentEnd;
 
     semanas.push({
-      start: cursor.format('YYYY-MM-DD'),
+      start: currentStart.format('YYYY-MM-DD'),
       end: realEnd.format('YYYY-MM-DD'),
-      label: `${cursor.format('DD/MM')} - ${realEnd.format('DD/MM')}`
+      label: `${currentStart.format('DD/MM')} - ${realEnd.format('DD/MM')}`
     });
 
-    cursor = realEnd.add(1, 'day');
+    currentStart = currentStart.add(7, 'day');
   }
 
   return semanas;
@@ -64,6 +78,8 @@ interface ExportarSemanalParams {
   empleados: any[];
   records: any[];
   tiendas?: Tienda[];
+  diaInicioSemana?: number;
+  diaFinSemana?: number;
 }
 
 export async function exportarSemanalExcel({
@@ -73,13 +89,15 @@ export async function exportarSemanalExcel({
   empleados,
   records,
   tiendas = [],
+  diaInicioSemana = 1,
+  diaFinSemana = 0,
 }: ExportarSemanalParams) {
   const workbook = new ExcelJS.Workbook();
   const inicioStr = fechaInicio.format('DD/MM/YYYY');
   const finStr = fechaFin.format('DD/MM/YYYY');
 
   const worksheet = workbook.addWorksheet(`Reporte Semanal`);
-  const semanas = getSemanasRango(fechaInicio, fechaFin);
+  const semanas = getSemanasRango(fechaInicio, fechaFin, diaInicioSemana, diaFinSemana);
 
   const tiendasMap = new Map<number, string>(tiendas.map(t => [Number(t.id), t.name]));
 
