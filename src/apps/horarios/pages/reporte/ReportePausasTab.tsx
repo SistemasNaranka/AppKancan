@@ -1,6 +1,7 @@
 import React from 'react';
 import {
-  Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, IconButton, Avatar, Chip
+  Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, IconButton, Avatar, Chip,
+  Select, MenuItem
 } from '@mui/material';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -15,6 +16,8 @@ interface ReportePausasTabProps {
   pagePausas: number;
   setPagePausas: React.Dispatch<React.SetStateAction<number>>;
   totalPagesPausas: number;
+  rowsPerPagePausas?: number;
+  setRowsPerPagePausas?: (rows: number) => void;
 }
 
 export default function ReportePausasTab({
@@ -22,7 +25,9 @@ export default function ReportePausasTab({
   eventReportsFiltrados,
   pagePausas,
   setPagePausas,
-  totalPagesPausas
+  totalPagesPausas,
+  rowsPerPagePausas = 5,
+  setRowsPerPagePausas,
 }: ReportePausasTabProps) {
   return (
     <>
@@ -39,25 +44,31 @@ export default function ReportePausasTab({
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedPausas.map((report: any, idx: number) => {
-              const first = report.employee_id?.first_name || '';
-              const middle = report.employee_id?.middle_name || '';
-              const last = report.employee_id?.last_name || '';
-              const second = report.employee_id?.second_last_name || '';
-              const nombreEmpleado = [first, middle, last, second].filter(Boolean).join(' ').trim() || `Empleado #${report.employee_id?.id || ''}`;
+            {paginatedPausas.map((r: any, idx: number) => {
+              const emp = r.employee_id || {};
+              const first = emp.first_name || '';
+              const middle = emp.middle_name || '';
+              const last = emp.last_name || '';
+              const second = emp.second_last_name || '';
+              const nombreEmpleado = [first, middle, last, second].filter(Boolean).join(' ').trim() || 'Empleado';
               const inicial = nombreEmpleado.charAt(0).toUpperCase();
-              const fechaFormateada = report.date ? dayjs(report.date).format('DD [de] MMM [de] YYYY') : '—';
-              const horaFormateada = report.hour ? report.hour.substring(0, 5) : '—';
-              const observacion = report.observations || '—';
+
+              const rawDate = r.date || r.report_date || r.record_date || (r.date_created ? dayjs(r.date_created).format('YYYY-MM-DD') : null);
+              const fecha = rawDate ? dayjs(rawDate).format('DD [de] MMM [de] YYYY') : '—';
+
+              const rawHour = r.hour || r.record_time || r.time || (r.date_created ? dayjs(r.date_created).format('HH:mm:ss') : null);
+              const hora = rawHour ? String(rawHour).substring(0, 5) : '—';
+              const tiendaNombre = r.store_id?.name || (r.store_id ? `Tienda #${r.store_id}` : '—');
+              const tipoEvento = r.event_type || r.event || 'Pausa Activa';
 
               return (
                 <TableRow
-                  key={report.id || idx}
+                  key={r.id || idx}
                   hover
                   sx={{ bgcolor: idx % 2 === 0 ? '#ffffff' : '#fafcff', transition: 'all 0.2s', '&:hover': { bgcolor: '#eef4ff' } }}
                 >
-                  <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#1e293b' }}>{fechaFormateada}</TableCell>
-                  <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#1e293b' }}>{horaFormateada}</TableCell>
+                  <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#1e293b' }}>{fecha}</TableCell>
+                  <TableCell sx={{ py: 1.5, fontWeight: 600, color: '#004680' }}>{hora}</TableCell>
                   <TableCell sx={{ py: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Avatar sx={{ width: 36, height: 36, bgcolor: getAvatarColor(nombreEmpleado), fontSize: '1rem', fontWeight: 600 }}>
@@ -65,34 +76,41 @@ export default function ReportePausasTab({
                       </Avatar>
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b' }}>{nombreEmpleado}</Typography>
-                        {report.employee_id?.document_number && (
-                          <Typography variant="caption" sx={{ color: '#64748b' }}>Doc: {formatDocumentNumber(report.employee_id.document_number)}</Typography>
+                        {emp.document_number && (
+                          <Typography variant="caption" sx={{ color: '#64748b' }}>Doc: {formatDocumentNumber(emp.document_number)}</Typography>
                         )}
                       </Box>
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#475569' }}>
-                    {report.store_id?.name || '—'}
+                  <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#475569' }}>{tiendaNombre}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      const isStart = (tipoEvento || '').toLowerCase().includes('inici') || (tipoEvento || '').toLowerCase().includes('comenz');
+                      const chipBg = isStart ? '#e6f4ea' : '#fff7ed';
+                      const chipColor = isStart ? '#15803d' : '#c2410c';
+                      const chipBorder = isStart ? '1px solid #bbf7d0' : '1px solid #ffedd5';
+
+                      return (
+                        <Chip
+                          icon={<PauseCircleIcon sx={{ fontSize: '1rem !important', color: `${chipColor} !important` }} />}
+                          label={tipoEvento}
+                          size="medium"
+                          sx={{
+                            bgcolor: chipBg,
+                            color: chipColor,
+                            border: chipBorder,
+                            fontWeight: 600,
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                          }}
+                        />
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      icon={<PauseCircleIcon sx={{ fontSize: '1rem !important' }} />}
-                      label={report.event_type}
-                      size="medium"
-                      sx={{
-                        bgcolor: report.event_type.includes('Terminar') ? 'rgba(22, 163, 74, 0.06)' : 'rgba(8, 145, 178, 0.06)',
-                        color: report.event_type.includes('Terminar') ? 'rgba(22, 163, 74, 0.8)' : 'rgba(8, 145, 178, 0.8)',
-                        fontWeight: 600,
-                        borderRadius: '20px',
-                        fontSize: '0.75rem',
-                        '& .MuiChip-icon': {
-                          color: report.event_type.includes('Terminar') ? 'rgba(22, 163, 74, 0.8)' : 'rgba(8, 145, 178, 0.8)',
-                        }
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ color: '#475569', maxWidth: 300, wordBreak: 'break-word' }}>{observacion}</Typography>
+                    <Typography variant="body2" sx={{ color: '#475569', maxWidth: 300, wordBreak: 'break-word' }}>
+                      {r.observations || r.observaciones || '—'}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               );
@@ -117,36 +135,77 @@ export default function ReportePausasTab({
       {/* Paginador */}
       {eventReportsFiltrados.length > 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#fff', borderTop: '1px solid #eef2f6' }}>
-          <Typography variant="caption" color="#64748b">
-            Mostrando {paginatedPausas.length} de {eventReportsFiltrados.length} pausas activas
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="caption" color="#64748b">
+              Mostrando {paginatedPausas.length} de {eventReportsFiltrados.length} pausas activas
+            </Typography>
+            {setRowsPerPagePausas && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="caption" color="#64748b">
+                  Registros por página:
+                </Typography>
+                <Select
+                  value={rowsPerPagePausas}
+                  onChange={(e) => {
+                    setRowsPerPagePausas(Number(e.target.value));
+                    setPagePausas(0);
+                  }}
+                  size="small"
+                  sx={{
+                    bgcolor: '#f1f7fe',
+                    borderRadius: 2,
+                    fontSize: '0.75rem',
+                    minWidth: 70,
+                    height: 30,
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#94a3b8' },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#004680' }
+                  }}
+                >
+                  <MenuItem value={5}>5</MenuItem>
+                  <MenuItem value={10}>10</MenuItem>
+                  <MenuItem value={20}>20</MenuItem>
+                  <MenuItem value={25}>25</MenuItem>
+                </Select>
+              </Box>
+            )}
+          </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <IconButton size="small" disabled={pagePausas === 0} onClick={() => setPagePausas((p) => Math.max(p - 1, 0))} sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}>
               <ChevronLeftIcon fontSize="small" />
             </IconButton>
-            {[...Array(Math.min(totalPagesPausas, 7))].map((_, i) => {
-              let pageNum = i;
-              if (totalPagesPausas > 7) {
-                if (pagePausas < 3) pageNum = i;
-                else if (pagePausas > totalPagesPausas - 4) pageNum = totalPagesPausas - 7 + i;
-                else pageNum = pagePausas - 3 + i;
+            {(() => {
+              const paginas: (number | string)[] = [];
+              if (totalPagesPausas <= 7) {
+                for (let i = 0; i < totalPagesPausas; i++) paginas.push(i);
+              } else {
+                paginas.push(0);
+                if (pagePausas > 2) paginas.push('dots-1');
+                const start = Math.max(1, pagePausas - 1);
+                const end = Math.min(totalPagesPausas - 2, pagePausas + 1);
+                for (let i = start; i <= end; i++) paginas.push(i);
+                if (pagePausas < totalPagesPausas - 3) paginas.push('dots-2');
+                paginas.push(totalPagesPausas - 1);
               }
-              const isActive = pagePausas === pageNum;
-              return (
-                <Box
-                  key={i}
-                  onClick={() => setPagePausas(pageNum)}
-                  sx={{
-                    width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5, cursor: 'pointer',
-                    bgcolor: isActive ? '#004680' : '#fff', color: isActive ? '#fff' : '#5e6f8d',
-                    border: isActive ? 'none' : '1px solid #dfe4ec', fontWeight: isActive ? 700 : 500, fontSize: '0.85rem', transition: 'all 0.2s',
-                    '&:hover': { bgcolor: isActive ? '#004680' : '#f1f5f9' }
-                  }}
-                >
-                  {pageNum + 1}
-                </Box>
+              return paginas.map((item, idx) =>
+                typeof item === 'string' ? (
+                  <Typography key={`${item}-${idx}`} variant="caption" sx={{ color: '#94a3b8', px: 0.5 }}>...</Typography>
+                ) : (
+                  <Box
+                    key={item}
+                    onClick={() => setPagePausas(item)}
+                    sx={{
+                      width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5, cursor: 'pointer',
+                      bgcolor: pagePausas === item ? '#004680' : '#fff', color: pagePausas === item ? '#fff' : '#5e6f8d',
+                      border: pagePausas === item ? 'none' : '1px solid #dfe4ec', fontWeight: pagePausas === item ? 700 : 500, fontSize: '0.85rem', transition: 'all 0.2s',
+                      '&:hover': { bgcolor: pagePausas === item ? '#004680' : '#f1f5f9' }
+                    }}
+                  >
+                    {item + 1}
+                  </Box>
+                )
               );
-            })}
+            })()}
             <IconButton size="small" disabled={pagePausas === totalPagesPausas - 1} onClick={() => setPagePausas((p) => Math.min(p + 1, totalPagesPausas - 1))} sx={{ border: '1px solid #dfe4ec', borderRadius: 1.5, width: 32, height: 32 }}>
               <ChevronRightIcon fontSize="small" />
             </IconButton>

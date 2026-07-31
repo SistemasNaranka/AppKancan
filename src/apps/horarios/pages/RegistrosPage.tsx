@@ -620,7 +620,7 @@ function RegistrosPageContent() {
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <NovedadesTab novedades={novedades} esAdmin={esAdmin()} storeOverride={storeOverride} />
+            <NovedadesTab novedades={novedades} esAdmin={esAdmin()} storeOverride={storeOverride ?? undefined} />
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>

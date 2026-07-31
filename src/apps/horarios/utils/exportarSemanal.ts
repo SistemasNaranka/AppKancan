@@ -15,21 +15,25 @@ export interface TramoSemana {
  * - Si es una quincena (hasta 16 días, ej: 11 al 25), divide en 2 Semanas Quincenales (Semana 1: 7 días, Semana 2: días restantes).
  * - Si es un período más largo (un mes entero), divide en bloques de 7 días.
  */
-export function getSemanasRango(inicio: Dayjs, fin: Dayjs): TramoSemana[] {
+export function getSemanasRango(
+  inicio: Dayjs, 
+  fin: Dayjs, 
+  diaInicio: number = 1, 
+  diaFin: number = 0
+): TramoSemana[] {
   const totalDias = fin.diff(inicio, 'day') + 1;
-  const semanas: TramoSemana[] = [];
 
-  // Si es un período quincenal típico (ej. 11 al 25, 12 a 16 días)
   if (totalDias >= 12 && totalDias <= 16) {
-    const corteSemana1 = inicio.add(6, 'day'); // 7 días (ej. 11 al 17)
-    
-    semanas.push({
-      start: inicio.format('YYYY-MM-DD'),
-      end: corteSemana1.format('YYYY-MM-DD'),
-      label: `${inicio.format('DD/MM')} - ${corteSemana1.format('DD/MM')}`
-    });
+    const corteSemana1 = inicio.add(6, 'day');
+    const semanas: TramoSemana[] = [
+      {
+        start: inicio.format('YYYY-MM-DD'),
+        end: corteSemana1.format('YYYY-MM-DD'),
+        label: `${inicio.format('DD/MM')} - ${corteSemana1.format('DD/MM')}`
+      }
+    ];
 
-    const inicioSemana2 = corteSemana1.add(1, 'day'); // (ej. 18 al 25)
+    const inicioSemana2 = corteSemana1.add(1, 'day');
     semanas.push({
       start: inicioSemana2.format('YYYY-MM-DD'),
       end: fin.format('YYYY-MM-DD'),
@@ -39,19 +43,29 @@ export function getSemanasRango(inicio: Dayjs, fin: Dayjs): TramoSemana[] {
     return semanas;
   }
 
-  // Si es un período regular (ej. mes completo), bloques estándar de 7 días
-  let cursor = inicio.clone();
-  while (cursor.isBefore(fin) || cursor.isSame(fin, 'day')) {
-    const endSemana = cursor.add(6, 'day');
-    const realEnd = endSemana.isAfter(fin, 'day') ? fin.clone() : endSemana;
+  let diff = inicio.day() - diaInicio;
+  if (diff < 0) diff += 7;
+  let currentStart = inicio.subtract(diff, 'day');
+
+  let daysSpan = diaFin - diaInicio;
+  if (diaInicio === diaFin) {
+    daysSpan = 6;
+  } else if (daysSpan < 0) {
+    daysSpan += 7;
+  }
+
+  const semanas: TramoSemana[] = [];
+  while (currentStart.isBefore(fin) || currentStart.isSame(fin, 'day')) {
+    const currentEnd = currentStart.add(daysSpan, 'day');
+    const realEnd = currentEnd.isAfter(fin, 'day') ? fin.clone() : currentEnd;
 
     semanas.push({
-      start: cursor.format('YYYY-MM-DD'),
+      start: currentStart.format('YYYY-MM-DD'),
       end: realEnd.format('YYYY-MM-DD'),
-      label: `${cursor.format('DD/MM')} - ${realEnd.format('DD/MM')}`
+      label: `${currentStart.format('DD/MM')} - ${realEnd.format('DD/MM')}`
     });
 
-    cursor = realEnd.add(1, 'day');
+    currentStart = currentStart.add(7, 'day');
   }
 
   return semanas;
@@ -64,22 +78,23 @@ interface ExportarSemanalParams {
   empleados: any[];
   records: any[];
   tiendas?: Tienda[];
+  diaInicioSemana?: number;
+  diaFinSemana?: number;
 }
 
 export async function exportarSemanalExcel({
-  tiendaNombre,
+  tiendaNombre: _tiendaNombre,
   fechaInicio,
   fechaFin,
   empleados,
   records,
   tiendas = [],
+  diaInicioSemana = 1,
+  diaFinSemana = 0,
 }: ExportarSemanalParams) {
   const workbook = new ExcelJS.Workbook();
-  const inicioStr = fechaInicio.format('DD/MM/YYYY');
-  const finStr = fechaFin.format('DD/MM/YYYY');
-
   const worksheet = workbook.addWorksheet(`Reporte Semanal`);
-  const semanas = getSemanasRango(fechaInicio, fechaFin);
+  const semanas = getSemanasRango(fechaInicio, fechaFin, diaInicioSemana, diaFinSemana);
 
   const tiendasMap = new Map<number, string>(tiendas.map(t => [Number(t.id), t.name]));
 
@@ -121,31 +136,8 @@ export async function exportarSemanalExcel({
     return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
   });
 
-  // 1. Encabezado principal
-  worksheet.mergeCells('A1', `${String.fromCharCode(69 + semanas.length)}1`);
-  const titleCell = worksheet.getCell('A1');
-  titleCell.value = `REPORTE DE HORAS TRABAJADAS - ${tiendaNombre.toUpperCase()}`;
-  titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFF' } };
-  titleCell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: '004680' },
-  };
-  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getRow(1).height = 35;
-
-  // Subtítulo
-  worksheet.mergeCells('A2', `${String.fromCharCode(69 + semanas.length)}2`);
-  const subCell = worksheet.getCell('A2');
-  subCell.value = `Período del ${inicioStr} al ${finStr} | Generado: ${new Date().toLocaleDateString('es-CO')}`;
-  subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: '555555' } };
-  subCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getRow(2).height = 20;
-
-  worksheet.addRow([]); // Fila vacía
-
-  // 2. Cabeceras de tabla
-  const headers = ['Tienda(s) Laborada(s)', 'Empleado', 'Documento', 'Cargo'];
+  // 1. Cabeceras de tabla directamente en la fila 1
+  const headers = ['Tiendas', 'Empleado', 'Documento', 'Cargo'];
   semanas.forEach((sem, idx) => {
     headers.push(`Semana ${idx + 1}\n(${sem.label})`);
   });
@@ -171,11 +163,7 @@ export async function exportarSemanalExcel({
     };
   });
 
-  // Acumuladores de totales por columna de semana y total general
-  const totalesSemanasMinutos: number[] = new Array(semanas.length).fill(0);
-  let totalGeneralPeriodoMinutos = 0;
-
-  // 3. Filas de empleados
+  // 2. Filas de empleados
   empleadosOrdenados.forEach((emp, index) => {
     const nombreEmpleado = emp.nombre || `Empleado #${emp.id}`;
     const documento = emp.documento || '--';
@@ -185,14 +173,12 @@ export async function exportarSemanalExcel({
     let totalMinutesPeriod = 0;
     const rowValues: (string | number)[] = [tiendasTexto, nombreEmpleado, documento, cargo];
 
-    semanas.forEach((sem, sIdx) => {
+    semanas.forEach((sem) => {
       const minSemana = calcularMinutosSemanales(emp.id, sem.start, sem.end, records);
       totalMinutesPeriod += minSemana;
-      totalesSemanasMinutos[sIdx] += minSemana;
       rowValues.push(formatMinutes(minSemana));
     });
 
-    totalGeneralPeriodoMinutos += totalMinutesPeriod;
     rowValues.push(formatMinutes(totalMinutesPeriod));
 
     const row = worksheet.addRow(rowValues);
@@ -222,35 +208,6 @@ export async function exportarSemanalExcel({
         right: { style: 'thin', color: { argb: 'E2E8F0' } },
       };
     });
-  });
-
-  // 4. Fila de TOTAL GENERAL al pie de la tabla
-  const totalRowValues: (string | number)[] = ['TOTAL GENERAL', `${empleadosOrdenados.length} Empleados`, '--', '--'];
-  totalesSemanasMinutos.forEach((minSem) => {
-    totalRowValues.push(formatMinutes(minSem));
-  });
-  totalRowValues.push(formatMinutes(totalGeneralPeriodoMinutos));
-
-  const totalRow = worksheet.addRow(totalRowValues);
-  totalRow.height = 26;
-
-  totalRow.eachCell((cell, colNumber) => {
-    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: '004680' } };
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'EAF2FB' },
-    };
-    cell.alignment = {
-      horizontal: colNumber <= 4 ? 'left' : 'center',
-      vertical: 'middle',
-    };
-    cell.border = {
-      top: { style: 'medium', color: { argb: '004680' } },
-      bottom: { style: 'double', color: { argb: '004680' } },
-      left: { style: 'thin', color: { argb: 'CCCCCC' } },
-      right: { style: 'thin', color: { argb: 'CCCCCC' } },
-    };
   });
 
   // Ajustar anchos de columnas

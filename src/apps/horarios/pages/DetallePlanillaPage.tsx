@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box, Container, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Avatar, Chip,
@@ -112,13 +112,26 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     return tiendasFiltradas;
   }, [tiendasFiltradas, propStoreId]);
 
-  const fechaStr = fechaSeleccionada.format('YYYY-MM-DD');
+  // La fecha "debounced" es la que realmente dispara las consultas a la API.
+  // Se actualiza 400ms después del último cambio, así varios clics seguidos
+  // en "Ayer" / "Día Anterior" no generan una llamada por cada clic.
+  const [fechaDebounced, setFechaDebounced] = useState<Dayjs>(fechaSeleccionada);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFechaDebounced(fechaSeleccionada);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [fechaSeleccionada]);
+
+  const fechaStr = fechaDebounced.format('YYYY-MM-DD');
 
   const handleFechaChange = (newDate: Dayjs | null) => {
     if (newDate) {
       setFechaSeleccionada(newDate);
       setPage(0);
-      queryClient.invalidateQueries({ queryKey: ['recordsDiaMulti'] });
+      // Ya no invalidamos manualmente: al cambiar fechaStr (debounced),
+      // React Query detecta el nuevo queryKey y refetch solo una vez.
     }
   };
 
@@ -129,6 +142,15 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     const handleAyer = () => {
       handleFechaChange(dayjs().subtract(1, 'day'));
       setOpen(false);
+    };
+
+    const handleAnteayer = () => {
+      // Resta un día sobre la fecha YA seleccionada (no sobre hoy),
+      // así cada clic retrocede un día más de forma sucesiva.
+      // dayjs ya maneja el cambio de mes/año automáticamente.
+      handleFechaChange(fechaSeleccionada.subtract(1, 'day'));
+      // No cerramos el popup: así puedes seguir dando clic para retroceder
+      // día por día sin tener que volver a abrir el calendario.
     };
 
     const handleHoy = () => {
@@ -166,6 +188,20 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               fontWeight: 600,
               py: 1,
             }}
+            onClick={handleHoy}
+          >
+            Hoy
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            fullWidth
+            sx={{
+              bgcolor: '#004680',
+              '&:hover': { bgcolor: '#003366' },
+              fontWeight: 600,
+              py: 1,
+            }}
             onClick={handleAyer}
           >
             Ayer
@@ -180,9 +216,9 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               fontWeight: 600,
               py: 1,
             }}
-            onClick={handleHoy}
+            onClick={handleAnteayer}
           >
-            Hoy
+            Día Anterior
           </Button>
         </Box>
       </Box>
@@ -498,19 +534,17 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
   return (
     <Box sx={{ backgroundColor: '#f5f7fa', pt: 0.5, pb: 1.5 }}>
       <Container maxWidth="xl">
-        {/* Encabezado */}
+        {/* ==================== ENCABEZADO (sin fecha) ==================== */}
         <Paper elevation={0} sx={{ p: { xs: 1, sm: 2 }, mb: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: 'transparent' }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
             <Typography variant="h5" fontWeight={700} color="#0a1929" sx={{ textTransform: 'uppercase', fontSize: { xs: '1rem', sm: '1.3rem' } }}>
-              DETALLE DE PLANILLA
+              EDITAR REGISTROS
             </Typography>
-            <Typography variant="caption" fontWeight={600} color="#64748b" sx={{ fontSize: { xs: '0.6rem', sm: '0.75rem' } }}>
-              {fechaSeleccionada.format('dddd, D [de] MMMM [de] YYYY')}
-            </Typography>
+            {/* ❌ Eliminado: el Typography de la fecha */}
           </Box>
         </Paper>
 
-        {/* Filtros con DatePicker personalizado */}
+        {/* ==================== FILTROS ==================== */}
         <Paper elevation={0} sx={{ p: 1.5, mb: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: 'transparent' }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
@@ -546,10 +580,15 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               sx={{ width: 520 }}
             />
+
+            {/* 🔥 NUEVO: Fecha al lado del buscador */}
+            <Typography variant="body2" fontWeight={600} color="#64748b" sx={{ fontSize: '0.9rem' }}>
+              {fechaSeleccionada.format('dddd, D [de] MMMM [de] YYYY')}
+            </Typography>
           </Box>
         </Paper>
 
-        {/* Tabla */}
+        {/* ==================== TABLA ==================== */}
         <TableContainer 
           component={Paper} 
           elevation={0} 
@@ -570,7 +609,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                 <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>INICIO ALMUERZO</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>FIN ALMUERZO</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>FIN JORNADA</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>HORAS DÍA</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>TOTAL HORAS</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>NOVEDADES</TableCell>
               </TableRow>
             </TableHead>
@@ -609,15 +648,16 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
 
                       {eventosHoras.map((evento) => {
                         const esHoraExistente = !!evento.hora;
+                        const esNoAplica = !esHoraExistente && fila.tieneNovedad;
                         const puedeEditar = esAdmin() || isAreaMgr;
                         
-                        // Obtener la observación del registro correspondiente
                         const record = recordsTienda.find(r => r.id === evento.recordId);
                         const observacion = record?.observations || '';
 
-                        // Tooltip con encabezado "Observación:" o mensaje para pendiente
                         const tooltipTitle = esHoraExistente
                           ? (observacion ? `Observación: ${observacion}` : 'Sin observación')
+                          : esNoAplica
+                          ? `No aplica (${fila.novedadTipo || 'Novedad'})`
                           : 'Sin observación registrada';
 
                         return (
@@ -631,6 +671,12 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                                     label={evento.hora}
                                     sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
                                   />
+                                ) : esNoAplica ? (
+                                  <Chip
+                                    size="small"
+                                    label="No Aplica"
+                                    sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
+                                  />
                                 ) : (
                                   <Chip
                                     size="small"
@@ -639,7 +685,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                                     sx={{ bgcolor: '#f5f5f5', color: '#757575', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
                                   />
                                 )}
-                                {puedeEditar && (
+                                {puedeEditar && !esNoAplica && (
                                   <IconButton
                                     size="small"
                                     onClick={() => {
@@ -682,7 +728,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
           </Table>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1, borderTop: '1px solid #e0e0e0', bgcolor: '#fafbfc' }}>
             <Typography variant="caption" color="text.secondary">
-              Mostrando {Math.min((page + 1) * rowsPerPage, totalFilas)} de {totalFilas} empleados
+              Mostrando {Math.min((page + 1) * rowsPerPage, totalFilas)} de {totalFilas} registros
             </Typography>
             {totalFilas > rowsPerPage && (
               <Pagination

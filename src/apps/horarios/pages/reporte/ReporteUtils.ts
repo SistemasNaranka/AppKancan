@@ -13,49 +13,85 @@ export const getAvatarColor = (texto: string) => {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 };
 
-export function getSemanasDelMes(anio: number, mes: number) {
+export const DIAS_DE_LA_SEMANA = [
+  { value: 1, label: 'Lunes' },
+  { value: 2, label: 'Martes' },
+  { value: 3, label: 'Miércoles' },
+  { value: 4, label: 'Jueves' },
+  { value: 5, label: 'Viernes' },
+  { value: 6, label: 'Sábado' },
+  { value: 0, label: 'Domingo' },
+];
+
+export function getSemanasDelMes(
+  anio: number,
+  mes: number,
+  diaInicio: number = 1,
+  diaFin: number = 0
+) {
   const startOfMonth = dayjs().year(anio).month(mes).startOf('month');
   const endOfMonth = startOfMonth.endOf('month');
 
-  const semanas = [];
-  let currentMonday = startOfMonth.subtract((startOfMonth.day() + 6) % 7, 'day');
+  let diff = startOfMonth.day() - diaInicio;
+  if (diff < 0) diff += 7;
+  let currentStart = startOfMonth.subtract(diff, 'day');
 
-  while (currentMonday.isBefore(endOfMonth) || currentMonday.isSame(endOfMonth, 'day')) {
-    const sunday = currentMonday.add(6, 'day');
+  let daysSpan = diaFin - diaInicio;
+  if (diaInicio === diaFin) {
+    daysSpan = 6;
+  } else if (daysSpan < 0) {
+    daysSpan += 7;
+  }
+
+  const semanas = [];
+  while (currentStart.isBefore(endOfMonth) || currentStart.isSame(endOfMonth, 'day')) {
+    const currentEnd = currentStart.add(daysSpan, 'day');
     semanas.push({
-      start: currentMonday.format('YYYY-MM-DD'),
-      end: sunday.format('YYYY-MM-DD'),
-      label: `${currentMonday.format('DD/MM')} - ${sunday.format('DD/MM')}`
+      start: currentStart.format('YYYY-MM-DD'),
+      end: currentEnd.format('YYYY-MM-DD'),
+      label: `${currentStart.format('DD/MM')} - ${currentEnd.format('DD/MM')}`
     });
-    currentMonday = currentMonday.add(7, 'day');
+    currentStart = currentStart.add(7, 'day');
   }
   return semanas;
 }
 
 export const calcularMinutosSemanales = (empId: any, startStr: string, endStr: string, records: any[]): number => {
-    const start = dayjs(startStr);
-    const end = dayjs(endStr);
+    if (!empId || !records || records.length === 0) return 0;
+    const numericEmpId = Number(empId);
     
-    const empRecords = records.filter(r => {
-        const id = Number(r.employee_id?.id || r.employee_id);
-        if (id !== Number(empId)) return false;
-        const date = dayjs(r.record_date);
-        return (date.isSame(start, 'day') || date.isAfter(start, 'day')) && 
-               (date.isSame(end, 'day') || date.isBefore(end, 'day'));
-    });
-
-    if (empRecords.length === 0) return 0;
-
     const byDay: Record<string, any[]> = {};
-    empRecords.forEach(r => {
-        (byDay[r.record_date] ||= []).push(r);
-    });
+    let count = 0;
+
+    for (let i = 0; i < records.length; i++) {
+        const r = records[i];
+        const id = Number(r.employee_id?.id || r.employee_id);
+        if (id !== numericEmpId) continue;
+        const dateStr = r.record_date;
+        if (!dateStr || dateStr < startStr || dateStr > endStr) continue;
+
+        (byDay[dateStr] ||= []).push(r);
+        count++;
+    }
+
+    if (count === 0) return 0;
 
     let totalMinutes = 0;
     for (const date in byDay) {
         const recs = byDay[date];
-        const entrada = recs.find(r => r.log_type === 'Comenzar Jornada');
-        const salida = recs.find(r => r.log_type === 'Terminar Jornada');
+        let entrada: any = null;
+        let salida: any = null;
+        let iniAlmuerzo: any = null;
+        let finAlmuerzo: any = null;
+
+        for (let j = 0; j < recs.length; j++) {
+            const type = recs[j].log_type;
+            if (type === 'Comenzar Jornada') entrada = recs[j];
+            else if (type === 'Terminar Jornada') salida = recs[j];
+            else if (type === 'Iniciar Almuerzo') iniAlmuerzo = recs[j];
+            else if (type === 'Finalizar Almuerzo') finAlmuerzo = recs[j];
+        }
+
         if (entrada && salida) {
             const h1 = entrada.record_time || entrada.time;
             const h2 = salida.record_time || salida.time;
@@ -66,8 +102,6 @@ export const calcularMinutosSemanales = (empId: any, startStr: string, endStr: s
                     let totalDia = (c * 60 + d) - (a * 60 + b);
                     if (totalDia < 0) totalDia = 0;
 
-                    const iniAlmuerzo = recs.find(r => r.log_type === 'Iniciar Almuerzo');
-                    const finAlmuerzo = recs.find(r => r.log_type === 'Finalizar Almuerzo');
                     if (iniAlmuerzo && finAlmuerzo) {
                         const ha1 = iniAlmuerzo.record_time || iniAlmuerzo.time;
                         const ha2 = finAlmuerzo.record_time || finAlmuerzo.time;

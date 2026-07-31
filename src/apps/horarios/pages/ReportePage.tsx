@@ -3,9 +3,6 @@ import {
   Box, Paper, Button, TextField, InputAdornment, Stack,
   Autocomplete
 } from '@mui/material';
-import HistoryIcon from '@mui/icons-material/History';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Joyride from 'react-joyride';
@@ -13,12 +10,13 @@ import { CustomTooltip } from '../components/tour/TourTooltip';
 import dayjs, { Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 
-import DateRangeIcon from '@mui/icons-material/DateRange';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
 import ExportHistorialDialog from '../components/reportes/ExportHistorialDialog';
 import ExportNovedadesDialog from '../components/reportes/ExportNovedadesDialog';
 import ExportEventosDialog from '../components/reportes/ExportEventosDialog';
 import ExportSemanalDialog from '../components/reportes/ExportSemanalDialog';
+import ExportUnificadoDialog from '../components/reportes/ExportUnificadoDialog';
 import HistorialPage from './HistorialPage';
 import NovedadesTab from '../components/NovedadesTab';
 import { getStores, getStoreEventReports, getStoreNovedades, getEmpleadosBulk, getTimeRecordsBulkRange, getPrimerPeriodoRegistro } from '../api/directus/read';
@@ -47,6 +45,8 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   // Estados para reporte semanal
   const [selectedYear, setSelectedYear] = useState(dayjs().year());
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month()); // 0-indexed
+  const [diaInicioSemana, setDiaInicioSemana] = useState<number>(1); // 1 = Lunes por defecto
+  const [diaFinSemana, setDiaFinSemana] = useState<number>(0); // 0 = Domingo por defecto
   const [pageSemanal, setPageSemanal] = useState(0);
   const ROWS_PER_PAGE_SEMANAL = 10;
   const [reporteSemanalModo, setReporteSemanalModo] = useState<'tienda' | 'empleado'>('tienda');
@@ -56,9 +56,10 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   const [exportNovedadesOpen, setExportNovedadesOpen] = useState(false);
   const [exportEventosOpen, setExportEventosOpen] = useState(false);
   const [exportSemanalOpen, setExportSemanalOpen] = useState(false);
+  const [exportUnificadoOpen, setExportUnificadoOpen] = useState(false);
 
   const [pagePausas, setPagePausas] = useState(0);
-  const ROWS_PER_PAGE_PAUSAS = 5;
+  const [rowsPerPagePausas, setRowsPerPagePausas] = useState(5);
 
   // --- Tour guiado ---
   const [runTour, setRunTour] = useState(false);
@@ -136,6 +137,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
       rangoFin ? rangoFin.format('YYYY-MM-DD') : undefined
     ),
     enabled: visualizarTab === 'pausas',
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -145,67 +147,77 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   const { data: storeNovedades = [] } = useQuery<any[]>({
     queryKey: ['storeNovedadesHistory', queryStoreId],
     queryFn: () => getStoreNovedades(queryStoreId),
-    enabled: visualizarTab === 'novedades',
+    enabled: visualizarTab === 'novedades' || visualizarTab === 'semanal',
+    staleTime: 5 * 60 * 1000,
   });
 
   // Filtrar las novedades en pantalla según fechas y búsqueda por nombre de ReportePage
-  const novedadesFiltradas = storeNovedades.filter((n) => {
-    const matchNombre = (n.empleadoNombre || '').toLowerCase().includes(searchNombre.toLowerCase());
-    let matchFecha = true;
-    if (rangoInicio || rangoFin) {
-      const fechaNov = dayjs(n.fecha);
-      if (rangoInicio && fechaNov.isBefore(rangoInicio, 'day')) matchFecha = false;
-      if (rangoFin && fechaNov.isAfter(rangoFin, 'day')) matchFecha = false;
-    }
-    return matchNombre && matchFecha;
-  });
+  const novedadesFiltradas = useMemo(() => {
+    return storeNovedades.filter((n) => {
+      const matchNombre = (n.empleadoNombre || '').toLowerCase().includes(searchNombre.toLowerCase());
+      let matchFecha = true;
+      if (rangoInicio || rangoFin) {
+        const fechaNov = dayjs(n.fecha);
+        if (rangoInicio && fechaNov.isBefore(rangoInicio, 'day')) matchFecha = false;
+        if (rangoFin && fechaNov.isAfter(rangoFin, 'day')) matchFecha = false;
+      }
+      return matchNombre && matchFecha;
+    });
+  }, [storeNovedades, searchNombre, rangoInicio, rangoFin]);
 
   // Filtrar las pausas activas según búsqueda por nombre de ReportePage
-  const eventReportsFiltrados = eventReports.filter((r) => {
-    const first = r.employee_id?.first_name || '';
-    const middle = r.employee_id?.middle_name || '';
-    const last = r.employee_id?.last_name || '';
-    const second = r.employee_id?.second_last_name || '';
-    const fullName = [first, middle, last, second].filter(Boolean).join(' ').trim();
-    return fullName.toLowerCase().includes(searchNombre.toLowerCase());
-  });
+  const eventReportsFiltrados = useMemo(() => {
+    return eventReports.filter((r) => {
+      const first = r.employee_id?.first_name || '';
+      const middle = r.employee_id?.middle_name || '';
+      const last = r.employee_id?.last_name || '';
+      const second = r.employee_id?.second_last_name || '';
+      const fullName = [first, middle, last, second].filter(Boolean).join(' ').trim();
+      return fullName.toLowerCase().includes(searchNombre.toLowerCase());
+    });
+  }, [eventReports, searchNombre]);
 
   // Paginación para Pausas Activas
   const paginatedPausas = eventReportsFiltrados.slice(
-    pagePausas * ROWS_PER_PAGE_PAUSAS,
-    pagePausas * ROWS_PER_PAGE_PAUSAS + ROWS_PER_PAGE_PAUSAS
+    pagePausas * rowsPerPagePausas,
+    pagePausas * rowsPerPagePausas + rowsPerPagePausas
   );
-  const totalPagesPausas = Math.max(1, Math.ceil(eventReportsFiltrados.length / ROWS_PER_PAGE_PAUSAS));
+  const totalPagesPausas = Math.max(1, Math.ceil(eventReportsFiltrados.length / rowsPerPagePausas));
 
   // Consultas y datos para el Reporte Semanal
   const semanasDelMes = useMemo(() => {
-    return getSemanasDelMes(selectedYear, selectedMonth);
-  }, [selectedYear, selectedMonth]);
+    return getSemanasDelMes(selectedYear, selectedMonth, diaInicioSemana, diaFinSemana);
+  }, [selectedYear, selectedMonth, diaInicioSemana, diaFinSemana]);
 
   const startRange = semanasDelMes[0]?.start;
   const endRange = semanasDelMes[semanasDelMes.length - 1]?.end;
 
+  const allStoreIds = useMemo(() => tiendasAMostrar.map(t => Number(t.id)), [tiendasAMostrar]);
+
+  const targetStores = useMemo(() => {
+    if (storeSel !== null) return [storeSel];
+    return allStoreIds;
+  }, [storeSel, allStoreIds]);
+
   const { data: recordsMensuales = [], isLoading: cargandoRecords } = useQuery({
-    queryKey: ['recordsMensuales', storeSel, startRange, endRange],
+    queryKey: ['recordsMensuales', targetStores, startRange, endRange],
     queryFn: () => {
-      if (!storeSel || !startRange || !endRange) return Promise.resolve([]);
-      return getTimeRecordsBulkRange([storeSel], startRange, endRange);
+      if (targetStores.length === 0 || !startRange || !endRange) return Promise.resolve([]);
+      return getTimeRecordsBulkRange(targetStores, startRange, endRange);
     },
-    enabled: visualizarTab === 'semanal' && reporteSemanalModo === 'tienda' && !!storeSel && !!startRange && !!endRange,
+    enabled: visualizarTab === 'semanal' && reporteSemanalModo === 'tienda' && targetStores.length > 0 && !!startRange && !!endRange,
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: empleadosStore = [], isLoading: cargandoEmpleados } = useQuery({
-    queryKey: ['empleadosStore', storeSel],
+    queryKey: ['empleadosStore', targetStores],
     queryFn: () => {
-      if (!storeSel) return Promise.resolve([]);
-      return getEmpleadosBulk([storeSel]);
+      if (targetStores.length === 0) return Promise.resolve([]);
+      return getEmpleadosBulk(targetStores);
     },
-    enabled: visualizarTab === 'semanal' && reporteSemanalModo === 'tienda' && !!storeSel,
+    enabled: visualizarTab === 'semanal' && reporteSemanalModo === 'tienda' && targetStores.length > 0,
     staleTime: 5 * 60 * 1000,
   });
-
-  const allStoreIds = useMemo(() => tiendasAMostrar.map(t => Number(t.id)), [tiendasAMostrar]);
 
   const { data: todosEmpleados = [], isLoading: cargandoTodosEmpleados } = useQuery({
     queryKey: ['todosEmpleadosAutocomplete', tiendasPermitidas ? allStoreIds : []],
@@ -418,11 +430,11 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
               {runTour ? 'Tutorial...' : 'Tutorial'}
             </Button>
             <Button
-              data-tour="reporte-tour-export-registros"
+              data-tour="reporte-tour-export-unificado"
               variant="contained"
               disableElevation
-              startIcon={<HistoryIcon />}
-              onClick={() => setExportHistorialOpen(true)}
+              startIcon={<FileDownloadIcon />}
+              onClick={() => setExportUnificadoOpen(true)}
               sx={{
                 bgcolor: '#004680',
                 color: '#fff',
@@ -434,67 +446,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
                 '&:hover': { bgcolor: '#003366' },
               }}
             >
-              Exportar Registros
-            </Button>
-
-            <Button
-              data-tour="reporte-tour-export-novedades"
-              variant="contained"
-              disableElevation
-              startIcon={<AssignmentIcon />}
-              onClick={() => setExportNovedadesOpen(true)}
-              sx={{
-                bgcolor: '#004680',
-                color: '#fff',
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 'bold',
-                height: 40,
-                px: 2.5,
-                '&:hover': { bgcolor: '#003366' },
-              }}
-            >
-              Exportar Novedades
-            </Button>
-
-            <Button
-              data-tour="reporte-tour-export-semanal"
-              variant="contained"
-              disableElevation
-              startIcon={<DateRangeIcon />}
-              onClick={() => setExportSemanalOpen(true)}
-              sx={{
-                bgcolor: '#004680',
-                color: '#fff',
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 'bold',
-                height: 40,
-                px: 2.5,
-                '&:hover': { bgcolor: '#003366' },
-              }}
-            >
-              Exportar Horas Semanales
-            </Button>
-
-            <Button
-              data-tour="reporte-tour-export-pausas"
-              variant="contained"
-              disableElevation
-              startIcon={<PauseCircleIcon />}
-              onClick={() => setExportEventosOpen(true)}
-              sx={{
-                bgcolor: '#004680',
-                color: '#fff',
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 'bold',
-                height: 40,
-                px: 2.5,
-                '&:hover': { bgcolor: '#003366' },
-              }}
-            >
-              Exportar Pausas Activas
+              Exportar Reportes
             </Button>
           </Stack>
         </Box>
@@ -593,7 +545,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             <NovedadesTab 
               novedades={novedadesFiltradas} 
               esAdmin={esAdmin} 
-              storeOverride={storeSel} 
+              storeOverride={storeSel ?? undefined} 
               esReporte={true}
             />
           </Box>
@@ -624,7 +576,12 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             cargandoTodosEmpleados={cargandoTodosEmpleados}
             cargandoRecordsGlobal={cargandoRecordsGlobal}
             storesTrabajadas={storesTrabajadas}
-            todasNovedades={novedadesFiltradas}
+            todasNovedades={storeNovedades}
+            diaInicioSemana={diaInicioSemana}
+            setDiaInicioSemana={setDiaInicioSemana}
+            diaFinSemana={diaFinSemana}
+            setDiaFinSemana={setDiaFinSemana}
+            tiendas={tiendasAMostrar}
           />
         ) : (
           <ReportePausasTab
@@ -633,11 +590,27 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             pagePausas={pagePausas}
             setPagePausas={setPagePausas}
             totalPagesPausas={totalPagesPausas}
+            rowsPerPagePausas={rowsPerPagePausas}
+            setRowsPerPagePausas={setRowsPerPagePausas}
           />
         )}
       </Paper>
 
-      {/* Diálogos de exportación */}
+      {/* Diálogo Unificado de Exportación */}
+      <ExportUnificadoDialog
+        open={exportUnificadoOpen}
+        onClose={() => setExportUnificadoOpen(false)}
+        tabInicial={visualizarTab}
+        storeSel={storeSel}
+        rangoInicioDefault={rangoInicio}
+        rangoFinDefault={rangoFin}
+        searchNombre={searchNombre}
+        tiendasPermitidas={tiendasAMostrar}
+        diaInicioSemana={diaInicioSemana}
+        diaFinSemana={diaFinSemana}
+      />
+
+      {/* Diálogos individuales de exportación (compatibilidad) */}
       <ExportHistorialDialog 
         open={exportHistorialOpen} 
         onClose={() => setExportHistorialOpen(false)} 
@@ -667,6 +640,8 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         fechaInicioDefault={rangoInicio}
         fechaFinDefault={rangoFin}
         tiendasPermitidas={tiendasPermitidas}
+        diaInicioSemana={diaInicioSemana}
+        diaFinSemana={diaFinSemana}
       />
 
       <Joyride

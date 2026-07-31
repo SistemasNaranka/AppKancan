@@ -13,9 +13,8 @@ import { Tienda } from '../interfaces/horarios.interface';
 import ModalDetalleTienda from '../components/ModalDetalleTienda';
 import ModalCierreMasivo from '../components/ModalCierreMasivo';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
-import DetallePlanillaPage from '../pages/DetallePlanillaPage';
 import ReporteSemanalAreaManager from '../components/reportes/ReporteSemanalAreaManager';
-
+import DetallePlanillaPage from '../pages/DetallePlanillaPage';
 // Modules extraídos
 import {
   getColorForMotivo,
@@ -29,7 +28,8 @@ import {
 } from './monitoreo/MonitoreoUtils';
 import { Paginador, TarjetaResumen, TarjetaEstadistica } from './monitoreo/MonitoreoComponents';
 import { useTiendasResumen } from './monitoreo/useTiendasResumen';
-
+// Nuevo componente extraído
+import ModalRankingTiendas from '../components/ModalRankingTiendas';
 
 // ---------- COMPONENTE PRINCIPAL ----------
 export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
@@ -53,6 +53,10 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const [resumenMes, setResumenMes] = useState<Dayjs>(dayjs());
   const [ordenEdiciones, setOrdenEdiciones] = useState<'asc' | 'desc'>('desc');
   const [calendario, setCalendario] = useState<{ empleadoId: number | null; mes: Dayjs; dia: string | null; open: boolean }>({ empleadoId: null, mes: dayjs(), dia: null, open: false });
+
+  // ---------- ESTADOS PARA RANKING DE TIENDAS (SIN FILTRO DE MOTIVOS) ----------
+  const [modalTiendasOpen, setModalTiendasOpen] = useState(false);
+  const [rankingMesTiendas, setRankingMesTiendas] = useState<Dayjs>(dayjs());
 
   const { data: todasLasTiendas = [], isLoading: cargandoTiendas } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'], queryFn: getStores, enabled: esAdmin() || esReport() || isAreaMgr, staleTime: 30 * 60 * 1000
@@ -174,7 +178,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const diasConEdicionesMes = useMemo(() => { const s = new Set<string>(); edicionesDelMes.forEach(r => s.add(r.fecha)); return s; }, [edicionesDelMes]);
   const promedioEdicionesMes = useMemo(() => diasConEdicionesMes.size ? edicionesDelMes.length / diasConEdicionesMes.size : 0, [edicionesDelMes, diasConEdicionesMes]);
 
-  // ---------- EFECTOS PARA REINICIAR PÁGINAS ----------
+  // ---------- EFECTOS ----------
   useEffect(() => {
     setPaginaTiendas(0);
   }, [resumenTiendas, storeId]);
@@ -202,6 +206,10 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const handleAbrirCalendario = (empleadoId: number) => setCalendario({ empleadoId, mes: dayjs(), dia: null, open: true });
   const handleCerrarCalendario = () => setCalendario({ empleadoId: null, mes: dayjs(), dia: null, open: false });
 
+  const handleCloseModalTiendas = () => {
+    setModalTiendasOpen(false);
+  };
+
   // Estado modal de cierre masivo
   const [cierreMasivoOpen, setCierreMasivoOpen] = useState(false);
 
@@ -228,7 +236,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Tab label="Resumen de Asistencia" sx={{ fontWeight: 700, textTransform: 'none' }} />
             <Tab label="Auditoría de Ediciones Manuales" sx={{ fontWeight: 700, textTransform: 'none' }} />
             {isAreaMgr && <Tab label="Control de Horas" sx={{ fontWeight: 700, textTransform: 'none' }} />}
-            {isAreaMgr && <Tab label="Detalle de Planilla" sx={{ fontWeight: 700, textTransform: 'none' }} />}
+            {isAreaMgr && <Tab label="Editar registros" sx={{ fontWeight: 700, textTransform: 'none' }} />}
           </Tabs>
         </Box>
 
@@ -338,11 +346,23 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
         {subTab === 1 && (
           <>
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              {TARJETAS_ESTADISTICAS.map((k, idx) => (
-                <Grid size={{ xs: 12, md: 3 }} key={idx}>
-                  <TarjetaEstadistica {...k} value={k.label === 'TOTAL MODIFICACIONES' ? statsEdiciones.total : k.label === 'EMPLEADOS MONITOREADOS' ? statsEdiciones.empleados : statsEdiciones.topStore} />
-                </Grid>
-              ))}
+              {TARJETAS_ESTADISTICAS.map((k, idx) => {
+                let value = '';
+                if (k.label === 'TOTAL MODIFICACIONES') value = statsEdiciones.total.toString();
+                else if (k.label === 'EMPLEADOS MONITOREADOS') value = statsEdiciones.empleados.toString();
+                else if (k.label === 'TIENDA CON MÁS CAMBIOS') value = statsEdiciones.topStore;
+                return (
+                  <Grid size={{ xs: 12, md: 3 }} key={idx}>
+                    <TarjetaEstadistica
+                      {...k}
+                      value={value}
+                      color={k.label === 'TIENDA CON MÁS CAMBIOS' ? '#e65100' : k.color}
+                      onClick={k.label === 'TIENDA CON MÁS CAMBIOS' ? () => setModalTiendasOpen(true) : undefined}
+                      sx={k.label === 'TIENDA CON MÁS CAMBIOS' ? { cursor: 'pointer' } : {}}
+                    />
+                  </Grid>
+                );
+              })}
               <Grid size={{ xs: 12, md: 3 }}>
                 <TarjetaEstadistica icon={PersonIcon} label="EMPLEADO CON MÁS EDICIONES" value={topEmpleado} color="#004680" bg="#e3f2fd" onClick={() => setModalEmpleadosOpen(true)} />
               </Grid>
@@ -470,7 +490,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
           </DialogActions>
         </Dialog>
 
-        {/* Modal Ranking */}
+        {/* Modal Ranking Empleados */}
         <Dialog open={modalEmpleadosOpen} onClose={() => setModalEmpleadosOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3, height: '85vh', maxHeight: '85vh', display: 'flex', flexDirection: 'column' } }}>
           <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, px: 3, flexShrink: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}><PersonIcon sx={{ fontSize: 28 }} /><Typography variant="h6" fontWeight={700}>Ranking de Ediciones</Typography></Box>
@@ -540,7 +560,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                   if (!pagina.length) return <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>{buscarEmpleadoRanking ? 'No se encontraron empleados' : 'No hay ediciones registradas'}</Box>;
                   return pagina.map(emp => (
                     <ListItem key={emp.id} divider sx={{ py: 2, px: 3, '&:hover': { bgcolor: '#f5f7fa' } }}
-                      secondaryAction={<>
+                      secondaryAction={<> 
                         <Tooltip title="Ver registros"><IconButton edge="end" onClick={() => { setBuscarEmpleado(emp.nombre); setPaginaEdiciones(0); setModalEmpleadosOpen(false); setSubTab(1); }} sx={{ color: '#004680', mr: 1 }}><VisibilityIcon /></IconButton></Tooltip>
                         <Tooltip title="Ver calendario"><IconButton edge="end" onClick={() => handleAbrirCalendario(emp.id)} sx={{ color: '#004680' }}><CalendarTodayIcon /></IconButton></Tooltip>
                       </>}>
@@ -563,6 +583,15 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Button onClick={() => setModalEmpleadosOpen(false)} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
           </DialogActions>
         </Dialog>
+
+        {/* ===== MODAL RANKING DE TIENDAS (AHORA COMPONENTE EXTERNO) ===== */}
+        <ModalRankingTiendas
+          open={modalTiendasOpen}
+          onClose={handleCloseModalTiendas}
+          editedRecords={editedRecords}
+          rankingMesTiendas={rankingMesTiendas}
+          setRankingMesTiendas={setRankingMesTiendas}
+        />
 
         {/* Modal Calendario */}
         <Dialog open={calendario.open} onClose={handleCerrarCalendario} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3, maxHeight: '85vh' } }}>
