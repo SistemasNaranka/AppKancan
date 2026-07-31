@@ -1,0 +1,22 @@
+[33mcommit b8e0959057fa331b3dbfb9cfd00acd5be90ce81b[m
+Author: fredy Dagua <alex11dagua11@gmail.com>
+Date:   Thu Jul 30 09:30:14 2026 -0500
+
+    refactor(horarios): unificar exportacion y optimizar reporte semanal
+    
+    - Modal unificado de exportación en 4 pestañas.
+    - Panel desplegable de filtros en reporte semanal.
+    - Ajustes en cálculo de rangos semanales y quincenales.
+    - Selector de registros por página (5, 10, 20, 25).
+
+ src/apps/horarios/api/directus/reports.ts          |   1 [32m+[m
+ src/apps/horarios/components/NovedadesTab.tsx      | 102 [32m+++[m[31m-[m
+ .../components/reportes/ExportSemanalDialog.tsx    | 101 [32m+++[m[31m-[m
+ .../components/reportes/ExportUnificadoDialog.tsx  | 592 [32m+++++++++++++++++++[m
+ src/apps/horarios/pages/HistorialPage.tsx          |   2 [32m+[m[31m-[m
+ src/apps/horarios/pages/ReportePage.tsx            | 183 [32m+++[m[31m---[m
+ .../horarios/pages/reporte/ReportePausasTab.tsx    | 177 [32m++++[m[31m--[m
+ .../horarios/pages/reporte/ReporteSemanalTab.tsx   | 637 [32m+++++++++++++[m[31m--------[m
+ src/apps/horarios/pages/reporte/ReporteUtils.ts    |  86 [32m++[m[31m-[m
+ src/apps/horarios/utils/exportarSemanal.ts         |  58 [32m+[m[31m-[m
+ 10 files changed, 1462 insertions(+), 477 deletions(-)

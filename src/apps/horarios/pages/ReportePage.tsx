@@ -24,7 +24,8 @@ import { Tienda } from '../interfaces/horarios.interface';
 
 // Módulos extraídos
 import { getSemanasDelMes, NOMBRES_MESES } from './reporte/ReporteUtils';
-import { getTourSteps, STEP_TAB_REGISTROS, STEP_TAB_NOVEDADES, STEP_TAB_PAUSAS } from './reporte/ReporteTourConfig';
+import { getTourSteps, STEP_TAB_REGISTROS, STEP_TAB_NOVEDADES, STEP_TAB_PAUSAS, STEP_FAKE_START, STEP_FAKE_END } from './reporte/ReporteTourConfig';
+import FakeExportModal from '../components/tour/FakeExportModal';
 import ReportePausasTab from './reporte/ReportePausasTab';
 import ReporteSemanalTab from './reporte/ReporteSemanalTab';
 
@@ -64,6 +65,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   // --- Tour guiado ---
   const [runTour, setRunTour] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [showFakeExport, setShowFakeExport] = useState(false);
 
   useEffect(() => {
     if (!runTour) return;
@@ -96,20 +98,27 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
     if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
       setStepIndex(0);
+      setShowFakeExport(false);
       return;
     }
 
     if (type === 'step:after') {
       const nextIndex = index + (action === 'prev' ? -1 : 1);
 
+      const fakeDebeEstar = nextIndex >= STEP_FAKE_START && nextIndex <= STEP_FAKE_END;
+
       let tabParaMostrar: typeof visualizarTab | null = null;
       if (nextIndex === STEP_TAB_REGISTROS) tabParaMostrar = 'registros';
       else if (nextIndex === STEP_TAB_NOVEDADES) tabParaMostrar = 'novedades';
       else if (nextIndex === STEP_TAB_PAUSAS) tabParaMostrar = 'pausas';
 
-      if (tabParaMostrar) {
-        setVisualizarTab(tabParaMostrar);
-        setTimeout(() => setStepIndex(nextIndex), 80);
+      const necesitaEspera = (fakeDebeEstar !== showFakeExport) || tabParaMostrar !== null;
+
+      if (fakeDebeEstar !== showFakeExport) setShowFakeExport(fakeDebeEstar);
+      if (tabParaMostrar) setVisualizarTab(tabParaMostrar);
+
+      if (necesitaEspera) {
+        setTimeout(() => setStepIndex(nextIndex), 120);
         return;
       }
 
@@ -124,6 +133,8 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   });
 
   const tiendasAMostrar = tiendasPermitidas || tiendas;
+  const OPCION_TODAS: Tienda = { id: -1, name: 'Todas las tiendas' };
+  const opcionesTienda = [OPCION_TODAS, ...tiendasAMostrar];
 
   const queryStoreId = storeSel !== null 
     ? storeSel 
@@ -309,7 +320,8 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   }, [storeSel, selectedMonth, selectedYear, searchNombre]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, position: 'relative' }}>
+      {showFakeExport && <FakeExportModal />}
       {/* Panel Unificado de Filtros y Exportaciones */}
       <Paper
         elevation={0}
@@ -336,11 +348,16 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
               <Box data-tour="reporte-tour-tienda">
                 <Autocomplete
                   size="small"
-                  options={tiendasAMostrar}
+                  options={opcionesTienda}
                   getOptionLabel={(option) => option.name}
-                  value={tiendasAMostrar.find((t) => Number(t.id) === Number(storeSel)) || null}
+                  isOptionEqualToValue={(option, value) => Number(option.id) === Number(value.id)}
+                  value={
+                    storeSel !== null
+                      ? opcionesTienda.find((t) => Number(t.id) === Number(storeSel)) || null
+                      : OPCION_TODAS
+                  }
                   onChange={(_, newValue) => {
-                    onStoreChange(newValue ? Number(newValue.id) : null);
+                    onStoreChange(newValue && Number(newValue.id) !== -1 ? Number(newValue.id) : null);
                   }}
                   renderInput={(params) => (
                     <TextField 
