@@ -12,6 +12,8 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useHolidays } from '../../reservas/hooks/useHolidays';
+import { FestivoDay } from './FestivoDay';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 import { getIconForTipo, getChipColor } from '../utils/novedadVisual';
@@ -42,6 +44,8 @@ interface Props {
 export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPerPage = 5, esReporte = false }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [fechaFiltro, setFechaFiltro] = useState<Dayjs | null>(null);
+  const [calendarYear, setCalendarYear] = useState(() => dayjs().year());
+  const { data: festivosMap = {} } = useHolidays(calendarYear);
   const [soloActivos, setSoloActivos] = useState(false);
   const [page, setPage] = useState(0);
   const [filasPorPagina, setFilasPorPagina] = useState(rowsPerPage || 5);
@@ -128,8 +132,12 @@ export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPe
                     label=""
                     value={fechaFiltro}
                     onChange={(newVal) => { setFechaFiltro(newVal as Dayjs | null); setPage(0); }}
+                    onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
+                    onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
+                    slots={{ day: FestivoDay }}
                     format="DD/MM/YYYY"
                     slotProps={{
+                      day: { holidays: festivosMap } as any,
                       shortcuts: {
                         items: [
                           { label: 'Hoy', getValue: () => dayjs() },

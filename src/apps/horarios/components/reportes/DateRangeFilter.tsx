@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Box, Popover, Button, Divider, Typography, Stack, InputAdornment, TextField,
+  Box, Popover, Button, Divider, Typography, Stack, InputAdornment, TextField, Tooltip,
 } from '@mui/material';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -9,6 +9,7 @@ import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
+import { useHolidays } from '../../../reservas/hooks/useHolidays';
 
 interface DateRangeFilterProps {
   fechaInicio: Dayjs | null;
@@ -35,6 +36,9 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [tempInicio, setTempInicio] = useState<Dayjs | null>(fechaInicio);
   const [tempFin, setTempFin] = useState<Dayjs | null>(fechaFin);
+  const [calendarYear, setCalendarYear] = useState(() => dayjs().year());
+
+  const { data: festivos = {} } = useHolidays(calendarYear);
 
   const open = Boolean(anchorEl);
   const presets = buildPresets();
@@ -90,6 +94,10 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
   const RangeDay = (props: PickersDayProps) => {
     const { day: rawDay, ...other } = props;
     const day = rawDay as Dayjs;
+    const dateStr = day.format('YYYY-MM-DD');
+    const holidayName = festivos[dateStr];
+    const isHoliday = Boolean(holidayName);
+
     const esExtremo =
       (!!tempInicio && day.isSame(tempInicio, 'day')) ||
       (!!tempFin && day.isSame(tempFin, 'day'));
@@ -97,20 +105,47 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
       !!tempInicio && !!tempFin &&
       day.isAfter(tempInicio, 'day') && day.isBefore(tempFin, 'day');
 
-    return (
-      <PickersDay
-        {...other}
-        day={rawDay}
-        sx={{
-          ...(enRango && { bgcolor: '#eaf2fb', borderRadius: 0 }),
-          ...(esExtremo && {
-            bgcolor: `${AZUL} !important`,
-            color: '#fff !important',
-            '&:hover': { bgcolor: '#003a6b !important' },
-          }),
-        }}
-      />
+    const dayEl = (
+      <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+        <PickersDay
+          {...other}
+          day={rawDay}
+          sx={{
+            ...(enRango && { bgcolor: '#eaf2fb', borderRadius: 0 }),
+            ...(isHoliday && !esExtremo && !enRango && { bgcolor: '#fef2f2', color: '#b91c1c' }),
+            ...(esExtremo && {
+              bgcolor: `${AZUL} !important`,
+              color: '#fff !important',
+              '&:hover': { bgcolor: '#003a6b !important' },
+            }),
+          }}
+        />
+        {isHoliday && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 3,
+              right: 3,
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              bgcolor: esExtremo ? '#fff' : '#dc2626',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+      </Box>
     );
+
+    if (isHoliday) {
+      return (
+        <Tooltip title={holidayName} arrow placement="top">
+          {dayEl}
+        </Tooltip>
+      );
+    }
+
+    return dayEl;
   };
 
   const etiquetaCampo = fechaInicio && fechaFin
@@ -196,6 +231,8 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
               <DateCalendar
                 value={tempInicio}
+                onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
+                onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
                 onChange={(v) => v && handlePickInicio(v as Dayjs)}
                 slots={{ day: RangeDay }}
                 sx={{ width: 280 }}
@@ -204,6 +241,8 @@ export default function DateRangeFilter({ fechaInicio, fechaFin, onChange }: Dat
               <DateCalendar
                 value={tempFin}
                 referenceDate={dayjs().add(1, 'month')}
+                onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
+                onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
                 onChange={(v) => v && handlePickFin(v as Dayjs)}
                 slots={{ day: RangeDay }}
                 sx={{ width: 280 }}

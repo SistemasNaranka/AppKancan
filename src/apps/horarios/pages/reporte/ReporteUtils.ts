@@ -127,12 +127,10 @@ export const calcularMinutosSemanales = (empId: any, startStr: string, endStr: s
 };
 
 export const formatMinutes = (totalMin: number): string => {
-    if (totalMin <= 0) return '00:00';
+    if (totalMin <= 0) return '0h 0m';
     const hours = Math.floor(totalMin / 60);
     const mins = totalMin % 60;
-    const hh = String(hours).padStart(2, '0');
-    const mm = String(mins).padStart(2, '0');
-    return `${hh}:${mm}`;
+    return `${hours}h ${mins}m`;
 };
 
 export const NOMBRES_MESES = [

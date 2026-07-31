@@ -20,12 +20,10 @@ import 'dayjs/locale/es';
 
 // Utilidad para formatear minutos laborados
 const formatMinutes = (min: number): string => {
-  if (min <= 0) return '00:00';
+  if (min <= 0) return '0h 0m';
   const h = Math.floor(min / 60);
   const m = min % 60;
-  const hh = String(h).padStart(2, '0');
-  const mm = String(m).padStart(2, '0');
-  return `${hh}:${mm}`;
+  return `${h}h ${m}m`;
 };
 
 // Obtener festivos trabajados por empleado

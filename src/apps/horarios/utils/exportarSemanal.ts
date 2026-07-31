@@ -1,8 +1,16 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import dayjs, { Dayjs } from 'dayjs';
-import { calcularMinutosSemanales, formatMinutes } from '../pages/reporte/ReporteUtils';
+import { calcularMinutosSemanales } from '../pages/reporte/ReporteUtils';
 import { Tienda } from '../interfaces/horarios.interface';
+
+const formatMinutesExport = (totalMin: number): string => {
+  if (totalMin <= 0) return '00:00';
+  const hours = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  const hh = String(hours).padStart(2, '0');
+  const mm = String(mins).padStart(2, '0');
+  return `${hh}:${mm}`;
+};
 
 import { calcularMinutosDia } from '../components/ModalDetalleTiendaUtils';
 
@@ -250,8 +258,8 @@ export async function exportarSemanalExcel({
             totalMinutesPeriod += minDia;
             diasTrabajados++;
             cellText = novedadNombre 
-              ? `${formatMinutes(minDia)} (${novedadNombre} - Tienda Cerrada)` 
-              : `${formatMinutes(minDia)} (Tienda Cerrada)`;
+              ? `${formatMinutesExport(minDia)} (${novedadNombre} - Tienda Cerrada)` 
+              : `${formatMinutesExport(minDia)} (Tienda Cerrada)`;
             styleType = 'cerrado_con_marcacion';
           } else if (novedadNombre) {
             totalNovedadesEmp++;
@@ -267,10 +275,10 @@ export async function exportarSemanalExcel({
             diasTrabajados++;
             if (novedadNombre) {
               totalNovedadesEmp++;
-              cellText = `${formatMinutes(minDia)} (${novedadNombre})`;
+              cellText = `${formatMinutesExport(minDia)} (${novedadNombre})`;
               styleType = 'novedad';
             } else {
-              cellText = formatMinutes(minDia);
+              cellText = formatMinutesExport(minDia);
               styleType = 'horas';
             }
           } else if (novedadNombre) {
@@ -287,7 +295,7 @@ export async function exportarSemanalExcel({
         cellStyles.push({ styleType });
       });
 
-      rowValues.push(formatMinutes(totalMinutesPeriod), diasTrabajados, totalNovedadesEmp);
+      rowValues.push(formatMinutesExport(totalMinutesPeriod), diasTrabajados, totalNovedadesEmp);
 
       const row = worksheet.addRow(rowValues);
       row.height = 22;
@@ -407,10 +415,10 @@ export async function exportarSemanalExcel({
     semanas.forEach((sem) => {
       const minSemana = calcularMinutosSemanales(emp.id, sem.start, sem.end, records);
       totalMinutesPeriod += minSemana;
-      rowValues.push(formatMinutes(minSemana));
+      rowValues.push(formatMinutesExport(minSemana));
     });
 
-    rowValues.push(formatMinutes(totalMinutesPeriod));
+    rowValues.push(formatMinutesExport(totalMinutesPeriod));
 
     const row = worksheet.addRow(rowValues);
     row.height = 22;

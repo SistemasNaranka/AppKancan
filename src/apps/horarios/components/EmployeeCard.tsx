@@ -27,6 +27,8 @@ import * as yup from 'yup';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useHolidays } from '../../reservas/hooks/useHolidays';
+import { FestivoDay } from './FestivoDay';
 import 'dayjs/locale/es';
 
 
@@ -267,6 +269,8 @@ export default function EmployeeCard({
   const [almuerzoOmitidoLocal, setAlmuerzoOmitidoLocal] = useState(false);
   const [confirmarHabilitado, setConfirmarHabilitado] = useState(false);
   const [segundosRestantes, setSegundosRestantes] = useState(3);
+  const [calendarYear, setCalendarYear] = useState(() => dayjs().year());
+  const { data: festivosMap = {} } = useHolidays(calendarYear);
   const [employeeNormasOpen, setEmployeeNormasOpen] = useState(false);
   const [aceptandoNormas, setAceptandoNormas] = useState(false);
 
@@ -873,8 +877,14 @@ export default function EmployeeCard({
                       setFormData({ ...formData, fechaInicio: newValue.format('YYYY-MM-DD') });
                     }
                   }}
+                  onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
+                  onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
+                  slots={{ day: FestivoDay }}
                   format="DD/MM/YYYY"
-                  slotProps={{ textField: { fullWidth: true, error: !!formErrors.fechaInicio, helperText: formErrors.fechaInicio } }}
+                  slotProps={{
+                    day: { holidays: festivosMap } as any,
+                    textField: { fullWidth: true, error: !!formErrors.fechaInicio, helperText: formErrors.fechaInicio }
+                  }}
                 />
                 <DatePicker
                   label="Hasta el día"
@@ -886,8 +896,14 @@ export default function EmployeeCard({
                       setFormData({ ...formData, fechaFin: newValue.format('YYYY-MM-DD') });
                     }
                   }}
+                  onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
+                  onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
+                  slots={{ day: FestivoDay }}
                   format="DD/MM/YYYY"
-                  slotProps={{ textField: { fullWidth: true, error: !!formErrors.fechaFin, helperText: formErrors.fechaFin } }}
+                  slotProps={{
+                    day: { holidays: festivosMap } as any,
+                    textField: { fullWidth: true, error: !!formErrors.fechaFin, helperText: formErrors.fechaFin }
+                  }}
                 />
               </Box>
             </LocalizationProvider>
@@ -996,4 +1012,4 @@ export default function EmployeeCard({
       </Dialog>
     </>
   );
-    }
+}
