@@ -45,7 +45,7 @@ export default function ConfirmClosedDayDialogs({
       <Dialog
         open={confirmClosedModalOpen}
         onClose={() => setConfirmClosedModalOpen(false)}
-        PaperProps={{ sx: { borderRadius: 3, p: 1, maxWidth: 480 } }}
+        slotProps={{ paper: { sx: { borderRadius: 3, p: 1, maxWidth: 480 } } }}
       >
         <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
           <WarningAmberIcon sx={{ fontSize: 28, color: '#d97706' }} />
@@ -84,7 +84,7 @@ export default function ConfirmClosedDayDialogs({
       <Dialog
         open={confirmMasivoOpen}
         onClose={() => !guardandoMasivo && setConfirmMasivoOpen(false)}
-        PaperProps={{ sx: { borderRadius: 3, p: 1, maxWidth: 520 } }}
+        slotProps={{ paper: { sx: { borderRadius: 3, p: 1, maxWidth: 520 } } }}
       >
         <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
           <WarningAmberIcon sx={{ fontSize: 28, color: '#d97706' }} />

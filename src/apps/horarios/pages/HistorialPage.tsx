@@ -61,8 +61,8 @@ export default function HistorialPage({
   esReporte = false,
 }: HistorialPageProps = {}) {
   const [localSearch, setLocalSearch] = useState('');
-  const [localFechaInicio, setLocalFechaInicio] = useState<Dayjs | null>(null);
-  const [localFechaFin, setLocalFechaFin] = useState<Dayjs | null>(null);
+  const [localFechaInicio, setLocalFechaInicio] = useState<Dayjs | null>(dayjs().subtract(6, 'day'));
+  const [localFechaFin, setLocalFechaFin] = useState<Dayjs | null>(dayjs());
   const [exportOpen, setExportOpen] = useState(false);
 
   const searchNombre = searchNombreExternal !== undefined ? searchNombreExternal : localSearch;
@@ -124,14 +124,16 @@ export default function HistorialPage({
       const iniAlmuerzo = dayjs(`${fecha} ${inicio_almuerzo}`);
       const finAlmuerzo = dayjs(`${fecha} ${fin_almuerzo}`);
       let diffAlmuerzo = finAlmuerzo.diff(iniAlmuerzo, 'minutes');
-      if (diffAlmuerzo <= 1) {
-        diffAlmuerzo = 0;
-      }
       if (diffAlmuerzo > 0) {
         minutes -= diffAlmuerzo;
       }
     }
-    return `${(minutes / 60).toFixed(2)} h`;
+    if (minutes <= 0) return '--';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    const hh = String(hours).padStart(2, '0');
+    const mm = String(mins).padStart(2, '0');
+    return `${hh}:${mm}`;
   };
 
   const formatearHora = (hora: string | null): string => {
@@ -250,7 +252,7 @@ export default function HistorialPage({
                   }}
                 >
                   <TableCell sx={{ py: 1.5, fontWeight: 500, color: '#1e293b', borderBottom: '1px solid #e2e8f0' }}>
-                    {row.fecha}
+                    {row.fecha ? dayjs(row.fecha).format('DD-MM-YYYY') : ''}
                   </TableCell>
                   <TableCell sx={{ py: 1.5, borderBottom: '1px solid #e2e8f0' }}>
                     {esReporte ? (

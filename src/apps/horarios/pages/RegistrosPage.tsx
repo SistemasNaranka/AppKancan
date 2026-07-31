@@ -488,7 +488,7 @@ function RegistrosPageContent() {
               onChange={handleTabChange}
               variant="scrollable"
               scrollButtons={false}
-              TabIndicatorProps={{ sx: { display: 'none' } }}
+              slotProps={{ indicator: { sx: { display: 'none' } } }}
               sx={{
                 px: { xs: 0, sm: 1.5 },
                 py: { xs: 0.5, sm: 1 },
@@ -620,7 +620,7 @@ function RegistrosPageContent() {
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <NovedadesTab novedades={novedades} esAdmin={esAdmin()} storeOverride={storeOverride} />
+            <NovedadesTab novedades={novedades} esAdmin={esAdmin()} storeOverride={storeOverride ?? undefined} />
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>

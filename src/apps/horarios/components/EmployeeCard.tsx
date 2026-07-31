@@ -788,7 +788,7 @@ export default function EmployeeCard({
 
 
       {/* Modal observación */}
-      <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+      <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
         <DialogTitle component="div" sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>
           <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Observaciones del evento</Typography>
           <Typography component="span" variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>{eventoActualObs} • {nombre}</Typography>
@@ -806,7 +806,7 @@ export default function EmployeeCard({
 
 
       {/* Modal novedad */}
-      <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+      <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
         <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
@@ -862,7 +862,7 @@ export default function EmployeeCard({
 
 
       {/* Modal reporte de evento / pausa */}
-      <Dialog open={eventoModalOpen} onClose={handleCloseEventoModal} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+      <Dialog open={eventoModalOpen} onClose={handleCloseEventoModal} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
         <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3, fontWeight: 700 }}>Reporta un evento</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Typography sx={{ fontSize: '0.85rem', color: '#475569', mb: 2 }}>

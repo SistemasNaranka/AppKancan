@@ -380,7 +380,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                         })}
                     </Box>
                   )}
-                  MenuProps={{ PaperProps: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } }}
+                  MenuProps={{ slotProps: { paper: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } } }}
                   sx={{ '& .MuiSelect-select': { display: 'flex', alignItems: 'flex-start', minHeight: '40px', py: '4px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: motivosSeleccionados.length > 0 ? '#004680' : '#d0d7de', borderWidth: motivosSeleccionados.length > 0 ? '2px' : '1px' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#004680' } }}
                 >
                   <MenuItem value="todos" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e8e8e8', border: '1px solid #9e9e9e' }} />Todos</Box>{motivosSeleccionados.length === motivosUnicos.length && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
@@ -449,7 +449,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
         )}
 
         {/* Modal Observación */}
-        <Dialog open={modalObs.open} onClose={() => setModalObs(p => ({ ...p, open: false }))} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <Dialog open={modalObs.open} onClose={() => setModalObs(p => ({ ...p, open: false }))} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 3 } } }}>
           <DialogTitle sx={{ m: 0, p: 2.5, bgcolor: '#004680', color: '#ffffff', fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}><AssignmentIcon /><Typography variant="h6" fontWeight={700}>Detalle de Observación</Typography></Box>
             <IconButton onClick={() => setModalObs(p => ({ ...p, open: false }))} sx={{ color: '#ffffff' }}><CloseIcon /></IconButton>
@@ -471,7 +471,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
         </Dialog>
 
         {/* Modal Ranking */}
-        <Dialog open={modalEmpleadosOpen} onClose={() => setModalEmpleadosOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3, height: '85vh', maxHeight: '85vh', display: 'flex', flexDirection: 'column' } }}>
+        <Dialog open={modalEmpleadosOpen} onClose={() => setModalEmpleadosOpen(false)} maxWidth="md" fullWidth slotProps={{ paper: { sx: { borderRadius: 3, height: '85vh', maxHeight: '85vh', display: 'flex', flexDirection: 'column' } } }}>
           <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, px: 3, flexShrink: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}><PersonIcon sx={{ fontSize: 28 }} /><Typography variant="h6" fontWeight={700}>Ranking de Ediciones</Typography></Box>
             <IconButton onClick={() => setModalEmpleadosOpen(false)} sx={{ color: '#ffffff' }}><CloseIcon /></IconButton>
@@ -523,7 +523,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                         })}
                     </Box>
                   )}
-                  MenuProps={{ PaperProps: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } }}
+                  MenuProps={{ slotProps: { paper: { style: { maxHeight: 280, width: 280 }, sx: { '& .MuiMenuItem-root.Mui-selected': { bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }, '& .MuiMenuItem-root': { borderRadius: 1, mx: 0.5, my: 0.3 } } } } }}
                 >
                   <MenuItem value="todos" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e8e8e8', border: '1px solid #9e9e9e' }} />Todos</Box>{rankingMotivos.length === motivosUnicos.length && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
                   <MenuItem value="limpiar" sx={{ fontWeight: 700, borderBottom: '1px solid #e0e0e0', mb: 0.5 }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ffebee', border: '1px solid #c62828' }} />Limpiar</Box>{rankingMotivos.length === 0 && <CheckCircleIcon sx={{ color: '#004680', fontSize: 18 }} />}</MenuItem>
@@ -565,7 +565,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
       </Dialog>
 
       {/* Modal Calendario */}
-      <Dialog open={calendario.open} onClose={handleCerrarCalendario} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3, maxHeight: '85vh' } }}>
+      <Dialog open={calendario.open} onClose={handleCerrarCalendario} maxWidth="lg" fullWidth slotProps={{ paper: { sx: { borderRadius: 3, maxHeight: '85vh' } } }}>
         <DialogTitle sx={{ bgcolor: '#004680', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ bgcolor: '#ffffff', color: '#004680', width: 36, height: 36 }}>{edicionesPorEmpleado.length ? edicionesPorEmpleado[0].empleadoNombre.charAt(0).toUpperCase() : '?'}</Avatar>

@@ -89,7 +89,7 @@ export const exportarNovedadesExcel = async ({
 
   const contenido = "﻿" + lineas.join("\r\n");
   const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
-  saveAs(blob, `novedades ${dayjs().format("YYYYMMDD-HHmmss")}.csv`);
+  saveAs(blob, `Reporte_Novedades_Horarios_${dayjs().format("YYYYMMDD-HHmmss")}.csv`);
 
   return { ok: true };
 };

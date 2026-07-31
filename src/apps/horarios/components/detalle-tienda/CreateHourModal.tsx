@@ -46,7 +46,7 @@ export default function CreateHourModal({ open, onClose, employeeName, eventName
   const initial = employeeName ? employeeName.charAt(0).toUpperCase() : '?';
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 4, overflow: 'hidden' } } }}>
       <Box sx={{ bgcolor: '#004680', color: '#fff', py: 2.5, px: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Avatar sx={{ bgcolor: '#fff', color: '#004680', width: 44, height: 44, fontWeight: 700, fontSize: '1.1rem' }}>
           {initial}

@@ -3,7 +3,8 @@ import directus from "@/services/directus/directus";
 import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, readMe } from "@directus/sdk";
 import { EmpleadoAsistencia, TipoNovedad, Tienda, Cargo, EmpleadoAdmin, Motivo } from "../../interfaces/horarios.interface";
-import { getEmpleadosBulk } from "./readBulk";
+import { getEmpleadosBulk, getStoreClosedDays } from "./readBulk";
+export { getStoreClosedDays };
 
 // Tienda "Oficina" usada para pruebas.
 export const STORE_PRUEBAS = 90;

@@ -194,7 +194,7 @@ export default function DialogPerfilEmpleado({ open, empleado, tiendaNombre, onC
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
         <DialogTitle component="div" sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Avatar sx={{ bgcolor: colorAvatar(nombre), width: 46, height: 46, fontWeight: 700 }}>{nombre.charAt(0).toUpperCase()}</Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>

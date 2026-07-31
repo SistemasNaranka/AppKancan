@@ -661,7 +661,7 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
             <Dialog
                 open={confirmOpen}
                 onClose={() => !guardando && setConfirmOpen(false)}
-                PaperProps={{ sx: { borderRadius: 3, p: 1, maxWidth: 450 } }}
+                slotProps={{ paper: { sx: { borderRadius: 3, p: 1, maxWidth: 450 } } }}
             >
                 <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
                     {isCerrar

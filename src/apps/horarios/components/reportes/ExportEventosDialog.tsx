@@ -40,8 +40,8 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
 
   useEffect(() => {
     if (open) { 
-      setRangoInicio(fechaInicio ? dayjs(fechaInicio) : null); 
-      setRangoFin(fechaFin ? dayjs(fechaFin) : null); 
+      setRangoInicio(fechaInicio ? dayjs(fechaInicio) : dayjs().subtract(6, 'day')); 
+      setRangoFin(fechaFin ? dayjs(fechaFin) : dayjs()); 
       setTiendasSel([]);
     }
   }, [open, fechaInicio, fechaFin]);
@@ -125,7 +125,7 @@ export default function ExportEventosDialog({ open, onClose, storeId, fechaInici
   };
 
   return (
-    <Dialog open={open} onClose={exportando ? undefined : onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+    <Dialog open={open} onClose={exportando ? undefined : onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
       <DialogTitle component="div" sx={{ bgcolor: AZUL, color: '#fff', py: 2, px: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <FileDownloadIcon />
         <Box>

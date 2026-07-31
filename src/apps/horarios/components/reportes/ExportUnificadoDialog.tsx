@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
   Autocomplete, TextField, Checkbox, FormControlLabel, CircularProgress,
-  FormControl, InputLabel, Select, MenuItem, Chip, Tabs, Tab, IconButton
+  FormControl, InputLabel, Select, MenuItem, Chip, Tabs, Tab, IconButton, Popover
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -21,7 +21,8 @@ import {
   fetchTimeRecordsExport,
   getReasonNamesForRecords,
   fetchNewnessReportsExport,
-  fetchEventReportsExport
+  fetchEventReportsExport,
+  getStoreClosedDays
 } from '../../api/directus/read';
 import { exportarSemanalExcel } from '../../utils/exportarSemanal';
 import { exportarHistorialExcel } from '../../utils/exportarHistorial';
@@ -51,7 +52,7 @@ export interface ExportUnificadoDialogProps {
 export default function ExportUnificadoDialog({
   open,
   onClose,
-  tabInicial = 'semanal',
+  tabInicial = 'registros',
   storeSel,
   rangoInicioDefault,
   rangoFinDefault,
@@ -68,10 +69,10 @@ export default function ExportUnificadoDialog({
 
   const getTabIndexFromNombre = (nombre: string): number => {
     switch (nombre) {
-      case 'registros': return 1;
-      case 'novedades': return 2;
-      case 'pausas': return 3;
-      case 'semanal':
+      case 'registros': return 0;
+      case 'novedades': return 1;
+      case 'pausas': return 2;
+      case 'semanal': return 3;
       default: return 0;
     }
   };
@@ -90,6 +91,8 @@ export default function ExportUnificadoDialog({
   const [diaFin, setDiaFin] = useState<number>(diaFinSemana);
   const [detallada, setDetallada] = useState(false);
   const [todasNovedades, setTodasNovedades] = useState(false);
+
+  const [modoGranularidad, setModoGranularidad] = useState<'semanal' | 'diario'>('semanal');
 
   const { data: todasLasTiendas = [], isLoading: loadingTiendas } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
@@ -183,9 +186,11 @@ export default function ExportUnificadoDialog({
       const startStr = rangoInicio.format('YYYY-MM-DD');
       const endStr = rangoFin.format('YYYY-MM-DD');
 
-      const [empleados, records] = await Promise.all([
+      const [empleados, records, novedades, storeClosedDays] = await Promise.all([
         getEmpleadosBulk(storeIdsToFetch),
         getTimeRecordsBulkRange(storeIdsToFetch, startStr, endStr),
+        fetchNewnessReportsExport(startStr, endStr, storeIdsToFetch, esAdmin()),
+        getStoreClosedDays(storeIdsToFetch, startStr, endStr),
       ]);
 
       if (empleados.length === 0) {
@@ -198,9 +203,12 @@ export default function ExportUnificadoDialog({
         fechaFin: rangoFin,
         empleados,
         records,
+        novedades,
+        storeClosedDays,
         tiendas,
         diaInicioSemana: diaInicio,
         diaFinSemana: diaFin,
+        modoGranularidad,
       });
 
       showSnackbar('Reporte semanal exportado exitosamente', 'success');
@@ -348,22 +356,22 @@ export default function ExportUnificadoDialog({
   const handleExportarActual = () => {
     switch (tabIndex) {
       case 0:
-        handleExportSemanal();
-        break;
-      case 1:
         handleExportRegistros();
         break;
-      case 2:
+      case 1:
         handleExportNovedades();
         break;
-      case 3:
+      case 2:
         handleExportPausas();
+        break;
+      case 3:
+        handleExportSemanal();
         break;
     }
   };
 
   return (
-    <Dialog open={open} onClose={exportando ? undefined : onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden', width: '100%', maxWidth: 750 } }}>
+    <Dialog open={open} onClose={exportando ? undefined : onClose} maxWidth="md" fullWidth slotProps={{ paper: { sx: { borderRadius: 3, overflow: 'hidden', width: '100%', maxWidth: 750 } } }}>
       <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <FileDownloadIcon sx={{ fontSize: 26 }} />
@@ -392,40 +400,85 @@ export default function ExportUnificadoDialog({
           '& .MuiTabs-indicator': { bgcolor: '#004680', height: 3 }
         }}
       >
-        <Tab label="Horas Semanales" icon={<DateRangeIcon fontSize="small" />} iconPosition="start" />
         <Tab label="Historial de Registros" icon={<HistoryIcon fontSize="small" />} iconPosition="start" />
         <Tab label="Novedades" icon={<AssignmentIcon fontSize="small" />} iconPosition="start" />
         <Tab label="Pausas Activas" icon={<PauseCircleIcon fontSize="small" />} iconPosition="start" />
+        <Tab label="Horas Semanales" icon={<DateRangeIcon fontSize="small" />} iconPosition="start" />
       </Tabs>
 
       <DialogContent sx={{ pt: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {/* Selección Múltiple de Tiendas */}
         <Box>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', mb: 1, display: 'block' }}>
-            TIENDAS A EXPORTAR:
+          <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', color: '#6b7280', mb: 1 }}>
+            TIENDAS A EXPORTAR
           </Typography>
           <Autocomplete
             multiple
-            limitTags={3}
+            size="small"
             options={tiendas}
-            getOptionLabel={(option) => option.name}
+            loading={loadingTiendas}
+            getOptionLabel={(o) => o.name}
+            isOptionEqualToValue={(o, v) => Number(o.id) === Number(v.id)}
             value={todas ? tiendas : tiendasSel}
-            disabled={todas || loadingTiendas}
-            onChange={(_, newValue) => setTiendasSel(newValue)}
+            onChange={(_, newValue) => {
+              if (newValue.length === tiendas.length) {
+                setTodas(true);
+                setTiendasSel(tiendas);
+              } else {
+                setTodas(false);
+                setTiendasSel(newValue);
+              }
+            }}
+            renderValue={(value, getItemProps) => {
+              if (!value || value.length === 0) return null;
+              const limit = 2;
+              const visible = value.slice(0, limit);
+              const remaining = value.length - limit;
+              return (
+                <>
+                  {visible.map((option, index) => {
+                    const { key, ...tagProps } = getItemProps({ index });
+                    return (
+                      <Chip
+                        key={key || option.id}
+                        {...tagProps}
+                        label={option.name}
+                        size="small"
+                        sx={{ bgcolor: '#e2e8f0', color: '#1e293b', fontWeight: 400, my: '2px' }}
+                      />
+                    );
+                  })}
+                  {remaining > 0 && (
+                    <Chip
+                      size="small"
+                      label={`+${remaining}`}
+                      sx={{ bgcolor: '#cbd5e1', color: '#334155', fontWeight: 500, my: '2px' }}
+                    />
+                  )}
+                </>
+              );
+            }}
             renderInput={(params) => (
               <TextField
                 {...params}
-                placeholder={todas ? "Todas las tiendas seleccionadas" : "Buscar y seleccionar tiendas..."}
-                InputProps={{
-                  ...params.InputProps,
-                  startAdornment: (
-                    <>
-                      <StorefrontIcon sx={{ color: '#004680', mr: 1, ml: 0.5 }} />
-                      {params.InputProps.startAdornment}
-                    </>
-                  ),
+                placeholder={todas || tiendasSel.length > 0 ? '' : 'Buscar y seleccionar tiendas...'}
+                slotProps={{
+                  input: {
+                    ...params.InputProps,
+                    startAdornment: (
+                      <>
+                        <StorefrontIcon sx={{ fontSize: 18, color: '#004680', ml: 0.5, mr: 0.5 }} />
+                        {params.InputProps.startAdornment}
+                      </>
+                    ),
+                  },
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    bgcolor: '#f1f7fe'
+                  }
+                }}
               />
             )}
           />
@@ -433,15 +486,19 @@ export default function ExportUnificadoDialog({
             control={
               <Checkbox
                 checked={todas}
-                onChange={(e) => handleToggleTodas(e.target.checked)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setTodas(checked);
+                  if (checked) {
+                    setTiendasSel(tiendas);
+                  } else {
+                    setTiendasSel([]);
+                  }
+                }}
                 sx={{ color: '#004680', '&.Mui-checked': { color: '#004680' } }}
               />
             }
-            label={
-              <Typography variant="caption" sx={{ fontWeight: 600, color: '#334155' }}>
-                Todas las tiendas
-              </Typography>
-            }
+            label={<Typography sx={{ fontSize: '0.85rem', fontWeight: 400, color: '#374151' }}>Todas las tiendas</Typography>}
             sx={{ mt: 0.5 }}
           />
         </Box>
@@ -463,74 +520,6 @@ export default function ExportUnificadoDialog({
 
         {/* Contenido Específico por Pestaña */}
         {tabIndex === 0 && (
-          <Box>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', mb: 1, display: 'block' }}>
-              ESTRUCTURA DE SEMANA:
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <FormControl size="small" fullWidth>
-                <InputLabel id="export-dia-inicio-label">Inicio Semana</InputLabel>
-                <Select
-                  labelId="export-dia-inicio-label"
-                  value={diaInicio}
-                  label="Inicio Semana"
-                  onChange={(e) => setDiaInicio(Number(e.target.value))}
-                  sx={{ borderRadius: 2 }}
-                >
-                  {DIAS_DE_LA_SEMANA.map((d) => (
-                    <MenuItem key={`exp-ini-${d.value}`} value={d.value}>{d.label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl size="small" fullWidth>
-                <InputLabel id="export-dia-fin-label">Fin Semana</InputLabel>
-                <Select
-                  labelId="export-dia-fin-label"
-                  value={diaFin}
-                  label="Fin Semana"
-                  onChange={(e) => setDiaFin(Number(e.target.value))}
-                  sx={{ borderRadius: 2 }}
-                >
-                  {DIAS_DE_LA_SEMANA.map((d) => (
-                    <MenuItem key={`exp-fin-${d.value}`} value={d.value}>{d.label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            {(() => {
-              const nombreIni = DIAS_DE_LA_SEMANA.find(d => d.value === diaInicio)?.label || 'Lunes';
-              const endDayVal = (diaInicio + 6) % 7;
-              const nombreFinAuto = DIAS_DE_LA_SEMANA.find(d => d.value === endDayVal)?.label || 'Domingo';
-              const nombreFin = DIAS_DE_LA_SEMANA.find(d => d.value === diaFin)?.label || 'Domingo';
-              const totalDias = diaInicio === diaFin
-                ? 7
-                : (diaFin - diaInicio + (diaFin < diaInicio ? 7 : 0) + 1);
-              const textoRango = diaInicio === diaFin
-                ? `${nombreIni} a ${nombreFinAuto} (7 días completos)`
-                : `${nombreIni} a ${nombreFin} (${totalDias} días por columna)`;
-              return (
-                <Chip
-                  icon={<InfoOutlinedIcon sx={{ fontSize: '1rem !important', color: '#0284c7 !important' }} />}
-                  label={`Estructura: ${textoRango}`}
-                  size="small"
-                  sx={{
-                    bgcolor: '#e0f2fe',
-                    color: '#0369a1',
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    height: 32,
-                    mt: 1.5,
-                    fontSize: '0.78rem',
-                    border: '1px solid #bae6fd'
-                  }}
-                />
-              );
-            })()}
-          </Box>
-        )}
-
-        {tabIndex === 1 && (
           <FormControlLabel
             control={
               <Checkbox
@@ -547,7 +536,7 @@ export default function ExportUnificadoDialog({
           />
         )}
 
-        {tabIndex === 2 && (
+        {tabIndex === 1 && (
           <FormControlLabel
             control={
               <Checkbox
@@ -562,6 +551,111 @@ export default function ExportUnificadoDialog({
               </Typography>
             }
           />
+        )}
+
+        {tabIndex === 3 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', mb: 1, display: 'block' }}>
+                FORMATO DE DETALLE EN EXCEL:
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={modoGranularidad}
+                  onChange={(e) => setModoGranularidad(e.target.value as 'semanal' | 'diario')}
+                  sx={{ borderRadius: 2, bgcolor: '#fff', fontSize: '0.875rem' }}
+                >
+                  <MenuItem value="semanal">Acumulado por Semanas (Semana 1, Semana 2...)</MenuItem>
+                  <MenuItem value="diario">Detalle Día a Día (Celda por cada día + Novedades)</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
+            {modoGranularidad === 'semanal' ? (
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', mb: 1, display: 'block' }}>
+                  ESTRUCTURA DE SEMANA:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <FormControl size="small" fullWidth>
+                    <InputLabel id="export-dia-inicio-label">Inicio Semana</InputLabel>
+                    <Select
+                      labelId="export-dia-inicio-label"
+                      value={diaInicio}
+                      label="Inicio Semana"
+                      onChange={(e) => setDiaInicio(Number(e.target.value))}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      {DIAS_DE_LA_SEMANA.map((d) => (
+                        <MenuItem key={`exp-ini-${d.value}`} value={d.value}>{d.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl size="small" fullWidth>
+                    <InputLabel id="export-dia-fin-label">Fin Semana</InputLabel>
+                    <Select
+                      labelId="export-dia-fin-label"
+                      value={diaFin}
+                      label="Fin Semana"
+                      onChange={(e) => setDiaFin(Number(e.target.value))}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      {DIAS_DE_LA_SEMANA.map((d) => (
+                        <MenuItem key={`exp-fin-${d.value}`} value={d.value}>{d.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+                {(() => {
+                  const nombreIni = DIAS_DE_LA_SEMANA.find(d => d.value === diaInicio)?.label || 'Lunes';
+                  const endDayVal = (diaInicio + 6) % 7;
+                  const nombreFinAuto = DIAS_DE_LA_SEMANA.find(d => d.value === endDayVal)?.label || 'Domingo';
+                  const nombreFin = DIAS_DE_LA_SEMANA.find(d => d.value === diaFin)?.label || 'Domingo';
+                  const totalDias = diaInicio === diaFin
+                    ? 7
+                    : (diaFin - diaInicio + (diaFin < diaInicio ? 7 : 0) + 1);
+                  const textoRango = diaInicio === diaFin
+                    ? `${nombreIni} a ${nombreFinAuto} (7 días completos)`
+                    : `${nombreIni} a ${nombreFin} (${totalDias} días por columna)`;
+                  return (
+                    <Chip
+                      icon={<InfoOutlinedIcon sx={{ fontSize: '1rem !important', color: '#0284c7 !important' }} />}
+                      label={`Estructura: ${textoRango}`}
+                      size="small"
+                      sx={{
+                        bgcolor: '#e0f2fe',
+                        color: '#0369a1',
+                        fontWeight: 600,
+                        borderRadius: 2,
+                        height: 32,
+                        mt: 1.5,
+                        fontSize: '0.78rem',
+                        border: '1px solid #bae6fd'
+                      }}
+                    />
+                  );
+                })()}
+              </Box>
+            ) : (
+              <Chip
+                icon={<InfoOutlinedIcon sx={{ fontSize: '1rem !important', color: '#0284c7 !important' }} />}
+                label="Granularidad Día a Día: Generará una celda por cada día en el rango con horas laboradas y novedades (Descanso, Vacaciones, Licencias)."
+                size="small"
+                sx={{
+                  bgcolor: '#e0f2fe',
+                  color: '#0369a1',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  height: 'auto',
+                  py: 1,
+                  fontSize: '0.78rem',
+                  border: '1px solid #bae6fd',
+                  '& .MuiChip-label': { whiteSpace: 'normal' }
+                }}
+              />
+            )}
+          </Box>
         )}
       </DialogContent>
 

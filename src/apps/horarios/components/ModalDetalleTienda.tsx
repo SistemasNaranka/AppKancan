@@ -480,12 +480,14 @@ export default function ModalDetalleTienda({
             onClose={onClose}
             maxWidth="xl"
             fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: 3,
-                    overflow: 'hidden',
-                    height: '90vh',
-                    maxHeight: '90vh'
+            slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                        height: '90vh',
+                        maxHeight: '90vh'
+                    }
                 }
             }}
         >

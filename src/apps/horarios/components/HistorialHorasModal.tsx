@@ -18,7 +18,7 @@ import {
     Lock as LockIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import 'dayjs/locale/es';
 
@@ -26,6 +26,7 @@ dayjs.extend(isSameOrBefore);
 
 import { fetchTimeRecords } from '../api/directus/read';
 import { getStoreClosedDays } from '../api/directus/readBulk';
+import DateRangeFilter from './reportes/DateRangeFilter';
 import {
     EmpleadoFila,
     getNovedadIcon,
@@ -59,8 +60,8 @@ export default function HistorialHorasModal({
     onDayClick,
 }: HistorialHorasModalProps) {
     const [mesActual, setMesActual] = useState(dayjs().startOf('month'));
-    const [fechaInicioFiltro, setFechaInicioFiltro] = useState<string>('');
-    const [fechaFinFiltro, setFechaFinFiltro] = useState<string>('');
+    const [fechaInicioFiltro, setFechaInicioFiltro] = useState<Dayjs | null>(() => dayjs().startOf('month'));
+    const [fechaFinFiltro, setFechaFinFiltro] = useState<Dayjs | null>(() => dayjs());
     const [diaSeleccionado, setDiaSeleccionado] = useState<{
         fecha: dayjs.Dayjs;
         records: any[];
@@ -68,6 +69,16 @@ export default function HistorialHorasModal({
         tieneNovedad: boolean;
         novedadTipo: string;
     } | null>(null);
+
+    React.useEffect(() => {
+        if (open) {
+            const inicioMes = dayjs().startOf('month');
+            const hoy = dayjs();
+            setMesActual(inicioMes);
+            setFechaInicioFiltro(inicioMes);
+            setFechaFinFiltro(hoy);
+        }
+    }, [open, empleado?.id]);
 
     const { data: registrosMes = [], isLoading } = useQuery({
         queryKey: ['historialMes', tiendaId, empleado?.id, mesActual.format('YYYY-MM')],
@@ -135,24 +146,43 @@ export default function HistorialHorasModal({
         if (!registrosMes || registrosMes.length === 0) return [];
         const semanasMap: { [key: string]: any[] } = {};
         registrosMes.forEach(({ fecha, records }) => {
-            const dayObj = dayjs(fecha);
-            const semanaInicio = dayObj.startOf('week').add(1, 'day'); // Lunes
+            const dayObj = dayjs(fecha).locale('es');
+            const semanaInicio = dayObj.startOf('week'); // Lunes
             const key = semanaInicio.format('YYYY-MM-DD');
             if (!semanasMap[key]) semanasMap[key] = [];
             semanasMap[key].push({ fecha, records });
         });
         const semanasArray = Object.keys(semanasMap).map((key) => ({
-            inicio: dayjs(key),
+            inicio: dayjs(key).locale('es'),
             dias: semanasMap[key],
         }));
         semanasArray.sort((a, b) => b.inicio.diff(a.inicio));
         return semanasArray;
     }, [registrosMes]);
 
-    const handleMesAnterior = () => setMesActual(mesActual.subtract(1, 'month'));
+    const handleMesAnterior = () => {
+        const nuevoMes = mesActual.subtract(1, 'month');
+        setMesActual(nuevoMes);
+        if (nuevoMes.isSame(dayjs(), 'month')) {
+            setFechaInicioFiltro(nuevoMes.startOf('month'));
+            setFechaFinFiltro(dayjs());
+        } else {
+            setFechaInicioFiltro(nuevoMes.startOf('month'));
+            setFechaFinFiltro(nuevoMes.endOf('month'));
+        }
+    };
     const handleMesSiguiente = () => {
         const siguiente = mesActual.add(1, 'month');
-        if (!siguiente.isAfter(dayjs(), 'month')) setMesActual(siguiente);
+        if (!siguiente.isAfter(dayjs(), 'month')) {
+            setMesActual(siguiente);
+            if (siguiente.isSame(dayjs(), 'month')) {
+                setFechaInicioFiltro(siguiente.startOf('month'));
+                setFechaFinFiltro(dayjs());
+            } else {
+                setFechaInicioFiltro(siguiente.startOf('month'));
+                setFechaFinFiltro(siguiente.endOf('month'));
+            }
+        }
     };
 
     const getNovedadDelDia = (fecha: string) => {
@@ -176,7 +206,7 @@ export default function HistorialHorasModal({
             onClose={onClose} 
             maxWidth="lg" 
             fullWidth
-            PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}
+            slotProps={{ paper: { sx: { borderRadius: 4, overflow: 'hidden' } } }}
         >
             {/* Header del Diálogo */}
             <DialogTitle component="div" sx={{ bgcolor: '#004680', color: '#fff', py: 2.5, px: 3 }}>
@@ -201,54 +231,48 @@ export default function HistorialHorasModal({
             {/* Contenido Principal */}
             <DialogContent sx={{ p: 3, bgcolor: '#f8fafc' }}>
                 
-                {/* Selector de Mes */}
-                <Box className="tour-hh-navegacion" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, mb: 1.5, mt: 1 }}>
-                    <MuiIconButton onClick={handleMesAnterior} sx={{ border: '1px solid #e2e8f0', bgcolor: '#fff', '&:hover': { bgcolor: '#f1f5f9' } }}>
-                        <NavigateBeforeIcon />
-                    </MuiIconButton>
-                    <Typography variant="h6" fontWeight={800} color="#0f2c4a" sx={{ minWidth: 200, textAlign: 'center', textTransform: 'capitalize' }}>
-                        {mesActual.locale('es').format('MMMM [de] YYYY')}
-                    </Typography>
-                    <MuiIconButton 
-                        onClick={handleMesSiguiente} 
-                        disabled={mesActual.isSame(dayjs(), 'month')}
-                        sx={{ border: '1px solid #e2e8f0', bgcolor: '#fff', '&:hover': { bgcolor: '#f1f5f9' }, '&.Mui-disabled': { opacity: 0.3 } }}
-                    >
-                        <NavigateNextIcon />
-                    </MuiIconButton>
-                </Box>
-
-                {/* Filtro de Rango de Fechas */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                    <TextField
-                        label="Desde"
-                        type="date"
-                        size="small"
-                        value={fechaInicioFiltro}
-                        onChange={(e) => setFechaInicioFiltro(e.target.value)}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                        sx={{ bgcolor: '#fff', borderRadius: 2, width: 165, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                    <TextField
-                        label="Hasta"
-                        type="date"
-                        size="small"
-                        value={fechaFinFiltro}
-                        onChange={(e) => setFechaFinFiltro(e.target.value)}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                        sx={{ bgcolor: '#fff', borderRadius: 2, width: 165, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                    {(fechaInicioFiltro || fechaFinFiltro) && (
-                        <Button
+                {/* Selector de Mes y Filtro de Rango de Fechas (A la par) */}
+                <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' }, 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: { xs: 1.5, sm: 3 }, 
+                    mb: 3, 
+                    mt: 1 
+                }}>
+                    {/* Selector de Mes */}
+                    <Box className="tour-hh-navegacion" sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <MuiIconButton onClick={handleMesAnterior} size="small" sx={{ border: '1px solid #e2e8f0', bgcolor: '#fff', '&:hover': { bgcolor: '#f1f5f9' } }}>
+                            <NavigateBeforeIcon />
+                        </MuiIconButton>
+                        <Typography variant="h6" fontWeight={800} color="#0f2c4a" sx={{ minWidth: 170, textAlign: 'center', textTransform: 'capitalize', fontSize: '1.05rem' }}>
+                            {mesActual.locale('es').format('MMMM [de] YYYY')}
+                        </Typography>
+                        <MuiIconButton 
+                            onClick={handleMesSiguiente} 
                             size="small"
-                            variant="outlined"
-                            color="error"
-                            onClick={() => { setFechaInicioFiltro(''); setFechaFinFiltro(''); }}
-                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, height: 38 }}
+                            disabled={mesActual.isSame(dayjs(), 'month')}
+                            sx={{ border: '1px solid #e2e8f0', bgcolor: '#fff', '&:hover': { bgcolor: '#f1f5f9' }, '&.Mui-disabled': { opacity: 0.3 } }}
                         >
-                            Limpiar Rango
-                        </Button>
-                    )}
+                            <NavigateNextIcon />
+                        </MuiIconButton>
+                    </Box>
+
+                    {/* Filtro de Rango de Fechas */}
+                    <Box sx={{ width: { xs: '100%', sm: 260 } }}>
+                        <DateRangeFilter
+                            fechaInicio={fechaInicioFiltro}
+                            fechaFin={fechaFinFiltro}
+                            onChange={(inicio, fin) => {
+                                setFechaInicioFiltro(inicio);
+                                setFechaFinFiltro(fin);
+                                if (inicio && !inicio.isSame(mesActual, 'month')) {
+                                    setMesActual(inicio.startOf('month'));
+                                }
+                            }}
+                        />
+                    </Box>
                 </Box>
 
                 {isLoading ? (
@@ -265,15 +289,15 @@ export default function HistorialHorasModal({
                         {semanas.map((semana, idx) => {
                             const inicio = semana.inicio;
                             const fin = inicio.add(6, 'day'); // Lunes a Domingo
-                            const esActual = inicio.isSame(dayjs().startOf('week').add(1, 'day'), 'day');
+                            const esActual = inicio.isSame(dayjs().locale('es').startOf('week'), 'day');
                             
                             let totalMinutos = 0;
                             let diasEnRangoCount = 0;
 
                             const diasDetalle = semana.dias.map(({ fecha, records }) => {
                                 const dayObj = dayjs(fecha);
-                                const esAntes = fechaInicioFiltro ? dayObj.isBefore(dayjs(fechaInicioFiltro), 'day') : false;
-                                const esDespues = fechaFinFiltro ? dayObj.isAfter(dayjs(fechaFinFiltro), 'day') : false;
+                                const esAntes = fechaInicioFiltro ? dayObj.isBefore(fechaInicioFiltro, 'day') : false;
+                                const esDespues = fechaFinFiltro ? dayObj.isAfter(fechaFinFiltro, 'day') : false;
                                 const fueraDeRango = esAntes || esDespues;
 
                                 const minutos = fueraDeRango ? 0 : calcularMinutosDia(records, empleado!.id);
@@ -545,7 +569,7 @@ export default function HistorialHorasModal({
                 onClose={() => setDiaSeleccionado(null)}
                 maxWidth="xs"
                 fullWidth
-                PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}
+                slotProps={{ paper: { sx: { borderRadius: 4, overflow: 'hidden' } } }}
             >
                 <DialogTitle component="div" sx={{ bgcolor: '#0f2c4a', color: '#fff', py: 2, px: 2.5 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
