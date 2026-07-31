@@ -14,6 +14,7 @@ import DiningIcon from '@mui/icons-material/Dining';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import NoFoodIcon from '@mui/icons-material/NoFood';
 import { EmpleadoAsistencia, Motivo } from '../interfaces/horarios.interface';
 import EditHourModal from './EditHourModal';
 import NormasModal from './NormasModal';
@@ -261,6 +262,11 @@ export default function EmployeeCard({
   const [eventoError, setEventoError] = useState('');
   const [guardandoEvento, setGuardandoEvento] = useState(false);
   const [guardandoRegistro, setGuardandoRegistro] = useState<string | null>(null);
+  const [omitirAlmuerzoModalOpen, setOmitirAlmuerzoModalOpen] = useState(false);
+  const [omitiendoAlmuerzo, setOmitiendoAlmuerzo] = useState(false);
+  const [almuerzoOmitidoLocal, setAlmuerzoOmitidoLocal] = useState(false);
+  const [confirmarHabilitado, setConfirmarHabilitado] = useState(false);
+  const [segundosRestantes, setSegundosRestantes] = useState(3);
   const [employeeNormasOpen, setEmployeeNormasOpen] = useState(false);
   const [aceptandoNormas, setAceptandoNormas] = useState(false);
 
@@ -475,7 +481,6 @@ export default function EmployeeCard({
     }
   };
 
-
   const handleAceptarNormasEmpleado = async () => {
     if (!normasActivas) return;
     setAceptandoNormas(true);
@@ -490,6 +495,20 @@ export default function EmployeeCard({
     }
   };
 
+  // Registra almuerzo (inicio y fin) en una sola confirmación para asesoras
+  // cuyo turno no incluye almuerzo. El backend fecha cada evento; el avance
+  // de estado deshabilita las casillas de almuerzo automáticamente.
+  const handleConfirmarSinAlmuerzo = async () => {
+    setOmitiendoAlmuerzo(true);
+    try {
+      await onRegistrarEvento(id, 'Iniciar Almuerzo');
+      await onRegistrarEvento(id, 'Finalizar Almuerzo');
+      setAlmuerzoOmitidoLocal(true);
+      setOmitirAlmuerzoModalOpen(false);
+    } finally {
+      setOmitiendoAlmuerzo(false);
+    }
+  };
 
   const maxLength = 300;
 
@@ -594,7 +613,7 @@ export default function EmployeeCard({
 
 
 
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 3, position: 'relative' }}>
           {tiempoRestante !== null && (
             <Box
               sx={{
@@ -645,8 +664,9 @@ export default function EmployeeCard({
 
           <Stack className="tour-marcacion" spacing={1.5}>
             {botones.map((btn, idx) => {
-              const yaHecho = !!btn.hora;
-              const bloqueado = !btn.activo && !yaHecho;
+              const esCasillaAlmuerzo = btn.etiqueta === 'Iniciar Almuerzo' || btn.etiqueta === 'Finalizar Almuerzo';
+              const yaHecho = !!btn.hora && !(almuerzoOmitidoLocal && esCasillaAlmuerzo);
+              const bloqueado = (!btn.activo && !yaHecho) || (almuerzoOmitidoLocal && esCasillaAlmuerzo);
               const observacionGuardada = getObservacion(btn.etiqueta);
               const obsEnabled = yaHecho;
               const editado = getEditadoStatus(btn.etiqueta);
@@ -654,7 +674,7 @@ export default function EmployeeCard({
               const tooltipTitle = relojEnabled
                 ? 'Editar hora'
                 : (yaHecho && editado
-                    ? 'Esta hora ya fue editada y no se puede volver a editar. En caso de ser necesario, llamar a soporte.'
+                    ? 'Esta hora ya fue editada y no se puede volver a editar. En caso de ser necesario, llamar a soporte/sistemas.'
                     : 'No disponible');
 
 
@@ -725,24 +745,44 @@ export default function EmployeeCard({
                   </Button>
 
 
-                  <Tooltip title={observacionGuardada ? `Observación: ${observacionGuardada.substring(0, 80)}...` : (obsEnabled ? 'Agregar observación' : 'No disponible')} arrow>
-                    <span>
-                      <IconButton
-                        size="small"
-                        disabled={!obsEnabled}
-                        onClick={() => obsEnabled && handleOpenObsModal(btn.etiqueta)}
-                        sx={{
-                          border: '1px solid',
-                          borderColor: obsEnabled ? '#cbd5e1' : '#e2e8f0',
-                          borderRadius: 1.5,
-                          color: obsEnabled ? '#004680' : '#cbd5e1',
-                          '&:hover': { bgcolor: obsEnabled ? '#f1f5f9' : 'transparent' }
-                        }}
-                      >
-                        <AssignmentIcon fontSize="small" />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
+                  {btn.etiqueta === 'Iniciar Almuerzo' && btn.activo && !almuerzoOmitidoLocal ? (
+                    <Tooltip title="Turno sin almuerzo" arrow>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => setOmitirAlmuerzoModalOpen(true)}
+                          sx={{
+                            border: '1px solid #efd8a8',
+                            borderRadius: 1.5,
+                            bgcolor: '#fdf3e0',
+                            color: '#c08417',
+                            '&:hover': { bgcolor: '#fceecb' }
+                          }}
+                        >
+                           <NoFoodIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title={observacionGuardada ? `Observación: ${observacionGuardada.substring(0, 80)}...` : (obsEnabled ? 'Agregar observación' : 'No disponible')} arrow>
+                      <span>
+                        <IconButton
+                          size="small"
+                          disabled={!obsEnabled}
+                          onClick={() => obsEnabled && handleOpenObsModal(btn.etiqueta)}
+                          sx={{
+                            border: '1px solid',
+                            borderColor: obsEnabled ? '#cbd5e1' : '#e2e8f0',
+                            borderRadius: 1.5,
+                            color: obsEnabled ? '#004680' : '#cbd5e1',
+                            '&:hover': { bgcolor: obsEnabled ? '#f1f5f9' : 'transparent' }
+                          }}
+                        >
+                          <AssignmentIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  )}
                 </Box>
               );
             })}
@@ -908,6 +948,52 @@ export default function EmployeeCard({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal único: confirmar jornada sin almuerzo (contador anti-error de 3s) */}
+      <Dialog
+        open={omitirAlmuerzoModalOpen}
+        onClose={() => { if (!omitiendoAlmuerzo) setOmitirAlmuerzoModalOpen(false); }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 1.25, px: 2.25, fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <NoFoodIcon fontSize="small" />
+          <Box>
+            <Box>¿El turno no incluye almuerzo?</Box>
+            <Box sx={{ fontSize: '0.7rem', fontWeight: 500, opacity: 0.85, textTransform: 'capitalize' }}>{nombre}</Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers sx={{ px: 2.25, py: 1.75 }}>
+          <Typography sx={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.55, mb: 1.5 }}>
+            Al confirmar, las casillas de INICIAR/FINALIZAR ALMUERZO quedarán deshabilitadas. Ese tiempo del día {dayjs().format('DD/MM/YYYY')} no se descontará del total de horas laboradas.
+          </Typography>
+          <Alert severity="warning" icon={<WarningIcon sx={{ fontSize: 20 }} />} sx={{ borderRadius: 1.75, fontSize: '0.85rem', py: 0.375, alignItems: 'center', '& .MuiAlert-message': { py: 0.5 } }}>
+            Una vez confirmada, esta opción solo se puede revertir llamando a soporte/sistemas.
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 2.25, py: 1.5, gap: 1 }}>
+          <Button
+            onClick={() => setOmitirAlmuerzoModalOpen(false)}
+            disabled={omitiendoAlmuerzo}
+            variant="outlined"
+            size="small"
+            sx={{ color: '#475569', borderColor: '#cbd5e1', fontSize: '0.78rem', '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' } }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmarSinAlmuerzo}
+            variant="contained"
+            size="small"
+            disabled={omitiendoAlmuerzo}
+            startIcon={omitiendoAlmuerzo ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : undefined}
+            sx={{ bgcolor: '#004680', fontSize: '0.78rem' }}
+          >
+            {omitiendoAlmuerzo ? 'Registrando…' : 'Confirmar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
-}
+    }
