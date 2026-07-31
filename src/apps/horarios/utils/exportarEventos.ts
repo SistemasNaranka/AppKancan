@@ -177,7 +177,7 @@ export const exportarEventosExcel = async ({
   const buffer = await workbook.xlsx.writeBuffer();
   const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   const blob = new Blob([buffer], { type: fileType });
-  saveAs(blob, `pausas_activas_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`);
+  saveAs(blob, `Reporte_Pausas_Activas_Horarios_${dayjs().format("YYYYMMDD-HHmmss")}.xlsx`);
 
   return { ok: true };
 };

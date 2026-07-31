@@ -55,6 +55,11 @@ export const getTourSteps = (tiendaTourTarget: string): Step[] => [
     placement: 'bottom',
   },
   {
+    target: '[data-tour="fake-export-tab-semanal"]',
+    content: tourText(<>Exporta el consolidado de <strong>horas semanales</strong> por tienda o empleado.</>),
+    placement: 'bottom',
+  },
+  {
     target: '[data-tour="fake-export-cancelar"]',
     content: tourText(<>Cierra el panel <strong>sin exportar</strong> nada.</>),
     placement: 'top',
@@ -83,7 +88,7 @@ export const getTourSteps = (tiendaTourTarget: string): Step[] => [
 ];
 
 export const STEP_FAKE_START = 4;
-export const STEP_FAKE_END = 11;
-export const STEP_TAB_REGISTROS = 12;
-export const STEP_TAB_NOVEDADES = 13;
-export const STEP_TAB_PAUSAS = 14;
+export const STEP_FAKE_END = 12;
+export const STEP_TAB_REGISTROS = 13;
+export const STEP_TAB_NOVEDADES = 14;
+export const STEP_TAB_PAUSAS = 15;

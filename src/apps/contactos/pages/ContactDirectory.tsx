@@ -151,13 +151,13 @@ const ContactDirectory: React.FC = () => {
               onChange={(_, v) => { setAreasSel(v); setPagina(1); }}
               disableCloseOnSelect
               sx={{ width: 260 }}
-              renderTags={(value, getTagProps) => {
+              renderValue={(value, getItemProps) => {
                 const MAX = 1;
                 const visibles = value.slice(0, MAX);
                 return (
                   <>
                     {visibles.map((option, index) => {
-                      const { key, ...tagProps } = getTagProps({ index });
+                      const { key, ...tagProps } = getItemProps({ index });
                       return <Chip key={key} label={option} size="small" {...tagProps} />;
                     })}
                     {value.length > MAX && (

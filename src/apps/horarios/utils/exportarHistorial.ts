@@ -40,8 +40,12 @@ const calcularHorasLaboradas = (
       minutos -= almuerzoMinutos;
     }
   }
-  if (minutos < 0) return "--";
-  return `${(minutos / 60).toFixed(2)} h`;
+  if (minutos <= 0) return "--";
+  const hours = Math.floor(minutos / 60);
+  const mins = minutos % 60;
+  const hh = String(hours).padStart(2, '0');
+  const mm = String(mins).padStart(2, '0');
+  return `${hh}:${mm}`;
 };
 
 const calcularDuracionAlmuerzo = (
@@ -118,7 +122,7 @@ const agruparParaExport = (
       tienda: (storeId && typeof storeId === 'object' ? storeId.name : null) || storesMap.get(storeIdNum) || String(storeId ?? ""),
       cc: String(regs[0].employee_id?.document_number ?? ""),
       empleado: nombreEmpleado(regs[0].employee_id),
-      fecha: regs[0].record_date,
+      fecha: regs[0].record_date ? dayjs(regs[0].record_date).format("DD-MM-YYYY") : "",
       inicioTurno: hhmm(inicioTurno),
       inicioAlmuerzo: hhmm(inicioAlmuerzo),
       finAlmuerzo: hhmm(finAlmuerzo),
@@ -197,7 +201,7 @@ export const exportarHistorialExcel = async ({
   // BOM para que Excel reconozca UTF-8; CRLF entre filas.
   const contenido = "﻿" + lineas.join("\r\n");
   const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
-  saveAs(blob, `historial ${dayjs().format("YYYYMMDD-HHmmss")}.csv`);
+  saveAs(blob, `Reporte_Historial_Horarios_${dayjs().format("YYYYMMDD-HHmmss")}.csv`);
 
   return { ok: true };
 };

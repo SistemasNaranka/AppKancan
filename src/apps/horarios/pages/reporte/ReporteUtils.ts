@@ -49,7 +49,7 @@ export function getSemanasDelMes(
     semanas.push({
       start: currentStart.format('YYYY-MM-DD'),
       end: currentEnd.format('YYYY-MM-DD'),
-      label: `${currentStart.format('DD/MM')} - ${currentEnd.format('DD/MM')}`
+      label: `${currentStart.format('DD-MM-YYYY')} - ${currentEnd.format('DD-MM-YYYY')}`
     });
     currentStart = currentStart.add(7, 'day');
   }
@@ -127,10 +127,10 @@ export const calcularMinutosSemanales = (empId: any, startStr: string, endStr: s
 };
 
 export const formatMinutes = (totalMin: number): string => {
-    if (totalMin === 0) return '0h';
+    if (totalMin <= 0) return '0h 0m';
     const hours = Math.floor(totalMin / 60);
     const mins = totalMin % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    return `${hours}h ${mins}m`;
 };
 
 export const NOMBRES_MESES = [

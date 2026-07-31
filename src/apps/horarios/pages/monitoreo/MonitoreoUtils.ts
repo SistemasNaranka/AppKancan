@@ -16,12 +16,12 @@ export type SortField = 'nombre' | 'totalEmpleados' | 'personasRegistradas' | 'i
 
 export const OPCIONES_ORDEN: { value: SortField; label: string }[] = [
   { value: 'nombre', label: 'Tienda' }, { value: 'totalEmpleados', label: 'Empleados Act.' }, { value: 'personasRegistradas', label: 'Pers. Registradas' },
-  { value: 'incompletos', label: 'Faltante de Marcación' }, { value: 'sinRegistro', label: 'Sin Marcar' }
+  { value: 'incompletos', label: 'Días Incompletos' }, { value: 'sinRegistro', label: 'Días Sin Marcar' }
 ];
 
 export const COLUMNAS_TIENDAS: { label: string; value: SortField | null }[] = [
   { label: 'TIENDA', value: 'nombre' }, { label: 'EMPLEADOS ACT.', value: 'totalEmpleados' }, { label: 'PERS. REGISTRADAS', value: 'personasRegistradas' },
-  { label: 'FALTANTE DE MARCACIÓN', value: 'incompletos' }, { label: 'SIN MARCAR', value: 'sinRegistro' }, { label: 'ACCIONES', value: null }
+  { label: 'DÍAS INCOMPLETOS', value: 'incompletos' }, { label: 'DÍAS SIN MARCAR', value: 'sinRegistro' }, { label: 'ACCIONES', value: null }
 ];
 
 export const COLUMNAS_EDICIONES = ['FECHA', 'EMPLEADO', 'TIENDA', 'REGISTRO', 'HORA ORIG.', 'HORA MOD.', 'MOTIVO', 'OBSERVACIONES'];

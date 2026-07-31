@@ -20,10 +20,10 @@ import 'dayjs/locale/es';
 
 // Utilidad para formatear minutos laborados
 const formatMinutes = (min: number): string => {
-  if (min === 0) return '—';
+  if (min <= 0) return '0h 0m';
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return `${h}h ${m}m`;
 };
 
 // Obtener festivos trabajados por empleado
@@ -153,7 +153,7 @@ export default function FestivosDetalleModal({
       onClose={onClose}
       maxWidth="xs"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}
+      slotProps={{ paper: { sx: { borderRadius: 4, overflow: 'hidden' } } }}
     >
       <DialogTitle component="div" sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 2.5 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -98,6 +98,7 @@ export const fetchNewnessReportsExport = async (
           'observations',
           'newness_id.name',
           'store_id',
+          'employee_id.id',
           'employee_id.document_number',
           'employee_id.first_name',
           'employee_id.middle_name',

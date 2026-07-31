@@ -20,6 +20,8 @@ import 'dayjs/locale/es';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useHolidays } from '../../reservas/hooks/useHolidays';
+import { FestivoDay } from '../components/FestivoDay';
 
 dayjs.locale('es');
 
@@ -74,6 +76,8 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Dayjs>(dayjs());
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
+  const [calendarYear, setCalendarYear] = useState(() => dayjs().year());
+  const { data: festivosMap = {} } = useHolidays(calendarYear);
 
   const [editHourModalOpen, setEditHourModalOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
@@ -552,7 +556,10 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                 label="Seleccionar día"
                 value={fechaSeleccionada}
                 onChange={(value) => handleFechaChange(value as Dayjs | null)}
+                onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
+                onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
                 slotProps={{
+                  day: { holidays: festivosMap } as any,
                   textField: {
                     size: 'small',
                     sx: { width: { xs: '100%', sm: 300 } },
@@ -568,6 +575,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
                   }
                 }}
                 slots={{
+                  day: FestivoDay,
                   actionBar: CustomActionBar,
                 }}
               />

@@ -130,7 +130,7 @@ export default function DialogEditarEmpleado({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
       <DialogTitle sx={{ bgcolor: AZUL, color: '#fff', p: 2.5, display: 'flex', alignItems: 'center', gap: 2 }}>
         <BadgeIcon />
         <Box sx={{ flex: 1, minWidth: 0 }}>

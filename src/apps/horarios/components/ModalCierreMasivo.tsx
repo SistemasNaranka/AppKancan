@@ -167,7 +167,7 @@ function MultiSelectDay(props: MultiSelectDayProps) {
                 </Box>
                 {holidayName && (
                     <Typography variant="caption" sx={{ color: '#fca5a5', fontStyle: 'italic', fontSize: '0.68rem', mt: 0.3, borderTop: '1px solid rgba(255,255,255,0.1)', pt: 0.3 }}>
-                        Festivo: {holidayName}
+                        {holidayName}
                     </Typography>
                 )}
             </Box>
@@ -175,7 +175,7 @@ function MultiSelectDay(props: MultiSelectDayProps) {
     } else if (isSelected) {
         tooltipContent = modoAccion === 'cerrar' ? 'Seleccionado para cerrar' : 'Seleccionado para reabrir';
     } else if (isHoliday) {
-        tooltipContent = `Festivo: ${holidayName}`;
+        tooltipContent = holidayName;
     }
 
     return tooltipContent ? (
@@ -661,7 +661,7 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
             <Dialog
                 open={confirmOpen}
                 onClose={() => !guardando && setConfirmOpen(false)}
-                PaperProps={{ sx: { borderRadius: 3, p: 1, maxWidth: 450 } }}
+                slotProps={{ paper: { sx: { borderRadius: 3, p: 1, maxWidth: 450 } } }}
             >
                 <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
                     {isCerrar

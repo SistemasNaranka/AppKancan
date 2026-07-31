@@ -358,11 +358,11 @@ const CreateNotification = ({ onSuccess, currentTerminalCode }: CreateNotificati
                     isOptionEqualToValue={(o, v) => o.code === v.code}
                     value={destinatariosSeleccionados}
                     onChange={(_, v) => setDestinatariosSeleccionados(v)}
-                    renderTags={(value, getTagProps) => {
+                    renderValue={(value, getItemProps) => {
                       const visibles = value.slice(0, MAX_CHIPS_VISIBLES);
                       const restantes = value.length - visibles.length;
                       const chips = visibles.map((option, index) => {
-                        const { key, ...rest } = getTagProps({ index });
+                        const { key, ...rest } = getItemProps({ index });
                         return <Chip key={key} label={`${option.name} (${option.code})`} {...rest} size="small" sx={{ bgcolor: '#dbeafe', color: '#1d4ed8', fontFamily: 'Inter', fontSize: '11px' }} />;
                       });
                       if (restantes > 0) {

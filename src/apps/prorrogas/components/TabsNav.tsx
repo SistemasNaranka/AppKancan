@@ -68,7 +68,7 @@ const TabsNav: React.FC = () => {
           onChange={(_, v: TabValue) => setTab(v)}
           variant="scrollable"
           scrollButtons="auto"
-          TabIndicatorProps={{ style: { display: "none" } }}
+          slotProps={{ indicator: { style: { display: "none" } } }}
           sx={{
             minHeight: 52,
             "& .MuiTabs-flexContainer": {

@@ -27,6 +27,8 @@ import * as yup from 'yup';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useHolidays } from '../../reservas/hooks/useHolidays';
+import { FestivoDay } from './FestivoDay';
 import 'dayjs/locale/es';
 
 
@@ -267,6 +269,8 @@ export default function EmployeeCard({
   const [almuerzoOmitidoLocal, setAlmuerzoOmitidoLocal] = useState(false);
   const [confirmarHabilitado, setConfirmarHabilitado] = useState(false);
   const [segundosRestantes, setSegundosRestantes] = useState(3);
+  const [calendarYear, setCalendarYear] = useState(() => dayjs().year());
+  const { data: festivosMap = {} } = useHolidays(calendarYear);
   const [employeeNormasOpen, setEmployeeNormasOpen] = useState(false);
   const [aceptandoNormas, setAceptandoNormas] = useState(false);
 
@@ -828,7 +832,7 @@ export default function EmployeeCard({
 
 
       {/* Modal observación */}
-      <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+      <Dialog open={obsModalOpen} onClose={handleCloseObsModal} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
         <DialogTitle component="div" sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>
           <Typography component="span" variant="h6" sx={{ fontWeight: 600, display: 'block' }}>Observaciones del evento</Typography>
           <Typography component="span" variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>{eventoActualObs} • {nombre}</Typography>
@@ -846,7 +850,7 @@ export default function EmployeeCard({
 
 
       {/* Modal novedad */}
-      <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+      <Dialog open={novedadModalOpen} onClose={handleCloseNovedadModal} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
         <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3 }}>Registro de Novedad</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
@@ -873,8 +877,14 @@ export default function EmployeeCard({
                       setFormData({ ...formData, fechaInicio: newValue.format('YYYY-MM-DD') });
                     }
                   }}
+                  onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
+                  onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
+                  slots={{ day: FestivoDay }}
                   format="DD/MM/YYYY"
-                  slotProps={{ textField: { fullWidth: true, error: !!formErrors.fechaInicio, helperText: formErrors.fechaInicio } }}
+                  slotProps={{
+                    day: { holidays: festivosMap } as any,
+                    textField: { fullWidth: true, error: !!formErrors.fechaInicio, helperText: formErrors.fechaInicio }
+                  }}
                 />
                 <DatePicker
                   label="Hasta el día"
@@ -886,8 +896,14 @@ export default function EmployeeCard({
                       setFormData({ ...formData, fechaFin: newValue.format('YYYY-MM-DD') });
                     }
                   }}
+                  onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
+                  onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
+                  slots={{ day: FestivoDay }}
                   format="DD/MM/YYYY"
-                  slotProps={{ textField: { fullWidth: true, error: !!formErrors.fechaFin, helperText: formErrors.fechaFin } }}
+                  slotProps={{
+                    day: { holidays: festivosMap } as any,
+                    textField: { fullWidth: true, error: !!formErrors.fechaFin, helperText: formErrors.fechaFin }
+                  }}
                 />
               </Box>
             </LocalizationProvider>
@@ -902,7 +918,7 @@ export default function EmployeeCard({
 
 
       {/* Modal reporte de evento / pausa */}
-      <Dialog open={eventoModalOpen} onClose={handleCloseEventoModal} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+      <Dialog open={eventoModalOpen} onClose={handleCloseEventoModal} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 4 } } }}>
         <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 2, px: 3, fontWeight: 700 }}>Reporta un evento</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Typography sx={{ fontSize: '0.85rem', color: '#475569', mb: 2 }}>
@@ -955,7 +971,7 @@ export default function EmployeeCard({
         onClose={() => { if (!omitiendoAlmuerzo) setOmitirAlmuerzoModalOpen(false); }}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 4 } }}
+        slotProps={{ paper: { sx: { borderRadius: 4 } } }}
       >
         <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 1.25, px: 2.25, fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 1 }}>
           <NoFoodIcon fontSize="small" />
@@ -966,7 +982,7 @@ export default function EmployeeCard({
         </DialogTitle>
         <DialogContent dividers sx={{ px: 2.25, py: 1.75 }}>
           <Typography sx={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.55, mb: 1.5 }}>
-            Al confirmar, las casillas de INICIAR/FINALIZAR ALMUERZO quedarán deshabilitadas. Ese tiempo del día {dayjs().format('DD/MM/YYYY')} no se descontará del total de horas laboradas.
+            Al confirmar, las casillas de <strong>INICIAR ALMUERZO</strong> y <strong>FINALIZAR ALMUERZO</strong> serán marcadas automáticamente para la fecha <strong>{dayjs().format('DD/MM/YYYY')}</strong>.
           </Typography>
           <Alert severity="warning" icon={<WarningIcon sx={{ fontSize: 20 }} />} sx={{ borderRadius: 1.75, fontSize: '0.85rem', py: 0.375, alignItems: 'center', '& .MuiAlert-message': { py: 0.5 } }}>
             Una vez confirmada, esta opción solo se puede revertir llamando a soporte/sistemas.
@@ -996,4 +1012,4 @@ export default function EmployeeCard({
       </Dialog>
     </>
   );
-    }
+}

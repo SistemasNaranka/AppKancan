@@ -36,10 +36,10 @@ export default function FakeExportModal() {
           '& .MuiTabs-indicator': { bgcolor: '#004680', height: 3 }
         }}
       >
-        <Tab label="Horas Semanales" icon={<DateRangeIcon fontSize="small" />} iconPosition="start" />
         <Tab data-tour="fake-export-tab-historial" label="Historial de Registros" icon={<HistoryIcon fontSize="small" />} iconPosition="start" />
         <Tab data-tour="fake-export-tab-novedades" label="Novedades" icon={<AssignmentIcon fontSize="small" />} iconPosition="start" />
         <Tab data-tour="fake-export-tab-pausas" label="Pausas Activas" icon={<PauseCircleIcon fontSize="small" />} iconPosition="start" />
+        <Tab data-tour="fake-export-tab-semanal" label="Horas Semanales" icon={<DateRangeIcon fontSize="small" />} iconPosition="start" />
       </Tabs>
 
       <Box sx={{ pt: 1.5, px: 3, display: 'flex', flexDirection: 'column', gap: 1.25 }}>

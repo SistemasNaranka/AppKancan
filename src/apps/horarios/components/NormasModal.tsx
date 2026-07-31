@@ -221,7 +221,7 @@ export default function NormasModal({ open, normas, obligatorio, aceptando, titl
       maxWidth="md"
       fullWidth
       disableEscapeKeyDown={obligatorio}
-      PaperProps={{ sx: { borderRadius: 4 } }}
+      slotProps={{ paper: { sx: { borderRadius: 4 } } }}
     >
       <DialogTitle
         component="div"

@@ -18,6 +18,7 @@ dayjs.extend(isSameOrBefore);
 
 import { fetchTimeRecords, getStoreClosedDays, StoreClosedDay } from '../api/directus/read';
 import { EstadoDia } from './ModalDetalleTiendaUtils';
+import { useHolidays } from '../../reservas/hooks/useHolidays';
 
 interface CalendarioMensualTiendaProps {
     tiendaId: number;
@@ -44,6 +45,7 @@ export default function CalendarioMensualTienda({
     onToggleDia,
 }: CalendarioMensualTiendaProps) {
     const [mesActual, setMesActual] = useState(() => dayjs(fechaSeleccionada).startOf('month'));
+    const { data: festivosMap = {} } = useHolidays(mesActual.year());
 
     useEffect(() => {
         const mesSel = dayjs(fechaSeleccionada).startOf('month');
@@ -234,6 +236,8 @@ export default function CalendarioMensualTienda({
                                 const esHoy = fechaDayjs.isSame(hoy, 'day');
                                 const estado = diasEstado[fecha];
                                 const esCerrado = estado === 'tienda_cerrada';
+                                const holidayName = festivosMap[fecha];
+                                const esFestivo = Boolean(holidayName);
 
                                 // --- Modo selección múltiple ---
                                 if (modoSeleccion) {
@@ -252,36 +256,45 @@ export default function CalendarioMensualTienda({
                                         selBg = '#004680'; selColor = '#fff'; selBorder = 'none'; selCursor = 'pointer';
                                     } else if (seleccionable) {
                                         const baseStyle = colorPorEstado(estado, esFuturo);
-                                        selBg = baseStyle.bg; selColor = baseStyle.color;
-                                        selBorder = esFuturo ? '1.5px dashed #0a1929' : (baseStyle.border !== 'none' ? baseStyle.border : 'none');
+                                        selBg = esFestivo && !estado ? '#fef2f2' : baseStyle.bg;
+                                        selColor = esFestivo && !estado ? '#dc2626' : baseStyle.color;
+                                        selBorder = esFuturo ? '1.5px dashed #0a1929' : (baseStyle.border !== 'none' ? baseStyle.border : esFestivo ? '1px solid #fca5a5' : 'none');
                                         selCursor = 'pointer';
                                     }
 
                                     const selCell = (
-                                        <Box
-                                            key={fecha}
-                                            onClick={() => seleccionable && handleDateClick(fecha, esCerrado)}
-                                            sx={{
-                                                width: 36, height: 36, borderRadius: '50%',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                bgcolor: selBg, color: selColor, fontWeight: 700, fontSize: '0.85rem',
-                                                mx: 'auto', cursor: selCursor,
-                                                border: selBorder !== 'none' ? selBorder : esHoy ? '1.5px dashed #0a1929' : 'none',
-                                                outline: 'none',
-                                                boxShadow: estaSeleccionado ? '0 4px 12px rgba(0,70,128,0.35)' : 'none',
-                                                transform: estaSeleccionado ? 'scale(1.15)' : 'none',
-                                                zIndex: estaSeleccionado ? 2 : 1,
-                                                transition: 'all 0.15s ease-in-out',
-                                                opacity: !seleccionable && !esCerrado ? 0.35 : 1,
-                                                '&:hover': seleccionable ? { transform: estaSeleccionado ? 'scale(1.15)' : 'scale(1.1)', boxShadow: 2 } : {},
-                                            }}
-                                        >
-                                            {dia}
+                                        <Box key={fecha} sx={{ position: 'relative', display: 'inline-flex', mx: 'auto' }}>
+                                            <Box
+                                                onClick={() => seleccionable && handleDateClick(fecha, esCerrado)}
+                                                sx={{
+                                                    width: 36, height: 36, borderRadius: '50%',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    bgcolor: selBg, color: selColor, fontWeight: 700, fontSize: '0.85rem',
+                                                    cursor: selCursor,
+                                                    border: selBorder !== 'none' ? selBorder : esHoy ? '1.5px dashed #0a1929' : 'none',
+                                                    outline: 'none',
+                                                    boxShadow: estaSeleccionado ? '0 4px 12px rgba(0,70,128,0.35)' : 'none',
+                                                    transform: estaSeleccionado ? 'scale(1.15)' : 'none',
+                                                    zIndex: estaSeleccionado ? 2 : 1,
+                                                    transition: 'all 0.15s ease-in-out',
+                                                    opacity: !seleccionable && !esCerrado ? 0.35 : 1,
+                                                    '&:hover': seleccionable ? { transform: estaSeleccionado ? 'scale(1.15)' : 'scale(1.1)', boxShadow: 2 } : {},
+                                                }}
+                                            >
+                                                {dia}
+                                            </Box>
+                                            {esFestivo && (
+                                                <Box sx={{ position: 'absolute', top: 0, right: 0, width: 7, height: 7, borderRadius: '50%', bgcolor: '#dc2626', border: '1px solid #fff', zIndex: 3, pointerEvents: 'none' }} />
+                                            )}
                                         </Box>
                                     );
 
-                                    if (esCerrado) {
-                                        return <Tooltip key={fecha} title="Ya marcado como Tienda Cerrada" arrow>{selCell}</Tooltip>;
+                                    const tooltipText = esCerrado
+                                        ? (esFestivo ? `Tienda Cerrada • ${holidayName}` : 'Ya marcado como Tienda Cerrada')
+                                        : (esFestivo ? holidayName : undefined);
+
+                                    if (tooltipText) {
+                                        return <Tooltip key={fecha} title={tooltipText} arrow>{selCell}</Tooltip>;
                                     }
                                     return selCell;
                                 }
@@ -290,36 +303,49 @@ export default function CalendarioMensualTienda({
                                 const { bg, color, border } = colorPorEstado(estado, esFuturo);
                                 const selected = fecha === fechaSeleccionada;
                                 const permiteClick = !esFuturo || puedeGestionar;
+                                const cellBg = esFestivo && !estado && !esFuturo ? '#fef2f2' : bg;
+                                const cellColor = esFestivo && !estado && !esFuturo ? '#dc2626' : color;
+                                const cellBorder = border !== 'none' ? border : selected ? '2px solid #ffffff' : esHoy ? '1.5px dashed #0a1929' : esFestivo && !estado ? '1.5px solid #fca5a5' : 'none';
+
                                 const cellContent = (
-                                    <Box
-                                        onClick={() => permiteClick && handleDateClick(fecha, esCerrado)}
-                                        sx={{
-                                            width: 36, height: 36, borderRadius: '50%',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            bgcolor: bg, color: color, fontWeight: 700, fontSize: '0.85rem',
-                                            mx: 'auto', cursor: permiteClick ? 'pointer' : 'default',
-                                            border: border !== 'none' ? border : selected ? '2px solid #ffffff' : esHoy ? '1.5px dashed #0a1929' : 'none',
-                                            outline: selected ? '3px solid #004680' : 'none',
-                                            boxShadow: selected ? '0 4px 10px rgba(0,0,0,0.25)' : 'none',
-                                            transform: selected ? 'scale(1.15)' : 'none',
-                                            zIndex: selected ? 2 : 1,
-                                            transition: 'all 0.15s ease-in-out',
-                                            '&:hover': { transform: !permiteClick ? 'none' : selected ? 'scale(1.15)' : 'scale(1.1)', boxShadow: !permiteClick ? 'none' : 2 },
-                                        }}
-                                    >
-                                        {dia}
+                                    <Box key={fecha} sx={{ position: 'relative', display: 'inline-flex', mx: 'auto' }}>
+                                        <Box
+                                            onClick={() => permiteClick && handleDateClick(fecha, esCerrado)}
+                                            sx={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                bgcolor: cellBg, color: cellColor, fontWeight: 700, fontSize: '0.85rem',
+                                                cursor: permiteClick ? 'pointer' : 'default',
+                                                border: cellBorder,
+                                                outline: selected ? '3px solid #004680' : 'none',
+                                                boxShadow: selected ? '0 4px 10px rgba(0,0,0,0.25)' : 'none',
+                                                transform: selected ? 'scale(1.15)' : 'none',
+                                                zIndex: selected ? 2 : 1,
+                                                transition: 'all 0.15s ease-in-out',
+                                                '&:hover': { transform: !permiteClick ? 'none' : selected ? 'scale(1.15)' : 'scale(1.1)', boxShadow: !permiteClick ? 'none' : 2 },
+                                            }}
+                                        >
+                                            {dia}
+                                        </Box>
+                                        {esFestivo && (
+                                            <Box sx={{ position: 'absolute', top: 0, right: 0, width: 7, height: 7, borderRadius: '50%', bgcolor: '#dc2626', border: '1px solid #fff', zIndex: 3, pointerEvents: 'none' }} />
+                                        )}
                                     </Box>
                                 );
 
-                                if (esCerrado) {
+                                const tooltipTitle = esCerrado
+                                    ? (esFestivo ? `Tienda Cerrada • ${holidayName}` : 'Tienda Cerrada')
+                                    : (esFestivo ? holidayName : undefined);
+
+                                if (tooltipTitle) {
                                     return (
-                                        <Tooltip key={fecha} title="Tienda Cerrada" arrow>
+                                        <Tooltip key={fecha} title={tooltipTitle} arrow>
                                             {cellContent}
                                         </Tooltip>
                                     );
                                 }
 
-                                return <Box key={fecha}>{cellContent}</Box>;
+                                return cellContent;
                             })}
                         </Box>
                         <Box sx={{ display: 'flex', gap: 2.5, mt: 2.5, flexWrap: 'wrap' }}>
@@ -327,6 +353,12 @@ export default function CalendarioMensualTienda({
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ef6c00' }} /><Typography variant="caption" color="text.secondary">Incompleto / Tarde</Typography></Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#d32f2f' }} /><Typography variant="caption" color="text.secondary">Sin Registro</Typography></Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#e2e8f0', border: '1.5px solid #cbd5e1' }} /><Typography variant="caption" color="text.secondary">Tienda Cerrada</Typography></Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#fef2f2', border: '1.5px solid #fca5a5', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#dc2626' }} />
+                                </Box>
+                                <Typography variant="caption" color="#b91c1c" fontWeight={600}>Día Festivo</Typography>
+                            </Box>
                             {puedeGestionar && (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'transparent', border: '1.5px dashed #0a1929' }} /><Typography variant="caption" color="#0a1929" fontWeight={600}>Día Futuro Habilitado</Typography></Box>
                             )}
