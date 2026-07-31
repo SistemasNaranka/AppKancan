@@ -3,6 +3,7 @@ import { Step } from "react-joyride";
 import { Box, Typography, Chip } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import NoFoodIcon from "@mui/icons-material/NoFood";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -59,7 +60,7 @@ export const STEPS_REGISTROS: Step[] = [
           Marcaciones de Jornada
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Registra de forma secuencial: <strong>Comenzar Jornada</strong>, <strong>Iniciar</strong> y <strong>Finalizar Almuerzo</strong>, y <strong>Terminar Jornada</strong>. El botón <AccessTimeIcon sx={inlineIcon} /> permite corregir la hora y el botón <AssignmentIcon sx={inlineIcon} /> agregar una observación.
+          Registra en orden cada marcación de la jornada. El botón <AccessTimeIcon sx={inlineIcon} /> corrige la hora registrada, <AssignmentIcon sx={inlineIcon} /> agrega una observación y <NoFoodIcon sx={{ ...inlineIcon, color: "#c08417" }} /> omite el almuerzo y deshabilita sus casillas.
         </Typography>
       </Box>
     ),
