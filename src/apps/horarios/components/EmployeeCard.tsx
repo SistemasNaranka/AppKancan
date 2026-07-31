@@ -971,7 +971,7 @@ export default function EmployeeCard({
         onClose={() => { if (!omitiendoAlmuerzo) setOmitirAlmuerzoModalOpen(false); }}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 4 } }}
+        slotProps={{ paper: { sx: { borderRadius: 4 } } }}
       >
         <DialogTitle sx={{ bgcolor: '#004680', color: '#fff', py: 1.25, px: 2.25, fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 1 }}>
           <NoFoodIcon fontSize="small" />
@@ -982,7 +982,7 @@ export default function EmployeeCard({
         </DialogTitle>
         <DialogContent dividers sx={{ px: 2.25, py: 1.75 }}>
           <Typography sx={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.55, mb: 1.5 }}>
-            Al confirmar, las casillas de INICIAR/FINALIZAR ALMUERZO quedarán deshabilitadas. Ese tiempo del día {dayjs().format('DD/MM/YYYY')} no se descontará del total de horas laboradas.
+            Al confirmar, las casillas de <strong>INICIAR ALMUERZO</strong> y <strong>FINALIZAR ALMUERZO</strong> serán marcadas automáticamente para la fecha <strong>{dayjs().format('DD/MM/YYYY')}</strong>.
           </Typography>
           <Alert severity="warning" icon={<WarningIcon sx={{ fontSize: 20 }} />} sx={{ borderRadius: 1.75, fontSize: '0.85rem', py: 0.375, alignItems: 'center', '& .MuiAlert-message': { py: 0.5 } }}>
             Una vez confirmada, esta opción solo se puede revertir llamando a soporte/sistemas.
