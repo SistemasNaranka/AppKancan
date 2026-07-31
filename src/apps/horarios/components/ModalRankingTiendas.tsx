@@ -145,14 +145,16 @@ export default function ModalRankingTiendas({
       onClose={onClose}
       maxWidth="xl"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          height: '90vh',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+            height: '90vh',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }
         }
       }}
     >
@@ -429,8 +431,8 @@ export default function ModalRankingTiendas({
                 flexWrap: 'wrap'
               }}
             >
-              <Typography variant="body2" fontWeight={700} color="text.secondary" sx={{ mr: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                📊 por Motivo:
+              <Typography variant="body2" fontWeight={700} color="text.secondary" sx={{ mr: 0.5 }}>
+                Desglose:
               </Typography>
               {Object.entries(resumenPorMotivo).length > 0 ? (
                 Object.entries(resumenPorMotivo).map(([motivo, count]) => {
