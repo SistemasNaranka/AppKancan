@@ -61,19 +61,26 @@ export default function ModalRankingTiendas({
   const [paginaEdicionesTiendaRanking, setPaginaEdicionesTiendaRanking] = useState(0);
   const [motivosFiltro, setMotivosFiltro] = useState<string[]>([]);
 
-  // Motivos únicos globales (de todas las ediciones)
+  // Motivos únicos globales (filtrados estrictamente por el mes actual)
   const motivosUnicosGlobales = useMemo(() => {
     const s = new Set<string>();
-    editedRecords.forEach(r => r.motivo && s.add(r.motivo));
+    editedRecords.forEach(r => {
+      if (dayjs(r.fecha).isSame(rankingMesTiendas, 'month')) {
+        const m = r.motivo?.trim() || 'Sin motivo';
+        s.add(m);
+      }
+    });
     return Array.from(s).sort();
-  }, [editedRecords]);
+  }, [editedRecords, rankingMesTiendas]);
 
-  // Ranking de tiendas (con filtro de motivos)
+  // Ranking de tiendas (con filtro de motivos y cuenta exacta)
   const rankingTiendasBase = useMemo(() => {
     const map = new Map<number, { id: number; nombre: string; total: number }>();
     editedRecords.forEach(r => {
       const coincideMes = dayjs(r.fecha).isSame(rankingMesTiendas, 'month');
-      const coincideMotivo = motivosFiltro.length === 0 || motivosFiltro.includes(r.motivo);
+      const motivoStr = r.motivo?.trim() || 'Sin motivo';
+      const coincideMotivo = motivosFiltro.length === 0 || motivosFiltro.includes(motivoStr);
+      
       if (coincideMes && coincideMotivo) {
         const tiendaId = r.tiendaId || 0;
         if (!map.has(tiendaId)) map.set(tiendaId, { id: tiendaId, nombre: r.tiendaNombre, total: 0 });
@@ -94,14 +101,19 @@ export default function ModalRankingTiendas({
     return rankingTiendasOrdenado.filter(t => t.nombre.toLowerCase().includes(buscarTiendaRanking.toLowerCase().trim()));
   }, [rankingTiendasOrdenado, buscarTiendaRanking]);
 
-  // Ediciones de la tienda seleccionada (con filtro de motivos)
+  const totalEdicionesGenerales = useMemo(() => {
+    return rankingTiendasFiltrado.reduce((acc, t) => acc + t.total, 0);
+  }, [rankingTiendasFiltrado]);
+
+  // Ediciones de la tienda seleccionada (con filtro exacto de motivos)
   const edicionesDeTiendaRanking = useMemo(() => {
     if (!tiendaEdicionesRanking) return [];
-    return editedRecords.filter(r =>
-      r.tiendaId === tiendaEdicionesRanking.id &&
-      dayjs(r.fecha).isSame(rankingMesTiendas, 'month') &&
-      (motivosFiltro.length === 0 || motivosFiltro.includes(r.motivo))
-    );
+    return editedRecords.filter(r => {
+      const motivoStr = r.motivo?.trim() || 'Sin motivo';
+      return r.tiendaId === tiendaEdicionesRanking.id &&
+             dayjs(r.fecha).isSame(rankingMesTiendas, 'month') &&
+             (motivosFiltro.length === 0 || motivosFiltro.includes(motivoStr));
+    });
   }, [editedRecords, tiendaEdicionesRanking, rankingMesTiendas, motivosFiltro]);
 
   const edicionesDeTiendaRankingPagina = useMemo(() => {
@@ -109,13 +121,14 @@ export default function ModalRankingTiendas({
     return edicionesDeTiendaRanking.slice(start, start + rowsPerPage.ediciones);
   }, [edicionesDeTiendaRanking, paginaEdicionesTiendaRanking]);
 
-  // Desglose por tipo (solo para las ediciones filtradas)
-  const resumenPorTipo = useMemo(() => {
-    const tipos: Record<string, number> = {};
+  // Desglose riguroso por MOTIVO
+  const resumenPorMotivo = useMemo(() => {
+    const motivos: Record<string, number> = {};
     edicionesDeTiendaRanking.forEach(r => {
-      tipos[r.tipoRegistro] = (tipos[r.tipoRegistro] || 0) + 1;
+      const m = r.motivo?.trim() || 'Sin motivo';
+      motivos[m] = (motivos[m] || 0) + 1;
     });
-    return tipos;
+    return motivos;
   }, [edicionesDeTiendaRanking]);
 
   const maxTotal = rankingTiendasFiltrado.length ? Math.max(...rankingTiendasFiltrado.map(t => t.total)) : 0;
@@ -174,10 +187,9 @@ export default function ModalRankingTiendas({
 
       <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {!tiendaEdicionesRanking ? (
-          // ---- VISTA LISTADO DE TIENDAS (con filtro de motivos al lado del calendario) ----
+          // ---- VISTA LISTADO DE TIENDAS ----
           <>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, px: 3, pt: 2.5, pb: 2, flexShrink: 0, borderBottom: '1px solid #e0e0e0' }}>
-              {/* Fila de búsqueda y orden */}
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <TextField
                   label="Buscar tienda"
@@ -213,7 +225,7 @@ export default function ModalRankingTiendas({
                 </Tooltip>
               </Box>
 
-              {/* Fila: Calendario + Filtro de motivos (al lado) */}
+              {/* Fila reorganizada: Calendario -> Filtro de Motivos -> Conteo Total */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #d0d7de', borderRadius: 2, px: 2, py: 0.75, bgcolor: '#ffffff' }}>
                   <CalendarTodayIcon sx={{ color: '#004680', fontSize: 20, mr: 1 }} />
@@ -235,11 +247,6 @@ export default function ModalRankingTiendas({
                   </Box>
                 </Box>
 
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
-                  {rankingTiendasFiltrado.length} tiendas con ediciones
-                </Typography>
-
-                {/* Filtro de motivos (similar al ranking de empleados) */}
                 <FormControl size="small" sx={{ minWidth: 300, flex: 1, '& .MuiOutlinedInput-notchedOutline': { borderColor: motivosFiltro.length > 0 ? '#004680' : '#d0d7de', borderWidth: motivosFiltro.length > 0 ? '2px' : '1px' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#004680' } }}>
                   <InputLabel id="motivos-filtro-label">Filtrar por Motivos</InputLabel>
                   <Select
@@ -299,6 +306,10 @@ export default function ModalRankingTiendas({
                     ))}
                   </Select>
                 </FormControl>
+
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem', ml: 'auto', fontWeight: 500 }}>
+                  {rankingTiendasFiltrado.length} tiendas con ediciones ({totalEdicionesGenerales} en total)
+                </Typography>
               </Box>
             </Box>
 
@@ -402,7 +413,7 @@ export default function ModalRankingTiendas({
             </Box>
           </>
         ) : (
-          // ---- VISTA DETALLE DE TIENDA (con resumen de motivos filtrados) ----
+          // ---- VISTA DETALLE DE TIENDA (con desglose exacto de motivos filtrados) ----
           <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 3 }}>
             <Paper
               elevation={0}
@@ -418,25 +429,28 @@ export default function ModalRankingTiendas({
                 flexWrap: 'wrap'
               }}
             >
-              <Typography variant="body2" fontWeight={700} color="text.secondary" sx={{ mr: 0.5 }}>
-                📊 Desglose:
+              <Typography variant="body2" fontWeight={700} color="text.secondary" sx={{ mr: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                📊 por Motivo:
               </Typography>
-              {Object.entries(resumenPorTipo).length > 0 ? (
-                Object.entries(resumenPorTipo).map(([tipo, count]) => (
-                  <Chip
-                    key={tipo}
-                    size="medium"
-                    label={`${tipo}: ${count}`}
-                    sx={{ bgcolor: '#e3f2fd', color: '#004680', fontWeight: 500, fontSize: '0.75rem' }}
-                  />
-                ))
+              {Object.entries(resumenPorMotivo).length > 0 ? (
+                Object.entries(resumenPorMotivo).map(([motivo, count]) => {
+                  const colors = getColorForMotivo(motivo);
+                  return (
+                    <Chip
+                      key={motivo}
+                      size="medium"
+                      label={`${motivo}: ${count}`}
+                      sx={{ bgcolor: colors.bg, color: colors.text, fontWeight: 600, fontSize: '0.75rem' }}
+                    />
+                  );
+                })
               ) : (
                 <Typography variant="body2" color="text.secondary">Sin registros para los motivos seleccionados</Typography>
               )}
               <Chip
                 label={`Total: ${edicionesDeTiendaRanking.length}`}
                 size="medium"
-                sx={{ bgcolor: '#004680', color: '#ffffff', fontWeight: 700, fontSize: '0.75rem' }}
+                sx={{ bgcolor: '#004680', color: '#ffffff', fontWeight: 700, fontSize: '0.75rem', ml: 'auto' }}
               />
             </Paper>
 
