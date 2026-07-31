@@ -38,7 +38,7 @@ function Home() {
     quality: "Excelente",
   });
 
-  // 📊 Monitorear conexión
+  // Monitorear conexión
   useEffect(() => {
     const checkConnection = async () => {
       try {

@@ -12,6 +12,7 @@ import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import { Tienda } from '../interfaces/horarios.interface';
 import ModalDetalleTienda from '../components/ModalDetalleTienda';
 import ModalCierreMasivo from '../components/ModalCierreMasivo';
+import ModalRankingTiendas from '../components/ModalRankingTiendas';
 import DateRangeFilter from '../components/reportes/DateRangeFilter';
 import ReporteSemanalAreaManager from '../components/reportes/ReporteSemanalAreaManager';
 import DetallePlanillaPage from '../pages/DetallePlanillaPage';
@@ -42,6 +43,8 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
   const [motivosSeleccionados, setMotivosSeleccionados] = useState<string[]>([]);
   const [modalObs, setModalObs] = useState({ open: false, empleado: '', fecha: '', texto: '' });
   const [modalEmpleadosOpen, setModalEmpleadosOpen] = useState(false);
+  const [modalTiendasRankingOpen, setModalTiendasRankingOpen] = useState(false);
+  const [rankingMesTiendas, setRankingMesTiendas] = useState<Dayjs>(dayjs());
   const [tiendaSeleccionada, setTiendaSeleccionada] = useState<number | null>(null);
   const [paginaTiendas, setPaginaTiendas] = useState(0);
   const [paginaRanking, setPaginaRanking] = useState(0);
@@ -339,7 +342,11 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Grid container spacing={2} sx={{ mb: 2 }}>
               {TARJETAS_ESTADISTICAS.map((k, idx) => (
                 <Grid size={{ xs: 12, md: 3 }} key={idx}>
-                  <TarjetaEstadistica {...k} value={k.label === 'TOTAL MODIFICACIONES' ? statsEdiciones.total : k.label === 'EMPLEADOS MONITOREADOS' ? statsEdiciones.empleados : statsEdiciones.topStore} />
+                  <TarjetaEstadistica
+                    {...k}
+                    value={k.label === 'TOTAL MODIFICACIONES' ? statsEdiciones.total : k.label === 'EMPLEADOS MONITOREADOS' ? statsEdiciones.empleados : statsEdiciones.topStore}
+                    onClick={k.label === 'TIENDA CON MÁS CAMBIOS' ? () => setModalTiendasRankingOpen(true) : undefined}
+                  />
                 </Grid>
               ))}
               <Grid size={{ xs: 12, md: 3 }}>
@@ -563,6 +570,15 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
             <Button onClick={() => setModalEmpleadosOpen(false)} variant="contained" disableElevation sx={{ bgcolor: '#004680', textTransform: 'none', fontWeight: 600, borderRadius: 2, '&:hover': { bgcolor: '#003366' } }}>Cerrar</Button>
           </DialogActions>
         </Dialog>
+
+        {/* Modal Ranking Tiendas */}
+        <ModalRankingTiendas
+          open={modalTiendasRankingOpen}
+          onClose={() => setModalTiendasRankingOpen(false)}
+          editedRecords={editedRecords}
+          rankingMesTiendas={rankingMesTiendas}
+          setRankingMesTiendas={setRankingMesTiendas}
+        />
 
         {/* Modal Calendario */}
         <Dialog open={calendario.open} onClose={handleCerrarCalendario} maxWidth="lg" fullWidth slotProps={{ paper: { sx: { borderRadius: 3, maxHeight: '85vh' } } }}>
