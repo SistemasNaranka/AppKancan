@@ -200,6 +200,10 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
     setFechas({ inicio: nuevoMes.startOf('month'), fin: nuevoMes.isSame(dayjs(), 'month') ? dayjs() : nuevoMes.endOf('month') });
     setPaginaRanking(0);
   };
+  const handleCambiarMesRankingTiendas = (nuevoMes: Dayjs) => {
+    setRankingMesTiendas(nuevoMes);
+    setFechas({ inicio: nuevoMes.startOf('month'), fin: nuevoMes.isSame(dayjs(), 'month') ? dayjs() : nuevoMes.endOf('month') });
+  };
   const handleCambiarMesResumen = (nuevoMes: Dayjs) => { setResumenMes(nuevoMes); setPaginaTiendas(0); };
   const handleAbrirCalendario = (empleadoId: number) => setCalendario({ empleadoId, mes: dayjs(), dia: null, open: true });
   const handleCerrarCalendario = () => setCalendario({ empleadoId: null, mes: dayjs(), dia: null, open: false });
@@ -356,7 +360,14 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
 
             <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <Box sx={{ flexGrow: 0, minWidth: 280 }}>
-                <DateRangeFilter fechaInicio={fechas.inicio} fechaFin={fechas.fin} onChange={(inicio, fin) => { setFechas({ inicio, fin }); setPaginaEdiciones(0); }} />
+                <DateRangeFilter fechaInicio={fechas.inicio} fechaFin={fechas.fin} onChange={(inicio, fin) => {
+                  setFechas({ inicio, fin });
+                  setPaginaEdiciones(0);
+                  if (inicio) {
+                    setRankingMesTiendas(inicio);
+                    setRankingMes(inicio);
+                  }
+                }} />
               </Box>
 
               <FormControl size="small" sx={{ minWidth: 300, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
@@ -578,7 +589,8 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
           onClose={() => setModalTiendasRankingOpen(false)}
           editedRecords={editedRecords}
           rankingMesTiendas={rankingMesTiendas}
-          setRankingMesTiendas={setRankingMesTiendas}
+          setRankingMesTiendas={handleCambiarMesRankingTiendas}
+          isLoading={cargandoEdiciones}
         />
 
         {/* Modal Calendario */}

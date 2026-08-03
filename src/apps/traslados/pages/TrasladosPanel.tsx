@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { obtenerTiendasUsuarioActual, type UserStoreAccess } from "@/services/directus/userStores";
 
 // FLAG DE MANTENIMIENTO — Cambiar a `false` cuando Ultra Cloud esté listo
-const TRASLADOS_EN_MANTENIMIENTO = true;
+const TRASLADOS_EN_MANTENIMIENTO = false;
 
 const TrasladosPanel: React.FC = () => {
   const { user } = useAuth();
