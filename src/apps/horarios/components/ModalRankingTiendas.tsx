@@ -45,6 +45,7 @@ interface ModalRankingTiendasProps {
   editedRecords: EditedRecord[];
   rankingMesTiendas: Dayjs;
   setRankingMesTiendas: (date: Dayjs) => void;
+  onCambiarMes?: (nuevoMes: Dayjs) => void; // 👈 NUEVA PROP
 }
 
 export default function ModalRankingTiendas({
@@ -52,12 +53,13 @@ export default function ModalRankingTiendas({
   onClose,
   editedRecords,
   rankingMesTiendas,
-  setRankingMesTiendas
+  setRankingMesTiendas,
+  onCambiarMes,
 }: ModalRankingTiendasProps) {
   const [buscarTiendaRanking, setBuscarTiendaRanking] = useState('');
   const [ordenTiendasRanking, setOrdenTiendasRanking] = useState<'asc' | 'desc'>('desc');
   const [paginaTiendasRanking, setPaginaTiendasRanking] = useState(0);
-  const [tiendaEdicionesRanking, setTiendaEdicionesRanking] = useState<{ id: number, nombre: string } | null>(null);
+  const [tiendaEdicionesRanking, setTiendaEdicionesRanking] = useState<{ id: number; nombre: string } | null>(null);
   const [paginaEdicionesTiendaRanking, setPaginaEdicionesTiendaRanking] = useState(0);
   const [motivosFiltro, setMotivosFiltro] = useState<string[]>([]);
 
@@ -137,6 +139,10 @@ export default function ModalRankingTiendas({
     setRankingMesTiendas(nuevoMes);
     setPaginaTiendasRanking(0);
     setTiendaEdicionesRanking(null);
+    // 👇 Notificar al padre para que refresque los datos
+    if (onCambiarMes) {
+      onCambiarMes(nuevoMes);
+    }
   };
 
   return (
@@ -432,7 +438,7 @@ export default function ModalRankingTiendas({
               }}
             >
               <Typography variant="body2" fontWeight={700} color="text.secondary" sx={{ mr: 0.5 }}>
-                Desglose:
+                Motivo:
               </Typography>
               {Object.entries(resumenPorMotivo).length > 0 ? (
                 Object.entries(resumenPorMotivo).map(([motivo, count]) => {

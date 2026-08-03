@@ -586,7 +586,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
               placeholder="Buscar empleado..."
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              sx={{ width: 520 }}
+              sx={{ width: 50 }}
             />
 
             {/* 🔥 NUEVO: Fecha al lado del buscador */}
