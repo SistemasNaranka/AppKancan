@@ -83,7 +83,7 @@ export const useHomeLogic = () => {
   }, [budgetValidation.validationCompleted, isLoading, isLoadingMonths]);
 
   const mesResumen = useMemo(() => {
-    if (budgets.length === 0 || staff.length === 0 || ventas.length === 0) return null;
+    if (budgets.length === 0 || staff.length === 0) return null;
     const presupuestosEmpleadosState = presupuestosEmpleados || [];
 
     const createDataHash = () => {

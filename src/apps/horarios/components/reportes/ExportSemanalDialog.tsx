@@ -72,14 +72,7 @@ export default function ExportSemanalDialog({
     }
   }, [open, tiendas, fechaInicioDefault, fechaFinDefault, diaInicioSemana, diaFinSemana]);
 
-  const handleToggleTodas = (checked: boolean) => {
-    setTodas(checked);
-    if (checked) {
-      setTiendasSel(tiendas);
-    } else {
-      setTiendasSel([]);
-    }
-  };
+
 
   const handleExport = async () => {
     if (!rangoInicio || !rangoFin) {

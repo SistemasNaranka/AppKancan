@@ -6,7 +6,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
 
-import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getEditedTimeRecords } from '../api/directus/read';
+import { getStores, getEditedTimeRecords } from '../api/directus/read';
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import { Tienda } from '../interfaces/horarios.interface';
@@ -553,6 +553,7 @@ export default function MonitoreoGeneralPage({ storeId }: MonitoreoPageProps) {
                       </>}>
                       <ListItemAvatar><Avatar sx={{ bgcolor: '#004680', color: '#fff', width: 44, height: 44 }}>{emp.nombre.charAt(0).toUpperCase()}</Avatar></ListItemAvatar>
                       <ListItemText primary={<Typography variant="body1" fontWeight={600} color="#0a1929">{emp.nombre}</Typography>}
+                        secondaryTypographyProps={{ component: 'div' }}
                         secondary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
                           <Chip size="small" label={emp.tienda} sx={{ bgcolor: '#e8eaf6', color: '#1a237e', fontWeight: 500, fontSize: '0.7rem' }} />
                           <Chip size="small" label={`${emp.total} edición${emp.total !== 1 ? 'es' : ''}`} sx={{ bgcolor: '#e1f5fe', color: '#0288d1', fontWeight: 600, fontSize: '0.7rem' }} />

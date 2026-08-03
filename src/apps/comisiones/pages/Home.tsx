@@ -22,7 +22,7 @@ import { Button, Box, Typography, Paper, Chip } from "@mui/material";
 const MOSTRAR_AVISO_MIGRACION = true;
 const AVISO_MIGRACION_TITULO = "Aviso Importante: Migración del Sistema UltraSystem";
 const AVISO_MIGRACION_TEXTO =
-  "Debido a la migración del sistema UltraSystem, las ventas se encuentran actualizadas únicamente hasta el día 27 de Julio. Este inconveniente es temporal; sin embargo, pueden continuar realizando la asignación de personal para el presupuesto con total normalidad. Una vez resuelto el inconveniente, las ventas serán cargadas y reflejadas con normalidad.";
+  "Debido a la migración en curso del sistema UltraSystem, la información de ventas se encuentra actualizada únicamente hasta el 27 de julio. Por este motivo, para el mes de agosto las ventas se visualizarán temporalmente en $0. Sin embargo, pueden continuar realizando la asignación de personal para la distribución del presupuesto con total normalidad. Tan pronto culmine la migración, las ventas serán cargadas y actualizadas automáticamente.";
 
 export default function Home() {
   const { 
@@ -149,7 +149,7 @@ export default function Home() {
                 </Box>
 
                 <Typography variant="body2" color="#92400e" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, lineHeight: 1.65 }}>
-                  Debido a la migración del sistema <strong>UltraSystem</strong>, las ventas se encuentran actualizadas únicamente hasta el día 27 Julio. Este inconveniente es temporal; sin embargo, <strong>pueden continuar realizando la asignación de personal para el presupuesto</strong> con total normalidad. Una vez resuelto el inconveniente, la venta será cargada con normalidad.
+                  Debido a la migración en curso del sistema <strong>UltraSystem</strong>, las ventas se encuentran actualizadas únicamente hasta el día <strong>27 de Julio</strong>, por lo que en el mes de <strong>Agosto las ventas se mostrarán temporalmente en $0</strong>. Este inconveniente es temporal; sin embargo, <strong>pueden continuar realizando la asignación de personal para la distribución del presupuesto</strong> con total normalidad. Tan pronto culmine el proceso, las ventas serán cargadas y reflejadas automáticamente.
                 </Typography>
               </Box>
             </Paper>

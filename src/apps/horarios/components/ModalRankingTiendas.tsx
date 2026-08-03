@@ -385,8 +385,10 @@ export default function ModalRankingTiendas({
                               {tienda.nombre}
                             </Typography>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                           secondary={
                             <Chip
+                              component="span"
                               size="small"
                               label={`${tienda.total} edición${tienda.total !== 1 ? 'es' : ''}`}
                               sx={{

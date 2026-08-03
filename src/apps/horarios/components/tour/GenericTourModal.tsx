@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 
 export const AZUL_INSTITUCIONAL = "#004680";
 export const AZUL_FOCO = "#008CFF";

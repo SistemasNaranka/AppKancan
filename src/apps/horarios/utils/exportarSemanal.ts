@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import dayjs, { Dayjs } from 'dayjs';
 import { calcularMinutosSemanales } from '../pages/reporte/ReporteUtils';
 import { Tienda } from '../interfaces/horarios.interface';
 

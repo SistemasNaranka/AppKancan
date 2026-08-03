@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
+    Dialog, DialogContent, DialogActions,
     Box, Typography, Button, IconButton, TextField, InputAdornment,
-    Checkbox, FormControlLabel, CircularProgress, Alert, Chip, Divider, Tooltip,
+    Checkbox, FormControlLabel, Chip, Divider, Tooltip,
     Tabs, Tab,
 } from '@mui/material';
 import {
@@ -10,16 +10,17 @@ import {
     Search as SearchIcon,
     Storefront as StorefrontIcon,
     Block as BlockIcon,
-    LockOpen as LockOpenIcon,
     CheckCircle as CheckCircleIcon,
+    LockOpen as LockOpenIcon,
 } from '@mui/icons-material';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
 import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 
+import { ConfirmCierreMasivoDialog } from './cierre-masivo/ConfirmCierreMasivoDialog';
 import { setStoreClosedDayStatus } from '../api/directus/create';
 import { getStoreClosedDays, StoreClosedDay } from '../api/directus/read';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
@@ -290,8 +291,6 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
     const [accion, setAccion] = useState<'cerrar' | 'reabrir'>('cerrar');
     const [filtroSoloConCierres, setFiltroSoloConCierres] = useState(false);
 
-    // Fecha de inicio del mes actual para ignorar cierres de meses pasados
-    const inicioMesStr = useMemo(() => format(new Date(), 'yyyy-MM-01'), []);
     const tiendasMap = useMemo(() => new Map(tiendas.map(t => [t.id, t.nombre])), [tiendas]);
 
     // Consulta de todos los días cerrados para las tiendas
@@ -303,41 +302,73 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
         staleTime: 30 * 1000,
     });
 
-    // Mapeo: storeId -> Set<fecha> (solo mes actual y futuro)
+    // Mapeo: storeId -> Set<fecha> (TODOS los días cerrados sin restricción de mes actual)
     const diasCerradosPorTienda = useMemo(() => {
         const map = new Map<number, Set<string>>();
         todosDiasCerrados.forEach(d => {
-            if (d.status && d.date >= inicioMesStr) {
+            if (d.status) {
                 if (!map.has(d.store_id)) map.set(d.store_id, new Set());
                 map.get(d.store_id)!.add(d.date);
             }
         });
         return map;
-    }, [todosDiasCerrados, inicioMesStr]);
+    }, [todosDiasCerrados]);
 
-    // Mapeo: fecha -> lista de nombres de tiendas seleccionadas cerradas en esa fecha
+    // Al abrir el modal o cambiar la acción a 'reabrir', activar filtro y auto-seleccionar tiendas con cierres
+    useEffect(() => {
+        if (!open) return;
+        if (accion === 'reabrir') {
+            setFiltroSoloConCierres(true);
+            const tiendasConCierres = tiendas
+                .filter(t => (diasCerradosPorTienda.get(t.id)?.size || 0) > 0)
+                .map(t => t.id);
+            setTiendasSeleccionadas(new Set(tiendasConCierres));
+        }
+    }, [accion, open, todosDiasCerrados, tiendas]);
+
+    const handleToggleFiltroSoloConCierres = () => {
+        setFiltroSoloConCierres(prev => {
+            const next = !prev;
+            if (next) {
+                const tiendasConCierres = tiendas
+                    .filter(t => (diasCerradosPorTienda.get(t.id)?.size || 0) > 0)
+                    .map(t => t.id);
+                setTiendasSeleccionadas(new Set(tiendasConCierres));
+            }
+            return next;
+        });
+    };
+
+    // Mapeo: fecha -> lista de nombres de tiendas cerradas en esa fecha (para las tiendas seleccionadas)
     const tiendasCerradasPorFecha = useMemo(() => {
         const map = new Map<string, string[]>();
-        if (tiendasSeleccionadas.size === 0) return map;
+        const idsUsar = tiendasSeleccionadas.size > 0
+            ? tiendasSeleccionadas
+            : new Set(tiendas.filter(t => (diasCerradosPorTienda.get(t.id)?.size || 0) > 0).map(t => t.id));
+
+        if (idsUsar.size === 0) return map;
+
         todosDiasCerrados.forEach(d => {
-            if (d.status && d.date >= inicioMesStr && tiendasSeleccionadas.has(d.store_id)) {
+            if (d.status && idsUsar.has(d.store_id)) {
                 const nombre = tiendasMap.get(d.store_id);
                 if (nombre) {
                     if (!map.has(d.date)) map.set(d.date, []);
-                    map.get(d.date)!.push(nombre);
+                    if (!map.get(d.date)!.includes(nombre)) {
+                        map.get(d.date)!.push(nombre);
+                    }
                 }
             }
         });
         return map;
-    }, [todosDiasCerrados, tiendasSeleccionadas, tiendasMap, inicioMesStr]);
+    }, [todosDiasCerrados, tiendasSeleccionadas, tiendasMap, tiendas, diasCerradosPorTienda]);
 
     const tiendasFiltradas = useMemo(() => {
         let res = tiendas.filter(t => t.nombre.toLowerCase().includes(busqueda.toLowerCase()));
-        if (accion === 'reabrir' && filtroSoloConCierres) {
+        if (filtroSoloConCierres) {
             res = res.filter(t => (diasCerradosPorTienda.get(t.id)?.size || 0) > 0);
         }
         return res;
-    }, [tiendas, busqueda, accion, filtroSoloConCierres, diasCerradosPorTienda]);
+    }, [tiendas, busqueda, filtroSoloConCierres, diasCerradosPorTienda]);
 
     const todasSeleccionadas = tiendasSeleccionadas.size === tiendasFiltradas.length && tiendasFiltradas.length > 0;
     const algunaSeleccionada = tiendasSeleccionadas.size > 0 && !todasSeleccionadas;
@@ -484,21 +515,19 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
                                 <Typography variant="subtitle2" fontWeight={700} color="#0a1929" sx={{ letterSpacing: 0.5 }}>
                                     TIENDAS
                                 </Typography>
-                                {!isCerrar && (
-                                    <Button
-                                        size="small"
-                                        onClick={() => setFiltroSoloConCierres(prev => !prev)}
-                                        sx={{
-                                            fontSize: '0.7rem', textTransform: 'none', py: 0.2, px: 1, minHeight: 22, borderRadius: 1.5,
-                                            color: filtroSoloConCierres ? '#c2410c' : '#64748b',
-                                            bgcolor: filtroSoloConCierres ? '#fff7ed' : '#f1f5f9',
-                                            border: filtroSoloConCierres ? '1px solid #f97316' : '1px solid #e2e8f0',
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        {filtroSoloConCierres ? 'Ver todas' : 'Solo con cierres'}
-                                    </Button>
-                                )}
+                                <Button
+                                    size="small"
+                                    onClick={handleToggleFiltroSoloConCierres}
+                                    sx={{
+                                        fontSize: '0.7rem', textTransform: 'none', py: 0.2, px: 1, minHeight: 22, borderRadius: 1.5,
+                                        color: filtroSoloConCierres ? '#c2410c' : '#64748b',
+                                        bgcolor: filtroSoloConCierres ? '#fff7ed' : '#f1f5f9',
+                                        border: filtroSoloConCierres ? '1px solid #f97316' : '1px solid #e2e8f0',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    {filtroSoloConCierres ? 'Ver todas' : 'Solo con cierres'}
+                                </Button>
                             </Box>
 
                             <TextField
@@ -570,7 +599,7 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
                                                         <StorefrontIcon sx={{ fontSize: 15, color: '#64748b' }} />
                                                         <Typography variant="body2" color="#0a1929">{tienda.nombre}</Typography>
                                                     </Box>
-                                                    {!isCerrar && closedCount > 0 && (
+                                                    {closedCount > 0 && (
                                                         <Chip
                                                             size="small"
                                                             label={`${closedCount} cerrado(s)`}
@@ -658,64 +687,18 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
             </Dialog>
 
             {/* Modal de confirmación final */}
-            <Dialog
+            <ConfirmCierreMasivoDialog
                 open={confirmOpen}
-                onClose={() => !guardando && setConfirmOpen(false)}
-                slotProps={{ paper: { sx: { borderRadius: 3, p: 1, maxWidth: 450 } } }}
-            >
-                <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
-                    {isCerrar
-                        ? <BlockIcon sx={{ fontSize: 26, color: '#d97706' }} />
-                        : <CheckCircleIcon sx={{ fontSize: 26, color: '#2e7d32' }} />}
-                    <Typography variant="h6" fontWeight={700} color={isCerrar ? '#d97706' : '#2e7d32'}>
-                        {isCerrar ? 'Confirmar cierre masivo' : 'Confirmar reapertura masiva'}
-                    </Typography>
-                </DialogTitle>
-                <DialogContent sx={{ py: 1 }}>
-                    <Typography variant="body2" color="#0a1929" fontWeight={500} sx={{ mb: 1.5 }}>
-                        {isCerrar ? (
-                            <>Se marcarán <strong>{diasSeleccionados.size} día(s)</strong> como <strong>Tienda Cerrada</strong> para <strong>{tiendasSeleccionadas.size} tienda(s)</strong>.</>
-                        ) : (
-                            <>Se reabrirán <strong>{diasSeleccionados.size} día(s)</strong> (quitar cierre) para <strong>{tiendasSeleccionadas.size} tienda(s)</strong>.</>
-                        )}
-                    </Typography>
-                    <Alert
-                        severity={isCerrar ? 'warning' : 'info'}
-                        sx={{
-                            borderRadius: 2,
-                            bgcolor: isCerrar ? '#fffbe6' : '#e8f5e9',
-                            color: '#0a1929',
-                            '& .MuiAlert-icon': { color: isCerrar ? '#d97706' : '#2e7d32' }
-                        }}
-                    >
-                        {isCerrar ? (
-                            <>Se ejecutarán <strong>{totalOperaciones} operaciones</strong>. Si algún día ya estaba marcado, únicamente se actualizará su estado.</>
-                        ) : (
-                            <>Únicamente se modificarán las tiendas que tengan registros de cierre en esas fechas (no se crearán registros innecesarios si la tienda ya estaba abierta).</>
-                        )}
-                    </Alert>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
-                    <Button
-                        onClick={() => setConfirmOpen(false)}
-                        disabled={guardando}
-                        variant="outlined"
-                        sx={{ color: '#64748b', borderColor: '#cbd5e1', borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        onClick={handleGuardar}
-                        variant="contained"
-                        disabled={guardando}
-                        sx={{ bgcolor: mainColor, '&:hover': { bgcolor: mainColorHover }, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
-                    >
-                        {guardando
-                            ? <><CircularProgress size={16} sx={{ color: '#fff', mr: 1 }} />Guardando...</>
-                            : (isCerrar ? `Confirmar Cierre` : `Confirmar Reapertura`)}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                onClose={() => setConfirmOpen(false)}
+                guardando={guardando}
+                isCerrar={isCerrar}
+                diasCount={diasSeleccionados.size}
+                tiendasCount={tiendasSeleccionadas.size}
+                totalOperaciones={totalOperaciones}
+                mainColor={mainColor}
+                mainColorHover={mainColorHover}
+                onConfirm={handleGuardar}
+            />
         </>
     );
 }

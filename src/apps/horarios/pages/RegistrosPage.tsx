@@ -157,7 +157,7 @@ function RegistrosPageContent() {
   });
 
 
-  const registrarEventoDemo = (idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string) => {
+  const registrarEventoDemo = (_idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string) => {
     const ahora = horaOverride || dayjs().format('HH:mm');
     setDemoEmpleado(prev => {
       const nuevo = { ...prev, registros: { ...prev.registros, observaciones: { ...prev.registros.observaciones } } };
@@ -193,7 +193,7 @@ function RegistrosPageContent() {
   };
 
 
-  const guardarObservacionDemo = (idEmpleado: string, evento: string, texto: string) => {
+  const guardarObservacionDemo = (_idEmpleado: string, evento: string, texto: string) => {
     setDemoEmpleado(prev => {
       const nuevo = { ...prev, registros: { ...prev.registros, observaciones: { ...prev.registros.observaciones } } };
       let eventKey = '';

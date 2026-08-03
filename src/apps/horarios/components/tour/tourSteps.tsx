@@ -1,4 +1,4 @@
-import React from "react";
+
 import { Step } from "react-joyride";
 import { Box, Typography, Chip } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
