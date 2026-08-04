@@ -280,6 +280,8 @@ Tarjeta individual de cada empleado. Muestra nombre, cargo, estado actual y los 
 - **Botón principal de marcación**: registra el evento; se deshabilita si no es el paso activo o si la jornada ya terminó. Muestra la hora en formato 12 horas (`formatTo12Hour`).
 - **Botón de observación**: abre un modal para agregar/editar la nota del evento (máx. 500 caracteres).
 
+**Turno sin almuerzo.** En la fila de **Iniciar Almuerzo**, cuando esa marcación está activa (estado `jornada_iniciada`) y el almuerzo no se ha omitido, el botón de observación se reemplaza por un botón ámbar con el icono `NoFoodIcon` (tooltip *"Turno sin almuerzo"*). Está pensado para los turnos que no incluyen almuerzo. Al pulsarlo se abre un modal de confirmación; al confirmar, `handleConfirmarSinAlmuerzo` registra de forma consecutiva las marcaciones **Iniciar Almuerzo** y **Finalizar Almuerzo** (ambas con la hora del servidor), de modo que el almuerzo queda con duración cero y ese tiempo no se descuenta del total de horas laboradas. Tras la confirmación, la bandera local `almuerzoOmitidoLocal` —junto con la comprobación `esCasillaAlmuerzo`— deshabilita las dos casillas de almuerzo. El modal advierte que la acción solo puede revertirse a través de soporte/sistemas.
+
 También contiene el **modal de registro de novedad**, validado con Yup (`novedadSchema`): exige tipo de novedad, fechas válidas y que la fecha fin no sea anterior a la de inicio.
 
 En la cabecera, junto al ícono de novedad, hay un **botón de reporte de evento/pausa** (ícono de pausa). Abre el modal **"Reporta un evento"** con una lista desplegable de opciones **definidas en código** (constante `EVENTOS_PAUSA`: *Iniciar Pausa Activa, Terminar Pausa Activa, Salir al baño, Regresar del baño*) y un campo de **observaciones** opcional. Al guardar, llama a `onReportarEvento` → `reportarEvento` → `createEventReport`. El botón está activo durante la jornada (iniciada y no finalizada). La marca temporal del reporte la fija `date_created` en el servidor.
@@ -357,6 +359,13 @@ La ruta base `horarios` redirige por defecto a `horarios/registros`. Cualquier s
 2. En el modal **"Reporta un evento"** elige una opción de la lista (definida en código) y, opcionalmente, escribe una observación.
 3. `reportarEvento` llama a `createEventReport`, que inserta el registro en `com_event_reports`.
 4. El instante exacto del reporte queda guardado en `date_created` (reloj del **servidor** de Directus); se muestra un snackbar de confirmación.
+
+### 8.6 Registro de Turno sin Almuerzo
+
+1. En una tarjeta en estado `jornada_iniciada`, con el almuerzo aún sin marcar, el usuario pulsa el botón ámbar de **Turno sin almuerzo** (`NoFoodIcon`), ubicado en la fila de **Iniciar Almuerzo**.
+2. Confirma en el modal de advertencia (que aclara que la acción solo se revierte vía soporte/sistemas).
+3. `handleConfirmarSinAlmuerzo` registra en secuencia las marcaciones **Iniciar Almuerzo** y **Finalizar Almuerzo**, ambas con la hora del servidor, de modo que el almuerzo queda con duración cero.
+4. Las dos casillas de almuerzo quedan deshabilitadas (`almuerzoOmitidoLocal`) y ese tiempo no se descuenta del total de horas laboradas del día.
 
 ---
 
