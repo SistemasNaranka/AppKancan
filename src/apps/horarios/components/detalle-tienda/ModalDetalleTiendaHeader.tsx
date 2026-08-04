@@ -41,7 +41,6 @@ export const ModalDetalleTiendaHeader: React.FC<ModalDetalleTiendaHeaderProps> =
 }) => {
   return (
     <>
-      {/* Barra flotante de modo selección */}
       {modoSeleccion && (
         <Box sx={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',

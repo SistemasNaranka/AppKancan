@@ -12,7 +12,6 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { FestivoDay } from '../FestivoDay';
 
-// --- 1. Modal Observación ---
 interface EmployeeCardObsModalProps {
   open: boolean;
   onClose: () => void;
@@ -46,7 +45,6 @@ export const EmployeeCardObsModal: React.FC<EmployeeCardObsModalProps> = ({
   </Dialog>
 );
 
-// --- 2. Modal Novedad ---
 interface EmployeeCardNovedadModalProps {
   open: boolean;
   onClose: () => void;
@@ -134,7 +132,6 @@ export const EVENTOS_PAUSA_LIST = [
   'Iniciar Pausa Activa',
 ];
 
-// --- 3. Modal Evento / Pausa ---
 interface EmployeeCardEventoModalProps {
   open: boolean;
   onClose: () => void;
@@ -201,7 +198,6 @@ export const EmployeeCardEventoModal: React.FC<EmployeeCardEventoModalProps> = (
   </Dialog>
 );
 
-// --- 4. Modal Omitir Almuerzo ---
 interface EmployeeCardOmitirAlmuerzoModalProps {
   open: boolean;
   onClose: () => void;

@@ -7,7 +7,6 @@ import { useHolidays } from '../../reservas/hooks/useHolidays';
 
 dayjs.locale('es');
 
-// Hooks y APIs
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { useHorarios } from '../hooks/useHorarios';
 import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedades, getRecordReasonId } from '../api/directus/read';
@@ -20,9 +19,6 @@ import { DetallePlanillaTabla } from './planilla/DetallePlanillaTabla';
 import CreateHourModal from '../components/detalle-tienda/CreateHourModal';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
-// ============================================================
-//  INTERFACES
-// ============================================================
 interface EmpleadoFila {
   id: string;
   nombre: string;
@@ -42,9 +38,6 @@ interface EmpleadoFila {
   horasDia: string;
 }
 
-// ============================================================
-//  COMPONENTE PRINCIPAL
-// ============================================================
 interface DetallePlanillaPageProps {
   storeId?: number | null;
 }
@@ -99,9 +92,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     return tiendasFiltradas;
   }, [tiendasFiltradas, propStoreId]);
 
-  // La fecha "debounced" es la que realmente dispara las consultas a la API.
-  // Se actualiza 400ms después del último cambio, así varios clics seguidos
-  // en "Ayer" / "Día Anterior" no generan una llamada por cada clic.
+
   const [fechaDebounced, setFechaDebounced] = useState<Dayjs>(fechaSeleccionada);
 
   useEffect(() => {
@@ -117,12 +108,10 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     if (newDate) {
       setFechaSeleccionada(newDate);
       setPage(0);
-      // Ya no invalidamos manualmente: al cambiar fechaStr (debounced),
-      // React Query detecta el nuevo queryKey y refetch solo una vez.
+    
     }
   };
 
-  // ================ CUSTOM ACTION BAR (lateral izquierdo) =================
   const CustomActionBar = (props: any) => {
     const { setOpen } = props;
 
@@ -132,12 +121,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     };
 
     const handleAnteayer = () => {
-      // Resta un día sobre la fecha YA seleccionada (no sobre hoy),
-      // así cada clic retrocede un día más de forma sucesiva.
-      // dayjs ya maneja el cambio de mes/año automáticamente.
       handleFechaChange(fechaSeleccionada.subtract(1, 'day'));
-      // No cerramos el popup: así puedes seguir dando clic para retroceder
-      // día por día sin tener que volver a abrir el calendario.
     };
 
     const handleHoy = () => {
@@ -211,7 +195,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
       </Box>
     );
   };
-  // =======================================================================
 
   const { data: empleadosPorTienda = {}, isLoading: loadingEmpleados } = useQuery({
     queryKey: ['empleadosBulkMulti', tiendasAConsultar.map(t => t.id).join(',')],
@@ -367,10 +350,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     return filasEmpleados.slice(start, start + rowsPerPage);
   }, [filasEmpleados, page]);
 
-  // ============================================================
-  //  LÓGICA DE EDICIÓN
-  // ============================================================
-
   const handleOpenEditHour = async (fila: EmpleadoFila, evento: string, recordId: number, horaActual: string | null) => {
     if (!esAdmin() && !isAreaMgr) return;
 
@@ -456,10 +435,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     }
   };
 
-  // ============================================================
-  //  LÓGICA DE CREACIÓN
-  // ============================================================
-
   const handleOpenCreateHour = (empleadoId: string, empleadoNombre: string, evento: string, tiendaId: number) => {
     if (!esAdmin() && !isAreaMgr) return;
     setCreateData({
@@ -539,7 +514,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
         setPage={setPage}
       />
 
-      {/* MODALES */}
       {editData && (
         <EditHourModal
           open={editHourModalOpen}

@@ -52,7 +52,6 @@ export const HistorialTimelineView: React.FC<HistorialTimelineViewProps> = React
       <DialogContent sx={{ p: 2.5, bgcolor: '#fff' }}>
         {diaSeleccionado && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            {/* Cabecera del día */}
             <Box sx={{ bgcolor: '#f1f5f9', p: 1.5, borderRadius: 3, border: '1px solid #e2e8f0' }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} display="block" sx={{ textTransform: 'uppercase', mb: 0.25 }}>
                 JORNADA DIARIA
@@ -65,7 +64,6 @@ export const HistorialTimelineView: React.FC<HistorialTimelineViewProps> = React
               </Typography>
             </Box>
 
-            {/* Timeline de Marcaciones */}
             <Box sx={{ display: 'flex', flexDirection: 'column', pl: 1 }}>
               {(() => {
                 const marcasOrdenadas = [...diaSeleccionado.records].sort((a, b) => {

@@ -31,10 +31,10 @@ export const exportarEventosExcel = async ({
   reports,
   stores,
 }: ExportarParams): Promise<{ ok: boolean; mensaje?: string }> => {
-  // Crear un mapa con todas las tiendas que se van a exportar por su ID
+
   const storesMap = new Map<number, string>(stores.map((s) => [Number(s.id), s.name]));
 
-  // 1. Mapear los reportes a filas
+
   const filas: FilaExport[] = reports.map((ev) => {
     const fechaRaw = (ev.date ?? "").slice(0, 10);
     return {
@@ -49,7 +49,6 @@ export const exportarEventosExcel = async ({
     };
   });
 
-  // Ordenar las filas por tienda, fecha y hora
   filas.sort(
     (a, b) =>
       a.tienda.localeCompare(b.tienda) ||
@@ -58,24 +57,22 @@ export const exportarEventosExcel = async ({
       a.empleado.localeCompare(b.empleado)
   );
 
-  // Inicializar libro Excel
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Pausas Activas");
 
-  // Configurar anchos de columna por defecto
-  worksheet.getColumn(1).width = 15; // Número CC
-  worksheet.getColumn(2).width = 30; // Nombre empleado
-  worksheet.getColumn(3).width = 15; // Fecha (un poco más ancha para evitar ###)
-  worksheet.getColumn(4).width = 10; // Hora
-  worksheet.getColumn(5).width = 20; // Evento
-  worksheet.getColumn(6).width = 45; // Observación
+  worksheet.getColumn(1).width = 15;
+  worksheet.getColumn(2).width = 30;
+  worksheet.getColumn(3).width = 15;
+  worksheet.getColumn(4).width = 10;
+  worksheet.getColumn(5).width = 20;
+  worksheet.getColumn(6).width = 45;
 
-  // Iterar sobre las tiendas seleccionadas para mantenerlas en el reporte
+
   stores.forEach((store, index) => {
     const storeName = store.name;
     const registrosTienda = filas.filter((f) => f.tienda === storeName);
 
-    // 1. Agregar fila de encabezado de tienda (Combinada/Merged)
+
     const storeHeaderRow = worksheet.addRow([storeName]);
     worksheet.mergeCells(storeHeaderRow.number, 1, storeHeaderRow.number, 6);
     
@@ -84,13 +81,13 @@ export const exportarEventosExcel = async ({
     storeCell.fill = {
       type: "pattern",
       pattern: "solid",
-      fgColor: { argb: "004680" }, // Azul institucional
+      fgColor: { argb: "004680" },
     };
     storeCell.alignment = { horizontal: "center", vertical: "middle" };
     storeHeaderRow.height = 26;
 
     if (registrosTienda.length > 0) {
-      // Determinar la fila de inicio de la tabla (justo después del banner de la tienda)
+
       const startRow = storeHeaderRow.number + 1;
       const tableRows = registrosTienda.map((reg) => [
         reg.cc,
@@ -101,7 +98,7 @@ export const exportarEventosExcel = async ({
         reg.observacion,
       ]);
 
-      // Agregar tabla de ExcelJS para habilitar botones de filtro automático por defecto
+
       worksheet.addTable({
         name: `Tabla_${store.id}_${index}`,
         ref: `A${startRow}`,
@@ -117,7 +114,7 @@ export const exportarEventosExcel = async ({
         rows: tableRows,
       });
 
-      // Estilizar la fila de encabezado de la tabla (que addTable genera automáticamente en startRow)
+
       const headersRow = worksheet.getRow(startRow);
       headersRow.height = 20;
       headersRow.eachCell((cell) => {
@@ -125,7 +122,7 @@ export const exportarEventosExcel = async ({
         cell.fill = {
           type: "pattern",
           pattern: "solid",
-          fgColor: { argb: "E2E8F0" }, // Gris claro
+          fgColor: { argb: "E2E8F0" },
         };
         cell.border = {
           top: { style: "thin", color: { argb: "CBD5E1" } },
@@ -136,7 +133,7 @@ export const exportarEventosExcel = async ({
         cell.alignment = { vertical: "middle" };
       });
 
-      // Estilizar las filas de datos de la tabla
+
       for (let r = startRow + 1; r <= startRow + tableRows.length; r++) {
         const dataRow = worksheet.getRow(r);
         dataRow.height = 18;
@@ -150,7 +147,7 @@ export const exportarEventosExcel = async ({
         });
       }
     } else {
-      // Si la tienda no contiene datos, mostrar un mensaje claro debajo de ella
+
       const noDataRow = worksheet.addRow(["No contiene datos en este rango de tiempo"]);
       worksheet.mergeCells(noDataRow.number, 1, noDataRow.number, 6);
       
@@ -159,7 +156,7 @@ export const exportarEventosExcel = async ({
       noDataCell.alignment = { horizontal: "center", vertical: "middle" };
       noDataRow.height = 20;
       
-      // Dibujar un borde delgado alrededor de la fila vacía
+
       noDataCell.border = {
         top: { style: "thin", color: { argb: "E2E8F0" } },
         left: { style: "thin", color: { argb: "E2E8F0" } },
@@ -168,12 +165,12 @@ export const exportarEventosExcel = async ({
       };
     }
 
-    // Agregar espacio de separación (2 filas en blanco)
+
     worksheet.addRow([]);
     worksheet.addRow([]);
   });
 
-  // Generar y descargar el archivo
+
   const buffer = await workbook.xlsx.writeBuffer();
   const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   const blob = new Blob([buffer], { type: fileType });

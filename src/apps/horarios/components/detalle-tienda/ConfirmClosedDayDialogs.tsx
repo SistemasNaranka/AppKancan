@@ -6,7 +6,6 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import dayjs from 'dayjs';
 
 interface ConfirmClosedDayDialogsProps {
-  // Modal Individual
   confirmClosedModalOpen: boolean;
   setConfirmClosedModalOpen: (open: boolean) => void;
   fechaDisplay: string;
@@ -14,7 +13,6 @@ interface ConfirmClosedDayDialogsProps {
   guardandoDiaCerrado: boolean;
   executeToggleDiaCerrado: (actualmenteCerrado: boolean) => Promise<void>;
 
-  // Modal Masivo
   confirmMasivoOpen: boolean;
   setConfirmMasivoOpen: (open: boolean) => void;
   diasSeleccionadosSet: Set<string>;
@@ -41,7 +39,7 @@ export default function ConfirmClosedDayDialogs({
 }: ConfirmClosedDayDialogsProps) {
   return (
     <>
-      {/* MODAL DE CONFIRMACIÓN DE DÍA NO LABORAL (INDIVIDUAL) */}
+      
       <Dialog
         open={confirmClosedModalOpen}
         onClose={() => setConfirmClosedModalOpen(false)}
@@ -80,7 +78,7 @@ export default function ConfirmClosedDayDialogs({
         </DialogActions>
       </Dialog>
 
-      {/* MODAL DE CONFIRMACIÓN MASIVA (MULTISELECCION) */}
+      
       <Dialog
         open={confirmMasivoOpen}
         onClose={() => !guardandoMasivo && setConfirmMasivoOpen(false)}

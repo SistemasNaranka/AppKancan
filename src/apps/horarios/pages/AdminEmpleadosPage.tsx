@@ -103,7 +103,6 @@ function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      {/* Encabezado */}
       <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: '1px solid #eef2f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 700, color: '#0f2c4a', fontSize: '1.05rem' }}>Gestión de empleados</Typography>
@@ -123,7 +122,6 @@ function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
         </Box>
       </Paper>
 
-      {/* Selector de tienda + buscador */}
       <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: '1px solid #eef2f6' }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <Box className="tour-selector-tienda" sx={{ minWidth: 240, flex: { xs: '1 1 100%', md: '0 0 280px' } }}>
@@ -188,7 +186,6 @@ function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
         </Box>
       </Paper>
 
-      {/* Resultados */}
       {cargandoLista && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} sx={{ color: AZUL }} /></Box>
       )}
@@ -215,7 +212,6 @@ function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
 
       {!cargandoLista && base.length > 0 && (
         <>
-          {/* Encabezado de resultados */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: '#fff', border: '1px solid #eef2f6', borderRadius: 3, p: { xs: 1.5, md: 2 } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 2.5, bgcolor: '#eaf2fb', color: AZUL, border: '1px solid #d6e6f7', flexShrink: 0 }}>
@@ -331,7 +327,6 @@ function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
           </Box>
           )}
 
-          {/* Paginación */}
           <Box className="tour-paginacion" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: '#fff', border: '1px solid #eef2f6', borderRadius: 3, p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="caption" sx={{ color: '#64748b' }}>
@@ -410,7 +405,6 @@ function AdminEmpleadosPageContent({ storeSel, onStoreChange }: Props) {
         </>
       )}
 
-      {/* Modales */}
       <DialogNuevoEmpleado
         open={modalNuevo}
         onClose={() => setModalNuevo(false)}

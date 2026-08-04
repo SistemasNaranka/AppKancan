@@ -82,10 +82,8 @@ export function useTiendasResumen(tiendas: Tienda[], fechas: { inicio: Dayjs | n
             const esHoy = fecha.isSame(hoy, 'day');
             const esFuturo = fecha.isAfter(hoy, 'day');
 
-            // Skip today and future days for summary totals
             if (esHoy || esFuturo) return;
 
-            // Skip closed store days
             if (fechasCerradas.has(d)) return;
 
             const registrosDia = recPorDia[d] || [];
@@ -110,7 +108,6 @@ export function useTiendasResumen(tiendas: Tienda[], fechas: { inicio: Dayjs | n
             if (hasIncomplete) {
               incompletos++;
             } else if (hasComplete) {
-              // completo
             } else {
               sinRegistro++;
             }

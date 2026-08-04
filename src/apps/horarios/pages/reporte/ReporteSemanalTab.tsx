@@ -29,7 +29,7 @@ interface ReporteSemanalTabProps {
   pageSemanal: number;
   setPageSemanal: React.Dispatch<React.SetStateAction<number>>;
   totalPagesSemanal: number;
-  // Modo Empleado
+
   todosEmpleados: any[];
   selectedEmpleadoId: number | null;
   setSelectedEmpleadoId: (id: number | null) => void;
@@ -38,7 +38,7 @@ interface ReporteSemanalTabProps {
   cargandoRecordsGlobal: boolean;
   storesTrabajadas: { id: number; name: string }[];
   todasNovedades?: any[];
-  // Configuración de Semana
+
   diaInicioSemana?: number;
   setDiaInicioSemana?: (dia: number) => void;
   diaFinSemana?: number;
@@ -130,7 +130,7 @@ export default function ReporteSemanalTab({
 
   return (
     <Box>
-      {/* Modal de Marcaciones e Historial Diario */}
+
       {modalHistorialOpen && selectedEmpleadoModal && (
         <HistorialHorasModal
           open={modalHistorialOpen}
@@ -141,11 +141,11 @@ export default function ReporteSemanalTab({
         />
       )}
 
-      {/* Toolbar Unificada de Filtros y Configuración */}
+  
       <Box sx={{ p: 2, bgcolor: '#f8fafc', borderBottom: '1px solid #eef2f6', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        {/* Fila 1 Principal Minimalista */}
+
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-          {/* Modo de Visualización */}
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Typography variant="body2" sx={{ fontWeight: 700, color: '#475569' }}>Tipo de Reporte:</Typography>
             <ToggleButtonGroup
@@ -183,7 +183,7 @@ export default function ReporteSemanalTab({
               </ToggleButton>
             </ToggleButtonGroup>
 
-            {/* Chip Informativo Resumido (visibilidad directa rápida) */}
+
             {!filtrosAbiertos && (() => {
               const nombreIni = DIAS_DE_LA_SEMANA.find(d => d.value === diaInicioSemana)?.label || 'Lunes';
               const endDayVal = (diaInicioSemana + 6) % 7;
@@ -202,7 +202,7 @@ export default function ReporteSemanalTab({
             })()}
           </Box>
 
-          {/* Selector de Período y Botón de Opciones/Filtros */}
+
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Typography variant="body2" sx={{ fontWeight: 700, color: '#475569' }}>Período Laboral:</Typography>
             <FormControl size="small" sx={{ width: 140 }}>
@@ -263,10 +263,9 @@ export default function ReporteSemanalTab({
           </Stack>
         </Box>
 
-        {/* Panel Desplegable de Ajustes Avanzados */}
         <Collapse in={filtrosAbiertos}>
           <Box sx={{ pt: 1.5, mt: 1, borderTop: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-            {/* Estructura Semanal */}
+
             <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
               <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Estructura Semana:
@@ -335,7 +334,7 @@ export default function ReporteSemanalTab({
               })()}
             </Stack>
 
-            {/* Ordenamiento */}
+
             {reporteSemanalModo === 'tienda' && (
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -354,7 +353,7 @@ export default function ReporteSemanalTab({
               </Stack>
             )}
 
-            {/* Autocomplete Empleado (Solo en Modo Empleado) */}
+
             {reporteSemanalModo === 'empleado' && (
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>

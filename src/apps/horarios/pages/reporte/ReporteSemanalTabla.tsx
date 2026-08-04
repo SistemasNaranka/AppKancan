@@ -156,7 +156,7 @@ export const ReporteSemanalTabla: React.FC<ReporteSemanalTablaProps> = React.mem
           </Table>
         </TableContainer>
 
-        {/* Paginador Semanal */}
+
         {empleadosFiltradosSemanales.length > 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#fff', borderTop: '1px solid #eef2f6' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -238,7 +238,6 @@ export const ReporteSemanalTabla: React.FC<ReporteSemanalTablaProps> = React.mem
     );
   }
 
-  // MODO EMPLEADO
   return (
     <>
       {!selectedEmpleadoId ? (

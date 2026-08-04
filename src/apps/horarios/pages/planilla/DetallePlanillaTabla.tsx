@@ -63,7 +63,6 @@ export const DetallePlanillaTabla: React.FC<DetallePlanillaTablaProps> = React.m
   return (
     <Box sx={{ backgroundColor: '#f5f7fa', pt: 0.5, pb: 1.5 }}>
       <Container maxWidth="xl">
-        {/* ENCABEZADO */}
         <Paper elevation={0} sx={{ p: { xs: 1, sm: 2 }, mb: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: 'transparent' }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
             <Typography variant="h5" fontWeight={700} color="#0a1929" sx={{ textTransform: 'uppercase', fontSize: { xs: '1rem', sm: '1.3rem' } }}>
@@ -72,7 +71,6 @@ export const DetallePlanillaTabla: React.FC<DetallePlanillaTablaProps> = React.m
           </Box>
         </Paper>
 
-        {/* FILTROS */}
         <Paper elevation={0} sx={{ p: 1.5, mb: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: 'transparent' }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
@@ -119,7 +117,6 @@ export const DetallePlanillaTabla: React.FC<DetallePlanillaTablaProps> = React.m
           </Box>
         </Paper>
 
-        {/* TABLA */}
         <TableContainer 
           component={Paper} 
           elevation={0} 

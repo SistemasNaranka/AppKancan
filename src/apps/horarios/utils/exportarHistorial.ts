@@ -198,7 +198,7 @@ export const exportarHistorialExcel = async ({
     lineas.push(columnas.map((c) => csvCampo(String(fila[c.key] ?? ""))).join(DELIM));
   });
 
-  // BOM para que Excel reconozca UTF-8; CRLF entre filas.
+
   const contenido = "﻿" + lineas.join("\r\n");
   const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
   saveAs(blob, `Reporte_Historial_Horarios_${dayjs().format("YYYYMMDD-HHmmss")}.csv`);

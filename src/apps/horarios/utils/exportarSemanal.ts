@@ -21,11 +21,7 @@ export interface TramoSemana {
   label: string;
 }
 
-/**
- * Genera tramos quincenales/semanales óptimos según el rango seleccionado:
- * - Si es una quincena (hasta 16 días, ej: 11 al 25), divide en 2 Semanas Quincenales (Semana 1: 7 días, Semana 2: días restantes).
- * - Si es un período más largo (un mes entero), divide en bloques de 7 días.
- */
+
 export function getSemanasRango(
   inicio: Dayjs, 
   fin: Dayjs, 
@@ -112,7 +108,7 @@ export async function exportarSemanalExcel({
   const workbook = new ExcelJS.Workbook();
   const tiendasMap = new Map<number, string>(tiendas.map(t => [Number(t.id), t.name]));
 
-  // Preparar listado de empleados agrupando sus tiendas trabajadas
+
   const empleadosProcesados = empleados.map((emp) => {
     const recordsEmp = records.filter(r => Number(r.employee_id?.id || r.employee_id) === Number(emp.id));
     const storeIdsLaboradas = new Set<number>();
@@ -138,7 +134,7 @@ export async function exportarSemanalExcel({
     };
   });
 
-  // Ordenar empleados primero por la primera tienda y luego por Nombre
+
   const empleadosOrdenados = [...empleadosProcesados].sort((a, b) => {
     const compTienda = a.tiendaPrincipal.localeCompare(b.tiendaPrincipal, 'es', { sensitivity: 'base' });
     if (compTienda !== 0) return compTienda;
@@ -148,11 +144,11 @@ export async function exportarSemanalExcel({
     return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
   });
 
-  // --- MODO DÍA A DÍA ---
+
   if (modoGranularidad === 'diario') {
     const worksheet = workbook.addWorksheet(`Reporte Diario`);
 
-    // Días del rango
+
     const dias: Dayjs[] = [];
     let curr = fechaInicio.clone();
     while (curr.isBefore(fechaFin) || curr.isSame(fechaFin, 'day')) {
@@ -160,7 +156,7 @@ export async function exportarSemanalExcel({
       curr = curr.add(1, 'day');
     }
 
-    // Mapa de novedades: clave `empId_YYYY-MM-DD` y `doc_DOCUMENTO_YYYY-MM-DD`
+
     const novedadesMap = new Map<string, string>();
     if (novedades && novedades.length > 0) {
       novedades.forEach((n: any) => {
@@ -180,7 +176,7 @@ export async function exportarSemanalExcel({
       });
     }
 
-    // Mapa de días cerrados por tienda: Set de `${storeId}_YYYY-MM-DD`
+
     const closedDaysSet = new Set<string>();
     if (storeClosedDays && storeClosedDays.length > 0) {
       storeClosedDays.forEach((cd: any) => {
@@ -194,7 +190,7 @@ export async function exportarSemanalExcel({
       });
     }
 
-    // Cabeceras
+
     const headers = ['Tiendas', 'Empleado', 'Documento', 'Cargo'];
     dias.forEach((d) => {
       headers.push(`${d.format('DD-MM-YYYY')}\n(${d.locale('es').format('dddd')})`);
@@ -221,7 +217,7 @@ export async function exportarSemanalExcel({
       };
     });
 
-    // Filas de empleados
+
     empleadosOrdenados.forEach((emp, index) => {
       const nombreEmpleado = emp.nombre || `Empleado #${emp.id}`;
       const documento = emp.documento || '--';
@@ -319,23 +315,23 @@ export async function exportarSemanalExcel({
         } else if (!isHeaderCol && dayIdx >= 0 && dayIdx < cellStyles.length) {
           const styleType = cellStyles[dayIdx].styleType;
           if (styleType === 'cerrado_con_marcacion' || styleType === 'cerrado_con_novedad') {
-            // Tienda cerrada con marcación o novedad -> Fondo Rojo Suave (#FFEBEE), Texto Rojo Oscuro (#B71C1C)
+
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEBEE' } };
             cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'B71C1C' } };
           } else if (styleType === 'cerrado_sin_marcacion') {
-            // Tienda cerrada sin marcaciones -> Fondo Gris Suave (#F3F4F6), Texto Gris Oscuro (#475569)
+
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F3F4F6' } };
             cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: '475569' } };
           } else if (styleType === 'novedad') {
-            // Novedad normal -> Fondo Verde Suave (#E8F5E9), Texto Verde Oscuro (#1B5E20)
+
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E8F5E9' } };
             cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: '1B5E20' } };
           } else if (styleType === 'horas') {
-            // Día trabajado normal
+
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFF' : 'FAFCFF' } };
             cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: '0F2C4A' } };
           } else {
-            // Día vacío / sin marcación
+
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFF' : 'FAFCFF' } };
             cell.font = { name: 'Calibri', size: 10, color: { argb: '94A3B8' } };
           }
@@ -352,17 +348,17 @@ export async function exportarSemanalExcel({
       });
     });
 
-    // Ajustar anchos de columnas
-    worksheet.getColumn(1).width = 30; // Tiendas
-    worksheet.getColumn(2).width = 28; // Empleado
-    worksheet.getColumn(3).width = 16; // Documento
-    worksheet.getColumn(4).width = 20; // Cargo
+
+    worksheet.getColumn(1).width = 30;
+    worksheet.getColumn(2).width = 28;
+    worksheet.getColumn(3).width = 16;
+    worksheet.getColumn(4).width = 20;
     for (let i = 5; i <= 4 + dias.length; i++) {
-      worksheet.getColumn(i).width = 16; // Día
+      worksheet.getColumn(i).width = 16;
     }
-    worksheet.getColumn(5 + dias.length).width = 18; // Total Horas
-    worksheet.getColumn(6 + dias.length).width = 16; // Días Trab.
-    worksheet.getColumn(7 + dias.length).width = 16; // Novedades
+    worksheet.getColumn(5 + dias.length).width = 18;
+    worksheet.getColumn(6 + dias.length).width = 16;
+    worksheet.getColumn(7 + dias.length).width = 16;
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -372,11 +368,11 @@ export async function exportarSemanalExcel({
     return;
   }
 
-  // --- MODO ACUMULADO POR SEMANAS (DEFAULT) ---
+
   const worksheet = workbook.addWorksheet(`Reporte Semanal`);
   const semanas = getSemanasRango(fechaInicio, fechaFin, diaInicioSemana, diaFinSemana);
 
-  // 1. Cabeceras de tabla directamente en la fila 1
+
   const headers = ['Tiendas', 'Empleado', 'Documento', 'Cargo'];
   semanas.forEach((sem, idx) => {
     headers.push(`Semana ${idx + 1}\n(${sem.label})`);
@@ -403,7 +399,7 @@ export async function exportarSemanalExcel({
     };
   });
 
-  // 2. Filas de empleados
+
   empleadosOrdenados.forEach((emp, index) => {
     const nombreEmpleado = emp.nombre || `Empleado #${emp.id}`;
     const documento = emp.documento || '--';
@@ -450,17 +446,17 @@ export async function exportarSemanalExcel({
     });
   });
 
-  // Ajustar anchos de columnas
-  worksheet.getColumn(1).width = 32; // Tienda(s) Laborada(s)
-  worksheet.getColumn(2).width = 30; // Empleado
-  worksheet.getColumn(3).width = 16; // Documento
-  worksheet.getColumn(4).width = 20; // Cargo
+
+  worksheet.getColumn(1).width = 32;
+  worksheet.getColumn(2).width = 30;
+  worksheet.getColumn(3).width = 16;
+  worksheet.getColumn(4).width = 20;
   for (let i = 5; i <= 4 + semanas.length; i++) {
     worksheet.getColumn(i).width = 22;
   }
-  worksheet.getColumn(5 + semanas.length).width = 20; // Total
+  worksheet.getColumn(5 + semanas.length).width = 20;
 
-  // 5. Descargar archivo con nombre estandarizado y timestamp (YYYYMMDD-HHmmss)
+
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const timestamp = dayjs().format('YYYYMMDD-HHmmss');

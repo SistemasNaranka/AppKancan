@@ -3,18 +3,12 @@ import { resolveNetworkUrl } from '@/shared/utils/network';
 
 let timeOffsetMs = 0;
 
-/**
- * Sincroniza la hora del cliente con el servidor de Directus.
- * Calcula el desfase (offset) para corregir cualquier manipulación del reloj local.
- */
 export const syncTimeWithServer = async () => {
   try {
     const start = Date.now();
-    // Intentar leer la URL del servidor desde las variables de entorno, o usar el origen actual
     const rawUrl = import.meta.env.VITE_DIRECTUS_URL || window.location.origin;
     const url = resolveNetworkUrl(rawUrl);
     
-    // Realizamos una petición HEAD rápida para obtener las cabeceras del servidor
     const response = await fetch(url, { method: 'HEAD' });
     const dateHeader = response.headers.get('Date');
     
@@ -29,9 +23,6 @@ export const syncTimeWithServer = async () => {
   }
 };
 
-/**
- * Obtiene la hora real de Colombia (UTC-5) aplicando el desfase del servidor si está disponible.
- */
 export const getRealColombiaTime = (): dayjs.Dayjs => {
   const syncedTime = Date.now() + timeOffsetMs;
   try {

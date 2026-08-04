@@ -47,8 +47,8 @@ const initialForm = (tipoDocDefault: string) => ({
   document_number: '',
   store_id: 0,
   position_id: 0,
-  email: '',      // 👈 NUEVO
-  phone: '',      // 👈 NUEVO
+  email: '',
+  phone: '',
 });
 
 function splitNombreLocal(nombre: string) {
@@ -152,7 +152,6 @@ export default function DialogNuevoEmpleado({
     if (!nombre) nuevosErrores.nombreCompleto = 'El nombre completo es obligatorio';
     else if (nombre.split(' ').length < 2) nuevosErrores.nombreCompleto = 'Ingresa al menos un nombre y un apellido';
 
-    // Email y teléfono son opcionales, no se validan
     if (Object.keys(nuevosErrores).length > 0) {
       setErrors(nuevosErrores);
       return;
@@ -315,7 +314,7 @@ export default function DialogNuevoEmpleado({
             <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>CONTACTO (opcional)</Typography>
           </Divider>
 
-          {/* 👇 Campos opcionales de email y teléfono */}
+          
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
               fullWidth

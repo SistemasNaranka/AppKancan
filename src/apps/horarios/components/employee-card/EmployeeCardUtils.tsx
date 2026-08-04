@@ -87,7 +87,6 @@ export function NombreEmpleado({ nombre }: { nombre: string }) {
   );
 }
 
-// ─── Schema de Validación de Novedad ─────────────────────────────────────────
 export const novedadSchema = yup.object().shape({
   novedad: yup.string().required('El tipo de novedad es obligatorio'),
   fechaInicio: yup.string().required('La fecha de inicio es obligatoria'),
@@ -100,7 +99,6 @@ export const novedadSchema = yup.object().shape({
   observaciones: yup.string().max(300, 'Máximo 300 caracteres')
 });
 
-// ─── Helpers de Registros y Eventos ──────────────────────────────────────────
 export const getObservacion = (registros: any, evento: string): string => {
   if (!registros?.observaciones) return '';
   switch (evento) {
@@ -147,7 +145,6 @@ export const getRecordIdEvento = (registros: any, evento: string): number | unde
   return registros.ids[eventKey];
 };
 
-// ─── Hook de Pausa Activa y Usuario Demo ──────────────────────────────────────
 export function useActiveBreak(id: string, onReportarEvento: (idEmpleado: string, eventType: string) => void) {
   const [tiempoRestante, setTiempoRestante] = useState<number | null>(null);
 
