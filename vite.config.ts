@@ -285,6 +285,8 @@ export default defineConfig({
       "@mui/icons-material/SupervisorAccount",
       "@mui/icons-material/SwapHoriz",
       "@mui/icons-material/SwapVert",
+      "@mui/icons-material/SyncProblem",
+      "@mui/icons-material/SyncProblemOutlined",
       "@mui/icons-material/TableChart",
       "@mui/icons-material/TaskAlt",
       "@mui/icons-material/Timer",
