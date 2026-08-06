@@ -17,8 +17,6 @@ import { ListaTraslados } from "./ListaTraslados";
 import { TrasladosTourProvider } from "./TrasladosTourContext";
 import { TrasladosTour } from "./TrasladosTour";
 import { StoreTrasladosTour } from "./StoreTrasladosTour";
-import { AvisoUltraSync } from "./AvisoUltraSync";
-
 type PanelPendientesProps = {
   filtroBodegaDestino: string;
   setFiltroBodegaDestino: (v: string) => void;
@@ -276,7 +274,6 @@ const PanelPendientesContent: React.FC<PanelPendientesProps> = ({
         )}
 
         {/* ===== CONTENIDO PRINCIPAL ===== */}
-        <AvisoUltraSync />
 
         {!loading && (
           <>

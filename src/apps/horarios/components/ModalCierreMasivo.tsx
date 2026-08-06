@@ -198,13 +198,17 @@ function CalendarioCierreMasivo({
     onToggleDia,
     modoAccion = 'cerrar',
     tiendasCerradasPorFecha = new Map(),
+    currentMonth,
+    onMonthChange,
 }: {
     diasSeleccionados: Set<string>;
     onToggleDia: (fecha: string) => void;
     modoAccion?: 'cerrar' | 'reabrir';
     tiendasCerradasPorFecha?: Map<string, string[]>;
+    currentMonth: Date;
+    onMonthChange: (date: Date) => void;
 }) {
-    const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+    const calendarYear = currentMonth.getFullYear();
     const { data: festivos = {} } = useHolidaysCO(calendarYear);
 
     const handleChange = (value: unknown) => {
@@ -218,8 +222,10 @@ function CalendarioCierreMasivo({
     };
 
     const handleMonthOrYearChange = (date: unknown) => {
-        const y = toNativeDate(date).getFullYear();
-        if (!isNaN(y)) setCalendarYear(y);
+        const d = toNativeDate(date);
+        if (d && !isNaN(d.getTime())) {
+            onMonthChange(d);
+        }
     };
 
     return (
@@ -235,6 +241,7 @@ function CalendarioCierreMasivo({
             }}>
                 <StaticDatePicker
                     value={null}
+                    referenceDate={currentMonth}
                     onChange={handleChange as any}
                     onMonthChange={handleMonthOrYearChange as any}
                     onYearChange={handleMonthOrYearChange as any}
@@ -290,7 +297,9 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [accion, setAccion] = useState<'cerrar' | 'reabrir'>('cerrar');
     const [filtroSoloConCierres, setFiltroSoloConCierres] = useState(false);
+    const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
+    const mesActualStr = useMemo(() => format(currentMonth, 'yyyy-MM'), [currentMonth]);
     const tiendasMap = useMemo(() => new Map(tiendas.map(t => [t.id, t.nombre])), [tiendas]);
 
     // Consulta de todos los días cerrados para las tiendas
@@ -302,19 +311,26 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
         staleTime: 30 * 1000,
     });
 
-    // Mapeo: storeId -> Set<fecha> (TODOS los días cerrados sin restricción de mes actual)
+    // Mapeo: storeId -> Set<fecha> (Días cerrados SOLO en el mes que se está mostrando en el calendario)
     const diasCerradosPorTienda = useMemo(() => {
         const map = new Map<number, Set<string>>();
         todosDiasCerrados.forEach(d => {
-            if (d.status) {
+            if (d.status && d.date && d.date.startsWith(mesActualStr)) {
                 if (!map.has(d.store_id)) map.set(d.store_id, new Set());
                 map.get(d.store_id)!.add(d.date);
             }
         });
         return map;
-    }, [todosDiasCerrados]);
+    }, [todosDiasCerrados, mesActualStr]);
 
-    // Al abrir el modal o cambiar la acción a 'reabrir', activar filtro y auto-seleccionar tiendas con cierres
+    // Al abrir el modal, resetear al mes actual
+    useEffect(() => {
+        if (open) {
+            setCurrentMonth(new Date());
+        }
+    }, [open]);
+
+    // Al abrir el modal o cambiar la acción a 'reabrir', activar filtro y auto-seleccionar tiendas con cierres en este mes
     useEffect(() => {
         if (!open) return;
         if (accion === 'reabrir') {
@@ -324,7 +340,7 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
                 .map(t => t.id);
             setTiendasSeleccionadas(new Set(tiendasConCierres));
         }
-    }, [accion, open, todosDiasCerrados, tiendas]);
+    }, [accion, open, diasCerradosPorTienda, tiendas]);
 
     const handleToggleFiltroSoloConCierres = () => {
         setFiltroSoloConCierres(prev => {
@@ -339,7 +355,7 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
         });
     };
 
-    // Mapeo: fecha -> lista de nombres de tiendas cerradas en esa fecha (para las tiendas seleccionadas)
+    // Mapeo: fecha -> lista de nombres de tiendas cerradas en esa fecha (para las tiendas seleccionadas y del mes actual)
     const tiendasCerradasPorFecha = useMemo(() => {
         const map = new Map<string, string[]>();
         const idsUsar = tiendasSeleccionadas.size > 0
@@ -349,7 +365,7 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
         if (idsUsar.size === 0) return map;
 
         todosDiasCerrados.forEach(d => {
-            if (d.status && idsUsar.has(d.store_id)) {
+            if (d.status && d.date && d.date.startsWith(mesActualStr) && idsUsar.has(d.store_id)) {
                 const nombre = tiendasMap.get(d.store_id);
                 if (nombre) {
                     if (!map.has(d.date)) map.set(d.date, []);
@@ -360,7 +376,7 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
             }
         });
         return map;
-    }, [todosDiasCerrados, tiendasSeleccionadas, tiendasMap, tiendas, diasCerradosPorTienda]);
+    }, [todosDiasCerrados, tiendasSeleccionadas, tiendasMap, tiendas, diasCerradosPorTienda, mesActualStr]);
 
     const tiendasFiltradas = useMemo(() => {
         let res = tiendas.filter(t => t.nombre.toLowerCase().includes(busqueda.toLowerCase()));
@@ -444,6 +460,7 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
         setAccion('cerrar');
         setFiltroSoloConCierres(false);
         setConfirmOpen(false);
+        setCurrentMonth(new Date());
         onClose();
     };
 
@@ -641,6 +658,8 @@ export default function ModalCierreMasivo({ open, onClose, tiendas }: ModalCierr
                                 onToggleDia={handleToggleDia}
                                 modoAccion={accion}
                                 tiendasCerradasPorFecha={tiendasCerradasPorFecha}
+                                currentMonth={currentMonth}
+                                onMonthChange={setCurrentMonth}
                             />
 
                             <Box sx={{ mt: 'auto', pt: 1, borderTop: '1px solid #e0e0e0' }}>
