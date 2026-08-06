@@ -11,18 +11,7 @@ import { useHomeLogic } from "../hooks/useHomeLogic";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import GroupsIcon from "@mui/icons-material/Groups";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { Button, Box, Typography, Paper, Chip } from "@mui/material";
-
-// ============================================================
-// CONFIGURACIÓN DE AVISO / BANNER EN PANEL DE COMISIONES
-// - Para ocultar o quitar el aviso, cambiar MOSTRAR_AVISO_MIGRACION a false
-// - Para modificar el texto o título del mensaje, editar las constantes a continuación
-// ============================================================
-const MOSTRAR_AVISO_MIGRACION = true;
-const AVISO_MIGRACION_TITULO = "Aviso Importante: Migración del Sistema UltraSystem";
-const AVISO_MIGRACION_TEXTO =
-  "Debido a la migración en curso del sistema UltraSystem, la información de ventas se encuentra actualizada únicamente hasta el 27 de julio. Por este motivo, para el mes de agosto las ventas se visualizarán temporalmente en $0. Sin embargo, pueden continuar realizando la asignación de personal para la distribución del presupuesto con total normalidad. Tan pronto culmine la migración, las ventas serán cargadas y actualizadas automáticamente.";
+import { Button, Box, Typography } from "@mui/material";
 
 export default function Home() {
   const { 
@@ -83,78 +72,6 @@ export default function Home() {
     >
       <div className="min-h-screen px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4">
         <div className="max-w-full sm:max-w-[calc(100vw-4rem)] lg:max-w-[calc(100vw-8rem)] xl:max-w-[calc(100vw-12rem)] mx-auto">
-          
-          {MOSTRAR_AVISO_MIGRACION && (
-            <Paper
-              elevation={0}
-              sx={{
-                mb: 3,
-                p: { xs: 2, sm: 2.5 },
-                borderRadius: 3,
-                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                border: '1px solid #fde68a',
-                position: 'relative',
-                overflow: 'hidden',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: { xs: 1.5, sm: 2 },
-                boxShadow: '0 2px 8px rgba(245, 158, 11, 0.08)',
-              }}
-            >
-              {/* Línea lateral de acento */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 5,
-                  background: 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)',
-                }}
-              />
-
-              <Box
-                sx={{
-                  p: 1,
-                  borderRadius: 2,
-                  bgcolor: '#fef3c7',
-                  color: '#d97706',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mt: 0.2,
-                  shrink: 0,
-                }}
-              >
-                <WarningAmberIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
-              </Box>
-
-              <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
-                  <Typography variant="subtitle1" fontWeight={700} color="#78350f" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-                    {AVISO_MIGRACION_TITULO}
-                  </Typography>
-                  <Chip
-                    label="INFORMATIVO"
-                    size="small"
-                    sx={{
-                      height: 20,
-                      fontSize: '0.65rem',
-                      fontWeight: 800,
-                      bgcolor: '#fef3c7',
-                      color: '#92400e',
-                      border: '1px solid #fde68a',
-                    }}
-                  />
-                </Box>
-
-                <Typography variant="body2" color="#92400e" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, lineHeight: 1.65 }}>
-                  Debido a la migración en curso del sistema <strong>UltraSystem</strong>, las ventas se encuentran actualizadas únicamente hasta el día <strong>27 de Julio</strong>, por lo que en el mes de <strong>Agosto las ventas se mostrarán temporalmente en $0</strong>. Este inconveniente es temporal; sin embargo, <strong>pueden continuar realizando la asignación de personal para la distribución del presupuesto</strong> con total normalidad. Tan pronto culmine el proceso, las ventas serán cargadas y reflejadas automáticamente.
-                </Typography>
-              </Box>
-            </Paper>
-          )}
-
           <HomeHeader key={state.headerKey} {...homeHeaderProps} />
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">

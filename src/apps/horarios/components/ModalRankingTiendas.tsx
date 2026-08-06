@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, IconButton, TextField, InputAdornment,
   Button, Chip, Avatar, List, ListItem, ListItemAvatar,
   ListItemText, Badge, Tooltip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, FormControl,
-  InputLabel, Select, MenuItem, OutlinedInput
+  InputLabel, Select, MenuItem, OutlinedInput, CircularProgress
 } from '@mui/material';
 import {
   Storefront as StorefrontIcon,
@@ -45,6 +45,7 @@ interface ModalRankingTiendasProps {
   editedRecords: EditedRecord[];
   rankingMesTiendas: Dayjs;
   setRankingMesTiendas: (date: Dayjs) => void;
+  isLoading?: boolean;
 }
 
 export default function ModalRankingTiendas({
@@ -52,7 +53,8 @@ export default function ModalRankingTiendas({
   onClose,
   editedRecords,
   rankingMesTiendas,
-  setRankingMesTiendas
+  setRankingMesTiendas,
+  isLoading = false
 }: ModalRankingTiendasProps) {
   const [buscarTiendaRanking, setBuscarTiendaRanking] = useState('');
   const [ordenTiendasRanking, setOrdenTiendasRanking] = useState<'asc' | 'desc'>('desc');
@@ -60,6 +62,22 @@ export default function ModalRankingTiendas({
   const [tiendaEdicionesRanking, setTiendaEdicionesRanking] = useState<{ id: number, nombre: string } | null>(null);
   const [paginaEdicionesTiendaRanking, setPaginaEdicionesTiendaRanking] = useState(0);
   const [motivosFiltro, setMotivosFiltro] = useState<string[]>([]);
+
+  // Al cerrar el modal o cambiar de mes, resetear la tienda seleccionada y regresar al listado principal
+  useEffect(() => {
+    if (!open) {
+      setTiendaEdicionesRanking(null);
+      setPaginaEdicionesTiendaRanking(0);
+      setPaginaTiendasRanking(0);
+      setBuscarTiendaRanking('');
+    }
+  }, [open]);
+
+  useEffect(() => {
+    setTiendaEdicionesRanking(null);
+    setPaginaEdicionesTiendaRanking(0);
+    setPaginaTiendasRanking(0);
+  }, [rankingMesTiendas]);
 
   // Motivos únicos globales (filtrados estrictamente por el mes actual)
   const motivosUnicosGlobales = useMemo(() => {
@@ -316,18 +334,26 @@ export default function ModalRankingTiendas({
             </Box>
 
             <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 2 }}>
-              <List disablePadding>
-                {(() => {
-                  const start = paginaTiendasRanking * rowsPerPage.ranking;
-                  const pagina = rankingTiendasFiltrado.slice(start, start + rowsPerPage.ranking);
-                  if (!pagina.length) {
-                    return (
-                      <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-                        {buscarTiendaRanking ? 'No se encontraron tiendas' : 'No hay ediciones registradas para los motivos seleccionados'}
-                      </Box>
-                    );
-                  }
-                  return pagina.map((tienda, index) => {
+              {isLoading ? (
+                <Box sx={{ p: 6, textAlign: 'center', color: 'text.secondary', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <CircularProgress size={40} sx={{ color: '#004680' }} />
+                  <Typography variant="body2" fontWeight={600} color="#004680">
+                    Cargando ediciones del mes...
+                  </Typography>
+                </Box>
+              ) : (
+                <List disablePadding>
+                  {(() => {
+                    const start = paginaTiendasRanking * rowsPerPage.ranking;
+                    const pagina = rankingTiendasFiltrado.slice(start, start + rowsPerPage.ranking);
+                    if (!pagina.length) {
+                      return (
+                        <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
+                          {buscarTiendaRanking ? 'No se encontraron tiendas' : 'No hay ediciones registradas para los motivos seleccionados'}
+                        </Box>
+                      );
+                    }
+                    return pagina.map((tienda, index) => {
                     const isTop = tienda.total === maxTotal && maxTotal > 0;
                     return (
                       <ListItem
@@ -405,6 +431,7 @@ export default function ModalRankingTiendas({
                   });
                 })()}
               </List>
+              )}
             </Box>
             <Box sx={{ flexShrink: 0, bgcolor: 'white', borderTop: '1px solid #e0e0e0', p: 1 }}>
               <Paginador
