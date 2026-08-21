@@ -50,15 +50,91 @@ export interface PdfCheckResult {
 }
 
 // Regexes precompiladas fuera de loops para máximo rendimiento
-const REGEX_DAY = /^\d{2}$/;
-const REGEX_AMOUNT = /^[\d,]+\.\d{2}$/;
-const REGEX_IDENT = /^[A-Z0-9]+$/i;
+const REGEX_DAY = /^\d{1,2}$/;
+const REGEX_AMOUNT = /^[-−–—]?\$?[\d,]+(\.\d{1,4})?$/;
+// IDENT debe contener al menos un dígito para no confundir palabras finales de descripción (ej: 'CREDI', 'CB')
+const REGEX_IDENT = /^(?=.*\d)[A-Z0-9]+$/i;
 
 const parseNumber = (valStr: string): number => {
   if (!valStr) return 0;
-  const clean = valStr.replace(/,/g, "");
+  let clean = valStr
+    .replace(/[−–—]/g, "-")
+    .replace(/[$]/g, "")
+    .replace(/\s+/g, "");
+
+  // Soporte para paréntesis contables ej: (1,300.50) -> -1300.50
+  if (/^\(.*\)$/.test(clean)) {
+    clean = "-" + clean.replace(/[()]/g, "");
+  }
+  clean = clean.replace(/,/g, "");
   const num = parseFloat(clean);
   return isNaN(num) ? 0 : num;
+};
+
+interface TextItemWithPos {
+  x: number;
+  y: number;
+  str: string;
+}
+
+/**
+ * Agrupa los elementos de texto de una página en renglones usando una tolerancia vertical (Y <= 2.5)
+ * para evitar que pequeñas variaciones de coordenadas fracturen una misma línea en dos.
+ */
+const groupItemsByLine = (items: any[]): TextItemWithPos[][] => {
+  const cleanItems: TextItemWithPos[] = items
+    .filter((it) => it.str && it.str.trim())
+    .map((it) => ({
+      x: it.transform[4],
+      y: it.transform[5],
+      str: it.str.trim(),
+    }))
+    .sort((a, b) => b.y - a.y);
+
+  const lines: { y: number; items: TextItemWithPos[] }[] = [];
+  for (const item of cleanItems) {
+    const matchedLine = lines.find((l) => Math.abs(l.y - item.y) <= 2.5);
+    if (matchedLine) {
+      matchedLine.items.push(item);
+    } else {
+      lines.push({ y: item.y, items: [item] });
+    }
+  }
+
+  // Ordenar de arriba a abajo por Y, y dentro de cada renglón de izquierda a derecha por X
+  return lines
+    .sort((a, b) => b.y - a.y)
+    .map((l) => l.items.sort((a, b) => a.x - b.x));
+};
+
+/**
+ * Normaliza los tokens de una línea uniendo signos negativos ('-', '−', '–', '—')
+ * que puedan venir separados de la cifra por la estructura interna de pdfjs.
+ */
+const normalizeLineTokens = (rawTokens: string[]): string[] => {
+  const tokens: string[] = [];
+  for (let i = 0; i < rawTokens.length; i++) {
+    let t = rawTokens[i].replace(/[−–—]/g, "-").trim();
+    if (!t) continue;
+
+    // Si el token es un signo menos suelto y el siguiente token es un valor numérico/monto
+    if (/^[-]$/.test(t) && i + 1 < rawTokens.length) {
+      const nextToken = rawTokens[i + 1].replace(/[−–—]/g, "-").trim();
+      if (/^[\d,]+(\.\d+)?$/.test(nextToken)) {
+        tokens.push("-" + nextToken);
+        i++; // Avanzar porque ya se unió con el siguiente
+        continue;
+      }
+    }
+
+    // Si el token tiene un signo menos con espacios antes del número (ej: "- 1,300,482.18")
+    if (/^-\s+[\d,]+(\.\d+)?$/.test(t)) {
+      t = t.replace(/^-\s+/, "-");
+    }
+
+    tokens.push(t);
+  }
+  return tokens;
 };
 
 /**
@@ -73,30 +149,16 @@ export const detectTableEndPage = async (
     const page = await pdf.getPage(i);
     try {
       const textContent = await page.getTextContent();
-      const items = textContent.items as any[];
+      const lineGroups = groupItemsByLine(textContent.items as any[]);
 
-      const lineMap: { [y: number]: any[] } = {};
-      for (const item of items) {
-        if (!item.str || !item.str.trim()) continue;
-        const y = Math.round(item.transform[5]);
-        if (!lineMap[y]) lineMap[y] = [];
-        lineMap[y].push({
-          x: item.transform[4],
-          str: item.str.trim(),
-        });
-      }
-
-      const sortedY = Object.keys(lineMap)
-        .map(Number)
-        .sort((a, b) => b - a);
-
-      for (const y of sortedY) {
-        const itemsInLine = lineMap[y].sort((a, b) => a.x - b.x);
+      for (const itemsInLine of lineGroups) {
         const fullLineText = itemsInLine.map((it) => it.str).join(" ");
+        const startsWithDay = REGEX_DAY.test(itemsInLine[0]?.str || "");
+
         if (
-          fullLineText.includes("Nota Débito/Crédito") ||
-          (fullLineText.includes("Hemos Debitado a su cuenta") && !fullLineText.includes("VENTA POS")) ||
-          fullLineText.includes("CODIGO ESTABLECIMIENTO :")
+          (!startsWithDay && fullLineText.includes("Nota Débito/Crédito")) ||
+          (!startsWithDay && fullLineText.includes("Hemos Debitado a su cuenta") && !fullLineText.includes("VENTA POS")) ||
+          (!startsWithDay && fullLineText.includes("CODIGO ESTABLECIMIENTO :"))
         ) {
           return i;
         }
@@ -176,35 +238,21 @@ export const extractTransactionsFromPdf = async (
       const page = await pdf.getPage(i);
       try {
         const textContent = await page.getTextContent();
-
-        const lineMap: { [y: number]: any[] } = {};
-        for (const item of textContent.items as any[]) {
-          if (!item.str || !item.str.trim()) continue;
-          const y = Math.round(item.transform[5]);
-          if (!lineMap[y]) lineMap[y] = [];
-          lineMap[y].push({
-            x: item.transform[4],
-            str: item.str.trim(),
-          });
-        }
-
-        const sortedY = Object.keys(lineMap)
-          .map(Number)
-          .sort((a, b) => b - a);
+        const lineGroups = groupItemsByLine(textContent.items as any[]);
 
         const pageLines: string[] = [];
         const pageTransactions: ParsedTransaction[] = [];
         let stopProcessing = false;
 
-        for (const y of sortedY) {
-          const itemsInLine = lineMap[y].sort((a, b) => a.x - b.x);
+        for (const itemsInLine of lineGroups) {
           const fullLineText = itemsInLine.map((it) => it.str).join(" ");
+          const startsWithDay = REGEX_DAY.test(itemsInLine[0]?.str || "");
 
-          // DETECTOR DE FIN DE TABLA PRINCIPAL
+          // DETECTOR DE FIN DE TABLA PRINCIPAL (solo si no es una línea de transacción)
           if (
-            fullLineText.includes("Nota Débito/Crédito") ||
-            (fullLineText.includes("Hemos Debitado a su cuenta") && !fullLineText.includes("VENTA POS")) ||
-            fullLineText.includes("CODIGO ESTABLECIMIENTO :")
+            (!startsWithDay && fullLineText.includes("Nota Débito/Crédito")) ||
+            (!startsWithDay && fullLineText.includes("Hemos Debitado a su cuenta") && !fullLineText.includes("VENTA POS")) ||
+            (!startsWithDay && fullLineText.includes("CODIGO ESTABLECIMIENTO :"))
           ) {
             stopProcessing = true;
             break;
@@ -231,7 +279,8 @@ export const extractTransactionsFromPdf = async (
 
           pageLines.push(fullLineText);
 
-          const tokens = itemsInLine.map((it) => it.str);
+          const rawTokens = itemsInLine.map((it) => it.str);
+          const tokens = normalizeLineTokens(rawTokens);
           if (tokens.length >= 4) {
             const firstToken = tokens[0];
             if (REGEX_DAY.test(firstToken)) {
