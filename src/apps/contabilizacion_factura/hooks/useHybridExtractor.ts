@@ -3,7 +3,10 @@ import { DatosFacturaPDF, ErrorProcesamientoPDF, TipoErrorPDF } from "../types";
 import { cargarTokenStorage } from "@/auth/services/tokenDirectus";
 import { ensureValidToken } from "@/auth/services/directusInterceptor";
 
-const MODELO_POR_DEFECTO = "gemini-3.6-flash";
+const MODELO_POR_DEFECTO = "gemini-3.1-flash-lite";
+
+// Memoria en sesión del último modelo que funcionó para no repetir fallos
+let ultimoModeloExitoso: string | null = null;
 
 const PROMPT_EXTRACCION = `Eres un experto en auditoría contable colombiana. Tu tarea es extraer datos de facturas electrónicas con precisión absoluta.
 
@@ -67,18 +70,48 @@ export interface EstadoHibrido {
   errorGemini: string | null;
 }
 
-function obtenerModelosIA(modelosIA: any): string[] {
-  if (!modelosIA) return [MODELO_POR_DEFECTO];
-  try {
-    const parsed = typeof modelosIA === "string" ? JSON.parse(modelosIA) : modelosIA;
-    if (Array.isArray(parsed)) {
-      const names = parsed.map((m: any) => m.name).filter(Boolean);
-      if (names.length > 0) return names;
+export function obtenerModelosIA(modelosIA: any): string[] {
+  let list: string[] = [];
+  if (modelosIA) {
+    try {
+      let parsed = modelosIA;
+      if (typeof modelosIA === "string") {
+        try {
+          parsed = JSON.parse(modelosIA);
+        } catch {
+          // Si viene como string separado por comas
+          parsed = modelosIA.split(",").map((s) => s.trim());
+        }
+      }
+
+      if (Array.isArray(parsed)) {
+        list = parsed
+          .map((m: any) => (typeof m === "string" ? m.trim() : m?.name ? String(m.name).trim() : ""))
+          .filter((name: string) => Boolean(name) && !name.toLowerCase().startsWith("gemma")); // Gemma no soporta PDFs directos
+      } else if (typeof parsed === "object" && parsed !== null && parsed.name) {
+        list = [String(parsed.name).trim()];
+      }
+    } catch (e) {
+      console.error("Error al parsear models_ia:", e);
     }
-  } catch (e) {
-    console.error("Error al parsear models_ia:", e);
   }
-  return [MODELO_POR_DEFECTO];
+
+  if (list.length === 0) {
+    list = [
+      MODELO_POR_DEFECTO,
+      "gemini-3.5-flash-lite",
+      "gemini-2.5-flash-lite",
+      "gemini-3.5-flash",
+      "gemini-3.6-flash",
+    ];
+  }
+
+  // Si hay un modelo que ya funcionó exitosamente en esta sesión, ponerlo de primero para no perder tiempo
+  if (ultimoModeloExitoso && list.includes(ultimoModeloExitoso)) {
+    list = [ultimoModeloExitoso, ...list.filter((m) => m !== ultimoModeloExitoso)];
+  }
+
+  return list;
 }
 
 
@@ -151,10 +184,9 @@ const parseResponse = useCallback((response: string): RespuestaExtraccion => {
   }, []);
 
   const extractWithGemini = useCallback(
-    async (file: File, modeloAUsar: string): Promise<string> => {
+    async (base64Data: string, modeloAUsar: string): Promise<string> => {
       try {
         await ensureValidToken();
-        const base64Data = await convertFileToBase64(file);
 
         const tokens = cargarTokenStorage();
         const headers: HeadersInit = {
@@ -208,10 +240,10 @@ const parseResponse = useCallback((response: string): RespuestaExtraccion => {
           geminiError instanceof Error
             ? geminiError.message
             : "Error desconocido con Gemini";
-        throw new Error(`Gemini: ${errorMsg}`);
+        throw new Error(`Gemini (${modeloAUsar}): ${errorMsg}`);
       }
     },
-    [convertFileToBase64],
+    [],
   );
 
 
@@ -287,7 +319,10 @@ const buildInvoiceData = useCallback(
         }
         setProgress(10);
 
-        setProgress(15);
+        // Convertir a base64 UNA SOLA VEZ antes del bucle de modelos
+        const base64Data = await convertFileToBase64(file);
+        setProgress(20);
+
         let response: string = "";
 
         const modelos = obtenerModelosIA(modelosIA);
@@ -300,21 +335,28 @@ const buildInvoiceData = useCallback(
             nuevoEstado.intentoGemini = true;
             nuevoEstado.modeloUsado = modeloAUsar;
             setEstadoHibrido({ ...nuevoEstado });
-            setProgress(20 + i * 2);
+            setProgress(25 + i * 5);
 
-            response = await extractWithGemini(file, modeloAUsar);
+            console.log(`[useHybridExtractor] Intentando procesar factura con modelo: ${modeloAUsar}`);
+            response = await extractWithGemini(base64Data, modeloAUsar);
             
             if (response) {
+              ultimoModeloExitoso = modeloAUsar; // Guardar como saludable
               nuevoEstado.proveedorUsado = "gemini";
               nuevoEstado.modeloUsado = modeloAUsar;
               setEstadoHibrido({ ...nuevoEstado });
               geminiExitoso = true;
+              console.log(`[useHybridExtractor] Éxito con modelo: ${modeloAUsar}`);
               break;
             }
           } catch (geminiError: any) {
             const errorMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
-            console.error(`Error con modelo: ${modeloAUsar}`, errorMsg);
+            console.warn(`[useHybridExtractor] Falló modelo ${modeloAUsar}, intentando siguiente... Error:`, errorMsg);
             ultimoErrorGemini = errorMsg;
+            // Si el modelo que falló era el que teníamos en memoria como exitoso, lo limpiamos
+            if (ultimoModeloExitoso === modeloAUsar) {
+              ultimoModeloExitoso = null;
+            }
           }
         }
 
