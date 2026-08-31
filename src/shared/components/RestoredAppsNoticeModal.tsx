@@ -23,7 +23,7 @@ import {
 // 1. Cambiar ACTIVAR_AVISO_RESTABLECIMIENTO a false (o eliminar este archivo)
 // 2. Eliminar la importación y etiqueta <RestoredAppsNoticeModal /> en src/App.tsx
 // ============================================================
-const ACTIVAR_AVISO_RESTABLECIMIENTO = true;
+const ACTIVAR_AVISO_RESTABLECIMIENTO = false;
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & { children: React.ReactElement },
@@ -33,6 +33,8 @@ const Transition = React.forwardRef(function Transition(
 });
 
 export default function RestoredAppsNoticeModal() {
+  if (!ACTIVAR_AVISO_RESTABLECIMIENTO) return null;
+
   const { user, isAuthenticated } = useAuth();
   const { apps, loading: appsLoading } = useApps();
   const [open, setOpen] = useState(false);

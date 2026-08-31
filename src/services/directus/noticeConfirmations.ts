@@ -3,7 +3,7 @@ import { withAutoRefresh } from "@/auth/services/directusInterceptor";
 import { readItems, createItem } from "@directus/sdk";
 
 export const NOTICE_COLLECTION = "core_notice_confirmations";
-export const NOTICE_CODE_ULTRA_RESTORED = "restored_traslados_comisiones_2026";
+export const NOTICE_CODE_ULTRA_RESTORED = "";
 
 /**
  * Consulta EXCLUSIVAMENTE en la base de datos (Directus) si el usuario ya aceptó la notificación
@@ -12,6 +12,7 @@ export async function hasUserAcceptedNotice(
   userId: string,
   noticeCode: string = NOTICE_CODE_ULTRA_RESTORED,
 ): Promise<boolean> {
+  if (!noticeCode) return true; // Si no hay código de aviso configurado, asumir que no requiere aviso
   try {
     const items = await withAutoRefresh(() =>
       directus.request(

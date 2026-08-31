@@ -17,6 +17,7 @@ import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
 import CheckIcon from "@mui/icons-material/Check";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import DateRangeIcon from "@mui/icons-material/DateRange";
+import SchoolIcon from "@mui/icons-material/School";
 import { useNavigate } from "react-router-dom";
 
 import { formatTime } from "../lib/calculos";
@@ -86,6 +87,14 @@ const Home: React.FC = () => {
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1.5 }}>
+          <Button
+            variant="outlined"
+            startIcon={<SchoolIcon />}
+            onClick={() => navigate("/gestion_proyectos/test")}
+            sx={{ borderColor: "#004680", color: "#004680", textTransform: "none", fontWeight: 600, "&:hover": { borderColor: "#005AA3", backgroundColor: "#f0f7ff" } }}
+          >
+            Taller Interactivo Directus & BD
+          </Button>
           <Button
             sx={{ backgroundColor: "#004680", boxShadow: "none", "&:hover": { backgroundColor: "#005AA3", boxShadow: "none" } }}
             variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/gestion_proyectos/nuevo")}

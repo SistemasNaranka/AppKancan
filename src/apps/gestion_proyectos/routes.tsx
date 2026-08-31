@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import NuevoProyecto from "./pages/NuevoProyecto";
 import DetalleProyecto from "./pages/DetalleProyecto";
 import PostLanzamiento from "./pages/PostLanzamiento";
+import TestDirectus from "./pages/TestDirectus";
 
 const routes: RouteObject[] = [
   {
@@ -12,6 +13,10 @@ const routes: RouteObject[] = [
   {
     path: "/gestion_proyectos/nuevo",
     element: <NuevoProyecto />,
+  },
+  {
+    path: "/gestion_proyectos/test",
+    element: <TestDirectus />,
   },
   {
     path: "/gestion_proyectos/:id",

@@ -1,485 +1,894 @@
-# Documentación Técnica Completa - Aplicación de Registro de Horarios
+# Documentación Técnica Oficial del Módulo de Horarios y Registro de Asistencia – AppKancan
 
-## 1. Estructura del Proyecto
+---
 
-### 1.1 Organización General del Proyecto
+## 1. Introducción, Alcance y Limitaciones
 
-El módulo de **Registro de Horarios** forma parte de la aplicación AppKancan, desarrollada con React y TypeScript. Su propósito es gestionar la **asistencia diaria del personal** de una tienda: el registro de marcaciones de jornada (entrada, almuerzo y salida), la edición de horas con justificación, la gestión de novedades (incapacidades, permisos, vacaciones, etc.) y la consulta del historial de jornadas laborales.
+### 1.1 Introducción
 
-La aplicación reside en el directorio `src/apps/horarios/` y utiliza el mismo stack tecnológico que el resto del proyecto: **Vite** como herramienta de construcción, **Material UI (MUI)** y **Tailwind CSS** para la interfaz, **TanStack Query (React Query)** para el manejo de datos asíncronos con caché, **Yup** para la validación de formularios, **Day.js** para el manejo de fechas y horas, y **Directus CMS** como backend (API REST).
+El Módulo de Horarios de la aplicación **AppKancan** es la solución tecnológica centralizada para el control operacional, seguimiento de asistencia, gestión de novedades y auditoría de jornadas laborales del personal de la empresa en sus distintas tiendas y puntos de venta. El sistema permite registrar de forma precisa y sincronizada los eventos diarios de los trabajadores (entrada, periodos de alimentación, pausas activas y salida), asegurando la integridad de los datos para la liquidación de horas laboradas y el monitoreo por parte de supervisores y área managers.
 
-### 1.2 Estructura de Directorios Detallada
+### 1.2 Propósito del Documento
+
+Este documento constituye el **manual técnico oficial y definitivo** del módulo. Su objetivo es proporcionar una descripción detallada y sistemática sobre la arquitectura del software, estructura de archivos, patrones de diseño, esquema de base de datos en Directus CMS, capas de API, algoritmos de cálculo de tiempo y políticas de acceso. Está orientado a desarrolladores de software, arquitectos de sistemas, equipos de soporte técnico y administradores que requieran entender, mantener, auditar o extender la funcionalidad del módulo en el futuro.
+
+### 1.3 Alcance del Proyecto
+
+El módulo abarca la totalidad de la gestión operativa y administrativa del tiempo de trabajo, contemplando las siguientes áreas:
+
+1. **Gestión de Marcaciones Diarias**:
+   - Registro de inicio de jornada, inicio de almuerzo, fin de almuerzo y fin de jornada.
+   - Manejo de modalidad especial de "Turno sin almuerzo", congelando los tiempos de alimentación sin descontar horas.
+   - Registro y control de tiempo de pausas activas (temporizador de 5 minutos en cliente).
+   - Edición manual y creación extemporánea de marcaciones con justificación obligatoria u opcional por motivo.
+   - Aceptación obligatoria de normativas de asistencia al iniciar la jornada.
+2. **Gestión de Novedades de Personal**:
+   - Registro de incapacidades, permisos remunerados y no remunerados, vacaciones, licencias y ausencias.
+   - Filtrado multicriterio, consulta visual categorizada y exportación de novedades.
+3. **Historial y Auditoría de Tiempos**:
+   - Consulta cronológica de asistencia por empleado, fecha y tienda.
+   - Registro detallado de observaciones y cambios de hora (auditoría entre hora original y hora editada).
+4. **Monitoreo y Control Estratégico (Área Manager / Admin)**:
+   - Resumen mensual de indicadores de asistencia por tienda (días incompletos, días sin marcar).
+   - Calendario de asistencia por tienda y gestión de días cerrados / no laborables.
+   - Módulo de cierre masivo de tiendas por rango de fechas.
+   - Auditoría de modificaciones manuales y rankings de cambios por tienda y empleado.
+5. **Control de Planilla de Horas**:
+   - Consolidación semanal y mensual de horas trabajadas en formato matricial.
+   - Cálculo automático de minutos netos trabajados, descontando tiempos de alimentación correspondientes.
+6. **Administración de Empleados**:
+   - Creación, edición, desactivación y cambio de tienda de personal en la colección `adm_employees`.
+   - Parseo automatizado de nombres completos asistido por Inteligencia Artificial y algoritmo de respaldo.
+   - Perfil integral 360 del empleado con historial de marcaciones, novedades y pausas activas.
+7. **Centro de Reportes y Exportación**:
+   - Generación de informes en formatos Excel (.xlsx) y CSV con codificación UTF-8 BOM.
+   - Soporte para consulta global seleccionando "Todas las tiendas".
+8. **Capacitación e Inducción Interactiva**:
+   - Tours guiados paso a paso mediante React Joyride con entorno de simulación interactiva (_fake modals_).
+
+### 1.4 Limitaciones del Sistema y Restricciones Técnicas
+
+Para el mantenimiento del sistema es indispensable considerar las siguientes restricciones y limitaciones operacionales:
+
+1. **Dependencia de Conectividad a Internet**: Al basarse en una arquitectura cliente-servidor contra Directus CMS mediante peticiones HTTP REST, la marcación y consulta requieren conexión continua a la red.
+2. **Identificador de Tienda por Defecto (`STORE_ID = 90`)**: En caso de que un usuario no tenga una tienda explícitamente asignada en su perfil de Directus, el sistema toma la tienda con ID 90 como valor por defecto para evitar bloqueos en la interfaz.
+3. **Límite de Pausas Activas Diarias**: La lógica de negocio establece un límite estricto de máximo 2 pausas activas por empleado durante un mismo día laborable (`MAX_PAUSAS = 2`).
+4. **Irreversibilidad de Omisión de Almuerzo en la UI**: La confirmación del "Turno sin almuerzo" registra marcaciones automáticas en la base de datos y deshabilita los botones en la tarjeta del empleado. Su reversión no puede realizarse desde la interfaz operativa y requiere intervención del administrador o soporte técnico directo en la base de datos.
+5. **Búsqueda Parcial de Documentos en Servidor**: El campo `document_number` en la tabla `adm_employees` de Directus está definido como tipo numérico (`BigInteger`), lo que impide aplicar filtros de coincidencia parcial (`_icontains`) en peticiones al servidor. Por ello, la búsqueda por documento en el modo "Todas las tiendas" se ejecuta del lado del cliente.
+6. **Pestaña Malla Horaria**: La pestaña denominada "Malla Horaria" dentro de la vista de Registros se encuentra en estado de desarrollo/placeholder en la versión actual del módulo.
+
+### 1.5 Tecnologías Utilizadas y Requisitos del Entorno
+
+| Capa / Componente              | Tecnología          | Versión / Detalle                                         |
+| :----------------------------- | :------------------ | :-------------------------------------------------------- |
+| **Lenguaje de Programación**   | TypeScript          | v5.x (Tipado estricto en interfaces)                      |
+| **Librería UI**                | React               | v18.x (Componentes funcionales y Hooks)                   |
+| **Empaquetador / Bundler**     | Vite                | Entorno de desarrollo y build de producción               |
+| **Componentes de Interfaz**    | Material-UI (MUI)   | v5.x (Inputs, Dialogs, Tables, Autocomplete)              |
+| **Estilos Auxiliares**         | Tailwind CSS        | Clases utilitarias de maquetación                         |
+| **Gestión de Datos y Caché**   | TanStack Query      | v4.x (React Query para re-validación e invalidación)      |
+| **Backend CMS Headless**       | Directus CMS        | API REST sobre PostgreSQL / MySQL                         |
+| **Manipulación de Fechas**     | Day.js              | Configurado en zona horaria America/Bogota (UTC-5)        |
+| **Validación de Formularios**  | Yup                 | Validación de esquemas de modales y formularios           |
+| **Notificaciones en Pantalla** | Sileo               | Sistema de toasts con físicas y estilos personalizados    |
+| **Tours Guiados**              | React Joyride       | Recorridos interactivos de inducción a usuarios           |
+| **Generación de Archivos**     | XLSX / CSV Exporter | Generación de hojas de cálculo con codificación UTF-8 BOM |
+
+---
+
+## 2. Arquitectura General y Estructura de Directorios
+
+### 2.1 Estructura de Directorios Detallada (`src/apps/horarios/`)
 
 ```
 src/apps/horarios/
 ├── api/
 │   └── directus/
-│       ├── create.ts              # Funciones de creación/actualización (novedades, registros, empleados)
-│       └── read.ts                # Funciones de lectura (empleados, registros, novedades, exportación)
+│       ├── create.ts              # Peticiones POST, PATCH, DELETE en Directus (Time records, novedades, empleados, pausas)
+│       ├── read.ts                # Peticiones GET principales (Empleados, marcaciones, novedades, razones, tiendas, cargos)
+│       ├── readBulk.ts            # Consultas optimizadas en lote (Registros en rango, empleados por múltiples tiendas, días cerrados)
+│       ├── reports.ts             # Consultas especializadas para pausas activas y reportes históricos
+│       └── rules.ts               # Gestión de normas activas y registro de aceptación por empleado
 │
-├── components/                    # Componentes React de la interfaz
-│   ├── EmployeeCard.tsx           # Tarjeta de empleado con botones de marcación
-│   ├── EditHourModal.tsx          # Modal para editar la hora de un evento
-│   ├── ObservationModal.tsx       # Modal de solo lectura para ver observaciones
-│   ├── ExportHistorialDialog.tsx  # Diálogo para exportar el historial a CSV
-│   ├── ExportNovedadesDialog.tsx  # Diálogo para exportar las novedades a CSV
-│   ├── HorariosLayout.tsx         # Layout contenedor (Outlet de rutas)
-│   ├── NavbarHorarios.tsx         # Barra de navegación superior con pestañas
-│   └── admin/
-│       └── DialogNuevoEmpleado.tsx # Modal de alta de empleado (con toast Sileo)
+├── components/                    # Componentes reutilizables y modales
+│   ├── CalendarioMensualTienda.tsx # Calendario interactivo de asistencia y cierres de tienda
+│   ├── EditHourModal.tsx          # Modal de corrección manual de horas con motivo obligatorio/opcional
+│   ├── EmployeeCard.tsx           # Tarjeta contenedora principal de la marcación diaria de un empleado
+│   ├── FestivoDay.tsx             # Indicador visual y tooltip para días festivos nacionales
+│   ├── HistorialHorasModal.tsx    # Modal emergente con el historial detallado de marcaciones
+│   ├── HorariosLayout.tsx         # Layout contenedor con router Outlet
+│   ├── ModalCierreMasivo.tsx      # Diálogo para la gestión masiva de días cerrados por tienda
+│   ├── ModalDetalleTienda.tsx     # Vista detallada de métricas y calendario de una tienda
+│   ├── ModalDetalleTiendaUtils.tsx# Utilidades de cálculo para el detalle de tienda
+│   ├── ModalRankingTiendas.tsx    # Ranking de tiendas con mayor número de modificaciones manuales
+│   ├── NavbarHorarios.tsx         # Barra de pestañas secundarias del módulo
+│   ├── NormasModal.tsx            # Modal normativo de lectura y aceptación obligatoria
+│   ├── NovedadDetalleModal.tsx    # Visualización detallada de una novedad registrada
+│   ├── NovedadesTab.tsx           # Pestaña de listado, búsqueda y exportación de novedades
+│   ├── ObservationModal.tsx       # Modal de solo lectura para consulta de observaciones
+│   │
+│   ├── admin/                     # Componentes de gestión de personal
+│   │   ├── DialogEditarEmpleado.tsx  # Formulario de edición de empleado
+│   │   ├── DialogNuevoEmpleado.tsx   # Formulario de alta de empleado con parseo IA
+│   │   └── DialogPerfilEmpleado.tsx  # Perfil 360 con KPIs y registros recientes del empleado
+│   │
+│   ├── cierre-masivo/             # Diálogos de cierre masivo de tiendas
+│   │   └── ConfirmCierreMasivoDialog.tsx
+│   │
+│   ├── detalle-tienda/            # Subcomponentes del modal de detalle de tienda
+│   │   ├── ConfirmClosedDayDialogs.tsx
+│   │   ├── CreateHourModal.tsx
+│   │   ├── EmpleadosTable.tsx
+│   │   └── ModalDetalleTiendaHeader.tsx
+│   │
+│   ├── employee-card/             # Subcomponentes atómicos de EmployeeCard
+│   │   ├── EmployeeCardHeader.tsx     # Cabecera con nombre, cargo, badge de estado y botones de acción
+│   │   ├── EmployeeCardModals.tsx     # Modales emergentes (Observaciones, Novedad, Pausas, Turno Sin Almuerzo)
+│   │   ├── EmployeeCardTimeSlots.tsx  # Botones de marcación de jornada (Comenzar, Iniciar/Fin Almuerzo, Salida)
+│   │   └── EmployeeCardUtils.tsx      # Utilidades, temporizador de pausas activas y esquemas Yup
+│   │
+│   ├── historial/                 # Vista cronológica de historial
+│   │   └── HistorialTimelineView.tsx
+│   │
+│   ├── reportes/                  # Diálogos y vistas de exportación e informes
+│   │   ├── AreaManagerStoreTable.tsx
+│   │   ├── DateRangeFilter.tsx
+│   │   ├── ExportEventosDialog.tsx
+│   │   ├── ExportHistorialDialog.tsx
+│   │   ├── ExportNovedadesDialog.tsx
+│   │   ├── ExportSemanalDialog.tsx
+│   │   ├── ExportUnificadoDialog.tsx
+│   │   ├── FestivosDetalleModal.tsx
+│   │   └── ReporteSemanalAreaManager.tsx
+│   │
+│   └── tour/                      # Componentes para tours guiados y simulaciones
+│       ├── AdminTour.tsx
+│       ├── FakeExportDialog.tsx
+│       ├── FakeExportModal.tsx
+│       ├── FakeHistorialModal.tsx
+│       ├── GenericTourModal.tsx
+│       ├── HorariosTour.tsx
+│       ├── HorariosTourContext.tsx
+│       ├── MonitoreoTour.tsx
+│       ├── TourTooltip.tsx
+│       ├── TutorialButton.tsx
+│       ├── fakeExportModals.tsx
+│       ├── fakeTourModals.tsx
+│       ├── monitoreoTourSteps.tsx
+│       └── tourSteps.tsx
 │
-├── hooks/                         # Hooks personalizados
-│   ├── useHorarios.ts             # Lógica principal: empleados, marcaciones, novedades
-│   ├── useHistorial.ts            # Lógica de consulta y agrupación del historial
-│   └── useAdminEmpleados.ts       # Administración de empleados (alta, edición, búsqueda)
-│
-├── utils/                         # Utilidades de exportación
-│   ├── exportarHistorial.ts       # Generación del CSV de historial
-│   └── exportarNovedades.ts       # Generación del CSV de novedades
+├── hooks/                         # Hooks de lógica de negocio y permisos
+│   ├── useAdminEmpleados.ts       # Operaciones CRUD y búsqueda de empleados
+│   ├── useHistorial.ts            # Agrupación de historial por empleado/fecha
+│   ├── useHorarios.ts             # Hook principal: orquesta marcaciones, estados y novedades
+│   ├── useHorariosPolicies.ts     # Evaluador de políticas de seguridad y roles Directus
+│   ├── useNormas.ts               # Hook de estado de normativas de asistencia
+│   └── useParseNombreIA.ts        # Parseador de nombres completos asistido por IA / Fallback
 │
 ├── interfaces/
-│   └── horarios.interface.ts      # Definiciones TypeScript del módulo
+│   └── horarios.interface.ts      # Contratos y tipos TypeScript del módulo
 │
-├── pages/                         # Páginas de la aplicación
-│   ├── RegistrosPage.tsx          # Página principal con las pestañas
-│   ├── HistorialPage.tsx          # Vista de historial de asistencia
-│   └── AdminEmpleadosPage.tsx     # Panel de administración de empleados
+├── pages/                         # Vistas/Páginas principales
+│   ├── AdminEmpleadosPage.tsx     # Panel de administración de personal
+│   ├── DetallePlanillaPage.tsx    # Planilla matricial de edición diaria
+│   ├── HistorialPage.tsx          # Vista general del historial de asistencia
+│   ├── MonitoreoPage.tsx          # Panel estratégico de control, cierres y auditoría
+│   ├── RegistrosPage.tsx          # Página principal con cuadrícula de empleados
+│   ├── ReportePage.tsx            # Centro de informes y exportaciones masivas
+│   ├── monitoreo/
+│   │   ├── MonitoreoComponents.tsx
+│   │   ├── MonitoreoUtils.ts
+│   │   └── useTiendasResumen.ts   # Hook para cálculo de resumen mensual por tiendas
+│   ├── planilla/
+│   │   ├── DetallePlanillaTabla.tsx
+│   │   └── DetallePlanillaUtils.ts
+│   └── reporte/
+│       ├── ReportePausasTab.tsx
+│       ├── ReporteSemanalTab.tsx
+│       ├── ReporteSemanalTabla.tsx
+│       ├── ReporteTourConfig.tsx
+│       └── ReporteUtils.ts
 │
-└── routes.tsx                     # Configuración de rutas del módulo
+├── utils/                         # Generación de reportes y utilidades de tiempo
+│   ├── exportarEventos.ts         # Generador de CSV/Excel de Pausas Activas
+│   ├── exportarHistorial.ts       # Generador de CSV/Excel de Historial
+│   ├── exportarNovedades.ts       # Generador de CSV/Excel de Novedades
+│   ├── exportarSemanal.ts         # Generador de CSV/Excel de Horas Semanales
+│   ├── format.ts                  # Formateadores de hora 12h/24h y nombres
+│   ├── novedadVisual.tsx          # Colores e iconos de tipos de novedad
+│   └── timeSync.ts                # Sincronización con hora oficial de Colombia (GMT-5)
+│
+└── routes.tsx                     # Rutas del módulo (`/horarios/*`)
 ```
-
-### 1.3 Propósito de Cada Directorio y Archivo
-
-El directorio `api/directus/` centraliza toda la comunicación con Directus. `read.ts` contiene las funciones de lectura (`getEmpleados`, `getTiposNovedad`, `getNovedades`, `getTimeRecords`, `fetchTimeRecords`) y `create.ts` las de escritura (`createNovedad`, `createNovedades`, `createTimeRecord`, `updateTimeRecord`).
-
-El directorio `components/` agrupa los componentes visuales. `EmployeeCard.tsx` es el núcleo de la interacción del usuario, ya que muestra a cada empleado y sus cuatro botones de marcación. `EditHourModal.tsx` y `ObservationModal.tsx` son modales auxiliares para editar horas y consultar observaciones, respectivamente.
-
-El directorio `hooks/` encapsula la lógica de negocio. `useHorarios.ts` orquesta las consultas, el mapeo de datos crudos de Directus a estructuras de la UI y las mutaciones; `useHistorial.ts` consulta y agrupa los registros históricos por empleado y fecha.
-
-El directorio `interfaces/` define las estructuras de datos del módulo. El directorio `pages/` contiene las dos páginas principales, y `routes.tsx` configura la navegación bajo la ruta `horarios`.
 
 ---
 
-## 2. Arquitectura y Patrones de Diseño
+### 2.2 Enrutamiento y Navegación Secundaria (`routes.tsx` vs `NavbarHorarios`)
 
-### 2.1 Arquitectura General del Sistema
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
 
-La aplicación sigue una arquitectura basada en componentes con flujo unidireccional de datos. El flujo principal es: **API (Directus) → TanStack Query (caché) → Hooks (lógica/mapeo) → Componentes (UI)**.
+El enrutamiento del módulo sigue un esquema híbrido optimizado para aplicaciones de una sola página (SPA):
 
-Un aspecto clave del módulo es que **los datos crudos de Directus se transforman en el hook** antes de llegar a la UI. La tabla `com_time_records` almacena un registro por cada evento de marcación; el hook `useHorarios` agrupa esos registros por empleado y los convierte en un objeto `RegistrosAsistencia` con un campo por cada evento de la jornada.
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        RegistrosPage                             │
-│  ┌─────────────┐ ┌─────────────┐ ┌────────────┐ ┌────────────┐  │
-│  │  REGISTROS  │ │  NOVEDADES  │ │ HISTORIAL  │ │   MALLA    │  │
-│  │   (Tab 0)   │ │   (Tab 1)   │ │  (Tab 2)   │ │ (Tab 3)    │  │
-│  └──────┬──────┘ └──────┬──────┘ └─────┬──────┘ └────────────┘  │
-│         │               │              │                         │
-│  ┌──────▼──────┐ ┌──────▼──────┐ ┌─────▼────────┐               │
-│  │EmployeeCard │ │ Tabla de    │ │HistorialPage │               │
-│  │  (x N)      │ │ Novedades   │ │              │               │
-│  └─────────────┘ └─────────────┘ └──────────────┘               │
-└─────────────────────────────────────────────────────────────────┘
-            │                              │
-   ┌────────▼─────────┐          ┌─────────▼─────────┐
-   │   useHorarios    │          │   useHistorial    │
-   └────────┬─────────┘          └─────────┬─────────┘
-            │                              │
-   ┌────────▼─────────┐          ┌─────────▼─────────┐
-   │  TanStack Query  │          │  TanStack Query   │
-   └────────┬─────────┘          └─────────┬─────────┘
-            │                              │
-   ┌────────▼──────────────────────────────▼─────────┐
-   │             api/directus (read/create)           │
-   └────────────────────────┬─────────────────────────┘
-                            │
-                  ┌─────────▼─────────┐
-                  │     Directus      │
-                  │   (Backend CMS)   │
-                  └───────────────────┘
-```
-
-### 2.2 Patrones de Diseño Implementados
-
-**Patrón de Hooks Personalizados**
-La lógica de obtención y mutación de datos se encapsula en hooks que exponen una API limpia a los componentes. `useHorarios` retorna los empleados ya mapeados y las funciones de acción (`registrarEvento`, `agregarNovedad`, etc.), aislando a la UI de los detalles de Directus.
-
-**Patrón de Caché y Sincronización (TanStack Query)**
-Cada consulta tiene su propia `queryKey` y tiempos de `staleTime` ajustados según la volatilidad del dato (5 min para empleados, 10 min para tipos de novedad). Las mutaciones invalidan las claves afectadas en `onSuccess`, lo que provoca un *refetch* automático y mantiene la UI sincronizada.
-
-**Máquina de Estados de la Jornada**
-El estado de cada empleado (`estadoActual`) se deriva de los registros existentes y determina qué botón de marcación está activo. Es una máquina de estados secuencial:
-
-```
-entrada_pendiente → jornada_iniciada → en_almuerzo → regreso_almuerzo → jornada_finalizada
-```
-
-**Capa de Mapeo / Adaptador**
-Los datos de Directus (`log_type`, `record_time`, etc.) se traducen a las claves internas (`inicioJornada`, `inicioAlmuerzo`, …) mediante funciones de mapeo como `getEventKey`, garantizando que la UI trabaje siempre con un modelo consistente.
+1. **Ruta Raíz (`routes.tsx`)**: Define únicamente la ruta base `/horarios/registros` asociada al componente `HorariosLayout` y redirige cualquier sub-ruta no encontrada a esta pestaña por defecto.
+2. **Navegación Secundaria en Pantalla (`NavbarHorarios.tsx`)**: La alternancia entre las 7 pestañas funcionales (**Registros**, **Novedades**, **Historial**, **Monitoreo**, **Planilla**, **Admin**, **Reportes**) se gestiona por estado reactivo interno dentro del `HorariosLayout`. Esto evita recargas innecesarias del árbol de React Query y preserva la caché activa entre cambios de vista.
 
 ---
 
-## 3. Modelo de Datos
+## 3. Autenticación, Roles y Políticas de Acceso (`useHorariosPolicies`)
 
-### 3.1 Interfaces TypeScript (`horarios.interface.ts`)
+La seguridad y control de acceso del módulo están centralizados en el hook `useHorariosPolicies`, el cual evalúa el arreglo de cadenas `user.policies` retornado por el servicio de autenticación de Directus.
+
+### 3.1 Evaluador de Políticas
+
+El hook expone métodos booleanos para controlar dinámicamente la visibilidad de pestañas, botones de edición y diálogos:
 
 ```typescript
-// Registros de marcación agrupados de un empleado para un día
-interface RegistrosAsistencia {
-  inicioJornada: string | null;
-  inicioAlmuerzo: string | null;
-  finAlmuerzo: string | null;
-  finJornada: string | null;
-  observaciones: Record<string, string>;        // observación por evento
-  ids?: Record<string, number>;                 // id del registro en BD por evento
-  horasOriginales?: Record<string, string | null>;  // hora original marcada
-  horasEditadas?: Record<string, string | null>;    // hora corregida (si fue editada)
-}
+const MODULO_REGEX = /(time_?log|horario)/;
 
-// Empleado con su estado y registros del día
-interface EmpleadoAsistencia {
-  id: string;
-  documento: string;
-  nombre: string;
-  cargo?: string;
-  estadoActual: string;     // estado de la máquina de jornada
-  registros: RegistrosAsistencia;
-}
+// Evalúa si el usuario es Administrador del módulo
+const esAdmin = (): boolean =>
+  (user?.policies ?? []).some((p) => {
+    const s = p.toLowerCase();
+    return s.includes("admin") && MODULO_REGEX.test(s);
+  });
 
-// Fila del historial (agrupado por empleado + fecha)
-interface HistorialRow {
-  fecha: string;
-  empleado: string;
-  inicio_turno: string | null;
-  inicio_almuerzo: string | null;
-  fin_almuerzo: string | null;
-  fin_turno: string | null;
-  observaciones_evento: ObservacionEvento[];
-}
+// Evalúa si el usuario es Área Manager / Jefe de Zona
+const esAreaManager = (): boolean =>
+  (user?.policies ?? []).some((p) => {
+    const s = p.toLowerCase();
+    const hasTimeLog =
+      s.includes("time_log") || s.includes("time-log") || s.includes("timelog");
+    const hasManagerOrArea = s.includes("manager") || s.includes("area");
+    return hasTimeLog && hasManagerOrArea;
+  });
 
-interface ObservacionEvento {
-  evento: string;
-  hora: string | null;
-  observacion: string;
-}
+// Evalúa si el usuario tiene permisos de consulta de reportes
+const esReport = (): boolean =>
+  (user?.policies ?? []).some((p) => {
+    const s = p.toLowerCase();
+    return s.includes("report") || esAreaManager();
+  });
 ```
 
-### 3.2 Colecciones de Directus Utilizadas
+### 3.2 Matriz de Capacidades por Rol
 
-| Colección | Uso | Campos relevantes |
-| ----------- | ----- | ------------------- |
-| `adm_employees` | Listado de empleados | `id`, `first_name`, `last_name`, `store_id`, `position_id.name` |
-| `com_time_records` | Marcaciones de jornada | `record_date`, `record_time`, `updated_record_time`, `log_type`, `employee_id`, `store_id`, `observations` |
-| `com_newness` | Catálogo de tipos de novedad | `id`, `name` |
-| `com_newness_reports` | Novedades registradas | `employee_id`, `newness_id`, `report_date`, `observations`, `store_id` |
-| `com_event_reports` | Reportes de evento/pausa | `employee_id`, `store_id`, `event_type`, `observations`, `date_created` (lo asigna Directus) |
-
-> **Nota:** El identificador de tienda está fijado como constante `STORE_ID = 90` en `useHorarios.ts` y como valor por defecto en las funciones de creación de `create.ts`.
-
-### 3.3 Tipos de Evento de Jornada (`log_type`)
-
-El campo `log_type` en `com_time_records` usa estos valores literales, que se mapean a las claves internas de la UI:
-
-| `log_type` (Directus) | Clave interna | Estado que habilita el siguiente |
-| ----------------------- | --------------- | ---------------------------------- |
-| `Comenzar Jornada` | `inicioJornada` | `jornada_iniciada` |
-| `Iniciar Almuerzo` | `inicioAlmuerzo` | `en_almuerzo` |
-| `Finalizar Almuerzo` | `finAlmuerzo` | `regreso_almuerzo` |
-| `Terminar Jornada` | `finJornada` | `jornada_finalizada` |
+| Funcionalidad / Pestaña                              | Usuario Tienda (Operativo) |  Área Manager (Jefe de Zona)  | Administrador (Admin System)  | Rol Reportes (`esReport`) |
+| :--------------------------------------------------- | :------------------------: | :---------------------------: | :---------------------------: | :-----------------------: |
+| **Registrar Marcaciones (Comenzar/Almuerzo/Salida)** |   Permitido (Su tienda)    | Permitido (Tiendas asignadas) | Permitido (Todas las tiendas) |       No Permitido        |
+| **Registrar Turno Sin Almuerzo**                     |         Permitido          |           Permitido           |           Permitido           |       No Permitido        |
+| **Registrar Pausa Activa**                           |         Permitido          |           Permitido           |           Permitido           |       No Permitido        |
+| **Registrar Novedad (Tarjeta / Tab)**                |         Permitido          |           Permitido           |           Permitido           |       No Permitido        |
+| **Edición Manual de Horas (`EditHourModal`)**        |        No Permitido        |  Permitido (Motivo opcional)  |  Permitido (Sin restricción)  |       No Permitido        |
+| **Creación Manual de Horas (`CreateHourModal`)**     |        No Permitido        |           Permitido           |           Permitido           |       No Permitido        |
+| **Visualizar Pestaña Monitoreo**                     |        No Permitido        |           Permitido           |           Permitido           |       No Permitido        |
+| **Gestión de Días Cerrados / Cierre Masivo**         |        No Permitido        |           Permitido           |           Permitido           |       No Permitido        |
+| **Visualizar Auditoría de Modificaciones**           |        No Permitido        |           Permitido           |           Permitido           |       No Permitido        |
+| **Pestaña Admin Empleados (CRUD)**                   |        No Permitido        |         No Permitido          |           Permitido           |       No Permitido        |
+| **Exportar Reportes (Excel / CSV)**                  |        No Permitido        |           Permitido           |           Permitido           |         Permitido         |
 
 ---
 
-## 4. Capa de API (`api/directus/`)
+## 4. Flujo de Datos, Estado Global y Servidor (`useHorarios`)
 
-### 4.1 Lectura (`read.ts`)
+### 4.1 Estrategia de Caché con TanStack Query
 
-| Función | Descripción |
-| --------- | ------------- |
-| `getEmpleados(storeId)` | Obtiene los empleados de `adm_employees` y los inicializa con registros vacíos y estado `entrada_pendiente`. |
-| `getTiposNovedad()` | Carga el catálogo de tipos de novedad desde `com_newness`. |
-| `getNovedades()` | Obtiene las novedades registradas (`com_newness_reports`) ordenadas por id descendente. |
-| `getTimeRecords(storeId, date)` | Obtiene las marcaciones de una tienda en una fecha específica (usado en la vista de Registros). |
-| `fetchTimeRecords(fechaInicio?, fechaFin?)` | Obtiene marcaciones por rango de fechas (usado en el Historial). Aplica filtros `_gte` / `_lte`. |
-| `fetchTimeRecordsExport(fechaInicio?, fechaFin?, storeIds?)` | Marcaciones para **exportar el historial**: filtra por varias tiendas (`_in`) y rango de fechas. |
-| `fetchNewnessReportsExport(fechaInicio?, fechaFin?, storeIds?)` | Novedades para **exportar**: filtra por tiendas (`_in`) y rango. La fecha se evalúa con `_or` sobre `report_date` **o** sobre `date_created` cuando `report_date` es nulo. Devuelve `NewnessReport[]`. |
-| `getReasonNamesForRecords(recordIds[])` | Mapa `id de marcación → motivo de edición` (tabla `com_records_reasons`), usado por la exportación detallada del historial. |
-| `getStores()` | Catálogo de tiendas (`core_stores`), usado en los diálogos de exportación y de alta de empleado. |
+El hook `useHorarios` administra la obtención de datos remotos y la reactividad de la interfaz mediante `useQuery` y `useMutation`.
 
-Todas las funciones envuelven la petición con `withAutoRefresh()`, que renueva automáticamente el token de Directus si ha expirado. Los errores se capturan y se devuelve un arreglo vacío para no romper la UI.
+#### Estrategia de Claves de Consulta (`queryKey`):
 
-### 4.2 Escritura (`create.ts`)
+- `['horariosStoreId']`: Identificador de la tienda asociada al usuario autenticado (`staleTime`: 30 min).
+- `['empleados', STORE_ID]`: Listado de empleados pertenecientes a la tienda activa (`staleTime`: 5 min).
+- `['tiposNovedad']`: Catálogo global de novedades (`com_newness`, `staleTime`: 10 min).
+- `['reasons']`: Catálogo de motivos de edición (`com_reasons`, `staleTime`: 10 min).
+- `['novedades', STORE_ID]`: Novedades registradas para la tienda en la fecha actual.
+- `['timeRecords', STORE_ID, hoy]`: Marcaciones del día para la tienda.
+- `['eventReportsToday', STORE_ID, hoy]`: Pausas activas y eventos reportados hoy en la tienda.
 
-| Función | Descripción |
-| --------- | ------------- |
-| `createNovedad(data)` | Crea una novedad individual en `com_newness_reports`. |
-| `createNovedades(items[])` | Crea varias novedades en lote (usado al registrar un rango de días). |
-| `createEventReport(data)` | Crea un **reporte de evento/pausa** en `com_event_reports` (`employee_id`, `store_id`, `event_type`, `observations`). El momento del reporte lo fija `date_created` del servidor. |
-| `createTimeRecord(data)` | Crea una marcación nueva en `com_time_records`. |
-| `updateTimeRecord(id, data)` | Actualiza la observación, la hora original o la hora corregida (`updated_record_time`) de una marcación. |
-| `crearEmpleado(data)` | Da de alta un empleado en `adm_employees` (usado por el panel de administración). |
-| `actualizarEmpleado(id, data)` | Actualiza los datos de un empleado existente. |
+### 4.2 Sincronización Horaria Servidor / Cliente (`timeSync.ts`)
 
-A diferencia de las lecturas, las funciones de escritura **relanzan el error** (`throw`) con un mensaje legible extraído de `error.errors[0].message`, para que la mutación de TanStack Query lo capture y muestre un snackbar.
+Para prevenir manipulaciones en el reloj local del dispositivo del cliente (ejemplo: alterar la hora de la computadora para simular una entrada a tiempo), el sistema utiliza la utilidad `getRealColombiaTime()` definida en `utils/timeSync.ts`.
 
----
+Esta función normaliza las fechas y horas a la zona horaria **America/Bogota (UTC-5)** y sincroniza el tiempo contra la hora del servidor devuelta en los encabezados HTTP de las peticiones a Directus.
 
-## 5. Lógica de Negocio (Hooks)
+### 4.3 Máquina de Estados de Asistencia del Empleado
 
-### 5.1 `useHorarios`
+La propiedad `estadoActual` de cada objeto `EmpleadoAsistencia` se evalúa reactivamente en orden jerárquico según las marcaciones existentes en el día:
 
-Es el hook central de la pestaña **Registros**. Realiza cuatro consultas (empleados, tipos de novedad, novedades y marcaciones del día) y expone la lógica completa de gestión.
+```mermaid
+stateDiagram-v2
+    classDef estadoUniforme fill:#e7f5ff,stroke:#1971c2,stroke-width:2px;
 
-**Mapeo de registros → estado**
-Por cada empleado, filtra sus marcaciones del día y construye su objeto `RegistrosAsistencia`. Para cada evento prioriza la hora corregida sobre la original (`updated_record_time || record_time`) y deriva el `estadoActual` evaluando, en orden inverso, qué eventos ya existen.
+    [*] --> entrada_pendiente
 
-**Filtrado de empleados con novedad**
-Los empleados que ya tienen una novedad registrada *hoy* (`idsConNovedadHoy`) se excluyen del listado de marcación, ya que no deben fichar ese día.
+    state "1. entrada_pendiente" as entrada_pendiente
+    state "2. jornada_iniciada" as jornada_iniciada
+    state "3A. en_almuerzo" as en_almuerzo
+    state "4A. regreso_almuerzo" as regreso_almuerzo
+    state "5. jornada_finalizada" as jornada_finalizada
 
-**Funciones expuestas:**
+    class entrada_pendiente, jornada_iniciada, en_almuerzo, regreso_almuerzo, jornada_finalizada estadoUniforme
 
-| Función | Descripción |
-| --------- | ------------- |
-| `registrarEvento(id, tipo, horaOverride?, obsOverride?)` | Crea o actualiza una marcación. Si ya existe el registro para ese evento y fecha, lo actualiza con `updated_record_time`; si no, lo crea. |
-| `guardarObservacion(id, tipo, texto)` | Actualiza la observación de un registro existente. |
-| `agregarNovedad(novedad)` | Valida fechas y genera una novedad por cada día del rango `fechaInicio`–`fechaFin` mediante `createNovedades`. |
-| `reportarEvento(idEmpleado, eventType, observaciones?)` | Registra un reporte de evento/pausa vía `createEventReport` y notifica el resultado con snackbar. |
-| `resetHorarios()` | Invalida las consultas para forzar una recarga desde el servidor. |
-| `eliminarEmpleado(id)` | Actualmente desactivado (solo registra en consola); la baja real se gestiona vía novedad. |
+    entrada_pendiente --> jornada_iniciada : Evento: "Comenzar Jornada"
 
-### 5.2 `useHistorial`
+    jornada_iniciada --> en_almuerzo : Opción A: Evento "Iniciar Almuerzo"
+    en_almuerzo --> regreso_almuerzo : Evento: "Finalizar Almuerzo"
+    regreso_almuerzo --> jornada_finalizada : Evento: "Terminar Jornada"
 
-Hook de la pestaña **Historial**. Consulta `fetchTimeRecords` por rango de fechas y, mediante la opción `select` de React Query, transforma los registros con `agruparRegistros`:
+    jornada_iniciada --> jornada_finalizada : Opción B: "Turno Sin Almuerzo" (Evento: "Terminar Jornada")
+```
 
-- Agrupa las marcaciones por `empleado + fecha`.
-- Por cada grupo busca las cuatro marcaciones de la jornada y arma una `HistorialRow`.
-- Recopila las observaciones no vacías en `observaciones_evento` para mostrarlas en el `ObservationModal`.
-
----
-
-## 6. Componentes de la Interfaz
-
-### 6.1 `RegistrosPage`
-
-Página principal del módulo. Renderiza el encabezado con título dinámico y un sistema de **cuatro pestañas**:
-
-| Tab | Contenido |
-| ----- | ----------- |
-| **0 — Registros** | Grid responsivo de `EmployeeCard` para marcar asistencia. |
-| **1 — Novedades** | Tabla de novedades registradas con búsqueda por nombre, filtro por fecha y paginación (5 por página). |
-| **2 — Historial** | Embebe el componente `HistorialPage`. |
-| **3 — Malla Horaria** | Placeholder (pendiente de implementación). |
-
-Incluye helpers de presentación `getIconForTipo` y `getChipColor` que asignan ícono y color según el tipo de novedad (descanso, incapacidad, vacaciones, etc.).
-
-### 6.2 `EmployeeCard`
-
-Tarjeta individual de cada empleado. Muestra nombre, cargo, estado actual y los **cuatro botones de marcación** secuenciales. Cada fila de botón incluye:
-
-- **Botón de hora** (reloj): abre `EditHourModal` para corregir la hora de un evento ya registrado.
-- **Botón principal de marcación**: registra el evento; se deshabilita si no es el paso activo o si la jornada ya terminó. Muestra la hora en formato 12 horas (`formatTo12Hour`).
-- **Botón de observación**: abre un modal para agregar/editar la nota del evento (máx. 500 caracteres).
-
-**Turno sin almuerzo.** En la fila de **Iniciar Almuerzo**, cuando esa marcación está activa (estado `jornada_iniciada`) y el almuerzo no se ha omitido, el botón de observación se reemplaza por un botón ámbar con el icono `NoFoodIcon` (tooltip *"Turno sin almuerzo"*). Está pensado para los turnos que no incluyen almuerzo. Al pulsarlo se abre un modal de confirmación; al confirmar, `handleConfirmarSinAlmuerzo` registra de forma consecutiva las marcaciones **Iniciar Almuerzo** y **Finalizar Almuerzo** (ambas con la hora del servidor), de modo que el almuerzo queda con duración cero y ese tiempo no se descuenta del total de horas laboradas. Tras la confirmación, la bandera local `almuerzoOmitidoLocal` —junto con la comprobación `esCasillaAlmuerzo`— deshabilita las dos casillas de almuerzo. El modal advierte que la acción solo puede revertirse a través de soporte/sistemas.
-
-También contiene el **modal de registro de novedad**, validado con Yup (`novedadSchema`): exige tipo de novedad, fechas válidas y que la fecha fin no sea anterior a la de inicio.
-
-En la cabecera, junto al ícono de novedad, hay un **botón de reporte de evento/pausa** (ícono de pausa). Abre el modal **"Reporta un evento"** con una lista desplegable de opciones **definidas en código** (constante `EVENTOS_PAUSA`: *Iniciar Pausa Activa, Terminar Pausa Activa, Salir al baño, Regresar del baño*) y un campo de **observaciones** opcional. Al guardar, llama a `onReportarEvento` → `reportarEvento` → `createEventReport`. El botón está activo durante la jornada (iniciada y no finalizada). La marca temporal del reporte la fija `date_created` en el servidor.
-
-### 6.3 `EditHourModal`
-
-Modal para corregir la hora de una marcación ya registrada. Usa un `TimePicker` (formato AM/PM) y **exige un motivo de al menos 7 caracteres** antes de permitir guardar. El botón Guardar permanece deshabilitado mientras no haya cambios en la hora o en la observación. Al confirmar, devuelve la hora en formato `hh:mm A`, que `registrarEvento` reinterpreta como `updated_record_time`.
-
-### 6.4 `ObservationModal`
-
-Modal de **solo lectura** (construido con Tailwind y `motion/react` para las animaciones) que lista todas las observaciones de una fila del historial, mostrando evento, hora y texto. Se abre desde los indicadores azules de la tabla de `HistorialPage`.
-
-### 6.5 `HistorialPage`
-
-Vista de historial con filtros por rango de fechas (Desde/Hasta) y por nombre de empleado (búsqueda normalizada sin acentos). La tabla muestra las marcaciones de cada jornada y calcula el **total de horas trabajadas** (`calcularHoras`), descontando el tiempo de almuerzo. Los eventos con observación se marcan con un punto azul que abre el `ObservationModal`. Incluye paginación configurable (5 / 20 / Todos).
-
-### 6.6 `HorariosLayout` y `NavbarHorarios`
-
-`HorariosLayout` es un contenedor mínimo que renderiza el `<Outlet>` de las rutas hijas. `NavbarHorarios` es una barra de navegación superior con pestañas (REGISTROS, NOVEDADES, HISTORIAL, MALLA HORARIA); actualmente las pestañas distintas de REGISTROS están deshabilitadas, ya que la navegación interna se resuelve dentro de `RegistrosPage`.
-
----
-
-## 7. Rutas (`routes.tsx`)
+### 4.4 Mapeo de Registros de Tiempo a la Interfaz
 
 ```typescript
-const rutasHorarios: RouteObject[] = [
-  {
-    path: 'horarios',
-    element: <HorariosLayout />,
-    children: [
-      { path: 'registros', element: <RegistrosPage /> },
-      { index: true, element: <Navigate to="registros" replace /> },
-      { path: '*', element: <Navigate to="registros" replace /> },
-    ],
-  },
-];
+export interface RegistrosAsistencia {
+  inicioJornada: string | null; // "HH:mm"
+  inicioAlmuerzo: string | null; // "HH:mm"
+  finAlmuerzo: string | null; // "HH:mm"
+  finJornada: string | null; // "HH:mm"
+  observaciones: Record<string, string>;
+  ids?: Record<string, number>;
+  horasOriginales?: Record<string, string | null>;
+  horasEditadas?: Record<string, string | null>;
+}
 ```
 
-La ruta base `horarios` redirige por defecto a `horarios/registros`. Cualquier subruta no reconocida también redirige a `registros`.
+---
+
+### 4.5 Persistencia y Versionamiento Dinámico de Normativas (`useNormas`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+
+El cumplimiento y lectura obligatoria del reglamento de asistencia se gestiona mediante el hook `useNormas` y la colección Directus `com_rules`:
+
+- **Identificador Dinámico en Storage**: La aceptación local del usuario se persiste en `localStorage` bajo la clave versionada:
+  ```typescript
+  const storageKey = userId && version != null ? `kancan_rules_accepted_${userId}_v${version}` : null;
+  ```
+- **Reactividad ante Actualizaciones de la Norma**: Si el administrador actualiza el reglamento incrementando el campo `version` en `com_rules`, la clave `storageKey` cambia automáticamente, lo que fuerza a que el indicador `debeAceptar` vuelva a evaluarse como `true` y despliegue el modal `NormasModal` en la primera marcación del día hasta su nueva aceptación.
 
 ---
 
-## 8. Flujos de Trabajo Principales
+## 5. Análisis Exhaustivo de Funcionalidades y Pestañas
 
-### 8.1 Marcación de Jornada
+### 5.1 Pestaña Registros (`RegistrosPage` & `EmployeeCard`)
 
-1. El usuario ve la tarjeta del empleado en estado `entrada_pendiente`.
-2. Pulsa **Comenzar Jornada** → `registrarEvento` crea un `com_time_records` con `log_type = 'Comenzar Jornada'`.
-3. La consulta se invalida, el empleado pasa a `jornada_iniciada` y se habilita **Iniciar Almuerzo**.
-4. El proceso continúa secuencialmente hasta `Terminar Jornada`, momento en que la tarjeta muestra "Jornada completada".
+#### 5.1.1 Cuadrícula de Tarjetas de Empleados
 
-### 8.2 Corrección de Hora
+Muestra una grilla responsiva de tarjetas (`EmployeeCard`), filtradas por la tienda seleccionada. Para usuarios administradores y managers, la vista ofrece un selector `Autocomplete` en la cabecera para alternar entre tiendas.
 
-1. Sobre un evento ya marcado, el usuario pulsa el botón del reloj.
-2. En `EditHourModal` ajusta la hora y escribe el motivo (mín. 7 caracteres).
-3. Al guardar, `registrarEvento` detecta que el registro existe y lo actualiza con `updated_record_time` + la observación.
+#### 5.1.2 Componentes de `EmployeeCard`
 
-### 8.3 Registro de Novedad
+Cada tarjeta está desglosada en componentes modulares:
 
-1. En una tarjeta en estado `entrada_pendiente`, el usuario pulsa el ícono de advertencia.
-2. Completa el formulario (tipo, rango de fechas, observación), validado con Yup.
-3. `agregarNovedad` genera una novedad por cada día del rango y las inserta en lote.
-4. El empleado desaparece del listado de marcación de ese día.
-
-### 8.4 Consulta de Historial
-
-1. El usuario abre la pestaña **Historial**.
-2. Filtra por rango de fechas y/o nombre.
-3. `useHistorial` agrupa los registros por empleado/día y calcula las horas trabajadas.
-4. Los puntos azules permiten abrir el `ObservationModal` con el detalle de las observaciones.
-
-### 8.5 Reporte de Evento / Pausa
-
-1. Durante la jornada, el usuario pulsa el ícono de **pausa** en la tarjeta del empleado.
-2. En el modal **"Reporta un evento"** elige una opción de la lista (definida en código) y, opcionalmente, escribe una observación.
-3. `reportarEvento` llama a `createEventReport`, que inserta el registro en `com_event_reports`.
-4. El instante exacto del reporte queda guardado en `date_created` (reloj del **servidor** de Directus); se muestra un snackbar de confirmación.
-
-### 8.6 Registro de Turno sin Almuerzo
-
-1. En una tarjeta en estado `jornada_iniciada`, con el almuerzo aún sin marcar, el usuario pulsa el botón ámbar de **Turno sin almuerzo** (`NoFoodIcon`), ubicado en la fila de **Iniciar Almuerzo**.
-2. Confirma en el modal de advertencia (que aclara que la acción solo se revierte vía soporte/sistemas).
-3. `handleConfirmarSinAlmuerzo` registra en secuencia las marcaciones **Iniciar Almuerzo** y **Finalizar Almuerzo**, ambas con la hora del servidor, de modo que el almuerzo queda con duración cero.
-4. Las dos casillas de almuerzo quedan deshabilitadas (`almuerzoOmitidoLocal`) y ese tiempo no se descuenta del total de horas laboradas del día.
+1. **`EmployeeCardHeader`**: Muestra nombre, documento, cargo, badge de estado actual (`entrada_pendiente`, `jornada_iniciada`, `en_almuerzo`, `regreso_almuerzo`, `jornada_finalizada`), botón de pausa activa (con indicador de pausas restantes) y botón para registrar novedad.
+2. **`EmployeeCardTimeSlots`**: Renderiza los cuatro botones correspondientes a los eventos de la jornada. Cada fila incluye:
+   - Botón de edición rápida de hora (icono de reloj `AccessTimeIcon`, visible para administradores).
+   - Botón principal de marcación (muestra la hora registrada o el estado activo).
+   - Botón de observación (icono de libreta `AssignmentIcon`).
+3. **`EmployeeCardModals`**: Contiene los modales de observación, novedad, reporte de eventos y confirmación de turno sin almuerzo.
 
 ---
 
-## 9. Consideraciones y Notas Técnicas
+#### 5.1.3 Funcionalidad Especial: Turno Sin Almuerzo
 
-- **`STORE_ID` está fijado a 90** tanto en el hook como en la capa de creación. Para soportar múltiples tiendas debería parametrizarse.
-- **Hora original vs. hora corregida:** la UI siempre prioriza `updated_record_time` sobre `record_time`, preservando un rastro de auditoría de la hora marcada originalmente.
-- **Resiliencia:** las lecturas devuelven arreglos vacíos ante error; las escrituras propagan el error para notificar al usuario vía snackbar global (`useGlobalSnackbar`).
-- **Internacionalización de fechas:** se usa `dayjs` con locale `es` para formatear fechas y horas en español.
-- **Pendientes:** la pestaña **Malla Horaria** es un placeholder, y `eliminarEmpleado` está deshabilitado intencionalmente.
+En ciertos esquemas operativos, la jornada laboral del empleado no contempla tiempo de almuerzo. Para gestionar este escenario de forma transparente y consistente sin alterar el flujo de marcaciones del backend, se diseñó la solución del **Turno Sin Almuerzo**:
 
----
+- **Activación en la UI**: En la fila correspondiente a **Iniciar Almuerzo**, mientras la marcación esté pendiente y el estado sea `jornada_iniciada`, el botón secundario de observación se sustituye por un botón con icono ámbar (`NoFoodIcon`) titulado **"Turno sin almuerzo"**.
+- **Modal de Confirmación**: Al hacer clic en este botón, se despliega el diálogo `EmployeeCardOmitirAlmuerzoModal`, el cual advierte explícitamente al usuario:
 
-## 10. Exportación de Datos a CSV
+  > "Al confirmar, las casillas de almuerzo quedarán deshabilitadas, este tiempo no se descontará del total de horas trabajadas del día y la acción solo podrá revertirse a través del equipo de soporte/sistemas."
 
-El módulo permite a los administradores exportar tanto el **historial de marcaciones** como las **novedades** a un archivo CSV (compatible con Excel: incluye BOM UTF-8, delimitador `;` y saltos `CRLF`). El botón **Exportar** solo se muestra a usuarios con rol de administrador (`esAdmin()`).
+- **Lógica de Ejecución Backend (`handleConfirmarSinAlmuerzo`)**:
+  Al confirmar la acción, la tarjeta ejecuta la siguiente rutina asíncrona:
 
-### 10.1 Exportación de Historial
+```typescript
+const handleConfirmarSinAlmuerzo = async () => {
+  setOmitiendoAlmuerzo(true);
+  try {
+    // 1. Registra el inicio de almuerzo con la hora del servidor
+    await onRegistrarEvento(id, "Iniciar Almuerzo");
+    // 2. Registra de inmediato la finalización de almuerzo con la misma hora
+    await onRegistrarEvento(id, "Finalizar Almuerzo");
+    // 3. Activa la bandera local de bloqueo
+    setAlmuerzoOmitidoLocal(true);
+    setOmitirAlmuerzoModalOpen(false);
+  } finally {
+    setOmitiendoAlmuerzo(false);
+  }
+};
+```
 
-| Pieza | Archivo | Descripción |
-| ------- | --------- | ------------- |
-| Diálogo | `components/ExportHistorialDialog.tsx` | Selección de tiendas (multiselección + "Todas las tiendas"), rango de fechas y un check de **Descarga detallada**. Sin rango → exporta **solo el día de hoy**. |
-| Utilidad | `utils/exportarHistorial.ts` (`exportarHistorialExcel`) | Agrupa las marcaciones por `empleado + fecha`, calcula **horas laboradas** y **duración del almuerzo**, y genera el CSV. |
-| Datos | `fetchTimeRecordsExport` + `getReasonNamesForRecords` | Trae las marcaciones del rango/tiendas; en modo detallado añade el motivo de edición. |
-
-**Columnas:** Tienda, Número CC, Nombre empleado, Fecha, horas de cada evento, Horas laboradas, Tiempo de almuerzo. En modo **detallado** suma: Motivo de edición, Observación/nota y Hora inicial de cada evento corregido.
-
-### 10.2 Exportación de Novedades
-
-| Pieza | Archivo | Descripción |
-| ------- | --------- | ------------- |
-| Diálogo | `components/ExportNovedadesDialog.tsx` | Multiselección de tiendas + "Todas las tiendas", rango de fechas y un check **"Descargar todas las novedades"** (ignora tiendas y fechas). Sin rango → exporta **solo el día de hoy**. |
-| Utilidad | `utils/exportarNovedades.ts` (`exportarNovedadesExcel`) | Mapea cada novedad a una fila y genera el CSV. |
-| Datos | `fetchNewnessReportsExport` | Trae las novedades del rango/tiendas, considerando `report_date` o `date_created`. |
-
-**Columnas:** `Tienda`, `Número CC`, `Nombre empleado`, `Fecha`, `Tipo de novedad`, `Observacion`.
-
-- La **Fecha** se formatea como `DD-MM-YYYY`. El ordenamiento usa una clave interna `fechaOrden` (`YYYY-MM-DD`) que **no** aparece como columna, garantizando orden cronológico correcto.
-- Si no hay datos para los filtros, la utilidad devuelve `{ ok: false, mensaje }` y el diálogo muestra un snackbar de error.
-- El botón de exportación vive en la cabecera de la pestaña **Novedades** de `RegistrosPage`.
-
-### 10.3 Exportación de Eventos / Pausas
-
-A diferencia de las dos anteriores (admin), este export está en la **vista de Registros** (la de los usuarios), con el botón **Exportar** a la izquierda del chip "Total Empleados".
-
-| Pieza | Archivo | Descripción |
-| ------- | --------- | ------------- |
-| Diálogo | `components/ExportEventosDialog.tsx` | Solo rango de fechas (sin rango → solo hoy). Acotado a una sola tienda: **admin** exporta la tienda seleccionada (`storeOverride`); **usuario normal**, su tienda asignada (`getStoreIdUsuarioActual`). |
-| Utilidad | `utils/exportarEventos.ts` (`exportarEventosExcel`) | Una fila por evento. |
-| Datos | `fetchEventReportsExport` | Lee `com_event_reports` (`event_type`, `date`, `hour`, `observations`) por tienda y rango. |
-
-**Columnas:** `Tienda`, `Número CC`, `Nombre empleado`, `Fecha`, `Hora`, `Evento`, `Observacion`.
-
-### 10.4 Nombre de los archivos
-
-Los tres exports nombran el CSV como **`<nombre> AAAAMMDD-HHMMSS.csv`** (p. ej. `eventos 20260625-151358.csv`). Incluir la hora exacta garantiza nombres únicos por segundo y evita descargas duplicadas (`(1)`, `(2)`…).
+- **Efecto en la Base de Datos y Cálculos**:
+  - Ambas marcaciones (`Iniciar Almuerzo` y `Finalizar Almuerzo`) quedan registradas en la colección `com_time_records` con timestamps idénticos.
+  - La duración del almuerzo calculada por la función `calcularMinutosDia` es exactamente **0 minutos**.
+  - El total de horas laboradas de la jornada no sufre ningún descuento por concepto de almuerzo.
+  - Las casillas de almuerzo quedan congeladas en la interfaz de la tarjeta con el estado **"No Aplica"**.
+- **Soporte en el Tour Guiado**: El paso de marcaciones del tutorial interactivo (`tourSteps.tsx`) explica detalladamente la función del icono `NoFoodIcon` para la omisión de almuerzo.
 
 ---
 
-## 11. Administración de Empleados
+#### 5.1.4 Pausas Activas
 
-Panel para que el administrador dé de alta y edite empleados, además de cambiar la tienda activa que comparten la vista de tienda y el panel admin.
+- Cada empleado dispone de un máximo de 2 pausas activas por día (`MAX_PAUSAS = 2`).
+- Al iniciar una pausa activa mediante `EmployeeCardEventoModal`, se dispara un temporizador en el frontend (`useActiveBreak`) con un contador regresivo visual de **5 minutos**.
+- La pausa activa se registra como un evento en la colección `com_event_reports` con el tipo `'Iniciar Pausa Activa'` y `'Terminar Pausa Activa'`.
 
-| Pieza | Archivo | Descripción |
-| ------- | --------- | ------------- |
-| Página | `pages/AdminEmpleadosPage.tsx` | Búsqueda de empleados, alta y edición. |
-| Hook | `hooks/useAdminEmpleados.ts` | Expone `crearEmpleado`/`actualizarEmpleado` (`mutateAsync`), estados `creando`/`actualizando`, catálogos (tiendas, cargos, tipos de documento) y la búsqueda. En `onSuccess` solo **invalida la lista** (refetch); el feedback visual de la creación lo gestiona el propio diálogo. |
-| Modal | `components/admin/DialogNuevoEmpleado.tsx` | Formulario validado con Yup. Separa el nombre completo en partes (vía IA `useParseNombreIA`, con respaldo local `splitNombreLocal`). |
-| Modal | `components/admin/DialogPerfilEmpleado.tsx` | Perfil del empleado (ver 11.2). |
+#### 5.1.5 Edición y Creación Manual de Horas (`EditHourModal` & `CreateHourModal`)
 
-### 11.0 Selector de tienda, búsqueda y paginación
-
-- **Selector de tienda** con opción **"Todas las tiendas"** (`OPCION_TODAS`, id `-1`).
-- En modo **tienda específica**: lista los empleados de esa tienda (`listarEmpleadosTienda`) y filtra localmente.
-- En modo **"Todas las tiendas"**: carga **todos** los empleados (`listarTodosEmpleados`) y filtra **en el cliente** por nombre o documento. Se hace client-side porque `document_number` es `BigInteger` y no admite búsqueda parcial (`_contains`) en el servidor. En este modo, cada card muestra la **tienda** del empleado.
-- **Paginación** estilo Historial/Novedades ("Mostrando X de Y empleados" + selector de filas), con tamaños múltiplos de 3 (**6**/12/24/48) para cuadrar el grid de 3 columnas y no renderizar miles de cards a la vez.
-
-### 11.1 Flujo de creación con toast de Sileo
-
-Al pulsar **Crear empleado** (datos válidos):
-
-1. Se **cierra el modal de inmediato** (el botón ya no se queda en gris "Guardando…").
-2. Se dispara `sileo.promise(...)`, que gestiona en un único toast las tres fases:
-   - **loading** → "Creando empleado…" (mientras corre la separación del nombre + el alta en Directus).
-   - **success** → "Empleado creado" con una tarjeta (`EmpleadoCreadoCard`) que muestra **Nombre, Documento, Tienda y Cargo** del empleado recién creado.
-   - **error** → "Error al crear el empleado".
-3. Los datos de la tarjeta se capturan **antes** de cerrar el modal; el `fill` del toast cambia por fase (gris carga → verde éxito → rojo error).
-
-### 11.2 Perfil del empleado
-
-Al hacer **click en la tarjeta** de un empleado se abre `DialogPerfilEmpleado` (antes abría el editor; ahora el editor se abre desde el botón **Editar** dentro del perfil). Muestra, sin repetir lo de la tarjeta:
-
-- **Datos**: documento completo (tipo + número) y tienda.
-- **KPIs del mes** (con icono/color): Jornadas, Pausas, Novedades.
-- **Listas recientes**: últimas jornadas (entrada → salida + horas), últimas novedades (con su icono/color vía `utils/novedadVisual.tsx`) y últimas pausas.
-
-Los datos se cargan por empleado con `getEmployeeTimeRecords`, `getEmployeeNovedades` y `getEmployeeEventReports` (mes actual).
+- **Edición**: Permite modificar la hora de un evento ya registrado mediante `EditHourModal`. Exige la selección de un motivo predefinido desde la colección `com_reasons` y una observación justificativa.
+- **Creación Extemporánea de Marcaciones (`CreateHourModal`)**: 
+  > 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+  Permite a administradores y jefes de zona registrar manualmente un evento de marcación (ejemplo: inicio de jornada o salida) que el empleado no pudo realizar en su momento por fallas de conexión o fuerza mayor. A diferencia de `EditHourModal` (que modifica un registro existente), `CreateHourModal` inserta un nuevo `time_record` asociando el motivo justificado y el autor de la creación en la auditoría.
+- **Auditoría de Ediciones**: La hora original se preserva intacta en el campo `original_record_time` de `com_time_records`, mientras que la nueva hora se guarda en `record_time`. La relación con el motivo se persiste en la tabla asociativa `com_records_reasons`.
 
 ---
 
-## 12. Notificaciones Globales (Sileo)
+### 5.2 Pestaña Novedades (`NovedadesTab`)
 
-El snackbar global de toda la aplicación se construye sobre la librería **Sileo** (toasts con animación física). Es un recurso **compartido** ubicado en `src/shared/components/SnackbarsPosition/`, no exclusivo de Horarios, pero este módulo lo usa intensivamente.
+Proporciona la vista tabular de todas las novedades operacionales (incapacidades, permisos remunerados/no remunerados, vacaciones, ausencias injustificadas, etc.) registradas para la tienda.
 
-| Archivo | Descripción |
-| --------- | ------------- |
-| `SnackbarContext.tsx` | Adaptador sobre Sileo. Conserva la API previa (`useGlobalSnackbar` → `showSnackbar(mensaje, severidad)`) para no tocar los call sites; por dentro llama a `sileo[severidad]({ title, duration, fill })` y monta `<Toaster position="bottom-center" />`. Exporta `SILEO_STATE_FILL` (color de fondo por estado). |
-| `sileoOverrides.css` | Sobrescritura global del aspecto: cada toast es **un solo color** (el `fill` del estado) con **texto e icono en blanco**, badge translúcido y paleta de estados on-brand. |
-
-- **`showSnackbar(mensaje, severidad)`** sigue siendo la forma estándar de notificar (`'success' | 'error' | 'warning' | 'info'`).
-- Para toasts con contenido enriquecido (como la tarjeta de empleado creado) se usa directamente `sileo.promise` / `sileo.success` con una `description` de tipo `ReactNode`.
-- **Cierre con click:** además del swipe nativo y el auto-cierre por `duration`, un listener global en `SnackbarContext` cierra el toast con un click (lo desliza hacia abajo y luego limpia con `sileo.clear()`); ignora los toasts en estado `loading`.
-- **Coste de bundle:** Sileo añade ~12 KB gzip; su dependencia pesada (`motion`) ya formaba parte del proyecto, por lo que el impacto es marginal.
+- **Filtros Avanzados**: Permite filtrar por nombre de empleado, rango de fechas (Desde/Hasta) y estado del empleado ("Solo activos").
+- **Mapeo Visual (`novedadVisual.tsx`)**: Asigna iconos específicos y chips de colores acordes al tipo de novedad para facilitar su identificación rápida.
+- **Exportación**: Incluye un botón dedicado para exportar la tabla filtrada a un archivo Excel (.xlsx) utilizando la utilidad `exportarNovedades.ts`.
 
 ---
 
-*Documento generado como referencia técnica del módulo `src/apps/horarios`.*
+### 5.3 Pestaña Historial (`HistorialPage`)
+
+Ofrece una vista consolidada y cronológica del historial de marcaciones de los empleados.
+
+- **Agrupación de Datos**: Transforma el arreglo plano de marcaciones devueltos por `fetchTimeRecords` en una estructura de filas por `Empleado + Fecha` (`agruparRegistros`).
+- **Cálculo de Horas**: Calcula automáticamente la duración del turno y el tiempo de almuerzo descontado.
+- **Modal de Observaciones (`ObservationModal`)**: Si un evento contiene observaciones o fue editado manualmente, se despliega un indicador visual que permite abrir un modal para examinar los detalles.
+
+---
+
+### 5.4 Pestaña Monitoreo (`MonitoreoPage`)
+
+Panel de control reservado exclusivamente para roles con permisos de administración o jefatura de zona (`esAdmin()` o `esAreaManager()`). Se divide en dos subpestañas:
+
+#### 5.4.1 Subpestaña: Resumen de Asistencia
+
+- **Tarjetas KPI**: Muestra el total de tiendas evaluadas, empleados activos, días con marcación incompleta y días sin marcar en el mes.
+- **Detalle de Tienda (`ModalDetalleTienda`)**: Abre un modal avanzado que combina la lista de empleados con un calendario interactivo (`CalendarioMensualTienda`).
+- **Gestión de Días Cerrados (`com_store_closed_days`)**: Permite a los administradores seleccionar días en el calendario y marcarlos como "Día Cerrado / No Laboral". Esto evita que el sistema contabilice faltas de asistencia en festivos o cierres de tienda.
+- **Cierre Masivo (`ModalCierreMasivo`)**: Diálogo que permite marcar múltiples tiendas y rangos de fechas como días cerrados en una sola operación.
+
+#### 5.4.2 Subpestaña: Auditoría de Ediciones Manuales
+
+- Muestra el historial completo de modificaciones manuales de hora realizadas por administradores o managers.
+- Muestra tarjetas de estadísticas con el total de ediciones, empleados monitoreados, la tienda con más cambios y el empleado con más ajustes.
+- **Rankings Operativos**: Integra `ModalRankingTiendas` y `ModalRankingEmpleados` para detectar patrones atípicos de edición manual de tiempos.
+
+---
+
+### 5.5 Pestaña Control de Horas / Planilla (`DetallePlanillaPage`)
+
+Permite la visualización y edición rápida en formato de tabla matricial (días de la semana vs empleados) para un control ágil por parte del Área Manager.
+
+- **Reglas de Edición**:
+  - `esAdmin()`: Edición directa de celdas sin requerir motivo obligatorio.
+  - `esAreaManager()`: Edición con selección de motivo opcional.
+  - `esReport()`: Deshabilitado para edición (solo lectura).
+
+---
+
+### 5.6 Pestaña Admin Empleados (`AdminEmpleadosPage`)
+
+Panel de administración de personal para dar de alta, editar y gestionar la asignación de tiendas de los empleados.
+
+#### 5.6.1 Filtro "Todas las Tiendas" y Paginación Rendidora
+
+- Incluye el selector `OPCION_TODAS` (`id: -1`). Al seleccionarlo, la aplicación obtiene la totalidad de empleados de la empresa (`listarTodosEmpleados`) y realiza el filtrado de búsqueda por nombre o número de documento en el cliente.
+- Aplica paginación en múltiplos de 3 (6, 12, 24, 48 elementos por página) para mantener un renderizado fluido del grid de tarjetas.
+
+#### 5.6.2 Alta de Empleado con Parseo de Nombre asistido por IA
+
+El modal `DialogNuevoEmpleado` permite ingresar el nombre completo en un solo campo. La utilidad `useParseNombreIA` analiza la cadena mediante IA (o un algoritmo de respaldo local `splitNombreLocal`) para separar automáticamente:
+
+- `first_name` (Primer nombre)
+- `middle_name` (Segundo nombre)
+- `last_name` (Primer apellido)
+- `second_last_name` (Segundo apellido)
+
+#### 5.6.3 Toasts Animados de Sileo
+
+La creación de empleados utiliza la librería **Sileo** (`sileo.promise`), mostrando una notificación con estados físicos:
+
+- **Cargando**: "Creando empleado..."
+- **Éxito**: "Empleado creado" con una tarjeta incrustada (`EmpleadoCreadoCard`) que resume el nombre, documento, tienda y cargo.
+- **Error**: Detalle legible de la falla devuelta por Directus.
+
+#### 5.6.4 Perfil 360 del Empleado (`DialogPerfilEmpleado`)
+
+Al hacer clic en una tarjeta de empleado, se abre un modal de perfil que muestra:
+
+- Información personal y laboral.
+- KPIs mensuales de asistencia (Jornadas completadas, pausas activas, novedades).
+- Listados recientes de marcaciones, novedades y pausas activas.
+
+---
+
+### 5.7 Pestaña Reportes y Exportación (`ReportePage`)
+
+Centro unificado para la generación de reportes operativos en formato Excel/CSV.
+
+#### 5.7.1 Filtro "Todas las Tiendas" en Reporte Page (Detalle de `documentacion_felix.md`)
+
+El Autocomplete de selección de tiendas en `ReportePage.tsx` incorpora la opción centinela:
+
+```typescript
+const OPCION_TODAS: Tienda = { id: -1, name: "Todas las tiendas" };
+const opcionesTienda = [OPCION_TODAS, ...tiendasAMostrar];
+```
+
+- **Comportamiento de Selección**: Cuando el usuario selecciona "Todas las tiendas" (o no tiene una tienda seleccionada por defecto), el manejador de eventos asigna `null` como identificador de tienda (`storeSel = null`).
+- **Peticiones a Backend**: Al recibir `null`, los hooks de consulta (`useQuery`) omiten el filtro `store_id` en las peticiones a Directus, recuperando los datos consolidados de la totalidad de las tiendas.
+- **Comparación Estricta**: Se utiliza la propiedad `isOptionEqualToValue={(option, value) => Number(option.id) === Number(value.id)}` para asegurar que el componente mantenga la opción seleccionada sin discrepancias de tipos (string vs number).
+
+#### 5.7.2 Diálogos de Exportación Masiva
+
+- **`ExportUnificadoDialog`**: Diálogo principal que permite descargar en un solo archivo o en pestañas separadas los reportes de Registros, Novedades, Pausas Activas y Consolidado Semanal.
+- **`ExportSemanalDialog`**: Genera el reporte consolidado de horas laboradas por semana, calculando horas ordinarias y extras.
+- **Formatos de Salida**: Los archivos CSV generados incorporan la marca BOM UTF-8 (`\uFEFF`), delimitador por punto y coma (`;`) y nombramiento dinámico con timestamp (`nombre_YYYYMMDD_HHmmss.csv`) para evitar sobrescrituras.
+
+#### 5.7.3 Pestaña Consolidado Semanal en Pantalla (`ReporteSemanalTab` & `ReporteSemanalTabla`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+
+Además de las descargas en Excel/CSV, el centro de reportes ofrece la consulta interactiva en tiempo real:
+
+- **Matriz de Horas por Empleado**: Muestra en pantalla el desglose diario de horas laboradas durante la semana seleccionada.
+- **Badge de Registros Incompletos**: Identifica mediante un contador rojo los días donde el empleado registró entrada pero omitió la salida (o viceversa).
+- **Indicador de Festivos (`FestivosChip`)**: Muestra la proporción de días festivos nacionales laborados por el empleado en el periodo (ejemplo `1/2 festivos`) con acceso directo al modal de auditoría de festivos.
+
+#### 5.7.4 Pestaña Auditoría de Pausas Activas en Pantalla (`ReportePausasTab`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+
+Proporciona la vista tabular de todos los reportes de pausas activas registrados (`com_event_reports`), con desglose por fecha, hora de inicio/fin, duración efectiva de 5 minutos y observaciones registradas por el personal.
+
+#### 5.7.5 Utilidades de Reportes (`ReporteUtils.ts`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+
+- `getAvatarColor(texto)`: Generador determinista de color basado en hash para asignar avatares únicos e identifiables por empleado.
+- `calcularMinutosSemanales(empId, startStr, endStr, records)`: Consolida en memoria los minutos trabajados descontando almuerzo para el rango semanal seleccionado.
+
+---
+
+### 5.8 Sistema de Tours Guiados (`components/tour/`)
+
+Para la capacitación interactiva de los usuarios, el módulo integra la librería `react-joyride`.
+
+- **Módulos de Tour**: `HorariosTour` (Pestaña Registros), `MonitoreoTour` (Pestaña Monitoreo), `AdminTour` (Administración de Empleados) y `ReporteTourConfig`.
+- **Modales Simulados ("Fake Modals")**: 
+  > 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+  Para evitar que el usuario altere datos reales durante un tutorial, el sistema integra el contexto `HorariosTourContext.tsx` que renderiza componentes simulados (`fakeTourModals.tsx`, `FakeExportModal.tsx`, `FakeHistorialModal.tsx`). Estos modales imitan la interfaz real y simulan la ejecución de peticiones HTTP en memoria, permitiendo una experiencia de capacitación 100% inmersiva sin afectar la base de datos de Directus.
+
+---
+
+### 5.9 Gestión e Integración de Festivos Nacionales (Colombia / Ley Emiliani)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+
+El sistema integra un módulo especializado para la gestión y detección de días festivos nacionales en Colombia:
+
+- **Decorador Visual de Pickers (`FestivoDay.tsx`)**: Sobrescribe el componente `PickersDay` de Material-UI para destacar visualmente en los calendarios los días festivos nacionales con fondo rojizo y punto indicador, incluyendo un tooltip con el nombre oficial de la festividad devuelto por el mapa `holidayMap`.
+- **Detalle de Festivos Trabajados (`FestivosDetalleModal.tsx`)**: Despliega un diálogo emergente con el desglose de cada festivo laborado por el empleado en el mes, detallando la fecha, nombre de la festividad, minutos netos trabajados y un enlace rápido a la visualización de las marcas originales.
+
+---
+
+## 6. Base de Datos y Modelo de Datos (Directus CMS)
+
+### 6.1 Colecciones Directus y Mapeo Físico vs Conceptual
+
+| Nombre Físico en Directus       | Nombre Conceptual | Descripción / Uso                                                                                                                                       |
+| :------------------------------ | :---------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `adm_employees`                 | Employees         | Almacena los datos personales y laborales del personal (`first_name`, `last_name`, `document_number`, `store_id`, `position_id`, `status`).             |
+| `core_stores`                   | Stores            | Catálogo de tiendas de la empresa (`id`, `name`, `ultra_code`, `company`).                                                                              |
+| `core_positions`                | Positions         | Catálogo de cargos/puestos de trabajo (`id`, `name`).                                                                                                   |
+| `com_time_records`              | Time Records      | Contiene cada evento de marcación diaria (`employee_id`, `store_id`, `log_type`, `record_date`, `record_time`, `original_record_time`, `observations`). |
+| `com_newness`                   | Newness Catalog   | Catálogo de tipos de novedad (`id`, `name`).                                                                                                            |
+| `com_newness_reports`           | Newness Reports   | Novedades registradas para empleados (`employee_id`, `newness_id`, `report_date`, `observations`, `store_id`).                                          |
+| `com_reasons`                   | Edit Reasons      | Catálogo de motivos justificados para edición de hora (`id`, `name`, `status`).                                                                         |
+| `com_records_reasons`           | Record Reasons    | Tabla asociativa que vincula un registro editado con su motivo (`records_id` → `com_time_records.id`, `reasons_id` → `com_reasons.id`).                 |
+| `com_event_reports`             | Event Reports     | Registro de pausas activas y eventos especiales (`employee_id`, `store_id`, `event_type`, `observations`, `date`, `hour`).                              |
+| `com_store_closed_days`         | Store Closed Days | Registro de días no laborables o cerrados por tienda (`store_id`, `date`, `status`).                                                                    |
+| `com_rules`                     | Rules             | Normativas y reglamentos vigentes de registro de tiempo (`id`, `version`, `title`, `content`).                                                          |
+| `com_employee_rule_acceptances` | Rule Acceptances  | Registro de aceptación de normativas por empleado (`employee_id`, `rule_id`, `version`, `accepted_at`).                                                 |
+
+---
+
+### 6.2 Diagrama de Entidad-Relación (Mermaid)
+
+```mermaid
+erDiagram
+    core_stores ||--o{ adm_employees : "pertenece_a"
+    core_positions ||--o{ adm_employees : "ocupa"
+    adm_employees ||--o{ com_time_records : "registra"
+    core_stores ||--o{ com_time_records : "ocurre_en"
+    com_time_records ||--o| com_records_reasons : "justificado_por"
+    com_reasons ||--o{ com_records_reasons : "clasifica"
+    adm_employees ||--o{ com_newness_reports : "reporta"
+    com_newness ||--o{ com_newness_reports : "categoriza"
+    adm_employees ||--o{ com_event_reports : "realiza_pausa"
+    core_stores ||--o{ com_store_closed_days : "programado_en"
+    adm_employees ||--o{ com_employee_rule_acceptances : "acepta"
+    com_rules ||--o{ com_employee_rule_acceptances : "vigente_en"
+
+    adm_employees {
+        int id PK
+        string document_type
+        string document_number
+        string first_name
+        string middle_name
+        string last_name
+        string second_last_name
+        int store_id FK
+        int position_id FK
+        string status
+    }
+
+    com_time_records {
+        int id PK
+        int employee_id FK
+        int store_id FK
+        string log_type
+        string record_date
+        string record_time
+        string original_record_time
+        string observations
+    }
+
+    com_newness_reports {
+        int id PK
+        int employee_id FK
+        int newness_id FK
+        int store_id FK
+        string report_date
+        string observations
+    }
+
+    com_records_reasons {
+        int id PK
+        int records_id FK
+        int reasons_id FK
+    }
+```
+
+---
+
+## 7. Capa de Servicios de API REST (`api/directus/`)
+
+### 7.1 Módulo `read.ts` & `readBulk.ts` (Lecturas)
+
+- **`getStoreIdUsuarioActual()`**: Consulta la información del usuario autenticado vía `readMe` para obtener su `store_id` predeterminado.
+- **`getEmpleados(storeId)`**: Retorna los empleados de la tienda especificada utilizando `getEmpleadosBulk`.
+- **`getTiposNovedad()`**: Lee la colección `com_newness`.
+- **`getReasons()`**: Lee los motivos activos de `com_reasons` ordenados alfabéticamente (ubicando "Otro" al final).
+- **`getReasonNamesForRecords(recordIds[])`**: Realiza una consulta bulk sobre `com_records_reasons` para construir un mapa `recordId -> reasonName`.
+- **`getNovedades(storeId)` / `getStoreNovedades(storeId)`**: Obtiene las novedades registradas de una o varias tiendas expandiendo las relaciones `employee_id`, `newness_id` y `store_id`.
+- **`fetchTimeRecords(inicio, fin, storeId, employeeId)`**: Lee las marcaciones de `com_time_records` filtrando por fechas, tiendas o empleado.
+- **`getEditedTimeRecords(storeIds, inicio, fin)`**: Consulta para la pestaña de Monitoreo que recupera exclusivamente los registros que poseen `original_record_time` no nulo o registros asociados en `com_records_reasons`.
+- **`getTimeRecordsBulkRange(storeIds, inicio, fin)`**: Método optimizado para cargar en una sola petición HTTP los registros de múltiples tiendas en un rango de fechas.
+
+### 7.2 Módulo `create.ts` (Escritura y Modificación)
+
+- **`createTimeRecord(data)`**: Inserta un nuevo registro de tiempo en `com_time_records`.
+- **`updateTimeRecord(id, data)`**: Actualiza la hora (`record_time`), hora original (`original_record_time`) u observaciones de un registro.
+- **`upsertRecordReason(recordId, reasonId)`**: Inserta o actualiza la vinculación entre una marcación editada y su motivo en `com_records_reasons`.
+- **`createNovedad(data)` / `createNovedades(items[])`**: Inserta una o varias novedades en lote en `com_newness_reports`.
+- **`createEventReport(data)`**: Inserta un reporte de pausa activa en `com_event_reports`.
+- **`setStoreClosedDayStatus(storeId, date, status)`**: Crea, actualiza o desactiva un registro de día cerrado en `com_store_closed_days`.
+- **`crearEmpleado(data)` / `actualizarEmpleado(id, data)`**: Gestión de personal en `adm_employees`.
+
+---
+
+## 8. Algoritmos y Lógica de Negocio Relevante
+
+### 8.1 Algoritmo de Cálculo de Minutos Trabajados en el Día (`calcularMinutosDia`)
+
+Ubicado en `utils/exportarSemanal.ts` y reutilizado en toda la aplicación, este algoritmo determina las horas netas trabajadas por un empleado en una fecha dada:
+
+```typescript
+export function calcularMinutosDia(
+  inicioJornada: string | null,
+  inicioAlmuerzo: string | null,
+  finAlmuerzo: string | null,
+  finJornada: string | null,
+): number {
+  if (!inicioJornada || !finJornada) return 0;
+
+  const tInicio = dayjs(`2000-01-01 ${inicioJornada}`);
+  const tFin = dayjs(`2000-01-01 ${finJornada}`);
+
+  if (!tInicio.isValid() || !tFin.isValid()) return 0;
+
+  // Minutos brutos entre entrada y salida
+  let minutosTotales = tFin.diff(tInicio, "minute");
+  if (minutosTotales < 0) minutosTotales += 24 * 60; // Manejo de turnos nocturnos
+
+  // Descuento de almuerzo si ambas marcaciones existen
+  if (inicioAlmuerzo && finAlmuerzo) {
+    const tInicioAlm = dayjs(`2000-01-01 ${inicioAlmuerzo}`);
+    const tFinAlm = dayjs(`2000-01-01 ${finAlmuerzo}`);
+    if (tInicioAlm.isValid() && tFinAlm.isValid()) {
+      let minutosAlmuerzo = tFinAlm.diff(tInicioAlm, "minute");
+      if (minutosAlmuerzo < 0) minutosAlmuerzo += 24 * 60;
+      minutosTotales -= minutosAlmuerzo;
+    }
+  }
+
+  return Math.max(0, minutosTotales);
+}
+```
+
+> **Nota respecto al Turno Sin Almuerzo**: Dado que en el Turno Sin Almuerzo `inicioAlmuerzo` y `finAlmuerzo` son idénticos, `minutosAlmuerzo` resulta en `0`, por lo que `minutosTotales` conserva el 100% de la jornada sin descuento.
+
+---
+
+### 8.2 Algoritmo de Consolidación Semanal del Mes (`getSemanasDelMes`)
+
+Para la generación del reporte semanal, el sistema calcula los bloques de semanas que componen un mes determinado, respetando el día de inicio de semana configurado por el usuario (ejemplo: Lunes = 1, Domingo = 0):
+
+```typescript
+export function getSemanasDelMes(
+  year: number,
+  month: number,
+  diaInicioSemana: number = 1,
+  diaFinSemana: number = 0,
+): { numeroSemana: number; start: string; end: string; label: string }[] {
+  const semanas = [];
+  const primerDiaMes = dayjs().year(year).month(month).date(1);
+  const ultimoDiaMes = primerDiaMes.endOf("month");
+
+  let current = primerDiaMes;
+  let numeroSemana = 1;
+
+  while (
+    current.isBefore(ultimoDiaMes) ||
+    current.isSame(ultimoDiaMes, "day")
+  ) {
+    let inicioSemana = current;
+    let finSemana = current.day(diaFinSemana);
+
+    if (finSemana.isBefore(inicioSemana)) {
+      finSemana = finSemana.add(7, "day");
+    }
+
+    semanas.push({
+      numeroSemana,
+      start: inicioSemana.format("YYYY-MM-DD"),
+      end: finSemana.format("YYYY-MM-DD"),
+      label: `Semana ${numeroSemana} (${inicioSemana.format("DD/MM")} - ${finSemana.format("DD/MM")})`,
+    });
+
+    current = finSemana.add(1, "day");
+    numeroSemana++;
+  }
+
+  return semanas;
+}
+```
+
+---
+
+### 8.3 Algoritmo de Cálculo de Festivos Trabajados (`obtenerFestivosTrabajadosEmp`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+
+Ubicado en `components/reportes/FestivosDetalleModal.tsx`, este algoritmo analiza las marcaciones del empleado en el mes y las cruza contra el mapa de festivos nacionales (`holidayMap`):
+
+```typescript
+export const obtenerFestivosTrabajadosEmp = (
+  empId: unknown,
+  records: any[],
+  holidayMap: Record<string, string>,
+  anio: number,
+  mes: number
+) => {
+  const diasTrabajados = new Set<string>();
+  records.forEach(r => {
+    const id = Number(r.employee_id?.id || r.employee_id);
+    if (id !== Number(empId)) return;
+    const fechaStr = r.record_date;
+    if (!fechaStr) return;
+    const d = dayjs(fechaStr);
+    if (d.year() === anio && d.month() === mes && holidayMap[fechaStr]) {
+      diasTrabajados.add(fechaStr);
+    }
+  });
+
+  return Array.from(diasTrabajados).map(fechaStr => {
+    const recsDelDia = records.filter(r => 
+      Number(r.employee_id?.id || r.employee_id) === Number(empId) && 
+      r.record_date === fechaStr
+    );
+    let totalDia = 0;
+    const entrada = recsDelDia.find(r => r.log_type === 'Comenzar Jornada');
+    const salida = recsDelDia.find(r => r.log_type === 'Terminar Jornada');
+    if (entrada && salida) {
+      // Cálculo de minutos brutos y descuento de almuerzo si aplica
+      // ...
+    }
+    return {
+      fecha: fechaStr,
+      nombre: holidayMap[fechaStr],
+      minutos: totalDia > 0 ? totalDia : 0,
+      records: recsDelDia
+    };
+  }).sort((a, b) => a.fecha.localeCompare(b.fecha));
+};
+```
+
+---
+
+### 8.4 Algoritmo de Clasificación de KPIs de Monitoreo (`useTiendasResumen`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+
+Ubicado en `pages/monitoreo/useTiendasResumen.ts`, este algoritmo evalúa día por día la salud operacional de cada tienda en un rango de fechas:
+
+1. **Exclusión de Fechas no Evaluables**: Se ignoran la fecha actual (`esHoy`), fechas futuras (`esFuturo`) y fechas marcadas en `com_store_closed_days` (`fechasCerradas`).
+2. **Evaluación de Marcaciones Diarias**:
+   - `sinRegistro`: Si no existe ninguna marcación registrada en el día para la tienda.
+   - `incompletos`: Si para algún empleado existe marcación de entrada pero falta la salida (o viceversa).
+   - `completados`: Total de empleados con jornada completa (entrada y salida registradas) en el día de hoy.
+
+---
+
+### 8.5 Mapeo Visual de Novedades y Formateo de Nombres (`novedadVisual.tsx` & `format.ts`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA]**
+
+Ubicado en `utils/novedadVisual.tsx` y `utils/format.ts`, estos módulos estandarizan la presentación de datos en toda la interfaz:
+
+- **Categorización Visual de Novedades (`getIconForTipo` / `getChipColor`)**:
+  - `incapacidad`: Verde `#16a34a` / Icono `HealthAndSafety`.
+  - `vacaciones`: Celeste `#0ea5e9` / Icono `BeachAccess`.
+  - `calamidad`: Rojo `#dc2626` / Icono `Warning`.
+  - `suspensión`: Rojo Oscuro `#991b1b` / Icono `Gavel`.
+  - `ausencia`: Amarillo `#ca8a04` / Icono `Block`.
+  - `permiso`: Ámbar `#f59e0b` / Icono `AssignmentTurnedIn`.
+  - `familia`: Violeta `#8b5cf6` / Icono `FamilyRestroom`.
+  - `capacitación`: Azul `#3b82f6` / Icono `School`.
+  - `descanso`: Azul Cielo `#0284c7` / Icono `FreeBreakfast`.
+
+- **Formateo de Nombre Completo (`formatNombreEmpleado`)**: Combina determinísticamente `first_name`, `middle_name`, `last_name` y `second_last_name` aplicando capitalización limpia en cada palabra.
+
+---
+
+## 9. Guía Práctica para Desarrolladores y Mantenimiento Futuro
+
+### 9.1 Cómo Añadir un Nuevo Tipo de Evento de Jornada
+
+1. **Actualizar la interfaz**: Modifique `RegistrosAsistencia` en `src/apps/horarios/interfaces/horarios.interface.ts` agregando la nueva clave.
+2. **Actualizar el mapeador**: En `src/apps/horarios/hooks/useHorarios.ts`, modifique la función `empleadosMapeados` evaluando el nuevo `log_type` retornado por Directus.
+3. **Actualizar los botones**: En `EmployeeCard.tsx` / `EmployeeCardTimeSlots.tsx`, añada la nueva fila de marcación e icono correspondiente.
+4. **Ajustar el cálculo de tiempo**: Si el evento afecta el tiempo laborado, actualice `calcularMinutosDia`.
+
+### 9.2 Cómo Añadir un Nuevo Reporte o Exportación Excel
+
+1. Cree un módulo exportador en `src/apps/horarios/utils/exportarNuevoReporte.ts`.
+2. Utilice la plantilla de construcción de CSV con delimitador `;` y prefijo UTF-8 BOM (`\uFEFF`).
+3. Cree el diálogo de interfaz en `src/apps/horarios/components/reportes/ExportNuevoReporteDialog.tsx`.
+4. Vincule el nuevo reporte dentro de `ExportUnificadoDialog.tsx` y en la pestaña de `ReportePage.tsx`.
+
+### 9.3 Diagnóstico y Errores Frecuentes
+
+- **Error de token expirado o 401 Unauthorized**:
+  - _Causa_: La sesión de Directus ha vencido.
+  - _Solución_: Verifique que la petición esté envuelta con el interceptor `withAutoRefresh()` importado de `@/auth/services/directusInterceptor`.
+
+- **Registros de marcación que no se refrescan automáticamente**:
+  - _Causa_: Invalidación de caché omitida tras la mutación.
+  - _Solución_: Asegúrese de llamar a `queryClient.invalidateQueries({ queryKey: ['timeRecords'] })` en el callback `onSuccess` del `useMutation`.
+
+- **Descalce en el cálculo de horas semanales**:
+  - _Causa_: Discrepancia en la zona horaria del cliente.
+  - _Solución_: Verifique que el análisis de fechas utilice `dayjs` con la hora sincronizada mediante `getRealColombiaTime()`.
+
+---
+
+_Fin de la Documentación Técnica Oficial del Módulo de Horarios de AppKancan._

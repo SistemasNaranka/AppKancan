@@ -14,6 +14,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AreaIcon from "@mui/icons-material/Business";
 import NotesIcon from "@mui/icons-material/Notes";
+import HistoryIcon from "@mui/icons-material/History";
 import { format, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { AVAILABLE_ROOMS, getReservationColor, capitalize } from "../types/reservas.types";
@@ -139,6 +140,39 @@ export const SelectorFecha: React.FC<{
   </Box>
 );
 
+export const SelectorReunionesPasadas: React.FC<{
+  showPast: boolean;
+  onToggle: (v: boolean) => void;
+}> = ({ showPast, onToggle }) => (
+  <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+    <GrupoLabel>Reuniones pasadas</GrupoLabel>
+    <Box
+      onClick={() => onToggle(!showPast)}
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.75,
+        px: 1.5,
+        py: "4px",
+        backgroundColor: showPast ? "#004680" : "#f1f5f9",
+        color: showPast ? "#ffffff" : "#64748b",
+        borderRadius: "10px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        userSelect: "none",
+        "&:hover": {
+          backgroundColor: showPast ? "#003866" : "#e2e8f0",
+        },
+      }}
+    >
+      <HistoryIcon sx={{ fontSize: 18, color: showPast ? "#ffffff" : "#64748b" }} />
+      <Typography sx={{ fontSize: "0.8rem", fontWeight: 600 }}>
+        {showPast ? "Mostrando" : "Ocultas"}
+      </Typography>
+    </Box>
+  </Box>
+);
+
 export const PeriodoActual: React.FC<{ rangoFechas: string }> = ({ rangoFechas }) => (
   <Box className="tour-periodo" sx={{ ml: "auto", display: "flex", flexDirection: "column", gap: 0.5 }}>
     <GrupoLabel>Período</GrupoLabel>
@@ -211,7 +245,9 @@ export const BloqueReserva: React.FC<{
   onClick: (e: React.MouseEvent<HTMLElement>, r: Reservation) => void;
 }> = ({ reserva, hora, esInicio, esFin, posicion, onClick }) => {
   const colorReserva = getReservationColor(reserva.id);
-  const esVigente = (reserva.calculatedStatus || reserva.status)?.toLowerCase() === "vigente";
+  const estadoCalculado = (reserva.calculatedStatus || reserva.status)?.toLowerCase() || "";
+  const esVigente = estadoCalculado === "vigente";
+  const esFinalizada = estadoCalculado === "finalizado" || estadoCalculado === "finalizada";
   const [, minIni] = reserva.start_time.split(":").map(Number);
   const [, minFin] = reserva.end_time.split(":").map(Number);
   const tieneHorasMedias = minIni > 0 || minFin > 0;
@@ -224,7 +260,8 @@ export const BloqueReserva: React.FC<{
       position: "absolute", top: posicion.top + 2, left: 4, right: 4,
       height: posicion.height - 4, backgroundColor: colorReserva, borderRadius,
       px: 1, py: 0.5, cursor: "pointer", overflow: "hidden", zIndex: 1,
-      "&:hover": { opacity: 0.9, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" },
+      opacity: esFinalizada ? 0.75 : 1,
+      "&:hover": { opacity: 1, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" },
       transition: "all 0.15s ease", display: "flex", flexDirection: "row",
       alignItems: "center", justifyContent: "space-between", gap: 0.5,
       ...(tieneHorasMedias && esInicio && { borderLeft: "3px solid rgba(255,255,255,0.6)" }),
@@ -249,6 +286,17 @@ export const BloqueReserva: React.FC<{
               }} />
               <Typography sx={{ fontSize: "0.55rem", fontWeight: 600, color: "#ffffff" }}>
                 Vigente
+              </Typography>
+            </Box>
+          )}
+          {esFinalizada && (
+            <Box sx={{
+              display: "inline-flex", alignItems: "center", gap: 0.5,
+              backgroundColor: "rgba(0,0,0,0.25)", borderRadius: "12px",
+              px: 0.75, py: 0.25, flexShrink: 0,
+            }}>
+              <Typography sx={{ fontSize: "0.55rem", fontWeight: 600, color: "#ffffff" }}>
+                Finalizada
               </Typography>
             </Box>
           )}
