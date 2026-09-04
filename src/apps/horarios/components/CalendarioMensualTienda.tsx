@@ -35,7 +35,7 @@ interface CalendarioMensualTiendaProps {
 
 export default function CalendarioMensualTienda({
     tiendaId,
-    totalEmpleados,
+    totalEmpleados: _totalEmpleados,
     fechaSeleccionada,
     onDateSelect,
     todasNovedades,
@@ -56,7 +56,7 @@ export default function CalendarioMensualTienda({
     const inicioMes = mesActual.startOf('month');
     const finMes = mesActual.endOf('month');
 
-    const { data: { diasEstado = {}, diasCerradosMap = {} } = {}, isLoading } = useQuery({
+    const { data: { diasEstado = {}, diasCerradosMap: _diasCerradosMap = {} } = {}, isLoading } = useQuery({
         queryKey: ['calendarioAsistencia', tiendaId, mesActual.format('YYYY-MM'), todasNovedades.length, puedeGestionar],
         queryFn: async () => {
             const limite = (mesActual.isSame(hoy, 'month') && !puedeGestionar) ? hoy : finMes;

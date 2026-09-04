@@ -41,7 +41,7 @@ interface Props {
   esReporte?: boolean;
 }
 
-export default function NovedadesTab({ novedades, esAdmin, storeOverride, rowsPerPage = 5, esReporte = false }: Props) {
+export default function NovedadesTab({ novedades, esAdmin: _esAdmin, storeOverride, rowsPerPage = 5, esReporte = false }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [fechaFiltro, setFechaFiltro] = useState<Dayjs | null>(null);
   const [calendarYear, setCalendarYear] = useState(() => dayjs().year());

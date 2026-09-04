@@ -24,9 +24,16 @@ src/apps/comisiones/
 ├── components/                   # Componentes React reutilizables
 │   ├── Charts.tsx               # Contenedor de gráficos principales
 │   ├── ConfigurationPanel.tsx   # Panel de configuración de porcentajes
-│   ├── ConfigurationTabsPanel.tsx # Panel con pestañas de configuración
-│   ├── CSVData.tsx              # Procesamiento de datos CSV
+│   ├── ConfigurationTabsPanel.tsx # Panel con pestañas de configuración (Thresholds, Roles, Excel Uploader)
+│   ├── CSVData.tsx              # Procesamiento de datos CSV / Excel
 │   ├── SummaryCards.tsx         # Tarjetas de resumen
+│   │
+│   ├── configurationPanel/      # Componentes del panel de configuración
+│   │   ├── ColorPickerSelect.tsx # Selector de colores por tramo de cumplimiento
+│   │   ├── PeriodSelector.tsx   # Selector de mes y año
+│   │   ├── RoleConfigTab.tsx    # Configuración por roles (Fijo/Distributivo)
+│   │   ├── ThresholdConfigTab.tsx # Configuración de tramos y umbrales
+│   │   └── UploadExcelBudgetTab.tsx # Carga masiva de presupuestos por Excel (.xlsx)
 │   │
 │   ├── charts/                  # Componentes de gráficos
 │   │   ├── CommissionDistributionChart.tsx
@@ -43,10 +50,11 @@ src/apps/comisiones/
 │   │   ├── AddEmployeeSection.tsx
 │   │   ├── AssignedEmployeesList.tsx
 │   │   ├── AssignedEmployeesSection.tsx
-│   │   ├── CodesModal.tsx       # Modal de códigos y asignación
-│   │   ├── DaysWithoutBudgetPanel.tsx
-│   │   ├── EditStoreBudgetModal.tsx
-│   │   ├── EditStoreModalSimplified.tsx
+│   │   ├── CodesModal.tsx       # Modal de gestión de códigos ULTRA / POS de vendedor
+│   │   ├── CreateAdvisorModal.tsx # Formulario para alta de nuevos asesores
+│   │   ├── DaysWithoutBudgetPanel.tsx # Registro de días sin presupuesto
+│   │   ├── EditStoreBudgetModal.tsx # Modal de edición de presupuesto de tienda
+│   │   ├── EditStoreModalSimplified.tsx # Modal simplificado de gestión de empleados
 │   │   ├── EmployeeInfoCard.tsx
 │   │   ├── EmployeeSelector.tsx
 │   │   ├── HomeModals.tsx       # Colección de modales
@@ -82,6 +90,7 @@ src/apps/comisiones/
 │   ├── calculations.commissions.ts # Cálculos de comisiones
 │   ├── calculations.summary.ts  # Resúmenes y totales
 │   ├── calculations.utils.ts    # Utilidades de cálculos (combina basic, data, next-commission)
+│   ├── excelBudgetParser.ts     # Parser e importador de plantillas Excel (.xlsx / .xls)
 │   ├── modalHelpers.ts          # Utilidades de modales
 │   ├── utils.ts                 # Utilidades generales
 │   └── validation.ts            # Validaciones
@@ -1209,20 +1218,30 @@ El panel de configuración permite ajustar los parámetros del sistema:
 2. **Gestión de presupuestos**: Agregar/modificar presupuestos diarios de tienda
 3. **Gestión de personal**: Agregar/eliminar personal del mes
 
-### 8.5 Importación de CSV
+### 8.5 Carga Masiva de Presupuestos desde Excel (`excelBudgetParser.ts`)
 
-La aplicación permite cargar presupuestos desde archivos CSV:
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA AGOSTO 2026]**
 
-1. Abrir el modal de edición
-2. Hacer clic en "Cargar CSV"
-3. Seleccionar el archivo con formato: `tienda,fecha,presupuesto`
-4. Los datos se procesan y guardan automáticamente
+La aplicación permite cargar presupuestos mensuales de tiendas y asesores directamente desde archivos Excel (.xlsx / .xls):
 
-### 8.5 Exportación de Datos
+1. **Pestaña de Carga (`UploadExcelBudgetTab.tsx`)**: Ubicada dentro del panel de configuración, permite al usuario seleccionar el archivo Excel de su equipo.
+2. **Parser e Importación (`excelBudgetParser.ts`)**: Parsea la hoja de cálculo y extrae las columnas de código de tienda, código ULTRA de vendedor, fecha y monto de presupuesto.
+3. **Validación Automática (`useBudgetValidation.ts`)**: Verifica en tiempo real que los códigos existan en Directus y que los montos sean numéricos válidos antes de persistir los cambios.
 
-Los datos pueden exportarse en múltiples formatos:
+### 8.6 Exportación de Datos (`ExportButtons.tsx`)
 
-- **CSV**: Genera un archivo de texto delimitado por comas
+Los datos consolidados de comisiones pueden exportarse para auditoría externa:
+
+- **Excel (.xlsx)**: Genera la hoja de cálculo completa con pestañas por tienda y desglose de empleados.
+- **CSV**: Genera un archivo de texto delimitado con codificación UTF-8.
+
+### 8.7 Gestión de Personal y Códigos ULTRA (`CodesModal` & `CreateAdvisorModal`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA AGOSTO 2026]**
+
+- **Modal de Códigos (`CodesModal.tsx`)**: Mapea los códigos de vendedor de los sistemas POS locales con los documentos de identidad registrados en Directus.
+- **Alta de Asesores (`CreateAdvisorModal.tsx`)**: Permite a los administradores registrar un nuevo vendedor en la base de datos sin salir de la vista de Comisiones.
+- **Panel de Días sin Presupuesto (`DaysWithoutBudgetPanel.tsx`)**: Registra justificadamente aquellas fechas en que una tienda operó sin meta comercial configurada.
 
 ### 8.6 Filtrado Avanzado
 
@@ -1389,4 +1408,4 @@ La aplicación considera aspectos de accesibilidad:
 _Documentación generada para la Aplicación de Comisiones - AppKancan_
 _Esta documentación está diseñada para ser autosuficiente y permitir a nuevos desarrolladores comprender completamente el sistema._
 
-_Última actualización: Febrero 2026 - Incluye soporte para configuración dinámica de umbrales de comisión_
+_Última actualización: Agosto 2026 - Incluye soporte para carga de presupuestos por Excel (.xlsx), gestión de códigos ULTRA, modales simplificados de tienda y colores dinámicos por umbrales_

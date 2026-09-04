@@ -593,6 +593,7 @@ AppKancan cuenta con múltiples módulos que se asignan dinámicamente a cada us
 | Módulo                          | Ruta                       | Descripción                                                        |
 | ------------------------------- | -------------------------- | ------------------------------------------------------------------ |
 | **Comisiones**                  | `/comisiones`              | Gestión de comisiones por vendedor con gráficos y tablas dinámicas |
+| **Horarios**                    | `/horarios`                | Registro de horas laboradas, pausas, festivos (Ley Emiliani) y novedades |
 | **Contabilización de Facturas** | `/contabilizacion_factura` | Extracción de datos de facturas PDF con IA (Gemini/Ollama)         |
 | **Reservas**                    | `/reservas`                | Sistema de reservas de salas con calendario y tours guiados        |
 | **Traslados**                   | `/traslados`               | Gestión de traslados entre bodegas con aprobación masiva           |
@@ -627,6 +628,22 @@ export const useUserPolicies = () => {
     hasPolicy("readComisionesAdmin") || hasPolicy("readComisionesComercial");
 };
 ```
+
+---
+
+## Horarios
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA AGOSTO 2026]**
+
+Módulo integral de control de asistencia, registros de tiempo y novedades del personal:
+
+- **Marcar Entrada y Salida**: Registro de jornada laboral diaria con cálculo en tiempo real.
+- **Gestión de Pausas de Descanso (`EmployeeCardUtils.tsx`)**: Control de almuerzo, breaks y pausas operativas.
+- **Registro Extemporáneo de Horas (`CreateHourModal.tsx`)**: Formulario para la inclusión de horas no marcadas a tiempo.
+- **Cálculo de Festivos Nacionales (Ley Emiliani)**: Integración con `FestivoDay.tsx` y `FestivosDetalleModal.tsx` para detectar dominicales y festivos colombianos laborados (`obtenerFestivosTrabajadosEmp`).
+- **Reportes Semanales y de Descansos (`ReporteSemanalTab.tsx`, `ReportePausasTab.tsx`)**: Consolidado visual y exportable a Excel.
+- **Aceptación y Control de Normas (`useNormas.ts`)**: Persistencia del consentimiento y versión de las políticas de horarios en `localStorage`.
+- **Tour de Simulación Interactiva (`HorariosTourContext.tsx`)**: Tutorial simulado mediante modales ficticios para la inducción de personal.
 
 ---
 
@@ -780,6 +797,15 @@ Iconos dinámicos desde la BD:
 <DynamicIcon iconName={app.icono_app} />
 ```
 
+### Sistema de Avisos Informativos (`RestoredAppsNoticeModal.tsx` & `noticeConfirmations.ts`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA AGOSTO 2026]**
+
+Componente modal global que gestiona la presentación de avisos informativos al iniciar sesión:
+
+- **Colección Directus**: Persiste las confirmaciones en `core_notice_confirmations` mediante `hasUserAcceptedNotice(userId, noticeCode)`.
+- **Control Global de Activación**: Implementa la bandera `ACTIVAR_AVISO_RESTABLECIMIENTO` y la constante `NOTICE_CODE_ULTRA_RESTORED` con guardia de retorno temprano `null` para deshabilitar o habilitar notificaciones globales dinámicamente.
+
 ---
 
 ## Servicios del Sistema
@@ -839,3 +865,4 @@ const items = await directus.request(
 ---
 
 _Documentación generada para AppKancan - Sistema de Gestión Empresarial_
+_Última actualización: Agosto 2026 - Incluye módulo de Horarios, avisos globales de sistema, traslados comerciales y presupuestos por Excel_

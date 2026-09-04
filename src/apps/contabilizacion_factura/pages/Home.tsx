@@ -17,6 +17,7 @@ import Update from '@mui/icons-material/Update';
 import Refresh from '@mui/icons-material/Refresh';
 
 import { useHomeLogic } from "../hooks/useHomeLogic";
+import { obtenerModelosIA } from "../hooks/useHybridExtractor";
 
 import { FileUploadArea } from "../components/FileUploadArea";
 import { InvoiceInfoCard } from "../components/InvoiceInfoCard";
@@ -150,19 +151,7 @@ export default function Home() {
         {estado === "idle" && (
           <IAStatusBadge
             geminiApiKeyConfigured={!!geminiApiKey}
-            modeloIA={(() => {
-              if (!modelosIA) return "gemma-3-27b-it";
-              try {
-                const parsed = typeof modelosIA === "string" ? JSON.parse(modelosIA) : modelosIA;
-                if (Array.isArray(parsed)) {
-                  const names = parsed.map((m: any) => m.name).filter(Boolean);
-                  if (names.length > 0) return names.join(", ");
-                }
-              } catch (e) {
-                console.error("Error parsing models_ia for display:", e);
-              }
-              return "gemma-3-27b-it";
-            })()}
+            modeloIA={obtenerModelosIA(modelosIA).join(", ")}
           />
         )}
 

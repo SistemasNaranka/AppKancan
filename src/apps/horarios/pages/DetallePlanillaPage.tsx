@@ -1,31 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import {
-  Box, Container, Typography, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Avatar, Chip,
-  CircularProgress, Pagination, IconButton, Tooltip, Button,
-  TextField
-} from '@mui/material';
-import {
-  CheckCircle as CheckCircleIcon,
-  AccessTime as AccessTimeIcon,
-  Storefront as StorefrontIcon,
-  Warning as WarningIcon,
-  AddCircle as AddCircleIcon,
-  Edit as EditIcon,
-} from '@mui/icons-material';
+import { Box, Container, Typography, Button } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
-// MUI X Date Pickers
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useHolidays } from '../../reservas/hooks/useHolidays';
-import { FestivoDay } from '../components/FestivoDay';
 
 dayjs.locale('es');
 
-// Hooks y APIs
 import { useHorariosPolicies } from '../hooks/useHorariosPolicies';
 import { useHorarios } from '../hooks/useHorarios';
 import { getStores, getEmpleadosBulk, getTimeRecordsBulkRange, getNovedades, getRecordReasonId } from '../api/directus/read';
@@ -34,12 +15,10 @@ import { Tienda } from '../interfaces/horarios.interface';
 import { obtenerTiendasIdsUsuarioActual } from '@/services/directus/userStores';
 import EditHourModal from '../components/EditHourModal';
 import { calcularMinutosDia, formatearHoras } from './planilla/DetallePlanillaUtils';
+import { DetallePlanillaTabla } from './planilla/DetallePlanillaTabla';
 import CreateHourModal from '../components/detalle-tienda/CreateHourModal';
 import { useGlobalSnackbar } from '@/shared/components/SnackbarsPosition/SnackbarContext';
 
-// ============================================================
-//  INTERFACES
-// ============================================================
 interface EmpleadoFila {
   id: string;
   nombre: string;
@@ -59,9 +38,6 @@ interface EmpleadoFila {
   horasDia: string;
 }
 
-// ============================================================
-//  COMPONENTE PRINCIPAL
-// ============================================================
 interface DetallePlanillaPageProps {
   storeId?: number | null;
 }
@@ -116,9 +92,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     return tiendasFiltradas;
   }, [tiendasFiltradas, propStoreId]);
 
-  // La fecha "debounced" es la que realmente dispara las consultas a la API.
-  // Se actualiza 400ms después del último cambio, así varios clics seguidos
-  // en "Ayer" / "Día Anterior" no generan una llamada por cada clic.
+
   const [fechaDebounced, setFechaDebounced] = useState<Dayjs>(fechaSeleccionada);
 
   useEffect(() => {
@@ -134,12 +108,10 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     if (newDate) {
       setFechaSeleccionada(newDate);
       setPage(0);
-      // Ya no invalidamos manualmente: al cambiar fechaStr (debounced),
-      // React Query detecta el nuevo queryKey y refetch solo una vez.
+    
     }
   };
 
-  // ================ CUSTOM ACTION BAR (lateral izquierdo) =================
   const CustomActionBar = (props: any) => {
     const { setOpen } = props;
 
@@ -149,12 +121,7 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     };
 
     const handleAnteayer = () => {
-      // Resta un día sobre la fecha YA seleccionada (no sobre hoy),
-      // así cada clic retrocede un día más de forma sucesiva.
-      // dayjs ya maneja el cambio de mes/año automáticamente.
       handleFechaChange(fechaSeleccionada.subtract(1, 'day'));
-      // No cerramos el popup: así puedes seguir dando clic para retroceder
-      // día por día sin tener que volver a abrir el calendario.
     };
 
     const handleHoy = () => {
@@ -228,7 +195,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
       </Box>
     );
   };
-  // =======================================================================
 
   const { data: empleadosPorTienda = {}, isLoading: loadingEmpleados } = useQuery({
     queryKey: ['empleadosBulkMulti', tiendasAConsultar.map(t => t.id).join(',')],
@@ -384,12 +350,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     return filasEmpleados.slice(start, start + rowsPerPage);
   }, [filasEmpleados, page]);
 
-  const handleChangePage = (_: unknown, newPage: number) => setPage(newPage - 1);
-
-  // ============================================================
-  //  LÓGICA DE EDICIÓN
-  // ============================================================
-
   const handleOpenEditHour = async (fila: EmpleadoFila, evento: string, recordId: number, horaActual: string | null) => {
     if (!esAdmin() && !isAreaMgr) return;
 
@@ -475,10 +435,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
     }
   };
 
-  // ============================================================
-  //  LÓGICA DE CREACIÓN
-  // ============================================================
-
   const handleOpenCreateHour = (empleadoId: string, empleadoNombre: string, evento: string, tiendaId: number) => {
     if (!esAdmin() && !isAreaMgr) return;
     setCreateData({
@@ -536,223 +492,28 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
   }
 
   return (
-    <Box sx={{ backgroundColor: '#f5f7fa', pt: 0.5, pb: 1.5 }}>
-      <Container maxWidth="xl">
-        {/* ==================== ENCABEZADO (sin fecha) ==================== */}
-        <Paper elevation={0} sx={{ p: { xs: 1, sm: 2 }, mb: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: 'transparent' }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-            <Typography variant="h5" fontWeight={700} color="#0a1929" sx={{ textTransform: 'uppercase', fontSize: { xs: '1rem', sm: '1.3rem' } }}>
-              EDITAR REGISTROS
-            </Typography>
-            {/* ❌ Eliminado: el Typography de la fecha */}
-          </Box>
-        </Paper>
+    <>
+      <DetallePlanillaTabla
+        fechaSeleccionada={fechaSeleccionada}
+        handleFechaChange={handleFechaChange}
+        setCalendarYear={setCalendarYear}
+        festivosMap={festivosMap}
+        CustomActionBar={CustomActionBar}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        isLoading={isLoading}
+        filasPagina={filasPagina}
+        recordsPorTienda={recordsPorTienda}
+        esAdmin={esAdmin()}
+        isAreaMgr={isAreaMgr}
+        handleOpenEditHour={handleOpenEditHour}
+        handleOpenCreateHour={handleOpenCreateHour}
+        filasFiltradasLength={totalFilas}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        setPage={setPage}
+      />
 
-        {/* ==================== FILTROS ==================== */}
-        <Paper elevation={0} sx={{ p: 1.5, mb: 1.5, borderRadius: 3, border: '1px solid #e0e0e0', bgcolor: 'transparent' }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
-            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-              <DatePicker
-                label="Seleccionar día"
-                value={fechaSeleccionada}
-                onChange={(value) => handleFechaChange(value as Dayjs | null)}
-                onMonthChange={(m: any) => setCalendarYear(dayjs(m).year())}
-                onYearChange={(y: any) => setCalendarYear(dayjs(y).year())}
-                slotProps={{
-                  day: { holidays: festivosMap } as any,
-                  textField: {
-                    size: 'small',
-                    sx: { width: { xs: '100%', sm: 300 } },
-                  },
-                  actionBar: {
-                    actions: [],
-                  },
-                  layout: {
-                    sx: {
-                      display: 'flex',
-                      flexDirection: 'row-reverse',
-                    }
-                  }
-                }}
-                slots={{
-                  day: FestivoDay,
-                  actionBar: CustomActionBar,
-                }}
-              />
-            </LocalizationProvider>
-
-            <TextField
-              size="small"
-              placeholder="Buscar empleado..."
-              value={searchTerm}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              sx={{ width: 50 }}
-            />
-
-            {/* 🔥 NUEVO: Fecha al lado del buscador */}
-            <Typography variant="body2" fontWeight={600} color="#64748b" sx={{ fontSize: '0.9rem' }}>
-              {fechaSeleccionada.format('dddd, D [de] MMMM [de] YYYY')}
-            </Typography>
-          </Box>
-        </Paper>
-
-        {/* ==================== TABLA ==================== */}
-        <TableContainer 
-          component={Paper} 
-          elevation={0} 
-          sx={{ 
-            borderRadius: 3, 
-            border: '1px solid #e0e0e0', 
-            overflowX: 'auto',
-            bgcolor: 'transparent',
-          }}
-        >
-          <Table size="medium" sx={{ minWidth: { xs: 700, md: '80%' } }}>
-            <TableHead sx={{ bgcolor: '#f8fafc' }}>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>TIENDA</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>EMPLEADO</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>CARGO</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>INICIO JORNADA</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>INICIO ALMUERZO</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>FIN ALMUERZO</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#004680', bgcolor: '#e3f2fd', whiteSpace: 'nowrap' }}>FIN JORNADA</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>TOTAL HORAS</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, color: '#546e7a', whiteSpace: 'nowrap' }}>NOVEDADES</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4 }}><CircularProgress sx={{ color: '#004680' }} /></TableCell></TableRow>
-              ) : filasPagina.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>{searchTerm ? 'No hay empleados con ese nombre.' : 'No hay registros para este día.'}</TableCell></TableRow>
-              ) : (
-                filasPagina.map((fila, idx) => {
-                  const eventosHoras = [
-                    { key: 'inicioJornada', label: 'Comenzar Jornada', hora: fila.inicioJornada, recordId: fila.recordIdInicioJornada },
-                    { key: 'inicioAlmuerzo', label: 'Iniciar Almuerzo', hora: fila.inicioAlmuerzo, recordId: fila.recordIdInicioAlmuerzo },
-                    { key: 'finAlmuerzo', label: 'Finalizar Almuerzo', hora: fila.finAlmuerzo, recordId: fila.recordIdFinAlmuerzo },
-                    { key: 'finJornada', label: 'Terminar Jornada', hora: fila.finJornada, recordId: fila.recordIdFinJornada },
-                  ];
-
-                  const employeeId = fila.id.includes('_') ? fila.id.split('_')[1] : fila.id;
-                  const recordsTienda = recordsPorTienda[fila.tiendaId] || [];
-
-                  return (
-                    <TableRow key={fila.id} hover sx={{ bgcolor: idx % 2 === 0 ? '#ffffff' : '#fafbfc' }}>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <StorefrontIcon sx={{ color: '#004680', fontSize: 16 }} />
-                          <Typography variant="body2" fontWeight={600} noWrap>{fila.tienda}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Avatar sx={{ width: 28, height: 28, bgcolor: '#004680', fontSize: '0.7rem' }}>{fila.nombre.charAt(0)}</Avatar>
-                          <Typography variant="body2" fontWeight={600} noWrap>{fila.nombre}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell><Typography variant="body2" noWrap>{fila.cargo}</Typography></TableCell>
-
-                      {eventosHoras.map((evento) => {
-                        const esHoraExistente = !!evento.hora;
-                        const esNoAplica = !esHoraExistente && fila.tieneNovedad;
-                        const puedeEditar = esAdmin() || isAreaMgr;
-                        
-                        const record = recordsTienda.find(r => r.id === evento.recordId);
-                        const observacion = record?.observations || '';
-
-                        const tooltipTitle = esHoraExistente
-                          ? (observacion ? `Observación: ${observacion}` : 'Sin observación')
-                          : esNoAplica
-                          ? `No aplica (${fila.novedadTipo || 'Novedad'})`
-                          : 'Sin observación registrada';
-
-                        return (
-                          <TableCell key={evento.key} align="center">
-                            <Tooltip title={tooltipTitle} arrow>
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.3 }}>
-                                {esHoraExistente ? (
-                                  <Chip
-                                    size="small"
-                                    icon={<CheckCircleIcon sx={{ fontSize: 12 }} />}
-                                    label={evento.hora}
-                                    sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
-                                  />
-                                ) : esNoAplica ? (
-                                  <Chip
-                                    size="small"
-                                    label="No Aplica"
-                                    sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
-                                  />
-                                ) : (
-                                  <Chip
-                                    size="small"
-                                    icon={<AccessTimeIcon sx={{ fontSize: 12 }} />}
-                                    label="Pendiente"
-                                    sx={{ bgcolor: '#f5f5f5', color: '#757575', fontWeight: 600, height: 24, fontSize: '0.7rem' }}
-                                  />
-                                )}
-                                {puedeEditar && !esNoAplica && (
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => {
-                                      if (esHoraExistente && evento.recordId) {
-                                        handleOpenEditHour(fila, evento.label, evento.recordId, evento.hora);
-                                      } else {
-                                        handleOpenCreateHour(
-                                          employeeId,
-                                          fila.nombre,
-                                          evento.label,
-                                          fila.tiendaId
-                                        );
-                                      }
-                                    }}
-                                    sx={{ p: 0.2, color: '#004680' }}
-                                  >
-                                    {esHoraExistente ? <EditIcon fontSize="small" /> : <AddCircleIcon fontSize="small" />}
-                                  </IconButton>
-                                )}
-                              </Box>
-                            </Tooltip>
-                          </TableCell>
-                        );
-                      })}
-
-                      <TableCell align="center"><Typography variant="body2" fontWeight={600}>{fila.horasDia}</Typography></TableCell>
-                      
-                      <TableCell align="center">
-                        {fila.tieneNovedad ? (
-                          <Chip size="small" icon={<WarningIcon sx={{ fontSize: 12 }} />} label={fila.novedadTipo || 'Novedad'} sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 600, height: 24, fontSize: '0.7rem' }} />
-                        ) : (
-                          <Chip size="small" icon={<CheckCircleIcon sx={{ fontSize: 12 }} />} label="Sin novedad" sx={{ bgcolor: '#f5f5f5', color: '#757575', height: 24, fontSize: '0.7rem' }} />
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1, borderTop: '1px solid #e0e0e0', bgcolor: '#fafbfc' }}>
-            <Typography variant="caption" color="text.secondary">
-              Mostrando {Math.min((page + 1) * rowsPerPage, totalFilas)} de {totalFilas} registros
-            </Typography>
-            {totalFilas > rowsPerPage && (
-              <Pagination
-                count={Math.ceil(totalFilas / rowsPerPage)}
-                page={page + 1}
-                onChange={handleChangePage}
-                color="primary"
-                shape="rounded"
-                size="small"
-              />
-            )}
-          </Box>
-        </TableContainer>
-      </Container>
-
-      {/* MODALES */}
       {editData && (
         <EditHourModal
           open={editHourModalOpen}
@@ -778,6 +539,6 @@ export default function DetallePlanillaPage({ storeId: propStoreId }: DetallePla
           onConfirm={handleConfirmCreate}
         />
       )}
-    </Box>
+    </>
   );
 }

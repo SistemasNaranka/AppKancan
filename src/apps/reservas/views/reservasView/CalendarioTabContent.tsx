@@ -35,6 +35,8 @@ export const CalendarioTabContent: React.FC<CalendarTabContentProps> = ({
   onEditReservation,
   onCancelReservation,
 }) => {
+  const [showPastReservations, setShowPastReservations] = React.useState(false);
+
   return (
     <Box
       sx={{
@@ -80,6 +82,8 @@ export const CalendarioTabContent: React.FC<CalendarTabContentProps> = ({
           calendarView={calendarView}
           onViewChange={setCalendarView}
           initialRoom={initialRoom || userCreatedReservation?.room_name}
+          showPastReservations={showPastReservations}
+          setShowPastReservations={setShowPastReservations}
         />
       ) : (
         <VistaCalendario
@@ -90,6 +94,8 @@ export const CalendarioTabContent: React.FC<CalendarTabContentProps> = ({
           calendarView={calendarView}
           onViewChange={setCalendarView}
           initialRoom={initialRoom || userCreatedReservation?.room_name}
+          showPastReservations={showPastReservations}
+          setShowPastReservations={setShowPastReservations}
         />
       )}
     </Box>

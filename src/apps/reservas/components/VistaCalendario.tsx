@@ -15,6 +15,8 @@ export interface VistaCalendarioProps {
   calendarView?: "semanal" | "mes";
   onViewChange?: (vista: "semanal" | "mes") => void;
   initialRoom?: string;
+  showPastReservations?: boolean;
+  setShowPastReservations?: (v: boolean) => void;
   onNewReservation?: (fecha: string, sala: string) => void;
   onEditReservation?: (reserva: Reservation) => void;
   onCancelReservation?: (reserva: Reservation) => void;
@@ -28,16 +30,22 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
     currentUserId, 
     calendarView = "mes", 
     onViewChange, 
-    initialRoom 
+    initialRoom,
+    showPastReservations,
+    setShowPastReservations,
   } = props;
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedRoom, setSelectedRoom] = useState<string>(initialRoom || AVAILABLE_ROOMS[0]);
   const [showWeekends, setShowWeekends] = useState(false);
+  const [localShowPast, setLocalShowPast] = useState(false);
   const [anchorDay, setAnchorDay] = useState<HTMLElement | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [anchorReservation, setAnchorReservation] = useState<HTMLElement | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+
+  const showPast = showPastReservations !== undefined ? showPastReservations : localShowPast;
+  const handleTogglePast = setShowPastReservations || setLocalShowPast;
 
   const { data: reservasRaw = [] } = useQuery({
     queryKey: ["reservas", "calendario", currentDate.getFullYear(), currentDate.getMonth() + 1],
@@ -48,8 +56,12 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
 
   const reservas = useMemo(() => reservasRaw.filter(r => {
     const estado = (r.calculatedStatus || r.status)?.toLowerCase() || "";
-    return (estado === "vigente" || estado === "en curso") && r.room_name === selectedRoom;
-  }), [reservasRaw, selectedRoom]);
+    if (estado === "cancelado" || estado === "cancelada") return false;
+    const isVigenteOEnCurso = estado === "vigente" || estado === "en curso";
+    const isFinalizada = estado === "finalizado" || estado === "finalizada";
+    if (!showPast && isFinalizada) return false;
+    return (isVigenteOEnCurso || (showPast && isFinalizada)) && r.room_name === selectedRoom;
+  }), [reservasRaw, selectedRoom, showPast]);
 
   const getReservationsForDay = (fecha: Date) => reservas.filter(r => r.date === format(fecha, "yyyy-MM-dd"));
   
@@ -77,6 +89,8 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
         currentDate={currentDate}
         showWeekends={showWeekends}
         setShowWeekends={setShowWeekends}
+        showPastReservations={showPast}
+        setShowPastReservations={handleTogglePast}
         onPrevious={() => setCurrentDate(subMonths(currentDate, 1))}
         onNext={() => setCurrentDate(addMonths(currentDate, 1))}
         onToday={() => setCurrentDate(new Date())}
@@ -125,12 +139,27 @@ const VistaCalendario: React.FC<VistaCalendarioProps> = (props) => {
                   )}
                 </Box>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  {resDia.slice(0, 3).map(r => (
-                    <Box key={r.id} onClick={(e) => { e.stopPropagation(); setSelectedReservation(r); setAnchorReservation(e.currentTarget); }}
-                      sx={{ height: 18, backgroundColor: getReservationColor(r.id), borderRadius: "2px", px: 0.5, display: "flex", alignItems: "center" }}>
-                      <Typography sx={{ fontSize: "0.6rem", fontWeight: 500, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{formatTime(r.start_time)} {truncateText(r.meeting_title || "Sin título", 15)}</Typography>
-                    </Box>
-                  ))}
+                  {resDia.slice(0, 3).map(r => {
+                    const estado = (r.calculatedStatus || r.status)?.toLowerCase() || "";
+                    const esFinalizada = estado === "finalizado" || estado === "finalizada";
+                    return (
+                      <Box key={r.id} onClick={(e) => { e.stopPropagation(); setSelectedReservation(r); setAnchorReservation(e.currentTarget); }}
+                        sx={{
+                          height: 18,
+                          backgroundColor: getReservationColor(r.id),
+                          borderRadius: "2px",
+                          px: 0.5,
+                          display: "flex",
+                          alignItems: "center",
+                          opacity: esFinalizada ? 0.75 : 1,
+                          "&:hover": { opacity: 1 },
+                        }}>
+                        <Typography sx={{ fontSize: "0.6rem", fontWeight: 500, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {formatTime(r.start_time)} {truncateText(r.meeting_title || "Sin título", 15)}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
                   {resDia.length > 3 && <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.6rem", textAlign: "center" }}>+{resDia.length - 3} más</Typography>}
                 </Box>
               </Box>

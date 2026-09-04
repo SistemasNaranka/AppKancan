@@ -1,7 +1,7 @@
 import type { Reservation } from "../types/reservas.types";
 
 export interface VistaSemanalProps {
-  reservations: Reservation[];
+  reservations?: Reservation[];
   onNewReservation?: (fecha?: string, sala?: string, hora?: string) => void;
   onEditReservation?: (reserva: Reservation) => void;
   onCancelReservation?: (reserva: Reservation) => void;
@@ -9,6 +9,8 @@ export interface VistaSemanalProps {
   calendarView?: "semanal" | "mes";
   onViewChange?: (vista: "semanal" | "mes") => void;
   initialRoom?: string;
+  showPastReservations?: boolean;
+  setShowPastReservations?: (v: boolean) => void;
 }
 
 export interface BloqueHora {

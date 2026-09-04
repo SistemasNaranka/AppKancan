@@ -124,6 +124,41 @@ export async function getReservations(
   }
 }
 
+export async function getReservationsByDateRange(
+  startDate: string,
+  endDate: string,
+  roomName?: string,
+): Promise<Reservation[]> {
+  try {
+    const filter: any = {
+      date: {
+        _gte: startDate,
+        _lte: endDate,
+      },
+    };
+
+    if (roomName) {
+      filter.room_name = { _eq: roomName };
+    }
+
+    const items = await withAutoRefresh(() =>
+      directus.request(
+        readItems("adm_meeting_reservations", {
+          fields: RESERVATION_FIELDS,
+          filter,
+          sort: ["date", "start_time"],
+          limit: -1,
+        }),
+      ),
+    );
+
+    return processReservations(items as Reservation[]);
+  } catch (error) {
+    console.error("❌ Error al cargar reservas por rango de fechas:", error);
+    throw error;
+  }
+}
+
 export async function getMonthlyReservations(
   year: number,
   month: number,

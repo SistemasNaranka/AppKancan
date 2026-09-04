@@ -4,6 +4,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import HistoryIcon from '@mui/icons-material/History';
 import { AVAILABLE_ROOMS } from "../types/reservas.types";
 import { MESES, AÑOS } from "./CalendarUtils";
 
@@ -20,6 +21,8 @@ interface FilterBarProps {
   onYearChange: (a: number) => void;
   showWeekends: boolean;
   setShowWeekends: (v: boolean) => void;
+  showPastReservations?: boolean;
+  setShowPastReservations?: (v: boolean) => void;
   currentMonthLabel: string;
 }
 
@@ -27,7 +30,8 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
   const {
     selectedRoom, setSelectedRoom, calendarView, onViewChange,
     currentDate, onPrevious, onNext, onToday,
-    onMonthChange, onYearChange, showWeekends, setShowWeekends, currentMonthLabel
+    onMonthChange, onYearChange, showWeekends, setShowWeekends,
+    showPastReservations, setShowPastReservations, currentMonthLabel
   } = props;
 
   const sala1Ref = useRef<HTMLDivElement>(null);
@@ -129,6 +133,37 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
             {showWeekends ? <VisibilityIcon sx={{ fontSize: 18, color: "#fff" }} /> : <VisibilityOffIcon sx={{ fontSize: 18, color: "#64748b" }} />}
           </Box>
         </Box>
+
+        {/* Reuniones Pasadas */}
+        {setShowPastReservations && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: "#303030", fontSize: "0.7rem", textTransform: "uppercase" }}>Reuniones pasadas</Typography>
+            <Box
+              onClick={() => setShowPastReservations(!showPastReservations)}
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.75,
+                px: 1.5,
+                py: "4px",
+                backgroundColor: showPastReservations ? "#004680" : "#f1f5f9",
+                color: showPastReservations ? "#ffffff" : "#64748b",
+                borderRadius: "10px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                userSelect: "none",
+                "&:hover": {
+                  backgroundColor: showPastReservations ? "#003866" : "#e2e8f0",
+                },
+              }}
+            >
+              <HistoryIcon sx={{ fontSize: 18, color: showPastReservations ? "#ffffff" : "#64748b" }} />
+              <Typography sx={{ fontSize: "0.8rem", fontWeight: 600 }}>
+                {showPastReservations ? "Mostrando" : "Ocultas"}
+              </Typography>
+            </Box>
+          </Box>
+        )}
 
         {/* Período Actual */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>

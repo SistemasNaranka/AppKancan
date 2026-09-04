@@ -340,7 +340,6 @@ export const useHorarios = (storeOverride?: number | null) => {
   };
 
   const novedadesMapped: NovedadMapeada[] = (novedadesDB || []).map((nov: any) => {
-    // Si ya viene previamente formateado desde la API (read.ts)
     if (nov.empleadoNombre && nov.empleadoNombre !== 'Empleado #' && nov.empleadoNombre !== 'Empleado Sin Nombre') {
       return {
         id: nov.id,

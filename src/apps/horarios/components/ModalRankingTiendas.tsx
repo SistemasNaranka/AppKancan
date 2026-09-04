@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, IconButton, TextField, InputAdornment,
   Button, Chip, Avatar, List, ListItem, ListItemAvatar,
   ListItemText, Badge, Tooltip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, FormControl,
-  InputLabel, Select, MenuItem, OutlinedInput
+  InputLabel, Select, MenuItem, OutlinedInput, CircularProgress
 } from '@mui/material';
 import {
   Storefront as StorefrontIcon,
@@ -25,6 +25,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { COLUMNAS_EDICIONES, rowsPerPage, getColorForMotivo } from '../pages/monitoreo/MonitoreoUtils';
 import { Paginador } from '../pages/monitoreo/MonitoreoComponents';
 
+
 interface EditedRecord {
   id: number;
   fecha: string;
@@ -39,14 +40,16 @@ interface EditedRecord {
   observaciones: string;
 }
 
+
 interface ModalRankingTiendasProps {
   open: boolean;
   onClose: () => void;
   editedRecords: EditedRecord[];
   rankingMesTiendas: Dayjs;
   setRankingMesTiendas: (date: Dayjs) => void;
-  onCambiarMes?: (nuevoMes: Dayjs) => void; // 👈 NUEVA PROP
+  isLoading?: boolean;
 }
+
 
 export default function ModalRankingTiendas({
   open,
@@ -54,14 +57,33 @@ export default function ModalRankingTiendas({
   editedRecords,
   rankingMesTiendas,
   setRankingMesTiendas,
-  onCambiarMes,
+  isLoading = false
 }: ModalRankingTiendasProps) {
   const [buscarTiendaRanking, setBuscarTiendaRanking] = useState('');
   const [ordenTiendasRanking, setOrdenTiendasRanking] = useState<'asc' | 'desc'>('desc');
   const [paginaTiendasRanking, setPaginaTiendasRanking] = useState(0);
-  const [tiendaEdicionesRanking, setTiendaEdicionesRanking] = useState<{ id: number; nombre: string } | null>(null);
+  const [tiendaEdicionesRanking, setTiendaEdicionesRanking] = useState<{ id: number, nombre: string } | null>(null);
   const [paginaEdicionesTiendaRanking, setPaginaEdicionesTiendaRanking] = useState(0);
   const [motivosFiltro, setMotivosFiltro] = useState<string[]>([]);
+
+
+  // Al cerrar el modal o cambiar de mes, resetear la tienda seleccionada y regresar al listado principal
+  useEffect(() => {
+    if (!open) {
+      setTiendaEdicionesRanking(null);
+      setPaginaEdicionesTiendaRanking(0);
+      setPaginaTiendasRanking(0);
+      setBuscarTiendaRanking('');
+    }
+  }, [open]);
+
+
+  useEffect(() => {
+    setTiendaEdicionesRanking(null);
+    setPaginaEdicionesTiendaRanking(0);
+    setPaginaTiendasRanking(0);
+  }, [rankingMesTiendas]);
+
 
   // Motivos únicos globales (filtrados estrictamente por el mes actual)
   const motivosUnicosGlobales = useMemo(() => {
@@ -75,6 +97,7 @@ export default function ModalRankingTiendas({
     return Array.from(s).sort();
   }, [editedRecords, rankingMesTiendas]);
 
+
   // Ranking de tiendas (con filtro de motivos y cuenta exacta)
   const rankingTiendasBase = useMemo(() => {
     const map = new Map<number, { id: number; nombre: string; total: number }>();
@@ -82,7 +105,7 @@ export default function ModalRankingTiendas({
       const coincideMes = dayjs(r.fecha).isSame(rankingMesTiendas, 'month');
       const motivoStr = r.motivo?.trim() || 'Sin motivo';
       const coincideMotivo = motivosFiltro.length === 0 || motivosFiltro.includes(motivoStr);
-      
+     
       if (coincideMes && coincideMotivo) {
         const tiendaId = r.tiendaId || 0;
         if (!map.has(tiendaId)) map.set(tiendaId, { id: tiendaId, nombre: r.tiendaNombre, total: 0 });
@@ -92,20 +115,24 @@ export default function ModalRankingTiendas({
     return Array.from(map.values());
   }, [editedRecords, rankingMesTiendas, motivosFiltro]);
 
+
   const rankingTiendasOrdenado = useMemo(() => {
     const ordenados = [...rankingTiendasBase];
     ordenados.sort((a, b) => (ordenTiendasRanking === 'asc' ? a.total - b.total : b.total - a.total));
     return ordenados;
   }, [rankingTiendasBase, ordenTiendasRanking]);
 
+
   const rankingTiendasFiltrado = useMemo(() => {
     if (!buscarTiendaRanking.trim()) return rankingTiendasOrdenado;
     return rankingTiendasOrdenado.filter(t => t.nombre.toLowerCase().includes(buscarTiendaRanking.toLowerCase().trim()));
   }, [rankingTiendasOrdenado, buscarTiendaRanking]);
 
+
   const totalEdicionesGenerales = useMemo(() => {
     return rankingTiendasFiltrado.reduce((acc, t) => acc + t.total, 0);
   }, [rankingTiendasFiltrado]);
+
 
   // Ediciones de la tienda seleccionada (con filtro exacto de motivos)
   const edicionesDeTiendaRanking = useMemo(() => {
@@ -118,10 +145,12 @@ export default function ModalRankingTiendas({
     });
   }, [editedRecords, tiendaEdicionesRanking, rankingMesTiendas, motivosFiltro]);
 
+
   const edicionesDeTiendaRankingPagina = useMemo(() => {
     const start = paginaEdicionesTiendaRanking * rowsPerPage.ediciones;
     return edicionesDeTiendaRanking.slice(start, start + rowsPerPage.ediciones);
   }, [edicionesDeTiendaRanking, paginaEdicionesTiendaRanking]);
+
 
   // Desglose riguroso por MOTIVO
   const resumenPorMotivo = useMemo(() => {
@@ -133,17 +162,16 @@ export default function ModalRankingTiendas({
     return motivos;
   }, [edicionesDeTiendaRanking]);
 
+
   const maxTotal = rankingTiendasFiltrado.length ? Math.max(...rankingTiendasFiltrado.map(t => t.total)) : 0;
+
 
   const handleCambiarMes = (nuevoMes: Dayjs) => {
     setRankingMesTiendas(nuevoMes);
     setPaginaTiendasRanking(0);
     setTiendaEdicionesRanking(null);
-    // 👇 Notificar al padre para que refresque los datos
-    if (onCambiarMes) {
-      onCambiarMes(nuevoMes);
-    }
   };
+
 
   return (
     <Dialog
@@ -193,6 +221,7 @@ export default function ModalRankingTiendas({
         <IconButton onClick={onClose} sx={{ color: '#ffffff' }}><CloseIcon /></IconButton>
       </DialogTitle>
 
+
       <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {!tiendaEdicionesRanking ? (
           // ---- VISTA LISTADO DE TIENDAS ----
@@ -233,6 +262,7 @@ export default function ModalRankingTiendas({
                 </Tooltip>
               </Box>
 
+
               {/* Fila reorganizada: Calendario -> Filtro de Motivos -> Conteo Total */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #d0d7de', borderRadius: 2, px: 2, py: 0.75, bgcolor: '#ffffff' }}>
@@ -254,6 +284,7 @@ export default function ModalRankingTiendas({
                     </IconButton>
                   </Box>
                 </Box>
+
 
                 <FormControl size="small" sx={{ minWidth: 300, flex: 1, '& .MuiOutlinedInput-notchedOutline': { borderColor: motivosFiltro.length > 0 ? '#004680' : '#d0d7de', borderWidth: motivosFiltro.length > 0 ? '2px' : '1px' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#004680' } }}>
                   <InputLabel id="motivos-filtro-label">Filtrar por Motivos</InputLabel>
@@ -315,25 +346,35 @@ export default function ModalRankingTiendas({
                   </Select>
                 </FormControl>
 
+
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem', ml: 'auto', fontWeight: 500 }}>
                   {rankingTiendasFiltrado.length} tiendas con ediciones ({totalEdicionesGenerales} en total)
                 </Typography>
               </Box>
             </Box>
 
+
             <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 2 }}>
-              <List disablePadding>
-                {(() => {
-                  const start = paginaTiendasRanking * rowsPerPage.ranking;
-                  const pagina = rankingTiendasFiltrado.slice(start, start + rowsPerPage.ranking);
-                  if (!pagina.length) {
-                    return (
-                      <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-                        {buscarTiendaRanking ? 'No se encontraron tiendas' : 'No hay ediciones registradas para los motivos seleccionados'}
-                      </Box>
-                    );
-                  }
-                  return pagina.map((tienda, index) => {
+              {isLoading ? (
+                <Box sx={{ p: 6, textAlign: 'center', color: 'text.secondary', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <CircularProgress size={40} sx={{ color: '#004680' }} />
+                  <Typography variant="body2" fontWeight={600} color="#004680">
+                    Cargando ediciones del mes...
+                  </Typography>
+                </Box>
+              ) : (
+                <List disablePadding>
+                  {(() => {
+                    const start = paginaTiendasRanking * rowsPerPage.ranking;
+                    const pagina = rankingTiendasFiltrado.slice(start, start + rowsPerPage.ranking);
+                    if (!pagina.length) {
+                      return (
+                        <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
+                          {buscarTiendaRanking ? 'No se encontraron tiendas' : 'No hay ediciones registradas para los motivos seleccionados'}
+                        </Box>
+                      );
+                    }
+                    return pagina.map((tienda, index) => {
                     const isTop = tienda.total === maxTotal && maxTotal > 0;
                     return (
                       <ListItem
@@ -391,8 +432,10 @@ export default function ModalRankingTiendas({
                               {tienda.nombre}
                             </Typography>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                           secondary={
                             <Chip
+                              component="span"
                               size="small"
                               label={`${tienda.total} edición${tienda.total !== 1 ? 'es' : ''}`}
                               sx={{
@@ -409,6 +452,7 @@ export default function ModalRankingTiendas({
                   });
                 })()}
               </List>
+              )}
             </Box>
             <Box sx={{ flexShrink: 0, bgcolor: 'white', borderTop: '1px solid #e0e0e0', p: 1 }}>
               <Paginador
@@ -438,7 +482,7 @@ export default function ModalRankingTiendas({
               }}
             >
               <Typography variant="body2" fontWeight={700} color="text.secondary" sx={{ mr: 0.5 }}>
-                Motivo:
+                Desglose:
               </Typography>
               {Object.entries(resumenPorMotivo).length > 0 ? (
                 Object.entries(resumenPorMotivo).map(([motivo, count]) => {
@@ -461,6 +505,7 @@ export default function ModalRankingTiendas({
                 sx={{ bgcolor: '#004680', color: '#ffffff', fontWeight: 700, fontSize: '0.75rem', ml: 'auto' }}
               />
             </Paper>
+
 
             <TableContainer
               component={Paper}
@@ -539,6 +584,7 @@ export default function ModalRankingTiendas({
           </Box>
         )}
       </DialogContent>
+
 
       <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
         {tiendaEdicionesRanking && (

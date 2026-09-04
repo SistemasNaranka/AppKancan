@@ -117,18 +117,22 @@ function extractWithRegex(texto1: string, texto2: string): DataPDF {
   };
 }
 
+const MODELO_RESOLUCION_DEFECTO = "gemini-3.1-flash-lite";
+
 function obtenerModelosIA(modelosIA: any): string[] {
-  if (!modelosIA) return ["gemma-3-27b-it"];
+  if (!modelosIA) return [MODELO_RESOLUCION_DEFECTO];
   try {
     const parsed = typeof modelosIA === "string" ? JSON.parse(modelosIA) : modelosIA;
     if (Array.isArray(parsed)) {
-      const names = parsed.map((m: any) => m.name).filter(Boolean);
+      const names = parsed
+        .map((m: any) => (typeof m === "string" ? m.trim() : m?.name ? String(m.name).trim() : ""))
+        .filter((name: string) => Boolean(name) && !name.toLowerCase().startsWith("gemma"));
       if (names.length > 0) return names;
     }
   } catch (e) {
     console.error("Error al parsear models_ia:", e);
   }
-  return ["gemma-3-27b-it"];
+  return [MODELO_RESOLUCION_DEFECTO];
 }
 
 export async function LearnPDF(

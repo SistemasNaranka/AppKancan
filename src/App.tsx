@@ -13,6 +13,12 @@ import { SnackbarProvider } from "@/shared/components/SnackbarsPosition/Snackbar
 import { ForcePasswordChangeModal } from "@/auth/components/ForcePasswordChangeModal";
 import PeekButtonContainer from "@/shared/components/PeekButtonContainer";
 import WhatsNewModal from "@/shared/components/WhatsNewModal";
+
+// ============================================================
+// TEMPORAL (REMOVER EN 2 DÍAS): Aviso informativo de apps restablecidas
+// ============================================================
+import RestoredAppsNoticeModal from "@/shared/components/RestoredAppsNoticeModal";
+
 import { useAuth } from "@/auth/hooks/useAuth";
 import { useApps } from "@/apps/hooks/useApps";
 import { useScrollLockGuard } from "@/shared/hooks/useScrollLockGuard";
@@ -44,6 +50,9 @@ const AppWithPasswordModal = () => {
       <ForcePasswordChangeModal open={modalOpen} onClose={() => { }} />
       {isAuthenticated && !user?.requires_password_change && <PeekButtonContainer />}
       {isAuthenticated && !user?.requires_password_change && <WhatsNewModal />}
+
+      {/* TEMPORAL (REMOVER EN 2 DÍAS): Modal de aviso de restablecimiento */}
+      {isAuthenticated && !user?.requires_password_change && <RestoredAppsNoticeModal />}
     </>
   );
 };

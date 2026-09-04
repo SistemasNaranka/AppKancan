@@ -6,14 +6,14 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { useQuery } from "@tanstack/react-query";
 import { format, addDays, startOfWeek, addWeeks, subWeeks, setMonth, setYear } from "date-fns";
 import { es } from "date-fns/locale";
-import { getReservationConfig } from "../services/reservas";
+import { getReservationConfig, getReservationsByDateRange } from "../services/reservas";
 import { AVAILABLE_ROOMS, DEFAULT_RESERVATION_CONFIG } from "../types/reservas.types";
 import type { Reservation } from "../types/reservas.types";
 import type { VistaSemanalProps } from "./VistaSemanal.types";
-import { generateHoursRange, getReservationsInCell, formatHour12h, ESTADOS_EXCLUIDOS } from "./VistaSemanal.utils";
+import { generateHoursRange, getReservationsInCell, formatHour12h } from "./VistaSemanal.utils";
 import { useHolidays } from "../hooks/useHolidays";
 import {
-  SelectorSala, SelectorVista, NavegacionSemanal, SelectorFecha, PeriodoActual,
+  SelectorSala, SelectorVista, NavegacionSemanal, SelectorFecha, SelectorReunionesPasadas, PeriodoActual,
   CargandoHorarios, EncabezadoDia, CeldaHora, PopoverDetalleReserva,
 } from "./VistaSemanal.components";
 
@@ -43,11 +43,16 @@ const useHoursConfig = () => {
 const VistaSemanal: React.FC<VistaSemanalProps> = ({
   reservations, onNewReservation, onEditReservation, onCancelReservation,
   currentUserId, calendarView = "semanal", onViewChange, initialRoom,
+  showPastReservations = false, setShowPastReservations,
 }) => {
   const [baseDate, setBaseDate] = useState(new Date());
   const [selectedRoom, setSelectedRoom] = useState<string>(initialRoom || AVAILABLE_ROOMS[0]);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [localShowPast, setLocalShowPast] = useState(false);
+
+  const showPast = showPastReservations !== undefined ? showPastReservations : localShowPast;
+  const handleTogglePast = setShowPastReservations || setLocalShowPast;
 
   const { horas, isLoading: isLoadingConfig, isError: isErrorConfig } = useHoursConfig();
 
@@ -58,16 +63,25 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
     return Array.from({ length: 5 }, (_, i) => addDays(inicio, i));
   }, [baseDate]);
 
+  const fechaInicio = format(diasSemana[0], "yyyy-MM-dd");
+  const fechaFin = format(diasSemana[4], "yyyy-MM-dd");
+
+  const { data: reservasQuery = [] } = useQuery({
+    queryKey: ["reservas", "semanal", fechaInicio, fechaFin, selectedRoom],
+    queryFn: () => getReservationsByDateRange(fechaInicio, fechaFin, selectedRoom),
+  });
+
+  const sourceReservations = (reservations && reservations.length > 0) ? reservations : reservasQuery;
+
   const reservasSemana = useMemo(() => {
-    const fechaInicio = format(diasSemana[0], "yyyy-MM-dd");
-    const fechaFin = format(diasSemana[4], "yyyy-MM-dd");
-    return reservations.filter((r) => {
-      const estado = (r.calculatedStatus || r.status)?.toLowerCase();
-      if (ESTADOS_EXCLUIDOS.includes(estado)) return false;
+    return sourceReservations.filter((r) => {
+      const estado = (r.calculatedStatus || r.status)?.toLowerCase() || "";
+      if (estado === "cancelado" || estado === "cancelada") return false;
+      if (!showPast && (estado === "finalizado" || estado === "finalizada")) return false;
       if (r.room_name !== selectedRoom) return false;
       return r.date >= fechaInicio && r.date <= fechaFin;
     });
-  }, [reservations, diasSemana, selectedRoom]);
+  }, [sourceReservations, selectedRoom, showPast, fechaInicio, fechaFin]);
 
   const previousWeek  = () => setBaseDate(subWeeks(baseDate, 1));
   const nextWeek = () => setBaseDate(addWeeks(baseDate, 1));
@@ -93,11 +107,12 @@ const VistaSemanal: React.FC<VistaSemanalProps> = ({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }} />
 
         <Paper elevation={0} sx={{ p: 1.5, border: "1px solid #e0e0e0", borderRadius: 2, backgroundColor: "#fff" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <SelectorSala selectedRoom={selectedRoom} onChange={setSelectedRoom} />
             {onViewChange && <SelectorVista calendarView={calendarView} onViewChange={onViewChange} />}
             <NavegacionSemanal onPrevious={previousWeek} onNext={nextWeek} onToday={goToToday} />
             <SelectorFecha baseDate={baseDate} onDayChange={handleCambiarDia} onMonthChange={handleCambiarMes} onYearChange={handleCambiarAño} />
+            <SelectorReunionesPasadas showPast={showPast} onToggle={handleTogglePast} />
             <PeriodoActual rangoFechas={rangoFechas} />
           </Box>
         </Paper>

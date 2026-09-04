@@ -39,15 +39,24 @@ export const DayPopover: React.FC<PopoverProps & {
             <Typography color="text.secondary" sx={{ textAlign: "center", py: 2 }}>No hay reservas para {sala}</Typography>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              {reservas.map(r => (
-                <Box key={r.id} onClick={(e) => { onClose(); onSelectReserva(e, r); }} sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid #e0e0e0", borderLeft: `4px solid ${getReservationColor(r.id)}`, cursor: "pointer", "&:hover": { backgroundColor: "#f9fafb" }, display: "flex", alignItems: "center", gap: 1.5 }}>
-                  {r.calculatedStatus?.toLowerCase() === "en curso" && <PulsatingMeetingIndicator meetingDate={r.date} startTime={r.start_time} endTime={r.end_time} size={8} color="success" />}
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.meeting_title || "Sin título"}</Typography>
-                    <Typography variant="caption" color="text.secondary">{formatTime(r.start_time)} - {formatTime(r.end_time)}</Typography>
+              {reservas.map(r => {
+                const estado = (r.calculatedStatus || r.status)?.toLowerCase() || "";
+                const esFinalizada = estado === "finalizado" || estado === "finalizada";
+                return (
+                  <Box key={r.id} onClick={(e) => { onClose(); onSelectReserva(e, r); }} sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid #e0e0e0", borderLeft: `4px solid ${getReservationColor(r.id)}`, cursor: "pointer", "&:hover": { backgroundColor: "#f9fafb" }, display: "flex", alignItems: "center", gap: 1.5, opacity: esFinalizada ? 0.75 : 1 }}>
+                    {r.calculatedStatus?.toLowerCase() === "en curso" && <PulsatingMeetingIndicator meetingDate={r.date} startTime={r.start_time} endTime={r.end_time} size={8} color="success" />}
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.meeting_title || "Sin título"}</Typography>
+                        {esFinalizada && (
+                          <Chip label="Finalizada" size="small" sx={{ height: 18, fontSize: "0.6rem", backgroundColor: "#f3f4f6", color: "#6b7280", fontWeight: 500 }} />
+                        )}
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">{formatTime(r.start_time)} - {formatTime(r.end_time)}</Typography>
+                    </Box>
                   </Box>
-                </Box>
-              ))}
+                );
+              })}
             </Box>
           )}
         </Box>

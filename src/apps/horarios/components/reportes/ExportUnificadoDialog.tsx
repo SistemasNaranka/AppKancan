@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
   Autocomplete, TextField, Checkbox, FormControlLabel, CircularProgress,
-  FormControl, InputLabel, Select, MenuItem, Chip, Tabs, Tab, IconButton, Popover
+  FormControl, InputLabel, Select, MenuItem, Chip, Tabs, Tab, IconButton
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -65,7 +65,7 @@ export default function ExportUnificadoDialog({
   const { esAdmin: originalEsAdmin, esReport, esAreaManager } = useHorariosPolicies();
   const esAdmin = () => originalEsAdmin() || esReport();
   const isAreaMgr = esAreaManager ? esAreaManager() : false;
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
 
   const getTabIndexFromNombre = (nombre: string): number => {
     switch (nombre) {
@@ -148,14 +148,7 @@ export default function ExportUnificadoDialog({
     }
   }, [open, tabInicial, storeSel, tiendas, rangoInicioDefault, rangoFinDefault, diaInicioSemana, diaFinSemana]);
 
-  const handleToggleTodas = (checked: boolean) => {
-    setTodas(checked);
-    if (checked) {
-      setTiendasSel(tiendas);
-    } else {
-      setTiendasSel([]);
-    }
-  };
+
 
   // --- Exportar Horas Semanales ---
   const handleExportSemanal = async () => {
@@ -224,11 +217,6 @@ export default function ExportUnificadoDialog({
   // --- Exportar Historial de Registros ---
   const handleExportRegistros = async () => {
     const storeIdsToFetch = todas || tiendasSel.length === 0 ? tiendas.map(t => Number(t.id)) : tiendasSel.map(t => Number(t.id));
-    const tiendaNombre = todas || tiendasSel.length === tiendas.length
-      ? 'Consolidado General'
-      : tiendasSel.length === 1
-        ? tiendasSel[0].name
-        : `${tiendasSel.length} Tiendas`;
 
     setExportando(true);
     try {

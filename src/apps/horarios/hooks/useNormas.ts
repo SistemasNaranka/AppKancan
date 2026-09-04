@@ -18,11 +18,9 @@ export function useNormas() {
   });
 
   const version = normas?.version ?? null;
-
-  // Clave de localStorage para guardar la aceptación por usuario y versión
+  
   const storageKey = userId && version != null ? `kancan_rules_accepted_${userId}_v${version}` : null;
 
-  // Cargar estado de aceptación
   useEffect(() => {
     if (storageKey) {
       const valor = localStorage.getItem(storageKey);
@@ -32,11 +30,9 @@ export function useNormas() {
     }
   }, [storageKey]);
 
-  // Modo pruebas: el aviso se muestra siempre al entrar
   const SIEMPRE_MOSTRAR_NORMAS = false;
 
   const yaAceptoVigente = aceptadoLocal === true;
-  // Debe aceptar si hay normas vigentes y no han sido aceptadas
   const debeAceptar = !!normas && !!userId && (SIEMPRE_MOSTRAR_NORMAS || !yaAceptoVigente);
 
   const aceptar = async () => {

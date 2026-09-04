@@ -163,10 +163,8 @@ export default function HistorialPage({
   return (
     <div className="space-y-4 px-0 -mt-2">
 
-      {/* Filtros */}
       {!hideHeader && (
         <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-          {/* Encabezado de la sección de filtros */}
           <div className="flex items-center justify-between gap-2.5 mb-4">
             <div className="flex items-center gap-2.5">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg text-[#004680] bg-[#eaf2fb] border border-[#d6e6f7] shrink-0">
@@ -219,7 +217,6 @@ export default function HistorialPage({
         </section>
       )}
 
-      {/* Tabla */}
       <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #eef2f6', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', bgcolor: '#fff' }} className="tour-hist-tabla">
         <TableContainer sx={{ overflow: 'auto' }}>
           <Table sx={{ minWidth: 650 }}>
@@ -403,7 +400,6 @@ export default function HistorialPage({
           </Table>
         </TableContainer>
 
-        {/* Paginación */}
         {registrosPorPagina !== 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#fff', borderTop: '1px solid #eef2f6' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

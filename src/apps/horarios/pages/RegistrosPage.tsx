@@ -157,7 +157,7 @@ function RegistrosPageContent() {
   });
 
 
-  const registrarEventoDemo = (idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string) => {
+  const registrarEventoDemo = (_idEmpleado: string, tipoEvento: string, horaOverride?: string, observacionOverride?: string) => {
     const ahora = horaOverride || dayjs().format('HH:mm');
     setDemoEmpleado(prev => {
       const nuevo = { ...prev, registros: { ...prev.registros, observaciones: { ...prev.registros.observaciones } } };
@@ -193,7 +193,7 @@ function RegistrosPageContent() {
   };
 
 
-  const guardarObservacionDemo = (idEmpleado: string, evento: string, texto: string) => {
+  const guardarObservacionDemo = (_idEmpleado: string, evento: string, texto: string) => {
     setDemoEmpleado(prev => {
       const nuevo = { ...prev, registros: { ...prev.registros, observaciones: { ...prev.registros.observaciones } } };
       let eventKey = '';
@@ -357,7 +357,6 @@ function RegistrosPageContent() {
             </Box>
           </Box>
 
-          {/* Selector de tienda y botones - en móvil se apilan verticalmente */}
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 1, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
             {((esAdmin() && !vistaAdmin && !vistaReporte) || (isAreaMgr && !vistaAdmin)) && (
               <Box data-tour="reporte-tour-tienda-header">
@@ -443,7 +442,6 @@ function RegistrosPageContent() {
                 </>
               )}
 
-              {/* Botón de Actualizar Global (Siempre visible en el header principal en todas las vistas) */}
               <Tooltip title="Actualizar información de la base de datos">
                 <Button
                   className="tour-refresh"

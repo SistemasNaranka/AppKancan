@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
-  Checkbox, FormControlLabel, CircularProgress, Divider,
+  Checkbox, FormControlLabel, CircularProgress,
 } from '@mui/material';
 import GavelIcon from '@mui/icons-material/Gavel';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Normas } from '../api/directus/rules';
 
 const AZUL = '#004880';

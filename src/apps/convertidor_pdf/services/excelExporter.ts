@@ -37,13 +37,13 @@ export const exportPagesToExcel = async (options: ExportOptions): Promise<void> 
 
   if (hayTransacciones) {
     worksheet.columns = [
-      { header: "Página PDF", key: "paginaPdf", width: 12 },
-      { header: "DÍA", key: "dia", width: 8 },
-      { header: "TRANSACCIÓN", key: "transaccion", width: 45 },
-      { header: "IDENT.", key: "ident", width: 12 },
-      { header: "DEBITOS", key: "debitos", width: 15 },
-      { header: "CREDITOS", key: "creditos", width: 15 },
-      { header: "SALDO", key: "saldo", width: 18 },
+      { header: "Página PDF", key: "paginaPdf", width: 14, style: { alignment: { horizontal: "center" } } },
+      { header: "DÍA", key: "dia", width: 8, style: { alignment: { horizontal: "center" } } },
+      { header: "TRANSACCIÓN", key: "transaccion", width: 50, style: { alignment: { horizontal: "left" } } },
+      { header: "IDENT.", key: "ident", width: 14, style: { alignment: { horizontal: "center" } } },
+      { header: "DEBITOS", key: "debitos", width: 18, style: { numFmt: "#,##0.00", alignment: { horizontal: "right" } } },
+      { header: "CREDITOS", key: "creditos", width: 18, style: { numFmt: "#,##0.00", alignment: { horizontal: "right" } } },
+      { header: "SALDO", key: "saldo", width: 20, style: { numFmt: "#,##0.00;[Red]-#,##0.00;0.00", alignment: { horizontal: "right" } } },
     ];
 
     worksheet.addRows(allTransactions);

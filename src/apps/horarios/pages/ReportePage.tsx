@@ -22,7 +22,6 @@ import NovedadesTab from '../components/NovedadesTab';
 import { getStores, getStoreEventReports, getStoreNovedades, getEmpleadosBulk, getTimeRecordsBulkRange, getPrimerPeriodoRegistro } from '../api/directus/read';
 import { Tienda } from '../interfaces/horarios.interface';
 
-// Módulos extraídos
 import { getSemanasDelMes, NOMBRES_MESES } from './reporte/ReporteUtils';
 import { getTourSteps, STEP_TAB_REGISTROS, STEP_TAB_NOVEDADES, STEP_TAB_PAUSAS, STEP_FAKE_START, STEP_FAKE_END } from './reporte/ReporteTourConfig';
 import FakeExportModal from '../components/tour/FakeExportModal';
@@ -162,7 +161,6 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
     staleTime: 5 * 60 * 1000,
   });
 
-  // Filtrar las novedades en pantalla según fechas y búsqueda por nombre de ReportePage
   const novedadesFiltradas = useMemo(() => {
     return storeNovedades.filter((n) => {
       const matchNombre = (n.empleadoNombre || '').toLowerCase().includes(searchNombre.toLowerCase());
@@ -176,7 +174,6 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
     });
   }, [storeNovedades, searchNombre, rangoInicio, rangoFin]);
 
-  // Filtrar las pausas activas según búsqueda por nombre de ReportePage
   const eventReportsFiltrados = useMemo(() => {
     return eventReports.filter((r) => {
       const first = r.employee_id?.first_name || '';
@@ -188,14 +185,12 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
     });
   }, [eventReports, searchNombre]);
 
-  // Paginación para Pausas Activas
   const paginatedPausas = eventReportsFiltrados.slice(
     pagePausas * rowsPerPagePausas,
     pagePausas * rowsPerPagePausas + rowsPerPagePausas
   );
   const totalPagesPausas = Math.max(1, Math.ceil(eventReportsFiltrados.length / rowsPerPagePausas));
-
-  // Consultas y datos para el Reporte Semanal
+  
   const semanasDelMes = useMemo(() => {
     return getSemanasDelMes(selectedYear, selectedMonth, diaInicioSemana, diaFinSemana);
   }, [selectedYear, selectedMonth, diaInicioSemana, diaFinSemana]);
@@ -322,7 +317,6 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, position: 'relative' }}>
       {showFakeExport && <FakeExportModal />}
-      {/* Panel Unificado de Filtros y Exportaciones */}
       <Paper
         elevation={0}
         sx={{
@@ -342,7 +336,6 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             gap: 3 
           }}
         >
-          {/* Lado Izquierdo: Filtros de Búsqueda */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
             {!tiendasPermitidas && (
               <Box data-tour="reporte-tour-tienda">
@@ -414,7 +407,6 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
             />
           </Box>
 
-          {/* Lado Derecho: Acciones de Exportación */}
           <Stack 
             direction={{ xs: 'column', sm: 'row' }} 
             spacing={1.5} 
@@ -469,7 +461,6 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         </Box>
       </Paper>
 
-      {/* Contenedor Principal de Pestañas */}
       <Paper
         elevation={0}
         sx={{
@@ -480,7 +471,7 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
           overflow: 'hidden',
         }}
       >
-        {/* Selector de Visualización */}
+
         <Box sx={{ display: 'flex', borderBottom: '1px solid #eef2f6', px: 2, bgcolor: '#f8fafc', gap: 2 }}>
           <Button 
             data-tour="reporte-tour-tab-registros"
@@ -613,7 +604,6 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         )}
       </Paper>
 
-      {/* Diálogo Unificado de Exportación */}
       <ExportUnificadoDialog
         open={exportUnificadoOpen}
         onClose={() => setExportUnificadoOpen(false)}
@@ -627,7 +617,6 @@ export default function ReportePage({ storeSel, onStoreChange, novedades: _, esA
         diaFinSemana={diaFinSemana}
       />
 
-      {/* Diálogos individuales de exportación (compatibilidad) */}
       <ExportHistorialDialog 
         open={exportHistorialOpen} 
         onClose={() => setExportHistorialOpen(false)} 

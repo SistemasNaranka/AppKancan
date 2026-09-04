@@ -29,18 +29,23 @@ src/apps/traslados/
 ├── components/                   # Componentes React reutilizables
 │   ├── AprobacionFeedback.tsx    # Feedback visual de aprobación
 │   ├── CargaSkeletons.tsx        # Skeletons de carga
-│   ├── ConfirmacionAprobacion.tsx # Modal de confirmación con contraseña
-│   ├── ContadorPendientesYSeleccionados.tsx # Contadores visuales
+│   ├── ConfirmacionAprobacion.tsx # Modal de confirmación con contraseña Ultra Systems
+│   ├── ContadorPendientesYSeleccionados.tsx # Contadores visuales con animación
 │   ├── ControlesSuperiores.tsx   # Botones de control (Tutorial, Aprobar)
-│   ├── ControlesTour.tsx         # Controles del tour guiado
+│   ├── ControlesTour.tsx         # Controles interactivos del tour guiado
 │   ├── ListaTraslados.tsx        # Lista de traslados con estados
 │   ├── PanelPendientes.tsx       # Panel principal con tour integrado
-│   ├── PendientesFilters.tsx     # Filtros de búsqueda
+│   ├── PendientesFilters.tsx     # Filtros de búsqueda por bodega y nombre
+│   ├── StoreTrasladosFilters.tsx # Filtros específicos para vista por tienda
+│   ├── StoreTrasladosHeader.tsx  # Cabecera resumida para tiendas
+│   ├── StoreTrasladosTour.tsx    # Tour específico para vista por tienda
+│   ├── TrasladoDetalleModal.tsx  # Modal emergente con desglose de prendas/referencias y buscador
 │   ├── TrasladoListItem.tsx      # Item individual de traslado
-│   ├── TrasladosHelpButton.tsx   # Botón de ayuda
-│   ├── TrasladosTour.tsx         # Componente del tour guiado
-│   ├── TrasladosTourContext.tsx  # Contexto del tour
-│   └── ValidarAcceso.tsx         # Modal de validación de acceso
+│   ├── traslados-tour-index.ts   # Pasos e índice del tutorial interactivo
+│   ├── TrasladosHelpButton.tsx   # Botón flotante de ayuda
+│   ├── TrasladosTour.tsx         # Componente del tour guiado (React Joyride)
+│   ├── TrasladosTourContext.tsx  # Contexto y máquina de estado del tour
+│   └── ValidarAcceso.tsx         # Modal de validación de acceso de usuario
 │
 ├── hooks/                        # Custom Hooks
 │   ├── types.ts                  # Definiciones de tipos TypeScript
@@ -104,23 +109,44 @@ export interface AprobacionTrasladosRequest {
 
 ### 4.1 Variables de Entorno
 
-| Variable                          | Descripción                               |
-| --------------------------------- | ----------------------------------------- |
-| `VITE_WEBHOOK_USERNAME`           | Usuario para autenticación del webhook    |
-| `VITE_WEBHOOK_PASSWORD`           | Contraseña para autenticación del webhook |
-| `VITE_WEBHOOK_URL_TRASLADOS`      | URL para obtener traslados pendientes     |
-| `VITE_WEBHOOK_URL_POST_TRASLADOS` | URL para aprobar traslados                |
+| Variable | Descripción |
+| :--- | :--- |
+| `VITE_WEBHOOK_USERNAME` | Usuario para autenticación Basic Auth del webhook |
+| `VITE_WEBHOOK_PASSWORD` | Contraseña para autenticación Basic Auth del webhook |
+| `VITE_WEBHOOK_URL_TRASLADOS` | URL principal para obtener traslados pendientes |
+| `VITE_WEBHOOK_URL_TRASLADOS_TIENDAS` | URL específica para consultar traslados por tiendas |
+| `VITE_WEBHOOK_URL_POST_TRASLADOS_COMERCIAL` | URL para consultar traslados de múltiples tiendas (Área Manager) |
+| `VITE_WEBHOOK_URL_POST_TRASLADOS` | URL para procesar y aprobar traslados en Ultra Systems |
+
+---
 
 ### 4.2 Funciones de API
 
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA AGOSTO 2026]**
+
+#### obtenerTrasladosJefeZona()
+
+Obtiene los traslados pendientes correspondientes a las múltiples tiendas asignadas a un Área Manager / Jefe de Zona.
+
+```typescript
+export async function obtenerTrasladosJefeZona(
+  ultra_code: string,
+  company: string,
+  tiendas: UserStoreAccess[],
+): Promise<Traslado[]>;
+```
+
+- **Mapeo Automático de Bodegas**: Para la empresa Kancan, si el `store_id` contiene el prefijo `10` (ejemplo `1090`), la función remueve el prefijo para enviar el ID limpio de bodega (`90`) al servicio comercial.
+
 #### obtenerTraslados()
 
-Obtiene la lista de traslados pendientes desde el backend.
+Obtiene la lista de traslados pendientes para el usuario de tienda u operativo.
 
 ```typescript
 export async function obtenerTraslados(
-  codigo_ultra: string,
-  empresa: string,
+  ultra_code: string,
+  company: string,
+  esTienda: boolean = false,
 ): Promise<Traslado[]>;
 ```
 
@@ -293,16 +319,50 @@ Modal de confirmación que solicita la contraseña del Ultra Systems.
 - Solo acepta caracteres numéricos
 - Soporte para tecla Enter
 
-### 5.6 AccessValidationModal
+### 5.6 Modal de Detalle de Referencias (`TrasladoDetalleModal`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA AGOSTO 2026]**
+
+**Archivo:** `src/apps/traslados/components/TrasladoDetalleModal.tsx`
+
+Modal emergente que despliega el desglose detallado de prendas y referencias contenidas en un traslado:
+
+- **Buscador en Tiempo Real**: Permite filtrar referencias por código SKU o por nombre de la prenda.
+- **Contador Dinámico de Unidades**: Suma automáticamente las unidades físicas totales de las referencias filtradas.
+- **Tabla Adaptativa**: Muestra las columnas *Referencia*, *Nombre Referencia* y *Unidades* con scroll interno.
+
+### 5.7 AccessValidationModal
 
 **Archivo:** [`src/apps/traslados/components/ValidarAcceso.tsx`](../src/apps/traslados/components/ValidarAcceso.tsx)
 
 Modal que se muestra cuando el usuario no tiene acceso configurado.
 
-**Tipos de error:**
+---
 
-- `no-access`: Usuario sin código_ultra ni empresa
-- `incomplete`: Usuario con datos incompletos
+## 8. Matriz de Permisos y Perfiles de Usuario
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA AGOSTO 2026]**
+
+| Rol / Perfil | Consulta de Traslados | Método API Utilizado | Requisito de Aprobación |
+| :--- | :--- | :--- | :--- |
+| **Usuario Operativo Tienda** | Solo traslados con destino a su tienda asignada | `obtenerTraslados(codigo, empresa, true)` | Contraseña Ultra Systems en `ConfirmacionAprobacion` |
+| **Área Manager / Jefe de Zona** | Traslados consolidados de todas sus tiendas asignadas | `obtenerTrasladosJefeZona(codigo, empresa, tiendas)` | Contraseña Ultra Systems en `ConfirmacionAprobacion` |
+| **Administrador General** | Acceso total a todas las bodegas | `obtenerTraslados(codigo, empresa, false)` | Contraseña Ultra Systems en `ConfirmacionAprobacion` |
+
+---
+
+## 9. Sistema de Tours Guiados e Inducción (`TrasladosTourContext`)
+
+> 🆕 **[NUEVO - ADICIÓN TÉCNICA AGOSTO 2026]**
+
+La aplicación integra la librería `react-joyride` junto a `TrasladosTourContext.tsx` y `ControlesTour.tsx`:
+
+- **Recorrido Paso a Paso**: Guía al usuario por la barra de búsqueda, selector de bodegas, checkboxes de selección masiva y botón de aprobación.
+- **Botón Flotante de Ayuda (`TrasladosHelpButton.tsx`)**: Permite reiniciar el tour de capacitación en cualquier momento sin recargar la página.
+
+---
+
+_Documentación técnica actualizada del Módulo de Traslados - AppKancan (Agosto 2026)_
 
 ---
 
