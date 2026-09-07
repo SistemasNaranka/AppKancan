@@ -15,7 +15,10 @@ export const drawWheel = (
   const centerY = canvas.height / 2;
   const radius = Math.min(centerX, centerY) * 0.88;
 
+  // Fondo blanco
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
   ctx.translate(centerX, centerY);
@@ -32,54 +35,46 @@ export const drawWheel = (
     ctx.fillStyle = segments[i].color;
     ctx.fill();
 
+    // Borde dorado
     ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
-    ctx.shadowBlur = 8;
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = 'rgba(255, 215, 0, 0.4)';
+    ctx.shadowBlur = 6;
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    ctx.save();
-    ctx.rotate(start + arcSize / 2);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-    ctx.shadowBlur = 10;
-    const fontSize = Math.min(radius / 7, 22);
-    ctx.font = `bold ${fontSize}px 'Segoe UI', 'Poppins', sans-serif`;
-    ctx.fillText(segments[i].label, radius * 0.65, 0);
-    ctx.restore();
+    // (Opcional) Puedes descomentar la siguiente línea si quieres mostrar el nombre del premio durante la animación
+    // Pero como hemos acordado, no mostramos texto en la ruleta.
   }
 
   ctx.restore();
 
-  // Círculo central (logo K)
+  // Círculo central con la "K"
   ctx.beginPath();
-  ctx.arc(centerX, centerY, radius * 0.13, 0, 2 * Math.PI);
+  ctx.arc(centerX, centerY, radius * 0.14, 0, 2 * Math.PI);
   const gradient = ctx.createRadialGradient(
-    centerX - 10,
-    centerY - 10,
+    centerX - 8,
+    centerY - 8,
     5,
     centerX,
     centerY,
-    radius * 0.15
+    radius * 0.16
   );
-  gradient.addColorStop(0, '#FFD700');
-  gradient.addColorStop(1, '#B8860B');
+  gradient.addColorStop(0, '#004680');
+  gradient.addColorStop(1, '#003366');
   ctx.fillStyle = gradient;
-  ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
-  ctx.shadowBlur = 30;
+  ctx.shadowColor = 'rgba(0, 70, 128, 0.5)';
+  ctx.shadowBlur = 20;
   ctx.fill();
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#FFD700';
+  ctx.lineWidth = 3;
   ctx.stroke();
 
-  ctx.fillStyle = '#0a0a0f';
+  ctx.fillStyle = '#FFFFFF';
   ctx.font = `bold ${radius * 0.12}px 'Segoe UI', sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.shadowBlur = 0;
-  ctx.fillText('K', centerX, centerY + 2);
+  ctx.fillText('K', centerX, centerY + 1);
 };

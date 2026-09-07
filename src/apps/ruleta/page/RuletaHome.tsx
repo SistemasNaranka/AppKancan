@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import Ruleta from '../components/Ruleta'; // ✅ Ruta correcta a components
+import RuletaPanel from '../components/RuletaPanel';
 
 const RuletaHome: React.FC = () => {
   return (
@@ -9,12 +9,12 @@ const RuletaHome: React.FC = () => {
         minHeight: '100vh',
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center',
-        background: '#0a0a0f',
-        p: 2,
+        alignItems: 'flex-start',
+        background: '#f5f7fa',
+        pt: 2,
       }}
     >
-      <Ruleta userEmail="usuario@ejemplo.com" />
+      <RuletaPanel />
     </Box>
   );
 };

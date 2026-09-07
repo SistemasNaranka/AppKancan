@@ -3,39 +3,44 @@ import {
   Box,
   Typography,
   Button,
-  Stack,
   CircularProgress,
   Snackbar,
   Alert,
+  Paper,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { ISegment, IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface'; // ✅ Ruta correcta a interfaces
-import { drawWheel } from '../utils/drawWheel'; // ✅ Ruta correcta a utils
-import { useRuleta } from '../hooks/useRuleta'; // ✅ Ruta correcta a hooks
-import ModalPremio from './ModalPremio'; // ✅ Ruta correcta (misma carpeta components)
+import { ISegment, IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface';
+import { drawWheel } from '../utils/drawWheel';
+import { useRuleta } from '../hooks/useRuleta';
+import ModalPremio from './ModalPremio';
 
 // ============================================================
-// 🔥 PREMIOS DE LA RULETA (CAMBIA SEGÚN EL PLAN DE NEGOCIO)
+// 🎯 PREMIOS KANCAN (SOLO PARA LA LÓGICA)
 // ============================================================
 const defaultSegments: ISegment[] = [
-  { label: '5% OFF', color: '#1A1A2E' },
-  { label: 'Envío Gratis', color: '#16213E' },
-  { label: '10% OFF', color: '#0F3460' },
-  { label: 'Producto Gratis', color: '#E94560' },
-  { label: '15% OFF', color: '#533483' },
-  { label: '20% OFF', color: '#FFD700' },
+  { label: 'Premio 1', color: '#003366' },
+  { label: 'Premio 2', color: '#1A3A5C' },
+  { label: 'Premio 3', color: '#FFD700' },
+  { label: 'Premio 4', color: '#F0A500' },
+  { label: 'Premio 5', color: '#FF8C00' },
+  { label: 'Premio 6', color: '#2E5077' },
+  { label: 'Premio 7', color: '#4A6B8A' },
+  { label: 'Premio 8', color: '#6A8CAF' },
+  { label: 'Premio 9', color: '#8DA6C9' },
+  { label: 'Premio 10', color: '#B0C4DE' },
 ];
 
-// ===== STYLED COMPONENTS =====
-const Container = styled(Box)({
-  background: 'rgba(20, 18, 16, 0.85)',
-  backdropFilter: 'blur(12px)',
-  padding: '25px 30px 40px',
-  borderRadius: '50px 50px 30px 30px',
-  boxShadow: '0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,215,0,0.15)',
-  borderBottom: '3px solid #FFD700',
+// ============================================================
+// ESTILOS (Diseño Claro Kancan - SIN FONDO NEGRO)
+// ============================================================
+const Container = styled(Paper)({
+  background: '#ffffff',
+  padding: '30px 35px 40px',
+  borderRadius: '32px',
+  boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
+  border: '1px solid #e9edf4',
   textAlign: 'center',
-  maxWidth: '650px',
+  maxWidth: '700px',
   width: '100%',
   margin: '0 auto',
 });
@@ -44,7 +49,7 @@ const CanvasWrapper = styled(Box)({
   position: 'relative',
   display: 'inline-block',
   width: '100%',
-  maxWidth: '450px',
+  maxWidth: '480px',
   aspectRatio: '1/1',
   margin: '0 auto',
 });
@@ -54,10 +59,10 @@ const StyledCanvas = styled('canvas')({
   height: '100% !important',
   display: 'block',
   borderRadius: '50%',
-  boxShadow:
-    '0 0 60px rgba(255,215,0,0.15), 0 0 120px rgba(255,215,0,0.05), inset 0 0 40px rgba(0,0,0,0.5)',
-  border: '4px solid #2a251a',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+  border: '3px solid #004680', // Borde azul (sin amarillo)
   cursor: 'default',
+  backgroundColor: '#ffffff',
 });
 
 const Pointer = styled(Box)({
@@ -68,19 +73,19 @@ const Pointer = styled(Box)({
   zIndex: 10,
   width: 0,
   height: 0,
-  borderLeft: '22px solid transparent',
-  borderRight: '22px solid transparent',
-  borderTop: '38px solid #FFD700',
-  filter: 'drop-shadow(0 0 25px #FFD700)',
+  borderLeft: '20px solid transparent',
+  borderRight: '20px solid transparent',
+  borderTop: '35px solid #004680',
+  filter: 'drop-shadow(0 0 10px rgba(0,70,128,0.3))',
   '&::after': {
-    content: '"◆"',
+    content: '"▲"',
     position: 'absolute',
-    top: '-48px',
+    top: '-42px',
     left: '50%',
     transform: 'translateX(-50%)',
-    fontSize: '1.8rem',
-    color: '#FFD700',
-    textShadow: '0 0 30px #FFD700',
+    fontSize: '1.6rem',
+    color: '#004680',
+    textShadow: '0 0 15px rgba(0,70,128,0.4)',
     lineHeight: 1,
   },
   '@media (max-width:480px)': {
@@ -95,6 +100,9 @@ const Pointer = styled(Box)({
   },
 });
 
+// ============================================================
+// COMPONENTE PRINCIPAL
+// ============================================================
 interface RuletaProps {
   segments?: ISegment[];
   userEmail?: string;
@@ -117,10 +125,12 @@ const Ruleta: React.FC<RuletaProps> = ({
 
   const { rotation, isSpinning, error, premio, girar, reset } = useRuleta(segments, userEmail);
 
+  // Dibujar la ruleta cuando cambia la rotación
   useEffect(() => {
     drawWheel(canvasRef.current, segments, rotation);
   }, [rotation, segments]);
 
+  // Manejar el giro
   const handleSpin = async () => {
     try {
       await girar((data: IPremioResponse) => {
@@ -137,6 +147,7 @@ const Ruleta: React.FC<RuletaProps> = ({
     }
   };
 
+  // Mostrar errores del hook
   useEffect(() => {
     if (error) {
       setSnackbar({ open: true, message: error, severity: 'error' });
@@ -169,54 +180,35 @@ const Ruleta: React.FC<RuletaProps> = ({
 
   return (
     <>
-      <Container>
+      <Container elevation={0}>
+        {/* Cabecera sin línea amarilla */}
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'baseline',
+            alignItems: 'center',
             pb: 2,
             mb: 2,
-            borderBottom: '1px solid rgba(255,215,0,0.2)',
+            borderBottom: '2px solid #004680', // Línea azul (sin amarillo)
           }}
         >
-          <Stack direction="row" alignItems="baseline" spacing={1}>
-            <Typography
-              variant="h1"
-              sx={{
-                fontSize: { xs: '1.6rem', sm: '2.2rem' },
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '3px',
-                lineHeight: 1,
-              }}
-            >
-              KRAICAN
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: { xs: '0.8rem', sm: '1.1rem' },
-                fontWeight: 700,
-                color: '#FFD700',
-                background: 'rgba(255,215,0,0.15)',
-                px: 2,
-                borderRadius: '30px',
-                border: '1px solid rgba(255,215,0,0.3)',
-              }}
-            >
-              2.0
-            </Typography>
-          </Stack>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              color: '#004680',
+              letterSpacing: '2px',
+            }}
+          >
+            KANCAN
+          </Typography>
           <Typography
             sx={{
-              fontSize: { xs: '0.7rem', sm: '1rem' },
-              fontWeight: 300,
-              color: '#aaa',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              color: '#6b7a8f',
               fontFamily: 'Courier New, monospace',
-              letterSpacing: '2px',
-              background: 'rgba(255,255,255,0.05)',
+              background: '#f0f4f8',
               px: 2,
               py: 0.5,
               borderRadius: '20px',
@@ -226,18 +218,21 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Typography>
         </Box>
 
+        {/* Título con emoji de sorpresa */}
         <Typography
+          variant="h6"
           sx={{
-            fontSize: { xs: '0.65rem', sm: '0.9rem' },
-            letterSpacing: { xs: '1px', sm: '3px' },
-            textTransform: 'uppercase',
-            color: '#d4c9b0',
+            fontWeight: 700,
+            color: '#004680',
             mb: 3,
-            fontWeight: 300,
-            '& span': { color: '#FFD700', fontWeight: 600 },
+            letterSpacing: '1px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
           }}
         >
-          🎰 <span>GRAN SORTEO KRAICAN</span> · RULETA MILLONARIA 💰
+          <span style={{ fontSize: '1.5rem' }}>🎉</span> GRAN SORTEO KANCAN · RULETA DE PREMIOS <span style={{ fontSize: '1.5rem' }}>✨</span>
         </Typography>
 
         <CanvasWrapper>
@@ -254,30 +249,31 @@ const Ruleta: React.FC<RuletaProps> = ({
             py: { xs: '14px', sm: '18px' },
             px: { xs: '20px', sm: '50px' },
             fontSize: { xs: '1.2rem', sm: '1.6rem' },
-            fontWeight: 800,
+            fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '4px',
-            color: '#0a0a0f',
-            background: 'linear-gradient(135deg, #FFD700, #F0A500)',
+            letterSpacing: '3px',
+            color: '#ffffff',
+            background: 'linear-gradient(135deg, #004680, #003366)',
             borderRadius: '60px',
-            boxShadow: '0 8px 35px rgba(255,215,0,0.4)',
+            boxShadow: '0 6px 25px rgba(0,70,128,0.3)',
             width: '100%',
             maxWidth: '320px',
             '&:hover:not(:disabled)': {
-              transform: 'scale(1.05) translateY(-2px)',
-              boxShadow: '0 15px 50px rgba(255,215,0,0.6)',
+              transform: 'scale(1.03) translateY(-2px)',
+              boxShadow: '0 10px 35px rgba(0,70,128,0.4)',
+              background: 'linear-gradient(135deg, #003366, #002244)',
             },
             '&:disabled': {
               opacity: 0.6,
               cursor: 'not-allowed',
               transform: 'scale(0.98)',
-              filter: 'grayscale(0.6)',
+              filter: 'grayscale(0.3)',
             },
           }}
         >
           {isSpinning ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-              <CircularProgress size={28} sx={{ color: '#0a0a0f' }} />
+              <CircularProgress size={24} sx={{ color: '#ffffff' }} />
               GIRANDO...
             </Box>
           ) : (
@@ -289,13 +285,13 @@ const Ruleta: React.FC<RuletaProps> = ({
           <Typography
             sx={{
               mt: 2,
-              color: '#FF6B6B',
+              color: '#d32f2f',
               fontSize: '0.9rem',
               fontWeight: 500,
-              bgcolor: 'rgba(255,0,0,0.1)',
+              bgcolor: '#fde8e8',
               p: 1.5,
               borderRadius: '12px',
-              border: '1px solid rgba(255,0,0,0.2)',
+              border: '1px solid #f5c6c6',
             }}
           >
             {error}

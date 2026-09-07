@@ -16,12 +16,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import { IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface';
 
 const ModalContent = styled(Paper)({
-  background: 'radial-gradient(circle at top, #2a241a, #0f0e0c)',
+  background: 'radial-gradient(circle at top, #004680, #0a2a4a)', // Azul Kancan
   padding: '40px 35px',
   borderRadius: '40px',
   textAlign: 'center',
-  border: '1px solid #FFD700',
-  boxShadow: '0 0 80px rgba(255,215,0,0.15)',
+  border: '2px solid #FFD700',
+  boxShadow: '0 0 80px rgba(255,215,0,0.2)',
   maxWidth: '480px',
   width: '100%',
   position: 'relative',
@@ -35,7 +35,7 @@ const ModalContent = styled(Paper)({
     width: '200%',
     height: '200%',
     background:
-      'conic-gradient(from 0deg, transparent, rgba(255,215,0,0.03), transparent, rgba(255,215,0,0.03), transparent)',
+      'conic-gradient(from 0deg, transparent, rgba(255,215,0,0.05), transparent, rgba(255,215,0,0.05), transparent)',
     animation: 'spinBg 10s linear infinite',
   },
   '@keyframes spinBg': {
@@ -112,7 +112,7 @@ const ModalPremio: React.FC<ModalPremioProps> = ({
                 position: 'absolute',
                 top: 12,
                 right: 12,
-                color: '#b8aa8a',
+                color: '#FFD700',
                 zIndex: 10,
               }}
             >
@@ -129,7 +129,7 @@ const ModalPremio: React.FC<ModalPremioProps> = ({
               variant="h4"
               sx={{
                 color: '#FFD700',
-                fontWeight: 300,
+                fontWeight: 700,
                 letterSpacing: '3px',
                 textTransform: 'uppercase',
                 position: 'relative',
@@ -148,7 +148,7 @@ const ModalPremio: React.FC<ModalPremioProps> = ({
                 pt: 2,
                 position: 'relative',
                 zIndex: 2,
-                textShadow: '0 0 40px rgba(255,215,0,0.2)',
+                textShadow: '0 0 40px rgba(255,215,0,0.3)',
               }}
             >
               {premioData.prize}
@@ -163,7 +163,7 @@ const ModalPremio: React.FC<ModalPremioProps> = ({
                 gap: 1,
                 mt: 2,
                 p: 1.5,
-                bgcolor: 'rgba(255,215,0,0.08)',
+                bgcolor: 'rgba(255,215,0,0.1)',
                 borderRadius: '12px',
                 border: '1px dashed #FFD700',
                 position: 'relative',
