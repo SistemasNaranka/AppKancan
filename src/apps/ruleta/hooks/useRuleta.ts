@@ -18,48 +18,46 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
       setError(null);
 
       try {
-        // Llamada al backend
-        const response = await fetch(`${API_URL}/api/promociones/ruleta/girar`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userEmail: userEmail || 'anonimo' }),
-        });
+        // ⚠️ SIMULACIÓN TEMPORAL — borrar cuando exista el backend.
+        // El premio real DEBE venir del backend (nunca decidirse en el front).
+        await new Promise((r) => setTimeout(r, 300));
+        const premioSimulado = segments[Math.floor(Math.random() * segments.length)];
+        const data: IPremioResponse = { prize: premioSimulado.label } as IPremioResponse;
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Error al girar la ruleta');
-        }
+        // --- BACKEND REAL (descomentar cuando esté listo y borrar la simulación de arriba) ---
+        // const response = await fetch(`${API_URL}/api/promociones/ruleta/girar`, {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({ userEmail: userEmail || 'anonimo' }),
+        // });
+        // if (!response.ok) {
+        //   const errorData = await response.json();
+        //   throw new Error(errorData.message || 'Error al girar la ruleta');
+        // }
+        // const data: IPremioResponse = await response.json();
 
-        const data: IPremioResponse = await response.json();
-
-        // Buscar el índice del premio para la animación
         const numSegments = segments.length;
         const arcSize = (2 * Math.PI) / numSegments;
         const targetIndex = segments.findIndex((seg) => seg.label === data.prize);
         const finalIndex = targetIndex !== -1 ? targetIndex : 0;
 
-        // Calcular ángulo para que caiga en el centro del sector
-        let rawTarget = -(finalIndex * arcSize + arcSize / 2);
-        let normalizedTarget =
-          ((rawTarget % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-        const extraSpins = 5 + Math.floor(Math.random() * 6);
-        let finalRotation = normalizedTarget + extraSpins * 2 * Math.PI;
+        const fullTurn = 2 * Math.PI;
+        const startRotation = ((rotation % fullTurn) + fullTurn) % fullTurn;
 
-        let delta = finalRotation - rotation;
-        while (delta < 0) delta += 2 * Math.PI;
-        finalRotation = rotation + delta;
+        const targetAngle = ((-(finalIndex * arcSize + arcSize / 2)) % fullTurn + fullTurn) % fullTurn;
+        const extraSpins = 5 + Math.floor(Math.random() * 3);
+        let delta = targetAngle - startRotation;
+        if (delta < 0) delta += fullTurn;
+        const totalDelta = delta + extraSpins * fullTurn;
+        const finalRotation = startRotation + totalDelta;
 
-        const startRotation = rotation;
-        const totalDelta = finalRotation - startRotation;
         const duration = 4500 + Math.random() * 1500;
         const startTime = performance.now();
 
         const animate = (time: number) => {
-          const elapsed = time - startTime;
-          const progress = Math.min(elapsed / duration, 1);
+          const progress = Math.min((time - startTime) / duration, 1);
           const eased = 1 - Math.pow(1 - progress, 4);
-          const currentAngle = startRotation + totalDelta * eased;
-          setRotation(currentAngle);
+          setRotation(startRotation + totalDelta * eased);
 
           if (progress < 1) {
             animationRef.current = requestAnimationFrame(animate);
@@ -70,6 +68,7 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
             onComplete(data);
           }
         };
+
         animationRef.current = requestAnimationFrame(animate);
       } catch (err: any) {
         setIsSpinning(false);

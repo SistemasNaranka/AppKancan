@@ -8,34 +8,41 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, keyframes } from '@mui/material/styles';
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+const zoomIn = keyframes`
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+`;
 import { ISegment, IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface'; // ✅ Ruta correcta a interfaces
 import { drawWheel } from '../utils/drawWheel'; // ✅ Ruta correcta a utils
 import { useRuleta } from '../hooks/useRuleta'; // ✅ Ruta correcta a hooks
 import ModalPremio from './ModalPremio'; // ✅ Ruta correcta (misma carpeta components)
 
-// ============================================================
-// 🔥 PREMIOS DE LA RULETA (CAMBIA SEGÚN EL PLAN DE NEGOCIO)
-// ============================================================
+
 const defaultSegments: ISegment[] = [
-  { label: '5% OFF', color: '#1A1A2E' },
-  { label: 'Envío Gratis', color: '#16213E' },
-  { label: '10% OFF', color: '#0F3460' },
-  { label: 'Producto Gratis', color: '#E94560' },
-  { label: '15% OFF', color: '#533483' },
-  { label: '20% OFF', color: '#FFD700' },
+  { label: 'Jean de línea', color: '#F97316' },
+  { label: 'Jean básico', color: '#3B82F6' },
+  { label: 'Bonos $100k', color: '#10B981' },
+  { label: 'Bonos $50k', color: '#8B5CF6' },
+  { label: 'Bonos $30k', color: '#F59E0B' },
+  { label: 'Blusas básicas', color: '#EC4899' },
+  { label: 'Tote bag denim', color: '#06B6D4' },
+  { label: 'Tops', color: '#EF4444' },
+  { label: 'Pañoletas', color: '#84CC16' },
+  { label: 'Bambas', color: '#A855F7' },
 ];
 
 // ===== STYLED COMPONENTS =====
 const Container = styled(Box)({
-  background: 'rgba(20, 18, 16, 0.85)',
-  backdropFilter: 'blur(12px)',
-  padding: '25px 30px 40px',
-  borderRadius: '50px 50px 30px 30px',
-  boxShadow: '0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,215,0,0.15)',
-  borderBottom: '3px solid #FFD700',
+  background: 'transparent',
+  padding: 0,
   textAlign: 'center',
-  maxWidth: '650px',
+  maxWidth: '460px',
   width: '100%',
   margin: '0 auto',
 });
@@ -44,7 +51,7 @@ const CanvasWrapper = styled(Box)({
   position: 'relative',
   display: 'inline-block',
   width: '100%',
-  maxWidth: '450px',
+  maxWidth: '440px',
   aspectRatio: '1/1',
   margin: '0 auto',
 });
@@ -54,45 +61,21 @@ const StyledCanvas = styled('canvas')({
   height: '100% !important',
   display: 'block',
   borderRadius: '50%',
-  boxShadow:
-    '0 0 60px rgba(255,215,0,0.15), 0 0 120px rgba(255,215,0,0.05), inset 0 0 40px rgba(0,0,0,0.5)',
-  border: '4px solid #2a251a',
   cursor: 'default',
 });
 
 const Pointer = styled(Box)({
   position: 'absolute',
-  top: '-10px',
+  top: '-8px',
   left: '50%',
   transform: 'translateX(-50%)',
   zIndex: 10,
   width: 0,
   height: 0,
-  borderLeft: '22px solid transparent',
-  borderRight: '22px solid transparent',
-  borderTop: '38px solid #FFD700',
-  filter: 'drop-shadow(0 0 25px #FFD700)',
-  '&::after': {
-    content: '"◆"',
-    position: 'absolute',
-    top: '-48px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    fontSize: '1.8rem',
-    color: '#FFD700',
-    textShadow: '0 0 30px #FFD700',
-    lineHeight: 1,
-  },
-  '@media (max-width:480px)': {
-    borderLeftWidth: '14px',
-    borderRightWidth: '14px',
-    borderTopWidth: '28px',
-    top: '-6px',
-    '&::after': {
-      fontSize: '1.2rem',
-      top: '-36px',
-    },
-  },
+  borderLeft: '13px solid transparent',
+  borderRight: '13px solid transparent',
+  borderTop: '26px solid #1976D2',
+  filter: 'drop-shadow(0 2px 5px rgba(25,118,210,0.45))',
 });
 
 interface RuletaProps {
@@ -107,6 +90,7 @@ const Ruleta: React.FC<RuletaProps> = ({
   onPremioGanado,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const bigCanvasRef = useRef<HTMLCanvasElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [premioData, setPremioData] = useState<IPremioResponse | null>(null);
   const [snackbar, setSnackbar] = useState<{
@@ -118,8 +102,16 @@ const Ruleta: React.FC<RuletaProps> = ({
   const { rotation, isSpinning, error, premio, girar, reset } = useRuleta(segments, userEmail);
 
   useEffect(() => {
-    drawWheel(canvasRef.current, segments, rotation);
-  }, [rotation, segments]);
+    if (!isSpinning) {
+      drawWheel(canvasRef.current, segments, 0);
+    }
+  }, [segments, isSpinning]);
+
+  useEffect(() => {
+    if (isSpinning || modalOpen) {
+      drawWheel(bigCanvasRef.current, segments, rotation);
+    }
+  }, [rotation, segments, isSpinning, modalOpen]);
 
   const handleSpin = async () => {
     try {
@@ -169,76 +161,72 @@ const Ruleta: React.FC<RuletaProps> = ({
 
   return (
     <>
-      <Container>
+      {(isSpinning || modalOpen) && (
         <Box
           sx={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1200,
+            backdropFilter: 'blur(6px)',
+            backgroundColor: 'rgba(15, 23, 42, 0.55)',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-            pb: 2,
-            mb: 2,
-            borderBottom: '1px solid rgba(255,215,0,0.2)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: `${fadeIn} 0.45s ease`,
           }}
         >
-          <Stack direction="row" alignItems="baseline" spacing={1}>
-            <Typography
-              variant="h1"
-              sx={{
-                fontSize: { xs: '1.6rem', sm: '2.2rem' },
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '3px',
-                lineHeight: 1,
-              }}
-            >
-              KRAICAN
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: { xs: '0.8rem', sm: '1.1rem' },
-                fontWeight: 700,
-                color: '#FFD700',
-                background: 'rgba(255,215,0,0.15)',
-                px: 2,
-                borderRadius: '30px',
-                border: '1px solid rgba(255,215,0,0.3)',
-              }}
-            >
-              2.0
-            </Typography>
-          </Stack>
-          <Typography
+          <Box
             sx={{
-              fontSize: { xs: '0.7rem', sm: '1rem' },
-              fontWeight: 300,
-              color: '#aaa',
-              fontFamily: 'Courier New, monospace',
-              letterSpacing: '2px',
-              background: 'rgba(255,255,255,0.05)',
-              px: 2,
-              py: 0.5,
-              borderRadius: '20px',
+              position: 'relative',
+              width: 'min(70vh, 90vw)',
+              aspectRatio: '1/1',
+              animation: `${zoomIn} 0.5s ease-out`,
             }}
           >
-            {currentTime}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '-14px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 0,
+                height: 0,
+                borderLeft: '18px solid transparent',
+                borderRight: '18px solid transparent',
+                borderTop: '34px solid #1976D2',
+                filter: 'drop-shadow(0 3px 6px rgba(25,118,210,0.5))',
+                zIndex: 2,
+              }}
+            />
+            <canvas
+              ref={bigCanvasRef}
+              width={600}
+              height={600}
+              style={{ width: '100%', height: '100%', display: 'block', borderRadius: '50%' }}
+            />
+          </Box>
+        </Box>
+      )}
+
+      <Container>
+        <Box sx={{ mb: 3 }}>
+          <Typography
+            sx={{
+              fontSize: { xs: '1.4rem', sm: '1.8rem' },
+              fontWeight: 800,
+              color: '#1E293B',
+              fontFamily: "'Poppins', sans-serif",
+              lineHeight: 1.15,
+            }}
+          >
+            ¡Gira y llévate <Box component="span" sx={{ color: '#1976D2' }}>tu premio!</Box>
+          </Typography>
+          <Typography
+            sx={{ mt: 1, fontSize: '0.85rem', color: '#64748B', maxWidth: 360, mx: 'auto' }}
+          >
+            Cada compra es una oportunidad. Gira la ruleta y descubre qué te ganaste.
           </Typography>
         </Box>
-
-        <Typography
-          sx={{
-            fontSize: { xs: '0.65rem', sm: '0.9rem' },
-            letterSpacing: { xs: '1px', sm: '3px' },
-            textTransform: 'uppercase',
-            color: '#d4c9b0',
-            mb: 3,
-            fontWeight: 300,
-            '& span': { color: '#FFD700', fontWeight: 600 },
-          }}
-        >
-          🎰 <span>GRAN SORTEO KRAICAN</span> · RULETA MILLONARIA 💰
-        </Typography>
 
         <CanvasWrapper>
           <StyledCanvas ref={canvasRef} width={600} height={600} />
@@ -250,22 +238,22 @@ const Ruleta: React.FC<RuletaProps> = ({
           disabled={isSpinning}
           onClick={handleSpin}
           sx={{
-            mt: 4,
-            py: { xs: '14px', sm: '18px' },
-            px: { xs: '20px', sm: '50px' },
-            fontSize: { xs: '1.2rem', sm: '1.6rem' },
-            fontWeight: 800,
+            mt: 3,
+            py: '11px',
+            px: '32px',
+            fontSize: '0.95rem',
+            fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '4px',
-            color: '#0a0a0f',
-            background: 'linear-gradient(135deg, #FFD700, #F0A500)',
-            borderRadius: '60px',
-            boxShadow: '0 8px 35px rgba(255,215,0,0.4)',
+            letterSpacing: '1.2px',
+            color: '#FFFFFF',
+            background: 'linear-gradient(135deg, #1E88E5, #1565C0)',
+            borderRadius: '11px',
+            boxShadow: '0 4px 16px rgba(25,118,210,0.26)',
             width: '100%',
-            maxWidth: '320px',
+            maxWidth: '300px',
             '&:hover:not(:disabled)': {
-              transform: 'scale(1.05) translateY(-2px)',
-              boxShadow: '0 15px 50px rgba(255,215,0,0.6)',
+              transform: 'scale(1.03) translateY(-1px)',
+              boxShadow: '0 8px 26px rgba(25,118,210,0.4)',
             },
             '&:disabled': {
               opacity: 0.6,
@@ -281,7 +269,7 @@ const Ruleta: React.FC<RuletaProps> = ({
               GIRANDO...
             </Box>
           ) : (
-            '¡GIRAR!'
+            'Girar ruleta'
           )}
         </Button>
 
@@ -307,7 +295,6 @@ const Ruleta: React.FC<RuletaProps> = ({
         open={modalOpen}
         premioData={premioData}
         onClose={handleCloseModal}
-        onCanjear={handleCanjear}
       />
 
       <Snackbar
