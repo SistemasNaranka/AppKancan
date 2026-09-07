@@ -3,6 +3,7 @@ import {
   Box,
   Typography,
   Button,
+  Stack,
   CircularProgress,
   Snackbar,
   Alert,
@@ -12,26 +13,26 @@ import { styled } from '@mui/material/styles';
 import { ISegment, IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface';
 import { drawWheel } from '../utils/drawWheel';
 import { useRuleta } from '../hooks/useRuleta';
-import ModalPremio from './ModalPremio';
+
 
 // ============================================================
-// 🎯 PREMIOS KANCAN (SOLO PARA LA LÓGICA)
+// 🎯 PREMIOS KANCAN (VISUALES) - DEBEN COINCIDIR CON PREMIOS_MOCK
 // ============================================================
 const defaultSegments: ISegment[] = [
-  { label: 'Premio 1', color: '#003366' },
-  { label: 'Premio 2', color: '#1A3A5C' },
-  { label: 'Premio 3', color: '#FFD700' },
-  { label: 'Premio 4', color: '#F0A500' },
-  { label: 'Premio 5', color: '#FF8C00' },
-  { label: 'Premio 6', color: '#2E5077' },
-  { label: 'Premio 7', color: '#4A6B8A' },
-  { label: 'Premio 8', color: '#6A8CAF' },
-  { label: 'Premio 9', color: '#8DA6C9' },
-  { label: 'Premio 10', color: '#B0C4DE' },
+  { label: 'JEAN DE LÍNEA', color: '#003366' },
+  { label: 'JEAN BÁSICO', color: '#1A3A5C' },
+  { label: 'BONOS 100 MIL', color: '#FFD700' },
+  { label: 'BONO 50 MIL', color: '#F0A500' },
+  { label: 'BONO 30 MIL', color: '#FF8C00' },
+  { label: 'BLUSAS BASICAS', color: '#2E5077' },
+  { label: 'TOTE BAGS denim', color: '#4A6B8A' },
+  { label: 'TOPS', color: '#6A8CAF' },
+  { label: 'PAÑOLETAS', color: '#8DA6C9' },
+  { label: 'BAMBAS', color: '#B0C4DE' },
 ];
 
 // ============================================================
-// ESTILOS (Diseño Claro Kancan - SIN FONDO NEGRO)
+// ESTILOS (Diseño Claro Kancan)
 // ============================================================
 const Container = styled(Paper)({
   background: '#ffffff',
@@ -60,7 +61,7 @@ const StyledCanvas = styled('canvas')({
   display: 'block',
   borderRadius: '50%',
   boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-  border: '3px solid #004680', // Borde azul (sin amarillo)
+  border: '3px solid #004680',
   cursor: 'default',
   backgroundColor: '#ffffff',
 });
@@ -139,6 +140,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         if (onPremioGanado) onPremioGanado(data);
       });
     } catch (err: any) {
+      // El error ya está manejado en el hook, pero mostramos snackbar por si acaso
       setSnackbar({
         open: true,
         message: err.message || 'Error al girar la ruleta',
@@ -167,6 +169,7 @@ const Ruleta: React.FC<RuletaProps> = ({
       message: `✅ ¡Premio canjeado con éxito! Código: ${codigo}`,
       severity: 'success',
     });
+    // Aquí puedes enviar los datos a tu backend para guardar el registro
   };
 
   const handleSnackbarClose = () => {
@@ -181,33 +184,51 @@ const Ruleta: React.FC<RuletaProps> = ({
   return (
     <>
       <Container elevation={0}>
-        {/* Cabecera sin línea amarilla */}
+        {/* Cabecera Kancan */}
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
+            alignItems: 'baseline',
             pb: 2,
             mb: 2,
-            borderBottom: '2px solid #004680', // Línea azul (sin amarillo)
+            borderBottom: '2px solid #004680',
           }}
         >
+          <Stack direction="row" alignItems="baseline" spacing={1}>
+            <Typography
+              variant="h1"
+              sx={{
+                fontSize: { xs: '1.6rem', sm: '2.2rem' },
+                fontWeight: 800,
+                color: '#004680',
+                letterSpacing: '2px',
+                lineHeight: 1,
+              }}
+            >
+              KANCAN
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: { xs: '0.8rem', sm: '1.1rem' },
+                fontWeight: 700,
+                color: '#FFD700',
+                background: '#004680',
+                px: 2,
+                borderRadius: '30px',
+                border: '1px solid #FFD700',
+              }}
+            >
+              
+            </Typography>
+          </Stack>
           <Typography
-            variant="h4"
             sx={{
-              fontWeight: 800,
-              color: '#004680',
-              letterSpacing: '2px',
-            }}
-          >
-            KANCAN
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.85rem',
+              fontSize: { xs: '0.7rem', sm: '1rem' },
               fontWeight: 500,
               color: '#6b7a8f',
               fontFamily: 'Courier New, monospace',
+              letterSpacing: '1px',
               background: '#f0f4f8',
               px: 2,
               py: 0.5,
@@ -218,21 +239,18 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Typography>
         </Box>
 
-        {/* Título con emoji de sorpresa */}
         <Typography
-          variant="h6"
           sx={{
-            fontWeight: 700,
+            fontSize: { xs: '0.7rem', sm: '0.95rem' },
+            letterSpacing: { xs: '1px', sm: '3px' },
+            textTransform: 'uppercase',
             color: '#004680',
             mb: 3,
-            letterSpacing: '1px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 1,
+            fontWeight: 700,
+            '& span': { color: '#FFD700', fontWeight: 800 },
           }}
         >
-          <span style={{ fontSize: '1.5rem' }}>🎉</span> GRAN SORTEO KANCAN · RULETA DE PREMIOS <span style={{ fontSize: '1.5rem' }}>✨</span>
+          🎰 <span>GRAN SORTEO KANCAN</span> · RULETA DE PREMIOS 
         </Typography>
 
         <CanvasWrapper>
@@ -299,12 +317,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         )}
       </Container>
 
-      <ModalPremio
-        open={modalOpen}
-        premioData={premioData}
-        onClose={handleCloseModal}
-        onCanjear={handleCanjear}
-      />
+    
 
       <Snackbar
         open={snackbar.open}

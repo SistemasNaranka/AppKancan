@@ -105,8 +105,7 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
           const progress = Math.min(elapsed / duracion, 1);
           // Ease Out Quart (frenado suave)
           const eased = 1 - Math.pow(1 - progress, 4);
-          const currentAngle = startRotation + totalDelta * eased;
-          setRotation(currentAngle);
+          setRotation(startRotation + totalDelta * eased);
 
           if (progress < 1) {
             animationRef.current = requestAnimationFrame(animate);
@@ -117,6 +116,7 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
             onComplete(data);
           }
         };
+
         animationRef.current = requestAnimationFrame(animate);
 
         // ======== CUANDO TENGAS BACKEND REAL, REEMPLAZA ESTO ========
