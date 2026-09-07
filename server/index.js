@@ -29,6 +29,8 @@ app.get("/api/health", (req, res) => {
 // Rutas (protegidas)
 app.use("/api", informeVentasRoutes);
 app.use("/api", contabilizacionRoutes);
+const ruletaRoutes = require("./routes/ruleta");
+app.use("/api", ruletaRoutes);
 
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "../dist")));

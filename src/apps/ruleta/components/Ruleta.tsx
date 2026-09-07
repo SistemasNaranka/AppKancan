@@ -1,14 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Stack,
-  CircularProgress,
-  Snackbar,
-  Alert,
-} from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
+import { ISegment, IPremioResponse } from '../interfaces/ruleta.interface';
+import { drawWheel } from '../utils/drawWheel';
+import { useRuleta } from '../hooks/useRuleta';
+import ModalPremio from './ModalPremio';
 
 const fadeIn = keyframes`
   from { opacity: 0; }
@@ -18,11 +14,12 @@ const zoomIn = keyframes`
   from { transform: scale(0.5); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 `;
-import { ISegment, IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface'; // ✅ Ruta correcta a interfaces
-import { drawWheel } from '../utils/drawWheel'; // ✅ Ruta correcta a utils
-import { useRuleta } from '../hooks/useRuleta'; // ✅ Ruta correcta a hooks
-import ModalPremio from './ModalPremio'; // ✅ Ruta correcta (misma carpeta components)
-
+const tick = keyframes`
+  0% { transform: translateX(-50%) rotate(0deg); }
+  25% { transform: translateX(-50%) rotate(-14deg); }
+  55% { transform: translateX(-50%) rotate(4deg); }
+  100% { transform: translateX(-50%) rotate(0deg); }
+`;
 
 const defaultSegments: ISegment[] = [
   { label: 'Jean de línea', color: '#F97316' },
@@ -37,7 +34,6 @@ const defaultSegments: ISegment[] = [
   { label: 'Bambas', color: '#A855F7' },
 ];
 
-// ===== STYLED COMPONENTS =====
 const Container = styled(Box)({
   background: 'transparent',
   padding: 0,
@@ -82,12 +78,14 @@ interface RuletaProps {
   segments?: ISegment[];
   userEmail?: string;
   onPremioGanado?: (data: IPremioResponse) => void;
+  facturaValida?: boolean;
 }
 
 const Ruleta: React.FC<RuletaProps> = ({
   segments = defaultSegments,
   userEmail,
   onPremioGanado,
+  facturaValida = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bigCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -99,7 +97,7 @@ const Ruleta: React.FC<RuletaProps> = ({
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'info' });
 
-  const { rotation, isSpinning, error, premio, girar, reset } = useRuleta(segments, userEmail);
+  const { rotation, isSpinning, error, girar, reset } = useRuleta(segments, userEmail);
 
   useEffect(() => {
     if (!isSpinning) {
@@ -140,24 +138,9 @@ const Ruleta: React.FC<RuletaProps> = ({
     reset();
   };
 
-  const handleCanjear = (datos: IFormularioGanador, codigo: string) => {
-    console.log('Datos del ganador:', datos);
-    console.log('Código canjeado:', codigo);
-    setSnackbar({
-      open: true,
-      message: `✅ ¡Premio canjeado con éxito! Código: ${codigo}`,
-      severity: 'success',
-    });
-  };
-
   const handleSnackbarClose = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
-
-  const currentTime = new Date().toLocaleTimeString('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
   return (
     <>
@@ -196,6 +179,8 @@ const Ruleta: React.FC<RuletaProps> = ({
                 borderTop: '34px solid #1976D2',
                 filter: 'drop-shadow(0 3px 6px rgba(25,118,210,0.5))',
                 zIndex: 2,
+                transformOrigin: '50% 0%',
+                animation: isSpinning ? `${tick} 0.28s ease-in-out infinite` : 'none',
               }}
             />
             <canvas
@@ -221,9 +206,7 @@ const Ruleta: React.FC<RuletaProps> = ({
           >
             ¡Gira y llévate <Box component="span" sx={{ color: '#1976D2' }}>tu premio!</Box>
           </Typography>
-          <Typography
-            sx={{ mt: 1, fontSize: '0.85rem', color: '#64748B', maxWidth: 360, mx: 'auto' }}
-          >
+          <Typography sx={{ mt: 1, fontSize: '0.85rem', color: '#64748B', maxWidth: 360, mx: 'auto' }}>
             Cada compra es una oportunidad. Gira la ruleta y descubre qué te ganaste.
           </Typography>
         </Box>
@@ -235,7 +218,7 @@ const Ruleta: React.FC<RuletaProps> = ({
 
         <Button
           variant="contained"
-          disabled={isSpinning}
+          disabled={isSpinning || !facturaValida}
           onClick={handleSpin}
           sx={{
             mt: 3,
@@ -256,16 +239,16 @@ const Ruleta: React.FC<RuletaProps> = ({
               boxShadow: '0 8px 26px rgba(25,118,210,0.4)',
             },
             '&:disabled': {
-              opacity: 0.6,
+              background: '#CBD5E1',
+              color: '#ffffff',
               cursor: 'not-allowed',
-              transform: 'scale(0.98)',
-              filter: 'grayscale(0.6)',
+              boxShadow: 'none',
             },
           }}
         >
           {isSpinning ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-              <CircularProgress size={28} sx={{ color: '#0a0a0f' }} />
+              <CircularProgress size={28} sx={{ color: '#ffffff' }} />
               GIRANDO...
             </Box>
           ) : (
@@ -291,11 +274,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         )}
       </Container>
 
-      <ModalPremio
-        open={modalOpen}
-        premioData={premioData}
-        onClose={handleCloseModal}
-      />
+      <ModalPremio open={modalOpen} premioData={premioData} onClose={handleCloseModal} />
 
       <Snackbar
         open={snackbar.open}
