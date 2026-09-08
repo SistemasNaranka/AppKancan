@@ -1,14 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Stack,
-  CircularProgress,
-  Snackbar,
-  Alert,
-} from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
+import { ISegment, IPremioResponse } from '../interfaces/ruleta.interface';
+import { drawWheel } from '../utils/drawWheel';
+import { useRuleta } from '../hooks/useRuleta';
+import ModalPremio from './ModalPremio';
 
 const fadeIn = keyframes`
   from { opacity: 0; }
@@ -18,26 +14,19 @@ const zoomIn = keyframes`
   from { transform: scale(0.5); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 `;
+const tick = keyframes`
+  0% { transform: translateX(-50%) rotate(0deg); }
+  25% { transform: translateX(-50%) rotate(-14deg); }
+  55% { transform: translateX(-50%) rotate(4deg); }
+  100% { transform: translateX(-50%) rotate(0deg); }
+`;
 
-import { ISegment, IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface';
-import { drawWheel } from '../utils/drawWheel';
-import { useRuleta } from '../hooks/useRuleta';
-import ModalPremio from './ModalPremio';
+import { aplicarColorPorGrupo, GRUPO_POR_PREMIO } from '../utils/rangos';
 
-const defaultSegments: ISegment[] = [
-  { label: 'Jean de línea', color: '#F97316' },
-  { label: 'Jean básico', color: '#3B82F6' },
-  { label: 'Bonos $100k', color: '#10B981' },
-  { label: 'Bonos $50k', color: '#8B5CF6' },
-  { label: 'Bonos $30k', color: '#F59E0B' },
-  { label: 'Blusas básicas', color: '#EC4899' },
-  { label: 'Tote bag denim', color: '#06B6D4' },
-  { label: 'Tops', color: '#EF4444' },
-  { label: 'Pañoletas', color: '#84CC16' },
-  { label: 'Bambas', color: '#A855F7' },
-];
+const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
+  ([label, grupo]) => aplicarColorPorGrupo(label, grupo)
+);
 
-// ===== STYLED COMPONENTS =====
 const Container = styled(Box)({
   background: 'transparent',
   padding: 0,
@@ -85,7 +74,8 @@ interface RuletaProps {
   segments?: ISegment[];
   userEmail?: string;
   onPremioGanado?: (data: IPremioResponse) => void;
-  storeId?: number | null; // 👈 AÑADIDO
+  facturaValida?: boolean;
+  storeId?: number | null; // 👈 AGREGADO
 }
 
 // ============================================================
@@ -95,6 +85,7 @@ const Ruleta: React.FC<RuletaProps> = ({
   segments = defaultSegments,
   userEmail,
   onPremioGanado,
+  facturaValida = false,
   storeId, // 👈 DESESTRUCTURADO
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -107,12 +98,10 @@ const Ruleta: React.FC<RuletaProps> = ({
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'info' });
 
-  // 👇 PASAR storeId al hook (aunque el hook no lo use aún, lo recibe sin error)
-  const { rotation, isSpinning, error, premio, girar, reset } = useRuleta(
-    segments,
-    userEmail,
-    storeId // 👈 PARÁMETRO EXTRA
-  );
+  const { rotation, isSpinning, error, girar, reset } = useRuleta(segments, userEmail);
+
+  // Opcional: puedes usar storeId para algo, o solo mostrarlo en consola
+  // console.log('Tienda seleccionada:', storeId);
 
   useEffect(() => {
     if (!isSpinning) {
@@ -153,25 +142,9 @@ const Ruleta: React.FC<RuletaProps> = ({
     reset();
   };
 
-  const handleCanjear = (datos: IFormularioGanador, codigo: string) => {
-    console.log('Datos del ganador:', datos);
-    console.log('Código canjeado:', codigo);
-    console.log('Tienda seleccionada:', storeId); // 👈 MUESTRA LA TIENDA EN CONSOLA
-    setSnackbar({
-      open: true,
-      message: `✅ ¡Premio canjeado con éxito! Código: ${codigo}`,
-      severity: 'success',
-    });
-  };
-
   const handleSnackbarClose = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
-
-  const currentTime = new Date().toLocaleTimeString('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
   return (
     <>
@@ -210,6 +183,8 @@ const Ruleta: React.FC<RuletaProps> = ({
                 borderTop: '34px solid #1976D2',
                 filter: 'drop-shadow(0 3px 6px rgba(25,118,210,0.5))',
                 zIndex: 2,
+                transformOrigin: '50% 0%',
+                animation: isSpinning ? `${tick} 0.28s ease-in-out infinite` : 'none',
               }}
             />
             <canvas
@@ -235,9 +210,7 @@ const Ruleta: React.FC<RuletaProps> = ({
           >
             ¡Gira y llévate <Box component="span" sx={{ color: '#1976D2' }}>tu premio!</Box>
           </Typography>
-          <Typography
-            sx={{ mt: 1, fontSize: '0.85rem', color: '#64748B', maxWidth: 360, mx: 'auto' }}
-          >
+          <Typography sx={{ mt: 1, fontSize: '0.85rem', color: '#64748B', maxWidth: 360, mx: 'auto' }}>
             Cada compra es una oportunidad. Gira la ruleta y descubre qué te ganaste.
           </Typography>
         </Box>
@@ -249,7 +222,7 @@ const Ruleta: React.FC<RuletaProps> = ({
 
         <Button
           variant="contained"
-          disabled={isSpinning}
+          disabled={isSpinning || !facturaValida}
           onClick={handleSpin}
           sx={{
             mt: 3,
@@ -270,16 +243,16 @@ const Ruleta: React.FC<RuletaProps> = ({
               boxShadow: '0 8px 26px rgba(25,118,210,0.4)',
             },
             '&:disabled': {
-              opacity: 0.6,
+              background: '#CBD5E1',
+              color: '#ffffff',
               cursor: 'not-allowed',
-              transform: 'scale(0.98)',
-              filter: 'grayscale(0.6)',
+              boxShadow: 'none',
             },
           }}
         >
           {isSpinning ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-              <CircularProgress size={28} sx={{ color: '#0a0a0f' }} />
+              <CircularProgress size={28} sx={{ color: '#ffffff' }} />
               GIRANDO...
             </Box>
           ) : (
@@ -305,11 +278,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         )}
       </Container>
 
-      <ModalPremio
-        open={modalOpen}
-        premioData={premioData}
-        onClose={handleCloseModal}
-      />
+      <ModalPremio open={modalOpen} premioData={premioData} onClose={handleCloseModal} />
 
       <Snackbar
         open={snackbar.open}

@@ -1,30 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
 import { ISegment, IPremioResponse } from '../interfaces/ruleta.interface';
 
-// ============================================================
-// 🎡 MOCK DE PREMIOS (reemplázalo con tu backend cuando esté listo)
-// ============================================================
-const PREMIOS_MOCK = [
-  { label: 'Jean de línea', weight: 10 },
-  { label: 'Jean básico', weight: 10 },
-  { label: 'Bonos $100k', weight: 10 },
-  { label: 'Bonos $50k', weight: 10 },
-  { label: 'Bonos $30k', weight: 10 },
-  { label: 'Blusas básicas', weight: 10 },
-  { label: 'Tote bag denim', weight: 10 },
-  { label: 'Tops', weight: 10 },
-  { label: 'Pañoletas', weight: 10 },
-  { label: 'Bambas', weight: 10 },
-];
-
-const seleccionarPremio = (): string => {
-  const total = PREMIOS_MOCK.reduce((s, p) => s + p.weight, 0);
-  let random = Math.random() * total;
-  for (const premio of PREMIOS_MOCK) {
-    random -= premio.weight;
-    if (random <= 0) return premio.label;
-  }
-  return PREMIOS_MOCK[0].label;
+// ⚠️ TEMPORAL: sorteo en frontend. Reemplazar por respuesta del backend.
+const seleccionarPremioMock = (segments: ISegment[]): string => {
+  if (segments.length === 0) return '';
+  const idx = Math.floor(Math.random() * segments.length);
+  return segments[idx].label;
 };
 
 const generarCupon = (): string => {
@@ -58,10 +39,8 @@ export const useRuleta = (
       setError(null);
 
       try {
-        // ============================================================
-        // 🎲 SELECCIONAR PREMIO (MOCK)
-        // ============================================================
-        const prize = seleccionarPremio();
+        // Simulación de respuesta del backend (mock)
+        const prize = seleccionarPremioMock(segments);
         const couponCode = generarCupon();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 

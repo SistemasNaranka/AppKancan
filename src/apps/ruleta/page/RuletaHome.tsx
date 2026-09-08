@@ -4,6 +4,7 @@ import {
   Typography,
   TextField,
   Button,
+  CircularProgress,
   Tabs,
   Tab,
   Paper,
@@ -12,6 +13,7 @@ import {
   InputAdornment,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import { Casino as RuletaIcon, LocalOffer as PremiosIcon } from '@mui/icons-material';
@@ -20,26 +22,21 @@ import { getStores } from '../api/directus/read';
 import Ruleta from '../components/Ruleta';
 import AdministrarPremios from '../components/AdministrarPremios';
 import { ISegment, Tienda } from '../interfaces/ruleta.interface';
+import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, GRUPO_POR_PREMIO } from '../utils/rangos';
 
 const STORAGE_KEY = 'ruleta_premios';
 
 const getPremiosFromStorage = (): ISegment[] => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
-    try { return JSON.parse(stored); } catch {}
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return parsed.map(migrarSegment);
+    } catch {}
   }
-  return [
-    { label: 'Jean de línea', color: '#F97316' },
-    { label: 'Jean básico', color: '#3B82F6' },
-    { label: 'Bonos $100k', color: '#10B981' },
-    { label: 'Bonos $50k', color: '#8B5CF6' },
-    { label: 'Bonos $30k', color: '#F59E0B' },
-    { label: 'Blusas básicas', color: '#EC4899' },
-    { label: 'Tote bag denim', color: '#06B6D4' },
-    { label: 'Tops', color: '#EF4444' },
-    { label: 'Pañoletas', color: '#84CC16' },
-    { label: 'Bambas', color: '#A855F7' },
-  ];
+  return Object.entries(GRUPO_POR_PREMIO).map(([label, grupo]) =>
+    aplicarColorPorGrupo(label, grupo)
+  );
 };
 
 interface TabPanelProps {
@@ -56,7 +53,16 @@ function TabPanel({ children, value, index }: TabPanelProps) {
   );
 }
 
+interface FacturaValida {
+  cliente: string;
+  total: number;
+}
+
 const RuletaHome: React.FC = () => {
+  const [numFactura, setNumFactura] = useState('');
+  const [cargando, setCargando] = useState(false);
+  const [factura, setFactura] = useState<FacturaValida | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
   const [premios, setPremios] = useState<ISegment[]>(() => getPremiosFromStorage());
   const [storeFilter, setStoreFilter] = useState<number | null>(null);
@@ -76,11 +82,8 @@ const RuletaHome: React.FC = () => {
   const tiendasFiltradas = useMemo(() => {
     return tiendasCompletas.filter((tienda) => {
       const nombre = tienda.name?.toLowerCase() || '';
-      // Cali excepto Cenco Cali
       const esCali = nombre.includes('cali') && !nombre.includes('cenco');
-      // Todas las tiendas de Manizales
       const esManizales = nombre.includes('manizales');
-      // Victoria Plaza (escribelo como aparece en Directus)
       const esVictoria = nombre.includes('victoria') || nombre.includes('vitoria');
       return esCali || esManizales || esVictoria;
     });
@@ -108,6 +111,33 @@ const RuletaHome: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  const validar = async () => {
+    if (!numFactura.trim()) return;
+    setCargando(true);
+    setError(null);
+    setFactura(null);
+    try {
+      const res = await fetch('/api/ruleta/validar-factura', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentos: numFactura.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'No se pudo validar la factura');
+      }
+      const data = await res.json();
+      setFactura({ cliente: data.cliente, total: data.total });
+    } catch (e: any) {
+      setError(e.message || 'Error al validar');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const formatoPesos = (n: number) =>
+    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -132,7 +162,6 @@ const RuletaHome: React.FC = () => {
       }}
     >
       <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
-        {/* ===== ENCABEZADO ===== */}
         <Paper
           elevation={0}
           sx={{
@@ -181,9 +210,7 @@ const RuletaHome: React.FC = () => {
                 >
                   {titulo}
                 </Typography>
-                <Typography sx={{ fontSize: 12, color: '#94A3B8' }}>
-                  {subtitulo}
-                </Typography>
+                <Typography sx={{ fontSize: 12, color: '#94A3B8' }}>{subtitulo}</Typography>
               </Box>
             </Box>
 
@@ -234,13 +261,7 @@ const RuletaHome: React.FC = () => {
             </Box>
           </Box>
 
-          {/* Pestañas */}
-          <Box
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.5, sm: 0.8 },
-            }}
-          >
+          <Box sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 0.8 } }}>
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
@@ -258,25 +279,12 @@ const RuletaHome: React.FC = () => {
                   px: { xs: 1.5, sm: 2.5 },
                   py: { xs: 0.3, sm: 0.6 },
                   color: '#64748b',
-                  '& .MuiTab-iconWrapper': {
-                    mr: 0.5,
-                    fontSize: { xs: 16, sm: 20 },
-                  },
-                  '&:hover': {
-                    backgroundColor: '#EEF2F6',
-                    color: '#004680',
-                  },
-                  '&.Mui-selected': {
-                    color: '#ffffff',
-                    backgroundColor: '#004680',
-                  },
-                  '&.Mui-selected:hover': {
-                    backgroundColor: '#003366',
-                  },
+                  '& .MuiTab-iconWrapper': { mr: 0.5, fontSize: { xs: 16, sm: 20 } },
+                  '&:hover': { backgroundColor: '#EEF2F6', color: '#004680' },
+                  '&.Mui-selected': { color: '#ffffff', backgroundColor: '#004680' },
+                  '&.Mui-selected:hover': { backgroundColor: '#003366' },
                 },
-                '& .MuiTabs-indicator': {
-                  display: 'none',
-                },
+                '& .MuiTabs-indicator': { display: 'none' },
               }}
             >
               <Tab value={0} icon={<RuletaIcon />} iconPosition="start" label="RULETA" />
@@ -285,10 +293,8 @@ const RuletaHome: React.FC = () => {
           </Box>
         </Paper>
 
-        {/* ===== CONTENIDO ===== */}
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'stretch' }}>
-            {/* Validar factura */}
             <Box
               sx={{
                 flex: '0 0 440px',
@@ -307,27 +313,47 @@ const RuletaHome: React.FC = () => {
               </Typography>
               <Typography sx={{ fontSize: 12, color: '#94A3B8', mb: 0.5 }}>N° de factura</Typography>
               <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                <TextField size="small" defaultValue="00184213" fullWidth />
-                <Button variant="contained" sx={{ background: '#1976D2', boxShadow: 'none', textTransform: 'none' }}>
-                  Validar
+                <TextField
+                  size="small"
+                  fullWidth
+                  value={numFactura}
+                  onChange={(e) => setNumFactura(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && validar()}
+                  placeholder="Ej: KE030000004249"
+                />
+                <Button
+                  variant="contained"
+                  onClick={validar}
+                  disabled={cargando}
+                  sx={{ background: '#1976D2', boxShadow: 'none', minWidth: 96, textTransform: 'none' }}
+                >
+                  {cargando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Validar'}
                 </Button>
               </Box>
-              <Box sx={{ background: '#F8FAFC', border: '0.5px solid #E2E8F0', borderRadius: '10px', p: 1.75 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: '#15803D', fontSize: 12, fontWeight: 600, mb: 1.5 }}>
-                  <CheckCircleIcon sx={{ fontSize: 16 }} /> Factura válida
+
+              {factura && (
+                <Box sx={{ background: '#F8FAFC', border: '0.5px solid #E2E8F0', borderRadius: '10px', p: 1.75 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: '#15803D', fontSize: 12, fontWeight: 600, mb: 1.5 }}>
+                    <CheckCircleIcon sx={{ fontSize: 16 }} /> Factura válida
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, mb: 1 }}>
+                    <span style={{ color: '#94A3B8' }}>Cliente</span>
+                    <span style={{ color: '#1E293B', fontWeight: 500 }}>{factura.cliente}</span>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: '#94A3B8' }}>Monto facturado</span>
+                    <span style={{ color: '#1E293B', fontWeight: 500 }}>{formatoPesos(factura.total)}</span>
+                  </Box>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, mb: 1 }}>
-                  <span style={{ color: '#94A3B8' }}>Cliente</span>
-                  <span style={{ color: '#1E293B', fontWeight: 500 }}>María G.</span>
+              )}
+
+              {error && (
+                <Box sx={{ background: '#FEF2F2', border: '0.5px solid #FECACA', borderRadius: '10px', p: 1.75, display: 'flex', alignItems: 'center', gap: 0.75, color: '#B91C1C', fontSize: 13, fontWeight: 500 }}>
+                  <ErrorOutlineIcon sx={{ fontSize: 16 }} /> {error}
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: '#94A3B8' }}>Monto facturado</span>
-                  <span style={{ color: '#1E293B', fontWeight: 500 }}>$180.000</span>
-                </Box>
-              </Box>
+              )}
             </Box>
 
-            {/* Ruleta */}
             <Box
               sx={{
                 flex: '1 1 auto',
@@ -343,9 +369,11 @@ const RuletaHome: React.FC = () => {
                 alignItems: 'flex-start',
               }}
             >
+              {/* ✅ CORREGIDO: props con una sola llave y comas */}
               <Ruleta
                 userEmail="usuario@ejemplo.com"
-                segments={premios}
+                segments={intercalarSegments(premios)}
+                facturaValida={!!factura}
                 storeId={storeFilter}
               />
             </Box>

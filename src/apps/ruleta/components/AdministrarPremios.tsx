@@ -27,14 +27,10 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import { ISegment } from '../interfaces/ruleta.interface';
+import { ISegment, TGrupo } from '../interfaces/ruleta.interface';
+import { aplicarColorPorGrupo, migrarSegment, GRUPO_COLOR, GRUPO_POR_PREMIO } from '../utils/rangos';
 
 const STORAGE_KEY = 'ruleta_premios';
-
-const COLOR_PALETTE = [
-  '#F97316', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B',
-  '#EC4899', '#06B6D4', '#EF4444', '#84CC16', '#A855F7',
-];
 
 const descripcionesPorPremio: Record<string, string> = {
   'Jean de línea': 'Jean de línea premium',
@@ -73,20 +69,14 @@ const getDescripcion = (nombre: string): string => {
 const getPremiosFromStorage = (): ISegment[] => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
-    try { return JSON.parse(stored); } catch {}
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return parsed.map(migrarSegment);
+    } catch {}
   }
-  return [
-    { label: 'Jean de línea', color: '#F97316' },
-    { label: 'Jean básico', color: '#3B82F6' },
-    { label: 'Bonos $100k', color: '#10B981' },
-    { label: 'Bonos $50k', color: '#8B5CF6' },
-    { label: 'Bonos $30k', color: '#F59E0B' },
-    { label: 'Blusas básicas', color: '#EC4899' },
-    { label: 'Tote bag denim', color: '#06B6D4' },
-    { label: 'Tops', color: '#EF4444' },
-    { label: 'Pañoletas', color: '#84CC16' },
-    { label: 'Bambas', color: '#A855F7' },
-  ];
+  return Object.entries(GRUPO_POR_PREMIO).map(([label, grupo]) =>
+    aplicarColorPorGrupo(label, grupo)
+  );
 };
 
 const savePremiosToStorage = (premios: ISegment[]) => {
@@ -168,7 +158,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   const [openModal, setOpenModal] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [formLabel, setFormLabel] = useState('');
-  const [formColor, setFormColor] = useState(COLOR_PALETTE[0]);
+  const [formGrupo, setFormGrupo] = useState<TGrupo>('G3');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -194,11 +184,11 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     if (index !== undefined) {
       setEditingIndex(index);
       setFormLabel(premios[index].label);
-      setFormColor(premios[index].color);
+      setFormGrupo(premios[index].grupo);
     } else {
       setEditingIndex(null);
       setFormLabel('');
-      setFormColor(COLOR_PALETTE[0]);
+      setFormGrupo('G3');
     }
     setOpenModal(true);
   };
@@ -214,7 +204,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
       setSnackbar({ open: true, message: 'El nombre del premio es obligatorio', severity: 'error' });
       return;
     }
-    const newPremio: ISegment = { label: formLabel.trim(), color: formColor };
+    const newPremio: ISegment = aplicarColorPorGrupo(formLabel.trim(), formGrupo);
     let newPremios: ISegment[];
     if (editingIndex !== null) {
       newPremios = [...premios];
@@ -506,7 +496,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   width: 64,
                   height: 64,
                   borderRadius: '50%',
-                  bgcolor: formColor || '#1976D2',
+                  bgcolor: GRUPO_COLOR[formGrupo].color,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -534,7 +524,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   {formLabel || 'Nombre del premio'}
                 </Typography>
                 <Typography variant="caption" color="#94A3B8">
-                  Color: <span style={{ fontWeight: 600, color: formColor }}>{formColor}</span>
+                  Rango: <span style={{ fontWeight: 600, color: GRUPO_COLOR[formGrupo].color }}>{GRUPO_COLOR[formGrupo].label}</span>
                 </Typography>
               </Box>
             </Box>
@@ -575,13 +565,12 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                 display="block"
                 sx={{ fontWeight: 600, fontSize: '0.8rem' }}
               >
-                Selecciona un color
+                Selecciona un rango
               </Typography>
               <Box
                 sx={{
                   display: 'flex',
                   gap: 1.5,
-                  flexWrap: 'wrap',
                   mt: 0.5,
                   p: 1.5,
                   bgcolor: '#ffffff',
@@ -589,48 +578,42 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   border: '1px solid #E2E8F0',
                 }}
               >
-                {COLOR_PALETTE.map((c) => (
-                  <Tooltip key={c} title={c} arrow>
+                {(Object.keys(GRUPO_COLOR) as TGrupo[]).map((g) => {
+                  const selected = formGrupo === g;
+                  const meta = GRUPO_COLOR[g];
+                  return (
                     <Box
-                      onClick={() => setFormColor(c)}
+                      key={g}
+                      onClick={() => setFormGrupo(g)}
                       sx={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: '50%',
-                        bgcolor: c,
-                        border: formColor === c ? '3px solid #1976D2' : '2px solid #E2E8F0',
+                        flex: 1,
                         cursor: 'pointer',
+                        borderRadius: '10px',
+                        p: 1.25,
+                        border: selected ? `2px solid ${meta.color}` : '2px solid #E2E8F0',
+                        bgcolor: selected ? `${meta.color}15` : '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.25,
                         transition: 'all 0.2s ease',
-                        boxShadow: formColor === c
-                          ? '0 0 0 4px rgba(25,118,210,0.15)'
-                          : 'none',
-                        '&:hover': {
-                          transform: 'scale(1.12)',
-                          borderColor: '#1976D2',
-                        },
-                        position: 'relative',
-                        '&::after': formColor === c ? {
-                          content: '"✓"',
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          color: '#ffffff',
-                          fontSize: '1.2rem',
-                          fontWeight: 700,
-                          textShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                        } : {},
+                        '&:hover': { borderColor: meta.color },
                       }}
-                    />
-                  </Tooltip>
-                ))}
+                    >
+                      <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: meta.color, border: '2px solid #ffffff', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }} />
+                      <Box sx={{ lineHeight: 1.2 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#1E293B' }}>{g}</Typography>
+                        <Typography sx={{ fontSize: '0.7rem', color: '#64748B' }}>{meta.label}</Typography>
+                      </Box>
+                    </Box>
+                  );
+                })}
               </Box>
               <Typography
                 variant="caption"
                 color="text.secondary"
                 sx={{ mt: 1.5, display: 'block', fontStyle: 'italic' }}
               >
-                💡 Se usará la primera letra del nombre como icono
+                💡 El color se asigna automáticamente según el rango
               </Typography>
             </Box>
           </Box>

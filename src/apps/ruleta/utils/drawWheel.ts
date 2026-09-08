@@ -41,8 +41,8 @@ export const drawWheel = (
     const start = i * arcSize;
     const end = start + arcSize;
     const mid = start + arcSize / 2;
-    const base = COLORS[i % COLORS.length];
-    const dark = DARK[i % DARK.length];
+    const base = segments[i].color || COLORS[i % COLORS.length];
+    const dark = segments[i].colorDark || DARK[i % DARK.length];
 
 
     ctx.beginPath();
