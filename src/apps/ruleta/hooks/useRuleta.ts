@@ -2,19 +2,19 @@ import { useState, useCallback, useRef } from 'react';
 import { ISegment, IPremioResponse } from '../interfaces/ruleta.interface';
 
 // ============================================================
-// 🎯 CONFIGURACIÓN DE PREMIOS KANCAN (SOLO PARA LA LÓGICA)
+// 🎡 MOCK DE PREMIOS (reemplázalo con tu backend cuando esté listo)
 // ============================================================
 const PREMIOS_MOCK = [
-  { label: 'JEAN DE LÍNEA', weight: 10 },
-  { label: 'JEAN BÁSICO', weight: 10 },
-  { label: 'BONOS 100 MIL', weight: 10 },
-  { label: 'BONO 50 MIL', weight: 10 },
-  { label: 'BONO 30 MIL', weight: 10 },
-  { label: 'BLUSAS BASICAS', weight: 10 },
-  { label: 'TOTE BAGS denim', weight: 10 },
-  { label: 'TOPS', weight: 10 },
-  { label: 'PAÑOLETAS', weight: 10 },
-  { label: 'BAMBAS', weight: 10 },
+  { label: 'Jean de línea', weight: 10 },
+  { label: 'Jean básico', weight: 10 },
+  { label: 'Bonos $100k', weight: 10 },
+  { label: 'Bonos $50k', weight: 10 },
+  { label: 'Bonos $30k', weight: 10 },
+  { label: 'Blusas básicas', weight: 10 },
+  { label: 'Tote bag denim', weight: 10 },
+  { label: 'Tops', weight: 10 },
+  { label: 'Pañoletas', weight: 10 },
+  { label: 'Bambas', weight: 10 },
 ];
 
 const seleccionarPremio = (): string => {
@@ -36,7 +36,14 @@ const generarCupon = (): string => {
   return code;
 };
 
-export const useRuleta = (segments: ISegment[], userEmail?: string) => {
+// ============================================================
+// 🎡 HOOK PRINCIPAL (ahora acepta storeId)
+// ============================================================
+export const useRuleta = (
+  segments: ISegment[],
+  userEmail?: string,
+  storeId?: number | null // 👈 NUEVO PARÁMETRO
+) => {
   const [rotation, setRotation] = useState<number>(0);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [premio, setPremio] = useState<IPremioResponse | null>(null);
@@ -51,7 +58,9 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
       setError(null);
 
       try {
-        // Simulación de respuesta del backend (mock)
+        // ============================================================
+        // 🎲 SELECCIONAR PREMIO (MOCK)
+        // ============================================================
         const prize = seleccionarPremio();
         const couponCode = generarCupon();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -63,49 +72,33 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
           message: `🎉 ¡Felicidades! Has ganado ${prize}.`,
         };
 
-        // ========== CALCULAR ÁNGULO FINAL ==========
+        // ============================================================
+        // 🔄 ANIMACIÓN DE LA RULETA
+        // ============================================================
         const numSegments = segments.length;
         const arcSize = (2 * Math.PI) / numSegments;
         const targetIndex = segments.findIndex((seg) => seg.label === prize);
         const finalIndex = targetIndex !== -1 ? targetIndex : 0;
 
-        // Centro del sector ganador
         const centroSector = finalIndex * arcSize + arcSize / 2;
+        const extraSpins = 5 + Math.floor(Math.random() * 6);
+        const targetAngle = -Math.PI / 2 - centroSector + extraSpins * 2 * Math.PI;
 
-        // ========== VELOCIDAD ANGULAR CONSTANTE ==========
-        const velocidadAngular = 6 * Math.PI; // 3 vueltas por segundo (rápido)
-
-        // Calcular el ángulo objetivo (con 5 vueltas extras iniciales)
-        const vueltasExtrasIniciales = 5;
-        let targetAngle = -Math.PI / 2 - centroSector + vueltasExtrasIniciales * 2 * Math.PI;
-
-        // Asegurar que gire hacia adelante (delta positivo)
         let delta = targetAngle - rotation;
         while (delta < 0) delta += 2 * Math.PI;
-
-        // ========== GARANTIZAR DURACIÓN MÍNIMA DE 3 SEGUNDOS ==========
-        const duracionMinima = 3000; // 3 segundos
-        let duracion = (delta / velocidadAngular) * 1000; // en ms
-
-        // Si la duración es menor a la mínima, añadir vueltas completas
-        while (duracion < duracionMinima) {
-          delta += 2 * Math.PI; // añadir una vuelta completa
-          duracion = (delta / velocidadAngular) * 1000;
-        }
-
         const finalRotation = rotation + delta;
 
-        // ========== ANIMACIÓN ==========
         const startRotation = rotation;
-        const totalDelta = delta;
+        const totalDelta = finalRotation - startRotation;
+        const duration = 3000 + Math.random() * 1500;
         const startTime = performance.now();
 
         const animate = (time: number) => {
           const elapsed = time - startTime;
-          const progress = Math.min(elapsed / duracion, 1);
-          // Ease Out Quart (frenado suave)
+          const progress = Math.min(elapsed / duration, 1);
           const eased = 1 - Math.pow(1 - progress, 4);
-          setRotation(startRotation + totalDelta * eased);
+          const currentAngle = startRotation + totalDelta * eased;
+          setRotation(currentAngle);
 
           if (progress < 1) {
             animationRef.current = requestAnimationFrame(animate);
@@ -116,15 +109,16 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
             onComplete(data);
           }
         };
-
         animationRef.current = requestAnimationFrame(animate);
 
-        // ======== CUANDO TENGAS BACKEND REAL, REEMPLAZA ESTO ========
+        // ============================================================
+        // 🔥 CUANDO TENGAS BACKEND, REEMPLAZA ESTO
+        // ============================================================
         /*
         const response = await fetch('http://localhost:3001/api/promociones/ruleta/girar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userEmail: userEmail || 'anonimo' }),
+          body: JSON.stringify({ userEmail: userEmail || 'anonimo', storeId }),
         });
         const data = await response.json();
         // Luego la animación
@@ -135,7 +129,7 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
         throw err;
       }
     },
-    [isSpinning, rotation, segments, userEmail]
+    [isSpinning, rotation, segments, userEmail, storeId] // 👈 storeId añadido a dependencias
   );
 
   const reset = useCallback(() => {

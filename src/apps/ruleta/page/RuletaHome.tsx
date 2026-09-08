@@ -1,11 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, Tabs, Tab, Paper, Chip } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Tabs,
+  Tab,
+  Paper,
+  Chip,
+  Autocomplete,
+  InputAdornment,
+} from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import { Casino as RuletaIcon, LocalOffer as PremiosIcon } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
+import { getStores } from '../api/directus/read';
 import Ruleta from '../components/Ruleta';
 import AdministrarPremios from '../components/AdministrarPremios';
-import { ISegment } from '../interfaces/ruleta.interface';
+import { ISegment, Tienda } from '../interfaces/ruleta.interface';
 
 const STORAGE_KEY = 'ruleta_premios';
 
@@ -45,7 +59,45 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 const RuletaHome: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [premios, setPremios] = useState<ISegment[]>(() => getPremiosFromStorage());
+  const [storeFilter, setStoreFilter] = useState<number | null>(null);
 
+  // ============================================================
+  // 🏪 OBTENER TIENDAS DESDE DIRECTUS (core_stores)
+  // ============================================================
+  const { data: tiendasCompletas = [] } = useQuery<Tienda[]>({
+    queryKey: ['adminTiendas'],
+    queryFn: getStores,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  // ============================================================
+  // 🏪 FILTRO: Cali (excepto Cenco) + Manizales + Victoria Plaza
+  // ============================================================
+  const tiendasFiltradas = useMemo(() => {
+    return tiendasCompletas.filter((tienda) => {
+      const nombre = tienda.name?.toLowerCase() || '';
+      // Cali excepto Cenco Cali
+      const esCali = nombre.includes('cali') && !nombre.includes('cenco');
+      // Todas las tiendas de Manizales
+      const esManizales = nombre.includes('manizales');
+      // Victoria Plaza (escribelo como aparece en Directus)
+      const esVictoria = nombre.includes('victoria') || nombre.includes('vitoria');
+      return esCali || esManizales || esVictoria;
+    });
+  }, [tiendasCompletas]);
+
+  // ============================================================
+  // VALOR SELECCIONADO EN EL AUTOCOMPLETE
+  // ============================================================
+  const selectedStore = useMemo(() => {
+    if (storeFilter === null) return { id: null, name: 'Todas las tiendas' };
+    const found = tiendasFiltradas.find((t) => t.id === storeFilter);
+    return found ? found : { id: null, name: 'Todas las tiendas' };
+  }, [storeFilter, tiendasFiltradas]);
+
+  // ============================================================
+  // EFECTOS Y HANDLERS
+  // ============================================================
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
@@ -64,9 +116,6 @@ const RuletaHome: React.FC = () => {
     setPremios(nuevosPremios);
   };
 
-  // ============================================================
-  // TÍTULOS DINÁMICOS SEGÚN LA PESTAÑA
-  // ============================================================
   const titulo = tabValue === 0 ? 'Ruleta de Premios' : 'Administrar Premios';
   const subtitulo = tabValue === 0 ? 'Punto de venta' : 'Cambio de premios';
 
@@ -122,7 +171,6 @@ const RuletaHome: React.FC = () => {
                 <CardGiftcardIcon sx={{ fontSize: 19, color: '#1976D2' }} />
               </Box>
               <Box sx={{ lineHeight: 1.25 }}>
-                {/* ✅ TÍTULO DINÁMICO */}
                 <Typography
                   sx={{
                     fontSize: { xs: '1rem', sm: '1.2rem' },
@@ -133,28 +181,57 @@ const RuletaHome: React.FC = () => {
                 >
                   {titulo}
                 </Typography>
-                {/* ✅ SUBTÍTULO DINÁMICO */}
                 <Typography sx={{ fontSize: 12, color: '#94A3B8' }}>
                   {subtitulo}
                 </Typography>
               </Box>
             </Box>
 
-            {/* ✅ CHIP: solo visible en la pestaña RULETA */}
-            {tabValue === 0 && (
-              <Chip
-                label={`Total Premios: ${premios.length}`}
-                sx={{
-                  bgcolor: '#E3F2FD',
-                  color: '#004680',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  borderRadius: '8px',
-                  border: '1px solid #BBDEFB',
-                  height: 32,
-                }}
-              />
-            )}
+            {/* ===== SELECTOR DE TIENDAS (GLOBAL) ===== */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              {tiendasFiltradas.length > 0 && (
+                <Autocomplete
+                  size="small"
+                  options={[{ id: null, name: 'Todas las tiendas' }, ...tiendasFiltradas]}
+                  getOptionLabel={(o) => o.name}
+                  value={selectedStore}
+                  onChange={(_, v) => setStoreFilter(v ? v.id : null)}
+                  sx={{ width: { xs: '100%', sm: 250 } }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder="Seleccionar tienda"
+                      slotProps={{
+                        input: {
+                          ...params.InputProps,
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <StorefrontIcon sx={{ fontSize: 18, color: '#004680' }} />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
+                    />
+                  )}
+                />
+              )}
+
+              {tabValue === 0 && (
+                <Chip
+                  label={`Total Premios: ${premios.length}`}
+                  sx={{
+                    bgcolor: '#E3F2FD',
+                    color: '#004680',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid #BBDEFB',
+                    height: 32,
+                  }}
+                />
+              )}
+            </Box>
           </Box>
 
           {/* Pestañas */}
@@ -266,7 +343,11 @@ const RuletaHome: React.FC = () => {
                 alignItems: 'flex-start',
               }}
             >
-              <Ruleta userEmail="usuario@ejemplo.com" segments={premios} />
+              <Ruleta
+                userEmail="usuario@ejemplo.com"
+                segments={premios}
+                storeId={storeFilter}
+              />
             </Box>
           </Box>
         </TabPanel>

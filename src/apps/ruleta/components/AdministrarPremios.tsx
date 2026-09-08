@@ -244,7 +244,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
         <Box>
           <Typography variant="h5" fontWeight={700} color="#1E293B" sx={{ fontFamily: "'Poppins', sans-serif" }}>
-            Administrar Premios
+            Gestor de Premios
           </Typography>
           <Typography variant="body2" color="#94A3B8">
             Gestiona los premios disponibles en la ruleta

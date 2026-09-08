@@ -15,3 +15,11 @@ export interface IFormularioGanador {
   email: string;
   telefono: string;
 }
+
+// ============================================================
+// 🏪 TIENDA (para el selector)
+// ============================================================
+export interface Tienda {
+  id: number;
+  name: string;
+}

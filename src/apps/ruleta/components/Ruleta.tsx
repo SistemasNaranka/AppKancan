@@ -10,7 +10,6 @@ import {
 } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 
-
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -19,13 +18,11 @@ const zoomIn = keyframes`
   from { transform: scale(0.5); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 `;
-import { ISegment, IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface'; // ✅ Ruta correcta a interfaces
-import { drawWheel } from '../utils/drawWheel'; // ✅ Ruta correcta a utils
-import { useRuleta } from '../hooks/useRuleta'; // ✅ Ruta correcta a hooks
-import ModalPremio from '../components/ModalPremio'; // ✅ Ruta correcta (misma carpeta components)
 
-
-
+import { ISegment, IPremioResponse, IFormularioGanador } from '../interfaces/ruleta.interface';
+import { drawWheel } from '../utils/drawWheel';
+import { useRuleta } from '../hooks/useRuleta';
+import ModalPremio from './ModalPremio';
 
 const defaultSegments: ISegment[] = [
   { label: 'Jean de línea', color: '#F97316' },
@@ -40,7 +37,6 @@ const defaultSegments: ISegment[] = [
   { label: 'Bambas', color: '#A855F7' },
 ];
 
-
 // ===== STYLED COMPONENTS =====
 const Container = styled(Box)({
   background: 'transparent',
@@ -51,7 +47,6 @@ const Container = styled(Box)({
   margin: '0 auto',
 });
 
-
 const CanvasWrapper = styled(Box)({
   position: 'relative',
   display: 'inline-block',
@@ -61,7 +56,6 @@ const CanvasWrapper = styled(Box)({
   margin: '0 auto',
 });
 
-
 const StyledCanvas = styled('canvas')({
   width: '100% !important',
   height: '100% !important',
@@ -69,7 +63,6 @@ const StyledCanvas = styled('canvas')({
   borderRadius: '50%',
   cursor: 'default',
 });
-
 
 const Pointer = styled(Box)({
   position: 'absolute',
@@ -85,18 +78,24 @@ const Pointer = styled(Box)({
   filter: 'drop-shadow(0 2px 5px rgba(25,118,210,0.45))',
 });
 
-
+// ============================================================
+// 🎡 PROPS (con storeId agregado)
+// ============================================================
 interface RuletaProps {
   segments?: ISegment[];
   userEmail?: string;
   onPremioGanado?: (data: IPremioResponse) => void;
+  storeId?: number | null; // 👈 AÑADIDO
 }
 
-
+// ============================================================
+// COMPONENTE PRINCIPAL
+// ============================================================
 const Ruleta: React.FC<RuletaProps> = ({
   segments = defaultSegments,
   userEmail,
   onPremioGanado,
+  storeId, // 👈 DESESTRUCTURADO
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bigCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -108,9 +107,12 @@ const Ruleta: React.FC<RuletaProps> = ({
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'info' });
 
-
-  const { rotation, isSpinning, error, premio, girar, reset } = useRuleta(segments, userEmail);
-
+  // 👇 PASAR storeId al hook (aunque el hook no lo use aún, lo recibe sin error)
+  const { rotation, isSpinning, error, premio, girar, reset } = useRuleta(
+    segments,
+    userEmail,
+    storeId // 👈 PARÁMETRO EXTRA
+  );
 
   useEffect(() => {
     if (!isSpinning) {
@@ -118,13 +120,11 @@ const Ruleta: React.FC<RuletaProps> = ({
     }
   }, [segments, isSpinning]);
 
-
   useEffect(() => {
     if (isSpinning || modalOpen) {
       drawWheel(bigCanvasRef.current, segments, rotation);
     }
   }, [rotation, segments, isSpinning, modalOpen]);
-
 
   const handleSpin = async () => {
     try {
@@ -142,23 +142,21 @@ const Ruleta: React.FC<RuletaProps> = ({
     }
   };
 
-
   useEffect(() => {
     if (error) {
       setSnackbar({ open: true, message: error, severity: 'error' });
     }
   }, [error]);
 
-
   const handleCloseModal = () => {
     setModalOpen(false);
     reset();
   };
 
-
   const handleCanjear = (datos: IFormularioGanador, codigo: string) => {
     console.log('Datos del ganador:', datos);
     console.log('Código canjeado:', codigo);
+    console.log('Tienda seleccionada:', storeId); // 👈 MUESTRA LA TIENDA EN CONSOLA
     setSnackbar({
       open: true,
       message: `✅ ¡Premio canjeado con éxito! Código: ${codigo}`,
@@ -166,17 +164,14 @@ const Ruleta: React.FC<RuletaProps> = ({
     });
   };
 
-
   const handleSnackbarClose = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
-
 
   const currentTime = new Date().toLocaleTimeString('es-ES', {
     hour: '2-digit',
     minute: '2-digit',
   });
-
 
   return (
     <>
@@ -227,7 +222,6 @@ const Ruleta: React.FC<RuletaProps> = ({
         </Box>
       )}
 
-
       <Container>
         <Box sx={{ mb: 3 }}>
           <Typography
@@ -248,12 +242,10 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Typography>
         </Box>
 
-
         <CanvasWrapper>
           <StyledCanvas ref={canvasRef} width={600} height={600} />
           <Pointer />
         </CanvasWrapper>
-
 
         <Button
           variant="contained"
@@ -295,7 +287,6 @@ const Ruleta: React.FC<RuletaProps> = ({
           )}
         </Button>
 
-
         {error && (
           <Typography
             sx={{
@@ -314,13 +305,11 @@ const Ruleta: React.FC<RuletaProps> = ({
         )}
       </Container>
 
-
       <ModalPremio
         open={modalOpen}
         premioData={premioData}
         onClose={handleCloseModal}
       />
-
 
       <Snackbar
         open={snackbar.open}
@@ -336,6 +325,4 @@ const Ruleta: React.FC<RuletaProps> = ({
   );
 };
 
-
 export default Ruleta;
-
