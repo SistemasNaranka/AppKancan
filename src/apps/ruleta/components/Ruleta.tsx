@@ -6,6 +6,7 @@ import { drawWheel } from '../utils/drawWheel';
 import { useRuleta } from '../hooks/useRuleta';
 import ModalPremio from './ModalPremio';
 
+
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -21,18 +22,11 @@ const tick = keyframes`
   100% { transform: translateX(-50%) rotate(0deg); }
 `;
 
-const defaultSegments: ISegment[] = [
-  { label: 'Jean de línea', color: '#F97316' },
-  { label: 'Jean básico', color: '#3B82F6' },
-  { label: 'Bonos $100k', color: '#10B981' },
-  { label: 'Bonos $50k', color: '#8B5CF6' },
-  { label: 'Bonos $30k', color: '#F59E0B' },
-  { label: 'Blusas básicas', color: '#EC4899' },
-  { label: 'Tote bag denim', color: '#06B6D4' },
-  { label: 'Tops', color: '#EF4444' },
-  { label: 'Pañoletas', color: '#84CC16' },
-  { label: 'Bambas', color: '#A855F7' },
-];
+import { aplicarColorPorGrupo, GRUPO_POR_PREMIO } from '../utils/rangos';
+
+const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
+  ([label, grupo]) => aplicarColorPorGrupo(label, grupo)
+);
 
 const Container = styled(Box)({
   background: 'transparent',
@@ -43,6 +37,7 @@ const Container = styled(Box)({
   margin: '0 auto',
 });
 
+
 const CanvasWrapper = styled(Box)({
   position: 'relative',
   display: 'inline-block',
@@ -52,6 +47,7 @@ const CanvasWrapper = styled(Box)({
   margin: '0 auto',
 });
 
+
 const StyledCanvas = styled('canvas')({
   width: '100% !important',
   height: '100% !important',
@@ -59,6 +55,7 @@ const StyledCanvas = styled('canvas')({
   borderRadius: '50%',
   cursor: 'default',
 });
+
 
 const Pointer = styled(Box)({
   position: 'absolute',
@@ -74,12 +71,14 @@ const Pointer = styled(Box)({
   filter: 'drop-shadow(0 2px 5px rgba(25,118,210,0.45))',
 });
 
+
 interface RuletaProps {
   segments?: ISegment[];
   userEmail?: string;
   onPremioGanado?: (data: IPremioResponse) => void;
   facturaValida?: boolean;
 }
+
 
 const Ruleta: React.FC<RuletaProps> = ({
   segments = defaultSegments,
@@ -99,17 +98,20 @@ const Ruleta: React.FC<RuletaProps> = ({
 
   const { rotation, isSpinning, error, girar, reset } = useRuleta(segments, userEmail);
 
+
   useEffect(() => {
     if (!isSpinning) {
       drawWheel(canvasRef.current, segments, 0);
     }
   }, [segments, isSpinning]);
 
+
   useEffect(() => {
     if (isSpinning || modalOpen) {
       drawWheel(bigCanvasRef.current, segments, rotation);
     }
   }, [rotation, segments, isSpinning, modalOpen]);
+
 
   const handleSpin = async () => {
     try {
@@ -127,11 +129,13 @@ const Ruleta: React.FC<RuletaProps> = ({
     }
   };
 
+
   useEffect(() => {
     if (error) {
       setSnackbar({ open: true, message: error, severity: 'error' });
     }
   }, [error]);
+
 
   const handleCloseModal = () => {
     setModalOpen(false);
@@ -193,6 +197,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         </Box>
       )}
 
+
       <Container>
         <Box sx={{ mb: 3 }}>
           <Typography
@@ -211,10 +216,12 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Typography>
         </Box>
 
+
         <CanvasWrapper>
           <StyledCanvas ref={canvasRef} width={600} height={600} />
           <Pointer />
         </CanvasWrapper>
+
 
         <Button
           variant="contained"
@@ -256,6 +263,7 @@ const Ruleta: React.FC<RuletaProps> = ({
           )}
         </Button>
 
+
         {error && (
           <Typography
             sx={{
@@ -276,6 +284,7 @@ const Ruleta: React.FC<RuletaProps> = ({
 
       <ModalPremio open={modalOpen} premioData={premioData} onClose={handleCloseModal} />
 
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={5000}
@@ -290,4 +299,6 @@ const Ruleta: React.FC<RuletaProps> = ({
   );
 };
 
+
 export default Ruleta;
+

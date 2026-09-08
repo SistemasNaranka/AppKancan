@@ -5,6 +5,7 @@ import CelebrationIcon from '@mui/icons-material/Celebration';
 import { keyframes } from '@mui/material/styles';
 import { IPremioResponse } from '../interfaces/ruleta.interface';
 
+
 const fall = keyframes`
   0% { transform: translateY(-30px) rotate(0); opacity: 1; }
   100% { transform: translateY(110vh) rotate(400deg); opacity: 0; }
@@ -19,7 +20,9 @@ const shine = keyframes`
   100% { background-position: 200% 0; }
 `;
 
+
 const COLORS = ['#FB7185', '#38BDF8', '#34D399', '#A78BFA', '#FBBF24', '#F472B6', '#FB923C', '#22D3EE', '#fff'];
+
 
 const Confeti: React.FC = () => (
   <>
@@ -41,11 +44,13 @@ const Confeti: React.FC = () => (
   </>
 );
 
+
 interface Props {
   open: boolean;
   premioData: IPremioResponse | null;
   onClose: () => void;
 }
+
 
 const ModalPremio: React.FC<Props> = ({ open, premioData, onClose }) => {
   return (
@@ -64,6 +69,7 @@ const ModalPremio: React.FC<Props> = ({ open, premioData, onClose }) => {
         <Box sx={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
           <Confeti />
         </Box>
+
 
         <Box
           sx={{
@@ -105,11 +111,13 @@ const ModalPremio: React.FC<Props> = ({ open, premioData, onClose }) => {
             </Typography>
           </Box>
 
+
           <Box sx={{ background: '#fff', height: 18, position: 'relative' }}>
             <Box sx={{ position: 'absolute', left: -10, top: -2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(15,23,42,0.5)' }} />
             <Box sx={{ position: 'absolute', right: -10, top: -2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(15,23,42,0.5)' }} />
             <Box sx={{ borderTop: '2px dashed #CBD5E1', mx: '22px', mt: '8px' }} />
           </Box>
+
 
           <Box sx={{ background: '#fff', borderRadius: '0 0 24px 24px', padding: '6px 30px 30px', textAlign: 'center' }}>
             <Typography sx={{ fontSize: 12, color: '#94A3B8', letterSpacing: '2px', textTransform: 'uppercase', mb: 1 }}>
@@ -155,4 +163,6 @@ const ModalPremio: React.FC<Props> = ({ open, premioData, onClose }) => {
   );
 };
 
+
 export default ModalPremio;
+

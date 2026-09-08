@@ -1,7 +1,21 @@
 import { useState, useCallback, useRef } from 'react';
 import { ISegment, IPremioResponse } from '../interfaces/ruleta.interface';
 
-const API_URL = 'http://localhost:3001';
+// ⚠️ TEMPORAL: sorteo en frontend. Reemplazar por respuesta del backend.
+const seleccionarPremioMock = (segments: ISegment[]): string => {
+  if (segments.length === 0) return '';
+  const idx = Math.floor(Math.random() * segments.length);
+  return segments[idx].label;
+};
+
+const generarCupon = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = 'KAN-';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
 
 export const useRuleta = (segments: ISegment[], userEmail?: string) => {
   const [rotation, setRotation] = useState<number>(0);
@@ -18,44 +32,59 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
       setError(null);
 
       try {
-        // ⚠️ SIMULACIÓN TEMPORAL — borrar cuando exista el backend.
-        // El premio real DEBE venir del backend (nunca decidirse en el front).
-        await new Promise((r) => setTimeout(r, 300));
-        const premioSimulado = segments[Math.floor(Math.random() * segments.length)];
-        const data: IPremioResponse = { prize: premioSimulado.label } as IPremioResponse;
+        // Simulación de respuesta del backend (mock)
+        const prize = seleccionarPremioMock(segments);
+        const couponCode = generarCupon();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-        // --- BACKEND REAL (descomentar cuando esté listo y borrar la simulación de arriba) ---
-        // const response = await fetch(`${API_URL}/api/promociones/ruleta/girar`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ userEmail: userEmail || 'anonimo' }),
-        // });
-        // if (!response.ok) {
-        //   const errorData = await response.json();
-        //   throw new Error(errorData.message || 'Error al girar la ruleta');
-        // }
-        // const data: IPremioResponse = await response.json();
+        const data: IPremioResponse = {
+          prize,
+          couponCode,
+          expiresAt: expiresAt.toISOString(),
+          message: `🎉 ¡Felicidades! Has ganado ${prize}.`,
+        };
 
+        // ========== CALCULAR ÁNGULO FINAL ==========
         const numSegments = segments.length;
         const arcSize = (2 * Math.PI) / numSegments;
-        const targetIndex = segments.findIndex((seg) => seg.label === data.prize);
+        const targetIndex = segments.findIndex((seg) => seg.label === prize);
         const finalIndex = targetIndex !== -1 ? targetIndex : 0;
 
-        const fullTurn = 2 * Math.PI;
-        const startRotation = ((rotation % fullTurn) + fullTurn) % fullTurn;
+        // Centro del sector ganador
+        const centroSector = finalIndex * arcSize + arcSize / 2;
 
-        const targetAngle = ((-(finalIndex * arcSize + arcSize / 2)) % fullTurn + fullTurn) % fullTurn;
-        const extraSpins = 5 + Math.floor(Math.random() * 3);
-        let delta = targetAngle - startRotation;
-        if (delta < 0) delta += fullTurn;
-        const totalDelta = delta + extraSpins * fullTurn;
-        const finalRotation = startRotation + totalDelta;
+        // ========== VELOCIDAD ANGULAR CONSTANTE ==========
+        const velocidadAngular = 6 * Math.PI; // 3 vueltas por segundo (rápido)
 
-        const duration = 4500 + Math.random() * 1500;
+        // Calcular el ángulo objetivo (con 5 vueltas extras iniciales)
+        const vueltasExtrasIniciales = 5;
+        let targetAngle = -Math.PI / 2 - centroSector + vueltasExtrasIniciales * 2 * Math.PI;
+
+        // Asegurar que gire hacia adelante (delta positivo)
+        let delta = targetAngle - rotation;
+        while (delta < 0) delta += 2 * Math.PI;
+
+        // ========== GARANTIZAR DURACIÓN MÍNIMA DE 3 SEGUNDOS ==========
+        const duracionMinima = 3000; // 3 segundos
+        let duracion = (delta / velocidadAngular) * 1000; // en ms
+
+        // Si la duración es menor a la mínima, añadir vueltas completas
+        while (duracion < duracionMinima) {
+          delta += 2 * Math.PI; // añadir una vuelta completa
+          duracion = (delta / velocidadAngular) * 1000;
+        }
+
+        const finalRotation = rotation + delta;
+
+        // ========== ANIMACIÓN ==========
+        const startRotation = rotation;
+        const totalDelta = delta;
         const startTime = performance.now();
 
         const animate = (time: number) => {
-          const progress = Math.min((time - startTime) / duration, 1);
+          const elapsed = time - startTime;
+          const progress = Math.min(elapsed / duracion, 1);
+          // Ease Out Quart (frenado suave)
           const eased = 1 - Math.pow(1 - progress, 4);
           setRotation(startRotation + totalDelta * eased);
 
@@ -70,6 +99,17 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
         };
 
         animationRef.current = requestAnimationFrame(animate);
+
+        // ======== CUANDO TENGAS BACKEND REAL, REEMPLAZA ESTO ========
+        /*
+        const response = await fetch('http://localhost:3001/api/promociones/ruleta/girar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userEmail: userEmail || 'anonimo' }),
+        });
+        const data = await response.json();
+        // Luego la animación
+        */
       } catch (err: any) {
         setIsSpinning(false);
         setError(err.message);
@@ -88,5 +128,5 @@ export const useRuleta = (segments: ISegment[], userEmail?: string) => {
     setError(null);
   }, []);
 
-  return { rotation, isSpinning, premio, error, girar, reset, setError };
+  return { rotation, isSpinning, premio, error, girar, reset };
 };
