@@ -79,7 +79,7 @@ const Pointer = styled(Box)({
     content: '""',
     position: 'absolute',
     top: '4px',
-    width: '12px',
+    width: '12px',  
     height: '12px',
     borderRadius: '50%',
     background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #E2E8F0 65%, #94A3B8 100%)',

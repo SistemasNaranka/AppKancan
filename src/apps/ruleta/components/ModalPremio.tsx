@@ -5,7 +5,9 @@ import CelebrationIcon from '@mui/icons-material/Celebration';
 import { keyframes } from '@mui/material/styles';
 import { IPremioResponse } from '../interfaces/ruleta.interface';
 
-
+// ============================================================
+// 🎨 ANIMACIONES
+// ============================================================
 const fall = keyframes`
   0% { transform: translateY(-30px) rotate(0); opacity: 1; }
   100% { transform: translateY(110vh) rotate(400deg); opacity: 0; }
@@ -20,37 +22,89 @@ const shine = keyframes`
   100% { background-position: 200% 0; }
 `;
 
+// ============================================================
+// 🎨 COLORES Y EMOJIS (SOLO ROPA + K)
+// ============================================================
+const COLORS = [
+  '#FF6B6B', '#4ECDC4', '#FFE66D', '#FF9F43', '#54A0FF',
+  '#A29BFE', '#FD79A8', '#00D2D3', '#FDCB6E', '#E17055',
+];
 
-const COLORS = ['#FB7185', '#38BDF8', '#34D399', '#A78BFA', '#FBBF24', '#F472B6', '#FB923C', '#22D3EE', '#fff'];
+const CLOTHING_ITEMS = ['K', '👖', '👕', '👟', '👚', '🧥', '👜', '👗', '👠'];
 
+// ============================================================
+// 🎊 CONFETI (K BLANCA CON BORDE AZUL #004680 MUY GRUESO)
+// ============================================================
+const Confeti: React.FC = () => {
+  const items = Array.from({ length: 50 }).map((_, i) => {
+    const isClothing = Math.random() < 0.7;
+    const color = COLORS[i % COLORS.length];
+    const item = CLOTHING_ITEMS[i % CLOTHING_ITEMS.length];
+    const shape = Math.random() > 0.5 ? '50%' : '2px';
+    let size = 12 + Math.random() * 14;
+    const isK = isClothing && item === 'K';
+    const finalSize = isK ? size * 2.5 : size;
+    const specialColor = isK ? '#FFFFFF' : color;
 
-const Confeti: React.FC = () => (
-  <>
-    {Array.from({ length: 40 }).map((_, i) => (
-      <Box
-        key={i}
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: `${Math.random() * 100}%`,
-          width: 10,
-          height: 10,
-          background: COLORS[i % COLORS.length],
-          borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-          animation: `${fall} ${2.2 + Math.random() * 2}s linear ${Math.random() * 2.5}s infinite`,
-        }}
-      />
-    ))}
-  </>
-);
+    return { isClothing, color, item, shape, size: finalSize, specialColor, isK };
+  });
 
+  return (
+    <>
+      {items.map((item, i) => {
+        const left = Math.random() * 100;
+        const duration = 2.5 + Math.random() * 2.5;
+        const delay = Math.random() * 3;
+        const rotation = Math.random() * 360;
 
+        return (
+          <Box
+            key={i}
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: `${left}%`,
+              width: item.size,
+              height: item.size,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: item.isClothing ? 'transparent' : item.color,
+              borderRadius: item.isClothing ? '0%' : item.shape,
+              fontSize: item.isClothing ? `${item.size * 1.2}px` : '0',
+              fontWeight: item.isK ? 900 : 500,
+              fontFamily: item.isK ? "'Poppins', sans-serif" : 'inherit',
+              color: item.isClothing ? item.specialColor : 'transparent',
+              // ✅ Borde azul #004680 DE 5px (muy grueso)
+              WebkitTextStroke: item.isK ? `5px #004680` : 'none',
+              paintOrder: item.isK ? 'stroke fill' : 'unset',
+              animation: `${fall} ${duration}s ease-in-out ${delay}s infinite`,
+              textShadow: item.isClothing
+                ? item.isK
+                  ? '0 0 20px rgba(0,70,128,0.5)' // Sombra más intensa
+                  : '0 0 10px rgba(255,255,255,0.6)'
+                : 'none',
+              zIndex: 2,
+              pointerEvents: 'none',
+              transform: `rotate(${rotation}deg)`,
+            }}
+          >
+            {item.isClothing ? item.item : ''}
+          </Box>
+        );
+      })}
+    </>
+  );
+};
+
+// ============================================================
+// 🏆 MODAL PRINCIPAL (SIN CAMBIOS)
+// ============================================================
 interface Props {
   open: boolean;
   premioData: IPremioResponse | null;
   onClose: () => void;
 }
-
 
 const ModalPremio: React.FC<Props> = ({ open, premioData, onClose }) => {
   return (
@@ -69,7 +123,6 @@ const ModalPremio: React.FC<Props> = ({ open, premioData, onClose }) => {
         <Box sx={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
           <Confeti />
         </Box>
-
 
         <Box
           sx={{
@@ -111,13 +164,11 @@ const ModalPremio: React.FC<Props> = ({ open, premioData, onClose }) => {
             </Typography>
           </Box>
 
-
           <Box sx={{ background: '#fff', height: 18, position: 'relative' }}>
             <Box sx={{ position: 'absolute', left: -10, top: -2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(15,23,42,0.5)' }} />
             <Box sx={{ position: 'absolute', right: -10, top: -2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(15,23,42,0.5)' }} />
             <Box sx={{ borderTop: '2px dashed #CBD5E1', mx: '22px', mt: '8px' }} />
           </Box>
-
 
           <Box sx={{ background: '#fff', borderRadius: '0 0 24px 24px', padding: '6px 30px 30px', textAlign: 'center' }}>
             <Typography sx={{ fontSize: 12, color: '#94A3B8', letterSpacing: '2px', textTransform: 'uppercase', mb: 1 }}>
@@ -163,6 +214,4 @@ const ModalPremio: React.FC<Props> = ({ open, premioData, onClose }) => {
   );
 };
 
-
 export default ModalPremio;
-
