@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   TextField,
   Snackbar,
@@ -25,6 +26,7 @@ import {
   EditNote as EditNoteIcon,
   DeleteForever as DeleteForeverIcon,
   Close as CloseIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { ISegment, TGrupo } from '../interfaces/ruleta.interface';
@@ -32,6 +34,40 @@ import { aplicarColorPorGrupo, migrarSegment, GRUPO_COLOR, GRUPO_POR_PREMIO } fr
 
 const STORAGE_KEY = 'ruleta_premios';
 
+// ============================================================
+// 🎨 PALETA DE COLORES PARA PREMIOS (12 colores)
+// ============================================================
+const COLOR_PALETTE = [
+  '#E53935', // G1 - Rojo
+  '#FBC02D', // G2 - Amarillo
+  '#1E88E5', // G3 - Azul
+  '#FF6B6B', // Rojo claro
+  '#FF9F43', // Naranja
+  '#FECA57', // Amarillo claro
+  '#54A0FF', // Azul claro
+  '#5F27CD', // Púrpura
+  '#A29BFE', // Lila
+  '#00D2D3', // Turquesa
+  '#55EFC4', // Verde menta
+  '#FD79A8', // Rosa
+];
+
+// ============================================================
+// FUNCIÓN PARA OSCURECER UN COLOR (para colorDark)
+// ============================================================
+const darkenColor = (hex: string): string => {
+  let r = parseInt(hex.slice(1, 3), 16);
+  let g = parseInt(hex.slice(3, 5), 16);
+  let b = parseInt(hex.slice(5, 7), 16);
+  r = Math.max(0, r - 50);
+  g = Math.max(0, g - 50);
+  b = Math.max(0, b - 50);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
+
+// ============================================================
+// DESCRIPCIONES Y UTILIDADES
+// ============================================================
 const descripcionesPorPremio: Record<string, string> = {
   'Jean de línea': 'Jean de línea premium',
   'Jean básico': 'Jean básico clásico',
@@ -66,6 +102,9 @@ const getDescripcion = (nombre: string): string => {
   return descripcionesPorPremio[nombre] || 'Premio exclusivo de KANCAN';
 };
 
+// ============================================================
+// FUNCIONES DE ALMACENAMIENTO (localStorage)
+// ============================================================
 const getPremiosFromStorage = (): ISegment[] => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
@@ -83,10 +122,12 @@ const savePremiosToStorage = (premios: ISegment[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(premios));
 };
 
-// ===== ESTILOS DE TARJETAS MÁS VISIBLES =====
+// ============================================================
+// ESTILOS DE TARJETAS
+// ============================================================
 const PremioCard = styled(Card)(({ theme }) => ({
   borderRadius: '16px',
-  border: '1px solid #d0d7de', // borde más oscuro
+  border: '1px solid #d0d7de',
   boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
   transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
   width: '100%',
@@ -97,7 +138,7 @@ const PremioCard = styled(Card)(({ theme }) => ({
   justifyContent: 'space-between',
   position: 'relative',
   overflow: 'hidden',
-  backgroundColor: '#ffffff', // fondo blanco sólido
+  backgroundColor: '#ffffff',
   '&:hover': {
     transform: 'translateY(-4px)',
     boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
@@ -146,6 +187,9 @@ const DecoratedBadge = styled(Box)({
   pointerEvents: 'none',
 });
 
+// ============================================================
+// PROPS DEL COMPONENTE
+// ============================================================
 interface AdministrarPremiosProps {
   onPremiosChange: (premios: ISegment[]) => void;
 }
@@ -159,6 +203,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [formLabel, setFormLabel] = useState('');
   const [formGrupo, setFormGrupo] = useState<TGrupo>('G3');
+  const [formColor, setFormColor] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -167,6 +212,13 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
 
+  // ===== ESTADOS PARA EL MODAL DE ELIMINACIÓN =====
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+
+  // ============================================================
+  // EFECTOS
+  // ============================================================
   useEffect(() => {
     const stored = getPremiosFromStorage();
     setPremios(stored);
@@ -180,15 +232,20 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     }
   }, [premios]);
 
+  // ============================================================
+  // MANEJADORES DEL MODAL (Crear/Editar)
+  // ============================================================
   const handleOpenModal = (index?: number) => {
     if (index !== undefined) {
       setEditingIndex(index);
       setFormLabel(premios[index].label);
       setFormGrupo(premios[index].grupo);
+      setFormColor(premios[index].color || null);
     } else {
       setEditingIndex(null);
       setFormLabel('');
       setFormGrupo('G3');
+      setFormColor(null);
     }
     setOpenModal(true);
   };
@@ -197,6 +254,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     setOpenModal(false);
     setEditingIndex(null);
     setFormLabel('');
+    setFormColor(null);
   };
 
   const handleSavePremio = () => {
@@ -204,7 +262,20 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
       setSnackbar({ open: true, message: 'El nombre del premio es obligatorio', severity: 'error' });
       return;
     }
-    const newPremio: ISegment = aplicarColorPorGrupo(formLabel.trim(), formGrupo);
+
+    const grupoColor = GRUPO_COLOR[formGrupo].color;
+    const grupoColorDark = GRUPO_COLOR[formGrupo].colorDark;
+
+    const finalColor = formColor || grupoColor;
+    const finalColorDark = formColor ? darkenColor(finalColor) : grupoColorDark;
+
+    const newPremio: ISegment = {
+      label: formLabel.trim(),
+      grupo: formGrupo,
+      color: finalColor,
+      colorDark: finalColorDark,
+    };
+
     let newPremios: ISegment[];
     if (editingIndex !== null) {
       newPremios = [...premios];
@@ -217,14 +288,31 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     handleCloseModal();
   };
 
-  const handleDeletePremio = (index: number) => {
-    if (window.confirm('¿Estás seguro de eliminar este premio?')) {
-      const newPremios = premios.filter((_, i) => i !== index);
+  // ============================================================
+  // MANEJADORES DEL MODAL DE ELIMINACIÓN
+  // ============================================================
+  const handleOpenDeleteDialog = (index: number) => {
+    setDeleteIndex(index);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setDeleteIndex(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteIndex !== null) {
+      const newPremios = premios.filter((_, i) => i !== deleteIndex);
       setPremios(newPremios);
-      setSnackbar({ open: true, message: 'Premio eliminado', severity: 'success' });
+      setSnackbar({ open: true, message: 'Premio eliminado correctamente', severity: 'success' });
+      handleCloseDeleteDialog();
     }
   };
 
+  // ============================================================
+  // RENDER
+  // ============================================================
   const totalPages = Math.ceil(premios.length / rowsPerPage);
   const displayedPremios = premios.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
@@ -258,7 +346,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
         </Button>
       </Box>
 
-      {/* ===== CONTENEDOR CON FONDO VISIBLE ===== */}
+      {/* ===== CONTENEDOR DE PREMIOS ===== */}
       <Box
         sx={{
           bgcolor: '#eef2f6',
@@ -363,7 +451,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                         <Tooltip title="Eliminar premio">
                           <IconButton
                             size="small"
-                            onClick={() => handleDeletePremio(realIndex)}
+                            onClick={() => handleOpenDeleteDialog(realIndex)}
                             sx={{
                               color: '#D32F2F',
                               backgroundColor: '#FFEBEE',
@@ -429,7 +517,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
         )}
       </Box>
 
-      {/* ===== MODAL ===== */}
+      {/* ===== MODAL DE CREAR/EDITAR PREMIO ===== */}
       <Dialog
         open={openModal}
         onClose={handleCloseModal}
@@ -479,6 +567,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
 
         <DialogContent sx={{ p: 3, bgcolor: '#fafbfc' }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+            {/* ===== VISTA PREVIA ===== */}
             <Box
               sx={{
                 p: 2.5,
@@ -496,7 +585,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   width: 64,
                   height: 64,
                   borderRadius: '50%',
-                  bgcolor: GRUPO_COLOR[formGrupo].color,
+                  bgcolor: formColor || GRUPO_COLOR[formGrupo].color,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -529,6 +618,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
               </Box>
             </Box>
 
+            {/* ===== NOMBRE DEL PREMIO ===== */}
             <TextField
               label="Nombre del premio *"
               value={formLabel}
@@ -557,6 +647,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
               }}
             />
 
+            {/* ===== SELECTOR DE RANGO ===== */}
             <Box>
               <Typography
                 variant="caption"
@@ -608,12 +699,124 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   );
                 })}
               </Box>
+            </Box>
+
+            {/* ===== SELECTOR DE COLOR ===== */}
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                gutterBottom
+                display="block"
+                sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+              >
+                Color personalizado (opcional)
+              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 1.5,
+                  mt: 1,
+                  p: 1.5,
+                  bgcolor: '#ffffff',
+                  borderRadius: '12px',
+                  border: '1px solid #E2E8F0',
+                }}
+              >
+                {COLOR_PALETTE.map((color) => {
+                  const isSelected = formColor === color;
+                  const isDefault = color === GRUPO_COLOR[formGrupo].color;
+                  return (
+                    <Box
+                      key={color}
+                      onClick={() => setFormColor(color)}
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        bgcolor: color,
+                        border: isSelected ? '3px solid #004680' : '2px solid #E2E8F0',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: isSelected ? '0 0 0 3px rgba(0,70,128,0.25)' : 'none',
+                        '&:hover': {
+                          transform: 'scale(1.1)',
+                          borderColor: '#004680',
+                        },
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {isDefault && formColor === null && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            bgcolor: '#1976D2',
+                            color: '#fff',
+                            fontSize: '0.5rem',
+                            px: 0.6,
+                            py: 0.2,
+                            borderRadius: '10px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          ⚡
+                        </Box>
+                      )}
+                      {isSelected && (
+                        <Box
+                          sx={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            bgcolor: '#ffffff',
+                            opacity: 0.8,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                          }}
+                        />
+                      )}
+                    </Box>
+                  );
+                })}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    ml: 1,
+                  }}
+                >
+                  <input
+                    type="color"
+                    value={formColor || '#000000'}
+                    onChange={(e) => setFormColor(e.target.value)}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '50%',
+                      padding: 0,
+                      cursor: 'pointer',
+                      background: 'none',
+                    }}
+                  />
+                  <Typography variant="caption" color="#94A3B8" sx={{ maxWidth: 80 }}>
+                    Personalizado
+                  </Typography>
+                </Box>
+              </Box>
               <Typography
                 variant="caption"
                 color="text.secondary"
                 sx={{ mt: 1.5, display: 'block', fontStyle: 'italic' }}
               >
-                💡 El color se asigna automáticamente según el rango
+                💡 Selecciona un color de la paleta o elige uno personalizado.
+                {formColor ? ' Se usará el color seleccionado.' : ' Si no seleccionas, se usa el color del rango.'}
               </Typography>
             </Box>
           </Box>
@@ -659,6 +862,96 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
             }}
           >
             {editingIndex !== null ? 'Actualizar premio' : 'Guardar premio'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ===== MODAL DE CONFIRMACIÓN PARA ELIMINAR ===== */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            m: 0,
+            p: 2.5,
+            background: 'linear-gradient(135deg, #D32F2F, #B71C1C)',
+            color: '#ffffff',
+            fontWeight: 700,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <WarningIcon sx={{ fontSize: 28 }} />
+            <Typography variant="h6" fontWeight={700}>
+              Eliminar premio
+            </Typography>
+          </Box>
+          <IconButton onClick={handleCloseDeleteDialog} sx={{ color: '#ffffff' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 3, bgcolor: '#fafbfc' }}>
+          <DialogContentText sx={{ fontSize: '1rem', color: '#1E293B', fontWeight: 500 }}>
+            ¿Estás seguro de que deseas eliminar el premio <strong>"{deleteIndex !== null ? premios[deleteIndex]?.label : ''}"</strong>?
+          </DialogContentText>
+          <Typography variant="body2" color="#94A3B8" sx={{ mt: 1 }}>
+            Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            p: 2.5,
+            px: 3,
+            borderTop: '1px solid #E2E8F0',
+            bgcolor: '#ffffff',
+            gap: 1,
+          }}
+        >
+          <Button
+            onClick={handleCloseDeleteDialog}
+            sx={{
+              textTransform: 'none',
+              borderRadius: '10px',
+              fontWeight: 600,
+              px: 3,
+              color: '#64748B',
+              '&:hover': {
+                bgcolor: '#F1F5F9',
+              },
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            disableElevation
+            sx={{
+              bgcolor: '#D32F2F',
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: '10px',
+              px: 4,
+              '&:hover': {
+                bgcolor: '#B71C1C',
+              },
+            }}
+          >
+            Eliminar
           </Button>
         </DialogActions>
       </Dialog>
