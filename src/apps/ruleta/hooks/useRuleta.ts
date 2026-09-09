@@ -59,16 +59,20 @@ export const useRuleta = (
         const targetIndex = segments.findIndex((seg) => seg.label === prize);
         const finalIndex = targetIndex !== -1 ? targetIndex : 0;
 
+        // 🔧 Normalizar rotación a [0, 2π) para no acumular vueltas entre giros
+        const rotationNorm = ((rotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
         const centroSector = finalIndex * arcSize + arcSize / 2;
         const extraSpins = 5 + Math.floor(Math.random() * 6);
         const targetAngle = -Math.PI / 2 - centroSector + extraSpins * 2 * Math.PI;
 
-        let delta = targetAngle - rotation;
+        let delta = targetAngle - rotationNorm;
         while (delta < 0) delta += 2 * Math.PI;
-        const finalRotation = rotation + delta;
+        const finalRotation = rotationNorm + delta;
 
-        const startRotation = rotation;
+        const startRotation = rotationNorm;
         const totalDelta = finalRotation - startRotation;
+        setRotation(rotationNorm); // reset del state antes de arrancar la animación
         const duration = 3000 + Math.random() * 1500;
         const startTime = performance.now();
 

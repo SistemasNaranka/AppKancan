@@ -55,38 +55,52 @@ const StyledCanvas = styled('canvas')({
 
 const Pointer = styled(Box)({
   position: 'absolute',
-  top: '-8px',
+  top: '-14px',
   left: '50%',
   transform: 'translateX(-50%)',
   zIndex: 10,
-  width: 0,
-  height: 0,
-  borderLeft: '13px solid transparent',
-  borderRight: '13px solid transparent',
-  borderTop: '26px solid #1976D2',
-  filter: 'drop-shadow(0 2px 5px rgba(25,118,210,0.45))',
+  width: '26px',
+  height: '36px',
+  filter: 'drop-shadow(0 0 1px #FFFFFF) drop-shadow(0 0 2.5px #FFFFFF) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45))',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  clipPath: 'polygon(50% 100%, 100% 42%, 85% 0%, 15% 0%, 0% 42%)',
+  background: 'linear-gradient(180deg, #60A5FA 0%, #1D4ED8 50%, #0F172A 100%)',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    inset: '1.5px',
+    clipPath: 'polygon(50% 100%, 100% 42%, 85% 0%, 15% 0%, 0% 42%)',
+    background: 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.3) 100%)',
+    pointerEvents: 'none',
+  },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: '4px',
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #E2E8F0 65%, #94A3B8 100%)',
+    boxShadow: '0 1.5px 3px rgba(0, 0, 0, 0.35), inset 0 1.5px 1.5px #FFFFFF, inset 0 -1px 1.5px rgba(0, 0, 0, 0.25)',
+  },
 });
 
-// ============================================================
-// 🎡 PROPS (con storeId agregado)
-// ============================================================
 interface RuletaProps {
   segments?: ISegment[];
   userEmail?: string;
   onPremioGanado?: (data: IPremioResponse) => void;
   facturaValida?: boolean;
-  storeId?: number | null; // 👈 AGREGADO
+  storeId?: number | null;
 }
 
-// ============================================================
-// COMPONENTE PRINCIPAL
-// ============================================================
 const Ruleta: React.FC<RuletaProps> = ({
   segments = defaultSegments,
   userEmail,
   onPremioGanado,
   facturaValida = false,
-  storeId, // 👈 DESESTRUCTURADO
+  storeId,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bigCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -99,9 +113,6 @@ const Ruleta: React.FC<RuletaProps> = ({
   }>({ open: false, message: '', severity: 'info' });
 
   const { rotation, isSpinning, error, girar, reset } = useRuleta(segments, userEmail);
-
-  // Opcional: puedes usar storeId para algo, o solo mostrarlo en consola
-  // console.log('Tienda seleccionada:', storeId);
 
   useEffect(() => {
     if (!isSpinning) {
@@ -173,18 +184,38 @@ const Ruleta: React.FC<RuletaProps> = ({
             <Box
               sx={{
                 position: 'absolute',
-                top: '-14px',
+                top: '-26px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                width: 0,
-                height: 0,
-                borderLeft: '18px solid transparent',
-                borderRight: '18px solid transparent',
-                borderTop: '34px solid #1976D2',
-                filter: 'drop-shadow(0 3px 6px rgba(25,118,210,0.5))',
-                zIndex: 2,
+                zIndex: 12,
+                width: '44px',
+                height: '64px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 transformOrigin: '50% 0%',
+                clipPath: 'polygon(50% 100%, 100% 42%, 85% 0%, 15% 0%, 0% 42%)',
+                background: 'linear-gradient(180deg, #60A5FA 0%, #1D4ED8 50%, #0F172A 100%)',
+                filter: 'drop-shadow(0 0 2px #FFFFFF) drop-shadow(0 0 4px #FFFFFF) drop-shadow(0 7px 14px rgba(0, 0, 0, 0.6))',
                 animation: isSpinning ? `${tick} 0.28s ease-in-out infinite` : 'none',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  inset: '2.5px',
+                  clipPath: 'polygon(50% 100%, 100% 42%, 85% 0%, 15% 0%, 0% 42%)',
+                  background: 'linear-gradient(145deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.35) 100%)',
+                  pointerEvents: 'none',
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '8px',
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #E2E8F0 65%, #94A3B8 100%)',
+                  boxShadow: '0 3px 6px rgba(0, 0, 0, 0.35), inset 0 2px 2px #FFFFFF, inset 0 -2px 3px rgba(0, 0, 0, 0.25)',
+                },
               }}
             />
             <canvas

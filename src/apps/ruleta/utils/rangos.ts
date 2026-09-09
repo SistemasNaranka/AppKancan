@@ -2,7 +2,7 @@ import { ISegment, TGrupo } from '../interfaces/ruleta.interface';
 
 export const GRUPO_COLOR: Record<TGrupo, { color: string; colorDark: string; label: string }> = {
   G1: { color: '#E53935', colorDark: '#B71C1C', label: 'Rango 1' },
-  G2: { color: '#FBC02D', colorDark: '#F57F17', label: 'Rango 2' },
+  G2: { color: '#FBC02D', colorDark: '#F9A825', label: 'Rango 2' },
   G3: { color: '#1E88E5', colorDark: '#0D47A1', label: 'Rango 3' },
 };
 
@@ -35,22 +35,49 @@ export const migrarSegment = (raw: any): ISegment => {
 };
 
 export const intercalarSegments = (segments: ISegment[]): ISegment[] => {
-  if (segments.length <= 1) return [...segments];
+  const n = segments.length;
+  if (n <= 1) return [...segments];
+
   const buckets: Record<TGrupo, ISegment[]> = { G1: [], G2: [], G3: [] };
   segments.forEach((s) => buckets[s.grupo].push(s));
 
-  const result: ISegment[] = [];
-  let last: TGrupo | null = null;
+  const grupos = (Object.keys(buckets) as TGrupo[])
+    .filter((g) => buckets[g].length > 0)
+    .sort((a, b) => buckets[b].length - buckets[a].length);
 
-  while (result.length < segments.length) {
-    const orden = (Object.keys(buckets) as TGrupo[])
-      .filter((g) => buckets[g].length > 0)
-      .sort((a, b) => buckets[b].length - buckets[a].length);
+  const result: (ISegment | null)[] = new Array(n).fill(null);
 
-    const pick = orden.find((g) => g !== last) || orden[0];
-    if (!pick) break;
-    result.push(buckets[pick].shift()!);
-    last = pick;
+  // 1. Mayoritario distribuido uniformemente en el círculo
+  const mayor = grupos[0];
+  const cantMayor = buckets[mayor].length;
+  const step = n / cantMayor;
+  for (let i = 0; i < cantMayor; i++) {
+    const pos = Math.round(i * step) % n;
+    result[pos] = buckets[mayor].shift()!;
   }
-  return result;
+
+  // 2. Rellenar huecos evitando adyacencia con vecinos ya colocados
+  const huecos: number[] = [];
+  for (let i = 0; i < n; i++) if (result[i] === null) huecos.push(i);
+
+  for (const pos of huecos) {
+    const disponibles = grupos.slice(1).filter((g) => buckets[g].length > 0);
+    if (disponibles.length === 0) break;
+
+    const prev = result[(pos - 1 + n) % n];
+    const next = result[(pos + 1) % n];
+    const prohibidos = new Set([prev?.grupo, next?.grupo].filter(Boolean));
+
+    let pick = disponibles
+      .filter((g) => !prohibidos.has(g))
+      .sort((a, b) => buckets[b].length - buckets[a].length)[0];
+
+    if (!pick) {
+      pick = disponibles.sort((a, b) => buckets[b].length - buckets[a].length)[0];
+    }
+
+    result[pos] = buckets[pick].shift()!;
+  }
+
+  return result as ISegment[];
 };
