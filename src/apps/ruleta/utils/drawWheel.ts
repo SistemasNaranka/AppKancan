@@ -76,18 +76,40 @@ export const drawWheel = (
     const by = Math.sin(mid) * radius * 0.62;
     const bubbleR = radius * 0.11;
 
+    // Burbuja translúcida con volumen (gradiente radial + brillo)
+    const bubbleGrad = ctx.createRadialGradient(
+      bx - bubbleR * 0.35, by - bubbleR * 0.35, bubbleR * 0.1,
+      bx, by, bubbleR
+    );
+    bubbleGrad.addColorStop(0, 'rgba(255,255,255,0.55)');
+    bubbleGrad.addColorStop(0.6, 'rgba(255,255,255,0.25)');
+    bubbleGrad.addColorStop(1, 'rgba(255,255,255,0.12)');
+
     ctx.beginPath();
     ctx.arc(bx, by, bubbleR, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fillStyle = bubbleGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Brillo pequeño arriba-izquierda dentro de la burbuja
+    ctx.beginPath();
+    ctx.ellipse(bx - bubbleR * 0.32, by - bubbleR * 0.32, bubbleR * 0.35, bubbleR * 0.22, 0, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.fill();
 
+    // Signo "?" blanco con contorno sutil para legibilidad en cualquier tono de gajo
     ctx.save();
     ctx.translate(bx, by);
     ctx.rotate(-rotation);
-    ctx.fillStyle = dark;
     ctx.font = `800 ${radius * 0.11}px 'Poppins', sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.lineWidth = radius * 0.012;
+    ctx.strokeStyle = 'rgba(13, 71, 161, 0.4)';
+    ctx.strokeText('?', 0, radius * 0.008);
+    ctx.fillStyle = '#ffffff';
     ctx.fillText('?', 0, radius * 0.008);
     ctx.restore();
 

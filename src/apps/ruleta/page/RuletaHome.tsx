@@ -22,20 +22,30 @@ import { getStores } from '../api/directus/read';
 import Ruleta from '../components/Ruleta';
 import AdministrarPremios from '../components/AdministrarPremios';
 import { ISegment, Tienda } from '../interfaces/ruleta.interface';
-import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, GRUPO_POR_PREMIO } from '../utils/rangos';
+import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, filtrarSegmentsPorMonto, GRUPO_POR_PREMIO } from '../utils/rangos';
 
 const STORAGE_KEY = 'ruleta_premios';
 
 const getPremiosFromStorage = (): ISegment[] => {
+  const contadorPorGrupo: Record<string, number> = {};
+  const siguienteIndice = (grupo: string) => {
+    const idx = contadorPorGrupo[grupo] || 0;
+    contadorPorGrupo[grupo] = idx + 1;
+    return idx;
+  };
+
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) return parsed.map(migrarSegment);
+      if (Array.isArray(parsed)) {
+        return parsed.map((raw) => migrarSegment(raw, siguienteIndice(raw?.grupo || 'G3')));
+      }
     } catch {}
   }
+
   return Object.entries(GRUPO_POR_PREMIO).map(([label, grupo]) =>
-    aplicarColorPorGrupo(label, grupo)
+    aplicarColorPorGrupo(label, grupo, siguienteIndice(grupo))
   );
 };
 
@@ -371,8 +381,8 @@ const RuletaHome: React.FC = () => {
             >
               {/* ✅ CORREGIDO: props con una sola llave y comas */}
               <Ruleta
-                userEmail="usuario@ejemplo.com"
-                segments={intercalarSegments(premios)}
+                documentos={numFactura.trim()}
+                segments={intercalarSegments(filtrarSegmentsPorMonto(premios, factura ? factura.total : null))}
                 facturaValida={!!factura}
                 storeId={storeFilter}
               />

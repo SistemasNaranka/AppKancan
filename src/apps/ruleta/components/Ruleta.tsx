@@ -89,7 +89,7 @@ const Pointer = styled(Box)({
 
 interface RuletaProps {
   segments?: ISegment[];
-  userEmail?: string;
+  documentos?: string;
   onPremioGanado?: (data: IPremioResponse) => void;
   facturaValida?: boolean;
   storeId?: number | null;
@@ -97,7 +97,7 @@ interface RuletaProps {
 
 const Ruleta: React.FC<RuletaProps> = ({
   segments = defaultSegments,
-  userEmail,
+  documentos,
   onPremioGanado,
   facturaValida = false,
   storeId,
@@ -112,7 +112,7 @@ const Ruleta: React.FC<RuletaProps> = ({
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'info' });
 
-  const { rotation, isSpinning, error, girar, reset } = useRuleta(segments, userEmail);
+  const { rotation, isSpinning, error, girar, reset } = useRuleta(segments, documentos, storeId);
 
   useEffect(() => {
     if (!isSpinning) {

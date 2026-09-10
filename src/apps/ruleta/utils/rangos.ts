@@ -19,19 +19,44 @@ export const GRUPO_POR_PREMIO: Record<string, TGrupo> = {
   'Bambas': 'G3',
 };
 
-export const aplicarColorPorGrupo = (label: string, grupo: TGrupo): ISegment => ({
+// Variantes de tono dentro del mismo grupo para que los gajos se distingan entre sí
+// Variantes de tono dentro del mismo grupo para que los gajos se distingan entre sí
+const VARIANTES_TONO: Record<TGrupo, string[]> = {
+  G1: ['#E53935', '#B71C1C', '#FF7043'],
+  G2: ['#FBC02D', '#E65100', '#FFEB3B'],
+  G3: ['#1E88E5', '#0D47A1', '#4FC3F7', '#3949AB'],
+};
+
+export const aplicarColorPorGrupo = (label: string, grupo: TGrupo, indiceEnGrupo = 0): ISegment => ({
   label,
   grupo,
-  color: GRUPO_COLOR[grupo].color,
+  color: VARIANTES_TONO[grupo][indiceEnGrupo % VARIANTES_TONO[grupo].length],
   colorDark: GRUPO_COLOR[grupo].colorDark,
 });
 
-export const migrarSegment = (raw: any): ISegment => {
+export const migrarSegment = (raw: any, indiceEnGrupo = 0): ISegment => {
   if (raw?.grupo && GRUPO_COLOR[raw.grupo as TGrupo]) {
-    return aplicarColorPorGrupo(raw.label, raw.grupo);
+    return aplicarColorPorGrupo(raw.label, raw.grupo, indiceEnGrupo);
   }
   const grupo: TGrupo = GRUPO_POR_PREMIO[raw?.label] || 'G3';
-  return aplicarColorPorGrupo(raw?.label || 'Premio', grupo);
+  return aplicarColorPorGrupo(raw?.label || 'Premio', grupo, indiceEnGrupo);
+};
+
+// Umbrales de negocio — deben coincidir con server/routes/ruleta.js
+const UMBRAL_BAJOS = 300000;
+const UMBRAL_MEDIOS = 600000;
+
+// Filtra los premios visibles en la ruleta según el monto facturado (exclusivo por tramo)
+export const filtrarSegmentsPorMonto = (
+  segments: ISegment[],
+  monto: number | null
+): ISegment[] => {
+  if (monto === null) return segments; // sin factura validada: muestra todos
+  let grupoPermitido: TGrupo;
+  if (monto <= UMBRAL_BAJOS) grupoPermitido = 'G3';        // bajos
+  else if (monto <= UMBRAL_MEDIOS) grupoPermitido = 'G2';  // medios
+  else return segments;                                     // >600k: todos
+  return segments.filter((s) => s.grupo === grupoPermitido);
 };
 
 export const intercalarSegments = (segments: ISegment[]): ISegment[] => {
