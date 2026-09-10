@@ -14,6 +14,11 @@ export interface IPremioResponse {
   message?: string;
 }
 
+export interface IGirarRequest {
+  documentos: string;
+  storeId?: number | null;
+}
+
 export interface IFormularioGanador {
   nombre: string;
   email: string;
