@@ -866,7 +866,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
         </DialogActions>
       </Dialog>
 
-      {/* ===== MODAL DE CONFIRMACIÓN PARA ELIMINAR ===== */}
+      {/* ===== MODAL DE CONFIRMACIÓN PARA ELIMINAR (#004680) ===== */}
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}
@@ -876,7 +876,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
           sx: {
             borderRadius: '20px',
             overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+            boxShadow: '0 20px 60px rgba(0, 70, 128, 0.25)',
           },
         }}
       >
@@ -884,7 +884,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
           sx={{
             m: 0,
             p: 2.5,
-            background: 'linear-gradient(135deg, #D32F2F, #B71C1C)',
+            background: 'linear-gradient(135deg, #004680, #003366)',
             color: '#ffffff',
             fontWeight: 700,
             display: 'flex',
@@ -941,13 +941,13 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
             variant="contained"
             disableElevation
             sx={{
-              bgcolor: '#D32F2F',
+              bgcolor: '#004680',
               textTransform: 'none',
               fontWeight: 700,
               borderRadius: '10px',
               px: 4,
               '&:hover': {
-                bgcolor: '#B71C1C',
+                bgcolor: '#003366',
               },
             }}
           >
