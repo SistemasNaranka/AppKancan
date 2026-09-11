@@ -14,19 +14,27 @@ const zoomIn = keyframes`
   from { transform: scale(0.5); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 `;
-const smoothFloat = keyframes`
+
+// 🎈 Flotación: sube y baja suavemente
+const floating = keyframes`
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-3.5px); }
+  50%      { transform: translateY(-14px); }
 `;
 
-// Paleta latina vibrante — colores saturados, sin apagar en el borde
+// 🌑 Sombra que reacciona a la flotación (más chica cuando sube)
+const shadowPulse = keyframes`
+  0%, 100% { transform: scaleX(1);    opacity: 0.35; }
+  50%      { transform: scaleX(0.85); opacity: 0.18; }
+`;
+
+// Paleta latina vibrante
 const STITCH_COLORS = [
-  { base: '#FF3D5A', dark: '#FF3D5A' }, // rojo coral encendido
-  { base: '#FFB300', dark: '#FF8F00' }, // amarillo mango
-  { base: '#00C48F', dark: '#009E73' }, // verde tropical
-  { base: '#00BEE0', dark: '#0097B2' }, // turquesa Caribe
-  { base: '#FF4FBB', dark: '#E11D74' }, // fucsia
-  { base: '#4C5FF7', dark: '#3B4CC4' }, // azul índigo eléctrico
+  { base: '#FF3D5A', dark: '#FF3D5A' },
+  { base: '#FFB300', dark: '#FF8F00' },
+  { base: '#00C48F', dark: '#009E73' },
+  { base: '#00BEE0', dark: '#0097B2' },
+  { base: '#FF4FBB', dark: '#E11D74' },
+  { base: '#4C5FF7', dark: '#3B4CC4' },
 ];
 
 const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
@@ -41,10 +49,10 @@ interface RuletaProps {
   storeId?: number | null;
 }
 
-// Helper: calcula puntos de un gajo en el círculo unitario
+// Helpers
 const gajoPath = (index: number, total: number, radius: number, cx: number, cy: number): string => {
   const anglePerSeg = (2 * Math.PI) / total;
-  const startAngle = index * anglePerSeg - Math.PI / 2; // -90° para empezar arriba
+  const startAngle = index * anglePerSeg - Math.PI / 2;
   const endAngle = startAngle + anglePerSeg;
   const x1 = cx + radius * Math.cos(startAngle);
   const y1 = cy + radius * Math.sin(startAngle);
@@ -53,7 +61,6 @@ const gajoPath = (index: number, total: number, radius: number, cx: number, cy: 
   return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`;
 };
 
-// Helper: posición de la burbuja "?" en cada gajo (radio 0.62 del gajo)
 const bubblePos = (index: number, total: number, radius: number, cx: number, cy: number) => {
   const anglePerSeg = (2 * Math.PI) / total;
   const midAngle = index * anglePerSeg + anglePerSeg / 2 - Math.PI / 2;
@@ -63,7 +70,6 @@ const bubblePos = (index: number, total: number, radius: number, cx: number, cy:
   };
 };
 
-// Helper: posición del punto perimetral (radio 0.94)
 const dotPos = (index: number, total: number, radius: number, cx: number, cy: number) => {
   const anglePerSeg = (2 * Math.PI) / total;
   const angle = index * anglePerSeg - Math.PI / 2;
@@ -140,7 +146,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         </filter>
       </defs>
 
-      {/* Grupo rotatorio con los gajos y las burbujas */}
+      {/* Grupo rotatorio */}
       <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
         {segments.map((_seg, i) => (
           <path
@@ -153,7 +159,6 @@ const Ruleta: React.FC<RuletaProps> = ({
           />
         ))}
 
-        {/* Puntos blancos decorativos */}
         {segments.map((_seg, i) => {
           const p = dotPos(i, numSegments, radius, cx, cy);
           return (
@@ -162,18 +167,10 @@ const Ruleta: React.FC<RuletaProps> = ({
           );
         })}
 
-        {/* Burbujas con "?" flotando */}
         {segments.map((_seg, i) => {
           const p = bubblePos(i, numSegments, radius, cx, cy);
-          const delay = (i % 5) * -0.7;
           return (
-            <g key={`bubble-${i}`}
-               style={{
-                 animation: `${smoothFloat} 3.5s ease-in-out infinite`,
-                 animationDelay: `${delay}s`,
-                 transformBox: 'fill-box',
-                 transformOrigin: 'center',
-               }}>
+            <g key={`bubble-${i}`}>
               <circle
                 cx={p.x}
                 cy={p.y}
@@ -200,10 +197,8 @@ const Ruleta: React.FC<RuletaProps> = ({
         })}
       </g>
 
-      {/* Aro exterior blanco (fijo, no rota) */}
       <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#ffffff" strokeWidth={6} />
 
-      {/* Medallón "K" en el centro (fijo) */}
       <circle cx={cx} cy={cy} r={30} fill="#ffffff"
         style={{ filter: 'drop-shadow(0 8px 20px rgba(15,30,56,0.18))' }} />
       <text
@@ -239,7 +234,6 @@ const Ruleta: React.FC<RuletaProps> = ({
             aspectRatio: '1/1',
             animation: `${zoomIn} 0.5s ease-out`,
           }}>
-            {/* Puntero grande arriba */}
             <Box sx={{
               position: 'absolute', top: -20, left: '50%',
               transform: 'translateX(-50%)', zIndex: 12,
@@ -283,26 +277,55 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Typography>
         </Box>
 
-        {/* Contenedor de la ruleta con puntero */}
+        {/* 🎈 Contenedor de la ruleta flotante */}
         <Box sx={{
           position: 'relative',
           display: 'inline-block',
           width: '100%',
           maxWidth: 440,
-          aspectRatio: '1/1',
           margin: '0 auto',
+          // 👇 Dejamos espacio extra abajo para que se vea la sombra
+          pb: 4,
         }}>
-          {/* Puntero arriba */}
-          <Box sx={{
-            position: 'absolute', top: -8, left: '50%',
-            transform: 'translateX(-50%)', zIndex: 10,
-            width: 0, height: 0,
-            borderLeft: '14px solid transparent',
-            borderRight: '14px solid transparent',
-            borderTop: '28px solid #2563EB',
-            filter: 'drop-shadow(0 3px 6px rgba(37,99,235,0.45))',
-          }} />
-          {wheelSVG(440)}
+          {/* 🌑 Sombra en el suelo que reacciona a la flotación */}
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              left: '50%',
+              width: '60%',
+              height: '18px',
+              background: 'radial-gradient(ellipse at center, rgba(15,30,56,0.45) 0%, rgba(15,30,56,0) 70%)',
+              transform: 'translateX(-50%)',
+              animation: !isSpinning ? `${shadowPulse} 4s ease-in-out infinite` : 'none',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+
+          {/* 🎈 Ruleta flotando */}
+          <Box
+            sx={{
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '1/1',
+              animation: !isSpinning ? `${floating} 4s ease-in-out infinite` : 'none',
+              zIndex: 1,
+            }}
+          >
+            {/* Puntero arriba (flota junto con la ruleta) */}
+            <Box sx={{
+              position: 'absolute', top: -8, left: '50%',
+              transform: 'translateX(-50%)', zIndex: 10,
+              width: 0, height: 0,
+              borderLeft: '14px solid transparent',
+              borderRight: '14px solid transparent',
+              borderTop: '28px solid #2563EB',
+              filter: 'drop-shadow(0 3px 6px rgba(37,99,235,0.45))',
+            }} />
+            {wheelSVG(440)}
+          </Box>
         </Box>
 
         <Button

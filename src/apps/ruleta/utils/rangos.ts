@@ -1,30 +1,29 @@
 import { ISegment, TGrupo } from '../interfaces/ruleta.interface';
 
 export const GRUPO_COLOR: Record<TGrupo, { color: string; colorDark: string; label: string }> = {
-  G1: { color: '#F87171', colorDark: '#EF4444', label: 'Rango 1' },
-  G2: { color: '#FBBF24', colorDark: '#D97706', label: 'Rango 2' },
-  G3: { color: '#38BDF8', colorDark: '#0284C7', label: 'Rango 3' },
+  G1: { color: '#FCA5A5', colorDark: '#F87171', label: 'Rango 1' },
+  G2: { color: '#FCD34D', colorDark: '#FBBF24', label: 'Rango 2' },
+  G3: { color: '#7DD3FC', colorDark: '#38BDF8', label: 'Rango 3' },
 };
 
+// Los 9 premios oficiales — deben coincidir EXACTAMENTE con los del backend
 export const GRUPO_POR_PREMIO: Record<string, TGrupo> = {
   'Jean de línea': 'G1',
   'Jean básico': 'G1',
-  'Bonos $100k': 'G1',
-  'Bonos $50k': 'G2',
-  'Bonos $30k': 'G2',
-  'Blusas básicas': 'G2',
-  'Tote bag denim': 'G3',
-  'Tops': 'G3',
-  'Pañoletas': 'G3',
-  'Bambas': 'G3',
+  'Bono $100k': 'G1',
+  'Bono 50%': 'G2',
+  'Blusa básica': 'G2',
+  'Tote bag': 'G2',
+  'Bandana': 'G3',
+  'Bamba': 'G3',
+  'Bono $30k': 'G3',
 };
 
 // Variantes de tono dentro del mismo grupo para que los gajos se distingan entre sí
-// Variantes de tono dentro del mismo grupo para que los gajos se distingan entre sí
 const VARIANTES_TONO: Record<TGrupo, string[]> = {
-  G1: ['#F87171', '#EF4444', '#FCA5A5'],
-  G2: ['#FBBF24', '#F59E0B', '#FDE68A'],
-  G3: ['#38BDF8', '#0284C7', '#7DD3FC', '#0369A1'],
+  G1: ['#FCA5A5', '#F87171', '#FECACA'],
+  G2: ['#FCD34D', '#FBBF24', '#FDE68A'],
+  G3: ['#7DD3FC', '#38BDF8', '#BAE6FD', '#60A5FA'],
 };
 
 export const aplicarColorPorGrupo = (label: string, grupo: TGrupo, indiceEnGrupo = 0): ISegment => ({
@@ -51,11 +50,11 @@ export const filtrarSegmentsPorMonto = (
   segments: ISegment[],
   monto: number | null
 ): ISegment[] => {
-  if (monto === null) return segments; // sin factura validada: muestra todos
+  if (monto === null) return segments;
   let grupoPermitido: TGrupo;
-  if (monto <= UMBRAL_BAJOS) grupoPermitido = 'G3';        // bajos
-  else if (monto <= UMBRAL_MEDIOS) grupoPermitido = 'G2';  // medios
-  else return segments;                                     // >600k: todos
+  if (monto <= UMBRAL_BAJOS) grupoPermitido = 'G3';
+  else if (monto < UMBRAL_MEDIOS) grupoPermitido = 'G2';
+  else return segments;
   return segments.filter((s) => s.grupo === grupoPermitido);
 };
 
@@ -72,7 +71,6 @@ export const intercalarSegments = (segments: ISegment[]): ISegment[] => {
 
   const result: (ISegment | null)[] = new Array(n).fill(null);
 
-  // 1. Mayoritario distribuido uniformemente en el círculo
   const mayor = grupos[0];
   const cantMayor = buckets[mayor].length;
   const step = n / cantMayor;
@@ -81,7 +79,6 @@ export const intercalarSegments = (segments: ISegment[]): ISegment[] => {
     result[pos] = buckets[mayor].shift()!;
   }
 
-  // 2. Rellenar huecos evitando adyacencia con vecinos ya colocados
   const huecos: number[] = [];
   for (let i = 0; i < n; i++) if (result[i] === null) huecos.push(i);
 
