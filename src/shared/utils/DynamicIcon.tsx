@@ -39,10 +39,11 @@ import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
 import MoreTimeIcon from '@mui/icons-material/MoreTime';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import CardGiftcard from '@mui/icons-material/CardGiftcard'; // 👈 Ícono de caja de premios/regalo
+
 /**
  * Mapa de íconos permitidos.
  * Los nombres deben coincidir con los valores en la base de datos.
- * Ejemplo: icono_app = "LocalShipping", icono_categoria = "Inventory2"
  */
 const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Inventario
@@ -63,6 +64,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Difference,
   Assignment,
   ReceiptLong,
+
   // 🔸 Categoría: Recursos Humanos
   PeopleAlt,
   Badge,
@@ -71,16 +73,16 @@ const ICON_MAP: Record<string, React.ElementType> = {
   EditCalendar,
   PendingActions,
   Diversity1,
+
   // 🔸 Categoría: Aplicación
   Apps,
   Home,
+  CardGiftcard, // 👈 Registrado en el mapa
   CircleNotificationsIcon,
   CircleNotifications: CircleNotificationsIcon,
-  // 🔸 Categoría: Aplicación
   DocumentScanner,
   GridView,
   ContactPhone,
-
 
   // 🔸 Categoría: Ventas
   ShoppingCart,
@@ -95,7 +97,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HowToRegIcon,
   HowToReg: HowToRegIcon,
 
-  // 🔸 Logistica
+  // 🔸 Logística
   Warehouse,
   BackupTable,
 
@@ -110,7 +112,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 /**
  * 🔹 DynamicIcon
  * Renderiza el ícono según el nombre recibido desde la base de datos.
- * Si no lo encuentra, muestra Folder por defecto.
+ * Si no lo encuentra, muestra Folder por defecto[cite: 1].
  */
 export const DynamicIcon = ({
   iconName,
