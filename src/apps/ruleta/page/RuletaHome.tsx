@@ -63,9 +63,9 @@ function TabPanel({ children, value, index }: TabPanelProps) {
   );
 }
 
+// ✅ SOLO CLIENTE (sin total)
 interface FacturaValida {
   cliente: string;
-  total: number;
 }
 
 const RuletaHome: React.FC = () => {
@@ -86,9 +86,6 @@ const RuletaHome: React.FC = () => {
     staleTime: 30 * 60 * 1000,
   });
 
-  // ============================================================
-  // 🏪 FILTRO: Cali (excepto Cenco) + Manizales + Victoria Plaza
-  // ============================================================
   const tiendasFiltradas = useMemo(() => {
     return tiendasCompletas.filter((tienda) => {
       const nombre = tienda.name?.toLowerCase() || '';
@@ -99,18 +96,12 @@ const RuletaHome: React.FC = () => {
     });
   }, [tiendasCompletas]);
 
-  // ============================================================
-  // VALOR SELECCIONADO EN EL AUTOCOMPLETE
-  // ============================================================
   const selectedStore = useMemo(() => {
     if (storeFilter === null) return { id: null, name: 'Todas las tiendas' };
     const found = tiendasFiltradas.find((t) => t.id === storeFilter);
     return found ? found : { id: null, name: 'Todas las tiendas' };
   }, [storeFilter, tiendasFiltradas]);
 
-  // ============================================================
-  // EFECTOS Y HANDLERS
-  // ============================================================
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
@@ -121,6 +112,7 @@ const RuletaHome: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // ✅ VALIDAR: solo cliente
   const validar = async () => {
     if (!numFactura.trim()) return;
     setCargando(true);
@@ -137,16 +129,14 @@ const RuletaHome: React.FC = () => {
         throw new Error(data.message || 'No se pudo validar la factura');
       }
       const data = await res.json();
-      setFactura({ cliente: data.cliente, total: data.total });
+      // ✅ Solo guardamos cliente
+      setFactura({ cliente: data.cliente || 'Cliente no identificado' });
     } catch (e: any) {
       setError(e.message || 'Error al validar');
     } finally {
       setCargando(false);
     }
   };
-
-  const formatoPesos = (n: number) =>
-    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -224,7 +214,6 @@ const RuletaHome: React.FC = () => {
               </Box>
             </Box>
 
-            {/* ===== SELECTOR DE TIENDAS (GLOBAL) ===== */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
               {tiendasFiltradas.length > 0 && (
                 <Autocomplete
@@ -322,7 +311,6 @@ const RuletaHome: React.FC = () => {
                 justifyContent: 'space-between',
               }}
             >
-              {/* Glow ambiental sutil arriba-derecha */}
               <Box sx={{
                 position: 'absolute',
                 top: -64, right: -64,
@@ -334,9 +322,7 @@ const RuletaHome: React.FC = () => {
               }} />
 
               <Box sx={{ position: 'relative', zIndex: 1, my: 'auto', display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-                {/* Badge Boutique Pass */}
                 <Box>
-                  
                   <Typography sx={{
                     fontSize: { xs: '1.75rem', sm: '2rem' },
                     fontWeight: 700,
@@ -357,7 +343,6 @@ const RuletaHome: React.FC = () => {
                   </Typography>
                 </Box>
 
-                {/* Input + botón */}
                 <Box>
                   <Typography sx={{
                     fontSize: '0.7rem',
@@ -410,6 +395,7 @@ const RuletaHome: React.FC = () => {
                   </Box>
                 </Box>
 
+                {/* ✅ Panel verde: SOLO cliente, SIN monto */}
                 {factura && (
                   <Box sx={{
                     background: 'linear-gradient(135deg, #ECFDF5, #F0FDF4)',
@@ -421,13 +407,9 @@ const RuletaHome: React.FC = () => {
                       <CheckCircleIcon sx={{ fontSize: 16 }} />
                       ¡Factura validada con éxito! La ruleta está desbloqueada y lista para girar.
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, mb: 0.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                       <span style={{ color: '#64748B' }}>Cliente</span>
                       <span style={{ color: '#0F172A', fontWeight: 600 }}>{factura.cliente}</span>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ color: '#64748B' }}>Monto facturado</span>
-                      <span style={{ color: '#0F172A', fontWeight: 600 }}>{formatoPesos(factura.total)}</span>
                     </Box>
                   </Box>
                 )}
@@ -450,21 +432,13 @@ const RuletaHome: React.FC = () => {
                 )}
               </Box>
 
-              {/* Footer con separador */}
               <Box sx={{
                 mt: 3,
                 pt: 2,
                 borderTop: '1px solid #E2E8F0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontSize: '0.7rem',
-                color: '#94A3B8',
                 position: 'relative',
                 zIndex: 1,
-              }}>
-                
-              </Box>
+              }} />
             </Box>
 
             <Box
@@ -482,8 +456,6 @@ const RuletaHome: React.FC = () => {
                 alignItems: 'flex-start',
               }}
             >
-              {/* ✅ La ruleta SIEMPRE muestra todos los premios */}
-              {/* El backend decide cuál premio dar según el rango de la factura */}
               <Ruleta
                 documentos={numFactura.trim()}
                 segments={intercalarSegments(premios)}
