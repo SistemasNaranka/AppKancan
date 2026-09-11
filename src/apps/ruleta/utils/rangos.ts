@@ -1,9 +1,9 @@
 import { ISegment, TGrupo } from '../interfaces/ruleta.interface';
 
 export const GRUPO_COLOR: Record<TGrupo, { color: string; colorDark: string; label: string }> = {
-  G1: { color: '#E53935', colorDark: '#B71C1C', label: 'Rango 1' },
-  G2: { color: '#FBC02D', colorDark: '#F9A825', label: 'Rango 2' },
-  G3: { color: '#1E88E5', colorDark: '#0D47A1', label: 'Rango 3' },
+  G1: { color: '#F87171', colorDark: '#EF4444', label: 'Rango 1' },
+  G2: { color: '#FBBF24', colorDark: '#D97706', label: 'Rango 2' },
+  G3: { color: '#38BDF8', colorDark: '#0284C7', label: 'Rango 3' },
 };
 
 export const GRUPO_POR_PREMIO: Record<string, TGrupo> = {
@@ -22,9 +22,9 @@ export const GRUPO_POR_PREMIO: Record<string, TGrupo> = {
 // Variantes de tono dentro del mismo grupo para que los gajos se distingan entre sí
 // Variantes de tono dentro del mismo grupo para que los gajos se distingan entre sí
 const VARIANTES_TONO: Record<TGrupo, string[]> = {
-  G1: ['#E53935', '#B71C1C', '#FF7043'],
-  G2: ['#FBC02D', '#E65100', '#FFEB3B'],
-  G3: ['#1E88E5', '#0D47A1', '#4FC3F7', '#3949AB'],
+  G1: ['#F87171', '#EF4444', '#FCA5A5'],
+  G2: ['#FBBF24', '#F59E0B', '#FDE68A'],
+  G3: ['#38BDF8', '#0284C7', '#7DD3FC', '#0369A1'],
 };
 
 export const aplicarColorPorGrupo = (label: string, grupo: TGrupo, indiceEnGrupo = 0): ISegment => ({

@@ -38,33 +38,37 @@ export const useRuleta = (
 
         const data: IPremioResponse = await response.json();
 
-        // 2. Ubicar el gajo ganador que devolvió el backend
+        // 2. Ubicar el gajo ganador en la ruleta visual
         const numSegments = segments.length;
-        const arcSize = (2 * Math.PI) / numSegments;
+        const arcSize = 360 / numSegments; // en GRADOS ahora (SVG usa grados)
         const targetIndex = segments.findIndex((seg) => seg.label === data.prize);
         const finalIndex = targetIndex !== -1 ? targetIndex : 0;
 
-        // 3. Animación hasta ese gajo (rotación normalizada para no acumular)
-        const rotationNorm = ((rotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        // Normalizar rotación actual a [0, 360) para no acumular vueltas
+        const rotationNorm = ((rotation % 360) + 360) % 360;
+
+        // Ángulo del centro del gajo ganador desde arriba (indicador está arriba)
         const centroSector = finalIndex * arcSize + arcSize / 2;
-        const extraSpins = 5 + Math.floor(Math.random() * 6);
-        const targetAngle = -Math.PI / 2 - centroSector + extraSpins * 2 * Math.PI;
+        const extraSpins = 5 + Math.floor(Math.random() * 6); // 5-10 vueltas extra
+
+        // La rueda debe rotar en sentido contrario al ángulo del gajo para que caiga arriba
+        const targetAngle = -centroSector + extraSpins * 360;
 
         let delta = targetAngle - rotationNorm;
-        while (delta < 0) delta += 2 * Math.PI;
+        while (delta < 0) delta += 360;
 
         const finalRotation = rotationNorm + delta;
         const startRotation = rotationNorm;
         const totalDelta = finalRotation - startRotation;
         setRotation(rotationNorm);
 
-        const duration = 3000 + Math.random() * 1500;
+        const duration = 3500 + Math.random() * 1500;
         const startTime = performance.now();
 
         const animate = (time: number) => {
           const elapsed = time - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 4);
+          const eased = 1 - Math.pow(1 - progress, 4); // ease-out quart
           setRotation(startRotation + totalDelta * eased);
 
           if (progress < 1) {

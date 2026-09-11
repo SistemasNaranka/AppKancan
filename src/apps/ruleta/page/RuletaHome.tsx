@@ -309,59 +309,162 @@ const RuletaHome: React.FC = () => {
               sx={{
                 flex: '0 0 440px',
                 minWidth: 380,
-                background: '#fff',
-                border: '0.5px solid #E2E8F0',
-                borderRadius: '12px',
-                p: 2.5,
+                position: 'relative',
+                overflow: 'hidden',
+                background: 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.8)',
+                borderRadius: '24px',
+                p: { xs: 3, sm: 4.5 },
+                boxShadow: '0 20px 40px -15px rgba(27, 49, 78, 0.08), 0 8px 20px -6px rgba(27, 49, 78, 0.04), inset 0 0 1px 1px rgba(255,255,255,0.8)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
               }}
             >
-              <Typography sx={{ fontSize: 15, fontWeight: 600, color: '#1E293B', fontFamily: "'Poppins', sans-serif" }}>
-                Validar factura
-              </Typography>
-              <Typography sx={{ fontSize: 12, color: '#94A3B8', mb: 2 }}>
-                El cliente debe haber facturado para participar.
-              </Typography>
-              <Typography sx={{ fontSize: 12, color: '#94A3B8', mb: 0.5 }}>N° de factura</Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  value={numFactura}
-                  onChange={(e) => setNumFactura(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && validar()}
-                  placeholder="Ej: KE030000004249"
-                />
-                <Button
-                  variant="contained"
-                  onClick={validar}
-                  disabled={cargando}
-                  sx={{ background: '#1976D2', boxShadow: 'none', minWidth: 96, textTransform: 'none' }}
-                >
-                  {cargando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Validar'}
-                </Button>
+              {/* Glow ambiental sutil arriba-derecha */}
+              <Box sx={{
+                position: 'absolute',
+                top: -64, right: -64,
+                width: 144, height: 144,
+                bgcolor: 'rgba(219, 234, 254, 0.5)',
+                borderRadius: '50%',
+                filter: 'blur(32px)',
+                pointerEvents: 'none',
+              }} />
+
+              <Box sx={{ position: 'relative', zIndex: 1, my: 'auto', display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+                {/* Badge Boutique Pass */}
+                <Box>
+                  
+                  <Typography sx={{
+                    fontSize: { xs: '1.75rem', sm: '2rem' },
+                    fontWeight: 700,
+                    color: '#0F172A',
+                    fontFamily: "'Sora', 'Poppins', sans-serif",
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.15,
+                    mb: 1.5,
+                  }}>
+                    Validar factura
+                  </Typography>
+                  <Typography sx={{
+                    fontSize: '0.875rem',
+                    color: '#64748B',
+                    lineHeight: 1.6,
+                  }}>
+                    El cliente debe haber facturado para participar. Ingresa el número de comprobante para habilitar el giro.
+                  </Typography>
+                </Box>
+
+                {/* Input + botón */}
+                <Box>
+                  <Typography sx={{
+                    fontSize: '0.7rem',
+                    color: '#64748B',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    mb: 1,
+                  }}>
+                    N° de factura
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1.25 }}>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      value={numFactura}
+                      onChange={(e) => setNumFactura(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && validar()}
+                      placeholder="KE030000004249"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: '12px',
+                          bgcolor: '#F8FAFC',
+                          fontFamily: "'Space Grotesk', monospace",
+                          '& fieldset': { borderColor: '#E2E8F0' },
+                          '&:hover fieldset': { borderColor: '#93C5FD' },
+                          '&.Mui-focused fieldset': { borderColor: '#2563EB', borderWidth: '2px' },
+                        },
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={validar}
+                      disabled={cargando}
+                      sx={{
+                        background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                        boxShadow: '0 4px 14px -2px rgba(37, 99, 235, 0.45)',
+                        minWidth: 110,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        borderRadius: '12px',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #1D4ED8, #1E40AF)',
+                          boxShadow: '0 6px 20px -2px rgba(37, 99, 235, 0.55)',
+                        },
+                      }}
+                    >
+                      {cargando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Validar'}
+                    </Button>
+                  </Box>
+                </Box>
+
+                {factura && (
+                  <Box sx={{
+                    background: 'linear-gradient(135deg, #ECFDF5, #F0FDF4)',
+                    border: '1px solid #A7F3D0',
+                    borderRadius: '14px',
+                    p: 2,
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#047857', fontSize: 12, fontWeight: 700, mb: 1.5 }}>
+                      <CheckCircleIcon sx={{ fontSize: 16 }} />
+                      ¡Factura validada con éxito! La ruleta está desbloqueada y lista para girar.
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, mb: 0.5 }}>
+                      <span style={{ color: '#64748B' }}>Cliente</span>
+                      <span style={{ color: '#0F172A', fontWeight: 600 }}>{factura.cliente}</span>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: '#64748B' }}>Monto facturado</span>
+                      <span style={{ color: '#0F172A', fontWeight: 600 }}>{formatoPesos(factura.total)}</span>
+                    </Box>
+                  </Box>
+                )}
+
+                {error && (
+                  <Box sx={{
+                    background: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '14px',
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    color: '#B91C1C',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}>
+                    <ErrorOutlineIcon sx={{ fontSize: 16 }} /> {error}
+                  </Box>
+                )}
               </Box>
 
-              {factura && (
-                <Box sx={{ background: '#F8FAFC', border: '0.5px solid #E2E8F0', borderRadius: '10px', p: 1.75 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: '#15803D', fontSize: 12, fontWeight: 600, mb: 1.5 }}>
-                    <CheckCircleIcon sx={{ fontSize: 16 }} /> Factura válida
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, mb: 1 }}>
-                    <span style={{ color: '#94A3B8' }}>Cliente</span>
-                    <span style={{ color: '#1E293B', fontWeight: 500 }}>{factura.cliente}</span>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: '#94A3B8' }}>Monto facturado</span>
-                    <span style={{ color: '#1E293B', fontWeight: 500 }}>{formatoPesos(factura.total)}</span>
-                  </Box>
-                </Box>
-              )}
-
-              {error && (
-                <Box sx={{ background: '#FEF2F2', border: '0.5px solid #FECACA', borderRadius: '10px', p: 1.75, display: 'flex', alignItems: 'center', gap: 0.75, color: '#B91C1C', fontSize: 13, fontWeight: 500 }}>
-                  <ErrorOutlineIcon sx={{ fontSize: 16 }} /> {error}
-                </Box>
-              )}
+              {/* Footer con separador */}
+              <Box sx={{
+                mt: 3,
+                pt: 2,
+                borderTop: '1px solid #E2E8F0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.7rem',
+                color: '#94A3B8',
+                position: 'relative',
+                zIndex: 1,
+              }}>
+                
+              </Box>
             </Box>
 
             <Box
@@ -382,7 +485,7 @@ const RuletaHome: React.FC = () => {
               {/* ✅ CORREGIDO: props con una sola llave y comas */}
               <Ruleta
                 documentos={numFactura.trim()}
-                segments={intercalarSegments(filtrarSegmentsPorMonto(premios, factura ? factura.total : null))}
+                segments={intercalarSegments(premios)}
                 facturaValida={!!factura}
                 storeId={storeFilter}
               />
