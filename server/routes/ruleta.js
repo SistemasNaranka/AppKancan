@@ -4,22 +4,46 @@ const { queryDB } = require("../utils/db");
 const router = express.Router();
 
 // ============================================================
-// Config de premios por rango — debe reflejar rangos.ts del frontend
+// Premios por rango — debe reflejar rangos.ts del frontend
+// Las probabilidades se aplican SOLO en el backend.
 // ============================================================
 const PREMIOS_POR_GRUPO = {
-  altos: ["Jean de línea", "Jean básico", "Bonos $100k"],
-  medios: ["Bonos $50k", "Bonos $30k", "Blusas básicas"],
-  bajos: ["Tote bag denim", "Tops", "Pañoletas", "Bambas"],
+  altos: [
+    { prize: "Jean de línea", probabilidad: 10 },
+    { prize: "Jean básico", probabilidad: 40 },
+    { prize: "Bono $100k", probabilidad: 50 },
+  ],
+  medios: [
+    { prize: "Bono 50%", probabilidad: 70 },
+    { prize: "Blusa básica", probabilidad: 15 },
+    { prize: "Tote bag", probabilidad: 15 },
+  ],
+  bajos: [
+    { prize: "Bandana", probabilidad: 20 },
+    { prize: "Bamba", probabilidad: 20 },
+    { prize: "Bono $30k", probabilidad: 60 },
+  ],
 };
 
-// Umbrales de negocio (CON IVA) — exclusivo por tramo
-const UMBRAL_BAJOS = 300000;
-const UMBRAL_MEDIOS = 600000;
+// Umbrales de negocio (CON IVA)
+const UMBRAL_BAJOS = 300000;   // ≤ 300.000 → bajos
+const UMBRAL_MEDIOS = 600000;  // < 600.000 → medios, ≥ 600.000 → altos
 
 const calcularPremiosElegibles = (monto) => {
-  if (monto <= UMBRAL_BAJOS) return [...PREMIOS_POR_GRUPO.bajos];    // $0–$300.000: solo bajos
-  if (monto <= UMBRAL_MEDIOS) return [...PREMIOS_POR_GRUPO.medios];  // $300.001–$600.000: solo medios
-  return [...PREMIOS_POR_GRUPO.altos];                               // $600.001+: solo altos
+  if (monto <= UMBRAL_BAJOS) return PREMIOS_POR_GRUPO.bajos;
+  if (monto < UMBRAL_MEDIOS) return PREMIOS_POR_GRUPO.medios;
+  return PREMIOS_POR_GRUPO.altos;
+};
+
+// Selección ponderada: respeta las probabilidades del grupo elegido
+const elegirPremioPonderado = (premios) => {
+  const total = premios.reduce((acc, p) => acc + p.probabilidad, 0);
+  let rand = Math.random() * total;
+  for (const p of premios) {
+    if (rand < p.probabilidad) return p.prize;
+    rand -= p.probabilidad;
+  }
+  return premios[premios.length - 1].prize;
 };
 
 const generarCupon = () => {
@@ -109,7 +133,7 @@ router.post("/ruleta/girar", async (req, res) => {
     // ⚠️ PENDIENTE: validar que la factura no haya girado antes (anti-abuso)
     // ⚠️ PENDIENTE: registrar el resultado en Directus (sal_roulette_winners)
 
-    const prize = elegibles[Math.floor(Math.random() * elegibles.length)];
+    const prize = elegirPremioPonderado(elegibles);
     const couponCode = generarCupon();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
