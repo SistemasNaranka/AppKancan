@@ -22,7 +22,7 @@ import { getStores } from '../api/directus/read';
 import Ruleta from '../components/Ruleta';
 import AdministrarPremios from '../components/AdministrarPremios';
 import { ISegment, Tienda } from '../interfaces/ruleta.interface';
-import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, filtrarSegmentsPorMonto, GRUPO_POR_PREMIO } from '../utils/rangos';
+import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, GRUPO_POR_PREMIO } from '../utils/rangos';
 
 const STORAGE_KEY = 'ruleta_premios';
 
@@ -379,10 +379,11 @@ const RuletaHome: React.FC = () => {
                 alignItems: 'flex-start',
               }}
             >
-              {/* ✅ CORREGIDO: props con una sola llave y comas */}
+              {/* ✅ La ruleta SIEMPRE muestra todos los premios */}
+              {/* El backend decide cuál premio dar según el rango de la factura */}
               <Ruleta
                 documentos={numFactura.trim()}
-                segments={intercalarSegments(filtrarSegmentsPorMonto(premios, factura ? factura.total : null))}
+                segments={intercalarSegments(premios)}
                 facturaValida={!!factura}
                 storeId={storeFilter}
               />
