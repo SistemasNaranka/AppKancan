@@ -1,5 +1,25 @@
 import { useState, useCallback, useRef } from 'react';
-import { ISegment, IPremioResponse } from '../interfaces/ruleta.interface';
+import { ISegment, IPremioResponse, IPremioResponseRaw } from '../interfaces/ruleta.interface';
+
+// Normaliza la respuesta del backend a la forma canónica IPremioResponse,
+// sin importar si `prize` llegó como string o como objeto anidado
+// { prize, probabilidad }.
+const normalizePremio = (raw: IPremioResponseRaw): IPremioResponse => {
+  const prizeValue = raw.prize;
+
+  if (prizeValue && typeof prizeValue === 'object') {
+    return {
+      ...raw,
+      prize: prizeValue.prize ?? '',
+      probabilidad: prizeValue.probabilidad ?? raw.probabilidad,
+    };
+  }
+
+  return {
+    ...raw,
+    prize: prizeValue ?? '',
+  };
+};
 
 export const useRuleta = (
   segments: ISegment[],
@@ -36,7 +56,8 @@ export const useRuleta = (
           throw new Error(err.message || 'No se pudo girar la ruleta');
         }
 
-        const data: IPremioResponse = await response.json();
+        const raw: IPremioResponseRaw = await response.json();
+        const data: IPremioResponse = normalizePremio(raw);
 
         // 2. Ubicar el gajo ganador en la ruleta visual
         const numSegments = segments.length;

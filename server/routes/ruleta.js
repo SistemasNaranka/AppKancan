@@ -4,24 +4,24 @@ const { queryDB } = require("../utils/db");
 const router = express.Router();
 
 // ============================================================
-// Premios por rango — debe reflejar rangos.ts del frontend
+// Premios por rango — DEBE coincidir EXACTAMENTE con rangos.ts
 // Las probabilidades se aplican SOLO en el backend.
 // ============================================================
 const PREMIOS_POR_GRUPO = {
   altos: [
     { prize: "Jean de línea", probabilidad: 10 },
-    { prize: "Jean básico", probabilidad: 40 },
-    { prize: "Bono $100k", probabilidad: 50 },
+    { prize: "Jean básico",   probabilidad: 40 },
+    { prize: "Bono $100k",    probabilidad: 50 },
   ],
   medios: [
-    { prize: "Bono 50%", probabilidad: 70 },
-    { prize: "Blusa básica", probabilidad: 15 },
-    { prize: "Tote bag", probabilidad: 15 },
+    { prize: "Bono $50k",     probabilidad: 70 },
+    { prize: "Blusa básica",  probabilidad: 15 },
+    { prize: "Tote bag",      probabilidad: 15 },
   ],
   bajos: [
-    { prize: "Bandana", probabilidad: 20 },
-    { prize: "Bamba", probabilidad: 20 },
-    { prize: "Bono $30k", probabilidad: 60 },
+    { prize: "Bandana",       probabilidad: 20 },
+    { prize: "Bamba",         probabilidad: 20 },
+    { prize: "Bono $30k",     probabilidad: 60 },
   ],
 };
 
@@ -35,14 +35,19 @@ const calcularPremiosElegibles = (monto) => {
   return PREMIOS_POR_GRUPO.altos;
 };
 
-// Selección ponderada: respeta las probabilidades del grupo elegido
+// ============================================================
+// 🎲 SELECCIÓN PONDERADA REAL (respeta las probabilidades)
+// ============================================================
 const elegirPremioPonderado = (premios) => {
   const total = premios.reduce((acc, p) => acc + p.probabilidad, 0);
   let rand = Math.random() * total;
+
   for (const p of premios) {
     if (rand < p.probabilidad) return p.prize;
     rand -= p.probabilidad;
   }
+
+  // Fallback (no debería llegar aquí)
   return premios[premios.length - 1].prize;
 };
 
@@ -57,9 +62,9 @@ const generarCupon = () => {
 
 // ============================================================
 // 🚫 CONTROL DE FACTURAS USADAS (anti doble giro)
-// ============================================================
 // Set en memoria. Al reiniciar el servidor se limpia.
 // Para persistencia, migrar a Directus o a la BD.
+// ============================================================
 const facturasUsadas = new Set();
 
 // ============================================================
@@ -101,9 +106,10 @@ router.post("/ruleta/validar-factura", async (req, res) => {
     }
 
     const venta = rows[0];
-    const nombreCliente = venta.cliente && venta.cliente.trim()
-      ? venta.cliente.trim()
-      : "Cliente no identificado";
+    const nombreCliente =
+      venta.cliente && venta.cliente.trim()
+        ? venta.cliente.trim()
+        : "Cliente no identificado";
 
     // ✅ Solo devolvemos cliente (sin monto, sin fecha, sin totalSinIva)
     return res.json({
@@ -157,10 +163,9 @@ router.post("/ruleta/girar", async (req, res) => {
     const monto = Number(rows[0].total);
     const elegibles = calcularPremiosElegibles(monto);
 
-    // ⚠️ PENDIENTE: validar que la factura no haya girado antes (anti-abuso)
-    // ⚠️ PENDIENTE: registrar el resultado en Directus (sal_roulette_winners)
-
+    // ✅ AHORA SÍ: selección ponderada que respeta las probabilidades
     const prize = elegirPremioPonderado(elegibles);
+
     const couponCode = generarCupon();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -168,7 +173,9 @@ router.post("/ruleta/girar", async (req, res) => {
     facturasUsadas.add(factura);
 
     // ⚠️ PENDIENTE: guardar en Directus (sal_roulette_winners) para persistir
-    console.log(`✅ Factura ${factura} usada. Premio: ${prize} | Cupón: ${couponCode}`);
+    console.log(
+      `✅ Factura ${factura} usada | Monto: $${monto} | Premio: ${prize} | Cupón: ${couponCode}`
+    );
 
     return res.json({
       prize,

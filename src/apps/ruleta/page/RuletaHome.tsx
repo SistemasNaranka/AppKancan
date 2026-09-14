@@ -26,26 +26,51 @@ import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, GRUPO_POR_PREM
 
 const STORAGE_KEY = 'ruleta_premios';
 
-const getPremiosFromStorage = (): ISegment[] => {
-  const contadorPorGrupo: Record<string, number> = {};
-  const siguienteIndice = (grupo: string) => {
-    const idx = contadorPorGrupo[grupo] || 0;
-    contadorPorGrupo[grupo] = idx + 1;
-    return idx;
-  };
+// ============================================================
+// 🎯 WHITELIST DE TIENDAS AUTORIZADAS (SOLO ESTAS)
+// ============================================================
+const TIENDAS_AUTORIZADAS = [
+  'cosmocentro',
+  'chipichape',
+  'unicentro1',
+  'unicentro2',
+  'unicentro 1',
+  'unicentro 2',
+  'calle 13',
+  'palmeto',
+  'palmetto',
+  'unico cali',
+  'calima',
+  'carrera8',
+  'cra 8',
+  'carrera 8',
+  'salomia',
+  'cenco cali',
+  'manhattan',
+  'victoria',
+  'vitoria',
+  'cali centro',
+  'manizales centro',
+];
 
+const esTiendaAutorizada = (nombre: string): boolean => {
+  const n = (nombre || '').toLowerCase();
+  return TIENDAS_AUTORIZADAS.some((key) => n.includes(key));
+};
+
+const getPremiosFromStorage = (): ISegment[] => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed)) {
-        return parsed.map((raw) => migrarSegment(raw, siguienteIndice(raw?.grupo || 'G3')));
+        return parsed.map((raw) => migrarSegment(raw));
       }
     } catch {}
   }
 
   return Object.entries(GRUPO_POR_PREMIO).map(([label, grupo]) =>
-    aplicarColorPorGrupo(label, grupo, siguienteIndice(grupo))
+    aplicarColorPorGrupo(label, grupo)
   );
 };
 
@@ -63,7 +88,6 @@ function TabPanel({ children, value, index }: TabPanelProps) {
   );
 }
 
-// ✅ SOLO CLIENTE (sin total)
 interface FacturaValida {
   cliente: string;
 }
@@ -86,14 +110,9 @@ const RuletaHome: React.FC = () => {
     staleTime: 30 * 60 * 1000,
   });
 
+  // ✅ Filtro whitelist — solo las autorizadas
   const tiendasFiltradas = useMemo(() => {
-    return tiendasCompletas.filter((tienda) => {
-      const nombre = tienda.name?.toLowerCase() || '';
-      const esCali = nombre.includes('cali') && !nombre.includes('cenco');
-      const esManizales = nombre.includes('manizales');
-      const esVictoria = nombre.includes('victoria') || nombre.includes('vitoria');
-      return esCali || esManizales || esVictoria;
-    });
+    return tiendasCompletas.filter((tienda) => esTiendaAutorizada(tienda.name));
   }, [tiendasCompletas]);
 
   const selectedStore = useMemo(() => {
@@ -129,7 +148,6 @@ const RuletaHome: React.FC = () => {
         throw new Error(data.message || 'No se pudo validar la factura');
       }
       const data = await res.json();
-      // ✅ Solo guardamos cliente
       setFactura({ cliente: data.cliente || 'Cliente no identificado' });
     } catch (e: any) {
       setError(e.message || 'Error al validar');
@@ -294,6 +312,7 @@ const RuletaHome: React.FC = () => {
 
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'stretch' }}>
+            {/* ===== PANEL VALIDAR ===== */}
             <Box
               sx={{
                 flex: '0 0 440px',
@@ -395,7 +414,6 @@ const RuletaHome: React.FC = () => {
                   </Box>
                 </Box>
 
-                {/* ✅ Panel verde: SOLO cliente, SIN monto */}
                 {factura && (
                   <Box sx={{
                     background: 'linear-gradient(135deg, #ECFDF5, #F0FDF4)',
@@ -441,6 +459,7 @@ const RuletaHome: React.FC = () => {
               }} />
             </Box>
 
+            {/* ===== PANEL RULETA ===== */}
             <Box
               sx={{
                 flex: '1 1 auto',
