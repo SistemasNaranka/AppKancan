@@ -27,35 +27,29 @@ import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, GRUPO_POR_PREM
 const STORAGE_KEY = 'ruleta_premios';
 
 // ============================================================
-// 🎯 WHITELIST DE TIENDAS AUTORIZADAS (SOLO ESTAS)
+// 🎯 TIENDAS AUTORIZADAS — LISTA EXACTA (como en Directus)
 // ============================================================
 const TIENDAS_AUTORIZADAS = [
-  'cosmocentro',
-  'chipichape',
-  'unicentro1',
-  'unicentro2',
-  'unicentro 1',
-  'unicentro 2',
-  'calle 13',
-  'palmeto',
-  'palmetto',
-  'unico cali',
-  'calima',
-  'carrera8',
-  'cra 8',
-  'carrera 8',
-  'salomia',
-  'cenco cali',
-  'manhattan',
-  'victoria',
-  'vitoria',
-  'cali centro',
-  'manizales centro',
+  'CALI CARRERA8',
+  'CALI CENTRO',
+  'CALI SALOMIA',
+  'CALIMA',
+  'CENCO CALI',
+  'CHIPICHAPE',
+  'COSMOCENTRO',
+  'MALL PLAZA',
+  'MANIZALES CENTRO',
+  'PALMETTO',
+  'UNICENTRO1 CALI',
+  'UNICENTRO2 CALI',
+  'UNICO CALI',
+  'VICTORIA PLAZA',
 ];
 
+// Comparación exacta (case-insensitive) — evita falsos positivos
 const esTiendaAutorizada = (nombre: string): boolean => {
-  const n = (nombre || '').toLowerCase();
-  return TIENDAS_AUTORIZADAS.some((key) => n.includes(key));
+  const n = (nombre || '').trim().toUpperCase();
+  return TIENDAS_AUTORIZADAS.includes(n);
 };
 
 const getPremiosFromStorage = (): ISegment[] => {
@@ -110,7 +104,7 @@ const RuletaHome: React.FC = () => {
     staleTime: 30 * 60 * 1000,
   });
 
-  // ✅ Filtro whitelist — solo las autorizadas
+  // ✅ Filtro lista exacta — solo las autorizadas
   const tiendasFiltradas = useMemo(() => {
     return tiendasCompletas.filter((tienda) => esTiendaAutorizada(tienda.name));
   }, [tiendasCompletas]);
