@@ -15,16 +15,10 @@ const zoomIn = keyframes`
   to { transform: scale(1); opacity: 1; }
 `;
 
-// 🎈 Flotación: sube y baja suavemente
-const floating = keyframes`
-  0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-14px); }
-`;
-
-// 🌑 Sombra que reacciona a la flotación (más chica cuando sube)
-const shadowPulse = keyframes`
-  0%, 100% { transform: scaleX(1);    opacity: 0.35; }
-  50%      { transform: scaleX(0.85); opacity: 0.18; }
+// 🌀 Giro lento automático cuando la ruleta está en reposo
+const idleSpin = keyframes`
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 `;
 
 // 🎏 Suave vaivén para los banderines de papel picado
@@ -33,14 +27,14 @@ const sway = keyframes`
   50%      { transform: rotate(3deg); }
 `;
 
-// 🌶️ Paleta fiesta latina — inspirada en papel picado / carnaval
+// 🌶️ Paleta fiesta latina
 const STITCH_COLORS = [
-  { base: '#FF4D6D', dark: '#D6234A' }, // rojo coral / hibisco
-  { base: '#FFB703', dark: '#F08C00' }, // amarillo dorado / sol
-  { base: '#06D6A0', dark: '#00A884' }, // turquesa caribe
-  { base: '#FF6B00', dark: '#E65100' }, // naranja mango
-  { base: '#EF3DB8', dark: '#C2186F' }, // magenta buganvilia
-  { base: '#7B2FF7', dark: '#5B1FC2' }, // púrpura fiesta
+  { base: '#FF4D6D', dark: '#D6234A' },
+  { base: '#FFB703', dark: '#F08C00' },
+  { base: '#06D6A0', dark: '#00A884' },
+  { base: '#FF6B00', dark: '#E65100' },
+  { base: '#EF3DB8', dark: '#C2186F' },
+  { base: '#7B2FF7', dark: '#5B1FC2' },
 ];
 
 const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
@@ -85,7 +79,6 @@ const dotPos = (index: number, total: number, radius: number, cx: number, cy: nu
   };
 };
 
-// 🌸 Posición de los "pétalos" del borde festón (un poco más afuera del aro)
 const petalPos = (index: number, total: number, radius: number, cx: number, cy: number) => {
   const anglePerSeg = (2 * Math.PI) / total;
   const angle = index * anglePerSeg - Math.PI / 2;
@@ -141,7 +134,6 @@ const Ruleta: React.FC<RuletaProps> = ({
   const cy = 200;
   const petalCount = Math.max(numSegments * 2, 16);
 
-  // 🎏 Banderines de papel picado (arriba del título)
   const BUNTING_COUNT = 9;
   const buntingFlags = Array.from({ length: BUNTING_COUNT }).map((_, i) => STITCH_COLORS[i % STITCH_COLORS.length]);
 
@@ -168,7 +160,6 @@ const Ruleta: React.FC<RuletaProps> = ({
         </filter>
       </defs>
 
-      {/* 🌸 Borde festón (pétalos) — gira junto con la rueda */}
       <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
         {Array.from({ length: petalCount }).map((_, i) => {
           const p = petalPos(i, petalCount, radius + 6, cx, cy);
@@ -187,7 +178,6 @@ const Ruleta: React.FC<RuletaProps> = ({
         })}
       </g>
 
-      {/* Grupo rotatorio */}
       <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
         {segments.map((_seg, i) => (
           <path
@@ -263,8 +253,8 @@ const Ruleta: React.FC<RuletaProps> = ({
         <Box
           sx={{
             position: 'fixed', inset: 0, zIndex: 1200,
-            backdropFilter: 'blur(6px)',
-            backgroundColor: 'rgba(90, 10, 40, 0.55)',
+            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)', // 🎨 Negro suave (antes era fuscia)
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             animation: `${fadeIn} 0.45s ease`,
           }}
@@ -344,17 +334,16 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Typography>
         </Box>
 
-        {/* 🎈 Contenedor de la ruleta flotante */}
+        {/* 🎡 Contenedor de la ruleta */}
         <Box sx={{
           position: 'relative',
           display: 'inline-block',
           width: '100%',
           maxWidth: 440,
           margin: '0 auto',
-          // 👇 Dejamos espacio extra abajo para que se vea la sombra
           pb: 4,
         }}>
-          {/* 🌑 Sombra en el suelo que reacciona a la flotación */}
+          {/* 🌑 Sombra estática */}
           <Box
             aria-hidden
             sx={{
@@ -363,34 +352,35 @@ const Ruleta: React.FC<RuletaProps> = ({
               left: '50%',
               width: '60%',
               height: '18px',
-              background: 'radial-gradient(ellipse at center, rgba(120,20,60,0.45) 0%, rgba(120,20,60,0) 70%)',
+              background: 'radial-gradient(ellipse at center, rgba(120,20,60,0.35) 0%, rgba(120,20,60,0) 70%)',
               transform: 'translateX(-50%)',
-              animation: !isSpinning ? `${shadowPulse} 4s ease-in-out infinite` : 'none',
               pointerEvents: 'none',
               zIndex: 0,
             }}
           />
 
-          {/* 🎈 Ruleta flotando */}
+          {/* 🎯 Puntero (flecha) — FUERA del spinner, siempre quieto */}
+          <Box sx={{
+            position: 'absolute', top: -8, left: '50%',
+            transform: 'translateX(-50%)', zIndex: 10,
+            width: 0, height: 0,
+            borderLeft: '14px solid transparent',
+            borderRight: '14px solid transparent',
+            borderTop: '28px solid #FF6B00',
+            filter: 'drop-shadow(0 3px 6px rgba(255,107,0,0.45))',
+          }} />
+
+          {/* 🌀 Solo el SVG gira — el puntero queda quieto */}
           <Box
             sx={{
               position: 'relative',
               width: '100%',
               aspectRatio: '1/1',
-              animation: !isSpinning ? `${floating} 4s ease-in-out infinite` : 'none',
+              animation: !isSpinning ? `${idleSpin} 40s linear infinite` : 'none',
+              willChange: 'transform',
               zIndex: 1,
             }}
           >
-            {/* Puntero arriba (flota junto con la ruleta) */}
-            <Box sx={{
-              position: 'absolute', top: -8, left: '50%',
-              transform: 'translateX(-50%)', zIndex: 10,
-              width: 0, height: 0,
-              borderLeft: '14px solid transparent',
-              borderRight: '14px solid transparent',
-              borderTop: '28px solid #FF6B00',
-              filter: 'drop-shadow(0 3px 6px rgba(255,107,0,0.45))',
-            }} />
             {wheelSVG(440)}
           </Box>
         </Box>
