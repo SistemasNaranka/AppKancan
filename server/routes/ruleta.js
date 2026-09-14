@@ -157,14 +157,10 @@ router.post("/ruleta/girar", async (req, res) => {
     const monto = Number(rows[0].total);
     const elegibles = calcularPremiosElegibles(monto);
 
-<<<<<<< HEAD
-    const prize = elegibles[Math.floor(Math.random() * elegibles.length)];
-=======
     // ⚠️ PENDIENTE: validar que la factura no haya girado antes (anti-abuso)
     // ⚠️ PENDIENTE: registrar el resultado en Directus (sal_roulette_winners)
 
     const prize = elegirPremioPonderado(elegibles);
->>>>>>> 9f5158753893fd014418898ed17202aa3e5b5311
     const couponCode = generarCupon();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
