@@ -27,14 +27,20 @@ const shadowPulse = keyframes`
   50%      { transform: scaleX(0.85); opacity: 0.18; }
 `;
 
-// Paleta latina vibrante
+// 🎏 Suave vaivén para los banderines de papel picado
+const sway = keyframes`
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+`;
+
+// 🌶️ Paleta fiesta latina — inspirada en papel picado / carnaval
 const STITCH_COLORS = [
-  { base: '#FF3D5A', dark: '#FF3D5A' },
-  { base: '#FFB300', dark: '#FF8F00' },
-  { base: '#00C48F', dark: '#009E73' },
-  { base: '#00BEE0', dark: '#0097B2' },
-  { base: '#FF4FBB', dark: '#E11D74' },
-  { base: '#4C5FF7', dark: '#3B4CC4' },
+  { base: '#FF4D6D', dark: '#D6234A' }, // rojo coral / hibisco
+  { base: '#FFB703', dark: '#F08C00' }, // amarillo dorado / sol
+  { base: '#06D6A0', dark: '#00A884' }, // turquesa caribe
+  { base: '#FF6B00', dark: '#E65100' }, // naranja mango
+  { base: '#EF3DB8', dark: '#C2186F' }, // magenta buganvilia
+  { base: '#7B2FF7', dark: '#5B1FC2' }, // púrpura fiesta
 ];
 
 const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
@@ -76,6 +82,16 @@ const dotPos = (index: number, total: number, radius: number, cx: number, cy: nu
   return {
     x: cx + radius * 0.94 * Math.cos(angle),
     y: cy + radius * 0.94 * Math.sin(angle),
+  };
+};
+
+// 🌸 Posición de los "pétalos" del borde festón (un poco más afuera del aro)
+const petalPos = (index: number, total: number, radius: number, cx: number, cy: number) => {
+  const anglePerSeg = (2 * Math.PI) / total;
+  const angle = index * anglePerSeg - Math.PI / 2;
+  return {
+    x: cx + radius * Math.cos(angle),
+    y: cy + radius * Math.sin(angle),
   };
 };
 
@@ -123,6 +139,11 @@ const Ruleta: React.FC<RuletaProps> = ({
   const radius = 190;
   const cx = 200;
   const cy = 200;
+  const petalCount = Math.max(numSegments * 2, 16);
+
+  // 🎏 Banderines de papel picado (arriba del título)
+  const BUNTING_COUNT = 9;
+  const buntingFlags = Array.from({ length: BUNTING_COUNT }).map((_, i) => STITCH_COLORS[i % STITCH_COLORS.length]);
 
   const wheelSVG = (size: number = 400) => (
     <svg
@@ -130,7 +151,8 @@ const Ruleta: React.FC<RuletaProps> = ({
       width={size}
       height={size}
       style={{
-        filter: 'drop-shadow(0 14px 18px rgba(0, 32, 70, 0.16))',
+        filter: 'drop-shadow(0 14px 18px rgba(120, 20, 60, 0.22))',
+        overflow: 'visible',
       }}
     >
       <defs>
@@ -146,6 +168,25 @@ const Ruleta: React.FC<RuletaProps> = ({
         </filter>
       </defs>
 
+      {/* 🌸 Borde festón (pétalos) — gira junto con la rueda */}
+      <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
+        {Array.from({ length: petalCount }).map((_, i) => {
+          const p = petalPos(i, petalCount, radius + 6, cx, cy);
+          const color = STITCH_COLORS[i % STITCH_COLORS.length];
+          return (
+            <circle
+              key={`petal-${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={7}
+              fill={color.base}
+              stroke="#FFF7EC"
+              strokeWidth={2}
+            />
+          );
+        })}
+      </g>
+
       {/* Grupo rotatorio */}
       <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
         {segments.map((_seg, i) => (
@@ -153,7 +194,7 @@ const Ruleta: React.FC<RuletaProps> = ({
             key={`gajo-${i}`}
             d={gajoPath(i, numSegments, radius, cx, cy)}
             fill={`url(#stitchGrad${i % STITCH_COLORS.length})`}
-            stroke="#ffffff"
+            stroke="#FFF7EC"
             strokeWidth={3}
             strokeLinejoin="round"
           />
@@ -162,8 +203,8 @@ const Ruleta: React.FC<RuletaProps> = ({
         {segments.map((_seg, i) => {
           const p = dotPos(i, numSegments, radius, cx, cy);
           return (
-            <circle key={`dot-${i}`} cx={p.x} cy={p.y} r={4} fill="#ffffff"
-              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }} />
+            <circle key={`dot-${i}`} cx={p.x} cy={p.y} r={4} fill="#FFE8A3"
+              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }} />
           );
         })}
 
@@ -176,7 +217,7 @@ const Ruleta: React.FC<RuletaProps> = ({
                 cy={p.y}
                 r={22}
                 fill="rgba(255,255,255,0.42)"
-                stroke="#ffffff"
+                stroke="#FFF7EC"
                 strokeWidth={2.5}
                 filter="url(#bubbleGlow)"
               />
@@ -197,15 +238,15 @@ const Ruleta: React.FC<RuletaProps> = ({
         })}
       </g>
 
-      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#ffffff" strokeWidth={6} />
+      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#FFF7EC" strokeWidth={6} />
 
-      <circle cx={cx} cy={cy} r={30} fill="#ffffff"
-        style={{ filter: 'drop-shadow(0 8px 20px rgba(15,30,56,0.18))' }} />
+      <circle cx={cx} cy={cy} r={30} fill="#FFF7EC"
+        style={{ filter: 'drop-shadow(0 8px 20px rgba(120,20,60,0.25))' }} />
       <text
         x={cx}
         y={cy + 10}
         textAnchor="middle"
-        fill="#004B93"
+        fill="#D6234A"
         fontFamily="'Plus Jakarta Sans', 'Poppins', sans-serif"
         fontSize={30}
         fontWeight={800}
@@ -223,7 +264,7 @@ const Ruleta: React.FC<RuletaProps> = ({
           sx={{
             position: 'fixed', inset: 0, zIndex: 1200,
             backdropFilter: 'blur(6px)',
-            backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            backgroundColor: 'rgba(90, 10, 40, 0.55)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             animation: `${fadeIn} 0.45s ease`,
           }}
@@ -240,8 +281,8 @@ const Ruleta: React.FC<RuletaProps> = ({
               width: 0, height: 0,
               borderLeft: '20px solid transparent',
               borderRight: '20px solid transparent',
-              borderTop: '38px solid #2563EB',
-              filter: 'drop-shadow(0 4px 8px rgba(37,99,235,0.5))',
+              borderTop: '38px solid #FF6B00',
+              filter: 'drop-shadow(0 4px 8px rgba(255,107,0,0.5))',
             }} />
             {wheelSVG(600)}
           </Box>
@@ -256,24 +297,50 @@ const Ruleta: React.FC<RuletaProps> = ({
         width: '100%',
         margin: '0 auto',
       }}>
+        {/* 🎏 Banderines de papel picado */}
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '2px',
+          mb: 1,
+          px: 2,
+        }}>
+          {buntingFlags.map((c, i) => (
+            <Box
+              key={i}
+              sx={{
+                width: 0,
+                height: 0,
+                borderLeft: '13px solid transparent',
+                borderRight: '13px solid transparent',
+                borderTop: `20px solid ${c.base}`,
+                transformOrigin: 'top center',
+                animation: `${sway} ${2.5 + (i % 3) * 0.4}s ease-in-out infinite`,
+                animationDelay: `${i * 0.12}s`,
+                filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.15))',
+              }}
+            />
+          ))}
+        </Box>
+
         <Box sx={{ mb: 3 }}>
           <Typography sx={{
             fontSize: { xs: '1.6rem', sm: '2rem' },
             fontWeight: 800,
-            color: '#0F172A',
+            color: '#3B0A24',
             fontFamily: "'Sora', 'Poppins', sans-serif",
             letterSpacing: '-0.02em',
             lineHeight: 1.15,
           }}>
             ¡Gira y llévate{' '}
             <Box component="span" sx={{
-              background: 'linear-gradient(135deg, #0056d6 0%, #2563EB 50%, #00B4D8 100%)',
+              background: 'linear-gradient(135deg, #D6234A 0%, #FF6B00 50%, #FFB703 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}>tu premio!</Box>
           </Typography>
-          <Typography sx={{ mt: 1, fontSize: '0.85rem', color: '#64748B', maxWidth: 380, mx: 'auto' }}>
-            Cada compra es una oportunidad. Gira la ruleta y descubre qué te ganaste hoy en tu boutique.
+          <Typography sx={{ mt: 1, fontSize: '0.85rem', color: '#7A4A5C', maxWidth: 380, mx: 'auto' }}>
+            Cada compra es una oportunidad. Gira la ruleta y descubre qué te ganaste hoy
           </Typography>
         </Box>
 
@@ -296,7 +363,7 @@ const Ruleta: React.FC<RuletaProps> = ({
               left: '50%',
               width: '60%',
               height: '18px',
-              background: 'radial-gradient(ellipse at center, rgba(15,30,56,0.45) 0%, rgba(15,30,56,0) 70%)',
+              background: 'radial-gradient(ellipse at center, rgba(120,20,60,0.45) 0%, rgba(120,20,60,0) 70%)',
               transform: 'translateX(-50%)',
               animation: !isSpinning ? `${shadowPulse} 4s ease-in-out infinite` : 'none',
               pointerEvents: 'none',
@@ -321,8 +388,8 @@ const Ruleta: React.FC<RuletaProps> = ({
               width: 0, height: 0,
               borderLeft: '14px solid transparent',
               borderRight: '14px solid transparent',
-              borderTop: '28px solid #2563EB',
-              filter: 'drop-shadow(0 3px 6px rgba(37,99,235,0.45))',
+              borderTop: '28px solid #FF6B00',
+              filter: 'drop-shadow(0 3px 6px rgba(255,107,0,0.45))',
             }} />
             {wheelSVG(440)}
           </Box>
@@ -341,19 +408,19 @@ const Ruleta: React.FC<RuletaProps> = ({
             textTransform: 'uppercase',
             letterSpacing: '0.12em',
             color: '#FFFFFF',
-            background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+            background: 'linear-gradient(135deg, #FF6B00, #D6234A)',
             borderRadius: '16px',
-            boxShadow: '0 10px 24px -4px rgba(37,99,235,0.45), 0 0 12px rgba(37,99,235,0.3)',
+            boxShadow: '0 10px 24px -4px rgba(214,35,74,0.45), 0 0 12px rgba(255,107,0,0.3)',
             width: '100%',
             maxWidth: 340,
             fontFamily: "'Sora', 'Poppins', sans-serif",
             '&:hover:not(:disabled)': {
-              background: 'linear-gradient(135deg, #1D4ED8, #1E40AF)',
-              boxShadow: '0 14px 28px -2px rgba(37,99,235,0.65), 0 0 20px rgba(56,189,248,0.5)',
+              background: 'linear-gradient(135deg, #D6234A, #B3123A)',
+              boxShadow: '0 14px 28px -2px rgba(214,35,74,0.65), 0 0 20px rgba(255,183,3,0.5)',
               filter: 'brightness(1.05)',
             },
             '&:disabled': {
-              background: '#CBD5E1',
+              background: '#E8C9D1',
               color: '#ffffff',
               cursor: 'not-allowed',
               boxShadow: 'none',

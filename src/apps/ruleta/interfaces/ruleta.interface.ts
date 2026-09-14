@@ -7,11 +7,23 @@ export interface ISegment {
   colorDark?: string;
 }
 
+// Forma canónica que usa toda la app (Ruleta.tsx, ModalPremio.tsx, etc.)
 export interface IPremioResponse {
   prize: string;
   couponCode: string;
   expiresAt: string;
   message?: string;
+  probabilidad?: number;
+}
+
+// Forma "cruda" tal como puede llegar del backend, donde `prize` a veces
+// viene anidado como objeto en vez de string. No se usa fuera de useRuleta.
+export interface IPremioResponseRaw {
+  prize: string | { prize: string; probabilidad?: number };
+  couponCode: string;
+  expiresAt: string;
+  message?: string;
+  probabilidad?: number;
 }
 
 export interface IGirarRequest {
