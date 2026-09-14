@@ -71,14 +71,12 @@ const darkenColor = (hex: string): string => {
 const descripcionesPorPremio: Record<string, string> = {
   'Jean de línea': 'Jean de línea premium',
   'Jean básico': 'Jean básico clásico',
-  'Bonos $100k': 'Bono de $100.000',
-  'Bonos $50k': 'Bono de $50.000',
-  'Bonos $30k': 'Bono de $30.000',
-  'Blusas básicas': 'Blusa básica',
+  'Bono $100k': 'Bono de $100.000',
+  'Bono $50k': 'Bono de $50.000',
+  'Bono $30k': 'Bono de $30.000',
+  'Blusa básica': 'Blusa básica',
   'Tote bag denim': 'Bolso tote de denim',
-  'Tops': 'Top de moda',
-  'Pañoletas': 'Pañoleta decorativa',
-  'Bambas': 'Bamba exclusiva',
+  'Bamba': 'Bamba exclusiva',
 };
 
 const getInicial = (nombre: string): string => {
@@ -91,7 +89,6 @@ const getIconoDecorativo = (nombre: string) => {
   if (lower.includes('jean') || lower.includes('denim')) return '👖';
   if (lower.includes('bono') || lower.includes('$')) return '💰';
   if (lower.includes('blusa')) return '👚';
-  if (lower.includes('top')) return '👕';
   if (lower.includes('pañole')) return '🧣';
   if (lower.includes('bamba')) return '👟';
   if (lower.includes('tote')) return '👜';

@@ -1,7 +1,39 @@
 const express = require("express");
+const fetch = require("node-fetch");
 const { queryDB } = require("../utils/db");
 
 const router = express.Router();
+
+const DIRECTUS_URL = process.env.DIRECTUS_URL;
+const DIRECTUS_SERVICE_TOKEN = process.env.DIRECTUS_SERVICE_TOKEN;
+
+async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize }) {
+  const resp = await fetch(`${DIRECTUS_URL}/items/sal_roulette_plays`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${DIRECTUS_SERVICE_TOKEN}`,
+    },
+    body: JSON.stringify({
+      invoice_key: invoiceKey,
+      document_number: documento,
+      store_code: bodega,
+      prize,
+    }),
+  });
+
+  if (resp.ok) return { ok: true };
+
+  let body = null;
+  try {
+    body = await resp.json();
+  } catch (_) {}
+
+  const code = body?.errors?.[0]?.extensions?.code;
+  if (code === "RECORD_NOT_UNIQUE") return { ok: false, duplicate: true };
+
+  return { ok: false, duplicate: false, status: resp.status, body };
+}
 
 // ============================================================
 // Premios por rango — DEBE coincidir EXACTAMENTE con rangos.ts
@@ -61,14 +93,7 @@ const generarCupon = () => {
 };
 
 // ============================================================
-// 🚫 CONTROL DE FACTURAS USADAS (anti doble giro)
-// Set en memoria. Al reiniciar el servidor se limpia.
-// Para persistencia, migrar a Directus o a la BD.
-// ============================================================
-const facturasUsadas = new Set();
-
-// ============================================================
-// ✅ VALIDAR FACTURA (solo cliente, sin monto)
+// ✅ VALIDAR FACTURA (consulta venta y valida en Directus)
 // ============================================================
 router.post("/ruleta/validar-factura", async (req, res) => {
   const { documentos } = req.body;
@@ -78,23 +103,15 @@ router.post("/ruleta/validar-factura", async (req, res) => {
   }
 
   const factura = documentos.trim().toUpperCase();
-
-  // 🚫 Verificar si ya se usó
-  if (facturasUsadas.has(factura)) {
-    return res.status(409).json({
-      valid: false,
-      message: "Esta factura ya participó en la ruleta. Solo se permite un giro por factura.",
-    });
-  }
-
   const anio = new Date().getFullYear();
   const tabla = `ventas_${anio}`;
 
+  // Se añade bodega a la consulta para armar la clave compuesta invoiceKey
   const sql = `
-    SELECT documentos, cliente, SUM(total_factura) AS total
+    SELECT documentos, cliente, bodega, SUM(total_factura) AS total
     FROM kcn_db.${tabla}
     WHERE documentos = ?
-    GROUP BY documentos, cliente
+    GROUP BY documentos, cliente, bodega
     LIMIT 1
   `;
 
@@ -106,12 +123,31 @@ router.post("/ruleta/validar-factura", async (req, res) => {
     }
 
     const venta = rows[0];
+    const bodega = String(venta.bodega);
+    const invoiceKey = `${bodega}-${factura}`;
+
+    // 🚫 Candado temprano: validar contra Directus antes de habilitar el giro
+    const checkUrl = `${DIRECTUS_URL}/items/sal_roulette_plays?filter[invoice_key][_eq]=${encodeURIComponent(invoiceKey)}&limit=1`;
+    const checkResp = await fetch(checkUrl, {
+      headers: {
+        Authorization: `Bearer ${DIRECTUS_SERVICE_TOKEN}`,
+      },
+    });
+    const directusData = await checkResp.json();
+
+    if (directusData?.data && directusData.data.length > 0) {
+      return res.status(409).json({
+        valid: false,
+        message: "Esta factura ya participó en la ruleta. Solo se permite un giro por factura.",
+      });
+    }
+
     const nombreCliente =
       venta.cliente && venta.cliente.trim()
         ? venta.cliente.trim()
         : "Cliente no identificado";
 
-    // ✅ Solo devolvemos cliente (sin monto, sin fecha, sin totalSinIva)
+    // ✅ Factura existente y virgen en la ruleta
     return res.json({
       valid: true,
       cliente: nombreCliente,
@@ -135,21 +171,14 @@ router.post("/ruleta/girar", async (req, res) => {
 
   const factura = documentos.trim().toUpperCase();
 
-  // 🚫 Verificar si ya se usó
-  if (facturasUsadas.has(factura)) {
-    return res.status(409).json({
-      message: "Esta factura ya participó en la ruleta. Solo se permite un giro por factura.",
-    });
-  }
-
   const anio = new Date().getFullYear();
   const tabla = `ventas_${anio}`;
 
   const sql = `
-    SELECT documentos, cliente, SUM(total_factura) AS total
+    SELECT documentos, cliente, bodega, SUM(total_factura) AS total
     FROM kcn_db.${tabla}
     WHERE documentos = ?
-    GROUP BY documentos, cliente
+    GROUP BY documentos, cliente, bodega
     LIMIT 1
   `;
 
@@ -161,6 +190,7 @@ router.post("/ruleta/girar", async (req, res) => {
     }
 
     const monto = Number(rows[0].total);
+    const bodega = String(rows[0].bodega);
     const elegibles = calcularPremiosElegibles(monto);
 
     // ✅ AHORA SÍ: selección ponderada que respeta las probabilidades
@@ -169,13 +199,23 @@ router.post("/ruleta/girar", async (req, res) => {
     const couponCode = generarCupon();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    // 🚫 Marcar factura como usada (no puede volver a girar)
-    facturasUsadas.add(factura);
+    const invoiceKey = `${bodega}-${factura}`;
+    const registro = await registrarJugadaDirectus({
+      invoiceKey,
+      documento: factura,
+      bodega,
+      prize,
+    });
 
-    // ⚠️ PENDIENTE: guardar en Directus (sal_roulette_winners) para persistir
-    console.log(
-      `✅ Factura ${factura} usada | Monto: $${monto} | Premio: ${prize} | Cupón: ${couponCode}`
-    );
+    if (!registro.ok) {
+      if (registro.duplicate) {
+        return res.status(409).json({
+          message: "Esta factura ya participó en la ruleta. Solo se permite un giro por factura.",
+        });
+      }
+      console.error("Error al registrar la jugada en Directus:", registro.status, registro.body);
+      return res.status(500).json({ message: "Error al registrar el giro" });
+    }
 
     return res.json({
       prize,
