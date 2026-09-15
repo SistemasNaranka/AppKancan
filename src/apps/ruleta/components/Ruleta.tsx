@@ -27,14 +27,16 @@ const sway = keyframes`
   50%      { transform: rotate(3deg); }
 `;
 
-// 🌶️ Paleta fiesta latina
+// 🌶️ Paleta fiesta latina — 8 colores, uno por gajo, sin repetidos
 const STITCH_COLORS = [
-  { base: '#FF4D6D', dark: '#D6234A' },
-  { base: '#FFB703', dark: '#F08C00' },
-  { base: '#06D6A0', dark: '#00A884' },
-  { base: '#FF6B00', dark: '#E65100' },
-  { base: '#EF3DB8', dark: '#C2186F' },
-  { base: '#7B2FF7', dark: '#5B1FC2' },
+  { base: '#FF4D6D', dark: '#D6234A' }, // rojo coral / hibisco
+  { base: '#FF8C00', dark: '#E65100' }, // naranja mango
+  { base: '#FFC107', dark: '#F08C00' }, // amarillo dorado / sol
+  { base: '#8BC34A', dark: '#558B2F' }, // verde lima
+  { base: '#00BCD4', dark: '#00838F' }, // turquesa caribe
+  { base: '#2196F3', dark: '#1565C0' }, // azul cielo (único azul)
+  { base: '#9C27B0', dark: '#6A1B9A' }, // púrpura fiesta
+  { base: '#E91E63', dark: '#AD1457' }, // magenta buganvilia
 ];
 
 const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
@@ -254,7 +256,7 @@ const Ruleta: React.FC<RuletaProps> = ({
           sx={{
             position: 'fixed', inset: 0, zIndex: 1200,
             backdropFilter: 'blur(8px)',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)', // 🎨 Negro suave (antes era fuscia)
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             animation: `${fadeIn} 0.45s ease`,
           }}
@@ -323,8 +325,9 @@ const Ruleta: React.FC<RuletaProps> = ({
             lineHeight: 1.15,
           }}>
             ¡Gira y llévate{' '}
+            {/* 🔵 CAMBIO A AZUL */}
             <Box component="span" sx={{
-              background: 'linear-gradient(135deg, #D6234A 0%, #FF6B00 50%, #FFB703 100%)',
+              background: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 50%, #3B82F6 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}>tu premio!</Box>
@@ -385,6 +388,7 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Box>
         </Box>
 
+        {/* 🔵 BOTÓN AHORA AZUL */}
         <Button
           variant="contained"
           disabled={isSpinning || !facturaValida}
@@ -398,19 +402,19 @@ const Ruleta: React.FC<RuletaProps> = ({
             textTransform: 'uppercase',
             letterSpacing: '0.12em',
             color: '#FFFFFF',
-            background: 'linear-gradient(135deg, #FF6B00, #D6234A)',
+            background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
             borderRadius: '16px',
-            boxShadow: '0 10px 24px -4px rgba(214,35,74,0.45), 0 0 12px rgba(255,107,0,0.3)',
+            boxShadow: '0 10px 24px -4px rgba(37, 99, 235, 0.45), 0 0 12px rgba(37, 99, 235, 0.3)',
             width: '100%',
             maxWidth: 340,
             fontFamily: "'Sora', 'Poppins', sans-serif",
             '&:hover:not(:disabled)': {
-              background: 'linear-gradient(135deg, #D6234A, #B3123A)',
-              boxShadow: '0 14px 28px -2px rgba(214,35,74,0.65), 0 0 20px rgba(255,183,3,0.5)',
+              background: 'linear-gradient(135deg, #1D4ED8, #1E40AF)',
+              boxShadow: '0 14px 28px -2px rgba(37, 99, 235, 0.65), 0 0 20px rgba(59, 130, 246, 0.5)',
               filter: 'brightness(1.05)',
             },
             '&:disabled': {
-              background: '#E8C9D1',
+              background: '#CBD5E1',
               color: '#ffffff',
               cursor: 'not-allowed',
               boxShadow: 'none',

@@ -16,6 +16,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import { Casino as RuletaIcon, LocalOffer as PremiosIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { getStores } from '../api/directus/read';
@@ -27,7 +29,7 @@ import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, GRUPO_POR_PREM
 const STORAGE_KEY = 'ruleta_premios';
 
 // ============================================================
-// 🎯 TIENDAS AUTORIZADAS — LISTA EXACTA (como en Directus)
+// 🎯 TIENDAS AUTORIZADAS — LISTA EXACTA
 // ============================================================
 const TIENDAS_AUTORIZADAS = [
   'CALI CARRERA8',
@@ -46,7 +48,6 @@ const TIENDAS_AUTORIZADAS = [
   'VICTORIA PLAZA',
 ];
 
-// Comparación exacta (case-insensitive) — evita falsos positivos
 const esTiendaAutorizada = (nombre: string): boolean => {
   const n = (nombre || '').trim().toUpperCase();
   return TIENDAS_AUTORIZADAS.includes(n);
@@ -95,16 +96,12 @@ const RuletaHome: React.FC = () => {
   const [premios, setPremios] = useState<ISegment[]>(() => getPremiosFromStorage());
   const [storeFilter, setStoreFilter] = useState<number | null>(null);
 
-  // ============================================================
-  // 🏪 OBTENER TIENDAS DESDE DIRECTUS (core_stores)
-  // ============================================================
   const { data: tiendasCompletas = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
     staleTime: 30 * 60 * 1000,
   });
 
-  // ✅ Filtro lista exacta — solo las autorizadas
   const tiendasFiltradas = useMemo(() => {
     return tiendasCompletas.filter((tienda) => esTiendaAutorizada(tienda.name));
   }, [tiendasCompletas]);
@@ -125,7 +122,6 @@ const RuletaHome: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // ✅ VALIDAR: solo cliente
   const validar = async () => {
     if (!numFactura.trim()) return;
     setCargando(true);
@@ -324,6 +320,7 @@ const RuletaHome: React.FC = () => {
                 justifyContent: 'space-between',
               }}
             >
+              {/* Glow azul sutil */}
               <Box sx={{
                 position: 'absolute',
                 top: -64, right: -64,
@@ -335,27 +332,44 @@ const RuletaHome: React.FC = () => {
               }} />
 
               <Box sx={{ position: 'relative', zIndex: 1, my: 'auto', display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-                <Box>
+                {/* HEADER con ícono de factura */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 8px 20px -6px rgba(37, 99, 235, 0.5)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ReceiptLongIcon sx={{ fontSize: 28, color: '#ffffff' }} />
+                  </Box>
                   <Typography sx={{
-                    fontSize: { xs: '1.75rem', sm: '2rem' },
+                    fontSize: { xs: '1.5rem', sm: '1.75rem' },
                     fontWeight: 700,
                     color: '#0F172A',
                     fontFamily: "'Sora', 'Poppins', sans-serif",
                     letterSpacing: '-0.02em',
                     lineHeight: 1.15,
-                    mb: 1.5,
                   }}>
                     Validar factura
                   </Typography>
-                  <Typography sx={{
-                    fontSize: '0.875rem',
-                    color: '#64748B',
-                    lineHeight: 1.6,
-                  }}>
-                    El cliente debe haber facturado para participar. Ingresa el número de comprobante para habilitar el giro.
-                  </Typography>
                 </Box>
 
+                <Typography sx={{
+                  fontSize: '0.875rem',
+                  color: '#64748B',
+                  lineHeight: 1.6,
+                }}>
+                  El cliente debe haber facturado para participar. Ingresa el número de comprobante para habilitar el giro.
+                </Typography>
+
+                {/* FORMULARIO */}
                 <Box>
                   <Typography sx={{
                     fontSize: '0.7rem',
@@ -444,13 +458,33 @@ const RuletaHome: React.FC = () => {
                 )}
               </Box>
 
-              <Box sx={{
-                mt: 3,
-                pt: 2,
-                borderTop: '1px solid #E2E8F0',
-                position: 'relative',
-                zIndex: 1,
-              }} />
+              {/* 💡 TIP CON BOMBILLITO */}
+              <Box
+                sx={{
+                  mt: 3,
+                  pt: 2,
+                  borderTop: '1px dashed #E2E8F0',
+                  position: 'relative',
+                  zIndex: 1,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 1,
+                }}
+              >
+                <LightbulbOutlinedIcon sx={{ fontSize: 18, color: '#2563EB', flexShrink: 0, mt: '2px' }} />
+                <Typography
+                  sx={{
+                    fontSize: '0.72rem',
+                    color: '#64748B',
+                    fontWeight: 500,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  El número está en tu factura de compra (ej:{' '}
+                  <strong style={{ color: '#1D4ED8' }}>KE030000004249</strong>). Solo aplica una
+                  factura por giro.
+                </Typography>
+              </Box>
             </Box>
 
             {/* ===== PANEL RULETA ===== */}

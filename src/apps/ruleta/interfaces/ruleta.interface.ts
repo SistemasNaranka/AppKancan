@@ -44,3 +44,12 @@ export interface Tienda {
   id: number;
   name: string;
 }
+export interface ISegment {
+  label: string;
+  grupo: TGrupo;
+  color: string;
+  colorDark?: string;
+  // 📦 NUEVO: Cantidad (stock)
+  cantidad?: number;                                // Total (aplica a todas las tiendas)
+  cantidadesPorTienda?: Record<string, number>;     // { "storeId": cantidad }
+}

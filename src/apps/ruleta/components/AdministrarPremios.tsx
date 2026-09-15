@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -20,6 +20,8 @@ import {
   Tooltip,
   Fade,
   Chip,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -27,34 +29,55 @@ import {
   DeleteForever as DeleteForeverIcon,
   Close as CloseIcon,
   Warning as WarningIcon,
+  Inventory2 as InventoryIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import { ISegment, TGrupo } from '../interfaces/ruleta.interface';
+import { useQuery } from '@tanstack/react-query';
+import { ISegment, TGrupo, Tienda } from '../interfaces/ruleta.interface';
 import { aplicarColorPorGrupo, migrarSegment, GRUPO_COLOR, GRUPO_POR_PREMIO } from '../utils/rangos';
+import { getStores } from '../api/directus/read';
 
 const STORAGE_KEY = 'ruleta_premios';
 
-// ============================================================
-// 🎨 PALETA DE COLORES PARA PREMIOS (12 colores)
-// ============================================================
-const COLOR_PALETTE = [
-  '#E53935', // G1 - Rojo
-  '#FBC02D', // G2 - Amarillo
-  '#1E88E5', // G3 - Azul
-  '#FF6B6B', // Rojo claro
-  '#FF9F43', // Naranja
-  '#FECA57', // Amarillo claro
-  '#54A0FF', // Azul claro
-  '#5F27CD', // Púrpura
-  '#A29BFE', // Lila
-  '#00D2D3', // Turquesa
-  '#55EFC4', // Verde menta
-  '#FD79A8', // Rosa
-];
+// 🎨 Color principal (azul corporativo)
+const AZUL = '#004680';
+const AZUL_BG = '#E6EEF5';      // Fondo muy claro del mismo azul
+const AZUL_BORDER = '#99BBD4';  // Borde medio
+const AZUL_HOVER = '#CCDDEA';   // Hover claro
 
 // ============================================================
-// FUNCIÓN PARA OSCURECER UN COLOR (para colorDark)
+// 🎯 TIENDAS AUTORIZADAS — LISTA EXACTA
 // ============================================================
+const TIENDAS_AUTORIZADAS = [
+  'CALI CARRERA8',
+  'CALI CENTRO',
+  'CALI SALOMIA',
+  'CALIMA',
+  'CENCO CALI',
+  'CHIPICHAPE',
+  'COSMOCENTRO',
+  'MALL PLAZA',
+  'MANIZALES CENTRO',
+  'PALMETTO',
+  'UNICENTRO1 CALI',
+  'UNICENTRO2 CALI',
+  'UNICO CALI',
+  'VICTORIA PLAZA',
+];
+
+const esTiendaAutorizada = (nombre: string): boolean => {
+  const n = (nombre || '').trim().toUpperCase();
+  return TIENDAS_AUTORIZADAS.includes(n);
+};
+
+// ============================================================
+// 🎨 PALETA DE COLORES
+// ============================================================
+const COLOR_PALETTE = [
+  '#E53935', '#FBC02D', '#1E88E5', '#FF6B6B', '#FF9F43', '#FECA57',
+  '#54A0FF', '#5F27CD', '#A29BFE', '#00D2D3', '#55EFC4', '#FD79A8',
+];
+
 const darkenColor = (hex: string): string => {
   let r = parseInt(hex.slice(1, 3), 16);
   let g = parseInt(hex.slice(3, 5), 16);
@@ -66,7 +89,7 @@ const darkenColor = (hex: string): string => {
 };
 
 // ============================================================
-// DESCRIPCIONES Y UTILIDADES
+// DESCRIPCIONES
 // ============================================================
 const descripcionesPorPremio: Record<string, string> = {
   'Jean de línea': 'Jean de línea premium',
@@ -75,7 +98,8 @@ const descripcionesPorPremio: Record<string, string> = {
   'Bono $50k': 'Bono de $50.000',
   'Bono $30k': 'Bono de $30.000',
   'Blusa básica': 'Blusa básica',
-  'Tote bag denim': 'Bolso tote de denim',
+  'Tote bag': 'Bolso tote de denim',
+  'Bandana': 'Bandana decorativa',
   'Bamba': 'Bamba exclusiva',
 };
 
@@ -89,7 +113,8 @@ const getIconoDecorativo = (nombre: string) => {
   if (lower.includes('jean') || lower.includes('denim')) return '👖';
   if (lower.includes('bono') || lower.includes('$')) return '💰';
   if (lower.includes('blusa')) return '👚';
-  if (lower.includes('pañole')) return '🧣';
+  if (lower.includes('top')) return '👕';
+  if (lower.includes('pañole') || lower.includes('bandana')) return '🧣';
   if (lower.includes('bamba')) return '👟';
   if (lower.includes('tote')) return '👜';
   return '🎁';
@@ -100,7 +125,7 @@ const getDescripcion = (nombre: string): string => {
 };
 
 // ============================================================
-// FUNCIONES DE ALMACENAMIENTO (localStorage)
+// STORAGE
 // ============================================================
 const getPremiosFromStorage = (): ISegment[] => {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -120,9 +145,9 @@ const savePremiosToStorage = (premios: ISegment[]) => {
 };
 
 // ============================================================
-// ESTILOS DE TARJETAS
+// ESTILOS
 // ============================================================
-const PremioCard = styled(Card)(({ theme }) => ({
+const PremioCard = styled(Card)(() => ({
   borderRadius: '16px',
   border: '1px solid #d0d7de',
   boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -138,18 +163,8 @@ const PremioCard = styled(Card)(({ theme }) => ({
   backgroundColor: '#ffffff',
   '&:hover': {
     transform: 'translateY(-4px)',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-    borderColor: '#1976D2',
-  },
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '4px',
-    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-    opacity: 0.8,
+    boxShadow: '0 8px 24px rgba(0,70,128,0.15)',
+    borderColor: AZUL,
   },
 }));
 
@@ -168,10 +183,7 @@ const ColorCircle = styled(Box)<{ color: string }>(({ color }) => ({
   fontSize: '1.4rem',
   fontFamily: "'Poppins', sans-serif",
   textShadow: '0 2px 6px rgba(0,0,0,0.25)',
-  transition: 'transform 0.2s',
-  '&:hover': {
-    transform: 'scale(1.08)',
-  },
+  flexShrink: 0,
 }));
 
 const DecoratedBadge = styled(Box)({
@@ -185,14 +197,14 @@ const DecoratedBadge = styled(Box)({
 });
 
 // ============================================================
-// PROPS DEL COMPONENTE
+// PROPS
 // ============================================================
 interface AdministrarPremiosProps {
   onPremiosChange: (premios: ISegment[]) => void;
 }
 
 // ============================================================
-// COMPONENTE PRINCIPAL
+// COMPONENTE
 // ============================================================
 const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange }) => {
   const [premios, setPremios] = useState<ISegment[]>([]);
@@ -201,6 +213,10 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   const [formLabel, setFormLabel] = useState('');
   const [formGrupo, setFormGrupo] = useState<TGrupo>('G3');
   const [formColor, setFormColor] = useState<string | null>(null);
+  const [formCantidad, setFormCantidad] = useState('');
+  const [usarCantidadPorTienda, setUsarCantidadPorTienda] = useState(false);
+  const [formCantidadesPorTienda, setFormCantidadesPorTienda] = useState<Record<string, string>>({});
+
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -209,13 +225,20 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
 
-  // ===== ESTADOS PARA EL MODAL DE ELIMINACIÓN =====
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
-  // ============================================================
-  // EFECTOS
-  // ============================================================
+  // 🏪 Cargar tiendas desde Directus
+  const { data: tiendasCompletas = [] } = useQuery<Tienda[]>({
+    queryKey: ['adminTiendas'],
+    queryFn: getStores,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const tiendas = useMemo(() => {
+    return tiendasCompletas.filter((t) => esTiendaAutorizada(t.name));
+  }, [tiendasCompletas]);
+
   useEffect(() => {
     const stored = getPremiosFromStorage();
     setPremios(stored);
@@ -230,19 +253,33 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   }, [premios]);
 
   // ============================================================
-  // MANEJADORES DEL MODAL (Crear/Editar)
+  // MANEJADORES DEL MODAL
   // ============================================================
   const handleOpenModal = (index?: number) => {
     if (index !== undefined) {
+      const p = premios[index];
       setEditingIndex(index);
-      setFormLabel(premios[index].label);
-      setFormGrupo(premios[index].grupo);
-      setFormColor(premios[index].color || null);
+      setFormLabel(p.label);
+      setFormGrupo(p.grupo);
+      setFormColor(p.color || null);
+      setFormCantidad(p.cantidad?.toString() ?? '');
+      const porTienda = p.cantidadesPorTienda && Object.keys(p.cantidadesPorTienda).length > 0;
+      setUsarCantidadPorTienda(!!porTienda);
+      setFormCantidadesPorTienda(
+        porTienda
+          ? Object.fromEntries(
+              Object.entries(p.cantidadesPorTienda!).map(([k, v]) => [k, v.toString()])
+            )
+          : {}
+      );
     } else {
       setEditingIndex(null);
       setFormLabel('');
       setFormGrupo('G3');
       setFormColor(null);
+      setFormCantidad('');
+      setUsarCantidadPorTienda(false);
+      setFormCantidadesPorTienda({});
     }
     setOpenModal(true);
   };
@@ -252,6 +289,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     setEditingIndex(null);
     setFormLabel('');
     setFormColor(null);
+    setFormCantidad('');
+    setUsarCantidadPorTienda(false);
+    setFormCantidadesPorTienda({});
   };
 
   const handleSavePremio = () => {
@@ -262,15 +302,29 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
 
     const grupoColor = GRUPO_COLOR[formGrupo].color;
     const grupoColorDark = GRUPO_COLOR[formGrupo].colorDark;
-
     const finalColor = formColor || grupoColor;
     const finalColorDark = formColor ? darkenColor(finalColor) : grupoColorDark;
+
+    const cantidadNum = formCantidad.trim() ? parseInt(formCantidad, 10) : NaN;
+    const cantidad = !isNaN(cantidadNum) && cantidadNum > 0 ? cantidadNum : undefined;
+
+    let cantidadesPorTienda: Record<string, number> | undefined = undefined;
+    if (usarCantidadPorTienda) {
+      const entries = Object.entries(formCantidadesPorTienda)
+        .map(([k, v]) => [k, parseInt(v, 10)] as [string, number])
+        .filter(([, v]) => !isNaN(v) && v > 0);
+      if (entries.length > 0) {
+        cantidadesPorTienda = Object.fromEntries(entries);
+      }
+    }
 
     const newPremio: ISegment = {
       label: formLabel.trim(),
       grupo: formGrupo,
       color: finalColor,
       colorDark: finalColorDark,
+      cantidad,
+      cantidadesPorTienda,
     };
 
     let newPremios: ISegment[];
@@ -285,9 +339,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     handleCloseModal();
   };
 
-  // ============================================================
-  // MANEJADORES DEL MODAL DE ELIMINACIÓN
-  // ============================================================
   const handleOpenDeleteDialog = (index: number) => {
     setDeleteIndex(index);
     setDeleteDialogOpen(true);
@@ -307,22 +358,22 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     }
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
   const totalPages = Math.ceil(premios.length / rowsPerPage);
   const displayedPremios = premios.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
     <Box>
-      {/* ===== ENCABEZADO ===== */}
+      {/* ENCABEZADO */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
         <Box>
           <Typography variant="h5" fontWeight={700} color="#1E293B" sx={{ fontFamily: "'Poppins', sans-serif" }}>
             Gestor de Premios
           </Typography>
           <Typography variant="body2" color="#94A3B8">
-            Gestiona los premios disponibles en la ruleta
+            Gestiona los premios y su stock disponible
           </Typography>
         </Box>
         <Button
@@ -330,39 +381,23 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
           startIcon={<AddIcon />}
           onClick={() => handleOpenModal()}
           sx={{
-            bgcolor: '#1976D2',
+            bgcolor: AZUL,
             textTransform: 'none',
             fontWeight: 600,
             borderRadius: '12px',
             px: 3,
             py: 1,
-            '&:hover': { bgcolor: '#1565C0' },
+            '&:hover': { bgcolor: '#003366' },
           }}
         >
           Agregar premio
         </Button>
       </Box>
 
-      {/* ===== CONTENEDOR DE PREMIOS ===== */}
-      <Box
-        sx={{
-          bgcolor: '#eef2f6',
-          borderRadius: '16px',
-          p: 3,
-          border: '1px solid #d0d7de',
-          minHeight: '200px',
-        }}
-      >
+      {/* CONTENEDOR DE PREMIOS */}
+      <Box sx={{ bgcolor: '#eef2f6', borderRadius: '16px', p: 3, border: '1px solid #d0d7de', minHeight: '200px' }}>
         {premios.length === 0 ? (
-          <Paper
-            sx={{
-              p: 6,
-              textAlign: 'center',
-              borderRadius: '16px',
-              border: '2px dashed #E2E8F0',
-              bgcolor: '#F8FAFC',
-            }}
-          >
+          <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '16px', border: '2px dashed #E2E8F0', bgcolor: '#F8FAFC' }}>
             <Typography variant="h6" color="#94A3B8">No hay premios configurados</Typography>
             <Typography variant="body2" color="#94A3B8" sx={{ mt: 1 }}>
               Haz clic en "Agregar premio" para comenzar
@@ -370,46 +405,69 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
           </Paper>
         ) : (
           <>
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 3,
-                justifyContent: 'flex-start',
-              }}
-            >
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'flex-start' }}>
               {displayedPremios.map((premio, index) => {
                 const realIndex = (page - 1) * rowsPerPage + index;
                 const inicial = getInicial(premio.label);
                 const iconoDecorativo = getIconoDecorativo(premio.label);
                 const descripcion = getDescripcion(premio.label);
+                const meta = GRUPO_COLOR[premio.grupo];
+                const tiendasConCantidad = premio.cantidadesPorTienda
+                  ? Object.keys(premio.cantidadesPorTienda).length
+                  : 0;
+
                 return (
                   <Fade in timeout={350} key={realIndex}>
                     <PremioCard>
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: '4px',
+                          background: `linear-gradient(90deg, ${meta.color}, ${meta.colorDark})`,
+                          opacity: 0.85,
+                        }}
+                      />
                       <DecoratedBadge>{iconoDecorativo}</DecoratedBadge>
                       <CardContent sx={{ p: 2.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 1.5 }}>
                           <ColorCircle color={premio.color}>{inicial}</ColorCircle>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography
-                              variant="h6"
-                              fontWeight={700}
-                              color="#1E293B"
-                              sx={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.2 }}
-                            >
+                            <Typography variant="h6" fontWeight={700} color="#1E293B" sx={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.2 }}>
                               {premio.label}
                             </Typography>
-                            <Typography
-                              variant="body2"
-                              color="#64748B"
-                              sx={{ mt: 0.5, fontSize: '0.8rem' }}
-                            >
+                            <Typography variant="body2" color="#64748B" sx={{ mt: 0.5, fontSize: '0.8rem' }}>
                               {descripcion}
                             </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75, flexWrap: 'wrap' }}>
                               <Typography variant="caption" color="#94A3B8" fontWeight={500}>
                                 #{realIndex + 1}
                               </Typography>
+                              <Chip
+                                label={premio.grupo}
+                                size="small"
+                                sx={{
+                                  bgcolor: `${meta.color}20`,
+                                  color: meta.color,
+                                  fontWeight: 800,
+                                  fontSize: '0.65rem',
+                                  height: 20,
+                                  border: `1px solid ${meta.color}50`,
+                                }}
+                              />
+                              <Chip
+                                label={meta.label}
+                                size="small"
+                                sx={{
+                                  bgcolor: `${meta.color}10`,
+                                  color: meta.color,
+                                  fontWeight: 600,
+                                  fontSize: '0.6rem',
+                                  height: 20,
+                                }}
+                              />
                               <Chip
                                 label="Activo"
                                 size="small"
@@ -424,21 +482,79 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                             </Box>
                           </Box>
                         </Box>
+
+                        {/* 📦 Cantidad */}
+                        {(premio.cantidad || tiendasConCantidad > 0) && (
+                          <Box
+                            sx={{
+                              mt: 1.5,
+                              pt: 1.5,
+                              borderTop: '1px dashed #E2E8F0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <InventoryIcon sx={{ fontSize: 16, color: AZUL }} />
+                            {premio.cantidad && (
+                              <Chip
+                                label={`Total: ${premio.cantidad}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: AZUL_BG,
+                                  color: AZUL,
+                                  fontWeight: 700,
+                                  fontSize: '0.7rem',
+                                  height: 22,
+                                }}
+                              />
+                            )}
+                            {tiendasConCantidad > 0 && (
+                              <Tooltip
+                                title={
+                                  <Box>
+                                    {Object.entries(premio.cantidadesPorTienda!).map(([sid, c]) => {
+                                      const t = tiendas.find(x => x.id === Number(sid));
+                                      return (
+                                        <div key={sid}>
+                                          {t?.name || `Tienda ${sid}`}: {c}
+                                        </div>
+                                      );
+                                    })}
+                                  </Box>
+                                }
+                                arrow
+                              >
+                                <Chip
+                                  label={`Por tienda (${tiendasConCantidad})`}
+                                  size="small"
+                                  sx={{
+                                    bgcolor: AZUL_BG,
+                                    color: AZUL,
+                                    fontWeight: 700,
+                                    fontSize: '0.7rem',
+                                    height: 22,
+                                    cursor: 'help',
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
+                          </Box>
+                        )}
                       </CardContent>
+
                       <CardActions sx={{ p: 2, pt: 0, justifyContent: 'flex-end', gap: 0.5, borderTop: '1px solid #E8EDF2' }}>
                         <Tooltip title="Editar premio">
                           <IconButton
                             size="small"
                             onClick={() => handleOpenModal(realIndex)}
                             sx={{
-                              color: '#1976D2',
-                              backgroundColor: '#E3F2FD',
+                              color: AZUL,
+                              backgroundColor: AZUL_BG,
                               borderRadius: '50%',
                               p: 0.8,
-                              '&:hover': {
-                                backgroundColor: '#BBDEFB',
-                                transform: 'scale(1.1)',
-                              },
+                              '&:hover': { backgroundColor: AZUL_HOVER, transform: 'scale(1.1)' },
                               transition: 'all 0.2s',
                             }}
                           >
@@ -454,10 +570,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                               backgroundColor: '#FFEBEE',
                               borderRadius: '50%',
                               p: 0.8,
-                              '&:hover': {
-                                backgroundColor: '#FFCDD2',
-                                transform: 'scale(1.1)',
-                              },
+                              '&:hover': { backgroundColor: '#FFCDD2', transform: 'scale(1.1)' },
                               transition: 'all 0.2s',
                             }}
                           >
@@ -471,7 +584,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
               })}
             </Box>
 
-            {/* ===== PAGINACIÓN ===== */}
             {totalPages > 1 && (
               <Box
                 sx={{
@@ -498,14 +610,8 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   showFirstButton
                   showLastButton
                   sx={{
-                    '& .MuiPaginationItem-root': {
-                      fontWeight: 600,
-                      borderRadius: '8px',
-                    },
-                    '& .Mui-selected': {
-                      bgcolor: '#1976D2 !important',
-                      color: '#fff',
-                    },
+                    '& .MuiPaginationItem-root': { fontWeight: 600, borderRadius: '8px' },
+                    '& .Mui-selected': { bgcolor: `${AZUL} !important`, color: '#fff' },
                   }}
                 />
               </Box>
@@ -514,25 +620,21 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
         )}
       </Box>
 
-      {/* ===== MODAL DE CREAR/EDITAR PREMIO ===== */}
+      {/* ===== MODAL CREAR/EDITAR ===== */}
       <Dialog
         open={openModal}
         onClose={handleCloseModal}
         maxWidth="sm"
         fullWidth
         PaperProps={{
-          sx: {
-            borderRadius: '20px',
-            overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          },
+          sx: { borderRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' },
         }}
       >
         <DialogTitle
           sx={{
             m: 0,
             p: 2.5,
-            background: 'linear-gradient(135deg, #004680, #003366)',
+            background: `linear-gradient(135deg, ${AZUL}, #003366)`,
             color: '#ffffff',
             fontWeight: 700,
             display: 'flex',
@@ -544,16 +646,12 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
             {editingIndex !== null ? (
               <>
                 <EditNoteIcon sx={{ fontSize: 28 }} />
-                <Typography variant="h6" fontWeight={700}>
-                  Editar premio
-                </Typography>
+                <Typography variant="h6" fontWeight={700}>Editar premio</Typography>
               </>
             ) : (
               <>
                 <AddIcon sx={{ fontSize: 28 }} />
-                <Typography variant="h6" fontWeight={700}>
-                  Agregar nuevo premio
-                </Typography>
+                <Typography variant="h6" fontWeight={700}>Agregar nuevo premio</Typography>
               </>
             )}
           </Box>
@@ -564,7 +662,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
 
         <DialogContent sx={{ p: 3, bgcolor: '#fafbfc' }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
-            {/* ===== VISTA PREVIA ===== */}
+            {/* VISTA PREVIA */}
             <Box
               sx={{
                 p: 2.5,
@@ -598,24 +696,19 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                 {formLabel ? formLabel.trim().charAt(0).toUpperCase() : '?'}
               </Box>
               <Box>
-                <Typography variant="body2" color="#94A3B8" fontWeight={500}>
-                  Vista previa
-                </Typography>
-                <Typography
-                  variant="h6"
-                  fontWeight={700}
-                  color="#1E293B"
-                  sx={{ fontFamily: "'Poppins', sans-serif" }}
-                >
+                <Typography variant="body2" color="#94A3B8" fontWeight={500}>Vista previa</Typography>
+                <Typography variant="h6" fontWeight={700} color="#1E293B" sx={{ fontFamily: "'Poppins', sans-serif" }}>
                   {formLabel || 'Nombre del premio'}
                 </Typography>
                 <Typography variant="caption" color="#94A3B8">
-                  Rango: <span style={{ fontWeight: 600, color: GRUPO_COLOR[formGrupo].color }}>{GRUPO_COLOR[formGrupo].label}</span>
+                  Rango: <span style={{ fontWeight: 600, color: GRUPO_COLOR[formGrupo].color }}>
+                    {GRUPO_COLOR[formGrupo].label}
+                  </span>
                 </Typography>
               </Box>
             </Box>
 
-            {/* ===== NOMBRE DEL PREMIO ===== */}
+            {/* NOMBRE */}
             <TextField
               label="Nombre del premio *"
               value={formLabel}
@@ -629,43 +722,19 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                 '& .MuiOutlinedInput-root': {
                   borderRadius: '12px',
                   bgcolor: '#ffffff',
-                  '&:hover fieldset': {
-                    borderColor: '#1976D2',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#1976D2',
-                    borderWidth: '2px',
-                  },
+                  '&:hover fieldset': { borderColor: AZUL },
+                  '&.Mui-focused fieldset': { borderColor: AZUL, borderWidth: '2px' },
                 },
-                '& .MuiInputLabel-root': {
-                  fontWeight: 500,
-                  color: '#64748B',
-                },
+                '& .MuiInputLabel-root.Mui-focused': { color: AZUL },
               }}
             />
 
-            {/* ===== SELECTOR DE RANGO ===== */}
+            {/* RANGO */}
             <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                gutterBottom
-                display="block"
-                sx={{ fontWeight: 600, fontSize: '0.8rem' }}
-              >
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600, fontSize: '0.8rem', mb: 0.5 }}>
                 Selecciona un rango
               </Typography>
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: 1.5,
-                  mt: 0.5,
-                  p: 1.5,
-                  bgcolor: '#ffffff',
-                  borderRadius: '12px',
-                  border: '1px solid #E2E8F0',
-                }}
-              >
+              <Box sx={{ display: 'flex', gap: 1.5, mt: 0.5, p: 1.5, bgcolor: '#ffffff', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                 {(Object.keys(GRUPO_COLOR) as TGrupo[]).map((g) => {
                   const selected = formGrupo === g;
                   const meta = GRUPO_COLOR[g];
@@ -698,29 +767,146 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
               </Box>
             </Box>
 
-            {/* ===== SELECTOR DE COLOR ===== */}
+            {/* 📦 CANTIDAD / STOCK — AZUL #004680 */}
             <Box>
               <Typography
                 variant="caption"
                 color="text.secondary"
-                gutterBottom
                 display="block"
-                sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+                sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.75 }}
               >
-                Color personalizado (opcional)
+                <InventoryIcon sx={{ fontSize: 16, color: AZUL }} />
+                Stock / Cantidad disponible
               </Typography>
-              <Box
+
+              <Paper
+                elevation={0}
                 sx={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 1.5,
-                  mt: 1,
-                  p: 1.5,
-                  bgcolor: '#ffffff',
+                  p: 2,
+                  bgcolor: AZUL_BG,
                   borderRadius: '12px',
-                  border: '1px solid #E2E8F0',
+                  border: `1px solid ${AZUL_BORDER}`,
                 }}
               >
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={usarCantidadPorTienda}
+                      onChange={(e) => {
+                        setUsarCantidadPorTienda(e.target.checked);
+                        if (!e.target.checked) setFormCantidadesPorTienda({});
+                      }}
+                      sx={{
+                        '& .MuiSwitch-switchBase.Mui-checked': { color: AZUL },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: AZUL },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: AZUL }}>
+                      Personalizar cantidad por tienda
+                    </Typography>
+                  }
+                  sx={{ m: 0, mb: 2 }}
+                />
+
+                {!usarCantidadPorTienda && (
+                  <TextField
+                    label="Cantidad total (opcional)"
+                    type="number"
+                    value={formCantidad}
+                    onChange={(e) => setFormCantidad(e.target.value)}
+                    fullWidth
+                    size="small"
+                    placeholder="Ej: 100 (vacío = sin límite)"
+                    inputProps={{ min: 0 }}
+                    helperText="Si lo dejas vacío, no hay límite de cantidad"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '10px',
+                        bgcolor: '#ffffff',
+                        '& fieldset': { borderColor: AZUL_BORDER },
+                        '&:hover fieldset': { borderColor: AZUL },
+                        '&.Mui-focused fieldset': { borderColor: AZUL, borderWidth: '2px' },
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': { color: AZUL },
+                      '& .MuiFormHelperText-root': { color: '#64748B' },
+                    }}
+                  />
+                )}
+
+                {usarCantidadPorTienda && (
+                  <Box>
+                    <Typography sx={{ fontSize: '0.75rem', color: AZUL, mb: 1.5 }}>
+                      Define cuántas unidades de este premio hay disponibles en cada tienda autorizada:
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1,
+                        maxHeight: 300,
+                        overflowY: 'auto',
+                        pr: 0.5,
+                        '&::-webkit-scrollbar': { width: 6 },
+                        '&::-webkit-scrollbar-thumb': { bgcolor: AZUL_BORDER, borderRadius: 3 },
+                      }}
+                    >
+                      {tiendas.length === 0 ? (
+                        <Typography sx={{ fontSize: '0.8rem', color: '#94A3B8', fontStyle: 'italic' }}>
+                          Cargando tiendas...
+                        </Typography>
+                      ) : (
+                        tiendas.map((t) => (
+                          <Box
+                            key={t.id}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.5,
+                              bgcolor: '#ffffff',
+                              borderRadius: '10px',
+                              p: 1,
+                              border: `1px solid ${AZUL_BORDER}`,
+                            }}
+                          >
+                            <Typography sx={{ flex: 1, fontSize: '0.8rem', fontWeight: 600, color: '#1E293B' }}>
+                              {t.name}
+                            </Typography>
+                            <TextField
+                              type="number"
+                              size="small"
+                              value={formCantidadesPorTienda[t.id] ?? ''}
+                              onChange={(e) =>
+                                setFormCantidadesPorTienda((prev) => ({ ...prev, [t.id]: e.target.value }))
+                              }
+                              placeholder="0"
+                              inputProps={{ min: 0 }}
+                              sx={{
+                                width: 90,
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: '8px',
+                                  '& fieldset': { borderColor: AZUL_BORDER },
+                                  '&:hover fieldset': { borderColor: AZUL },
+                                  '&.Mui-focused fieldset': { borderColor: AZUL, borderWidth: '2px' },
+                                },
+                              }}
+                            />
+                          </Box>
+                        ))
+                      )}
+                    </Box>
+                  </Box>
+                )}
+              </Paper>
+            </Box>
+
+            {/* COLOR */}
+            <Box>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
+                Color personalizado (opcional)
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1, p: 1.5, bgcolor: '#ffffff', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                 {COLOR_PALETTE.map((color) => {
                   const isSelected = formColor === color;
                   const isDefault = color === GRUPO_COLOR[formGrupo].color;
@@ -733,14 +919,11 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                         height: 40,
                         borderRadius: '50%',
                         bgcolor: color,
-                        border: isSelected ? '3px solid #004680' : '2px solid #E2E8F0',
+                        border: isSelected ? `3px solid ${AZUL}` : '2px solid #E2E8F0',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        boxShadow: isSelected ? '0 0 0 3px rgba(0,70,128,0.25)' : 'none',
-                        '&:hover': {
-                          transform: 'scale(1.1)',
-                          borderColor: '#004680',
-                        },
+                        boxShadow: isSelected ? `0 0 0 3px ${AZUL}40` : 'none',
+                        '&:hover': { transform: 'scale(1.1)', borderColor: AZUL },
                         position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
@@ -748,46 +931,17 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                       }}
                     >
                       {isDefault && formColor === null && (
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            top: -8,
-                            right: -8,
-                            bgcolor: '#1976D2',
-                            color: '#fff',
-                            fontSize: '0.5rem',
-                            px: 0.6,
-                            py: 0.2,
-                            borderRadius: '10px',
-                            fontWeight: 700,
-                          }}
-                        >
+                        <Box sx={{ position: 'absolute', top: -8, right: -8, bgcolor: AZUL, color: '#fff', fontSize: '0.5rem', px: 0.6, py: 0.2, borderRadius: '10px', fontWeight: 700 }}>
                           ⚡
                         </Box>
                       )}
                       {isSelected && (
-                        <Box
-                          sx={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: '50%',
-                            bgcolor: '#ffffff',
-                            opacity: 0.8,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                          }}
-                        />
+                        <Box sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: '#ffffff', opacity: 0.8 }} />
                       )}
                     </Box>
                   );
                 })}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    ml: 1,
-                  }}
-                >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
                   <input
                     type="color"
                     value={formColor || '#000000'}
@@ -807,39 +961,14 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   </Typography>
                 </Box>
               </Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 1.5, display: 'block', fontStyle: 'italic' }}
-              >
-                💡 Selecciona un color de la paleta o elige uno personalizado.
-                {formColor ? ' Se usará el color seleccionado.' : ' Si no seleccionas, se usa el color del rango.'}
-              </Typography>
             </Box>
           </Box>
         </DialogContent>
 
-        <DialogActions
-          sx={{
-            p: 2.5,
-            px: 3,
-            borderTop: '1px solid #E2E8F0',
-            bgcolor: '#ffffff',
-            gap: 1,
-          }}
-        >
+        <DialogActions sx={{ p: 2.5, px: 3, borderTop: '1px solid #E2E8F0', bgcolor: '#ffffff', gap: 1 }}>
           <Button
             onClick={handleCloseModal}
-            sx={{
-              textTransform: 'none',
-              borderRadius: '10px',
-              fontWeight: 600,
-              px: 3,
-              color: '#64748B',
-              '&:hover': {
-                bgcolor: '#F1F5F9',
-              },
-            }}
+            sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 600, px: 3, color: '#64748B', '&:hover': { bgcolor: '#F1F5F9' } }}
           >
             Cancelar
           </Button>
@@ -848,14 +977,12 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
             variant="contained"
             disableElevation
             sx={{
-              bgcolor: '#004680',
+              bgcolor: AZUL,
               textTransform: 'none',
               fontWeight: 700,
               borderRadius: '10px',
               px: 4,
-              '&:hover': {
-                bgcolor: '#003366',
-              },
+              '&:hover': { bgcolor: '#003366' },
             }}
           >
             {editingIndex !== null ? 'Actualizar premio' : 'Guardar premio'}
@@ -863,25 +990,19 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
         </DialogActions>
       </Dialog>
 
-      {/* ===== MODAL DE CONFIRMACIÓN PARA ELIMINAR (#004680) ===== */}
+      {/* MODAL ELIMINAR */}
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}
         maxWidth="xs"
         fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: '20px',
-            overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(0, 70, 128, 0.25)',
-          },
-        }}
+        PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden' } }}
       >
         <DialogTitle
           sx={{
             m: 0,
             p: 2.5,
-            background: 'linear-gradient(135deg, #004680, #003366)',
+            background: `linear-gradient(135deg, ${AZUL}, #003366)`,
             color: '#ffffff',
             fontWeight: 700,
             display: 'flex',
@@ -891,15 +1012,12 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <WarningIcon sx={{ fontSize: 28 }} />
-            <Typography variant="h6" fontWeight={700}>
-              Eliminar premio
-            </Typography>
+            <Typography variant="h6" fontWeight={700}>Eliminar premio</Typography>
           </Box>
           <IconButton onClick={handleCloseDeleteDialog} sx={{ color: '#ffffff' }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-
         <DialogContent sx={{ p: 3, bgcolor: '#fafbfc' }}>
           <DialogContentText sx={{ fontSize: '1rem', color: '#1E293B', fontWeight: 500 }}>
             ¿Estás seguro de que deseas eliminar el premio <strong>"{deleteIndex !== null ? premios[deleteIndex]?.label : ''}"</strong>?
@@ -908,28 +1026,10 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
             Esta acción no se puede deshacer.
           </Typography>
         </DialogContent>
-
-        <DialogActions
-          sx={{
-            p: 2.5,
-            px: 3,
-            borderTop: '1px solid #E2E8F0',
-            bgcolor: '#ffffff',
-            gap: 1,
-          }}
-        >
+        <DialogActions sx={{ p: 2.5, px: 3, borderTop: '1px solid #E2E8F0', bgcolor: '#ffffff', gap: 1 }}>
           <Button
             onClick={handleCloseDeleteDialog}
-            sx={{
-              textTransform: 'none',
-              borderRadius: '10px',
-              fontWeight: 600,
-              px: 3,
-              color: '#64748B',
-              '&:hover': {
-                bgcolor: '#F1F5F9',
-              },
-            }}
+            sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 600, px: 3, color: '#64748B', '&:hover': { bgcolor: '#F1F5F9' } }}
           >
             Cancelar
           </Button>
@@ -937,16 +1037,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
             onClick={handleConfirmDelete}
             variant="contained"
             disableElevation
-            sx={{
-              bgcolor: '#004680',
-              textTransform: 'none',
-              fontWeight: 700,
-              borderRadius: '10px',
-              px: 4,
-              '&:hover': {
-                bgcolor: '#003366',
-              },
-            }}
+            sx={{ bgcolor: AZUL, textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 4, '&:hover': { bgcolor: '#003366' } }}
           >
             Eliminar
           </Button>
@@ -959,14 +1050,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          sx={{
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-          }}
-        >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ borderRadius: '12px' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

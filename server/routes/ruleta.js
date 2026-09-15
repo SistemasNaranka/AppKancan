@@ -2,10 +2,13 @@ const express = require("express");
 const fetch = require("node-fetch");
 const { queryDB } = require("../utils/db");
 
+
 const router = express.Router();
+
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_SERVICE_TOKEN = process.env.DIRECTUS_SERVICE_TOKEN;
+
 
 async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize }) {
   const resp = await fetch(`${DIRECTUS_URL}/items/sal_roulette_plays`, {
@@ -22,18 +25,23 @@ async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize })
     }),
   });
 
+
   if (resp.ok) return { ok: true };
+
 
   let body = null;
   try {
     body = await resp.json();
   } catch (_) {}
 
+
   const code = body?.errors?.[0]?.extensions?.code;
   if (code === "RECORD_NOT_UNIQUE") return { ok: false, duplicate: true };
 
+
   return { ok: false, duplicate: false, status: resp.status, body };
 }
+
 
 // ============================================================
 // Premios por rango — DEBE coincidir EXACTAMENTE con rangos.ts
@@ -57,15 +65,18 @@ const PREMIOS_POR_GRUPO = {
   ],
 };
 
+
 // Umbrales de negocio (CON IVA)
 const UMBRAL_BAJOS = 300000;   // ≤ 300.000 → bajos
 const UMBRAL_MEDIOS = 600000;  // < 600.000 → medios, ≥ 600.000 → altos
+
 
 const calcularPremiosElegibles = (monto) => {
   if (monto <= UMBRAL_BAJOS) return PREMIOS_POR_GRUPO.bajos;
   if (monto < UMBRAL_MEDIOS) return PREMIOS_POR_GRUPO.medios;
   return PREMIOS_POR_GRUPO.altos;
 };
+
 
 // ============================================================
 // 🎲 SELECCIÓN PONDERADA REAL (respeta las probabilidades)
@@ -74,14 +85,17 @@ const elegirPremioPonderado = (premios) => {
   const total = premios.reduce((acc, p) => acc + p.probabilidad, 0);
   let rand = Math.random() * total;
 
+
   for (const p of premios) {
     if (rand < p.probabilidad) return p.prize;
     rand -= p.probabilidad;
   }
 
+
   // Fallback (no debería llegar aquí)
   return premios[premios.length - 1].prize;
 };
+
 
 const generarCupon = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -92,19 +106,23 @@ const generarCupon = () => {
   return code;
 };
 
+
 // ============================================================
 // ✅ VALIDAR FACTURA (consulta venta y valida en Directus)
 // ============================================================
 router.post("/ruleta/validar-factura", async (req, res) => {
   const { documentos } = req.body;
 
+
   if (!documentos || typeof documentos !== "string" || !documentos.trim()) {
     return res.status(400).json({ valid: false, message: "Número de factura requerido" });
   }
 
+
   const factura = documentos.trim().toUpperCase();
   const anio = new Date().getFullYear();
   const tabla = `ventas_${anio}`;
+
 
   // Se añade bodega a la consulta para armar la clave compuesta invoiceKey
   const sql = `
@@ -115,16 +133,20 @@ router.post("/ruleta/validar-factura", async (req, res) => {
     LIMIT 1
   `;
 
+
   try {
     const rows = await queryDB("kcn_db", sql, [factura]);
+
 
     if (rows.length === 0) {
       return res.status(404).json({ valid: false, message: "Factura no encontrada" });
     }
 
+
     const venta = rows[0];
     const bodega = String(venta.bodega);
     const invoiceKey = `${bodega}-${factura}`;
+
 
     // 🚫 Candado temprano: validar contra Directus antes de habilitar el giro
     const checkUrl = `${DIRECTUS_URL}/items/sal_roulette_plays?filter[invoice_key][_eq]=${encodeURIComponent(invoiceKey)}&limit=1`;
@@ -135,6 +157,7 @@ router.post("/ruleta/validar-factura", async (req, res) => {
     });
     const directusData = await checkResp.json();
 
+
     if (directusData?.data && directusData.data.length > 0) {
       return res.status(409).json({
         valid: false,
@@ -142,10 +165,12 @@ router.post("/ruleta/validar-factura", async (req, res) => {
       });
     }
 
+
     const nombreCliente =
       venta.cliente && venta.cliente.trim()
         ? venta.cliente.trim()
         : "Cliente no identificado";
+
 
     // ✅ Factura existente y virgen en la ruleta
     return res.json({
@@ -159,20 +184,25 @@ router.post("/ruleta/validar-factura", async (req, res) => {
   }
 });
 
+
 // ============================================================
 // 🎡 GIRAR RULETA (con anti doble giro)
 // ============================================================
 router.post("/ruleta/girar", async (req, res) => {
   const { documentos } = req.body;
 
+
   if (!documentos || typeof documentos !== "string" || !documentos.trim()) {
     return res.status(400).json({ message: "Número de factura requerido" });
   }
 
+
   const factura = documentos.trim().toUpperCase();
+
 
   const anio = new Date().getFullYear();
   const tabla = `ventas_${anio}`;
+
 
   const sql = `
     SELECT documentos, cliente, bodega, SUM(total_factura) AS total
@@ -182,22 +212,28 @@ router.post("/ruleta/girar", async (req, res) => {
     LIMIT 1
   `;
 
+
   try {
     const rows = await queryDB("kcn_db", sql, [factura]);
+
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "Factura no encontrada" });
     }
 
+
     const monto = Number(rows[0].total);
     const bodega = String(rows[0].bodega);
     const elegibles = calcularPremiosElegibles(monto);
 
+
     // ✅ AHORA SÍ: selección ponderada que respeta las probabilidades
     const prize = elegirPremioPonderado(elegibles);
 
+
     const couponCode = generarCupon();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
 
     const invoiceKey = `${bodega}-${factura}`;
     const registro = await registrarJugadaDirectus({
@@ -206,6 +242,7 @@ router.post("/ruleta/girar", async (req, res) => {
       bodega,
       prize,
     });
+
 
     if (!registro.ok) {
       if (registro.duplicate) {
@@ -216,6 +253,7 @@ router.post("/ruleta/girar", async (req, res) => {
       console.error("Error al registrar la jugada en Directus:", registro.status, registro.body);
       return res.status(500).json({ message: "Error al registrar el giro" });
     }
+
 
     return res.json({
       prize,
@@ -229,4 +267,6 @@ router.post("/ruleta/girar", async (req, res) => {
   }
 });
 
+
 module.exports = router;
+
