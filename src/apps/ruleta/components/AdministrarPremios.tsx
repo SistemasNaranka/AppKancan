@@ -20,8 +20,6 @@ import {
   Tooltip,
   Fade,
   Chip,
-  Switch,
-  FormControlLabel,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -30,6 +28,7 @@ import {
   Close as CloseIcon,
   Warning as WarningIcon,
   Inventory2 as InventoryIcon,
+  Storefront as StorefrontIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
@@ -41,12 +40,12 @@ const STORAGE_KEY = 'ruleta_premios';
 
 // 🎨 Color principal (azul corporativo)
 const AZUL = '#004680';
-const AZUL_BG = '#E6EEF5';      // Fondo muy claro del mismo azul
-const AZUL_BORDER = '#99BBD4';  // Borde medio
-const AZUL_HOVER = '#CCDDEA';   // Hover claro
+const AZUL_BG = '#E6EEF5';
+const AZUL_BORDER = '#99BBD4';
+const AZUL_HOVER = '#CCDDEA';
 
 // ============================================================
-// 🎯 TIENDAS AUTORIZADAS — LISTA EXACTA
+// 🎯 TIENDAS AUTORIZADAS
 // ============================================================
 const TIENDAS_AUTORIZADAS = [
   'CALI CARRERA8',
@@ -213,8 +212,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   const [formLabel, setFormLabel] = useState('');
   const [formGrupo, setFormGrupo] = useState<TGrupo>('G3');
   const [formColor, setFormColor] = useState<string | null>(null);
-  const [formCantidad, setFormCantidad] = useState('');
-  const [usarCantidadPorTienda, setUsarCantidadPorTienda] = useState(false);
   const [formCantidadesPorTienda, setFormCantidadesPorTienda] = useState<Record<string, string>>({});
 
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -228,7 +225,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
-  // 🏪 Cargar tiendas desde Directus
+  // 🏪 Cargar tiendas
   const { data: tiendasCompletas = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
@@ -262,13 +259,10 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
       setFormLabel(p.label);
       setFormGrupo(p.grupo);
       setFormColor(p.color || null);
-      setFormCantidad(p.cantidad?.toString() ?? '');
-      const porTienda = p.cantidadesPorTienda && Object.keys(p.cantidadesPorTienda).length > 0;
-      setUsarCantidadPorTienda(!!porTienda);
       setFormCantidadesPorTienda(
-        porTienda
+        p.cantidadesPorTienda
           ? Object.fromEntries(
-              Object.entries(p.cantidadesPorTienda!).map(([k, v]) => [k, v.toString()])
+              Object.entries(p.cantidadesPorTienda).map(([k, v]) => [k, v.toString()])
             )
           : {}
       );
@@ -277,8 +271,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
       setFormLabel('');
       setFormGrupo('G3');
       setFormColor(null);
-      setFormCantidad('');
-      setUsarCantidadPorTienda(false);
       setFormCantidadesPorTienda({});
     }
     setOpenModal(true);
@@ -289,8 +281,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     setEditingIndex(null);
     setFormLabel('');
     setFormColor(null);
-    setFormCantidad('');
-    setUsarCantidadPorTienda(false);
     setFormCantidadesPorTienda({});
   };
 
@@ -305,25 +295,19 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     const finalColor = formColor || grupoColor;
     const finalColorDark = formColor ? darkenColor(finalColor) : grupoColorDark;
 
-    const cantidadNum = formCantidad.trim() ? parseInt(formCantidad, 10) : NaN;
-    const cantidad = !isNaN(cantidadNum) && cantidadNum > 0 ? cantidadNum : undefined;
+    const entries = Object.entries(formCantidadesPorTienda)
+      .map(([k, v]) => [k, parseInt(v, 10)] as [string, number])
+      .filter(([, v]) => !isNaN(v) && v > 0);
 
-    let cantidadesPorTienda: Record<string, number> | undefined = undefined;
-    if (usarCantidadPorTienda) {
-      const entries = Object.entries(formCantidadesPorTienda)
-        .map(([k, v]) => [k, parseInt(v, 10)] as [string, number])
-        .filter(([, v]) => !isNaN(v) && v > 0);
-      if (entries.length > 0) {
-        cantidadesPorTienda = Object.fromEntries(entries);
-      }
-    }
+    const cantidadesPorTienda: Record<string, number> | undefined =
+      entries.length > 0 ? Object.fromEntries(entries) : undefined;
 
     const newPremio: ISegment = {
       label: formLabel.trim(),
       grupo: formGrupo,
       color: finalColor,
       colorDark: finalColorDark,
-      cantidad,
+      cantidad: undefined,
       cantidadesPorTienda,
     };
 
@@ -483,8 +467,8 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                           </Box>
                         </Box>
 
-                        {/* 📦 Cantidad */}
-                        {(premio.cantidad || tiendasConCantidad > 0) && (
+                        {/* 📦 Cantidad por tienda */}
+                        {tiendasConCantidad > 0 && (
                           <Box
                             sx={{
                               mt: 1.5,
@@ -497,9 +481,23 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                             }}
                           >
                             <InventoryIcon sx={{ fontSize: 16, color: AZUL }} />
-                            {premio.cantidad && (
+                            <Tooltip
+                              title={
+                                <Box>
+                                  {Object.entries(premio.cantidadesPorTienda!).map(([sid, c]) => {
+                                    const t = tiendas.find(x => x.id === Number(sid));
+                                    return (
+                                      <div key={sid}>
+                                        {t?.name || `Tienda ${sid}`}: {c}
+                                      </div>
+                                    );
+                                  })}
+                                </Box>
+                              }
+                              arrow
+                            >
                               <Chip
-                                label={`Total: ${premio.cantidad}`}
+                                label={`Stock en ${tiendasConCantidad} ${tiendasConCantidad === 1 ? 'tienda' : 'tiendas'}`}
                                 size="small"
                                 sx={{
                                   bgcolor: AZUL_BG,
@@ -507,39 +505,10 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                                   fontWeight: 700,
                                   fontSize: '0.7rem',
                                   height: 22,
+                                  cursor: 'help',
                                 }}
                               />
-                            )}
-                            {tiendasConCantidad > 0 && (
-                              <Tooltip
-                                title={
-                                  <Box>
-                                    {Object.entries(premio.cantidadesPorTienda!).map(([sid, c]) => {
-                                      const t = tiendas.find(x => x.id === Number(sid));
-                                      return (
-                                        <div key={sid}>
-                                          {t?.name || `Tienda ${sid}`}: {c}
-                                        </div>
-                                      );
-                                    })}
-                                  </Box>
-                                }
-                                arrow
-                              >
-                                <Chip
-                                  label={`Por tienda (${tiendasConCantidad})`}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: AZUL_BG,
-                                    color: AZUL,
-                                    fontWeight: 700,
-                                    fontSize: '0.7rem',
-                                    height: 22,
-                                    cursor: 'help',
-                                  }}
-                                />
-                              </Tooltip>
-                            )}
+                            </Tooltip>
                           </Box>
                         )}
                       </CardContent>
@@ -767,137 +736,170 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
               </Box>
             </Box>
 
-            {/* 📦 CANTIDAD / STOCK — AZUL #004680 */}
+            {/* 📦 CANTIDAD / STOCK — DISEÑO LIMPIO */}
             <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                display="block"
-                sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.75 }}
-              >
-                <InventoryIcon sx={{ fontSize: 16, color: AZUL }} />
-                Stock / Cantidad disponible
-              </Typography>
+              {/* Header compacto con ícono + título + subtítulo */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '10px',
+                    background: `linear-gradient(135deg, ${AZUL}, #003366)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: `0 4px 10px -2px ${AZUL}66`,
+                  }}
+                >
+                  <InventoryIcon sx={{ fontSize: 18, color: '#fff' }} />
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: '0.9rem',
+                      fontWeight: 800,
+                      color: AZUL,
+                      lineHeight: 1.15,
+                      fontFamily: "'Poppins', sans-serif",
+                    }}
+                  >
+                    Stock por tienda
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: '0.72rem',
+                      color: '#64748B',
+                      fontWeight: 500,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    Usa 0 para no ofrecerlo en esa tienda
+                  </Typography>
+                </Box>
+              </Box>
 
               <Paper
                 elevation={0}
                 sx={{
-                  p: 2,
-                  bgcolor: AZUL_BG,
-                  borderRadius: '12px',
+                  p: 1.5,
+                  bgcolor: '#fff',
+                  borderRadius: '14px',
                   border: `1px solid ${AZUL_BORDER}`,
                 }}
               >
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={usarCantidadPorTienda}
-                      onChange={(e) => {
-                        setUsarCantidadPorTienda(e.target.checked);
-                        if (!e.target.checked) setFormCantidadesPorTienda({});
-                      }}
+                {/* Lista de tiendas */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.75,
+                    maxHeight: 320,
+                    overflowY: 'auto',
+                    pr: 0.5,
+                    '&::-webkit-scrollbar': { width: 6 },
+                    '&::-webkit-scrollbar-thumb': {
+                      bgcolor: AZUL_BORDER,
+                      borderRadius: 3,
+                    },
+                  }}
+                >
+                  {tiendas.length === 0 ? (
+                    <Typography
                       sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': { color: AZUL },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: AZUL },
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: AZUL }}>
-                      Personalizar cantidad por tienda
-                    </Typography>
-                  }
-                  sx={{ m: 0, mb: 2 }}
-                />
-
-                {!usarCantidadPorTienda && (
-                  <TextField
-                    label="Cantidad total (opcional)"
-                    type="number"
-                    value={formCantidad}
-                    onChange={(e) => setFormCantidad(e.target.value)}
-                    fullWidth
-                    size="small"
-                    placeholder="Ej: 100 (vacío = sin límite)"
-                    inputProps={{ min: 0 }}
-                    helperText="Si lo dejas vacío, no hay límite de cantidad"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '10px',
-                        bgcolor: '#ffffff',
-                        '& fieldset': { borderColor: AZUL_BORDER },
-                        '&:hover fieldset': { borderColor: AZUL },
-                        '&.Mui-focused fieldset': { borderColor: AZUL, borderWidth: '2px' },
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: AZUL },
-                      '& .MuiFormHelperText-root': { color: '#64748B' },
-                    }}
-                  />
-                )}
-
-                {usarCantidadPorTienda && (
-                  <Box>
-                    <Typography sx={{ fontSize: '0.75rem', color: AZUL, mb: 1.5 }}>
-                      Define cuántas unidades de este premio hay disponibles en cada tienda autorizada:
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1,
-                        maxHeight: 300,
-                        overflowY: 'auto',
-                        pr: 0.5,
-                        '&::-webkit-scrollbar': { width: 6 },
-                        '&::-webkit-scrollbar-thumb': { bgcolor: AZUL_BORDER, borderRadius: 3 },
+                        fontSize: '0.8rem',
+                        color: '#94A3B8',
+                        fontStyle: 'italic',
+                        textAlign: 'center',
+                        py: 2,
                       }}
                     >
-                      {tiendas.length === 0 ? (
-                        <Typography sx={{ fontSize: '0.8rem', color: '#94A3B8', fontStyle: 'italic' }}>
-                          Cargando tiendas...
-                        </Typography>
-                      ) : (
-                        tiendas.map((t) => (
-                          <Box
-                            key={t.id}
+                      Cargando tiendas...
+                    </Typography>
+                  ) : (
+                    tiendas.map((t, index) => (
+                      <Box
+                        key={t.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          bgcolor: index % 2 === 0 ? '#F8FAFC' : '#ffffff',
+                          borderRadius: '10px',
+                          px: 1.25,
+                          py: 0.75,
+                          border: '1px solid #E8EEF4',
+                          transition: 'all 0.15s ease',
+                          '&:hover': {
+                            bgcolor: AZUL_BG,
+                            borderColor: AZUL_BORDER,
+                          },
+                        }}
+                      >
+                        {/* Nombre de tienda con ícono */}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          <StorefrontIcon sx={{ fontSize: 16, color: '#94A3B8', flexShrink: 0 }} />
+                          <Typography
                             sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1.5,
-                              bgcolor: '#ffffff',
-                              borderRadius: '10px',
-                              p: 1,
-                              border: `1px solid ${AZUL_BORDER}`,
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: '#1E293B',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
                             }}
                           >
-                            <Typography sx={{ flex: 1, fontSize: '0.8rem', fontWeight: 600, color: '#1E293B' }}>
-                              {t.name}
-                            </Typography>
-                            <TextField
-                              type="number"
-                              size="small"
-                              value={formCantidadesPorTienda[t.id] ?? ''}
-                              onChange={(e) =>
-                                setFormCantidadesPorTienda((prev) => ({ ...prev, [t.id]: e.target.value }))
-                              }
-                              placeholder="0"
-                              inputProps={{ min: 0 }}
-                              sx={{
-                                width: 90,
-                                '& .MuiOutlinedInput-root': {
-                                  borderRadius: '8px',
-                                  '& fieldset': { borderColor: AZUL_BORDER },
-                                  '&:hover fieldset': { borderColor: AZUL },
-                                  '&.Mui-focused fieldset': { borderColor: AZUL, borderWidth: '2px' },
-                                },
-                              }}
-                            />
-                          </Box>
-                        ))
-                      )}
-                    </Box>
-                  </Box>
-                )}
+                            {t.name}
+                          </Typography>
+                        </Box>
+
+                        {/* Input cantidad */}
+                        <TextField
+                          type="number"
+                          size="small"
+                          value={formCantidadesPorTienda[t.id] ?? ''}
+                          onChange={(e) =>
+                            setFormCantidadesPorTienda((prev) => ({
+                              ...prev,
+                              [t.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="0"
+                          inputProps={{ min: 0 }}
+                          sx={{
+                            width: 76,
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: '8px',
+                              bgcolor: '#fff',
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              '& input': {
+                                textAlign: 'center',
+                                padding: '6px 8px',
+                                color: AZUL,
+                              },
+                              '& fieldset': { borderColor: AZUL_BORDER },
+                              '&:hover fieldset': { borderColor: AZUL },
+                              '&.Mui-focused fieldset': {
+                                borderColor: AZUL,
+                                borderWidth: '2px',
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+                    ))
+                  )}
+                </Box>
               </Paper>
             </Box>
 
