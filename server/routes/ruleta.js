@@ -44,38 +44,70 @@ async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize })
 
 
 // ============================================================
-// Premios por rango — DEBE coincidir EXACTAMENTE con rangos.ts
-// Las probabilidades se aplican SOLO en el backend.
+// Umbrales de negocio (CON IVA) y mapeo a tiers de sal_prizes
 // ============================================================
-const PREMIOS_POR_GRUPO = {
-  altos: [
-    { prize: "Jean de línea", probabilidad: 10 },
-    { prize: "Jean básico",   probabilidad: 40 },
-    { prize: "Bono $100k",    probabilidad: 50 },
-  ],
-  medios: [
-    { prize: "Bono $50k",     probabilidad: 70 },
-    { prize: "Blusa básica",  probabilidad: 15 },
-    { prize: "Tote bag",      probabilidad: 15 },
-  ],
-  bajos: [
-    { prize: "Bandana",       probabilidad: 20 },
-    { prize: "Bamba",         probabilidad: 20 },
-    { prize: "Bono $30k",     probabilidad: 60 },
-  ],
+const UMBRAL_BAJOS = 300000;   // ≤ 300.000 → G3 (bajos)
+const UMBRAL_MEDIOS = 600000;  // < 600.000 → G2 (medios), ≥ 600.000 → G1 (altos)
+
+
+const tierPorMonto = (monto) => {
+  if (monto <= UMBRAL_BAJOS) return "G3";
+  if (monto < UMBRAL_MEDIOS) return "G2";
+  return "G1";
 };
 
 
-// Umbrales de negocio (CON IVA)
-const UMBRAL_BAJOS = 300000;   // ≤ 300.000 → bajos
-const UMBRAL_MEDIOS = 600000;  // < 600.000 → medios, ≥ 600.000 → altos
+// ============================================================
+// 🎯 Premios disponibles: lee catálogo, cruza inventario y jugadas.
+// Devuelve solo los premios del tier que aún tienen cupo en la tienda.
+// ============================================================
+async function obtenerPremiosDisponibles(tier, bodega) {
+  // 1. Catálogo: premios activos del tier
+  const catalogoUrl = `${DIRECTUS_URL}/items/sal_prizes?filter[tier][_eq]=${tier}&filter[is_active][_eq]=true&fields=id,name,probability`;
+  const catalogoResp = await fetch(catalogoUrl, {
+    headers: { Authorization: `Bearer ${DIRECTUS_SERVICE_TOKEN}` },
+  });
+  if (!catalogoResp.ok) throw new Error(`Directus catalogo: ${catalogoResp.status}`);
+  const catalogoData = await catalogoResp.json();
+  const catalogo = catalogoData?.data ?? [];
+  if (catalogo.length === 0) return [];
 
+  const prizeIds = catalogo.map((p) => p.id);
 
-const calcularPremiosElegibles = (monto) => {
-  if (monto <= UMBRAL_BAJOS) return PREMIOS_POR_GRUPO.bajos;
-  if (monto < UMBRAL_MEDIOS) return PREMIOS_POR_GRUPO.medios;
-  return PREMIOS_POR_GRUPO.altos;
-};
+  // 2. Inventario asignado a esta tienda para esos premios
+  const invUrl = `${DIRECTUS_URL}/items/sal_prize_inventory?filter[store_code][_eq]=${encodeURIComponent(bodega)}&filter[prize_id][_in]=${prizeIds.join(",")}&fields=prize_id,total_assigned`;
+  const invResp = await fetch(invUrl, {
+    headers: { Authorization: `Bearer ${DIRECTUS_SERVICE_TOKEN}` },
+  });
+  if (!invResp.ok) throw new Error(`Directus inventario: ${invResp.status}`);
+  const invData = await invResp.json();
+  const cupoPorPremio = new Map(
+    (invData?.data ?? []).map((r) => [r.prize_id, r.total_assigned])
+  );
+
+  // 3. Jugadas ya entregadas en esta tienda para esos premios
+  const nombres = catalogo.map((p) => p.name);
+  const jugadasUrl = `${DIRECTUS_URL}/items/sal_roulette_plays?filter[store_code][_eq]=${encodeURIComponent(bodega)}&filter[prize][_in]=${nombres.map(encodeURIComponent).join(",")}&fields=prize&limit=-1`;
+  const jugadasResp = await fetch(jugadasUrl, {
+    headers: { Authorization: `Bearer ${DIRECTUS_SERVICE_TOKEN}` },
+  });
+  if (!jugadasResp.ok) throw new Error(`Directus jugadas: ${jugadasResp.status}`);
+  const jugadasData = await jugadasResp.json();
+  const entregasPorNombre = new Map();
+  for (const j of jugadasData?.data ?? []) {
+    entregasPorNombre.set(j.prize, (entregasPorNombre.get(j.prize) ?? 0) + 1);
+  }
+
+  // 4. Filtrar: dejar solo los que tienen cupo y aún no se agotaron
+  return catalogo
+    .filter((p) => {
+      const cupo = cupoPorPremio.get(p.id);
+      if (cupo === undefined) return false; // sin cupo asignado en esta tienda
+      const entregados = entregasPorNombre.get(p.name) ?? 0;
+      return entregados < cupo;
+    })
+    .map((p) => ({ prize: p.name, probabilidad: p.probability }));
+}
 
 
 // ============================================================
@@ -224,10 +256,15 @@ router.post("/ruleta/girar", async (req, res) => {
 
     const monto = Number(rows[0].total);
     const bodega = String(rows[0].bodega);
-    const elegibles = calcularPremiosElegibles(monto);
+    const tier = tierPorMonto(monto);
 
+    const elegibles = await obtenerPremiosDisponibles(tier, bodega);
+    if (elegibles.length === 0) {
+      return res.status(409).json({
+        message: "No hay premios disponibles en esta tienda para el rango de tu compra.",
+      });
+    }
 
-    // ✅ AHORA SÍ: selección ponderada que respeta las probabilidades
     const prize = elegirPremioPonderado(elegibles);
 
 

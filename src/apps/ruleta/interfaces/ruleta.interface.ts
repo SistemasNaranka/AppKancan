@@ -5,6 +5,10 @@ export interface ISegment {
   grupo: TGrupo;
   color: string;
   colorDark?: string;
+  cantidad?: number;
+  cantidadesPorTienda?: Record<string, number>;
+  // id de sal_prizes en Directus, cuando el premio ya está persistido
+  id?: number;
 }
 
 // Forma canónica que usa toda la app (Ruleta.tsx, ModalPremio.tsx, etc.)
@@ -43,13 +47,5 @@ export interface IFormularioGanador {
 export interface Tienda {
   id: number;
   name: string;
-}
-export interface ISegment {
-  label: string;
-  grupo: TGrupo;
-  color: string;
-  colorDark?: string;
-  // 📦 NUEVO: Cantidad (stock)
-  cantidad?: number;                                // Total (aplica a todas las tiendas)
-  cantidadesPorTienda?: Record<string, number>;     // { "storeId": cantidad }
+  ultra_code: string;
 }
