@@ -70,24 +70,6 @@ const esTiendaAutorizada = (nombre: string): boolean => {
 };
 
 // ============================================================
-// 🎨 PALETA DE COLORES
-// ============================================================
-const COLOR_PALETTE = [
-  '#E53935', '#FBC02D', '#1E88E5', '#FF6B6B', '#FF9F43', '#FECA57',
-  '#54A0FF', '#5F27CD', '#A29BFE', '#00D2D3', '#55EFC4', '#FD79A8',
-];
-
-const darkenColor = (hex: string): string => {
-  let r = parseInt(hex.slice(1, 3), 16);
-  let g = parseInt(hex.slice(3, 5), 16);
-  let b = parseInt(hex.slice(5, 7), 16);
-  r = Math.max(0, r - 50);
-  g = Math.max(0, g - 50);
-  b = Math.max(0, b - 50);
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-};
-
-// ============================================================
 // DESCRIPCIONES
 // ============================================================
 const descripcionesPorPremio: Record<string, string> = {
@@ -211,7 +193,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [formLabel, setFormLabel] = useState('');
   const [formGrupo, setFormGrupo] = useState<TGrupo>('G3');
-  const [formColor, setFormColor] = useState<string | null>(null);
   const [formCantidadesPorTienda, setFormCantidadesPorTienda] = useState<Record<string, string>>({});
 
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -258,7 +239,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
       setEditingIndex(index);
       setFormLabel(p.label);
       setFormGrupo(p.grupo);
-      setFormColor(p.color || null);
       setFormCantidadesPorTienda(
         p.cantidadesPorTienda
           ? Object.fromEntries(
@@ -270,7 +250,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
       setEditingIndex(null);
       setFormLabel('');
       setFormGrupo('G3');
-      setFormColor(null);
       setFormCantidadesPorTienda({});
     }
     setOpenModal(true);
@@ -280,7 +259,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
     setOpenModal(false);
     setEditingIndex(null);
     setFormLabel('');
-    setFormColor(null);
     setFormCantidadesPorTienda({});
   };
 
@@ -290,10 +268,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
       return;
     }
 
-    const grupoColor = GRUPO_COLOR[formGrupo].color;
-    const grupoColorDark = GRUPO_COLOR[formGrupo].colorDark;
-    const finalColor = formColor || grupoColor;
-    const finalColorDark = formColor ? darkenColor(finalColor) : grupoColorDark;
+    // El color SIEMPRE viene del grupo (no hay color personalizado)
+    const finalColor = GRUPO_COLOR[formGrupo].color;
+    const finalColorDark = GRUPO_COLOR[formGrupo].colorDark;
 
     const entries = Object.entries(formCantidadesPorTienda)
       .map(([k, v]) => [k, parseInt(v, 10)] as [string, number])
@@ -467,7 +444,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                           </Box>
                         </Box>
 
-                        {/* 📦 Cantidad por tienda */}
                         {tiendasConCantidad > 0 && (
                           <Box
                             sx={{
@@ -649,7 +625,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   width: 64,
                   height: 64,
                   borderRadius: '50%',
-                  bgcolor: formColor || GRUPO_COLOR[formGrupo].color,
+                  bgcolor: GRUPO_COLOR[formGrupo].color,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -736,9 +712,8 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
               </Box>
             </Box>
 
-            {/* 📦 CANTIDAD / STOCK — DISEÑO LIMPIO */}
+            {/* 📦 STOCK POR TIENDA */}
             <Box>
-              {/* Header compacto con ícono + título + subtítulo */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
                 <Box
                   sx={{
@@ -789,7 +764,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   border: `1px solid ${AZUL_BORDER}`,
                 }}
               >
-                {/* Lista de tiendas */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -837,7 +811,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                           },
                         }}
                       >
-                        {/* Nombre de tienda con ícono */}
                         <Box
                           sx={{
                             display: 'flex',
@@ -862,7 +835,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                           </Typography>
                         </Box>
 
-                        {/* Input cantidad */}
                         <TextField
                           type="number"
                           size="small"
@@ -901,68 +873,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({ onPremiosChange
                   )}
                 </Box>
               </Paper>
-            </Box>
-
-            {/* COLOR */}
-            <Box>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
-                Color personalizado (opcional)
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1, p: 1.5, bgcolor: '#ffffff', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                {COLOR_PALETTE.map((color) => {
-                  const isSelected = formColor === color;
-                  const isDefault = color === GRUPO_COLOR[formGrupo].color;
-                  return (
-                    <Box
-                      key={color}
-                      onClick={() => setFormColor(color)}
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        bgcolor: color,
-                        border: isSelected ? `3px solid ${AZUL}` : '2px solid #E2E8F0',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: isSelected ? `0 0 0 3px ${AZUL}40` : 'none',
-                        '&:hover': { transform: 'scale(1.1)', borderColor: AZUL },
-                        position: 'relative',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {isDefault && formColor === null && (
-                        <Box sx={{ position: 'absolute', top: -8, right: -8, bgcolor: AZUL, color: '#fff', fontSize: '0.5rem', px: 0.6, py: 0.2, borderRadius: '10px', fontWeight: 700 }}>
-                          ⚡
-                        </Box>
-                      )}
-                      {isSelected && (
-                        <Box sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: '#ffffff', opacity: 0.8 }} />
-                      )}
-                    </Box>
-                  );
-                })}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
-                  <input
-                    type="color"
-                    value={formColor || '#000000'}
-                    onChange={(e) => setFormColor(e.target.value)}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '50%',
-                      padding: 0,
-                      cursor: 'pointer',
-                      background: 'none',
-                    }}
-                  />
-                  <Typography variant="caption" color="#94A3B8" sx={{ maxWidth: 80 }}>
-                    Personalizado
-                  </Typography>
-                </Box>
-              </Box>
             </Box>
           </Box>
         </DialogContent>

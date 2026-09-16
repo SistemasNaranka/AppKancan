@@ -29,7 +29,7 @@ import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, GRUPO_POR_PREM
 const STORAGE_KEY = 'ruleta_premios';
 
 // ============================================================
-// 🎯 TIENDAS AUTORIZADAS — LISTA EXACTA
+// 🎯 TIENDAS AUTORIZADAS
 // ============================================================
 const TIENDAS_AUTORIZADAS = [
   'CALI CARRERA8',
@@ -96,6 +96,9 @@ const RuletaHome: React.FC = () => {
   const [premios, setPremios] = useState<ISegment[]>(() => getPremiosFromStorage());
   const [storeFilter, setStoreFilter] = useState<number | null>(null);
 
+  // ============================================================
+  // 🏪 TIENDAS DESDE DIRECTUS
+  // ============================================================
   const { data: tiendasCompletas = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
@@ -170,59 +173,86 @@ const RuletaHome: React.FC = () => {
       }}
     >
       <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
+        {/* ============================================================ */}
+        {/* HEADER MEJORADO                                              */}
+        {/* ============================================================ */}
         <Paper
           elevation={0}
           sx={{
-            borderRadius: '12px',
+            borderRadius: '16px',
             overflow: 'hidden',
             border: '1px solid #E2E8F0',
             bgcolor: '#ffffff',
-            mb: 2,
+            mb: 2.5,
+            boxShadow: '0 4px 20px -8px rgba(0, 70, 128, 0.12)',
           }}
         >
+          {/* HEADER SUPERIOR */}
           <Box
             sx={{
               px: { xs: 2, sm: 3 },
-              py: { xs: 1.5, sm: 2 },
+              py: { xs: 2, sm: 2.5 },
+              background: 'linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%)',
               borderBottom: '1px solid #E2E8F0',
-              bgcolor: '#F8FAFC',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: 1,
+              gap: 1.5,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+            {/* TÍTULO + ÍCONO */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box
                 sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '9px',
-                  background: '#E3F2FD',
+                  width: 42,
+                  height: 42,
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #004680, #0a5aa0)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  boxShadow: '0 6px 16px -4px rgba(0, 70, 128, 0.4)',
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: -3,
+                    borderRadius: '15px',
+                    border: '2px solid rgba(0, 70, 128, 0.1)',
+                  },
                 }}
               >
-                <CardGiftcardIcon sx={{ fontSize: 19, color: '#1976D2' }} />
+                <CardGiftcardIcon sx={{ fontSize: 22, color: '#fff' }} />
               </Box>
-              <Box sx={{ lineHeight: 1.25 }}>
+              <Box sx={{ lineHeight: 1.2 }}>
                 <Typography
                   sx={{
-                    fontSize: { xs: '1rem', sm: '1.2rem' },
-                    fontWeight: 700,
-                    color: '#1E293B',
+                    fontSize: { xs: '1.05rem', sm: '1.25rem' },
+                    fontWeight: 800,
+                    color: '#0F2C4A',
                     fontFamily: "'Poppins', sans-serif",
+                    letterSpacing: '-0.01em',
                   }}
                 >
                   {titulo}
                 </Typography>
-                <Typography sx={{ fontSize: 12, color: '#94A3B8' }}>{subtitulo}</Typography>
+                <Typography
+                  sx={{
+                    fontSize: 11.5,
+                    color: '#64748B',
+                    fontWeight: 500,
+                    letterSpacing: '0.02em',
+                    mt: 0.25,
+                  }}
+                >
+                  {subtitulo}
+                </Typography>
               </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            {/* SELECTOR + CHIP */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
               {tiendasFiltradas.length > 0 && (
                 <Autocomplete
                   size="small"
@@ -230,7 +260,7 @@ const RuletaHome: React.FC = () => {
                   getOptionLabel={(o) => o.name}
                   value={selectedStore}
                   onChange={(_, v) => setStoreFilter(v ? v.id : null)}
-                  sx={{ width: { xs: '100%', sm: 250 } }}
+                  sx={{ width: { xs: '100%', sm: 240 } }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -240,12 +270,24 @@ const RuletaHome: React.FC = () => {
                           ...params.InputProps,
                           startAdornment: (
                             <InputAdornment position="start">
-                              <StorefrontIcon sx={{ fontSize: 18, color: '#004680' }} />
+                              <StorefrontIcon sx={{ fontSize: 17, color: '#004680' }} />
                             </InputAdornment>
                           ),
                         },
                       }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#f1f7fe' } }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: '10px',
+                          bgcolor: '#fff',
+                          fontSize: '0.85rem',
+                          '& fieldset': { borderColor: '#CBD5E1' },
+                          '&:hover fieldset': { borderColor: '#004680' },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#004680',
+                            borderWidth: '1.5px',
+                          },
+                        },
+                      }}
                     />
                   )}
                 />
@@ -253,22 +295,25 @@ const RuletaHome: React.FC = () => {
 
               {tabValue === 0 && (
                 <Chip
-                  label={`Total Premios: ${premios.length}`}
+                  label={`${premios.length} premios`}
                   sx={{
-                    bgcolor: '#E3F2FD',
-                    color: '#004680',
-                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #004680, #0a5aa0)',
+                    color: '#ffffff',
+                    fontWeight: 800,
                     fontSize: '0.75rem',
-                    borderRadius: '8px',
-                    border: '1px solid #BBDEFB',
-                    height: 32,
+                    borderRadius: '10px',
+                    height: 36,
+                    px: 0.5,
+                    boxShadow: '0 4px 12px -4px rgba(0, 70, 128, 0.4)',
+                    '& .MuiChip-label': { px: 1.5 },
                   }}
                 />
               )}
             </Box>
           </Box>
 
-          <Box sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 0.8 } }}>
+          {/* TABS TIPO PASTILLA */}
+          <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1.25 }}>
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
@@ -276,20 +321,39 @@ const RuletaHome: React.FC = () => {
               scrollButtons={false}
               sx={{
                 minHeight: 'auto',
-                '& .MuiTabs-flexContainer': { gap: { xs: 0.3, sm: 0.8 } },
+                '& .MuiTabs-flexContainer': {
+                  gap: 0.75,
+                  bgcolor: '#F1F5F9',
+                  borderRadius: '12px',
+                  p: 0.5,
+                  display: 'inline-flex',
+                },
                 '& .MuiTab-root': {
                   textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: { xs: '0.7rem', sm: '0.85rem' },
-                  minHeight: { xs: 32, sm: 40 },
-                  borderRadius: '8px',
-                  px: { xs: 1.5, sm: 2.5 },
-                  py: { xs: 0.3, sm: 0.6 },
-                  color: '#64748b',
-                  '& .MuiTab-iconWrapper': { mr: 0.5, fontSize: { xs: 16, sm: 20 } },
-                  '&:hover': { backgroundColor: '#EEF2F6', color: '#004680' },
-                  '&.Mui-selected': { color: '#ffffff', backgroundColor: '#004680' },
-                  '&.Mui-selected:hover': { backgroundColor: '#003366' },
+                  fontWeight: 700,
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  minHeight: { xs: 34, sm: 38 },
+                  borderRadius: '9px',
+                  px: { xs: 2, sm: 2.5 },
+                  py: 0.5,
+                  color: '#64748B',
+                  transition: 'all 0.25s ease',
+                  '& .MuiTab-iconWrapper': {
+                    mr: 0.75,
+                    fontSize: { xs: 16, sm: 18 },
+                  },
+                  '&:hover': {
+                    color: '#004680',
+                    bgcolor: 'rgba(255,255,255,0.6)',
+                  },
+                  '&.Mui-selected': {
+                    color: '#ffffff',
+                    background: 'linear-gradient(135deg, #004680, #0a5aa0)',
+                    boxShadow: '0 4px 12px -3px rgba(0, 70, 128, 0.5)',
+                  },
+                  '&.Mui-selected:hover': {
+                    background: 'linear-gradient(135deg, #004680, #0a5aa0)',
+                  },
                 },
                 '& .MuiTabs-indicator': { display: 'none' },
               }}
@@ -300,6 +364,9 @@ const RuletaHome: React.FC = () => {
           </Box>
         </Paper>
 
+        {/* ============================================================ */}
+        {/* TAB RULETA                                                   */}
+        {/* ============================================================ */}
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'stretch' }}>
             {/* ===== PANEL VALIDAR ===== */}
@@ -320,7 +387,6 @@ const RuletaHome: React.FC = () => {
                 justifyContent: 'space-between',
               }}
             >
-              {/* Glow azul sutil */}
               <Box sx={{
                 position: 'absolute',
                 top: -64, right: -64,
@@ -332,18 +398,17 @@ const RuletaHome: React.FC = () => {
               }} />
 
               <Box sx={{ position: 'relative', zIndex: 1, my: 'auto', display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-                {/* HEADER con ícono de factura */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Box
                     sx={{
                       width: 52,
                       height: 52,
                       borderRadius: '14px',
-                      background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                      background: 'linear-gradient(135deg, #004680, #0a5aa0)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 8px 20px -6px rgba(37, 99, 235, 0.5)',
+                      boxShadow: '0 8px 20px -6px rgba(0, 70, 128, 0.5)',
                       flexShrink: 0,
                     }}
                   >
@@ -369,7 +434,6 @@ const RuletaHome: React.FC = () => {
                   El cliente debe haber facturado para participar. Ingresa el número de comprobante para habilitar el giro.
                 </Typography>
 
-                {/* FORMULARIO */}
                 <Box>
                   <Typography sx={{
                     fontSize: '0.7rem',
@@ -396,7 +460,7 @@ const RuletaHome: React.FC = () => {
                           fontFamily: "'Space Grotesk', monospace",
                           '& fieldset': { borderColor: '#E2E8F0' },
                           '&:hover fieldset': { borderColor: '#93C5FD' },
-                          '&.Mui-focused fieldset': { borderColor: '#2563EB', borderWidth: '2px' },
+                          '&.Mui-focused fieldset': { borderColor: '#004680', borderWidth: '2px' },
                         },
                       }}
                     />
@@ -405,15 +469,15 @@ const RuletaHome: React.FC = () => {
                       onClick={validar}
                       disabled={cargando}
                       sx={{
-                        background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                        boxShadow: '0 4px 14px -2px rgba(37, 99, 235, 0.45)',
+                        background: 'linear-gradient(135deg, #004680, #0a5aa0)',
+                        boxShadow: '0 4px 14px -2px rgba(0, 70, 128, 0.45)',
                         minWidth: 110,
                         textTransform: 'none',
                         fontWeight: 700,
                         borderRadius: '12px',
                         '&:hover': {
-                          background: 'linear-gradient(135deg, #1D4ED8, #1E40AF)',
-                          boxShadow: '0 6px 20px -2px rgba(37, 99, 235, 0.55)',
+                          background: 'linear-gradient(135deg, #003366, #004680)',
+                          boxShadow: '0 6px 20px -2px rgba(0, 70, 128, 0.55)',
                         },
                       }}
                     >
@@ -458,7 +522,6 @@ const RuletaHome: React.FC = () => {
                 )}
               </Box>
 
-              {/* 💡 TIP CON BOMBILLITO */}
               <Box
                 sx={{
                   mt: 3,
@@ -471,7 +534,7 @@ const RuletaHome: React.FC = () => {
                   gap: 1,
                 }}
               >
-                <LightbulbOutlinedIcon sx={{ fontSize: 18, color: '#2563EB', flexShrink: 0, mt: '2px' }} />
+                <LightbulbOutlinedIcon sx={{ fontSize: 18, color: '#004680', flexShrink: 0, mt: '2px' }} />
                 <Typography
                   sx={{
                     fontSize: '0.72rem',
@@ -481,7 +544,7 @@ const RuletaHome: React.FC = () => {
                   }}
                 >
                   El número está en tu factura de compra (ej:{' '}
-                  <strong style={{ color: '#1D4ED8' }}>KE030000004249</strong>). Solo aplica una
+                  <strong style={{ color: '#004680' }}>KE030000004249</strong>). Solo aplica una
                   factura por giro.
                 </Typography>
               </Box>
@@ -513,6 +576,9 @@ const RuletaHome: React.FC = () => {
           </Box>
         </TabPanel>
 
+        {/* ============================================================ */}
+        {/* TAB PREMIOS                                                  */}
+        {/* ============================================================ */}
         <TabPanel value={tabValue} index={1}>
           <AdministrarPremios onPremiosChange={handlePremiosChange} />
         </TabPanel>

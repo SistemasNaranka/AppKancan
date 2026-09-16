@@ -27,17 +27,42 @@ const sway = keyframes`
   50%      { transform: rotate(3deg); }
 `;
 
-// 🌶️ Paleta fiesta latina — 8 colores, uno por gajo, sin repetidos
+// ============================================================
+// 🌶️ PALETA FIESTA LATINA — 8 colores (MISMOS de siempre)
+// ============================================================
 const STITCH_COLORS = [
-  { base: '#FF4D6D', dark: '#D6234A' }, // rojo coral / hibisco
-  { base: '#FF8C00', dark: '#E65100' }, // naranja mango
-  { base: '#FFC107', dark: '#F08C00' }, // amarillo dorado / sol
-  { base: '#8BC34A', dark: '#558B2F' }, // verde lima
-  { base: '#00BCD4', dark: '#00838F' }, // turquesa caribe
-  { base: '#2196F3', dark: '#1565C0' }, // azul cielo (único azul)
-  { base: '#9C27B0', dark: '#6A1B9A' }, // púrpura fiesta
-  { base: '#E91E63', dark: '#AD1457' }, // magenta buganvilia
+  { base: '#FF4D6D', dark: '#D6234A' }, // 0 - rojo coral / hibisco
+  { base: '#FF8C00', dark: '#E65100' }, // 1 - naranja mango
+  { base: '#FFC107', dark: '#F08C00' }, // 2 - amarillo dorado / sol
+  { base: '#8BC34A', dark: '#558B2F' }, // 3 - verde lima
+  { base: '#00BCD4', dark: '#00838F' }, // 4 - turquesa caribe
+  { base: '#2196F3', dark: '#1565C0' }, // 5 - azul cielo
+  { base: '#9C27B0', dark: '#6A1B9A' }, // 6 - púrpura fiesta
+  { base: '#E91E63', dark: '#AD1457' }, // 7 - magenta buganvilia
 ];
+
+// ============================================================
+// 🔀 ORDEN INTERCALADO — alterna cálidos y fríos
+// ============================================================
+// Orden original: 0  1  2  3  4  5  6  7
+// Orden nuevo:    0  4  1  5  7  3  2  6
+//
+// Visualmente:
+//   0 → rojo coral    (cálido)
+//   4 → turquesa      (frío)
+//   1 → naranja       (cálido)
+//   5 → azul cielo    (frío)
+//   7 → magenta       (cálido)
+//   3 → verde lima    (frío)
+//   2 → amarillo      (cálido)
+//   6 → púrpura       (frío)
+const INTERLEAVED_ORDER = [0, 4, 1, 5, 7, 3, 2, 6];
+
+// Devuelve el color intercalado según la posición del gajo
+const getInterleavedColor = (index: number) => {
+  const pos = index % STITCH_COLORS.length;
+  return STITCH_COLORS[INTERLEAVED_ORDER[pos]];
+};
 
 const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
   ([label, grupo]) => aplicarColorPorGrupo(label, grupo)
@@ -137,7 +162,8 @@ const Ruleta: React.FC<RuletaProps> = ({
   const petalCount = Math.max(numSegments * 2, 16);
 
   const BUNTING_COUNT = 9;
-  const buntingFlags = Array.from({ length: BUNTING_COUNT }).map((_, i) => STITCH_COLORS[i % STITCH_COLORS.length]);
+  // Banderines: usan los colores intercalados
+  const buntingFlags = Array.from({ length: BUNTING_COUNT }).map((_, i) => getInterleavedColor(i));
 
   const wheelSVG = (size: number = 400) => (
     <svg
@@ -150,29 +176,34 @@ const Ruleta: React.FC<RuletaProps> = ({
       }}
     >
       <defs>
-        {STITCH_COLORS.map((c, i) => (
-          <radialGradient key={i} id={`stitchGrad${i}`} cx="0.5" cy="0.5" r="0.5">
-            <stop offset="30%" stopColor={c.base} />
-            <stop offset="100%" stopColor={c.dark} />
-          </radialGradient>
-        ))}
+        {/* 🎨 Gradientes por CADA segmento — usa el color intercalado */}
+        {segments.map((_seg, i) => {
+          const fallback = getInterleavedColor(i);
+          return (
+            <radialGradient key={`grad-${i}`} id={`stitchGrad${i}`} cx="0.5" cy="0.5" r="0.5">
+              <stop offset="30%" stopColor={fallback.base} />
+              <stop offset="100%" stopColor={fallback.dark} />
+            </radialGradient>
+          );
+        })}
         <filter id="bubbleGlow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="1.5" />
           <feComponentTransfer><feFuncA type="linear" slope="1.2" /></feComponentTransfer>
         </filter>
       </defs>
 
+      {/* 🌸 Pétalos del borde — colores intercalados */}
       <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
         {Array.from({ length: petalCount }).map((_, i) => {
           const p = petalPos(i, petalCount, radius + 6, cx, cy);
-          const color = STITCH_COLORS[i % STITCH_COLORS.length];
+          const fallback = getInterleavedColor(i);
           return (
             <circle
               key={`petal-${i}`}
               cx={p.x}
               cy={p.y}
               r={7}
-              fill={color.base}
+              fill={fallback.base}
               stroke="#FFF7EC"
               strokeWidth={2}
             />
@@ -180,26 +211,36 @@ const Ruleta: React.FC<RuletaProps> = ({
         })}
       </g>
 
+      {/* 🎡 Grupo rotatorio principal */}
       <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
+        {/* Gajos */}
         {segments.map((_seg, i) => (
           <path
             key={`gajo-${i}`}
             d={gajoPath(i, numSegments, radius, cx, cy)}
-            fill={`url(#stitchGrad${i % STITCH_COLORS.length})`}
+            fill={`url(#stitchGrad${i})`}
             stroke="#FFF7EC"
             strokeWidth={3}
             strokeLinejoin="round"
           />
         ))}
 
+        {/* Puntos decorativos */}
         {segments.map((_seg, i) => {
           const p = dotPos(i, numSegments, radius, cx, cy);
           return (
-            <circle key={`dot-${i}`} cx={p.x} cy={p.y} r={4} fill="#FFE8A3"
-              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }} />
+            <circle
+              key={`dot-${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={4}
+              fill="#FFE8A3"
+              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}
+            />
           );
         })}
 
+        {/* Burbujas con "?" */}
         {segments.map((_seg, i) => {
           const p = bubblePos(i, numSegments, radius, cx, cy);
           return (
@@ -221,7 +262,10 @@ const Ruleta: React.FC<RuletaProps> = ({
                 fontFamily="'Sora', 'Poppins', sans-serif"
                 fontSize={22}
                 fontWeight={800}
-                style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.85)) drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}
+                style={{
+                  filter:
+                    'drop-shadow(0 0 4px rgba(255,255,255,0.85)) drop-shadow(0 1px 2px rgba(0,0,0,0.2))',
+                }}
               >
                 ?
               </text>
@@ -230,10 +274,17 @@ const Ruleta: React.FC<RuletaProps> = ({
         })}
       </g>
 
+      {/* Aro exterior blanco */}
       <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#FFF7EC" strokeWidth={6} />
 
-      <circle cx={cx} cy={cy} r={30} fill="#FFF7EC"
-        style={{ filter: 'drop-shadow(0 8px 20px rgba(120,20,60,0.25))' }} />
+      {/* Centro con "K" */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={30}
+        fill="#FFF7EC"
+        style={{ filter: 'drop-shadow(0 8px 20px rgba(120,20,60,0.25))' }}
+      />
       <text
         x={cx}
         y={cy + 10}
@@ -325,7 +376,6 @@ const Ruleta: React.FC<RuletaProps> = ({
             lineHeight: 1.15,
           }}>
             ¡Gira y llévate{' '}
-            {/* 🔵 CAMBIO A AZUL */}
             <Box component="span" sx={{
               background: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 50%, #3B82F6 100%)',
               WebkitBackgroundClip: 'text',
@@ -346,7 +396,7 @@ const Ruleta: React.FC<RuletaProps> = ({
           margin: '0 auto',
           pb: 4,
         }}>
-          {/* 🌑 Sombra estática */}
+          {/* 🌑 Sombra */}
           <Box
             aria-hidden
             sx={{
@@ -362,7 +412,7 @@ const Ruleta: React.FC<RuletaProps> = ({
             }}
           />
 
-          {/* 🎯 Puntero (flecha) — FUERA del spinner, siempre quieto */}
+          {/* 🎯 Puntero */}
           <Box sx={{
             position: 'absolute', top: -8, left: '50%',
             transform: 'translateX(-50%)', zIndex: 10,
@@ -373,7 +423,7 @@ const Ruleta: React.FC<RuletaProps> = ({
             filter: 'drop-shadow(0 3px 6px rgba(255,107,0,0.45))',
           }} />
 
-          {/* 🌀 Solo el SVG gira — el puntero queda quieto */}
+          {/* 🌀 SVG girando */}
           <Box
             sx={{
               position: 'relative',
@@ -388,7 +438,6 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Box>
         </Box>
 
-        {/* 🔵 BOTÓN AHORA AZUL */}
         <Button
           variant="contained"
           disabled={isSpinning || !facturaValida}
