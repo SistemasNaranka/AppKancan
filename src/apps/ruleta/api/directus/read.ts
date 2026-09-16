@@ -12,7 +12,7 @@ export async function getStores(): Promise<Tienda[]> {
     const items = await withAutoRefresh(() =>
       directus.request(
         readItems('core_stores', {  // 👈 NOMBRE CORRECTO DE LA COLECCIÓN
-          fields: ['id', 'name'],
+          fields: ['id', 'name', 'ultra_code'],
           sort: ['name'],
         })
       )
