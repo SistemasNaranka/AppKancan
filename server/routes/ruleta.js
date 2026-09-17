@@ -8,50 +8,6 @@ const router = express.Router();
 const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_SERVICE_TOKEN = process.env.DIRECTUS_SERVICE_TOKEN;
 
-// ============================================================
-// 🎁 PREMIOS POR RANGO
-// ------------------------------------------------------------
-// Cada premio tiene 4 datos:
-//   - probabilidad: peso dentro del pool (% sobre 100)
-//   - ventana: cada cuántos giros se revisa el tope
-//   - maxEnVentana: máximo de veces que puede salir dentro
-//                   de esa ventana
-//
-// ⭐ Si quieres "1 vez cada X giros": ventana = X, maxEnVentana = 1
-// ============================================================
-const PREMIOS_POR_GRUPO = {
-  // 🔴 ALTOS — factura ≥ $600.000
-  altos: [
-    { prize: "Jean de línea", probabilidad: 1,  ventana: 60, maxEnVentana: 1 },  // 1 vez cada 60
-    { prize: "Jean básico",   probabilidad: 4,  ventana: 60, maxEnVentana: 1 },  // 1 vez cada 60
-    { prize: "Bono $100k",    probabilidad: 95, ventana: 60, maxEnVentana: 99 },
-  ],
-
-  // 🟡 MEDIOS — factura $300.001 a $599.999
-  medios: [
-    { prize: "Bono $50k",     probabilidad: 98, ventana: 60, maxEnVentana: 99 },
-    { prize: "Blusa básica",  probabilidad: 1,  ventana: 60, maxEnVentana: 1 },  // 1 vez cada 60
-    { prize: "Tote bag",      probabilidad: 1,  ventana: 60, maxEnVentana: 1 },  // 1 vez cada 60
-  ],
-
-  // 🟢 BAJOS — factura ≤ $300.000
-  bajos: [
-    { prize: "Bandana",       probabilidad: 1,  ventana: 40, maxEnVentana: 1 },  // 1 vez cada 40
-    { prize: "Bamba",         probabilidad: 1,  ventana: 40, maxEnVentana: 1 },  // 1 vez cada 40
-    { prize: "Bono $30k",     probabilidad: 98, ventana: 40, maxEnVentana: 99 },
-  ],
-};
-
-// Umbrales de negocio (CON IVA)
-const UMBRAL_BAJOS = 300000;
-const UMBRAL_MEDIOS = 600000;
-
-const calcularPremiosElegibles = (monto) => {
-  if (monto <= UMBRAL_BAJOS) return PREMIOS_POR_GRUPO.bajos;
-  if (monto < UMBRAL_MEDIOS) return PREMIOS_POR_GRUPO.medios;
-  return PREMIOS_POR_GRUPO.altos;
-};
-
 
 // ============================================================
 // 📝 REGISTRAR JUGADA EN DIRECTUS
@@ -74,9 +30,7 @@ async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize })
   if (resp.ok) return { ok: true };
 
   let body = null;
-  try {
-    body = await resp.json();
-  } catch (_) {}
+  try { body = await resp.json(); } catch (_) { }
 
   const code = body?.errors?.[0]?.extensions?.code;
   if (code === "RECORD_NOT_UNIQUE") return { ok: false, duplicate: true };
@@ -86,86 +40,130 @@ async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize })
 
 
 // ============================================================
-// 📊 TRAER LAS ÚLTIMAS N JUGADAS DE LA TIENDA
-// ============================================================
-async function obtenerUltimasJugadas(bodega, cantidad) {
-  const url =
-    `${DIRECTUS_URL}/items/sal_roulette_plays` +
-    `?filter[store_code][_eq]=${encodeURIComponent(bodega)}` +
-    `&fields=prize` +
-    `&sort=-id` +
-    `&limit=${cantidad}`;
-
-  const resp = await fetch(url, {
-    headers: { Authorization: `Bearer ${DIRECTUS_SERVICE_TOKEN}` },
-  });
-  if (!resp.ok) throw new Error(`Directus ventana: ${resp.status}`);
-
-  const data = await resp.json();
-  return data?.data ?? [];
-}
-
-
-// ============================================================
-// 🚫 FILTRAR PREMIOS SEGÚN SU VENTANA Y TOPE
+// 🎁 PREMIOS POR RANGO — SISTEMA DE INTERVALOS 0-100
 // ------------------------------------------------------------
-// Para cada premio se mira SOLO su propia ventana (40 o 60).
-// Si ya salió `maxEnVentana` veces dentro de esa ventana,
-// se bloquea hasta que las jugadas viejas salgan.
+// Cada premio tiene un "desde" y un "hasta" (números del 0 al 100).
+// Se genera un número aleatorio entre 0 y 100 y según dónde caiga
+// se gana ese premio.
+//
+// Ejemplo con ALTOS:
+//   Jean de línea:  desde 0   hasta 10   →  0% a 10%   (10%)
+//   Jean básico:    desde 10  hasta 50   →  10% a 50%  (40%)
+//   Bono $100k:     desde 50  hasta 100  →  50% a 100% (50%)
+//
+// Los rangos NO pueden solaparse y deben cubrir todo el 0-100.
 // ============================================================
-async function filtrarPorVentana(bodega, elegibles) {
-  const ventanaMax = Math.max(...elegibles.map((p) => p.ventana));
-  const ultimas = await obtenerUltimasJugadas(bodega, ventanaMax);
+const PREMIOS_POR_GRUPO = {
+  altos: [
+    { prize: "Jean de línea", desde: 0, hasta: 10 },  // 10%
+    { prize: "Jean básico", desde: 10, hasta: 50 },  // 40%
+    { prize: "Bono $100k", desde: 50, hasta: 100 },  // 50%
+  ],
+  medios: [
+    { prize: "Bono $50k", desde: 0, hasta: 70 },  // 70%
+    { prize: "Blusa básica", desde: 70, hasta: 85 },  // 15%
+    { prize: "Tote bag", desde: 85, hasta: 100 },  // 15%
+  ],
+  bajos: [
+    { prize: "Bandana", desde: 0, hasta: 20 },  // 20%
+    { prize: "Bamba", desde: 20, hasta: 40 },  // 20%
+    { prize: "Bono $30k", desde: 40, hasta: 100 },  // 60%
+  ],
+};
 
-  const filtrados = elegibles.filter((p) => {
-    const enVentana = ultimas.slice(0, p.ventana);
-    const veces = enVentana.filter((j) => j.prize === p.prize).length;
-    return veces < p.maxEnVentana;
-  });
+// ============================================================
+// 🛡️ VALIDACIÓN DE CONFIGURACIÓN — corre una sola vez al cargar
+// el módulo. Si alguien edita PREMIOS_POR_GRUPO y deja un hueco,
+// un solapamiento, o un grupo que no llega exactamente a 100,
+// el servidor falla al arrancar en vez de repartir premios mal
+// calculados en producción sin que nadie se dé cuenta.
+// ============================================================
+function validarConfiguracionPremios(grupos) {
+  for (const [nombreGrupo, premios] of Object.entries(grupos)) {
+    if (!Array.isArray(premios) || premios.length === 0) {
+      throw new Error(`[ruleta] El grupo "${nombreGrupo}" no tiene premios configurados`);
+    }
 
-  if (filtrados.length === 0) {
-    console.warn(
-      `[RULETA] ⚠️ Todos los premios alcanzaron su tope en tienda ${bodega}. Se usan los originales.`
-    );
-    return elegibles;
+    const ordenados = [...premios].sort((a, b) => a.desde - b.desde);
+
+    if (ordenados[0].desde !== 0) {
+      throw new Error(
+        `[ruleta] El grupo "${nombreGrupo}" no empieza en 0 (empieza en ${ordenados[0].desde})`
+      );
+    }
+
+    for (let i = 0; i < ordenados.length; i++) {
+      const actual = ordenados[i];
+
+      if (typeof actual.desde !== "number" || typeof actual.hasta !== "number" || actual.hasta <= actual.desde) {
+        throw new Error(
+          `[ruleta] Rango inválido en "${nombreGrupo}" para "${actual.prize}": desde=${actual.desde}, hasta=${actual.hasta}`
+        );
+      }
+
+      const siguiente = ordenados[i + 1];
+      if (siguiente) {
+        if (siguiente.desde < actual.hasta) {
+          throw new Error(
+            `[ruleta] Rangos solapados en "${nombreGrupo}" entre "${actual.prize}" y "${siguiente.prize}"`
+          );
+        }
+        if (siguiente.desde > actual.hasta) {
+          throw new Error(
+            `[ruleta] Hueco en "${nombreGrupo}" entre "${actual.prize}" (hasta ${actual.hasta}) y "${siguiente.prize}" (desde ${siguiente.desde})`
+          );
+        }
+      }
+    }
+
+    const ultimo = ordenados[ordenados.length - 1];
+    if (ultimo.hasta !== 100) {
+      throw new Error(
+        `[ruleta] El grupo "${nombreGrupo}" no termina en 100 (termina en ${ultimo.hasta})`
+      );
+    }
   }
-
-  console.log("[RULETA] Ventana:", {
-    bodega,
-    ultimasConsultadas: ultimas.length,
-    bloqueados: elegibles
-      .filter((p) => !filtrados.includes(p))
-      .map((p) => p.prize),
-  });
-
-  return filtrados;
 }
 
+// Se ejecuta al cargar el archivo — si algo está mal configurado,
+// el servidor no arranca en vez de repartir premios mal calculados.
+validarConfiguracionPremios(PREMIOS_POR_GRUPO);
+
+
+// Umbrales de monto
+const UMBRAL_BAJOS = 300000;
+const UMBRAL_MEDIOS = 600000;
+
+const calcularPremiosElegibles = (monto) => {
+  if (monto <= UMBRAL_BAJOS) return PREMIOS_POR_GRUPO.bajos;
+  if (monto < UMBRAL_MEDIOS) return PREMIOS_POR_GRUPO.medios;
+  return PREMIOS_POR_GRUPO.altos;
+};
+
 
 // ============================================================
-// 🎲 SORTEO POR POOL EXACTO
+// 🎲 SORTEO POR INTERVALOS
+// ------------------------------------------------------------
+// 1. Genera un número entre 0 y 99 con crypto.randomInt (seguro,
+//    no manipulable/predecible como Math.random).
+// 2. Busca en qué intervalo cae.
+// 3. Devuelve el premio de ese intervalo.
 // ============================================================
-const elegirPremioPonderado = (premios) => {
-  const validos = premios
-    .map((p) => ({
-      prize: p.prize,
-      probabilidad: Math.max(0, Math.round(Number(p.probabilidad) || 0)),
-    }))
-    .filter((p) => p.probabilidad > 0);
+const elegirPremioPorIntervalo = (premios) => {
+  const numero = crypto.randomInt(0, 100); // 0 a 99
 
-  if (validos.length === 0) {
-    throw new Error("No hay premios con probabilidad válida (> 0).");
-  }
-
-  const pool = [];
-  for (const p of validos) {
-    for (let i = 0; i < p.probabilidad; i++) {
-      pool.push(p.prize);
+  for (const p of premios) {
+    if (numero >= p.desde && numero < p.hasta) {
+      console.log(`[ruleta] numero=${numero} → premio="${p.prize}" (rango ${p.desde}-${p.hasta})`);
+      return p.prize;
     }
   }
 
-  const indice = crypto.randomInt(0, pool.length);
-  return pool[indice];
+  // Gracias a validarConfiguracionPremios() esto ya no debería poder
+  // pasar nunca (los rangos siempre cubren 0-100 sin huecos), pero se
+  // deja como red de seguridad extra.
+  console.warn(`[ruleta] numero=${numero} no cayó en ningún intervalo. Usando último premio.`);
+  return premios[premios.length - 1].prize;
 };
 
 
@@ -183,15 +181,13 @@ const generarCupon = () => {
 
 
 // ============================================================
-// ✅ ENDPOINT: VALIDAR FACTURA
+// ✅ VALIDAR FACTURA
 // ============================================================
 router.post("/ruleta/validar-factura", async (req, res) => {
   const { documentos } = req.body;
 
   if (!documentos || typeof documentos !== "string" || !documentos.trim()) {
-    return res
-      .status(400)
-      .json({ valid: false, message: "Número de factura requerido" });
+    return res.status(400).json({ valid: false, message: "Número de factura requerido" });
   }
 
   const factura = documentos.trim().toUpperCase();
@@ -210,9 +206,7 @@ router.post("/ruleta/validar-factura", async (req, res) => {
     const rows = await queryDB("kcn_db", sql, [factura]);
 
     if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ valid: false, message: "Factura no encontrada" });
+      return res.status(404).json({ valid: false, message: "Factura no encontrada" });
     }
 
     const venta = rows[0];
@@ -228,32 +222,24 @@ router.post("/ruleta/validar-factura", async (req, res) => {
     if (directusData?.data && directusData.data.length > 0) {
       return res.status(409).json({
         valid: false,
-        message:
-          "Esta factura ya participó en la ruleta. Solo se permite un giro por factura.",
+        message: "Esta factura ya participó en la ruleta. Solo se permite un giro por factura.",
       });
     }
 
-    const nombreCliente =
-      venta.cliente && venta.cliente.trim()
-        ? venta.cliente.trim()
-        : "Cliente no identificado";
+    const nombreCliente = venta.cliente && venta.cliente.trim()
+      ? venta.cliente.trim()
+      : "Cliente no identificado";
 
-    return res.json({
-      valid: true,
-      cliente: nombreCliente,
-      message: "Factura validada con éxito",
-    });
+    return res.json({ valid: true, cliente: nombreCliente, message: "Factura validada con éxito" });
   } catch (error) {
     console.error("Error al validar factura:", error);
-    return res
-      .status(500)
-      .json({ valid: false, message: "Error al consultar la factura" });
+    return res.status(500).json({ valid: false, message: "Error al consultar la factura" });
   }
 });
 
 
 // ============================================================
-// 🎡 ENDPOINT: GIRAR RULETA
+// 🎡 GIRAR RULETA
 // ============================================================
 router.post("/ruleta/girar", async (req, res) => {
   const { documentos } = req.body;
@@ -283,20 +269,11 @@ router.post("/ruleta/girar", async (req, res) => {
 
     const monto = Number(rows[0].total);
     const bodega = String(rows[0].bodega);
-
     const elegibles = calcularPremiosElegibles(monto);
-
-    let elegiblesFiltrados;
-    try {
-      elegiblesFiltrados = await filtrarPorVentana(bodega, elegibles);
-    } catch (err) {
-      console.error("Error al consultar ventana:", err);
-      elegiblesFiltrados = elegibles;
-    }
 
     let prize;
     try {
-      prize = elegirPremioPonderado(elegiblesFiltrados);
+      prize = elegirPremioPorIntervalo(elegibles);
     } catch (err) {
       console.error("Error en sorteo:", err);
       return res.status(500).json({ message: "Error al calcular el premio" });
@@ -316,15 +293,10 @@ router.post("/ruleta/girar", async (req, res) => {
     if (!registro.ok) {
       if (registro.duplicate) {
         return res.status(409).json({
-          message:
-            "Esta factura ya participó en la ruleta. Solo se permite un giro por factura.",
+          message: "Esta factura ya participó en la ruleta. Solo se permite un giro por factura.",
         });
       }
-      console.error(
-        "Error al registrar la jugada en Directus:",
-        registro.status,
-        registro.body
-      );
+      console.error("Error al registrar la jugada en Directus:", registro.status, registro.body);
       return res.status(500).json({ message: "Error al registrar el giro" });
     }
 
