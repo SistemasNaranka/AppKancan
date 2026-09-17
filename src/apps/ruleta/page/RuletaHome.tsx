@@ -11,6 +11,10 @@ import {
   Chip,
   Autocomplete,
   InputAdornment,
+  Badge,
+  Popover,
+  IconButton,
+  Divider,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
@@ -18,9 +22,13 @@ import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { Casino as RuletaIcon, LocalOffer as PremiosIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { getStores } from '../api/directus/read';
+import { useAuth } from '../../../auth/hooks/useAuth';
 import Ruleta from '../components/Ruleta';
 import AdministrarPremios from '../components/AdministrarPremios';
 import { ISegment, Tienda } from '../interfaces/ruleta.interface';
@@ -83,11 +91,25 @@ function TabPanel({ children, value, index }: TabPanelProps) {
   );
 }
 
+type EstadoStock = 'OK' | 'ULTIMA_UNIDAD' | 'RANGO_AGOTADO' | 'TIENDA_VACIA';
+
 interface FacturaValida {
   cliente: string;
+  puedeGirar: boolean;
+  estadoStock: EstadoStock;
+  mensajeStock: string;
+}
+
+interface RangoStock {
+  tier: string;
+  nombre: string;
+  restante: number;
+  estado: 'OK' | 'ULTIMO' | 'AGOTADO';
 }
 
 const RuletaHome: React.FC = () => {
+  const auth = useAuth() as any;
+  const ultra_code = auth?.ultra_code ?? auth?.user?.ultra_code ?? auth?.me?.ultra_code;
   const [numFactura, setNumFactura] = useState('');
   const [cargando, setCargando] = useState(false);
   const [factura, setFactura] = useState<FacturaValida | null>(null);
@@ -95,12 +117,34 @@ const RuletaHome: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [premios, setPremios] = useState<ISegment[]>(() => getPremiosFromStorage());
   const [storeFilter, setStoreFilter] = useState<number | null>(null);
+  const [stockRangos, setStockRangos] = useState<RangoStock[]>([]);
+  const [hayCriticos, setHayCriticos] = useState(false);
+  const [campanaAnchor, setCampanaAnchor] = useState<null | HTMLElement>(null);
+  const [ojoAnchor, setOjoAnchor] = useState<null | HTMLElement>(null);
 
   const { data: tiendasCompletas = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
     staleTime: 30 * 60 * 1000,
   });
+
+  const cargarStock = async () => {
+    if (!ultra_code) return;
+    try {
+      const res = await fetch(`/api/ruleta/estado-stock/${encodeURIComponent(String(ultra_code))}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setStockRangos(data.rangos ?? []);
+      setHayCriticos(data.hayCriticos ?? false);
+    } catch {
+      // silencioso: la campanita no debe romper la pantalla
+    }
+  };
+
+  useEffect(() => {
+    cargarStock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ultra_code]);
 
   const tiendasFiltradas = useMemo(() => {
     return tiendasCompletas.filter((tienda) => esTiendaAutorizada(tienda.name));
@@ -138,7 +182,12 @@ const RuletaHome: React.FC = () => {
         throw new Error(data.message || 'No se pudo validar la factura');
       }
       const data = await res.json();
-      setFactura({ cliente: data.cliente || 'Cliente no identificado' });
+      setFactura({
+        cliente: data.cliente || 'Cliente no identificado',
+        puedeGirar: data.puedeGirar ?? true,
+        estadoStock: data.estadoStock ?? 'OK',
+        mensajeStock: data.message ?? '',
+      });
     } catch (e: any) {
       setError(e.message || 'Error al validar');
     } finally {
@@ -265,6 +314,49 @@ const RuletaHome: React.FC = () => {
                   }}
                 />
               )}
+
+              {tabValue === 0 && (
+                <IconButton
+                  onClick={(e) => setCampanaAnchor(e.currentTarget)}
+                  sx={{ bgcolor: hayCriticos ? '#FEF2F2' : '#F1F5F9', '&:hover': { bgcolor: hayCriticos ? '#FEE2E2' : '#E2E8F0' } }}
+                >
+                  <Badge color="error" variant="dot" invisible={!hayCriticos}>
+                    {hayCriticos
+                      ? <NotificationsActiveIcon sx={{ fontSize: 20, color: '#DC2626' }} />
+                      : <NotificationsIcon sx={{ fontSize: 20, color: '#64748B' }} />}
+                  </Badge>
+                </IconButton>
+              )}
+
+              <Popover
+                open={Boolean(campanaAnchor)}
+                anchorEl={campanaAnchor}
+                onClose={() => setCampanaAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              >
+                <Box sx={{ p: 2, width: 260 }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#1E293B', mb: 1 }}>
+                    Estado de premios
+                  </Typography>
+                  <Divider sx={{ mb: 1 }} />
+                  {stockRangos.length === 0 ? (
+                    <Typography sx={{ fontSize: 12, color: '#94A3B8' }}>Sin datos de stock.</Typography>
+                  ) : (
+                    stockRangos.map((r) => (
+                      <Box key={r.tier} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75 }}>
+                        <Typography sx={{ fontSize: 13, color: '#334155' }}>{r.nombre}</Typography>
+                        <Typography sx={{
+                          fontSize: 12, fontWeight: 700,
+                          color: r.estado === 'AGOTADO' ? '#DC2626' : r.estado === 'ULTIMO' ? '#B45309' : '#047857',
+                        }}>
+                          {r.estado === 'AGOTADO' ? 'Agotado' : r.estado === 'ULTIMO' ? 'Último premio' : `${r.restante} disponibles`}
+                        </Typography>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+              </Popover>
             </Box>
           </Box>
 
@@ -422,23 +514,66 @@ const RuletaHome: React.FC = () => {
                   </Box>
                 </Box>
 
-                {factura && (
-                  <Box sx={{
-                    background: 'linear-gradient(135deg, #ECFDF5, #F0FDF4)',
-                    border: '1px solid #A7F3D0',
-                    borderRadius: '14px',
-                    p: 2,
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#047857', fontSize: 12, fontWeight: 700, mb: 1.5 }}>
-                      <CheckCircleIcon sx={{ fontSize: 16 }} />
-                      ¡Factura validada con éxito! La ruleta está desbloqueada y lista para girar.
+                {factura && (() => {
+                  // El aviso de "última unidad" NO se muestra al cliente: el panel
+                  // se ve verde normal y el mensaje queda tras el ojito de la asesora.
+                  const esUltima = factura.puedeGirar && factura.estadoStock === 'ULTIMA_UNIDAD';
+                  const verde = factura.puedeGirar; // verde si puede girar (incluida última unidad)
+
+                  return (
+                    <Box sx={{
+                      background: verde
+                        ? 'linear-gradient(135deg, #ECFDF5, #F0FDF4)'
+                        : 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
+                      border: verde ? '1px solid #A7F3D0' : '1px solid #FECACA',
+                      borderRadius: '14px',
+                      p: 2,
+                    }}>
+                      <Box sx={{
+                        display: 'flex', alignItems: 'center', gap: 1,
+                        color: verde ? '#047857' : '#B91C1C',
+                        fontSize: 12, fontWeight: 700, mb: 1.5,
+                      }}>
+                        {verde
+                          ? <CheckCircleIcon sx={{ fontSize: 16 }} />
+                          : <ErrorOutlineIcon sx={{ fontSize: 16 }} />}
+                        <span style={{ flex: 1 }}>
+                          {verde
+                            ? '¡Factura validada con éxito! La ruleta está desbloqueada y lista para girar.'
+                            : factura.mensajeStock}
+                        </span>
+                        {esUltima && (
+                          <IconButton
+                            size="small"
+                            onClick={(e) => setOjoAnchor(e.currentTarget)}
+                            sx={{ ml: 0.5, color: '#B45309', bgcolor: '#FEF3C7', '&:hover': { bgcolor: '#FDE68A' } }}
+                          >
+                            <VisibilityOutlinedIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: '#64748B' }}>Cliente</span>
+                        <span style={{ color: '#0F172A', fontWeight: 600 }}>{factura.cliente}</span>
+                      </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ color: '#64748B' }}>Cliente</span>
-                      <span style={{ color: '#0F172A', fontWeight: 600 }}>{factura.cliente}</span>
-                    </Box>
+                  );
+                })()}
+
+                <Popover
+                  open={Boolean(ojoAnchor)}
+                  anchorEl={ojoAnchor}
+                  onClose={() => setOjoAnchor(null)}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                >
+                  <Box sx={{ p: 2, width: 250, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                    <ErrorOutlineIcon sx={{ fontSize: 18, color: '#B45309', flexShrink: 0, mt: '1px' }} />
+                    <Typography sx={{ fontSize: 12.5, color: '#334155', fontWeight: 600, lineHeight: 1.5 }}>
+                      {factura?.mensajeStock || 'Solo queda un último premio en este rango. Después de este giro se agota.'}
+                    </Typography>
                   </Box>
-                )}
+                </Popover>
 
                 {error && (
                   <Box sx={{
@@ -506,8 +641,9 @@ const RuletaHome: React.FC = () => {
               <Ruleta
                 documentos={numFactura.trim()}
                 segments={intercalarSegments(premios)}
-                facturaValida={!!factura}
+                facturaValida={!!factura && factura.puedeGirar}
                 storeId={storeFilter}
+                onPremioGanado={() => cargarStock()}
               />
             </Box>
           </Box>
