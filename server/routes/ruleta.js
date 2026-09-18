@@ -292,12 +292,10 @@ const elegirPremioPonderado = (premios) => {
   const total = premios.reduce((acc, p) => acc + Number(p.probabilidad), 0);
   let rand = Math.random() * total;
 
-
   for (const p of premios) {
     if (rand < Number(p.probabilidad)) return p.prize;
     rand -= Number(p.probabilidad);
   }
-
 
   // Fallback con alerta para detectar fallos si los datos de la BD llegan corruptos
   console.error("Fallo crítico en matemática de sorteo. rand:", rand, "total:", total);
