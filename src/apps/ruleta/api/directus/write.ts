@@ -23,9 +23,20 @@ export interface IPrizePayload {
 export interface IPrizeInventoryRow {
   id?: number;
   prize_id: number;
-  store_code: string;
+  store_code: string | number;
   total_assigned: number;
+  // 🔑 Clave única compuesta (store_code-prize_id) — la genera el frontend
+  inventory_key?: string;
 }
+
+// ============================================================
+// 🔑 HELPER: Genera la clave única del inventario
+// Formato: "{store_code}-{prize_id}" — evita duplicados en Directus
+// ============================================================
+const buildInventoryKey = (
+  storeCode: string | number,
+  prizeId: number
+): string => `${String(storeCode).trim()}-${String(prizeId).trim()}`;
 
 // ============================================================
 // 🏷️ sal_prizes — CRUD del catálogo de premios
@@ -83,6 +94,11 @@ export async function deactivatePrize(id: number): Promise<void> {
  * Trae todos los premios (activos e inactivos) con su inventario relacionado.
  * El error se re-lanza para que el componente pueda mostrar estado de error
  * en vez de una lista vacía silenciosa.
+ *
+ * ⚠️ IMPORTANTE: se usa `limit: -1` en ambas consultas porque Directus
+ * devuelve por defecto solo 100 registros. Sin esto, los registros que
+ * caigan más allá del #100 (ej: 112 filas) son invisibles para el frontend,
+ * causando que las últimas tiendas configuradas aparezcan siempre en 0.
  */
 export async function getPrizesWithInventory() {
   const prizes = await withAutoRefresh(() =>
@@ -90,6 +106,7 @@ export async function getPrizesWithInventory() {
       readItems('sal_prizes', {
         fields: ['id', 'name', 'tier', 'is_active', 'probability'],
         sort: ['tier', 'name'],
+        limit: -1, // 👈 Trae TODOS los premios (sin límite de 100)
       })
     )
   );
@@ -98,6 +115,7 @@ export async function getPrizesWithInventory() {
     directus.request(
       readItems('sal_prize_inventory', {
         fields: ['id', 'prize_id', 'store_code', 'total_assigned'],
+        limit: -1, // 👈 Trae TODOS los registros de inventario (sin límite de 100)
       })
     )
   );
@@ -122,21 +140,30 @@ export async function upsertInventory(
   row: IPrizeInventoryRow
 ): Promise<void> {
   try {
+    // 🔑 Siempre generamos el inventory_key
+    const inventoryKey =
+      row.inventory_key ?? buildInventoryKey(row.store_code, row.prize_id);
+
     if (row.id) {
+      // Update — enviamos inventory_key por si acaso cambió
+      // (en la práctica no cambia porque store_code y prize_id son inmutables)
       await withAutoRefresh(() =>
         directus.request(
           updateItem('sal_prize_inventory', row.id as number, {
             total_assigned: row.total_assigned,
+            inventory_key: inventoryKey,
           })
         )
       );
     } else {
+      // Create — inventory_key es obligatorio en Directus
       await withAutoRefresh(() =>
         directus.request(
           createItem('sal_prize_inventory', {
             prize_id: row.prize_id,
             store_code: row.store_code,
             total_assigned: row.total_assigned,
+            inventory_key: inventoryKey, // 👈 ESTE CAMPO ES OBLIGATORIO
           })
         )
       );

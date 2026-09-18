@@ -1,6 +1,8 @@
 const express = require("express");
 const fetch = require("node-fetch");
 const { queryDB } = require("../utils/db");
+const authImport = require("../middleware/auth");
+const auth = authImport.auth || authImport.default || authImport;
 
 
 
@@ -137,6 +139,77 @@ async function obtenerPremiosDisponibles(tier, bodega) {
 
 
 // ============================================================
+// 📊 Stock de los 3 rangos de una tienda, en una sola pasada.
+// Devuelve por tier: total restante y premios vivos con su cupo
+// restante. Restante = total_assigned - jugadas ya registradas.
+// ============================================================
+async function obtenerStockPorRangos(bodega) {
+  const headers = { Authorization: `Bearer ${DIRECTUS_SERVICE_TOKEN}` };
+
+
+  const catalogoUrl = `${DIRECTUS_URL}/items/sal_prizes?filter[is_active][_eq]=true&fields=id,name,tier,probability&limit=-1`;
+  const invUrl = `${DIRECTUS_URL}/items/sal_prize_inventory?filter[store_code][_eq]=${encodeURIComponent(bodega)}&fields=prize_id,total_assigned&limit=-1`;
+  const jugadasUrl = `${DIRECTUS_URL}/items/sal_roulette_plays?filter[store_code][_eq]=${encodeURIComponent(bodega)}&fields=prize&limit=-1`;
+
+
+  const [catalogoResp, invResp, jugadasResp] = await Promise.all([
+    fetch(catalogoUrl, { headers }),
+    fetch(invUrl, { headers }),
+    fetch(jugadasUrl, { headers }),
+  ]);
+
+
+  if (!catalogoResp.ok) throw new Error(`Directus catalogo: ${catalogoResp.status}`);
+  if (!invResp.ok) throw new Error(`Directus inventario: ${invResp.status}`);
+  if (!jugadasResp.ok) throw new Error(`Directus jugadas: ${jugadasResp.status}`);
+
+
+  const catalogo = (await catalogoResp.json())?.data ?? [];
+  const inventario = (await invResp.json())?.data ?? [];
+  const jugadas = (await jugadasResp.json())?.data ?? [];
+
+
+  const cupoPorPremio = new Map(inventario.map((r) => [r.prize_id, r.total_assigned]));
+
+
+  const entregasPorNombre = new Map();
+  for (const j of jugadas) {
+    entregasPorNombre.set(j.prize, (entregasPorNombre.get(j.prize) ?? 0) + 1);
+  }
+
+
+  const stock = {
+    G1: { restanteTotal: 0, premios: [] },
+    G2: { restanteTotal: 0, premios: [] },
+    G3: { restanteTotal: 0, premios: [] },
+  };
+
+
+  for (const p of catalogo) {
+    const cupo = cupoPorPremio.get(p.id);
+    if (cupo === undefined) continue; // sin cupo asignado en esta tienda
+    const entregados = entregasPorNombre.get(p.name) ?? 0;
+    const restante = cupo - entregados;
+    if (restante <= 0) continue;
+    if (!stock[p.tier]) continue; // tier fuera de G1/G2/G3, se ignora
+
+
+    stock[p.tier].premios.push({
+      prize: p.name,
+      probabilidad: (typeof p.probability === "number" && p.probability > 0) ? p.probability : 1,
+      restante,
+    });
+    stock[p.tier].restanteTotal += restante;
+  }
+
+
+  return stock;
+}
+
+
+
+
+// ============================================================
 // 🎲 SELECCIÓN PONDERADA REAL (respeta las probabilidades)
 // ============================================================
 const elegirPremioPonderado = (premios) => {
@@ -256,12 +329,60 @@ router.post("/ruleta/validar-factura", async (req, res) => {
         : "Cliente no identificado";
 
 
+    const monto = Number(venta.total);
+    const tier = tierPorMonto(monto);
 
 
-    // ✅ Factura existente y virgen en la ruleta
+    const stock = await obtenerStockPorRangos(bodega);
+    const tiendaVacia =
+      stock.G1.restanteTotal === 0 &&
+      stock.G2.restanteTotal === 0 &&
+      stock.G3.restanteTotal === 0;
+    const restanteRango = stock[tier].restanteTotal;
+
+
+    // Caso 4: tienda entera sin premios → no se puede girar en ningún rango
+    if (tiendaVacia) {
+      return res.json({
+        valid: true,
+        cliente: nombreCliente,
+        puedeGirar: false,
+        estadoStock: "TIENDA_VACIA",
+        message: "No hay premios disponibles en ningún rango para esta tienda.",
+      });
+    }
+
+
+    // Caso 3: el rango del cliente está agotado, pero la tienda tiene otros
+    if (restanteRango === 0) {
+      return res.json({
+        valid: true,
+        cliente: nombreCliente,
+        puedeGirar: false,
+        estadoStock: "RANGO_AGOTADO",
+        message: "No hay premios en el rango de esta compra. Aún quedan premios en otros rangos.",
+      });
+    }
+
+
+    // Caso 2: queda una sola unidad en el rango del cliente → gira, con aviso
+    if (restanteRango === 1) {
+      return res.json({
+        valid: true,
+        cliente: nombreCliente,
+        puedeGirar: true,
+        estadoStock: "ULTIMA_UNIDAD",
+        message: "Solo queda un último premio en el rango de esta compra. Después de este giro se agota.",
+      });
+    }
+
+
+    // Caso 1: stock normal en el rango → gira sin aviso especial
     return res.json({
       valid: true,
       cliente: nombreCliente,
+      puedeGirar: true,
+      estadoStock: "OK",
       message: "Factura validada con éxito",
     });
   } catch (error) {
@@ -385,6 +506,43 @@ router.post("/ruleta/girar", async (req, res) => {
 });
 
 
+
+
+// ============================================================
+// 🔔 ESTADO DE STOCK POR TIENDA (para la campanita de la asesora)
+// Devuelve el stock de los 3 rangos SIN validar factura.
+// La tienda sale del ultra_code del usuario logueado.
+// ============================================================
+router.get("/ruleta/estado-stock/:bodega", async (req, res) => {
+  const bodega = String(req.params.bodega || "").trim();
+  if (!bodega) {
+    return res.status(400).json({ message: "Código de tienda requerido" });
+  }
+
+
+  try {
+    const stock = await obtenerStockPorRangos(bodega);
+
+
+    const rangos = [
+      { tier: "G1", nombre: "Rango alto", restante: stock.G1.restanteTotal },
+      { tier: "G2", nombre: "Rango medio", restante: stock.G2.restanteTotal },
+      { tier: "G3", nombre: "Rango bajo", restante: stock.G3.restanteTotal },
+    ].map((r) => ({
+      ...r,
+      estado: r.restante === 0 ? "AGOTADO" : r.restante === 1 ? "ULTIMO" : "OK",
+    }));
+
+
+    const hayCriticos = rangos.some((r) => r.estado !== "OK");
+
+
+    return res.json({ bodega, rangos, hayCriticos });
+  } catch (error) {
+    console.error("Error al consultar estado de stock:", error);
+    return res.status(500).json({ message: "Error al consultar el stock" });
+  }
+});
 
 
 module.exports = router;
