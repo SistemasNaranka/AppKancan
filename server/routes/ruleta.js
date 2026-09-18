@@ -132,7 +132,7 @@ async function obtenerPremiosDisponibles(tier, bodega) {
       const entregados = entregasPorNombre.get(p.name) ?? 0;
       return entregados < cupo;
     })
-    .map((p) => ({ prize: p.name, probabilidad: p.probability }));
+    .map((p) => ({ prize: p.name, probabilidad: Number(p.probability) || 0 }));
 }
 
 
@@ -213,21 +213,16 @@ async function obtenerStockPorRangos(bodega) {
 // 🎲 SELECCIÓN PONDERADA REAL (respeta las probabilidades)
 // ============================================================
 const elegirPremioPonderado = (premios) => {
-  const total = premios.reduce((acc, p) => acc + p.probabilidad, 0);
+  const total = premios.reduce((acc, p) => acc + Number(p.probabilidad), 0);
   let rand = Math.random() * total;
 
-
-
-
   for (const p of premios) {
-    if (rand < p.probabilidad) return p.prize;
-    rand -= p.probabilidad;
+    if (rand < Number(p.probabilidad)) return p.prize;
+    rand -= Number(p.probabilidad);
   }
 
-
-
-
-  // Fallback (no debería llegar aquí)
+  // Fallback con alerta para detectar fallos si los datos de la BD llegan corruptos
+  console.error("Fallo crítico en matemática de sorteo. rand:", rand, "total:", total);
   return premios[premios.length - 1].prize;
 };
 
