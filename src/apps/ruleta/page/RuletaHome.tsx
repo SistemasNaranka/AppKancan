@@ -615,7 +615,6 @@ const RuletaHome: React.FC = () => {
                             },
                           }}
                         >
-                          {/* Ícono grande */}
                           <Box
                             sx={{
                               width: 52,
@@ -632,7 +631,6 @@ const RuletaHome: React.FC = () => {
                             <WarningAmberIcon sx={{ fontSize: 32, color: '#ffffff' }} />
                           </Box>
 
-                          {/* Texto grande */}
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography
                               sx={{
@@ -771,13 +769,15 @@ const RuletaHome: React.FC = () => {
         {/* TAB PREMIOS                                                  */}
         {/* ============================================================ */}
         <TabPanel value={tabValue} index={1}>
-          <AdministrarPremios onPremiosChange={handlePremiosChange} />
+          <AdministrarPremios
+            onPremiosChange={handlePremiosChange}
+            selectedStore={selectedStore}
+          />
         </TabPanel>
       </Box>
 
       {/* ============================================================ */}
       {/* 🔔 MODAL GRANDE DE ÚLTIMA UNIDAD                              */}
-      {/* Se abre automáticamente al validar cuando queda 1 premio      */}
       {/* ============================================================ */}
       <Dialog
         open={modalUltimaUnidadOpen}
@@ -803,7 +803,6 @@ const RuletaHome: React.FC = () => {
             position: 'relative',
           }}
         >
-          {/* Ícono grande circular */}
           <Box
             sx={{
               width: 84,

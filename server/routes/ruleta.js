@@ -7,13 +7,25 @@ const auth = authImport.auth || authImport.default || authImport;
 
 
 
+
+
+
+
 const router = express.Router();
+
+
+
+
 
 
 
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_SERVICE_TOKEN = process.env.DIRECTUS_SERVICE_TOKEN;
+
+
+
+
 
 
 
@@ -36,7 +48,15 @@ async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize })
 
 
 
+
+
+
+
   if (resp.ok) return { ok: true };
+
+
+
+
 
 
 
@@ -49,14 +69,26 @@ async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize })
 
 
 
+
+
+
+
   const code = body?.errors?.[0]?.extensions?.code;
   if (code === "RECORD_NOT_UNIQUE") return { ok: false, duplicate: true };
 
 
 
 
+
+
+
+
   return { ok: false, duplicate: false, status: resp.status, body };
 }
+
+
+
+
 
 
 
@@ -70,11 +102,19 @@ const UMBRAL_MEDIOS = 600000;  // < 600.000 → G2 (medios), ≥ 600.000 → G1 
 
 
 
+
+
+
+
 const tierPorMonto = (monto) => {
   if (monto <= UMBRAL_BAJOS) return "G3";
   if (monto < UMBRAL_MEDIOS) return "G2";
   return "G1";
 };
+
+
+
+
 
 
 
@@ -95,7 +135,11 @@ async function obtenerPremiosDisponibles(tier, bodega) {
   if (catalogo.length === 0) return [];
 
 
+
+
   const prizeIds = catalogo.map((p) => p.id);
+
+
 
 
   // 2. Inventario asignado a esta tienda para esos premios
@@ -108,6 +152,8 @@ async function obtenerPremiosDisponibles(tier, bodega) {
   const cupoPorPremio = new Map(
     (invData?.data ?? []).map((r) => [r.prize_id, r.total_assigned])
   );
+
+
 
 
   // 3. Jugadas ya entregadas en esta tienda para esos premios
@@ -124,6 +170,8 @@ async function obtenerPremiosDisponibles(tier, bodega) {
   }
 
 
+
+
   // 4. Filtrar: dejar solo los que tienen cupo y aún no se agotaron
   return catalogo
     .filter((p) => {
@@ -132,8 +180,12 @@ async function obtenerPremiosDisponibles(tier, bodega) {
       const entregados = entregasPorNombre.get(p.name) ?? 0;
       return entregados < cupo;
     })
-    .map((p) => ({ prize: p.name, probabilidad: p.probability }));
+    .map((p) => ({ prize: p.name, probabilidad: Number(p.probability) || 0 }));
 }
+
+
+
+
 
 
 
@@ -147,9 +199,13 @@ async function obtenerStockPorRangos(bodega) {
   const headers = { Authorization: `Bearer ${DIRECTUS_SERVICE_TOKEN}` };
 
 
+
+
   const catalogoUrl = `${DIRECTUS_URL}/items/sal_prizes?filter[is_active][_eq]=true&fields=id,name,tier,probability&limit=-1`;
   const invUrl = `${DIRECTUS_URL}/items/sal_prize_inventory?filter[store_code][_eq]=${encodeURIComponent(bodega)}&fields=prize_id,total_assigned&limit=-1`;
   const jugadasUrl = `${DIRECTUS_URL}/items/sal_roulette_plays?filter[store_code][_eq]=${encodeURIComponent(bodega)}&fields=prize&limit=-1`;
+
+
 
 
   const [catalogoResp, invResp, jugadasResp] = await Promise.all([
@@ -159,9 +215,13 @@ async function obtenerStockPorRangos(bodega) {
   ]);
 
 
+
+
   if (!catalogoResp.ok) throw new Error(`Directus catalogo: ${catalogoResp.status}`);
   if (!invResp.ok) throw new Error(`Directus inventario: ${invResp.status}`);
   if (!jugadasResp.ok) throw new Error(`Directus jugadas: ${jugadasResp.status}`);
+
+
 
 
   const catalogo = (await catalogoResp.json())?.data ?? [];
@@ -169,7 +229,11 @@ async function obtenerStockPorRangos(bodega) {
   const jugadas = (await jugadasResp.json())?.data ?? [];
 
 
+
+
   const cupoPorPremio = new Map(inventario.map((r) => [r.prize_id, r.total_assigned]));
+
+
 
 
   const entregasPorNombre = new Map();
@@ -178,11 +242,15 @@ async function obtenerStockPorRangos(bodega) {
   }
 
 
+
+
   const stock = {
     G1: { restanteTotal: 0, premios: [] },
     G2: { restanteTotal: 0, premios: [] },
     G3: { restanteTotal: 0, premios: [] },
   };
+
+
 
 
   for (const p of catalogo) {
@@ -194,6 +262,8 @@ async function obtenerStockPorRangos(bodega) {
     if (!stock[p.tier]) continue; // tier fuera de G1/G2/G3, se ignora
 
 
+
+
     stock[p.tier].premios.push({
       prize: p.name,
       probabilidad: (typeof p.probability === "number" && p.probability > 0) ? p.probability : 1,
@@ -203,8 +273,14 @@ async function obtenerStockPorRangos(bodega) {
   }
 
 
+
+
   return stock;
 }
+
+
+
+
 
 
 
@@ -213,23 +289,24 @@ async function obtenerStockPorRangos(bodega) {
 // 🎲 SELECCIÓN PONDERADA REAL (respeta las probabilidades)
 // ============================================================
 const elegirPremioPonderado = (premios) => {
-  const total = premios.reduce((acc, p) => acc + p.probabilidad, 0);
+  const total = premios.reduce((acc, p) => acc + Number(p.probabilidad), 0);
   let rand = Math.random() * total;
 
 
-
-
   for (const p of premios) {
-    if (rand < p.probabilidad) return p.prize;
-    rand -= p.probabilidad;
+    if (rand < Number(p.probabilidad)) return p.prize;
+    rand -= Number(p.probabilidad);
   }
 
 
-
-
-  // Fallback (no debería llegar aquí)
+  // Fallback con alerta para detectar fallos si los datos de la BD llegan corruptos
+  console.error("Fallo crítico en matemática de sorteo. rand:", rand, "total:", total);
   return premios[premios.length - 1].prize;
 };
+
+
+
+
 
 
 
@@ -246,11 +323,19 @@ const generarCupon = () => {
 
 
 
+
+
+
+
 // ============================================================
 // ✅ VALIDAR FACTURA (consulta venta y valida en Directus)
 // ============================================================
 router.post("/ruleta/validar-factura", async (req, res) => {
   const { documentos } = req.body;
+
+
+
+
 
 
 
@@ -262,9 +347,17 @@ router.post("/ruleta/validar-factura", async (req, res) => {
 
 
 
+
+
+
+
   const factura = documentos.trim().toUpperCase();
   const anio = new Date().getFullYear();
   const tabla = `ventas_${anio}`;
+
+
+
+
 
 
 
@@ -281,8 +374,16 @@ router.post("/ruleta/validar-factura", async (req, res) => {
 
 
 
+
+
+
+
   try {
     const rows = await queryDB("kcn_db", sql, [factura]);
+
+
+
+
 
 
 
@@ -294,9 +395,17 @@ router.post("/ruleta/validar-factura", async (req, res) => {
 
 
 
+
+
+
+
     const venta = rows[0];
     const bodega = String(venta.bodega);
     const invoiceKey = `${bodega}-${factura}`;
+
+
+
+
 
 
 
@@ -313,6 +422,10 @@ router.post("/ruleta/validar-factura", async (req, res) => {
 
 
 
+
+
+
+
     if (directusData?.data && directusData.data.length > 0) {
       return res.status(409).json({
         valid: false,
@@ -323,14 +436,22 @@ router.post("/ruleta/validar-factura", async (req, res) => {
 
 
 
+
+
+
+
     const nombreCliente =
       venta.cliente && venta.cliente.trim()
         ? venta.cliente.trim()
         : "Cliente no identificado";
 
 
+
+
     const monto = Number(venta.total);
     const tier = tierPorMonto(monto);
+
+
 
 
     const stock = await obtenerStockPorRangos(bodega);
@@ -339,6 +460,8 @@ router.post("/ruleta/validar-factura", async (req, res) => {
       stock.G2.restanteTotal === 0 &&
       stock.G3.restanteTotal === 0;
     const restanteRango = stock[tier].restanteTotal;
+
+
 
 
     // Caso 4: tienda entera sin premios → no se puede girar en ningún rango
@@ -353,6 +476,8 @@ router.post("/ruleta/validar-factura", async (req, res) => {
     }
 
 
+
+
     // Caso 3: el rango del cliente está agotado, pero la tienda tiene otros
     if (restanteRango === 0) {
       return res.json({
@@ -365,6 +490,8 @@ router.post("/ruleta/validar-factura", async (req, res) => {
     }
 
 
+
+
     // Caso 2: queda una sola unidad en el rango del cliente → gira, con aviso
     if (restanteRango === 1) {
       return res.json({
@@ -375,6 +502,8 @@ router.post("/ruleta/validar-factura", async (req, res) => {
         message: "Solo queda un último premio en el rango de esta compra. Después de este giro se agota.",
       });
     }
+
+
 
 
     // Caso 1: stock normal en el rango → gira sin aviso especial
@@ -394,11 +523,19 @@ router.post("/ruleta/validar-factura", async (req, res) => {
 
 
 
+
+
+
+
 // ============================================================
 // 🎡 GIRAR RULETA (con anti doble giro)
 // ============================================================
 router.post("/ruleta/girar", async (req, res) => {
   const { documentos } = req.body;
+
+
+
+
 
 
 
@@ -410,13 +547,25 @@ router.post("/ruleta/girar", async (req, res) => {
 
 
 
+
+
+
+
   const factura = documentos.trim().toUpperCase();
+
+
+
+
 
 
 
 
   const anio = new Date().getFullYear();
   const tabla = `ventas_${anio}`;
+
+
+
+
 
 
 
@@ -432,8 +581,16 @@ router.post("/ruleta/girar", async (req, res) => {
 
 
 
+
+
+
+
   try {
     const rows = await queryDB("kcn_db", sql, [factura]);
+
+
+
+
 
 
 
@@ -445,9 +602,15 @@ router.post("/ruleta/girar", async (req, res) => {
 
 
 
+
+
+
+
     const monto = Number(rows[0].total);
     const bodega = String(rows[0].bodega);
     const tier = tierPorMonto(monto);
+
+
 
 
     const elegibles = await obtenerPremiosDisponibles(tier, bodega);
@@ -458,13 +621,23 @@ router.post("/ruleta/girar", async (req, res) => {
     }
 
 
+
+
     const prize = elegirPremioPonderado(elegibles);
+
+
+
+
 
 
 
 
     const couponCode = generarCupon();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+
+
+
 
 
 
@@ -480,6 +653,10 @@ router.post("/ruleta/girar", async (req, res) => {
 
 
 
+
+
+
+
     if (!registro.ok) {
       if (registro.duplicate) {
         return res.status(409).json({
@@ -489,6 +666,10 @@ router.post("/ruleta/girar", async (req, res) => {
       console.error("Error al registrar la jugada en Directus:", registro.status, registro.body);
       return res.status(500).json({ message: "Error al registrar el giro" });
     }
+
+
+
+
 
 
 
@@ -508,6 +689,10 @@ router.post("/ruleta/girar", async (req, res) => {
 
 
 
+
+
+
+
 // ============================================================
 // 🔔 ESTADO DE STOCK POR TIENDA (para la campanita de la asesora)
 // Devuelve el stock de los 3 rangos SIN validar factura.
@@ -520,8 +705,12 @@ router.get("/ruleta/estado-stock/:bodega", async (req, res) => {
   }
 
 
+
+
   try {
     const stock = await obtenerStockPorRangos(bodega);
+
+
 
 
     const rangos = [
@@ -534,7 +723,11 @@ router.get("/ruleta/estado-stock/:bodega", async (req, res) => {
     }));
 
 
+
+
     const hayCriticos = rangos.some((r) => r.estado !== "OK");
+
+
 
 
     return res.json({ bodega, rangos, hayCriticos });
@@ -545,7 +738,6 @@ router.get("/ruleta/estado-stock/:bodega", async (req, res) => {
 });
 
 
+
+
 module.exports = router;
-
-
-
