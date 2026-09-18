@@ -115,7 +115,6 @@ const RuletaHome: React.FC = () => {
   const auth = useAuth() as any;
   const { canManagePrizes } = useRuletaPolicies();
 
-
   const ultra_code = auth?.ultra_code ?? auth?.user?.ultra_code ?? auth?.me?.ultra_code;
   const [numFactura, setNumFactura] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -123,11 +122,12 @@ const RuletaHome: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
 
-useEffect(() => {
-  if (!canManagePrizes && tabValue === 1) {
-    setTabValue(0);
-  }
-}, [canManagePrizes, tabValue]);
+  useEffect(() => {
+    if (!canManagePrizes && tabValue === 1) {
+      setTabValue(0);
+    }
+  }, [canManagePrizes, tabValue]);
+
   const [premios, setPremios] = useState<ISegment[]>(() => getPremiosFromStorage());
   const [storeFilter, setStoreFilter] = useState<number | null>(null);
   const [stockRangos, setStockRangos] = useState<RangoStock[]>([]);
@@ -470,11 +470,10 @@ useEffect(() => {
                 '& .MuiTabs-indicator': { display: 'none' },
               }}
             >
-                  <Tab value={0} icon={<RuletaIcon />} iconPosition="start" label="RULETA" />
-                      {canManagePrizes && (
-                  <Tab value={1} icon={<PremiosIcon />} iconPosition="start" label="PREMIOS" />
-                   )}
-    
+              <Tab value={0} icon={<RuletaIcon />} iconPosition="start" label="RULETA" />
+              {canManagePrizes && (
+                <Tab value={1} icon={<PremiosIcon />} iconPosition="start" label="PREMIOS" />
+              )}
             </Tabs>
           </Box>
         </Paper>
@@ -782,10 +781,13 @@ useEffect(() => {
         {/* TAB PREMIOS                                                  */}
         {/* ============================================================ */}
         {canManagePrizes && (
-  <TabPanel value={tabValue} index={1}>
-    <AdministrarPremios onPremiosChange={handlePremiosChange} />
-  </TabPanel>
-)}
+          <TabPanel value={tabValue} index={1}>
+            <AdministrarPremios
+              onPremiosChange={handlePremiosChange}
+              selectedStore={selectedStore}
+            />
+          </TabPanel>
+        )}
       </Box>
 
       {/* ============================================================ */}
