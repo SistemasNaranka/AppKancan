@@ -21,6 +21,11 @@ const idleSpin = keyframes`
   to   { transform: rotate(360deg); }
 `;
 
+const idleSpinReverse = keyframes`
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+`;
+
 // 🎏 Suave vaivén para los banderines de papel picado
 const sway = keyframes`
   0%, 100% { transform: rotate(-3deg); }
@@ -56,12 +61,24 @@ const STITCH_COLORS = [
 //   3 → verde lima    (frío)
 //   2 → amarillo      (cálido)
 //   6 → púrpura       (frío)
-const INTERLEAVED_ORDER = [0, 4, 1, 5, 7, 3, 2, 6];
+// coral, turquesa, amarillo, azul, magenta, verde, naranja, púrpura
+// Coral/magenta y naranja/amarillo (parecidos) nunca quedan juntos
+const INTERLEAVED_ORDER = [0, 4, 2, 5, 7, 3, 1, 6];
 
-// Devuelve el color intercalado según la posición del gajo
 const getInterleavedColor = (index: number) => {
   const pos = index % STITCH_COLORS.length;
   return STITCH_COLORS[INTERLEAVED_ORDER[pos]];
+};
+
+// Colores de los gajos: evita que el último repita al primero al cerrar el círculo
+const getSegmentColors = (total: number) => {
+  const order = Array.from({ length: total }, (_, i) => INTERLEAVED_ORDER[i % INTERLEAVED_ORDER.length]);
+  if (total > 1 && order[total - 1] === order[0]) {
+    const prev = order[total - 2];
+    const reemplazo = [3, 5, 4, 6].find((c) => c !== prev && c !== order[0]);
+    if (reemplazo !== undefined) order[total - 1] = reemplazo;
+  }
+  return order.map((idx) => STITCH_COLORS[idx]);
 };
 
 const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
@@ -156,6 +173,7 @@ const Ruleta: React.FC<RuletaProps> = ({
   const handleSnackbarClose = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
   const numSegments = segments.length;
+  const segmentColors = getSegmentColors(numSegments);
   const radius = 190;
   const cx = 200;
   const cy = 200;
@@ -184,7 +202,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         <defs>
           {/* 🎨 Gradientes por CADA segmento — usa el color intercalado */}
           {segments.map((_seg, i) => {
-            const fallback = getInterleavedColor(i);
+            const fallback = segmentColors[i];
             return (
               <radialGradient key={`grad-${i}`} id={`stitchGrad${i}`} cx="0.5" cy="0.5" r="0.5">
                 <stop offset="30%" stopColor={fallback.base} />
@@ -254,7 +272,7 @@ const Ruleta: React.FC<RuletaProps> = ({
               );
             })}
 
-            {/* Burbujas con "?" */}
+            {/* Burbujas con "?" — viajan con el gajo, pero el "?" se contra-rota para leerse derecho */}
             {segments.map((_seg, i) => {
               const p = bubblePos(i, numSegments, radius, cx, cy);
               return (
@@ -268,21 +286,31 @@ const Ruleta: React.FC<RuletaProps> = ({
                     strokeWidth={2.5}
                     filter="url(#bubbleGlow)"
                   />
-                  <text
-                    x={p.x}
-                    y={p.y + 8}
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontFamily="'Sora', 'Poppins', sans-serif"
-                    fontSize={22}
-                    fontWeight={800}
-                    style={{
-                      filter:
-                        'drop-shadow(0 0 4px rgba(255,255,255,0.85)) drop-shadow(0 1px 2px rgba(0,0,0,0.2))',
-                    }}
-                  >
-                    ?
-                  </text>
+                  <g style={{ transform: `rotate(${-rot}deg)`, transformOrigin: `${p.x}px ${p.y}px` }}>
+                    <Box
+                      component="g"
+                      sx={{
+                        transformOrigin: `${p.x}px ${p.y}px`,
+                        animation: idle ? `${idleSpinReverse} 40s linear infinite` : 'none',
+                      }}
+                    >
+                      <text
+                        x={p.x}
+                        y={p.y + 8}
+                        textAnchor="middle"
+                        fill="#ffffff"
+                        fontFamily="'Sora', 'Poppins', sans-serif"
+                        fontSize={22}
+                        fontWeight={800}
+                        style={{
+                          filter:
+                            'drop-shadow(0 0 4px rgba(255,255,255,0.85)) drop-shadow(0 1px 2px rgba(0,0,0,0.2))',
+                        }}
+                      >
+                        ?
+                      </text>
+                    </Box>
+                  </g>
                 </g>
               );
             })}
