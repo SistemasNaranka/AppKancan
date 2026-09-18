@@ -165,144 +165,160 @@ const Ruleta: React.FC<RuletaProps> = ({
   // Banderines: usan los colores intercalados
   const buntingFlags = Array.from({ length: BUNTING_COUNT }).map((_, i) => getInterleavedColor(i));
 
-  const wheelSVG = (size: number = 400) => (
-    <svg
-      viewBox="0 0 400 400"
-      width={size}
-      height={size}
-      style={{
-        filter: 'drop-shadow(0 14px 18px rgba(120, 20, 60, 0.22))',
-        overflow: 'visible',
-      }}
-    >
-      <defs>
-        {/* 🎨 Gradientes por CADA segmento — usa el color intercalado */}
-        {segments.map((_seg, i) => {
-          const fallback = getInterleavedColor(i);
-          return (
-            <radialGradient key={`grad-${i}`} id={`stitchGrad${i}`} cx="0.5" cy="0.5" r="0.5">
-              <stop offset="30%" stopColor={fallback.base} />
-              <stop offset="100%" stopColor={fallback.dark} />
-            </radialGradient>
-          );
-        })}
-        <filter id="bubbleGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.5" />
-          <feComponentTransfer><feFuncA type="linear" slope="1.2" /></feComponentTransfer>
-        </filter>
-      </defs>
+  const overlayActivo = isSpinning || modalOpen;
 
-      {/* 🌸 Pétalos del borde — colores intercalados */}
-      <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
-        {Array.from({ length: petalCount }).map((_, i) => {
-          const p = petalPos(i, petalCount, radius + 6, cx, cy);
-          const fallback = getInterleavedColor(i);
-          return (
-            <circle
-              key={`petal-${i}`}
-              cx={p.x}
-              cy={p.y}
-              r={7}
-              fill={fallback.base}
-              stroke="#FFF7EC"
-              strokeWidth={2}
-            />
-          );
-        })}
-      </g>
-
-      {/* 🎡 Grupo rotatorio principal */}
-      <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px' }}>
-        {/* Gajos */}
-        {segments.map((_seg, i) => (
-          <path
-            key={`gajo-${i}`}
-            d={gajoPath(i, numSegments, radius, cx, cy)}
-            fill={`url(#stitchGrad${i})`}
-            stroke="#FFF7EC"
-            strokeWidth={3}
-            strokeLinejoin="round"
-          />
-        ))}
-
-        {/* Puntos decorativos */}
-        {segments.map((_seg, i) => {
-          const p = dotPos(i, numSegments, radius, cx, cy);
-          return (
-            <circle
-              key={`dot-${i}`}
-              cx={p.x}
-              cy={p.y}
-              r={4}
-              fill="#FFE8A3"
-              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}
-            />
-          );
-        })}
-
-        {/* Burbujas con "?" */}
-        {segments.map((_seg, i) => {
-          const p = bubblePos(i, numSegments, radius, cx, cy);
-          return (
-            <g key={`bubble-${i}`}>
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r={22}
-                fill="rgba(255,255,255,0.42)"
-                stroke="#FFF7EC"
-                strokeWidth={2.5}
-                filter="url(#bubbleGlow)"
-              />
-              <text
-                x={p.x}
-                y={p.y + 8}
-                textAnchor="middle"
-                fill="#ffffff"
-                fontFamily="'Sora', 'Poppins', sans-serif"
-                fontSize={22}
-                fontWeight={800}
-                style={{
-                  filter:
-                    'drop-shadow(0 0 4px rgba(255,255,255,0.85)) drop-shadow(0 1px 2px rgba(0,0,0,0.2))',
-                }}
-              >
-                ?
-              </text>
-            </g>
-          );
-        })}
-      </g>
-
-      {/* Aro exterior blanco */}
-      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#FFF7EC" strokeWidth={6} />
-
-      {/* Centro con "K" */}
-      <circle
-        cx={cx}
-        cy={cy}
-        r={30}
-        fill="#FFF7EC"
-        style={{ filter: 'drop-shadow(0 8px 20px rgba(120,20,60,0.25))' }}
-      />
-      <text
-        x={cx}
-        y={cy + 10}
-        textAnchor="middle"
-        fill="#D6234A"
-        fontFamily="'Plus Jakarta Sans', 'Poppins', sans-serif"
-        fontSize={30}
-        fontWeight={800}
-        style={{ letterSpacing: '-0.03em' }}
+  const wheelSVG = (size: number = 400, frozen: boolean = false, idle: boolean = false) => {
+    const rot = frozen ? 0 : rotation;
+    return (
+      <svg
+        viewBox="0 0 400 400"
+        width={size}
+        height={size}
+        style={{
+          filter: 'drop-shadow(0 14px 18px rgba(120, 20, 60, 0.22))',
+          overflow: 'visible',
+          width: '100%',
+          height: '100%',
+        }}
       >
-        K
-      </text>
-    </svg>
-  );
+        <defs>
+          {/* 🎨 Gradientes por CADA segmento — usa el color intercalado */}
+          {segments.map((_seg, i) => {
+            const fallback = getInterleavedColor(i);
+            return (
+              <radialGradient key={`grad-${i}`} id={`stitchGrad${i}`} cx="0.5" cy="0.5" r="0.5">
+                <stop offset="30%" stopColor={fallback.base} />
+                <stop offset="100%" stopColor={fallback.dark} />
+              </radialGradient>
+            );
+          })}
+          <filter id="bubbleGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.5" />
+            <feComponentTransfer><feFuncA type="linear" slope="1.2" /></feComponentTransfer>
+          </filter>
+        </defs>
+
+        {/* 🌀 Giro lento en reposo — solo afecta al disco, nunca a la K */}
+        <Box
+          component="g"
+          sx={{
+            transformOrigin: '200px 200px',
+            animation: idle ? `${idleSpin} 40s linear infinite` : 'none',
+          }}
+        >
+          {/* 🌸 Pétalos del borde — colores intercalados */}
+          <g style={{ transform: `rotate(${rot}deg)`, transformOrigin: '200px 200px' }}>
+            {Array.from({ length: petalCount }).map((_, i) => {
+              const p = petalPos(i, petalCount, radius + 6, cx, cy);
+              const fallback = getInterleavedColor(i);
+              return (
+                <circle
+                  key={`petal-${i}`}
+                  cx={p.x}
+                  cy={p.y}
+                  r={7}
+                  fill={fallback.base}
+                  stroke="#FFF7EC"
+                  strokeWidth={2}
+                />
+              );
+            })}
+          </g>
+
+          {/* 🎡 Grupo rotatorio principal */}
+          <g style={{ transform: `rotate(${rot}deg)`, transformOrigin: '200px 200px' }}>
+            {/* Gajos */}
+            {segments.map((_seg, i) => (
+              <path
+                key={`gajo-${i}`}
+                d={gajoPath(i, numSegments, radius, cx, cy)}
+                fill={`url(#stitchGrad${i})`}
+                stroke="#FFF7EC"
+                strokeWidth={3}
+                strokeLinejoin="round"
+              />
+            ))}
+
+            {/* Puntos decorativos */}
+            {segments.map((_seg, i) => {
+              const p = dotPos(i, numSegments, radius, cx, cy);
+              return (
+                <circle
+                  key={`dot-${i}`}
+                  cx={p.x}
+                  cy={p.y}
+                  r={4}
+                  fill="#FFE8A3"
+                  style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}
+                />
+              );
+            })}
+
+            {/* Burbujas con "?" */}
+            {segments.map((_seg, i) => {
+              const p = bubblePos(i, numSegments, radius, cx, cy);
+              return (
+                <g key={`bubble-${i}`}>
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={22}
+                    fill="rgba(255,255,255,0.42)"
+                    stroke="#FFF7EC"
+                    strokeWidth={2.5}
+                    filter="url(#bubbleGlow)"
+                  />
+                  <text
+                    x={p.x}
+                    y={p.y + 8}
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    fontFamily="'Sora', 'Poppins', sans-serif"
+                    fontSize={22}
+                    fontWeight={800}
+                    style={{
+                      filter:
+                        'drop-shadow(0 0 4px rgba(255,255,255,0.85)) drop-shadow(0 1px 2px rgba(0,0,0,0.2))',
+                    }}
+                  >
+                    ?
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        </Box>
+
+        {/* Aro exterior blanco */}
+        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#FFF7EC" strokeWidth={6} />
+
+        {/* Centro con "K" — fuera de todo lo que gira */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={30}
+          fill="#FFF7EC"
+          style={{ filter: 'drop-shadow(0 8px 20px rgba(120,20,60,0.25))' }}
+        />
+        <text
+          x={cx}
+          y={cy + 10}
+          textAnchor="middle"
+          fill="#D6234A"
+          fontFamily="'Plus Jakarta Sans', 'Poppins', sans-serif"
+          fontSize={30}
+          fontWeight={800}
+          style={{ letterSpacing: '-0.03em' }}
+        >
+          K
+        </text>
+      </svg>
+    );
+  };
 
   return (
     <>
-      {(isSpinning || modalOpen) && (
+      {overlayActivo && (
         <Box
           sx={{
             position: 'fixed', inset: 0, zIndex: 1200,
@@ -423,18 +439,16 @@ const Ruleta: React.FC<RuletaProps> = ({
             filter: 'drop-shadow(0 3px 6px rgba(255,107,0,0.45))',
           }} />
 
-          {/* 🌀 SVG girando */}
+          {/* 🎡 Ruleta pequeña — gira lento en reposo, quieta si la grande está abierta */}
           <Box
             sx={{
               position: 'relative',
               width: '100%',
               aspectRatio: '1/1',
-              animation: !isSpinning ? `${idleSpin} 40s linear infinite` : 'none',
-              willChange: 'transform',
               zIndex: 1,
             }}
           >
-            {wheelSVG(440)}
+            {wheelSVG(440, overlayActivo, !overlayActivo)}
           </Box>
         </Box>
 
