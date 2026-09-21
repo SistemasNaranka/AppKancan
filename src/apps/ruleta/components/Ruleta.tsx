@@ -513,6 +513,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         >
           {isSpinning ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+              
               <CircularProgress size={22} sx={{ color: '#fff' }} />
               GIRANDO...
             </Box>
