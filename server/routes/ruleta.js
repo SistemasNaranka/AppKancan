@@ -61,7 +61,7 @@ async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize })
 
 
 
-  let body = null;
+let body = null;
   try {
     body = await resp.json();
   } catch (_) { }
