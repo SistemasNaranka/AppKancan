@@ -36,12 +36,12 @@ const sway = keyframes`
 // 🎨 PALETA NUEVA — 6 colores de la marca
 // ============================================================
 const STITCH_COLORS = [
-  { base: '#004680', dark: '#002A4D' }, // 0 - Azul corporativo
-  { base: '#D6D1CB', dark: '#A8A29C' }, // 1 - Beige/gris claro
-  { base: '#C7D802', dark: '#8F9A00' }, // 2 - Verde lima
-  { base: '#D23748', dark: '#9C2434' }, // 3 - Rojo frambuesa
-  { base: '#FF7600', dark: '#C25A00' }, // 4 - Naranja
-  { base: '#7D212B', dark: '#4F1418' }, // 5 - Vino
+  { base: '#004680', dark: '#004680' }, // 0 - Azul corporativo
+  { base: '#D6D1CB', dark: '#D6D1CB' }, // 1 - Beige/gris claro
+  { base: '#C7D802', dark: '#C7D802' }, // 2 - Verde lima
+  { base: '#D23748', dark: '#D23748' }, // 3 - Rojo frambuesa
+  { base: '#FF7600', dark: '#FF7600' }, // 4 - Naranja
+  { base: '#7D212B', dark: '#7D212B' }, // 5 - Vino
 ];
 
 // ============================================================
@@ -314,26 +314,31 @@ const Ruleta: React.FC<RuletaProps> = ({
         {/* Aro exterior blanco */}
         <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#FFF7EC" strokeWidth={6} />
 
-        {/* Centro con "K" — fuera de todo lo que gira */}
+        {/* Pomo Kancan — fuera de todo lo que gira */}
         <circle
           cx={cx}
           cy={cy}
-          r={30}
+          r={36}
           fill="#FFF7EC"
           style={{ filter: 'drop-shadow(0 8px 20px rgba(0,40,70,0.25))' }}
         />
-        <text
-          x={cx}
-          y={cy + 10}
-          textAnchor="middle"
-          fill="#D23748"
-          fontFamily="'Plus Jakarta Sans', 'Poppins', sans-serif"
-          fontSize={30}
-          fontWeight={800}
-          style={{ letterSpacing: '-0.03em' }}
-        >
-          K
-        </text>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={32}
+          fill="none"
+          stroke="#D4C39A"
+          strokeWidth={0.8}
+          opacity={0.6}
+        />
+        <image
+          href="/logo-kancan.png"
+          x={cx - 32}
+          y={cy - 6}
+          width={64}
+          height={12}
+          preserveAspectRatio="xMidYMid meet"
+        />
       </svg>
     );
   };
