@@ -47,7 +47,7 @@ app.get("*", (req, res) => {
   }
 });
 
-// Iniciar servidor
+// Iniciar servidor log
 app.listen(PORT, () => {
   console.log(`Servidor iniciado en puerto ${PORT}`);
   console.log(`Conectando a MySQL: ${dbConfig.host}`);
