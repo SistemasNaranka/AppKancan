@@ -37,11 +37,12 @@ import Ruleta from '../components/Ruleta';
 import AdministrarPremios from '../components/AdministrarPremios';
 import { ISegment, Tienda } from '../interfaces/ruleta.interface';
 import { aplicarColorPorGrupo, migrarSegment, intercalarSegments, GRUPO_POR_PREMIO } from '../utils/rangos';
+import { comprobarFactura } from '../api/consulta.factura.n8n';
 
 const STORAGE_KEY = 'ruleta_premios';
 
 // 🏷️ Prefijo de las facturas de KANCAN (el usuario solo escribe el resto)
-const FACTURA_PREFIX = 'KE';
+const FACTURA_PREFIX = '';
 
 // ============================================================
 // 🎯 TIENDAS AUTORIZADAS
@@ -100,11 +101,15 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 
 type EstadoStock = 'OK' | 'ULTIMA_UNIDAD' | 'RANGO_AGOTADO' | 'TIENDA_VACIA';
 
-interface FacturaValida {
+export interface FacturaValida {
   cliente: string;
   puedeGirar: boolean;
   estadoStock: EstadoStock;
   mensajeStock: string;
+  bodega: number;
+  prize: string;
+  tier: string;
+  probabilidad: number;
 }
 
 interface RangoStock {
@@ -119,6 +124,7 @@ const RuletaHome: React.FC = () => {
   const { canManagePrizes } = useRuletaPolicies();
 
   const ultra_code = auth?.ultra_code ?? auth?.user?.ultra_code ?? auth?.me?.ultra_code;
+  const [preFactura, setPreFactura] = useState('');
   const [numFactura, setNumFactura] = useState('');
   const [cargando, setCargando] = useState(false);
   const [factura, setFactura] = useState<FacturaValida | null>(null);
@@ -195,30 +201,16 @@ const RuletaHome: React.FC = () => {
     return limpio;
   };
 
-  const facturaCompleta = `${FACTURA_PREFIX}${numFactura}`;
+  const facturaCompleta = `${preFactura}${numFactura}`;
 
   const validar = async () => {
     if (!numFactura.trim()) return;
+    if (!preFactura.trim()) return;
     setCargando(true);
     setError(null);
     setFactura(null);
     try {
-      const res = await fetch('/api/ruleta/validar-factura', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ documentos: facturaCompleta }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || 'No se pudo validar la factura');
-      }
-      const data = await res.json();
-      const facturaData: FacturaValida = {
-        cliente: data.cliente || 'Cliente no identificado',
-        puedeGirar: data.puedeGirar ?? true,
-        estadoStock: data.estadoStock ?? 'OK',
-        mensajeStock: data.message ?? '',
-      };
+      const facturaData = await comprobarFactura(preFactura.trim(), numFactura.trim());
       setFactura(facturaData);
     } catch (e: any) {
       setError(e.message || 'Error al validar');
@@ -557,24 +549,55 @@ const RuletaHome: React.FC = () => {
                   El cliente debe haber facturado para participar. Ingresa el número de comprobante para habilitar el giro.
                 </Typography>
 
-                <Box>
-                  <Typography sx={{
-                    fontSize: '0.7rem',
-                    color: '#64748B',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    mb: 1,
-                  }}>
-                    N° de factura
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1.25 }}>
+              
+                  <Box sx={{ display: 'flex', gap: 1.25, flexDirection: 'column' }}>
                     <TextField
                       size="small"
                       fullWidth
+                      label="Prefijo"
+                      value={preFactura}
+                      onChange={(e) => setPreFactura(e.target.value)}
+                      placeholder="KET"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Box
+                              sx={{
+                                bgcolor: '#004680',
+                                color: '#fff',
+                                fontWeight: 800,
+                                fontSize: '0.78rem',
+                                px: 1,
+                                py: 0.4,
+                                borderRadius: '6px',
+                                letterSpacing: '0.05em',
+                                fontFamily: "'Space Grotesk', monospace",
+                                mr: 0.5,
+                                userSelect: 'none',
+                              }}
+                            >
+                            </Box>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: '12px',
+                          bgcolor: '#F8FAFC',
+                          fontFamily: "'Space Grotesk', monospace",
+                          fontWeight: 600,
+                          letterSpacing: '0.03em',
+                          '& fieldset': { borderColor: '#E2E8F0' },
+                          '&:hover fieldset': { borderColor: '#93C5FD' },
+                          '&.Mui-focused fieldset': { borderColor: '#004680', borderWidth: '2px' },
+                        },
+                      }} />
+                    <TextField
+                      size="small"
+                      fullWidth
+                      label="N° de factura"
                       value={numFactura}
-                      onChange={(e) => setNumFactura(limpiarNumeroFactura(e.target.value))}
-                      onKeyDown={(e) => e.key === 'Enter' && validar()}
+                      onChange={(e) => setNumFactura(e.target.value)}
                       placeholder="030000004249"
                       InputProps={{
                         startAdornment: (
@@ -594,7 +617,6 @@ const RuletaHome: React.FC = () => {
                                 userSelect: 'none',
                               }}
                             >
-                              {FACTURA_PREFIX}
                             </Box>
                           </InputAdornment>
                         ),
@@ -631,7 +653,6 @@ const RuletaHome: React.FC = () => {
                     >
                       {cargando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Validar'}
                     </Button>
-                  </Box>
                 </Box>
 
                 {factura && (() => {
@@ -732,7 +753,7 @@ const RuletaHome: React.FC = () => {
               }}
             >
               <Ruleta
-                documentos={facturaCompleta}
+                factura={factura}
                 segments={intercalarSegments(premios)}
                 facturaValida={!!factura && factura.puedeGirar}
                 storeId={storeFilter}
