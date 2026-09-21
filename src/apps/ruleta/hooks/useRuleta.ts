@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { ISegment, IPremioResponse, IPremioResponseRaw } from '../interfaces/ruleta.interface';
 import { FacturaValida } from '../page/RuletaHome';
+import { createGiroRecord } from '../api/directus/write';
 
 // Normaliza la respuesta del backend a la forma canónica IPremioResponse,
 // sin importar si `prize` llegó como string o como objeto anidado
@@ -35,8 +36,10 @@ export const useRuleta = (
       setError(null);
 
       try {
-        
 
+        const res = await createGiroRecord(factura);
+
+        // crear registro en directus del giro
 
         const data: IPremioResponse = normalizePremio(factura);
 

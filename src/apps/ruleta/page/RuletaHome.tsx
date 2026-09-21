@@ -110,6 +110,7 @@ export interface FacturaValida {
   prize: string;
   tier: string;
   probabilidad: number;
+  documentos: string;
 }
 
 interface RangoStock {

@@ -25,7 +25,8 @@ export async function comprobarFactura(prefijo: string, numero: string) : Promis
       prize: data.prize ?? '',
       bodega: data.bodega?? 0,
       tier:  data.tier ??"",
-      probabilidad: data.probabilidad
+      probabilidad: data.probabilidad,
+      documentos: prefijo + numero
   };
   return facturaData;
 }
