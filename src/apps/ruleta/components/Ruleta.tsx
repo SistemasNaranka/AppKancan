@@ -41,7 +41,7 @@ const STITCH_COLORS = [
   { base: '#FFC107', dark: '#F08C00' }, // 2 - amarillo dorado / sol
   { base: '#8BC34A', dark: '#558B2F' }, // 3 - verde lima
   { base: '#00BCD4', dark: '#00838F' }, // 4 - turquesa caribe
-  { base: '#2196F3', dark: '#1565C0' }, // 5 - azul cielo
+  { base: '#004680', dark: '#002A4D' }, // 5 - azul oscuro
   { base: '#9C27B0', dark: '#6A1B9A' }, // 6 - púrpura fiesta
   { base: '#E91E63', dark: '#AD1457' }, // 7 - magenta buganvilia
 ];
@@ -320,26 +320,31 @@ const Ruleta: React.FC<RuletaProps> = ({
         {/* Aro exterior blanco */}
         <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#FFF7EC" strokeWidth={6} />
 
-        {/* Centro con "K" — fuera de todo lo que gira */}
+        {/* Pomo Kancan — fuera de todo lo que gira */}
         <circle
           cx={cx}
           cy={cy}
-          r={30}
+          r={36}
           fill="#FFF7EC"
           style={{ filter: 'drop-shadow(0 8px 20px rgba(120,20,60,0.25))' }}
         />
-        <text
-          x={cx}
-          y={cy + 10}
-          textAnchor="middle"
-          fill="#D6234A"
-          fontFamily="'Plus Jakarta Sans', 'Poppins', sans-serif"
-          fontSize={30}
-          fontWeight={800}
-          style={{ letterSpacing: '-0.03em' }}
-        >
-          K
-        </text>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={32}
+          fill="none"
+          stroke="#D4C39A"
+          strokeWidth={0.8}
+          opacity={0.6}
+        />
+        <image
+          href="/logo-kancan.png"
+          x={cx - 32}
+          y={cy - 6}
+          width={64}
+          height={12}
+          preserveAspectRatio="xMidYMid meet"
+        />
       </svg>
     );
   };
