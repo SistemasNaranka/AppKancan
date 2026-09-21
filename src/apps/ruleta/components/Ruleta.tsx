@@ -33,37 +33,30 @@ const sway = keyframes`
 `;
 
 // ============================================================
-// 🌶️ PALETA FIESTA LATINA — 8 colores (MISMOS de siempre)
+// 🎨 PALETA NUEVA — 6 colores de la marca
 // ============================================================
 const STITCH_COLORS = [
-  { base: '#FF4D6D', dark: '#D6234A' }, // 0 - rojo coral / hibisco
-  { base: '#FF8C00', dark: '#E65100' }, // 1 - naranja mango
-  { base: '#FFC107', dark: '#F08C00' }, // 2 - amarillo dorado / sol
-  { base: '#8BC34A', dark: '#558B2F' }, // 3 - verde lima
-  { base: '#00BCD4', dark: '#00838F' }, // 4 - turquesa caribe
-  { base: '#2196F3', dark: '#1565C0' }, // 5 - azul cielo
-  { base: '#9C27B0', dark: '#6A1B9A' }, // 6 - púrpura fiesta
-  { base: '#E91E63', dark: '#AD1457' }, // 7 - magenta buganvilia
+  { base: '#004680', dark: '#002A4D' }, // 0 - Azul corporativo
+  { base: '#D6D1CB', dark: '#A8A29C' }, // 1 - Beige/gris claro
+  { base: '#C7D802', dark: '#8F9A00' }, // 2 - Verde lima
+  { base: '#D23748', dark: '#9C2434' }, // 3 - Rojo frambuesa
+  { base: '#FF7600', dark: '#C25A00' }, // 4 - Naranja
+  { base: '#7D212B', dark: '#4F1418' }, // 5 - Vino
 ];
 
 // ============================================================
-// 🔀 ORDEN INTERCALADO — alterna cálidos y fríos
+// 🔀 ORDEN INTERCALADO — alterna contrastes fuertes
 // ============================================================
-// Orden original: 0  1  2  3  4  5  6  7
-// Orden nuevo:    0  4  1  5  7  3  2  6
+//   0 → Azul      (oscuro)
+//   3 → Rojo      (saturado)
+//   2 → Lima      (brillante)
+//   1 → Beige     (neutro claro)
+//   4 → Naranja   (saturado)
+//   5 → Vino      (oscuro)
 //
-// Visualmente:
-//   0 → rojo coral    (cálido)
-//   4 → turquesa      (frío)
-//   1 → naranja       (cálido)
-//   5 → azul cielo    (frío)
-//   7 → magenta       (cálido)
-//   3 → verde lima    (frío)
-//   2 → amarillo      (cálido)
-//   6 → púrpura       (frío)
-// coral, turquesa, amarillo, azul, magenta, verde, naranja, púrpura
-// Coral/magenta y naranja/amarillo (parecidos) nunca quedan juntos
-const INTERLEAVED_ORDER = [0, 4, 2, 5, 7, 3, 1, 6];
+// Así nunca quedan dos oscuros juntos (azul+wine) ni dos
+// saturados seguidos (rojo+naranja).
+const INTERLEAVED_ORDER = [0, 3, 2, 1, 4, 5];
 
 const getInterleavedColor = (index: number) => {
   const pos = index % STITCH_COLORS.length;
@@ -75,7 +68,8 @@ const getSegmentColors = (total: number) => {
   const order = Array.from({ length: total }, (_, i) => INTERLEAVED_ORDER[i % INTERLEAVED_ORDER.length]);
   if (total > 1 && order[total - 1] === order[0]) {
     const prev = order[total - 2];
-    const reemplazo = [3, 5, 4, 6].find((c) => c !== prev && c !== order[0]);
+    // Buscamos un color que no sea ni el anterior ni el primero
+    const reemplazo = [1, 4, 2, 5, 3].find((c) => c !== prev && c !== order[0]);
     if (reemplazo !== undefined) order[total - 1] = reemplazo;
   }
   return order.map((idx) => STITCH_COLORS[idx]);
@@ -193,7 +187,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         width={size}
         height={size}
         style={{
-          filter: 'drop-shadow(0 14px 18px rgba(120, 20, 60, 0.22))',
+          filter: 'drop-shadow(0 14px 18px rgba(0, 40, 70, 0.22))',
           overflow: 'visible',
           width: '100%',
           height: '100%',
@@ -326,13 +320,13 @@ const Ruleta: React.FC<RuletaProps> = ({
           cy={cy}
           r={30}
           fill="#FFF7EC"
-          style={{ filter: 'drop-shadow(0 8px 20px rgba(120,20,60,0.25))' }}
+          style={{ filter: 'drop-shadow(0 8px 20px rgba(0,40,70,0.25))' }}
         />
         <text
           x={cx}
           y={cy + 10}
           textAnchor="middle"
-          fill="#D6234A"
+          fill="#D23748"
           fontFamily="'Plus Jakarta Sans', 'Poppins', sans-serif"
           fontSize={30}
           fontWeight={800}
@@ -368,8 +362,8 @@ const Ruleta: React.FC<RuletaProps> = ({
               width: 0, height: 0,
               borderLeft: '20px solid transparent',
               borderRight: '20px solid transparent',
-              borderTop: '38px solid #FF6B00',
-              filter: 'drop-shadow(0 4px 8px rgba(255,107,0,0.5))',
+              borderTop: '38px solid #FF7600',
+              filter: 'drop-shadow(0 4px 8px rgba(255,118,0,0.5))',
             }} />
             {wheelSVG(600)}
           </Box>
@@ -414,19 +408,19 @@ const Ruleta: React.FC<RuletaProps> = ({
           <Typography sx={{
             fontSize: { xs: '1.6rem', sm: '2rem' },
             fontWeight: 800,
-            color: '#3B0A24',
+            color: '#7D212B',
             fontFamily: "'Sora', 'Poppins', sans-serif",
             letterSpacing: '-0.02em',
             lineHeight: 1.15,
           }}>
-            ¡Gira y llévate{' '}
+            ¡Gira y dejate sorprender {' '}
             <Box component="span" sx={{
-              background: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 50%, #3B82F6 100%)',
+              background: 'linear-gradient(135deg, #004680 0%, #2563EB 50%, #004680)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-            }}>tu premio!</Box>
+            }}>hermosa!</Box>
           </Typography>
-          <Typography sx={{ mt: 1, fontSize: '0.85rem', color: '#7A4A5C', maxWidth: 380, mx: 'auto' }}>
+          <Typography sx={{ mt: 1, fontSize: '0.85rem', color: '#7D212B', maxWidth: 380, mx: 'auto', opacity: 0.75 }}>
             Cada compra es una oportunidad. Gira la ruleta y descubre qué te ganaste hoy
           </Typography>
         </Box>
@@ -449,7 +443,7 @@ const Ruleta: React.FC<RuletaProps> = ({
               left: '50%',
               width: '60%',
               height: '18px',
-              background: 'radial-gradient(ellipse at center, rgba(120,20,60,0.35) 0%, rgba(120,20,60,0) 70%)',
+              background: 'radial-gradient(ellipse at center, rgba(0,40,70,0.35) 0%, rgba(0,40,70,0) 70%)',
               transform: 'translateX(-50%)',
               pointerEvents: 'none',
               zIndex: 0,
@@ -463,8 +457,8 @@ const Ruleta: React.FC<RuletaProps> = ({
             width: 0, height: 0,
             borderLeft: '14px solid transparent',
             borderRight: '14px solid transparent',
-            borderTop: '28px solid #FF6B00',
-            filter: 'drop-shadow(0 3px 6px rgba(255,107,0,0.45))',
+            borderTop: '28px solid #FF7600',
+            filter: 'drop-shadow(0 3px 6px rgba(255,118,0,0.45))',
           }} />
 
           {/* 🎡 Ruleta pequeña — gira lento en reposo, quieta si la grande está abierta */}
@@ -493,15 +487,15 @@ const Ruleta: React.FC<RuletaProps> = ({
             textTransform: 'uppercase',
             letterSpacing: '0.12em',
             color: '#FFFFFF',
-            background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+            background: 'linear-gradient(135deg, #004680, #002A4D)',
             borderRadius: '16px',
-            boxShadow: '0 10px 24px -4px rgba(37, 99, 235, 0.45), 0 0 12px rgba(37, 99, 235, 0.3)',
+            boxShadow: '0 10px 24px -4px rgba(0, 70, 128, 0.45), 0 0 12px rgba(0, 70, 128, 0.3)',
             width: '100%',
             maxWidth: 340,
             fontFamily: "'Sora', 'Poppins', sans-serif",
             '&:hover:not(:disabled)': {
-              background: 'linear-gradient(135deg, #1D4ED8, #1E40AF)',
-              boxShadow: '0 14px 28px -2px rgba(37, 99, 235, 0.65), 0 0 20px rgba(59, 130, 246, 0.5)',
+              background: 'linear-gradient(135deg, #002A4D, #001A33)',
+              boxShadow: '0 14px 28px -2px rgba(0, 70, 128, 0.65), 0 0 20px rgba(0, 70, 128, 0.5)',
               filter: 'brightness(1.05)',
             },
             '&:disabled': {

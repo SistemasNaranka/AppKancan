@@ -23,17 +23,18 @@ const shine = keyframes`
 `;
 
 // ============================================================
-// 🎨 COLORES Y EMOJIS (SOLO ROPA + K)
+// 🎨 COLORES Y EMOJIS (SOLO ROPA + KANCAN)
 // ============================================================
 const COLORS = [
   '#FF6B6B', '#4ECDC4', '#FFE66D', '#FF9F43', '#54A0FF',
   '#A29BFE', '#FD79A8', '#00D2D3', '#FDCB6E', '#E17055',
 ];
 
-const CLOTHING_ITEMS = ['K', '👖', '👕', '👟', '👚', '🧥', '👜', '👗', '👠'];
+// 👕 KANCAN reemplaza a la antigua "K"
+const CLOTHING_ITEMS = ['KANCAN', '👖', '👕', '👟', '👚', '🧥', '👜', '👗', '👠'];
 
 // ============================================================
-// 🎊 CONFETI (K BLANCA CON BORDE AZUL #004680 MUY GRUESO)
+// 🎊 CONFETI (KANCAN BLANCA CON BORDE AZUL #004680 MUY GRUESO)
 // ============================================================
 const Confeti: React.FC = () => {
   const items = Array.from({ length: 50 }).map((_, i) => {
@@ -42,7 +43,7 @@ const Confeti: React.FC = () => {
     const item = CLOTHING_ITEMS[i % CLOTHING_ITEMS.length];
     const shape = Math.random() > 0.5 ? '50%' : '2px';
     let size = 12 + Math.random() * 14;
-    const isK = isClothing && item === 'K';
+    const isK = isClothing && item === 'KANCAN';
     const finalSize = isK ? size * 2.5 : size;
     const specialColor = isK ? '#FFFFFF' : color;
 
@@ -64,24 +65,32 @@ const Confeti: React.FC = () => {
               position: 'absolute',
               top: 0,
               left: `${left}%`,
-              width: item.size,
-              height: item.size,
+              // 🏷️ KANCAN necesita ancho auto para que quepa el texto completo
+              width: item.isK ? 'auto' : item.size,
+              height: item.isK ? 'auto' : item.size,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               background: item.isClothing ? 'transparent' : item.color,
               borderRadius: item.isClothing ? '0%' : item.shape,
-              fontSize: item.isClothing ? `${item.size * 1.2}px` : '0',
+              // KANCAN usa un tamaño de fuente más contenido (es una palabra larga)
+              fontSize: item.isClothing
+                ? item.isK
+                  ? `${item.size * 0.6}px`
+                  : `${item.size * 1.2}px`
+                : '0',
               fontWeight: item.isK ? 900 : 500,
               fontFamily: item.isK ? "'Poppins', sans-serif" : 'inherit',
               color: item.isClothing ? item.specialColor : 'transparent',
-              // ✅ Borde azul #004680 DE 5px (muy grueso)
-              WebkitTextStroke: item.isK ? `5px #004680` : 'none',
+              // ✅ Borde azul #004680 DE 3px (menos grueso porque KANCAN ya es grande)
+              WebkitTextStroke: item.isK ? `3px #004680` : 'none',
               paintOrder: item.isK ? 'stroke fill' : 'unset',
+              letterSpacing: item.isK ? '0.5px' : 'normal',
+              whiteSpace: item.isK ? 'nowrap' : 'normal',
               animation: `${fall} ${duration}s ease-in-out ${delay}s infinite`,
               textShadow: item.isClothing
                 ? item.isK
-                  ? '0 0 20px rgba(0,70,128,0.5)' // Sombra más intensa
+                  ? '0 0 20px rgba(0,70,128,0.5)'
                   : '0 0 10px rgba(255,255,255,0.6)'
                 : 'none',
               zIndex: 2,
@@ -98,7 +107,7 @@ const Confeti: React.FC = () => {
 };
 
 // ============================================================
-// 🏆 MODAL PRINCIPAL (SIN CAMBIOS)
+// 🏆 MODAL PRINCIPAL
 // ============================================================
 interface Props {
   open: boolean;
