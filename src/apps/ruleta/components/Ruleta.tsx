@@ -500,6 +500,7 @@ const Ruleta: React.FC<RuletaProps> = ({
             fontFamily: "'Sora', 'Poppins', sans-serif",
             '&:hover:not(:disabled)': {
               background: 'linear-gradient(135deg, #002A4D, #001A33)',
+              
               boxShadow: '0 14px 28px -2px rgba(0, 70, 128, 0.65), 0 0 20px rgba(0, 70, 128, 0.5)',
               filter: 'brightness(1.05)',
             },
@@ -513,7 +514,7 @@ const Ruleta: React.FC<RuletaProps> = ({
         >
           {isSpinning ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-              
+
               <CircularProgress size={22} sx={{ color: '#fff' }} />
               GIRANDO...
             </Box>
