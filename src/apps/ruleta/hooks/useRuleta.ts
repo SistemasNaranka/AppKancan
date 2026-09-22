@@ -1,29 +1,24 @@
 import { useState, useCallback, useRef } from 'react';
 import { ISegment, IPremioResponse, IPremioResponseRaw } from '../interfaces/ruleta.interface';
+import { FacturaValida } from '../page/RuletaHome';
+import { createGiroRecord } from '../api/directus/write';
 
 // Normaliza la respuesta del backend a la forma canónica IPremioResponse,
 // sin importar si `prize` llegó como string o como objeto anidado
 // { prize, probabilidad }.
-const normalizePremio = (raw: IPremioResponseRaw): IPremioResponse => {
-  const prizeValue = raw.prize;
-
-  if (prizeValue && typeof prizeValue === 'object') {
-    return {
-      ...raw,
-      prize: prizeValue.prize ?? '',
-      probabilidad: prizeValue.probabilidad ?? raw.probabilidad,
-    };
-  }
-
+const normalizePremio = (raw: FacturaValida): IPremioResponse => {
+  
   return {
-    ...raw,
-    prize: prizeValue ?? '',
-  };
+    prize: raw.prize,
+    couponCode: "123",
+    probabilidad: raw.probabilidad,
+    expiresAt: '2026'
+  }
 };
 
 export const useRuleta = (
   segments: ISegment[],
-  documentos?: string,
+  factura: FacturaValida | null,
   storeId?: number | null
 ) => {
   const [rotation, setRotation] = useState<number>(0);
@@ -35,29 +30,18 @@ export const useRuleta = (
   const girar = useCallback(
     async (onComplete: (data: IPremioResponse) => void) => {
       if (isSpinning) return;
-      if (!documentos || !documentos.trim()) {
-        setError('No hay factura válida para girar.');
-        return;
-      }
+      if (!factura) return;
 
       setIsSpinning(true);
       setError(null);
 
       try {
-        // 1. El backend decide el premio según el monto de la factura
-        const response = await fetch('/api/ruleta/girar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ documentos: documentos.trim(), storeId }),
-        });
 
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.message || 'No se pudo girar la ruleta');
-        }
+        const res = await createGiroRecord(factura);
 
-        const raw: IPremioResponseRaw = await response.json();
-        const data: IPremioResponse = normalizePremio(raw);
+        // crear registro en directus del giro
+
+        const data: IPremioResponse = normalizePremio(factura);
 
         // 2. Ubicar el gajo ganador en la ruleta visual
         const numSegments = segments.length;
@@ -108,7 +92,7 @@ export const useRuleta = (
         throw err;
       }
     },
-    [isSpinning, rotation, segments, documentos, storeId]
+    [isSpinning, rotation, segments, factura, storeId]
   );
 
   const reset = useCallback(() => {

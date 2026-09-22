@@ -7,6 +7,7 @@ import {
   deleteItem,
   readItems,
 } from '@directus/sdk';
+import { FacturaValida } from '../../page/RuletaHome';
 
 // ============================================================
 // 🎁 TIPOS
@@ -183,4 +184,22 @@ export async function deleteInventory(id: number): Promise<void> {
     console.error(`❌ Error al eliminar fila de inventario ${id}:`, error);
     throw error;
   }
+}
+
+export async function createGiroRecord(factura: FacturaValida){
+try {
+  const invoiceKey = `${factura.bodega}-${factura.documentos}`;
+
+  await withAutoRefresh(() => directus.request(createItem('sal_roulette_plays', {
+        invoice_key: invoiceKey,
+      document_number: factura.documentos,
+      store_code: factura.bodega,
+      prize: factura.prize  ,
+  }
+
+  )))
+} catch (error) {
+  throw error;
+
+}
 }

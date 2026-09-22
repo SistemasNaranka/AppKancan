@@ -61,7 +61,7 @@ async function registrarJugadaDirectus({ invoiceKey, documento, bodega, prize })
 
 
 
-  let body = null;
+let body = null;
   try {
     body = await resp.json();
   } catch (_) { }
@@ -363,7 +363,7 @@ router.post("/ruleta/validar-factura", async (req, res) => {
   // Se añade bodega a la consulta para armar la clave compuesta invoiceKey
   const sql = `
     SELECT documentos, cliente, bodega, SUM(total_factura) AS total
-    FROM kcn_db.${tabla}
+    FROM naranka.${tabla}
     WHERE documentos = ?
     GROUP BY documentos, cliente, bodega
     LIMIT 1
@@ -552,51 +552,26 @@ router.post("/ruleta/girar", async (req, res) => {
   const factura = documentos.trim().toUpperCase();
 
 
-
-
-
-
-
-
   const anio = new Date().getFullYear();
   const tabla = `ventas_${anio}`;
 
-
-
-
-
-
-
-
   const sql = `
     SELECT documentos, cliente, bodega, SUM(total_factura) AS total
-    FROM kcn_db.${tabla}
+    FROM naranka.${tabla}
     WHERE documentos = ?
     GROUP BY documentos, cliente, bodega
     LIMIT 1
   `;
 
-
-
-
-
-
-
-
+  
   try {
-    const rows = await queryDB("kcn_db", sql, [factura]);
-
-
-
-
-
-
+    const rows = await queryDB("naranka_db", sql, [factura]);
 
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Factura no encontrada" });
+      return res.status(404).json({ message: "Factura no encontrada23" });
     }
-
+  
 
 
 

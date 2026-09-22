@@ -5,6 +5,7 @@ import { ISegment, IPremioResponse } from '../interfaces/ruleta.interface';
 import { useRuleta } from '../hooks/useRuleta';
 import ModalPremio from './ModalPremio';
 import { aplicarColorPorGrupo, GRUPO_POR_PREMIO } from '../utils/rangos';
+import { FacturaValida } from '../page/RuletaHome';
 
 const fadeIn = keyframes`
   from { opacity: 0; }
@@ -81,7 +82,7 @@ const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
 
 interface RuletaProps {
   segments?: ISegment[];
-  documentos?: string;
+  factura: FacturaValida | null,
   onPremioGanado?: (data: IPremioResponse) => void;
   facturaValida?: boolean;
   storeId?: number | null;
@@ -128,7 +129,7 @@ const petalPos = (index: number, total: number, radius: number, cx: number, cy: 
 
 const Ruleta: React.FC<RuletaProps> = ({
   segments = defaultSegments,
-  documentos,
+  factura,
   onPremioGanado,
   facturaValida = false,
   storeId,
@@ -141,7 +142,7 @@ const Ruleta: React.FC<RuletaProps> = ({
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'info' });
 
-  const { rotation, isSpinning, error, girar, reset } = useRuleta(segments, documentos, storeId);
+  const { rotation, isSpinning, error, girar, reset } = useRuleta(segments, factura, storeId);
 
   const handleSpin = async () => {
     try {
