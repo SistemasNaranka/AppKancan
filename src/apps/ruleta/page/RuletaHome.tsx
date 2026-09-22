@@ -136,6 +136,8 @@ const RuletaHome: React.FC = () => {
   const [stockRangos, setStockRangos] = useState<RangoStock[]>([]);
   const [hayCriticos, setHayCriticos] = useState(false);
   const [campanaAnchor, setCampanaAnchor] = useState<null | HTMLElement>(null);
+  // 🔔 Modal de advertencia grande para "última unidad"
+  const [modalUltimaUnidadOpen, setModalUltimaUnidadOpen] = useState(false);
 
   // ============================================================
   // 🏪 TIENDAS DESDE DIRECTUS
@@ -187,14 +189,18 @@ const RuletaHome: React.FC = () => {
   // ============================================================
   // 🏷️ HELPERS DEL PREFIJO DE FACTURA
   // ============================================================
+  // 🔢 Limpia lo que el usuario escribe: quita el prefijo si lo pegó
+  // completo, quita espacios y deja solo caracteres válidos.
   const limpiarNumeroFactura = (valor: string): string => {
     const limpio = valor.toUpperCase().replace(/\s+/g, '');
+    // Si el usuario pegó el número completo (ej: KE030000004249), quitamos el prefijo
     if (limpio.startsWith(FACTURA_PREFIX)) {
       return limpio.slice(FACTURA_PREFIX.length);
     }
     return limpio;
   };
 
+  // 🧩 Combina el prefijo + lo que escribió el usuario → factura final
   const facturaCompleta = `${FACTURA_PREFIX}${numFactura}`;
 
   const validar = async () => {
@@ -220,6 +226,11 @@ const RuletaHome: React.FC = () => {
         mensajeStock: data.message ?? '',
       };
       setFactura(facturaData);
+
+      // 🔔 Si es última unidad, abrimos el modal grande automáticamente
+      if (facturaData.puedeGirar && facturaData.estadoStock === 'ULTIMA_UNIDAD') {
+        setModalUltimaUnidadOpen(true);
+      }
     } catch (e: any) {
       setError(e.message || 'Error al validar');
     } finally {
@@ -635,34 +646,104 @@ const RuletaHome: React.FC = () => {
                 </Box>
 
                 {factura && (() => {
+                  const esUltima = factura.puedeGirar && factura.estadoStock === 'ULTIMA_UNIDAD';
                   const verde = factura.puedeGirar;
 
                   return (
-                    <Box sx={{
-                      background: verde
-                        ? 'linear-gradient(135deg, #ECFDF5, #F0FDF4)'
-                        : 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
-                      border: verde ? '1px solid #A7F3D0' : '1px solid #FECACA',
-                      borderRadius: '14px',
-                      p: 2,
-                    }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {/* 🔔 BANNER GRANDE DE ÚLTIMA UNIDAD */}
+                      {esUltima && (
+                        <Box
+                          sx={{
+                            position: 'relative',
+                            overflow: 'hidden',
+                            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+                            border: '2px solid #F59E0B',
+                            borderRadius: '16px',
+                            p: 2.5,
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1.75,
+                            boxShadow: '0 10px 30px -10px rgba(245, 158, 11, 0.55), 0 4px 12px -4px rgba(245, 158, 11, 0.3)',
+                            animation: 'pulseWarn 2s ease-in-out infinite',
+                            '@keyframes pulseWarn': {
+                              '0%, 100%': { boxShadow: '0 10px 30px -10px rgba(245, 158, 11, 0.55), 0 4px 12px -4px rgba(245, 158, 11, 0.3)' },
+                              '50%': { boxShadow: '0 14px 40px -10px rgba(245, 158, 11, 0.75), 0 6px 16px -4px rgba(245, 158, 11, 0.5)' },
+                            },
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 52,
+                              height: 52,
+                              borderRadius: '14px',
+                              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              boxShadow: '0 6px 16px -4px rgba(217, 119, 6, 0.6)',
+                            }}
+                          >
+                            <WarningAmberIcon sx={{ fontSize: 32, color: '#ffffff' }} />
+                          </Box>
+
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography
+                              sx={{
+                                fontSize: { xs: '1rem', sm: '1.15rem' },
+                                fontWeight: 900,
+                                color: '#92400E',
+                                letterSpacing: '-0.01em',
+                                lineHeight: 1.2,
+                                mb: 0.75,
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              ¡Último premio disponible!
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                                color: '#78350F',
+                                fontWeight: 600,
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {factura.mensajeStock ||
+                                'Solo queda un último premio en el rango de esta compra. Después de este giro se agota.'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Panel de estado normal */}
                       <Box sx={{
-                        display: 'flex', alignItems: 'center', gap: 1,
-                        color: verde ? '#047857' : '#B91C1C',
-                        fontSize: 12, fontWeight: 700, mb: 1.5,
+                        background: verde
+                          ? 'linear-gradient(135deg, #ECFDF5, #F0FDF4)'
+                          : 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
+                        border: verde ? '1px solid #A7F3D0' : '1px solid #FECACA',
+                        borderRadius: '14px',
+                        p: 2,
                       }}>
-                        {verde
-                          ? <CheckCircleIcon sx={{ fontSize: 16 }} />
-                          : <ErrorOutlineIcon sx={{ fontSize: 16 }} />}
-                        <span style={{ flex: 1 }}>
+                        <Box sx={{
+                          display: 'flex', alignItems: 'center', gap: 1,
+                          color: verde ? '#047857' : '#B91C1C',
+                          fontSize: 12, fontWeight: 700, mb: 1.5,
+                        }}>
                           {verde
-                            ? '¡Factura validada con éxito! La ruleta está desbloqueada y lista para girar.'
-                            : factura.mensajeStock}
-                        </span>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ color: '#64748B' }}>Cliente</span>
-                        <span style={{ color: '#0F172A', fontWeight: 600 }}>{factura.cliente}</span>
+                            ? <CheckCircleIcon sx={{ fontSize: 16 }} />
+                            : <ErrorOutlineIcon sx={{ fontSize: 16 }} />}
+                          <span style={{ flex: 1 }}>
+                            {verde
+                              ? '¡Factura validada con éxito! La ruleta está desbloqueada y lista para girar.'
+                              : factura.mensajeStock}
+                          </span>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span style={{ color: '#64748B' }}>Cliente</span>
+                          <span style={{ color: '#0F172A', fontWeight: 600 }}>{factura.cliente}</span>
+                        </Box>
                       </Box>
                     </Box>
                   );
@@ -754,6 +835,126 @@ const RuletaHome: React.FC = () => {
           </TabPanel>
         )}
       </Box>
+
+      {/* ============================================================ */}
+      {/* 🔔 MODAL GRANDE DE ÚLTIMA UNIDAD                              */}
+      {/* ============================================================ */}
+      <Dialog
+        open={modalUltimaUnidadOpen}
+        onClose={() => setModalUltimaUnidadOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '24px',
+            overflow: 'hidden',
+            border: '2px solid #F59E0B',
+            boxShadow: '0 24px 60px -12px rgba(245, 158, 11, 0.5)',
+          },
+        }}
+      >
+        <Box
+          sx={{
+            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+            px: 3,
+            pt: 3.5,
+            pb: 2.5,
+            textAlign: 'center',
+            position: 'relative',
+          }}
+        >
+          <Box
+            sx={{
+              width: 84,
+              height: 84,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 2,
+              boxShadow: '0 12px 28px -6px rgba(217, 119, 6, 0.7)',
+              border: '4px solid #fff',
+            }}
+          >
+            <WarningAmberIcon sx={{ fontSize: 48, color: '#ffffff' }} />
+          </Box>
+
+          <Typography
+            sx={{
+              fontSize: { xs: '1.35rem', sm: '1.6rem' },
+              fontWeight: 900,
+              color: '#92400E',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.15,
+              textTransform: 'uppercase',
+            }}
+          >
+            ¡Último premio disponible!
+          </Typography>
+        </Box>
+
+        <DialogContent sx={{ px: 3.5, py: 3, bgcolor: '#fff' }}>
+          <Typography
+            sx={{
+              fontSize: { xs: '0.95rem', sm: '1.05rem' },
+              color: '#334155',
+              fontWeight: 500,
+              lineHeight: 1.6,
+              textAlign: 'center',
+            }}
+          >
+            {factura?.mensajeStock ||
+              'Solo queda un último premio en el rango de esta compra. Después de este giro se agota.'}
+          </Typography>
+
+          <Box
+            sx={{
+              mt: 2.5,
+              p: 2,
+              borderRadius: '12px',
+              bgcolor: '#FEF3C7',
+              border: '1px dashed #F59E0B',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 1.5,
+            }}
+          >
+            <Typography sx={{ fontSize: 12.5, color: '#78350F', fontWeight: 600 }}>
+              Cliente
+            </Typography>
+            <Typography sx={{ fontSize: 13.5, color: '#92400E', fontWeight: 800 }}>
+              {factura?.cliente || 'Cliente no identificado'}
+            </Typography>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3.5, pb: 3, pt: 0, bgcolor: '#fff' }}>
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={() => setModalUltimaUnidadOpen(false)}
+            sx={{
+              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+              color: '#fff',
+              fontWeight: 800,
+              textTransform: 'none',
+              borderRadius: '12px',
+              py: 1.25,
+              fontSize: '0.95rem',
+              boxShadow: '0 8px 20px -4px rgba(217, 119, 6, 0.6)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #D97706, #B45309)',
+                boxShadow: '0 10px 26px -4px rgba(217, 119, 6, 0.75)',
+              },
+            }}
+          >
+            Entendido, continuar al giro
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
