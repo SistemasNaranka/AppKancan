@@ -467,7 +467,7 @@ const Ruleta: React.FC<RuletaProps> = ({
             filter: 'drop-shadow(0 3px 6px rgba(255,118,0,0.45))',
           }} />
 
-          {/* 🎡 Ruleta pequeña — gira lento en reposo, quieta si la grande está abierta */}
+          {/* 🎡 Ruleta pequeña — gira lento en reposo, y quieta si la grande está abierta*/}
           <Box
             sx={{
               position: 'relative',
