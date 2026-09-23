@@ -238,6 +238,17 @@ const RuletaHome: React.FC = () => {
     setPremios(nuevosPremios);
   };
 
+  // 🆕 Cuando la ruleta termina un giro:
+  //   - limpia solo el número (el prefijo se conserva)
+  //   - anula el estado local de la factura → botón GIRAR se deshabilita
+  //   - recarga la campanita de stock
+  const handleGiroCompletado = () => {
+    setNumFactura('');
+    setFactura(null);
+    setError(null);
+    cargarStock();
+  };
+
   const titulo = tabValue === 0 ? 'Ruleta de Premios' : 'Administrar Premios';
   const subtitulo = tabValue === 0 ? 'Punto de venta' : 'Cambio de premios';
 
@@ -560,110 +571,115 @@ const RuletaHome: React.FC = () => {
                   El cliente debe haber facturado para participar. Ingresa el número de comprobante para habilitar el giro.
                 </Typography>
 
-              
-                  <Box sx={{ display: 'flex', gap: 1.25, flexDirection: 'column' }}>
-                    <TextField
-                      size="small"
-                      fullWidth
-                      label="Prefijo"
-                      value={preFactura}
-                      onChange={(e) => setPreFactura(e.target.value)}
-                      placeholder="KET"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Box
-                              sx={{
-                                bgcolor: '#004680',
-                                color: '#fff',
-                                fontWeight: 800,
-                                fontSize: '0.78rem',
-                                px: 1,
-                                py: 0.4,
-                                borderRadius: '6px',
-                                letterSpacing: '0.05em',
-                                fontFamily: "'Space Grotesk', monospace",
-                                mr: 0.5,
-                                userSelect: 'none',
-                              }}
-                            >
-                            </Box>
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '12px',
-                          bgcolor: '#F8FAFC',
-                          fontFamily: "'Space Grotesk', monospace",
-                          fontWeight: 600,
-                          letterSpacing: '0.03em',
-                          '& fieldset': { borderColor: '#E2E8F0' },
-                          '&:hover fieldset': { borderColor: '#93C5FD' },
-                          '&.Mui-focused fieldset': { borderColor: '#004680', borderWidth: '2px' },
-                        },
-                      }} />
-                    <TextField
-                      size="small"
-                      fullWidth
-                      label="N° de factura"
-                      value={numFactura}
-                      onChange={(e) => setNumFactura(e.target.value)}
-                      placeholder="030000004249"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Box
-                              sx={{
-                                bgcolor: '#004680',
-                                color: '#fff',
-                                fontWeight: 800,
-                                fontSize: '0.78rem',
-                                px: 1,
-                                py: 0.4,
-                                borderRadius: '6px',
-                                letterSpacing: '0.05em',
-                                fontFamily: "'Space Grotesk', monospace",
-                                mr: 0.5,
-                                userSelect: 'none',
-                              }}
-                            >
-                            </Box>
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '12px',
-                          bgcolor: '#F8FAFC',
-                          fontFamily: "'Space Grotesk', monospace",
-                          fontWeight: 600,
-                          letterSpacing: '0.03em',
-                          '& fieldset': { borderColor: '#E2E8F0' },
-                          '&:hover fieldset': { borderColor: '#93C5FD' },
-                          '&.Mui-focused fieldset': { borderColor: '#004680', borderWidth: '2px' },
-                        },
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={validar}
-                      disabled={cargando}
-                      sx={{
-                        background: 'linear-gradient(135deg, #004680, #0a5aa0)',
-                        boxShadow: '0 4px 14px -2px rgba(0, 70, 128, 0.45)',
-                        minWidth: 110,
-                        textTransform: 'none',
-                        fontWeight: 700,
+                <Box sx={{ display: 'flex', gap: 1.25, flexDirection: 'column' }}>
+                  {/* PREFIJO — badge azul VACÍO */}
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Prefijo"
+                    value={preFactura}
+                    onChange={(e) => setPreFactura(e.target.value)}
+                    placeholder="KET"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Box
+                            sx={{
+                              bgcolor: '#004680',
+                              color: '#fff',
+                              fontWeight: 800,
+                              fontSize: '0.78rem',
+                              px: 1,
+                              py: 0.4,
+                              borderRadius: '6px',
+                              letterSpacing: '0.05em',
+                              fontFamily: "'Space Grotesk', monospace",
+                              mr: 0.5,
+                              userSelect: 'none',
+                            }}
+                          >
+                            {/* VACÍO A PROPÓSITO */}
+                          </Box>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
                         borderRadius: '12px',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #003366, #004680)',
-                          boxShadow: '0 6px 20px -2px rgba(0, 70, 128, 0.55)',
-                        },
-                      }}
-                    >
-                      {cargando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Validar'}
-                    </Button>
+                        bgcolor: '#F8FAFC',
+                        fontFamily: "'Space Grotesk', monospace",
+                        fontWeight: 600,
+                        letterSpacing: '0.03em',
+                        '& fieldset': { borderColor: '#E2E8F0' },
+                        '&:hover fieldset': { borderColor: '#93C5FD' },
+                        '&.Mui-focused fieldset': { borderColor: '#004680', borderWidth: '2px' },
+                      },
+                    }} />
+
+                  {/* N° FACTURA — badge azul VACÍO */}
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="N° de factura"
+                    value={numFactura}
+                    onChange={(e) => setNumFactura(e.target.value)}
+                    placeholder="030000004249"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Box
+                            sx={{
+                              bgcolor: '#004680',
+                              color: '#fff',
+                              fontWeight: 800,
+                              fontSize: '0.78rem',
+                              px: 1,
+                              py: 0.4,
+                              borderRadius: '6px',
+                              letterSpacing: '0.05em',
+                              fontFamily: "'Space Grotesk', monospace",
+                              mr: 0.5,
+                              userSelect: 'none',
+                            }}
+                          >
+                            {/* VACÍO A PROPÓSITO */}
+                          </Box>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '12px',
+                        bgcolor: '#F8FAFC',
+                        fontFamily: "'Space Grotesk', monospace",
+                        fontWeight: 600,
+                        letterSpacing: '0.03em',
+                        '& fieldset': { borderColor: '#E2E8F0' },
+                        '&:hover fieldset': { borderColor: '#93C5FD' },
+                        '&.Mui-focused fieldset': { borderColor: '#004680', borderWidth: '2px' },
+                      },
+                    }}
+                  />
+
+                  <Button
+                    variant="contained"
+                    onClick={validar}
+                    disabled={cargando}
+                    sx={{
+                      background: 'linear-gradient(135deg, #004680, #0a5aa0)',
+                      boxShadow: '0 4px 14px -2px rgba(0, 70, 128, 0.45)',
+                      minWidth: 110,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      borderRadius: '12px',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #003366, #004680)',
+                        boxShadow: '0 6px 20px -2px rgba(0, 70, 128, 0.55)',
+                      },
+                    }}
+                  >
+                    {cargando ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Validar'}
+                  </Button>
                 </Box>
 
                 {factura && (() => {
@@ -839,6 +855,7 @@ const RuletaHome: React.FC = () => {
                 facturaValida={!!factura && factura.puedeGirar}
                 storeId={storeFilter}
                 onPremioGanado={() => cargarStock()}
+                onGiroCompletado={handleGiroCompletado}
               />
             </Box>
           </Box>

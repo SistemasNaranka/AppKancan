@@ -6,6 +6,7 @@ import {
   updateItem,
   deleteItem,
   readItems,
+  readItem,
 } from '@directus/sdk';
 import { FacturaValida } from '../../page/RuletaHome';
 
@@ -17,8 +18,6 @@ export interface IPrizePayload {
   name: string;
   tier: 'G1' | 'G2' | 'G3';
   is_active?: boolean;
-  // probability se maneja aparte (nullable en Directus, lo llena el backend)
-  // color eliminado: no se persiste, se calcula por tier en el frontend
 }
 
 export interface IPrizeInventoryRow {
@@ -26,13 +25,12 @@ export interface IPrizeInventoryRow {
   prize_id: number;
   store_code: string | number;
   total_assigned: number;
-  // 🔑 Clave única compuesta (store_code-prize_id) — la genera el frontend
+  available?: number | null;      // 🆕 campo nuevo
   inventory_key?: string;
 }
 
 // ============================================================
-// 🔑 HELPER: Genera la clave única del inventario
-// Formato: "{store_code}-{prize_id}" — evita duplicados en Directus
+// 🔑 HELPER: Clave única del inventario
 // ============================================================
 const buildInventoryKey = (
   storeCode: string | number,
@@ -40,7 +38,16 @@ const buildInventoryKey = (
 ): string => `${String(storeCode).trim()}-${String(prizeId).trim()}`;
 
 // ============================================================
-// 🏷️ sal_prizes — CRUD del catálogo de premios
+// 🔧 HELPER: Normalizar strings para comparaciones
+// ============================================================
+const normalize = (s: any): string =>
+  String(s ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+// ============================================================
+// 🏷️ sal_prizes — CRUD
 // ============================================================
 
 export async function createPrize(data: IPrizePayload): Promise<number> {
@@ -75,11 +82,6 @@ export async function updatePrize(
   }
 }
 
-/**
- * Soft delete: marca is_active = false.
- * NUNCA usar hard delete — sal_roulette_plays referencia el nombre del premio
- * en jugadas históricas.
- */
 export async function deactivatePrize(id: number): Promise<void> {
   try {
     await withAutoRefresh(() =>
@@ -92,14 +94,7 @@ export async function deactivatePrize(id: number): Promise<void> {
 }
 
 /**
- * Trae todos los premios (activos e inactivos) con su inventario relacionado.
- * El error se re-lanza para que el componente pueda mostrar estado de error
- * en vez de una lista vacía silenciosa.
- *
- * ⚠️ IMPORTANTE: se usa `limit: -1` en ambas consultas porque Directus
- * devuelve por defecto solo 100 registros. Sin esto, los registros que
- * caigan más allá del #100 (ej: 112 filas) son invisibles para el frontend,
- * causando que las últimas tiendas configuradas aparezcan siempre en 0.
+ * Trae premios + inventario (con el campo `available` incluido).
  */
 export async function getPrizesWithInventory() {
   const prizes = await withAutoRefresh(() =>
@@ -107,7 +102,7 @@ export async function getPrizesWithInventory() {
       readItems('sal_prizes', {
         fields: ['id', 'name', 'tier', 'is_active', 'probability'],
         sort: ['tier', 'name'],
-        limit: -1, // 👈 Trae TODOS los premios (sin límite de 100)
+        limit: -1,
       })
     )
   );
@@ -115,13 +110,29 @@ export async function getPrizesWithInventory() {
   const inventory = await withAutoRefresh(() =>
     directus.request(
       readItems('sal_prize_inventory', {
-        fields: ['id', 'prize_id', 'store_code', 'total_assigned'],
-        limit: -1, // 👈 Trae TODOS los registros de inventario (sin límite de 100)
+        fields: [
+          'id',
+          'prize_id',
+          'store_code',
+          'total_assigned',
+          'available',
+        ],
+        limit: -1,
       })
     )
   );
 
-  return { prizes, inventory } as {
+  // Jugadas = entregas
+  const plays = await withAutoRefresh(() =>
+    directus.request(
+      readItems('sal_roulette_plays', {
+        fields: ['store_code', 'prize'],
+        limit: -1,
+      })
+    )
+  );
+
+  return { prizes, inventory, plays } as {
     prizes: Array<{
       id: number;
       name: string;
@@ -130,6 +141,7 @@ export async function getPrizesWithInventory() {
       probability: number | null;
     }>;
     inventory: IPrizeInventoryRow[];
+    plays: Array<{ store_code: string | number; prize: string }>;
   };
 }
 
@@ -141,30 +153,52 @@ export async function upsertInventory(
   row: IPrizeInventoryRow
 ): Promise<void> {
   try {
-    // 🔑 Siempre generamos el inventory_key
     const inventoryKey =
       row.inventory_key ?? buildInventoryKey(row.store_code, row.prize_id);
 
     if (row.id) {
-      // Update — enviamos inventory_key por si acaso cambió
-      // (en la práctica no cambia porque store_code y prize_id son inmutables)
+      // 🧠 Si el `total_assigned` cambió → resetear available al nuevo total.
+      // Si NO cambió → conservar el available actual (no perder las jugadas).
+      let current: { total_assigned: number; available: number | null } | null =
+        null;
+      try {
+        current = (await withAutoRefresh(() =>
+          directus.request(
+            readItem('sal_prize_inventory', row.id as number, {
+              fields: ['total_assigned', 'available'],
+            })
+          )
+        )) as any;
+      } catch (e) {
+        console.warn('No se pudo leer inventario actual:', e);
+      }
+
+      const totalCambio =
+        Number(current?.total_assigned ?? -1) !== Number(row.total_assigned);
+
+      const nuevoAvailable = totalCambio
+        ? row.total_assigned
+        : (current?.available ?? row.total_assigned);
+
       await withAutoRefresh(() =>
         directus.request(
           updateItem('sal_prize_inventory', row.id as number, {
             total_assigned: row.total_assigned,
+            available: nuevoAvailable,
             inventory_key: inventoryKey,
           })
         )
       );
     } else {
-      // Create — inventory_key es obligatorio en Directus
+      // Crear: available arranca igual al total
       await withAutoRefresh(() =>
         directus.request(
           createItem('sal_prize_inventory', {
             prize_id: row.prize_id,
             store_code: row.store_code,
             total_assigned: row.total_assigned,
-            inventory_key: inventoryKey, // 👈 ESTE CAMPO ES OBLIGATORIO
+            available: row.total_assigned,
+            inventory_key: inventoryKey,
           })
         )
       );
@@ -186,20 +220,132 @@ export async function deleteInventory(id: number): Promise<void> {
   }
 }
 
-export async function createGiroRecord(factura: FacturaValida){
-try {
-  const invoiceKey = `${factura.bodega}-${factura.documentos}`;
+// ============================================================
+// 🎰 JUGADAS
+// ============================================================
 
-  await withAutoRefresh(() => directus.request(createItem('sal_roulette_plays', {
-        invoice_key: invoiceKey,
-      document_number: factura.documentos,
-      store_code: factura.bodega,
-      prize: factura.prize  ,
+/**
+ * Registra la jugada y decrementa el campo `available` del inventario.
+ */
+export async function createGiroRecord(factura: FacturaValida) {
+  try {
+    const invoiceKey = `${factura.bodega}-${factura.documentos}`;
+
+    // 1. Registrar la jugada
+    await withAutoRefresh(() =>
+      directus.request(
+        createItem('sal_roulette_plays', {
+          invoice_key: invoiceKey,
+          document_number: factura.documentos,
+          store_code: factura.bodega,
+          prize: factura.prize,
+        })
+      )
+    );
+
+    // 2. Decrementar el campo `available` en el inventario
+    await decrementAvailable(factura.prize, factura.bodega);
+  } catch (error) {
+    throw error;
   }
-
-  )))
-} catch (error) {
-  throw error;
-
 }
+
+/**
+ * 🔻 Decrementa en 1 el campo `available` del inventario
+ * para un premio + tienda.
+ *
+ * Búsqueda robusta:
+ *   - El nombre del premio se compara case-insensitive y sin espacios sobrantes
+ *   - El store_code se compara como string (por si en Directus es "7" vs 7)
+ *
+ * Logs verbosos para debug en consola del navegador.
+ */
+async function decrementAvailable(
+  prizeName: string,
+  storeCode: string | number
+): Promise<void> {
+  const TAG = '[decrementAvailable]';
+  try {
+    console.log(`${TAG} ▶ Inicio. premio="${prizeName}" tienda="${storeCode}"`);
+
+    // 1. Traer TODOS los premios (son pocos) y buscar por nombre normalizado
+    const premios = (await withAutoRefresh(() =>
+      directus.request(
+        readItems('sal_prizes', {
+          fields: ['id', 'name'],
+          limit: -1,
+        })
+      )
+    )) as Array<{ id: number; name: string }>;
+
+    const targetName = normalize(prizeName);
+    const premio = premios.find((p) => normalize(p.name) === targetName);
+
+    if (!premio) {
+      console.warn(
+        `${TAG} ⚠️ No se encontró premio con nombre "${prizeName}".`,
+        `Nombres disponibles:`,
+        premios.map((p) => `"${p.name}"`)
+      );
+      return;
+    }
+
+    console.log(
+      `${TAG} ✅ Premio encontrado: id=${premio.id} name="${premio.name}"`
+    );
+
+    // 2. Traer TODO el inventario de ese premio y buscar por store_code normalizado
+    const inventarios = (await withAutoRefresh(() =>
+      directus.request(
+        readItems('sal_prize_inventory', {
+          filter: { prize_id: { _eq: premio.id } },
+          fields: ['id', 'available', 'total_assigned', 'store_code'],
+          limit: -1,
+        })
+      )
+    )) as Array<{
+      id: number;
+      available: number | null;
+      total_assigned: number;
+      store_code: string | number;
+    }>;
+
+    const targetStore = normalize(storeCode);
+    const inv = inventarios.find(
+      (i) => normalize(i.store_code) === targetStore
+    );
+
+    if (!inv) {
+      console.warn(
+        `${TAG} ⚠️ No hay inventario para premio "${premio.name}" en tienda "${storeCode}".`,
+        `Tiendas con inventario:`,
+        inventarios.map((i) => `"${i.store_code}"`)
+      );
+      return;
+    }
+
+    console.log(
+      `${TAG} ✅ Inventario encontrado: id=${inv.id} available=${inv.available} total=${inv.total_assigned}`
+    );
+
+    // 3. Calcular el nuevo valor
+    const actual = Number(inv.available ?? inv.total_assigned ?? 0);
+    const nuevo = Math.max(0, actual - 1);
+
+    // 4. PATCH
+    await withAutoRefresh(() =>
+      directus.request(
+        updateItem('sal_prize_inventory', inv.id, { available: nuevo })
+      )
+    );
+
+    console.log(
+      `${TAG} 🎉 DECREMENTADO: ${actual} → ${nuevo} (premio="${premio.name}" tienda="${storeCode}")`
+    );
+  } catch (error: any) {
+    console.error(
+      `${TAG} ❌ ERROR REAL (no silencioso):`,
+      error?.errors?.[0]?.message || error?.message || error
+    );
+  }
 }

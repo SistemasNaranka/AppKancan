@@ -16,7 +16,6 @@ const zoomIn = keyframes`
   to { transform: scale(1); opacity: 1; }
 `;
 
-// 🌀 Giro lento automático cuando la ruleta está en reposo
 const idleSpin = keyframes`
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
@@ -27,36 +26,23 @@ const idleSpinReverse = keyframes`
   to   { transform: rotate(-360deg); }
 `;
 
-// 🎏 Suave vaivén para los banderines de papel picado
 const sway = keyframes`
   0%, 100% { transform: rotate(-3deg); }
   50%      { transform: rotate(3deg); }
 `;
 
 // ============================================================
-// 🎨 PALETA NUEVA — 6 colores de la marca
+// 🎨 PALETA
 // ============================================================
 const STITCH_COLORS = [
-  { base: '#004680', dark: '#004680' }, // 0 - Azul corporativo
-  { base: '#D6D1CB', dark: '#D6D1CB' }, // 1 - Beige/gris claro
-  { base: '#C7D802', dark: '#C7D802' }, // 2 - Verde lima
-  { base: '#D23748', dark: '#D23748' }, // 3 - Rojo frambuesa
-  { base: '#FF7600', dark: '#FF7600' }, // 4 - Naranja
-  { base: '#7D212B', dark: '#7D212B' }, // 5 - Vino
+  { base: '#004680', dark: '#004680' },
+  { base: '#D6D1CB', dark: '#D6D1CB' },
+  { base: '#C7D802', dark: '#C7D802' },
+  { base: '#D23748', dark: '#D23748' },
+  { base: '#FF7600', dark: '#FF7600' },
+  { base: '#7D212B', dark: '#7D212B' },
 ];
 
-// ============================================================
-// 🔀 ORDEN INTERCALADO — alterna contrastes fuertes
-// ============================================================
-//   0 → Azul      (oscuro)
-//   3 → Rojo      (saturado)
-//   2 → Lima      (brillante)
-//   1 → Beige     (neutro claro)
-//   4 → Naranja   (saturado)
-//   5 → Vino      (oscuro)
-//
-// Así nunca quedan dos oscuros juntos (azul+wine) ni dos
-// saturados seguidos (rojo+naranja).
 const INTERLEAVED_ORDER = [0, 3, 2, 1, 4, 5];
 
 const getInterleavedColor = (index: number) => {
@@ -64,12 +50,10 @@ const getInterleavedColor = (index: number) => {
   return STITCH_COLORS[INTERLEAVED_ORDER[pos]];
 };
 
-// Colores de los gajos: evita que el último repita al primero al cerrar el círculo
 const getSegmentColors = (total: number) => {
   const order = Array.from({ length: total }, (_, i) => INTERLEAVED_ORDER[i % INTERLEAVED_ORDER.length]);
   if (total > 1 && order[total - 1] === order[0]) {
     const prev = order[total - 2];
-    // Buscamos un color que no sea ni el anterior ni el primero
     const reemplazo = [1, 4, 2, 5, 3].find((c) => c !== prev && c !== order[0]);
     if (reemplazo !== undefined) order[total - 1] = reemplazo;
   }
@@ -82,8 +66,9 @@ const defaultSegments: ISegment[] = Object.entries(GRUPO_POR_PREMIO).map(
 
 interface RuletaProps {
   segments?: ISegment[];
-  factura: FacturaValida | null,
+  factura: FacturaValida | null;
   onPremioGanado?: (data: IPremioResponse) => void;
+  onGiroCompletado?: () => void;   // 🆕 se dispara cuando ya salió el premio
   facturaValida?: boolean;
   storeId?: number | null;
 }
@@ -131,6 +116,7 @@ const Ruleta: React.FC<RuletaProps> = ({
   segments = defaultSegments,
   factura,
   onPremioGanado,
+  onGiroCompletado,
   facturaValida = false,
   storeId,
 }) => {
@@ -149,10 +135,16 @@ const Ruleta: React.FC<RuletaProps> = ({
       await girar((data: IPremioResponse) => {
         setPremioData(data);
         setModalOpen(true);
-        if (onPremioGanado) onPremioGanado(data);
+        onPremioGanado?.(data);
+        // 📢 Avisa al padre: ya se completó un giro → que limpie la factura
+        onGiroCompletado?.();
       });
     } catch (err: any) {
-      setSnackbar({ open: true, message: err.message || 'Error al girar la ruleta', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: err.message || 'Error al girar la ruleta',
+        severity: 'error',
+      });
     }
   };
 
@@ -175,7 +167,6 @@ const Ruleta: React.FC<RuletaProps> = ({
   const petalCount = Math.max(numSegments * 2, 16);
 
   const BUNTING_COUNT = 9;
-  // Banderines: usan los colores intercalados
   const buntingFlags = Array.from({ length: BUNTING_COUNT }).map((_, i) => getInterleavedColor(i));
 
   const overlayActivo = isSpinning || modalOpen;
@@ -195,7 +186,6 @@ const Ruleta: React.FC<RuletaProps> = ({
         }}
       >
         <defs>
-          {/* 🎨 Gradientes por CADA segmento — usa el color intercalado */}
           {segments.map((_seg, i) => {
             const fallback = segmentColors[i];
             return (
@@ -211,7 +201,6 @@ const Ruleta: React.FC<RuletaProps> = ({
           </filter>
         </defs>
 
-        {/* 🌀 Giro lento en reposo — solo afecta al disco, nunca a la K */}
         <Box
           component="g"
           sx={{
@@ -219,7 +208,6 @@ const Ruleta: React.FC<RuletaProps> = ({
             animation: idle ? `${idleSpin} 40s linear infinite` : 'none',
           }}
         >
-          {/* 🌸 Pétalos del borde — colores intercalados */}
           <g style={{ transform: `rotate(${rot}deg)`, transformOrigin: '200px 200px' }}>
             {Array.from({ length: petalCount }).map((_, i) => {
               const p = petalPos(i, petalCount, radius + 6, cx, cy);
@@ -238,9 +226,7 @@ const Ruleta: React.FC<RuletaProps> = ({
             })}
           </g>
 
-          {/* 🎡 Grupo rotatorio principal */}
           <g style={{ transform: `rotate(${rot}deg)`, transformOrigin: '200px 200px' }}>
-            {/* Gajos */}
             {segments.map((_seg, i) => (
               <path
                 key={`gajo-${i}`}
@@ -252,7 +238,6 @@ const Ruleta: React.FC<RuletaProps> = ({
               />
             ))}
 
-            {/* Puntos decorativos */}
             {segments.map((_seg, i) => {
               const p = dotPos(i, numSegments, radius, cx, cy);
               return (
@@ -267,7 +252,6 @@ const Ruleta: React.FC<RuletaProps> = ({
               );
             })}
 
-            {/* Burbujas con "?" — viajan con el gajo, pero el "?" se contra-rota para leerse derecho */}
             {segments.map((_seg, i) => {
               const p = bubblePos(i, numSegments, radius, cx, cy);
               return (
@@ -312,10 +296,8 @@ const Ruleta: React.FC<RuletaProps> = ({
           </g>
         </Box>
 
-        {/* Aro exterior blanco */}
         <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#FFF7EC" strokeWidth={6} />
 
-        {/* Pomo Kancan — fuera de todo lo que gira */}
         <circle
           cx={cx}
           cy={cy}
@@ -384,7 +366,6 @@ const Ruleta: React.FC<RuletaProps> = ({
         width: '100%',
         margin: '0 auto',
       }}>
-        {/* 🎏 Banderines de papel picado */}
         <Box sx={{
           display: 'flex',
           justifyContent: 'center',
@@ -431,7 +412,6 @@ const Ruleta: React.FC<RuletaProps> = ({
           </Typography>
         </Box>
 
-        {/* 🎡 Contenedor de la ruleta */}
         <Box sx={{
           position: 'relative',
           display: 'inline-block',
@@ -440,7 +420,6 @@ const Ruleta: React.FC<RuletaProps> = ({
           margin: '0 auto',
           pb: 4,
         }}>
-          {/* 🌑 Sombra */}
           <Box
             aria-hidden
             sx={{
@@ -456,7 +435,6 @@ const Ruleta: React.FC<RuletaProps> = ({
             }}
           />
 
-          {/* 🎯 Puntero */}
           <Box sx={{
             position: 'absolute', top: -8, left: '50%',
             transform: 'translateX(-50%)', zIndex: 10,
@@ -467,7 +445,6 @@ const Ruleta: React.FC<RuletaProps> = ({
             filter: 'drop-shadow(0 3px 6px rgba(255,118,0,0.45))',
           }} />
 
-          {/* 🎡 Ruleta pequeña — gira lento en reposo, quieta si la grande está abierta */}
           <Box
             sx={{
               position: 'relative',
@@ -501,7 +478,6 @@ const Ruleta: React.FC<RuletaProps> = ({
             fontFamily: "'Sora', 'Poppins', sans-serif",
             '&:hover:not(:disabled)': {
               background: 'linear-gradient(135deg, #002A4D, #001A33)',
-              
               boxShadow: '0 14px 28px -2px rgba(0, 70, 128, 0.65), 0 0 20px rgba(0, 70, 128, 0.5)',
               filter: 'brightness(1.05)',
             },
@@ -515,7 +491,6 @@ const Ruleta: React.FC<RuletaProps> = ({
         >
           {isSpinning ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-
               <CircularProgress size={22} sx={{ color: '#fff' }} />
               GIRANDO...
             </Box>
