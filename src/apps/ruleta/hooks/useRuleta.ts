@@ -3,6 +3,21 @@ import { ISegment, IPremioResponse, IPremioResponseRaw } from '../interfaces/rul
 import { FacturaValida } from '../page/RuletaHome';
 import { createGiroRecord } from '../api/directus/write';
 
+// Traduce errores crudos de Directus a mensajes amigables en español.
+const getFriendlyErrorMessage = (error: any): string => {
+  const rawMessage =
+    error?.errors?.[0]?.message ||
+    error?.response?.data?.errors?.[0]?.message ||
+    error?.message ||
+    '';
+
+  if (rawMessage.includes('invoice_key') && rawMessage.toLowerCase().includes('unique')) {
+    return 'Esta factura ya fue utilizada. Solo se puede girar una vez por factura.';
+  }
+
+  return 'Ocurrió un error al procesar tu solicitud. Intenta nuevamente.';
+};
+
 // Normaliza la respuesta del backend a la forma canónica IPremioResponse,
 // sin importar si `prize` llegó como string o como objeto anidado
 // { prize, probabilidad }.
@@ -88,8 +103,9 @@ export const useRuleta = (
         animationRef.current = requestAnimationFrame(animate);
       } catch (err: any) {
         setIsSpinning(false);
-        setError(err.message);
-        throw err;
+        const friendlyMessage = getFriendlyErrorMessage(err);
+        setError(friendlyMessage);
+        throw new Error(friendlyMessage);
       }
     },
     [isSpinning, rotation, segments, factura, storeId]

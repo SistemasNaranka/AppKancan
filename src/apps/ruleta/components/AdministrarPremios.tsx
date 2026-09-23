@@ -45,15 +45,11 @@ import {
   deleteInventory,
 } from '../api/directus/write';
 
-// 🎨 Color principal (azul corporativo)
 const AZUL = '#004680';
 const AZUL_BG = '#E6EEF5';
 const AZUL_BORDER = '#99BBD4';
 const AZUL_HOVER = '#CCDDEA';
 
-// ============================================================
-// 🎯 TIENDAS AUTORIZADAS
-// ============================================================
 const TIENDAS_AUTORIZADAS = [
   'CALI CARRERA8',
   'CALI CENTRO',
@@ -76,9 +72,6 @@ const esTiendaAutorizada = (nombre: string): boolean => {
   return TIENDAS_AUTORIZADAS.includes(n);
 };
 
-// ============================================================
-// DESCRIPCIONES
-// ============================================================
 const descripcionesPorPremio: Record<string, string> = {
   'Jean de línea': 'Jean de línea premium',
   'Jean básico': 'Jean básico clásico',
@@ -112,14 +105,8 @@ const getDescripcion = (nombre: string): string => {
   return descripcionesPorPremio[nombre] || 'Premio exclusivo de KANCAN';
 };
 
-// ============================================================
-// 🔑 UTILIDAD: Normalizar strings para comparaciones seguras
-// ============================================================
 const normKey = (v: any): string => String(v ?? '').trim();
 
-// ============================================================
-// ESTILOS
-// ============================================================
 const PremioCard = styled(Card)(() => ({
   borderRadius: '16px',
   border: '1px solid #d0d7de',
@@ -169,9 +156,6 @@ const DecoratedBadge = styled(Box)({
   pointerEvents: 'none',
 });
 
-// ============================================================
-// PROPS
-// ============================================================
 interface SelectedStore {
   id: number | null;
   name: string;
@@ -183,9 +167,6 @@ interface AdministrarPremiosProps {
   selectedStore?: SelectedStore | null;
 }
 
-// ============================================================
-// COMPONENTE
-// ============================================================
 const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
   onPremiosChange,
   selectedStore,
@@ -196,22 +177,25 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
   const [editingPremioId, setEditingPremioId] = useState<number | null>(null);
   const [formLabel, setFormLabel] = useState('');
   const [formGrupo, setFormGrupo] = useState<TGrupo>('G3');
-  const [formCantidadesPorTienda, setFormCantidadesPorTienda] = useState<Record<string, string>>({});
+  const [formCantidadesPorTienda, setFormCantidadesPorTienda] = useState<
+    Record<string, string>
+  >({});
+  const [restantesDelPremioEditado, setRestantesDelPremioEditado] = useState<
+    Record<string, number>
+  >({});
   const [saving, setSaving] = useState(false);
 
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({ open: false, message: '', severity: 'success' });
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
 
-  // Eliminación: guardamos el premio completo (más robusto que un índice)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletePremio, setDeletePremio] = useState<ISegment | null>(null);
 
-  // 🏪 Cargar tiendas
   const { data: tiendasCompletas = [] } = useQuery<Tienda[]>({
     queryKey: ['adminTiendas'],
     queryFn: getStores,
@@ -222,7 +206,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
     return tiendasCompletas.filter((t) => esTiendaAutorizada(t.name));
   }, [tiendasCompletas]);
 
-  // 🎁 Cargar premios + inventario desde Directus
   const {
     data: prizesData,
     isLoading: loadingPremios,
@@ -231,22 +214,30 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
   } = useQuery({
     queryKey: ['ruletaPrizesInventory'],
     queryFn: getPrizesWithInventory,
-    staleTime: 60 * 1000,
+    staleTime: 10 * 1000,
+    refetchInterval: 15 * 1000, // 🔄 auto-refresh cada 15s
   });
 
   // ============================================================
-  // 🔨 HELPER: Construye lista normalizada de premios + inventario
+  // 🔨 HELPER: Lee `available` directo de Directus
   // ============================================================
   const buildPremiosFromData = (data: any): ISegment[] => {
     if (!data) return [];
+
     return (data.prizes ?? [])
       .filter((p: any) => p.is_active)
       .map((p: any) => {
         const cantidadesPorTienda: Record<string, number> = {};
+        const restantesPorTienda: Record<string, number> = {};
+
         (data.inventory ?? [])
           .filter((inv: any) => normKey(inv.prize_id) === normKey(p.id))
           .forEach((inv: any) => {
-            cantidadesPorTienda[normKey(inv.store_code)] = inv.total_assigned;
+            const store = normKey(inv.store_code);
+            cantidadesPorTienda[store] = Number(inv.total_assigned) || 0;
+            // 🆕 Leer el campo `available` TAL CUAL viene de Directus
+            restantesPorTienda[store] =
+              inv.available == null ? 0 : Number(inv.available);
           });
 
         const meta = GRUPO_COLOR[p.tier as TGrupo] ?? GRUPO_COLOR['G3'];
@@ -260,11 +251,13 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
           cantidadesPorTienda: Object.keys(cantidadesPorTienda).length
             ? cantidadesPorTienda
             : undefined,
+          restantesPorTienda: Object.keys(restantesPorTienda).length
+            ? restantesPorTienda
+            : undefined,
         } as ISegment;
       });
   };
 
-  // Deriva la lista de premios desde Directus
   const premios: ISegment[] = useMemo(() => {
     return buildPremiosFromData(prizesData);
   }, [prizesData]);
@@ -274,9 +267,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [premios]);
 
-  // ============================================================
-  // 🔎 FILTRO POR TIENDA
-  // ============================================================
   const storeFilterKey = useMemo(() => {
     if (!selectedStore || selectedStore.id == null) return null;
     return selectedStore.ultra_code != null
@@ -292,17 +282,11 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
     });
   }, [premios, storeFilterKey]);
 
-  // Resetear paginación cuando cambia el filtro
   useEffect(() => {
     setPage(1);
   }, [storeFilterKey]);
 
-  // ============================================================
-  // MANEJADORES DEL MODAL
-  // ============================================================
-  // Ahora recibe el PREMIO (o nada para crear uno nuevo)
   const handleOpenModal = async (premio?: ISegment) => {
-    // 🔄 Refrescar data fresca desde Directus
     let premiosFrescos: ISegment[] = premios;
     try {
       const fresh = await refetchPremios();
@@ -327,11 +311,13 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
             )
           : {}
       );
+      setRestantesDelPremioEditado(p.restantesPorTienda ?? {});
     } else {
       setEditingPremioId(null);
       setFormLabel('');
       setFormGrupo('G3');
       setFormCantidadesPorTienda({});
+      setRestantesDelPremioEditado({});
     }
     setOpenModal(true);
   };
@@ -342,6 +328,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
     setEditingPremioId(null);
     setFormLabel('');
     setFormCantidadesPorTienda({});
+    setRestantesDelPremioEditado({});
   };
 
   const handleSavePremio = async () => {
@@ -398,7 +385,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
         })
       );
 
-      await queryClient.invalidateQueries({ queryKey: ['ruletaPrizesInventory'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['ruletaPrizesInventory'],
+      });
       await refetchPremios();
 
       setSnackbar({
@@ -410,6 +399,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
       setEditingPremioId(null);
       setFormLabel('');
       setFormCantidadesPorTienda({});
+      setRestantesDelPremioEditado({});
     } catch (error) {
       console.error('❌ Error al guardar premio:', error);
       setSnackbar({
@@ -439,7 +429,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
     setSaving(true);
     try {
       await deactivatePrize(deletePremio.id);
-      await queryClient.invalidateQueries({ queryKey: ['ruletaPrizesInventory'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['ruletaPrizesInventory'],
+      });
       setSnackbar({
         open: true,
         message: 'Premio eliminado correctamente',
@@ -514,7 +506,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
         </Button>
       </Box>
 
-      {/* BANNER DE FILTRO ACTIVO */}
+      {/* BANNER FILTRO */}
       {storeFilterKey && (
         <Paper
           elevation={0}
@@ -532,7 +524,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
           }}
         >
           <StorefrontIcon sx={{ color: AZUL, fontSize: 20 }} />
-          <Typography sx={{ fontSize: '0.85rem', color: AZUL, fontWeight: 700 }}>
+          <Typography
+            sx={{ fontSize: '0.85rem', color: AZUL, fontWeight: 700 }}
+          >
             Mostrando solo premios con stock en:
           </Typography>
           <Chip
@@ -546,13 +540,15 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
               borderRadius: '8px',
             }}
           />
-          <Typography sx={{ fontSize: '0.75rem', color: '#475569', ml: 'auto' }}>
+          <Typography
+            sx={{ fontSize: '0.75rem', color: '#475569', ml: 'auto' }}
+          >
             {premiosFiltrados.length} de {premios.length} premios
           </Typography>
         </Paper>
       )}
 
-      {/* CONTENEDOR DE PREMIOS */}
+      {/* CONTENEDOR PREMIOS */}
       <Box
         sx={{
           bgcolor: '#eef2f6',
@@ -590,13 +586,10 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
             <Typography variant="h6" color="#D32F2F">
               No se pudieron cargar los premios
             </Typography>
-            <Typography variant="body2" color="#94A3B8" sx={{ mt: 1, mb: 2 }}>
-              Revisa la conexión con Directus e intenta de nuevo.
-            </Typography>
             <Button
               variant="outlined"
               onClick={() => refetchPremios()}
-              sx={{ textTransform: 'none' }}
+              sx={{ textTransform: 'none', mt: 2 }}
             >
               Reintentar
             </Button>
@@ -615,11 +608,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
               {storeFilterKey
                 ? `No hay premios con stock en ${selectedStore?.name}`
                 : 'No hay premios configurados'}
-            </Typography>
-            <Typography variant="body2" color="#94A3B8" sx={{ mt: 1 }}>
-              {storeFilterKey
-                ? 'Cambia el filtro a "Todas las tiendas" o edita un premio para asignarle stock.'
-                : 'Haz clic en "Agregar premio" para comenzar'}
             </Typography>
           </Paper>
         ) : (
@@ -643,6 +631,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                   : 0;
                 const stockFiltrado = storeFilterKey
                   ? premio.cantidadesPorTienda?.[storeFilterKey] ?? 0
+                  : 0;
+                const restanteFiltrado = storeFilterKey
+                  ? premio.restantesPorTienda?.[storeFilterKey] ?? 0
                   : 0;
 
                 return (
@@ -669,7 +660,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                             mb: 1.5,
                           }}
                         >
-                          <ColorCircle color={premio.color}>{inicial}</ColorCircle>
+                          <ColorCircle color={premio.color}>
+                            {inicial}
+                          </ColorCircle>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography
                               variant="h6"
@@ -743,7 +736,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                           </Box>
                         </Box>
 
-                        {/* 📦 Stock: cambia según si hay filtro o no */}
                         {(tiendasConCantidad > 0 || storeFilterKey) && (
                           <Box
                             sx={{
@@ -758,40 +750,82 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                           >
                             <InventoryIcon sx={{ fontSize: 16, color: AZUL }} />
                             {storeFilterKey ? (
-                              <Chip
-                                label={`Stock: ${stockFiltrado}`}
-                                size="small"
-                                sx={{
-                                  bgcolor: AZUL,
-                                  color: '#fff',
-                                  fontWeight: 700,
-                                  fontSize: '0.72rem',
-                                  height: 22,
-                                }}
-                              />
+                              <>
+                                <Tooltip title="Total asignado">
+                                  <Chip
+                                    label={`Total: ${stockFiltrado}`}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: AZUL_BG,
+                                      color: AZUL,
+                                      fontWeight: 700,
+                                      fontSize: '0.7rem',
+                                      height: 22,
+                                    }}
+                                  />
+                                </Tooltip>
+                                <Tooltip title="Disponible en Directus (campo available)">
+                                  <Chip
+                                    label={`Quedan: ${restanteFiltrado}`}
+                                    size="small"
+                                    sx={{
+                                      bgcolor:
+                                        restanteFiltrado === 0
+                                          ? '#FEF2F2'
+                                          : restanteFiltrado === 1
+                                          ? '#FEF3C7'
+                                          : '#ECFDF5',
+                                      color:
+                                        restanteFiltrado === 0
+                                          ? '#DC2626'
+                                          : restanteFiltrado === 1
+                                          ? '#B45309'
+                                          : '#047857',
+                                      fontWeight: 800,
+                                      fontSize: '0.7rem',
+                                      height: 22,
+                                      border:
+                                        restanteFiltrado === 0
+                                          ? '1px solid #FECACA'
+                                          : restanteFiltrado === 1
+                                          ? '1px solid #FDE68A'
+                                          : '1px solid #A7F3D0',
+                                    }}
+                                  />
+                                </Tooltip>
+                              </>
                             ) : (
                               <Tooltip
                                 title={
                                   <Box>
-                                    {Object.entries(premio.cantidadesPorTienda ?? {}).map(
-                                      ([storeCode, c]) => {
-                                        const t = tiendas.find(
-                                          (x) => normKey(x.ultra_code) === normKey(storeCode)
-                                        );
-                                        return (
-                                          <div key={storeCode}>
-                                            {t?.name || `Tienda ${storeCode}`}: {c}
-                                          </div>
-                                        );
-                                      }
-                                    )}
+                                    {Object.entries(
+                                      premio.cantidadesPorTienda ?? {}
+                                    ).map(([storeCode, c]) => {
+                                      const t = tiendas.find(
+                                        (x) =>
+                                          normKey(x.ultra_code) ===
+                                          normKey(storeCode)
+                                      );
+                                      const r =
+                                        premio.restantesPorTienda?.[
+                                          storeCode
+                                        ] ?? 0;
+                                      return (
+                                        <div key={storeCode}>
+                                          {t?.name || `Tienda ${storeCode}`}:{' '}
+                                          {r} / {c}
+                                        </div>
+                                      );
+                                    })}
                                   </Box>
                                 }
                                 arrow
                               >
                                 <Chip
                                   label={`Stock en ${tiendasConCantidad} ${
-                                    tiendasConCantidad === 1 ? 'tienda' : 'tiendas'
+                                    tiendasConCantidad === 1
+                                      ? 'tienda'
+                                      : 'tiendas'
                                   }`}
                                   size="small"
                                   sx={{
@@ -876,8 +910,13 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                   gap: 1,
                 }}
               >
-                <Typography variant="body2" color="#64748B" fontWeight={500}>
-                  Mostrando {displayedPremios.length} de {premiosFiltrados.length} premios
+                <Typography
+                  variant="body2"
+                  color="#64748B"
+                  fontWeight={500}
+                >
+                  Mostrando {displayedPremios.length} de {premiosFiltrados.length}{' '}
+                  premios
                 </Typography>
                 <Pagination
                   count={totalPages}
@@ -958,7 +997,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
         </DialogTitle>
 
         <DialogContent sx={{ p: 3, bgcolor: '#fafbfc' }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+          <Box
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}
+          >
             {/* VISTA PREVIA */}
             <Box
               sx={{
@@ -993,7 +1034,11 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                 {formLabel ? formLabel.trim().charAt(0).toUpperCase() : '?'}
               </Box>
               <Box>
-                <Typography variant="body2" color="#94A3B8" fontWeight={500}>
+                <Typography
+                  variant="body2"
+                  color="#94A3B8"
+                  fontWeight={500}
+                >
                   Vista previa
                 </Typography>
                 <Typography
@@ -1034,7 +1079,10 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                   borderRadius: '12px',
                   bgcolor: '#ffffff',
                   '&:hover fieldset': { borderColor: AZUL },
-                  '&.Mui-focused fieldset': { borderColor: AZUL, borderWidth: '2px' },
+                  '&.Mui-focused fieldset': {
+                    borderColor: AZUL,
+                    borderWidth: '2px',
+                  },
                 },
                 '& .MuiInputLabel-root.Mui-focused': { color: AZUL },
               }}
@@ -1107,7 +1155,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                         >
                           {g}
                         </Typography>
-                        <Typography sx={{ fontSize: '0.7rem', color: '#64748B' }}>
+                        <Typography
+                          sx={{ fontSize: '0.7rem', color: '#64748B' }}
+                        >
                           {meta.label}
                         </Typography>
                       </Box>
@@ -1117,9 +1167,16 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
               </Box>
             </Box>
 
-            {/* 📦 CANTIDAD / STOCK */}
+            {/* STOCK */}
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.25,
+                  mb: 1.5,
+                }}
+              >
                 <Box
                   sx={{
                     width: 32,
@@ -1155,7 +1212,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                       lineHeight: 1.3,
                     }}
                   >
-                    Usa 0 para no ofrecerlo en esa tienda
+                    Total asignado · El chip muestra el disponible real
                   </Typography>
                 </Box>
               </Box>
@@ -1199,6 +1256,16 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                   ) : (
                     tiendas.map((t, index) => {
                       const storeKey = normKey(t.ultra_code);
+                      const restante = restantesDelPremioEditado[storeKey];
+                      const colorRestante =
+                        restante === undefined
+                          ? '#94A3B8'
+                          : restante === 0
+                          ? '#DC2626'
+                          : restante === 1
+                          ? '#B45309'
+                          : '#047857';
+
                       return (
                         <Box
                           key={t.id}
@@ -1206,7 +1273,8 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1.5,
-                            bgcolor: index % 2 === 0 ? '#F8FAFC' : '#ffffff',
+                            bgcolor:
+                              index % 2 === 0 ? '#F8FAFC' : '#ffffff',
                             borderRadius: '10px',
                             px: 1.25,
                             py: 0.75,
@@ -1262,7 +1330,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                             disabled={saving}
                             inputProps={{ min: 0 }}
                             sx={{
-                              width: 76,
+                              width: 68,
                               '& .MuiOutlinedInput-root': {
                                 borderRadius: '8px',
                                 bgcolor: '#fff',
@@ -1282,6 +1350,28 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                               },
                             }}
                           />
+
+                          {restante !== undefined && (
+                            <Tooltip title="Disponible en Directus">
+                              <Typography
+                                sx={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  color: colorRestante,
+                                  bgcolor: `${colorRestante}18`,
+                                  border: `1px solid ${colorRestante}40`,
+                                  px: 0.85,
+                                  py: 0.4,
+                                  borderRadius: '6px',
+                                  whiteSpace: 'nowrap',
+                                  minWidth: 38,
+                                  textAlign: 'center',
+                                }}
+                              >
+                                {restante}
+                              </Typography>
+                            </Tooltip>
+                          )}
                         </Box>
                       );
                     })
@@ -1321,7 +1411,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
             disableElevation
             disabled={saving}
             startIcon={
-              saving ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined
+              saving ? (
+                <CircularProgress size={16} sx={{ color: '#fff' }} />
+              ) : undefined
             }
             sx={{
               bgcolor: AZUL,
@@ -1382,10 +1474,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
             ¿Estás seguro de que deseas eliminar el premio{' '}
             <strong>"{deletePremio?.label ?? ''}"</strong>?
           </DialogContentText>
-          <Typography variant="body2" color="#94A3B8" sx={{ mt: 1 }}>
-            El premio se desactiva (no se borra el historial de jugadas donde ya se
-            entregó).
-          </Typography>
         </DialogContent>
         <DialogActions
           sx={{
@@ -1416,7 +1504,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
             disableElevation
             disabled={saving}
             startIcon={
-              saving ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined
+              saving ? (
+                <CircularProgress size={16} sx={{ color: '#fff' }} />
+              ) : undefined
             }
             sx={{
               bgcolor: AZUL,
