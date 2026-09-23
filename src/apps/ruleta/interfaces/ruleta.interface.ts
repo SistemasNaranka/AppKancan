@@ -49,3 +49,14 @@ export interface Tienda {
   name: string;
   ultra_code: string;
 }
+
+
+export interface ISegment {
+  id?: number;
+  label: string;
+  grupo: TGrupo;
+  color: string;
+  colorDark?: string;                 // ← CON ? (opcional)
+  cantidadesPorTienda?: Record<string, number>;
+  restantesPorTienda?: Record<string, number>;
+}
