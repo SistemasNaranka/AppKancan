@@ -22,7 +22,7 @@ const getFriendlyErrorMessage = (error: any): string => {
 // sin importar si `prize` llegó como string o como objeto anidado
 // { prize, probabilidad }.
 const normalizePremio = (raw: FacturaValida): IPremioResponse => {
-  
+
   return {
     prize: raw.prize,
     couponCode: "123",
@@ -88,7 +88,7 @@ export const useRuleta = (
         const animate = (time: number) => {
           const elapsed = time - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 4); // ease-out quart
+          const eased = 1 - Math.pow(1 - progress, 4); // ease-out quar
           setRotation(startRotation + totalDelta * eased);
 
           if (progress < 1) {
