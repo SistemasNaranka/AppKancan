@@ -121,7 +121,18 @@ export async function getPrizesWithInventory() {
     )
   );
 
-  return { prizes, inventory } as {
+  // Jugadas = entregas. Cada fila es un premio entregado; contarlas da el "entregado".
+  // Con el SDK (autenticado) para que no llegue vacío como con el fetch anónimo.
+  const plays = await withAutoRefresh(() =>
+    directus.request(
+      readItems('sal_roulette_plays', {
+        fields: ['store_code', 'prize'],
+        limit: -1,
+      })
+    )
+  );
+
+  return { prizes, inventory, plays } as {
     prizes: Array<{
       id: number;
       name: string;
@@ -130,6 +141,7 @@ export async function getPrizesWithInventory() {
       probability: number | null;
     }>;
     inventory: IPrizeInventoryRow[];
+    plays: Array<{ store_code: string | number; prize: string }>;
   };
 }
 

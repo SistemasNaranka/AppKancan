@@ -12,6 +12,6 @@ export const useRuletaPolicies = () => {
   );
 
   return {
-    canManagePrizes: policies.some((p) => p.includes(PRIZE_ADMIN_POLICY)),
+    canManagePrizes: policies.includes(PRIZE_ADMIN_POLICY),
   };
 };
