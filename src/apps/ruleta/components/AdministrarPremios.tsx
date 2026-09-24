@@ -45,61 +45,15 @@ import {
   deleteInventory,
 } from '../api/directus/write';
 
-// 🎨 Color principal
-const AZUL = '#004680';
-const AZUL_BG = '#E6EEF5';
-const AZUL_BORDER = '#99BBD4';
-const AZUL_HOVER = '#CCDDEA';
-
-// ============================================================
-// 🎯 TIENDAS AUTORIZADAS
-// ============================================================
-const TIENDAS_AUTORIZADAS = [
-  'CALI CARRERA8',
-  'CALI CENTRO',
-  'CALI SALOMIA',
-  'CALIMA',
-  'CENCO CALI',
-  'CHIPICHAPE',
-  'COSMOCENTRO',
-  'MALL PLAZA',
-  'MANIZALES CENTRO',
-  'PALMETTO',
-  'UNICENTRO1 CALI',
-  'UNICENTRO2 CALI',
-  'UNICO CALI',
-  'VICTORIA PLAZA',
-];
-
-const esTiendaAutorizada = (nombre: string): boolean => {
-  const n = (nombre || '').trim().toUpperCase();
-  return TIENDAS_AUTORIZADAS.includes(n);
-};
-
-// ============================================================
-// HELPERS
-// ============================================================
-const getInicial = (nombre: string): string => {
-  if (!nombre) return '?';
-  return nombre.trim().charAt(0).toUpperCase();
-};
-
-const getIconoDecorativo = (nombre: string) => {
-  const lower = nombre.toLowerCase();
-  if (lower.includes('jean') || lower.includes('denim')) return '👖';
-  if (lower.includes('bono') || lower.includes('$')) return '💰';
-  if (lower.includes('blusa')) return '👚';
-  if (lower.includes('top')) return '👕';
-  if (lower.includes('pañole') || lower.includes('bandana')) return '🧣';
-  if (lower.includes('bamba')) return '👟';
-  if (lower.includes('tote')) return '👜';
-  return '🎁';
-};
-
-// ============================================================
-// 🔑 UTILIDAD
-// ============================================================
-const normKey = (v: any): string => String(v ?? '').trim();
+import { AZUL, AZUL_BG, AZUL_BORDER, AZUL_HOVER, esTiendaAutorizada } from '../utils/constantes';
+import {
+  normKey,
+  getInicial,
+  getIconoDecorativo,
+  buildPremiosFromData,
+  calcularStockPremio,
+  estiloRestante,
+} from '../utils/premios';
 
 // ============================================================
 // ESTILOS — compactos
@@ -219,45 +173,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
     staleTime: 10 * 1000,
     refetchInterval: 15 * 1000,
   });
-
-  // ============================================================
-  // 🔨 HELPER: Lee `available` directo de Directus
-  // ============================================================
-  const buildPremiosFromData = (data: any): ISegment[] => {
-    if (!data) return [];
-
-    return (data.prizes ?? [])
-      .filter((p: any) => p.is_active)
-      .map((p: any) => {
-        const cantidadesPorTienda: Record<string, number> = {};
-        const restantesPorTienda: Record<string, number> = {};
-
-        (data.inventory ?? [])
-          .filter((inv: any) => normKey(inv.prize_id) === normKey(p.id))
-          .forEach((inv: any) => {
-            const store = normKey(inv.store_code);
-            cantidadesPorTienda[store] = Number(inv.total_assigned) || 0;
-            restantesPorTienda[store] =
-              inv.available == null ? 0 : Number(inv.available);
-          });
-
-        const meta = GRUPO_COLOR[p.tier as TGrupo] ?? GRUPO_COLOR['G3'];
-
-        return {
-          id: p.id,
-          label: p.name,
-          grupo: p.tier,
-          color: meta.color,
-          colorDark: meta.colorDark,
-          cantidadesPorTienda: Object.keys(cantidadesPorTienda).length
-            ? cantidadesPorTienda
-            : undefined,
-          restantesPorTienda: Object.keys(restantesPorTienda).length
-            ? restantesPorTienda
-            : undefined,
-        } as ISegment;
-      });
-  };
 
   const premios: ISegment[] = useMemo(() => {
     return buildPremiosFromData(prizesData);
@@ -548,33 +463,9 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                 const inicial = getInicial(premio.label);
                 const iconoDecorativo = getIconoDecorativo(premio.label);
                 const meta = GRUPO_COLOR[premio.grupo];
-                const tiendasConCantidad = premio.cantidadesPorTienda
-                  ? Object.keys(premio.cantidadesPorTienda).length
-                  : 0;
-
-                // 🆕 Sumas totales (solo se usan cuando NO hay filtro)
-                const totalTodas = Object.values(premio.cantidadesPorTienda ?? {}).reduce(
-                  (a, b) => a + b,
-                  0
-                );
-                const disponibleTodas = Object.values(premio.restantesPorTienda ?? {}).reduce(
-                  (a, b) => a + b,
-                  0
-                );
-
-                const stockFiltrado = storeFilterKey
-                  ? premio.cantidadesPorTienda?.[storeFilterKey] ?? 0
-                  : 0;
-                const restanteFiltrado = storeFilterKey
-                  ? premio.restantesPorTienda?.[storeFilterKey] ?? 0
-                  : 0;
-
-                // 🆕 Valores a mostrar según el contexto
-                const stockMostrado = storeFilterKey ? stockFiltrado : totalTodas;
-                const restanteMostrado = storeFilterKey ? restanteFiltrado : disponibleTodas;
-
-                // 🆕 Entregados = Total − Quedan
-                const entregadosMostrado = Math.max(0, stockMostrado - restanteMostrado);
+                const { tiendasConCantidad, stockMostrado, restanteMostrado, entregadosMostrado } =
+                  calcularStockPremio(premio, storeFilterKey);
+                const estiloQuedan = estiloRestante(restanteMostrado);
 
                 return (
                   <Fade in timeout={300} key={premio.id ?? realIndex}>
@@ -683,27 +574,12 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                                 label={`Quedan: ${restanteMostrado}`}
                                 size="small"
                                 sx={{
-                                  bgcolor:
-                                    restanteMostrado === 0
-                                      ? '#FEF2F2'
-                                      : restanteMostrado === 1
-                                      ? '#FEF3C7'
-                                      : '#ECFDF5',
-                                  color:
-                                    restanteMostrado === 0
-                                      ? '#DC2626'
-                                      : restanteMostrado === 1
-                                      ? '#B45309'
-                                      : '#047857',
+                                  bgcolor: estiloQuedan.bg,
+                                  color: estiloQuedan.color,
                                   fontWeight: 800,
                                   fontSize: '0.62rem',
                                   height: 18,
-                                  border:
-                                    restanteMostrado === 0
-                                      ? '1px solid #FECACA'
-                                      : restanteMostrado === 1
-                                      ? '1px solid #FDE68A'
-                                      : '1px solid #A7F3D0',
+                                  border: `1px solid ${estiloQuedan.border}`,
                                   '& .MuiChip-label': { px: 0.75 },
                                 }}
                               />
@@ -1001,10 +877,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                       const storeKey = normKey(t.ultra_code);
                       const restante = restantesDelPremioEditado[storeKey];
                       const colorRestante =
-                        restante === undefined ? '#94A3B8' :
-                        restante === 0 ? '#DC2626' :
-                        restante === 1 ? '#B45309' :
-                        '#047857';
+                        restante === undefined ? '#94A3B8' : estiloRestante(restante).color;
 
                       return (
                         <Box
