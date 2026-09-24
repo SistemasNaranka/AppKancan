@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   TextField,
   Snackbar,
@@ -22,11 +21,11 @@ import {
   Add as AddIcon,
   EditNote as EditNoteIcon,
   Close as CloseIcon,
-  Warning as WarningIcon,
   Inventory2 as InventoryIcon,
   Storefront as StorefrontIcon,
 } from '@mui/icons-material';
 import PremioCard from './admin/PremioCard';
+import ConfirmarEliminarDialog from './admin/ConfirmarEliminarDialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ISegment, TGrupo, Tienda } from '../interfaces/ruleta.interface';
 import { GRUPO_COLOR } from '../utils/rangos';
@@ -359,7 +358,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                 <PremioCard
                   key={premio.id ?? (page - 1) * rowsPerPage + index}
                   premio={premio}
-                  storeFilterKey={storeFilterKey}
+                  storeFilterKey={storeFilterKey}      
                   selectedStoreName={selectedStore?.name}
                   tiendas={tiendas}
                   onEdit={handleOpenModal}
@@ -650,62 +649,13 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
       </Dialog>
 
       {/* MODAL ELIMINAR */}
-      <Dialog
+      <ConfirmarEliminarDialog
         open={deleteDialogOpen}
+        premioLabel={deletePremio?.label ?? ''}
+        saving={saving}
         onClose={handleCloseDeleteDialog}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden' } }}
-      >
-        <DialogTitle sx={{
-          m: 0, p: 2.5,
-          background: `linear-gradient(135deg, ${AZUL}, #003366)`,
-          color: '#ffffff', fontWeight: 700,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <WarningIcon sx={{ fontSize: 28 }} />
-            <Typography variant="h6" fontWeight={700}>Eliminar premio</Typography>
-          </Box>
-          <IconButton onClick={handleCloseDeleteDialog} sx={{ color: '#ffffff' }} disabled={saving}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: '#fafbfc' }}>
-          <DialogContentText sx={{ fontSize: '1rem', color: '#1E293B', fontWeight: 500 }}>
-            ¿Estás seguro de que deseas eliminar el premio{' '}
-            <strong>"{deletePremio?.label ?? ''}"</strong>?
-          </DialogContentText>
-          <Typography variant="body2" color="#94A3B8" sx={{ mt: 1 }}>
-            El premio se desactiva (no se borra el historial de jugadas donde ya se entregó).
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 2.5, px: 3, borderTop: '1px solid #E2E8F0', bgcolor: '#ffffff', gap: 1 }}>
-          <Button
-            onClick={handleCloseDeleteDialog}
-            disabled={saving}
-            sx={{
-              textTransform: 'none', borderRadius: '10px', fontWeight: 600,
-              px: 3, color: '#64748B', '&:hover': { bgcolor: '#F1F5F9' },
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            variant="contained"
-            disableElevation
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
-            sx={{
-              bgcolor: AZUL, textTransform: 'none', fontWeight: 700,
-              borderRadius: '10px', px: 4, '&:hover': { bgcolor: '#003366' },
-            }}
-          >
-            {saving ? 'Eliminando...' : 'Eliminar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleConfirmDelete}
+      />
 
       <Snackbar
         open={snackbar.open}
