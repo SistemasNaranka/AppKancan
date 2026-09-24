@@ -36,14 +36,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ISegment, TGrupo, Tienda } from '../interfaces/ruleta.interface';
 import { GRUPO_COLOR } from '../utils/rangos';
 import { getStores } from '../api/directus/read';
-import {
-  getPrizesWithInventory,
-  createPrize,
-  updatePrize,
-  deactivatePrize,
-  upsertInventory,
-  deleteInventory,
-} from '../api/directus/write';
+import { getPrizesWithInventory, deactivatePrize } from '../api/directus/write';
+import { guardarPremio } from '../services/premiosService';
 
 import { AZUL, AZUL_BG, AZUL_BORDER, AZUL_HOVER, esTiendaAutorizada } from '../utils/constantes';
 import {
@@ -265,47 +259,14 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
 
     setSaving(true);
     try {
-      let prizeId: number;
-
-      if (editingPremioId != null) {
-        prizeId = editingPremioId;
-        await updatePrize(prizeId, {
-          name: formLabel.trim(),
-          tier: formGrupo,
-        });
-      } else {
-        prizeId = await createPrize({
-          name: formLabel.trim(),
-          tier: formGrupo,
-        });
-      }
-
-      const existingRows = (prizesData?.inventory ?? []).filter(
-        (inv: any) => normKey(inv.prize_id) === normKey(prizeId)
-      );
-      const existingByStore = new Map(
-        existingRows.map((r: any) => [normKey(r.store_code), r])
-      );
-
-      await Promise.all(
-        tiendas.map(async (t) => {
-          const storeKey = normKey(t.ultra_code);
-          const raw = formCantidadesPorTienda[storeKey];
-          const qty = raw ? parseInt(raw, 10) : 0;
-          const existing = existingByStore.get(storeKey) as any;
-
-          if (!isNaN(qty) && qty > 0) {
-            await upsertInventory({
-              id: existing?.id,
-              prize_id: prizeId,
-              store_code: t.ultra_code,
-              total_assigned: qty,
-            });
-          } else if (existing?.id) {
-            await deleteInventory(existing.id);
-          }
-        })
-      );
+      await guardarPremio({
+        prizeId: editingPremioId,
+        nombre: formLabel,
+        grupo: formGrupo,
+        cantidadesPorTienda: formCantidadesPorTienda,
+        tiendas,
+        inventarioActual: prizesData?.inventory ?? [],
+      });
 
       await queryClient.invalidateQueries({ queryKey: ['ruletaPrizesInventory'] });
       await refetchPremios();
