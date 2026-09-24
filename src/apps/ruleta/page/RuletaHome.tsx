@@ -12,13 +12,6 @@ import {
   Chip,
   Autocomplete,
   InputAdornment,
-  Badge,
-  Popover,
-  IconButton,
-  Divider,
-  Dialog,
-  DialogContent,
-  DialogActions,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
@@ -26,13 +19,9 @@ import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { Casino as RuletaIcon, LocalOffer as PremiosIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { getStores } from '../api/directus/read';
-import { useAuth } from '../../../auth/hooks/useAuth';
 import Ruleta from '../components/Ruleta';
 import AdministrarPremios from '../components/AdministrarPremios';
 import { ISegment, Tienda } from '../interfaces/ruleta.interface';
@@ -113,18 +102,9 @@ export interface FacturaValida {
   documentos: string;
 }
 
-interface RangoStock {
-  tier: string;
-  nombre: string;
-  restante: number;
-  estado: 'OK' | 'ULTIMO' | 'AGOTADO';
-}
-
 const RuletaHome: React.FC = () => {
-  const auth = useAuth() as any;
   const { canManagePrizes } = useRuletaPolicies();
 
-  const ultra_code = auth?.ultra_code ?? auth?.user?.ultra_code ?? auth?.me?.ultra_code;
   const [preFactura, setPreFactura] = useState('');
   const [numFactura, setNumFactura] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -140,9 +120,6 @@ const RuletaHome: React.FC = () => {
 
   const [premios, setPremios] = useState<ISegment[]>(() => getPremiosFromStorage());
   const [storeFilter, setStoreFilter] = useState<number | null>(null);
-  const [stockRangos, setStockRangos] = useState<RangoStock[]>([]);
-  const [hayCriticos, setHayCriticos] = useState(false);
-  const [campanaAnchor, setCampanaAnchor] = useState<null | HTMLElement>(null);
 
   // ============================================================
   // 🏪 TIENDAS DESDE DIRECTUS
@@ -152,24 +129,6 @@ const RuletaHome: React.FC = () => {
     queryFn: getStores,
     staleTime: 30 * 60 * 1000,
   });
-
-  const cargarStock = async () => {
-    if (!ultra_code) return;
-    try {
-      const res = await fetch(`/api/ruleta/estado-stock/${encodeURIComponent(String(ultra_code))}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setStockRangos(data.rangos ?? []);
-      setHayCriticos(data.hayCriticos ?? false);
-    } catch {
-      // silencioso: la campanita no debe romper la pantalla
-    }
-  };
-
-  useEffect(() => {
-    cargarStock();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ultra_code]);
 
   const tiendasFiltradas = useMemo(() => {
     return tiendasCompletas.filter((tienda) => esTiendaAutorizada(tienda.name));
@@ -231,12 +190,10 @@ const RuletaHome: React.FC = () => {
   // 🆕 Cuando la ruleta termina un giro:
   //   - limpia solo el número (el prefijo se conserva)
   //   - anula el estado local de la factura → botón GIRAR se deshabilita
-  //   - recarga la campanita de stock
   const handleGiroCompletado = () => {
     setNumFactura('');
     setFactura(null);
     setError(null);
-    cargarStock();
   };
 
   const titulo = tabValue === 0 ? 'Ruleta de Premios' : 'Administrar Premios';
@@ -391,49 +348,6 @@ const RuletaHome: React.FC = () => {
                   }}
                 />
               )}
-
-              {tabValue === 0 && (
-                <IconButton
-                  onClick={(e) => setCampanaAnchor(e.currentTarget)}
-                  sx={{ bgcolor: hayCriticos ? '#FEF2F2' : '#F1F5F9', '&:hover': { bgcolor: hayCriticos ? '#FEE2E2' : '#E2E8F0' } }}
-                >
-                  <Badge color="error" variant="dot" invisible={!hayCriticos}>
-                    {hayCriticos
-                      ? <NotificationsActiveIcon sx={{ fontSize: 20, color: '#DC2626' }} />
-                      : <NotificationsIcon sx={{ fontSize: 20, color: '#64748B' }} />}
-                  </Badge>
-                </IconButton>
-              )}
-
-              <Popover
-                open={Boolean(campanaAnchor)}
-                anchorEl={campanaAnchor}
-                onClose={() => setCampanaAnchor(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              >
-                <Box sx={{ p: 2, width: 260 }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#1E293B', mb: 1 }}>
-                    Estado de premios
-                  </Typography>
-                  <Divider sx={{ mb: 1 }} />
-                  {stockRangos.length === 0 ? (
-                    <Typography sx={{ fontSize: 12, color: '#94A3B8' }}>Sin datos de stock.</Typography>
-                  ) : (
-                    stockRangos.map((r) => (
-                      <Box key={r.tier} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75 }}>
-                        <Typography sx={{ fontSize: 13, color: '#334155' }}>{r.nombre}</Typography>
-                        <Typography sx={{
-                          fontSize: 12, fontWeight: 700,
-                          color: r.estado === 'AGOTADO' ? '#DC2626' : r.estado === 'ULTIMO' ? '#B45309' : '#047857',
-                        }}>
-                          {r.estado === 'AGOTADO' ? 'Agotado' : r.estado === 'ULTIMO' ? 'Último premio' : `${r.restante} disponibles`}
-                        </Typography>
-                      </Box>
-                    ))
-                  )}
-                </Box>
-              </Popover>
             </Box>
           </Box>
 
@@ -774,7 +688,6 @@ const RuletaHome: React.FC = () => {
                 segments={intercalarSegments(premios)}
                 facturaValida={!!factura && factura.puedeGirar}
                 storeId={storeFilter}
-                onPremioGanado={() => cargarStock()}
                 onGiroCompletado={handleGiroCompletado}
               />
             </Box>
