@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  Dialog, DialogTitle, DialogActions,
   IconButton, Button, Box, Typography, Chip, Divider, Stack,
 } from '@mui/material';
 import {
@@ -45,49 +45,67 @@ const DetalleModal: React.FC<Props> = ({ postulacion, onClose }) => {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      sx={{
-        '& .MuiDialog-container': {
-          alignItems: 'flex-start',
-        },
-      }}
       PaperProps={{
         sx: {
           borderRadius: 3,
           overflow: 'hidden',
-          height: 'auto',
-          maxHeight: 'calc(100vh - 64px)',
           my: 4,
         },
       }}
     >
       {postulacion && (
         <>
+          {/* HEADER — Avatar + DATOS PERSONALES + Estado + Fecha */}
           <DialogTitle sx={{
             background: `linear-gradient(135deg, ${AZUL}, #003366)`,
-            color: '#fff', p: 3, pb: 5,
-            display: 'flex', alignItems: 'center', gap: 2,
-            flexShrink: 0,
+            color: '#fff',
+            p: 3,
+            pb: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
           }}>
             <Box sx={{
               width: 52, height: 52, borderRadius: '50%',
               bgcolor: 'rgba(255,255,255,0.15)',
               border: '2px solid rgba(255,255,255,0.4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, fontSize: '1.4rem',
+              fontWeight: 800, fontSize: '1.4rem', flexShrink: 0,
             }}>
               {postulacion.full_name.charAt(0).toUpperCase()}
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography fontWeight={700} fontSize="1.15rem" noWrap>{postulacion.full_name}</Typography>
-              <Typography fontSize="0.8rem" sx={{ opacity: 0.85, mt: 0.25 }}>{postulacion.email}</Typography>
-              <Chip label={postulacion.status || 'Sin estado'} size="small"
-                sx={{ mt: 1, bgcolor: meta.bg, color: meta.color, fontWeight: 800, fontSize: '0.72rem', height: 24 }} />
+              <Typography sx={{
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                opacity: 0.95,
+              }}>
+                DATOS PERSONALES
+              </Typography>
+
+              {/* Chip de estado + fecha en la misma línea */}
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1 }}>
+                <Chip
+                  label={postulacion.status || 'Sin estado'}
+                  size="small"
+                  sx={{ bgcolor: meta.bg, color: meta.color, fontWeight: 800, fontSize: '0.72rem', height: 24 }}
+                />
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <CalendarIcon sx={{ fontSize: 14, opacity: 0.7 }} />
+                  <Typography sx={{ fontSize: '0.75rem', opacity: 0.85, whiteSpace: 'nowrap' }}>
+                    {formatearFecha(postulacion.date_created)}
+                  </Typography>
+                </Stack>
+              </Stack>
             </Box>
-            <IconButton onClick={onClose} sx={{ color: '#fff' }}><CloseIcon /></IconButton>
+            <IconButton onClick={onClose} sx={{ color: '#fff', alignSelf: 'flex-start' }}>
+              <CloseIcon />
+            </IconButton>
           </DialogTitle>
 
-          <DialogContent sx={{ p: 3, pt: 5, bgcolor: '#FAFBFC', overflowY: 'auto' }}>
-            <SectionTitle>DATOS PERSONALES</SectionTitle>
+          {/* CONTENIDO */}
+          <Box sx={{ p: 3, pt: 3, bgcolor: '#FAFBFC' }}>
             <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: 0.5, border: '1px solid #E2E8F0', mb: 3 }}>
               <InfoRow icon={<BadgeIcon sx={{ fontSize: 18 }} />} label="Tipo doc." value={postulacion.document_type || '—'} />
               <InfoRow icon={<BadgeIcon sx={{ fontSize: 18 }} />} label="Documento" value={postulacion.document_number || '—'} />
@@ -104,25 +122,36 @@ const DetalleModal: React.FC<Props> = ({ postulacion, onClose }) => {
             </Box>
 
             <SectionTitle>CARGOS POSTULADOS</SectionTitle>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap
-              sx={{ bgcolor: '#fff', borderRadius: 2, p: 1.5, border: '1px solid #E2E8F0', mb: 3 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ bgcolor: '#fff', borderRadius: 2, p: 1.5, border: '1px solid #E2E8F0', mb: 3 }}
+            >
               {cargos.length === 0
                 ? <Typography sx={{ fontSize: '0.85rem', color: '#94A3B8', fontStyle: 'italic' }}>Sin cargos</Typography>
-                : cargos.map((c) => <Chip key={c} label={c} sx={{ bgcolor: AZUL_BG, color: AZUL, fontWeight: 700 }} />)}
+                : cargos.map((c) => (
+                    <Chip key={c} label={c} sx={{ bgcolor: AZUL_BG, color: AZUL, fontWeight: 700 }} />
+                  ))}
             </Stack>
+          </Box>
 
-            <Divider sx={{ my: 3 }} />
-            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-              <CalendarIcon sx={{ fontSize: 16, color: '#94A3B8' }} />
-              <Typography sx={{ fontSize: '0.78rem', color: '#94A3B8' }}>
-                Postuló el <strong style={{ color: '#475569' }}>{formatearFecha(postulacion.date_created)}</strong>
-              </Typography>
-            </Stack>
-          </DialogContent>
-
-          <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #E2E8F0', bgcolor: '#fff', flexShrink: 0 }}>
-            <Button onClick={onClose} variant="outlined"
-              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#CBD5E1', color: '#64748B', px: 3 }}>
+          {/* FOOTER */}
+          <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #E2E8F0', bgcolor: '#fff' }}>
+            <Button
+              onClick={onClose}
+              variant="outlined"
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                borderRadius: 2,
+                borderColor: '#CBD5E1',
+                color: '#64748B',
+                px: 3,
+                '&:hover': { borderColor: AZUL, color: AZUL, bgcolor: AZUL_BG },
+              }}
+            >
               Cerrar
             </Button>
           </DialogActions>

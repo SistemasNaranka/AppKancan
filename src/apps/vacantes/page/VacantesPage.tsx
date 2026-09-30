@@ -3,14 +3,15 @@ import {
   Box, Typography, Paper, TextField, Chip, IconButton, Tooltip,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TablePagination, InputAdornment, MenuItem, Select, FormControl, InputLabel,
-  CircularProgress, Alert, Snackbar,
+  CircularProgress, Alert, Snackbar, Button,
 } from '@mui/material';
 import {
   Search as SearchIcon, Visibility as ViewIcon,
   PictureAsPdf as PictureAsPdfIcon, WorkOutline as WorkIcon,
-  Clear as ClearIcon, Refresh as RefreshIcon,
+  Clear as ClearIcon, FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import * as XLSX from 'xlsx';
 import EstadoSelect from '../components/EstadoSelect';
 import DetalleModal from '../components/DetalleModal';
 import {
@@ -42,19 +43,26 @@ type FiltroEstado = EstadoContratacion | 'Todos';
 // 🆕 SELECT CON BOTÓN X
 // ============================================================
 interface ClearableSelectProps {
-  value: string; onChange: (v: string) => void; onClear: () => void;
-  label: string; defaultValue: string; options: string[]; defaultLabel: string;
+  value: string;
+  onChange: (v: string) => void;
+  onClear: () => void;
+  label: string;
+  defaultValue: string;
+  options: string[];
+  defaultLabel: string;
 }
 
 const ClearableSelect: React.FC<ClearableSelectProps> = ({
   value, onChange, onClear, label, defaultValue, options, defaultLabel,
 }) => {
   const hasValue = value !== defaultValue;
+
   return (
     <FormControl size="small" sx={{ minWidth: 220 }}>
       <InputLabel>{label}</InputLabel>
       <Select
-        value={value} label={label}
+        value={value}
+        label={label}
         onChange={(e) => onChange(e.target.value)}
         sx={{ borderRadius: 2, bgcolor: '#fff', height: 44 }}
         renderValue={(s) => (
@@ -94,7 +102,7 @@ const VacantesPage: React.FC = () => {
 
   const {
     data: postulaciones = [],
-    isLoading, isError, refetch, isFetching,
+    isLoading, isError, refetch,
   } = useQuery({
     queryKey: ['vacantes-postulaciones'],
     queryFn: getApplications,
@@ -144,6 +152,43 @@ const VacantesPage: React.FC = () => {
     }
   };
 
+  // ============================================================
+  // 📊 EXPORTAR A EXCEL
+  // ============================================================
+  const exportarExcel = () => {
+    const datos = filtradas.map((p) => ({
+      'Tipo': p.document_type || '',
+      'Documento': p.document_number || '',
+      'Nombre': p.full_name || '',
+      'Ciudad': p.city || '',
+      'Teléfono': p.phone || '',
+      'Experiencia (años)': p.years_experience ?? 0,
+      'Cargos': getCargos(p).join(', '),
+      'Estado': p.status || '',
+      'Fecha de postulación': formatearFecha(p.date_created),
+      'Correo': p.email || '',
+      'Nivel educativo': p.education_level || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(datos);
+    worksheet['!cols'] = [
+      { wch: 6 }, { wch: 15 }, { wch: 32 }, { wch: 15 }, { wch: 15 },
+      { wch: 18 }, { wch: 35 }, { wch: 16 }, { wch: 20 }, { wch: 30 }, { wch: 20 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Postulaciones');
+
+    const fecha = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `postulaciones-${fecha}.xlsx`);
+
+    setSnack({
+      open: true,
+      message: `✅ ${filtradas.length} postulaciones exportadas`,
+      severity: 'success',
+    });
+  };
+
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1500, mx: 'auto' }}>
       <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid #E2E8F0' }}>
@@ -157,15 +202,23 @@ const VacantesPage: React.FC = () => {
               {filtradas.length} de {postulaciones.length} postulaciones
             </Typography>
           </Box>
-          <Tooltip title="Recargar">
-            <span>
-              <IconButton onClick={() => refetch()} disabled={isFetching} sx={{ bgcolor: AZUL_BG }}>
-                {isFetching
-                  ? <CircularProgress size={20} sx={{ color: AZUL }} />
-                  : <RefreshIcon sx={{ color: AZUL }} />}
-              </IconButton>
-            </span>
-          </Tooltip>
+          <Button
+            variant="contained"
+            startIcon={<FileDownloadIcon />}
+            onClick={exportarExcel}
+            disabled={filtradas.length === 0}
+            sx={{
+              bgcolor: AZUL,
+              '&:hover': { bgcolor: '#003366' },
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: 2,
+              px: 3,
+              height: 44,
+            }}
+          >
+            Exportar a Excel
+          </Button>
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
@@ -176,7 +229,9 @@ const VacantesPage: React.FC = () => {
             onChange={(e) => setBusqueda(e.target.value)}
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start"><SearchIcon sx={{ color: AZUL }} /></InputAdornment>
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: AZUL }} />
+                </InputAdornment>
               ),
               endAdornment: busqueda ? (
                 <InputAdornment position="end">
@@ -188,12 +243,18 @@ const VacantesPage: React.FC = () => {
             }}
             sx={{ flex: 1, minWidth: 320, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#fff', height: 44 } }}
           />
-          <ClearableSelect value={filtroCiudad} onChange={setFiltroCiudad}
-            onClear={() => setFiltroCiudad('Todas')} label="Ciudad" defaultValue="Todas"
-            options={CIUDADES} defaultLabel="Todas las ciudades" />
-          <ClearableSelect value={filtroCargo} onChange={setFiltroCargo}
-            onClear={() => setFiltroCargo('Todos')} label="Cargo" defaultValue="Todos"
-            options={CARGOS} defaultLabel="Todos los cargos" />
+          <ClearableSelect
+            value={filtroCiudad} onChange={setFiltroCiudad}
+            onClear={() => setFiltroCiudad('Todas')}
+            label="Ciudad" defaultValue="Todas"
+            options={CIUDADES} defaultLabel="Todas las ciudades"
+          />
+          <ClearableSelect
+            value={filtroCargo} onChange={setFiltroCargo}
+            onClear={() => setFiltroCargo('Todos')}
+            label="Cargo" defaultValue="Todos"
+            options={CARGOS} defaultLabel="Todos los cargos"
+          />
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', pt: 1, pl: 2 }}>
@@ -201,14 +262,20 @@ const VacantesPage: React.FC = () => {
             const activo = filtroEstado === e;
             const meta = e === 'Todos' ? null : ESTADO_COLOR[e];
             return (
-              <Chip key={e} label={`${e} (${contadores[e]})`} onClick={() => setFiltroEstado(e)}
+              <Chip
+                key={e}
+                label={`${e} (${contadores[e]})`}
+                onClick={() => setFiltroEstado(e)}
                 onDelete={activo && e !== 'Todos' ? () => setFiltroEstado('Todos') : undefined}
                 sx={{
-                  bgcolor: activo ? AZUL : AZUL_BG, color: activo ? '#fff' : AZUL,
+                  bgcolor: activo ? AZUL : AZUL_BG,
+                  color: activo ? '#fff' : AZUL,
                   fontWeight: 700, height: 42, borderRadius: 2.5,
                   borderLeft: !activo && meta ? `5px solid ${meta.color}` : 'none',
-                  '& .MuiChip-label': { px: 2 }, '& .MuiChip-deleteIcon': { color: '#fff' },
-                }} />
+                  '& .MuiChip-label': { px: 2 },
+                  '& .MuiChip-deleteIcon': { color: '#fff' },
+                }}
+              />
             );
           })}
         </Box>
@@ -240,8 +307,18 @@ const VacantesPage: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ bgcolor: '#F8FAFC' }}>
-                  {['Tipo', 'Documento', 'Nombre', 'Ciudad', 'Exp.', 'Cargos', 'Estado', 'Fecha'].map((h, i) => (
-                    <TableCell key={h} sx={{ fontWeight: 700, py: 2, pl: i === 0 ? 4 : 2 }}>{h}</TableCell>
+                  {['Tipo', 'Documento', 'Nombre', 'Teléfono', 'Ciudad', 'Exp.', 'Cargos', 'Estado', 'Fecha de postulación'].map((h) => (
+                    <TableCell
+                      key={h}
+                      sx={{
+                        fontWeight: 700,
+                        py: 2,
+                        pl: 2,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {h}
+                    </TableCell>
                   ))}
                   <TableCell align="center" sx={{ fontWeight: 700, py: 2 }}>Acción</TableCell>
                 </TableRow>
@@ -251,15 +328,18 @@ const VacantesPage: React.FC = () => {
                   const cargos = getCargos(p);
                   return (
                     <TableRow key={p.id} hover>
-                      <TableCell sx={{ fontSize: '0.75rem', color: '#64748B', pl: 4, py: 1.75, fontWeight: 600 }}>
+                      <TableCell sx={{ fontSize: '0.75rem', color: '#64748B', pl: 2, py: 1.75, fontWeight: 600 }}>
                         {p.document_type}
                       </TableCell>
                       <TableCell sx={{ fontSize: '0.85rem', color: '#64748B', py: 1.75 }}>
                         {p.document_number}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, py: 1.75 }}>{p.full_name}</TableCell>
+                      <TableCell sx={{ fontSize: '0.85rem', color: '#0F172A', py: 1.75, whiteSpace: 'nowrap', fontWeight: 600 }}>
+                        {p.phone || '—'}
+                      </TableCell>
                       <TableCell sx={{ fontSize: '0.85rem', py: 1.75 }}>{p.city}</TableCell>
-                      <TableCell sx={{ py: 1.75 }}>{p.years_experience} años</TableCell>
+                      <TableCell sx={{ py: 1.75, whiteSpace: 'nowrap' }}>{p.years_experience} años</TableCell>
                       <TableCell sx={{ py: 1.75 }}>
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                           {cargos.map((c) => (
@@ -271,7 +351,7 @@ const VacantesPage: React.FC = () => {
                       <TableCell sx={{ py: 1.75 }}>
                         <EstadoSelect value={p.status as EstadoContratacion} onChange={(n) => cambiarEstado(p.id, n)} />
                       </TableCell>
-                      <TableCell sx={{ fontSize: '0.8rem', color: '#64748B', py: 1.75 }}>
+                      <TableCell sx={{ fontSize: '0.8rem', color: '#64748B', py: 1.75, whiteSpace: 'nowrap' }}>
                         {formatearFecha(p.date_created)}
                       </TableCell>
                       <TableCell align="center" sx={{ py: 1.75 }}>
@@ -300,10 +380,14 @@ const VacantesPage: React.FC = () => {
           </TableContainer>
 
           <TablePagination
-            component="div" count={filtradas.length} page={page}
-            onPageChange={(_, n) => setPage(n)} rowsPerPage={rowsPerPage}
+            component="div"
+            count={filtradas.length}
+            page={page}
+            onPageChange={(_, n) => setPage(n)}
+            rowsPerPage={rowsPerPage}
             onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-            rowsPerPageOptions={[5, 10, 25, 50]} labelRowsPerPage="Filas por página:"
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            labelRowsPerPage="Filas por página:"
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
             sx={{ borderTop: '1px solid #E2E8F0' }}
           />
@@ -312,9 +396,12 @@ const VacantesPage: React.FC = () => {
 
       <DetalleModal postulacion={detalle} onClose={() => setDetalle(null)} />
 
-      <Snackbar open={snack.open} autoHideDuration={3000}
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={3000}
         onClose={() => setSnack((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
         <Alert severity={snack.severity} onClose={() => setSnack((s) => ({ ...s, open: false }))} sx={{ borderRadius: 2 }}>
           {snack.message}
         </Alert>
