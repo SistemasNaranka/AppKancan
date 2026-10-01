@@ -77,20 +77,8 @@ const esTiendaAutorizada = (nombre: string): boolean => {
 };
 
 // ============================================================
-// DESCRIPCIONES
+// HELPERS
 // ============================================================
-const descripcionesPorPremio: Record<string, string> = {
-  'Jean de línea': 'Jean de línea premium',
-  'Jean básico': 'Jean básico clásico',
-  'Bono $100k': 'Bono de $100.000',
-  'Bono $50k': 'Bono de $50.000',
-  'Bono $30k': 'Bono de $30.000',
-  'Blusa básica': 'Blusa básica',
-  'Tote bag': 'Bolso tote de denim',
-  'Bandana': 'Bandana decorativa',
-  'Bamba': 'Bamba exclusiva',
-};
-
 const getInicial = (nombre: string): string => {
   if (!nombre) return '?';
   return nombre.trim().charAt(0).toUpperCase();
@@ -106,10 +94,6 @@ const getIconoDecorativo = (nombre: string) => {
   if (lower.includes('bamba')) return '👟';
   if (lower.includes('tote')) return '👜';
   return '🎁';
-};
-
-const getDescripcion = (nombre: string): string => {
-  return descripcionesPorPremio[nombre] || 'Premio exclusivo de KANCAN';
 };
 
 // ============================================================
@@ -206,7 +190,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
     severity: 'success',
   });
 
-  // 🆕 Todos los premios en una sola vista
   const [page, setPage] = useState(1);
   const rowsPerPage = 12;
 
@@ -564,17 +547,34 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                 const realIndex = (page - 1) * rowsPerPage + index;
                 const inicial = getInicial(premio.label);
                 const iconoDecorativo = getIconoDecorativo(premio.label);
-                const descripcion = getDescripcion(premio.label);
                 const meta = GRUPO_COLOR[premio.grupo];
                 const tiendasConCantidad = premio.cantidadesPorTienda
                   ? Object.keys(premio.cantidadesPorTienda).length
                   : 0;
+
+                // 🆕 Sumas totales (solo se usan cuando NO hay filtro)
+                const totalTodas = Object.values(premio.cantidadesPorTienda ?? {}).reduce(
+                  (a, b) => a + b,
+                  0
+                );
+                const disponibleTodas = Object.values(premio.restantesPorTienda ?? {}).reduce(
+                  (a, b) => a + b,
+                  0
+                );
+
                 const stockFiltrado = storeFilterKey
                   ? premio.cantidadesPorTienda?.[storeFilterKey] ?? 0
                   : 0;
                 const restanteFiltrado = storeFilterKey
                   ? premio.restantesPorTienda?.[storeFilterKey] ?? 0
                   : 0;
+
+                // 🆕 Valores a mostrar según el contexto
+                const stockMostrado = storeFilterKey ? stockFiltrado : totalTodas;
+                const restanteMostrado = storeFilterKey ? restanteFiltrado : disponibleTodas;
+
+                // 🆕 Entregados = Total − Quedan
+                const entregadosMostrado = Math.max(0, stockMostrado - restanteMostrado);
 
                 return (
                   <Fade in timeout={300} key={premio.id ?? realIndex}>
@@ -587,7 +587,7 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                       <DecoratedBadge>{iconoDecorativo}</DecoratedBadge>
 
                       <CardContent sx={{ p: 1.75, pb: 1 }}>
-                        {/* Avatar + título + descripción */}
+                        {/* Avatar + título */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
                           <ColorCircle color={premio.color}>{inicial}</ColorCircle>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -605,25 +605,13 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                             >
                               {premio.label}
                             </Typography>
-                            <Typography
-                              color="#64748B"
-                              sx={{
-                                mt: 0.25,
-                                fontSize: '0.68rem',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {descripcion}
-                            </Typography>
                           </Box>
                         </Box>
 
-                        {/* Chips: solo G1 + Activo */}
+                        {/* Chips: rango + Activo */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', mb: 0.75 }}>
                           <Chip
-                            label={premio.grupo}
+                            label={meta.label}
                             size="small"
                             sx={{
                               bgcolor: `${meta.color}20`,
@@ -660,65 +648,119 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
                             flexWrap: 'wrap',
                           }}>
                             <InventoryIcon sx={{ fontSize: 13, color: AZUL }} />
-                            {storeFilterKey ? (
-                              <>
-                                <Tooltip title="Total asignado">
-                                  <Chip
-                                    label={`Total: ${stockFiltrado}`}
-                                    size="small"
-                                    sx={{
-                                      bgcolor: AZUL_BG,
-                                      color: AZUL,
-                                      fontWeight: 700,
-                                      fontSize: '0.62rem',
-                                      height: 18,
-                                      '& .MuiChip-label': { px: 0.75 },
-                                    }}
-                                  />
-                                </Tooltip>
-                                <Tooltip title="Disponible en Directus">
-                                  <Chip
-                                    label={`Quedan: ${restanteFiltrado}`}
-                                    size="small"
-                                    sx={{
-                                      bgcolor: restanteFiltrado === 0 ? '#FEF2F2' : restanteFiltrado === 1 ? '#FEF3C7' : '#ECFDF5',
-                                      color: restanteFiltrado === 0 ? '#DC2626' : restanteFiltrado === 1 ? '#B45309' : '#047857',
-                                      fontWeight: 800,
-                                      fontSize: '0.62rem',
-                                      height: 18,
-                                      border: restanteFiltrado === 0 ? '1px solid #FECACA' : restanteFiltrado === 1 ? '1px solid #FDE68A' : '1px solid #A7F3D0',
-                                      '& .MuiChip-label': { px: 0.75 },
-                                    }}
-                                  />
-                                </Tooltip>
-                              </>
-                            ) : (
+
+                            {/* Total */}
+                            <Tooltip
+                              title={
+                                storeFilterKey
+                                  ? `Total asignado en ${selectedStore?.name ?? 'esta tienda'}`
+                                  : 'Total asignado sumando todas las tiendas'
+                              }
+                            >
+                              <Chip
+                                label={`Total: ${stockMostrado}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: AZUL_BG,
+                                  color: AZUL,
+                                  fontWeight: 700,
+                                  fontSize: '0.62rem',
+                                  height: 18,
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
+                              />
+                            </Tooltip>
+
+                            {/* Quedan */}
+                            <Tooltip
+                              title={
+                                storeFilterKey
+                                  ? `Disponible en ${selectedStore?.name ?? 'esta tienda'}`
+                                  : 'Disponible sumando todas las tiendas'
+                              }
+                            >
+                              <Chip
+                                label={`Quedan: ${restanteMostrado}`}
+                                size="small"
+                                sx={{
+                                  bgcolor:
+                                    restanteMostrado === 0
+                                      ? '#FEF2F2'
+                                      : restanteMostrado === 1
+                                      ? '#FEF3C7'
+                                      : '#ECFDF5',
+                                  color:
+                                    restanteMostrado === 0
+                                      ? '#DC2626'
+                                      : restanteMostrado === 1
+                                      ? '#B45309'
+                                      : '#047857',
+                                  fontWeight: 800,
+                                  fontSize: '0.62rem',
+                                  height: 18,
+                                  border:
+                                    restanteMostrado === 0
+                                      ? '1px solid #FECACA'
+                                      : restanteMostrado === 1
+                                      ? '1px solid #FDE68A'
+                                      : '1px solid #A7F3D0',
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
+                              />
+                            </Tooltip>
+
+                            {/* 🆕 Dados */}
+                            <Tooltip title="Premios ya entregados (Total − Quedan)">
+                              <Chip
+                                label={`Dados: ${entregadosMostrado}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: '#F1F5F9',
+                                  color: '#475569',
+                                  fontWeight: 700,
+                                  fontSize: '0.62rem',
+                                  height: 18,
+                                  border: '1px solid #E2E8F0',
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
+                              />
+                            </Tooltip>
+
+                            {/* Solo sin filtro: chip de "N tiendas" con tooltip detalle */}
+                            {!storeFilterKey && (
                               <Tooltip
+                                arrow
                                 title={
                                   <Box>
-                                    {Object.entries(premio.cantidadesPorTienda ?? {}).map(([storeCode, c]) => {
-                                      const t = tiendas.find((x) => normKey(x.ultra_code) === normKey(storeCode));
-                                      const r = premio.restantesPorTienda?.[storeCode] ?? 0;
-                                      return (
-                                        <div key={storeCode}>
-                                          {t?.name || `Tienda ${storeCode}`}: {r} / {c}
-                                        </div>
-                                      );
-                                    })}
+                                    {Object.entries(premio.cantidadesPorTienda ?? {}).map(
+                                      ([storeCode, c]) => {
+                                        const t = tiendas.find(
+                                          (x) => normKey(x.ultra_code) === normKey(storeCode)
+                                        );
+                                        const r = premio.restantesPorTienda?.[storeCode] ?? 0;
+                                        return (
+                                          <div key={storeCode}>
+                                            {t?.name || `Tienda ${storeCode}`}: {r} / {c}
+                                          </div>
+                                        );
+                                      }
+                                    )}
                                   </Box>
                                 }
-                                arrow
                               >
                                 <Chip
-                                  label={`Stock en ${tiendasConCantidad} ${tiendasConCantidad === 1 ? 'tienda' : 'tiendas'}`}
+                                  label={`${tiendasConCantidad} ${
+                                    tiendasConCantidad === 1 ? 'tienda' : 'tiendas'
+                                  }`}
                                   size="small"
                                   sx={{
-                                    bgcolor: AZUL_BG,
-                                    color: AZUL,
+                                    bgcolor: '#F1F5F9',
+                                    color: '#475569',
                                     fontWeight: 700,
                                     fontSize: '0.62rem',
                                     height: 18,
                                     cursor: 'help',
+                                    border: '1px solid #E2E8F0',
                                     '& .MuiChip-label': { px: 0.75 },
                                   }}
                                 />
@@ -776,7 +818,6 @@ const AdministrarPremios: React.FC<AdministrarPremiosProps> = ({
               })}
             </Box>
 
-            {/* Paginación — solo si hay más de 12 premios */}
             {totalPages > 1 && (
               <Box sx={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',

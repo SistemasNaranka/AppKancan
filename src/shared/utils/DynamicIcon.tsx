@@ -12,6 +12,7 @@ import Description from '@mui/icons-material/Description';
 import PeopleAlt from '@mui/icons-material/PeopleAlt';
 import Badge from '@mui/icons-material/Badge';
 import Business from '@mui/icons-material/Business';
+import BusinessCenter from '@mui/icons-material/BusinessCenter'; // 👈 1. Agregado aquí
 import Group from '@mui/icons-material/Group';
 import Summarize from '@mui/icons-material/Summarize';
 import LocalOffer from '@mui/icons-material/LocalOffer';
@@ -39,11 +40,11 @@ import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
 import MoreTimeIcon from '@mui/icons-material/MoreTime';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import CardGiftcard from '@mui/icons-material/CardGiftcard'; // 👈 Ícono de caja de premios/regalo
+import CardGiftcard from '@mui/icons-material/CardGiftcard';
 
 /**
  * Mapa de íconos permitidos.
- * Los nombres deben coincidir con los valores en la base de datos.
+ * Los nombres deben coincidir con los valores en la base de datos[cite: 6, 8].
  */
 const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Inventario
@@ -69,6 +70,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   PeopleAlt,
   Badge,
   Business,
+  BusinessCenter, // 👈 2. Registrado aquí
   Group,
   EditCalendar,
   PendingActions,
@@ -77,7 +79,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   // 🔸 Categoría: Aplicación
   Apps,
   Home,
-  CardGiftcard, // 👈 Registrado en el mapa
+  CardGiftcard,
   CircleNotificationsIcon,
   CircleNotifications: CircleNotificationsIcon,
   DocumentScanner,
@@ -105,14 +107,14 @@ const ICON_MAP: Record<string, React.ElementType> = {
   SettingsSuggest,
   DataObject,
 
-  // 🔸 Fallback por si algo no coincide
+  // 🔸 Fallback por si algo no coincide[cite: 6, 8]
   Folder,
 };
 
 /**
  * 🔹 DynamicIcon
- * Renderiza el ícono según el nombre recibido desde la base de datos.
- * Si no lo encuentra, muestra Folder por defecto[cite: 1].
+ * Renderiza el ícono según el nombre recibido desde la base de datos[cite: 6, 8].
+ * Si no lo encuentra, muestra Folder por defecto[cite: 6, 8].
  */
 export const DynamicIcon = ({
   iconName,
