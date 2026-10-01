@@ -61,6 +61,7 @@ const ClearableSelect: React.FC<ClearableSelectProps> = ({
     <FormControl size="small" sx={{ minWidth: 220 }}>
       <InputLabel>{label}</InputLabel>
       <Select
+      
         value={value}
         label={label}
         onChange={(e) => onChange(e.target.value)}
