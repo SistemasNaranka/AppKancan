@@ -15,7 +15,7 @@ import * as XLSX from 'xlsx';
 import EstadoSelect from '../components/EstadoSelect';
 import DetalleModal from '../components/DetalleModal';
 import {
-  getApplications, buildCvUrl, formatearFecha, getCargos,
+  getApplications, abrirCv, formatearFecha, getCargos,
   ESTADOS, ESTADO_COLOR, Postulacion, EstadoContratacion,
 } from '../api/directus/read';
 import { updateApplicationStatus } from '../api/directus/write';
@@ -364,8 +364,11 @@ const VacantesPage: React.FC = () => {
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Ver hoja de vida (PDF)" arrow>
-                            <IconButton size="small" component="a"
-                              href={buildCvUrl(p.cv)} target="_blank" rel="noopener noreferrer"
+                            <IconButton size="small"
+                              onClick={() => abrirCv(p.cv).catch((err) => {
+                                console.error('[vacantes] No se pudo abrir la hoja de vida:', err);
+                                alert('No se pudo abrir la hoja de vida. Intenta de nuevo.');
+                              })}
                               disabled={!p.cv}
                               sx={{ width: 36, height: 36, color: '#B91C1C', bgcolor: '#FEE2E2', '&:hover': { bgcolor: '#FECACA' } }}>
                               <PictureAsPdfIcon sx={{ fontSize: 18 }} />

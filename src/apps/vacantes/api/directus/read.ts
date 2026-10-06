@@ -1,6 +1,6 @@
 import directus from '@/services/directus/directus';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
-import { readItems } from '@directus/sdk';
+import { readItems, readAssetRaw } from '@directus/sdk';
 
 export const ESTADOS = [
   'Recibido', 'En revisión', 'Preseleccionado',
@@ -52,9 +52,21 @@ export const formatearFecha = (iso: string) =>
     day: '2-digit', month: 'short', year: 'numeric',
   });
 
-const DIRECTUS_URL = 'http://192.168.19.245:8055';
-export const buildCvUrl = (cv: string | null) =>
-  cv ? `${DIRECTUS_URL}/assets/${cv}` : '#';
+// Abre la hoja de vida con la sesión del usuario (un enlace directo a /assets no lleva token → 403)
+export async function abrirCv(cv: string | null) {
+  if (!cv) return;
+  const ventana = window.open('', '_blank'); // abrir ya, o el navegador la bloquea
+  try {
+    const stream = await withAutoRefresh(() => directus.request(readAssetRaw(cv)));
+    const datos = await new Response(stream as ReadableStream).arrayBuffer();
+    const url = URL.createObjectURL(new Blob([datos], { type: 'application/pdf' }));
+    if (ventana) ventana.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (err) {
+    ventana?.close();
+    throw err;
+  }
+}
 
 export interface Postulacion {
   id: number;
