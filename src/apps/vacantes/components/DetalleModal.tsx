@@ -132,8 +132,8 @@ const DetalleModal: React.FC<Props> = ({ postulacion, onClose }) => {
               {cargos.length === 0
                 ? <Typography sx={{ fontSize: '0.85rem', color: '#94A3B8', fontStyle: 'italic' }}>Sin cargos</Typography>
                 : cargos.map((c) => (
-                    <Chip key={c} label={c} sx={{ bgcolor: AZUL_BG, color: AZUL, fontWeight: 700 }} />
-                  ))}
+                  <Chip key={c} label={c} sx={{ bgcolor: AZUL_BG, color: AZUL, fontWeight: 700 }} />
+                ))}
             </Stack>
           </Box>
 
@@ -161,4 +161,4 @@ const DetalleModal: React.FC<Props> = ({ postulacion, onClose }) => {
   );
 };
 
-export default DetalleModal;
+export default DetalleModal ;

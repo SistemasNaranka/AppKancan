@@ -30,6 +30,8 @@ const EstadoSelect: React.FC<Props> = ({ value, onChange }) => {
         {ESTADOS.map((e) => <MenuItem key={e} value={e}>{chip(e)}</MenuItem>)}
       </Select>
     </FormControl>
+
+    
   );
 };
 
