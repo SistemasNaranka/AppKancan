@@ -400,6 +400,7 @@ const VacantesPage: React.FC = () => {
 
       <DetalleModal postulacion={detalle} onClose={() => setDetalle(null)} />
 
+      
       <Snackbar
         open={snack.open}
         autoHideDuration={3000}
