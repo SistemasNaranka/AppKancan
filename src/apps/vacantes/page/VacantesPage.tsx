@@ -27,7 +27,7 @@ export const AZUL = '#004680';
 export const AZUL_BG = '#E6EEF5';
 
 const CIUDADES = [
-  'Armenia', 'Bucaramanga', 'Buga', 'Cali', 'Cartago',
+  'Armenia', 'Bucaramanga', 'Buga', 'Cali', 'Candelaria', 'Cartago',
   'Ipiales', 'Jamundí', 'Manizales', 'Palmira', 'Pasto',
   'Pereira', 'Popayán', 'Tuluá', 'Yumbo',
 ];
