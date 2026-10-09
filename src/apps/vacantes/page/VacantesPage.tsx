@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import EstadoSelect from '../components/EstadoSelect';
 import DetalleModal from '../components/DetalleModal';
+import AsistenteIA from '../components/AsistenteIA';
 import {
   getApplications, abrirCv, formatearFecha, getCargos,
   ESTADOS, ESTADO_COLOR, Postulacion, EstadoContratacion,
@@ -26,13 +27,13 @@ import { updateApplicationStatus } from '../api/directus/write';
 export const AZUL = '#004680';
 export const AZUL_BG = '#E6EEF5';
 
-const CIUDADES = [
+export const CIUDADES = [
   'Armenia', 'Bucaramanga', 'Buga', 'Cali', 'Candelaria', 'Cartago',
   'Ipiales', 'Jamundí', 'Manizales', 'Palmira', 'Pasto',
   'Pereira', 'Popayán', 'Tuluá', 'Yumbo',
 ];
 
-const CARGOS = [
+export const CARGOS = [
   'Administrador de tienda', 'Cajero vendedor',
   'Asesor comercial', 'Auxiliar de Bodega',
 ];
@@ -399,6 +400,12 @@ const VacantesPage: React.FC = () => {
       )}
 
       <DetalleModal postulacion={detalle} onClose={() => setDetalle(null)} />
+      <AsistenteIA
+        postulaciones={postulaciones}
+        cargoInicial={filtroCargo === 'Todos' ? '' : filtroCargo}
+        ciudadInicial={filtroCiudad}
+        onCambiarEstado={cambiarEstado}
+      />
 
       
       <Snackbar
