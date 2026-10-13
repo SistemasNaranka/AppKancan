@@ -1,14 +1,17 @@
-import React, { useCallback, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Fab, Dialog, DialogTitle, DialogContent, Box, Typography, IconButton,
 } from '@mui/material';
 import { AutoAwesome as SparkIcon, Close as CloseIcon, History as HistoryIcon } from '@mui/icons-material';
-import { AZUL } from '../page/VacantesPage';
-import { Postulacion, EstadoContratacion } from '../api/directus/read';
-import { ResultadoIA, generarResultadoEjemplo } from '../api/ia';
-import PasoConfigurar from './PasoConfigurar';
-import PasoAnalizando from './PasoAnalizando';
-import PanelResultado from './PanelResultado';
+import { AZUL } from '../../page/VacantesPage';
+import { Postulacion, EstadoContratacion } from '../directus/read';
+import { ResultadoIA } from '../ia';
+import { analizarHojasDeVida } from './analizarHojasDeVida';
+import PasoConfigurar from '../../components/PasoConfigurar';
+import PasoAnalizando from '../../components/PasoAnalizando';
+import PanelResultado from '../../components/PanelResultado';
+
+  
 
 type Paso = 'configurar' | 'analizando';
 
@@ -26,26 +29,52 @@ const AsistenteIA: React.FC<Props> = ({ postulaciones, cargoInicial, ciudadInici
   const [cargoSel, setCargoSel] = useState('');
   const [resultado, setResultado] = useState<ResultadoIA | null>(null);
   const [resultadoAbierto, setResultadoAbierto] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const controlRef = useRef<AbortController | null>(null);
+
+  const detener = () => {
+    controlRef.current?.abort();
+    controlRef.current = null;
+  };
 
   const cerrar = () => {
+    detener();
+    setError(null);
     setAbierto(false);
     setPaso('configurar'); // al reabrir siempre arranca en Configurar
   };
 
-  const analizar = (sel: Postulacion[], cargo: string) => {
+  const analizar = async (sel: Postulacion[], cargo: string) => {
+    detener();
+    const control = new AbortController();
+    controlRef.current = control;
+
     setSeleccion(sel);
     setCargoSel(cargo);
+    setError(null);
     setPaso('analizando');
+
+    try {
+      const r = await analizarHojasDeVida(cargo, sel, control.signal);
+      if (controlRef.current !== control) return; // llegó tarde: ya se canceló o hay otro análisis
+      setResultado(r);
+      setAbierto(false);
+      setPaso('configurar');
+      setResultadoAbierto(true);
+    } catch (err) {
+      if (control.signal.aborted) return; // cancelado a propósito, no es error
+      console.error('[vacantes] Falló el análisis de IA:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      if (controlRef.current === control) controlRef.current = null;
+    }
   };
 
-  const cancelar = useCallback(() => setPaso('configurar'), []);
-
-  const terminar = useCallback(() => {
-    setResultado(generarResultadoEjemplo(seleccion, cargoSel)); // TEMPORAL hasta tener el backend
-    setAbierto(false);
+  const cancelar = () => {
+    detener();
+    setError(null);
     setPaso('configurar');
-    setResultadoAbierto(true);
-  }, [seleccion, cargoSel]);
+  };
 
   return (
     <>
@@ -115,8 +144,8 @@ const AsistenteIA: React.FC<Props> = ({ postulaciones, cargoInicial, ciudadInici
             <PasoAnalizando
               seleccion={seleccion}
               cargo={cargoSel}
+              error={error}
               onCancelar={cancelar}
-              onTerminar={terminar}
             />
           )}
         </DialogContent>
