@@ -1,6 +1,6 @@
 import directus from '@/services/directus/directus';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
-import { readItems, readAssetRaw } from '@directus/sdk';
+import { readItems, readAssetRaw, readMe } from '@directus/sdk';
 
 export const ESTADOS = [
   'Recibido', 'En revisión', 'Preseleccionado',
@@ -97,4 +97,25 @@ export async function getApplications(): Promise<Postulacion[]> {
     )
   );
   return res as unknown as Postulacion[];
+}
+
+
+// Modelos de IA configurados en el perfil del usuario logueado (campo models_ia)
+export async function getModelosIAUsuario(): Promise<unknown> {
+  try {
+    const yo = await withAutoRefresh(() =>
+      directus.request(readMe({ fields: ['models_ia'] } as never))
+    );
+    return (yo as any)?.models_ia ?? null;
+  } catch (err) {
+    console.warn('[vacantes] No se pudo leer models_ia del usuario:', err);
+    return null; // sin lista propia se usan los modelos por defecto
+  }
+}
+
+
+// Descarga la hoja de vida con la sesión del usuario (bytes crudos)
+export async function descargarCvBytes(cv: string): Promise<ArrayBuffer> {
+  const stream = await withAutoRefresh(() => directus.request(readAssetRaw(cv)));
+  return new Response(stream as ReadableStream).arrayBuffer();
 }

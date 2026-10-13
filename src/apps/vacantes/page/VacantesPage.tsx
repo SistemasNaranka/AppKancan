@@ -14,7 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import EstadoSelect from '../components/EstadoSelect';
 import DetalleModal from '../components/DetalleModal';
-import AsistenteIA from '../components/AsistenteIA';
+import AsistenteIA from '../api/ia/AsistenteIA';
 import {
   getApplications, abrirCv, formatearFecha, getCargos,
   ESTADOS, ESTADO_COLOR, Postulacion, EstadoContratacion,
