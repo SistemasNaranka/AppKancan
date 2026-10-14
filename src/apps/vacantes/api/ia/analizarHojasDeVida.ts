@@ -242,7 +242,7 @@ export async function analizarHojasDeVida(
       if (ultimoModeloExitoso === modelo) ultimoModeloExitoso = null; // dejó de funcionar: se olvida
       console.warn(`[vacantes] Falló ${modelo}:`, ultimoError);
 
-      // Dos modelos saturados = casi seguro que los demás también: no hacer esperar más a RR. HH.
+      // Dos modelos saturados = casi seguro que los demás también: no hacer esperar más a RR. HH
       if (err?.status === 503 && ++saturados >= 2) break;
     }
   }
