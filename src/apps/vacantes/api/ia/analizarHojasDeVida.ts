@@ -23,8 +23,9 @@ interface HojaDescargada {
   hoja: HojaLeida;
 }
 
-const INSTRUCCIONES = (cargo: string) => `Eres un asistente de selección de personal para KanCan, una marca colombiana de jeans con tiendas físicas.
+const INSTRUCCIONES = (cargo: string, total: number) => `Eres un asistente de selección de personal para KanCan, una marca colombiana de jeans con tiendas físicas.
 Cargo a evaluar: "${cargo}".
+Vas a evaluar exactamente ${total} hojas de vida.
 
 Recibirás varias hojas de vida: unas como texto extraído del PDF y otras como PDF (escaneos o fotos). Antes de cada una hay una línea con el id del postulante, su nivel educativo y sus años de experiencia declarados.
 
@@ -32,7 +33,13 @@ Reglas:
 - Evalúa solo la relación entre experiencia, formación y habilidades del postulante y el cargo.
 - Ignora nombre, foto, edad, género, estado civil, dirección y cualquier dato personal: no son criterio.
 - Más estudios no significa automáticamente mejor: pesa la experiencia relevante para el cargo.
-- Da a cada postulante un puntaje de 0 a 100, fortalezas concretas y puntos a verificar en la entrevista.
+- Calcula el puntaje (0 a 100) sumando SOLO estos criterios, siempre los mismos:
+  * Experiencia en las funciones propias del cargo "${cargo}": hasta 40 puntos.
+  * Experiencia en retail, comercio o moda: hasta 25 puntos.
+  * Habilidades clave para este cargo (por ejemplo atención al cliente, inventario, caja o liderazgo, según aplique): hasta 25 puntos.
+  * Formación relacionada con el cargo: hasta 10 puntos.
+- Experiencia en un sector distinto (bares, salud, docencia...) puntúa menos que la misma experiencia en retail o moda.
+- Da fortalezas concretas y puntos a verificar específicos para la entrevista (no genéricos como "verificar referencias").
 - Si un PDF no se puede leer o no es una hoja de vida, dale puntaje 0 y explícalo en "aVerificar".
 - Incluye a todos los postulantes, usando exactamente el id que se te da.
 - El resumen tiene máximo 3 frases cortas: (1) qué tan fuerte es el grupo frente al cargo, (2) quiénes destacan, máximo 3, y (3) la principal brecha del grupo.
@@ -75,7 +82,7 @@ async function descargarHojas(seleccion: Postulacion[], signal?: AbortSignal): P
 
 // Arma el mensaje: instrucciones y luego, por cada postulante, su línea de id y su hoja (texto o PDF)
 function construirContenido(cargo: string, hojas: HojaDescargada[]) {
-  const parts: object[] = [{ text: INSTRUCCIONES(cargo) }];
+  const parts: object[] = [{ text: INSTRUCCIONES(cargo, hojas.length) }];
   for (const { postulacion: p, hoja } of hojas) {
     parts.push({
       text: `--- Postulante id=${p.id} · Nivel educativo: ${nivelEducativo(p.education_level)} · Años de experiencia declarados: ${p.years_experience} ---`,
@@ -175,6 +182,7 @@ export async function analizarHojasDeVida(
     modelos = [ultimoModeloExitoso, ...modelos.filter((m) => m !== ultimoModeloExitoso)];
   }
   let ultimoError = '';
+  let saturados = 0; // modelos que respondieron 503 (Google sin capacidad)
 
   for (const modelo of modelos) {
     try {
@@ -193,6 +201,8 @@ export async function analizarHojasDeVida(
           };
         })
         .filter((c): c is NonNullable<typeof c> => c !== null)
+        // La IA a veces repite a una persona: se conserva solo su primera evaluación
+        .filter((c, i, todos) => todos.findIndex((x) => x.postulacion.id === c.postulacion.id) === i)
         .sort((a, b) => b.puntaje - a.puntaje);
 
       if (ranking.length === 0) throw new Error('La IA no evaluó a ningún postulante');
@@ -204,6 +214,7 @@ export async function analizarHojasDeVida(
         .map((p) => ({
           postulacion: p,
           puntaje: 0,
+          evaluado: false,
           fortalezas: [],
           aVerificar: [p.cv
             ? 'La IA no evaluó esta hoja de vida: revísala manualmente'
@@ -213,7 +224,7 @@ export async function analizarHojasDeVida(
         console.warn(`[vacantes] ${faltantes.length} sin evaluar:`, faltantes.map((f) => f.postulacion.id));
       }
       const aviso = faltantes.length > 0
-        ? ` ⚠ ${faltantes.length} ${faltantes.length === 1 ? 'hoja de vida no fue evaluada' : 'hojas de vida no fueron evaluadas'}: aparecen al final para revisión manual.`
+        ? ` ⚠ ${faltantes.length} ${faltantes.length === 1 ? 'hoja de vida no fue evaluada' : 'hojas de vida no fueron evaluadas'}: están en la pestaña Sin evaluar.`
         : '';
 
       ultimoModeloExitoso = modelo;
@@ -229,9 +240,16 @@ export async function analizarHojasDeVida(
       if (signal?.aborted || err?.definitivo) throw err;
       ultimoError = err?.message ?? String(err);
       if (ultimoModeloExitoso === modelo) ultimoModeloExitoso = null; // dejó de funcionar: se olvida
-      console.warn(`[vacantes] Falló ${modelo}, probando el siguiente:`, ultimoError);
+      console.warn(`[vacantes] Falló ${modelo}:`, ultimoError);
+
+      // Dos modelos saturados = casi seguro que los demás también: no hacer esperar más a RR. HH
+      if (err?.status === 503 && ++saturados >= 2) break;
     }
   }
 
-  throw new Error(`Todos los modelos fallaron. Último error: ${ultimoError}`);
+  if (saturados >= 2) {
+    throw new Error('El servicio de IA está saturado en este momento. Intenta de nuevo en unos minutos.');
+  }
+  console.error('[vacantes] Todos los modelos fallaron. Último error:', ultimoError);
+  throw new Error('No se pudo completar el análisis con la IA. Intenta de nuevo más tarde.');
 }
