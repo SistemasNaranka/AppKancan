@@ -17,12 +17,12 @@ type Paso = 'configurar' | 'analizando';
 
 interface Props {
   postulaciones: Postulacion[];
+  visibles: Postulacion[]; // filas de la tabla con filtros, en su orden
   cargoInicial: string;
-  ciudadInicial: string;
   onCambiarEstado: (id: number, nuevo: EstadoContratacion) => void;
 }
 
-const AsistenteIA: React.FC<Props> = ({ postulaciones, cargoInicial, ciudadInicial, onCambiarEstado }) => {
+const AsistenteIA: React.FC<Props> = ({ postulaciones, visibles, cargoInicial, onCambiarEstado }) => {
   const [abierto, setAbierto] = useState(false);
   const [paso, setPaso] = useState<Paso>('configurar');
   const [seleccion, setSeleccion] = useState<Postulacion[]>([]);
@@ -134,9 +134,8 @@ const AsistenteIA: React.FC<Props> = ({ postulaciones, cargoInicial, ciudadInici
         <DialogContent>
           {paso === 'configurar' && (
             <PasoConfigurar
-              postulaciones={postulaciones}
+              postulaciones={visibles}
               cargoInicial={cargoInicial}
-              ciudadInicial={ciudadInicial}
               onAnalizar={analizar}
             />
           )}
