@@ -1,92 +1,66 @@
-// Columna "Análisis IA" para la tabla de vacantes.
-// Muestra el puntaje guardado (si existe) y un botón para analizar ese candidato con IA.
 import React from 'react';
-import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material';
-import { AutoAwesome as SparkIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import { Chip, Tooltip } from '@mui/material';
+import { AutoAwesome } from '@mui/icons-material';
 import { Postulacion } from '../api/directus/read';
+
+type Nivel = 'alto' | 'medio' | 'bajo';
+
+// Mismos umbrales que el IA asistente
+export const nivelDe = (score: number): Nivel =>
+  score >= 75 ? 'alto' : score >= 50 ? 'medio' : 'bajo';
+
+const ESTILOS: Record<Nivel | 'analizar', { label: string; bg: string; color: string }> = {
+  alto:     { label: 'Alto',     bg: '#E6F4EA', color: '#1E7A3C' },
+  medio:    { label: 'Medio',    bg: '#FFF4D6', color: '#8A6100' },
+  bajo:     { label: 'Bajo',     bg: '#FDE8E8', color: '#B42318' },
+  analizar: { label: 'Sin analizar', bg: 'transparent', color: '#64748B' },
+};
 
 interface Props {
   postulacion: Postulacion;
   onClick: (p: Postulacion) => void;
-  cargando?: boolean;
 }
 
-const AccionIA: React.FC<Props> = ({ postulacion, onClick, cargando = false }) => {
-  const score = (postulacion as any).ia_score as number | null | undefined;
-  const tieneScore = score != null && score > 0;
-
-  const colorMeta = !tieneScore
-    ? { bg: '#F1F5F9', color: '#64748B' }
-    : score >= 75
-      ? { bg: '#DCFCE7', color: '#15803D' }
-      : score >= 50
-        ? { bg: '#FEF3C7', color: '#B45309' }
-        : { bg: '#FEE2E2', color: '#B91C1C' };
+const AccionIA: React.FC<Props> = ({ postulacion, onClick }) => {
+  const score = (postulacion as any).ia_score;
+  const tieneScore = typeof score === 'number';
+  const estilo = ESTILOS[tieneScore ? nivelDe(score) : 'analizar'];
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 0.5,
-        minWidth: 60,
-      }}
-    >
-      {tieneScore ? (
-        <Chip
-          label={score}
-          size="small"
-          sx={{
-            fontWeight: 800,
-            fontSize: '0.75rem',
-            height: 22,
-            minWidth: 42,
-            bgcolor: colorMeta.bg,
-            color: colorMeta.color,
-          }}
-        />
-      ) : (
-        <Typography
-          sx={{
-            fontSize: '0.7rem',
-            color: '#94A3B8',
-            fontStyle: 'italic',
-            height: 22,
-            lineHeight: '22px',
-          }}
-        >
-          Sin analizar
-        </Typography>
-      )}
-
-      <Tooltip title={tieneScore ? 'Reanalizar con IA' : 'Analizar con IA'} arrow>
-        <span>
-          <IconButton
-            size="small"
-            disabled={cargando}
-            onClick={() => onClick(postulacion)}
-            sx={{
-              width: 32,
-              height: 32,
-              color: '#7C3AED',
-              bgcolor: '#F3E8FF',
-              '&:hover': { bgcolor: '#E9D5FF' },
-              '&.Mui-disabled': {
-                color: '#94A3B8',
-                bgcolor: '#F1F5F9',
-              },
-            }}
-          >
-            {cargando ? (
-              <RefreshIcon sx={{ fontSize: 16 }} />
-            ) : (
-              <SparkIcon sx={{ fontSize: 16 }} />
-            )}
-          </IconButton>
-        </span>
-      </Tooltip>
-    </Box>
+    <Tooltip title={tieneScore ? 'Ver análisis IA' : 'Analizar con IA'} arrow>
+      <Chip
+        size="small"
+        label={estilo.label}
+        icon={<AutoAwesome sx={{ fontSize: 14 }} />}
+        onClick={() => onClick(postulacion)}
+        sx={
+          tieneScore
+            ? {
+                bgcolor: estilo.bg,
+                color: estilo.color,
+                fontWeight: 700,
+                px: 0.5,
+                '& .MuiChip-icon': { color: estilo.color },
+                '&:hover': { bgcolor: estilo.bg, filter: 'brightness(0.95)' },
+              }
+            : {
+                // Sin análisis: borde punteado y sin relleno para no confundirse con los niveles
+                bgcolor: 'transparent',
+                color: estilo.color,
+                fontWeight: 600,
+                px: 0.5,
+                border: '1px dashed #CBD5E1',
+                '& .MuiChip-icon': { color: '#94A3B8' },
+                '&:hover': {
+                  bgcolor: '#F1ECFB',
+                  color: '#6B4FBB',
+                  borderColor: '#C9BDF0',
+                  '& .MuiChip-icon': { color: '#6B4FBB' },
+                },
+              }
+        }
+      />
+    </Tooltip>
   );
 };
 

@@ -20,7 +20,6 @@ interface Props {
   postulaciones: Postulacion[];
   visibles: Postulacion[];
   cargoInicial: string;
-  ciudadInicial: string;
   onCambiarEstado: (id: number, nuevo: EstadoContratacion) => void;
   candidatoParaIA?: Postulacion | null;
   onLimpiarCandidatoParaIA?: () => void;
@@ -30,7 +29,6 @@ const AsistenteIA: React.FC<Props> = ({
   postulaciones,
   visibles,
   cargoInicial,
-  ciudadInicial,
   onCambiarEstado,
   candidatoParaIA,
   onLimpiarCandidatoParaIA,
@@ -193,6 +191,9 @@ const AsistenteIA: React.FC<Props> = ({
     onLimpiarCandidatoParaIA?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [candidatoParaIA]);
+
+  // Si el usuario sale de Vacantes a mitad de un análisis, se corta la petición a Gemini
+  useEffect(() => () => controlRef.current?.abort(), []);
 
   const cancelar = () => {
     detener();
