@@ -28,7 +28,7 @@ const PasoConfigurar: React.FC<Props> = ({
   const [cargo, setCargo] = useState(cargoInicial);
   const [ciudad, setCiudad] = useState(ciudadInicial);
   const [estados, setEstados] = useState<Set<EstadoContratacion>>(new Set(ESTADOS_INICIALES));
-  // null = selección automática (las primeras 20). Pasa a Set cuando RR. HH. toca una casilla
+  // null = selección automática (las primeras 20). Pasa a Set cuando RR. HH. toca una casill a
   const [manual, setManual] = useState<Set<number> | null>(null);
 
   const base = useMemo(() => postulaciones.filter((p) =>

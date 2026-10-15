@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import EstadoSelect from '../components/EstadoSelect';
 import DetalleModal from '../components/DetalleModal';
+import AccionIA from '../components/AccionIA';                                    // ⭐ NUEVO
 import AsistenteIA from '../api/ia/AsistenteIA';
 import {
   getApplications, abrirCv, formatearFecha, getCargos,
@@ -41,7 +42,7 @@ export const CARGOS = [
 type FiltroEstado = EstadoContratacion | 'Todos';
 
 // ============================================================
-// 🆕 SELECT CON BOTÓN  X
+// 🆕 SELECT CON BOTÓN X
 // ============================================================
 interface ClearableSelectProps {
   value: string;
@@ -62,7 +63,6 @@ const ClearableSelect: React.FC<ClearableSelectProps> = ({
     <FormControl size="small" sx={{ minWidth: 220 }}>
       <InputLabel>{label}</InputLabel>
       <Select
-      
         value={value}
         label={label}
         onChange={(e) => onChange(e.target.value)}
@@ -101,6 +101,9 @@ const VacantesPage: React.FC = () => {
   const [snack, setSnack] = useState({
     open: false, message: '', severity: 'success' as 'success' | 'error',
   });
+
+  // ⭐ NUEVO: candidato preseleccionado para analizar con IA desde la tabla
+  const [candidatoParaIA, setCandidatoParaIA] = useState<Postulacion | null>(null);
 
   const {
     data: postulaciones = [],
@@ -154,6 +157,11 @@ const VacantesPage: React.FC = () => {
     }
   };
 
+  // ⭐ NUEVO: disparar análisis IA de un candidato específico
+  const analizarCandidato = (p: Postulacion) => {
+    setCandidatoParaIA(p);
+  };
+
   // ============================================================
   // 📊 EXPORTAR A EXCEL
   // ============================================================
@@ -170,12 +178,13 @@ const VacantesPage: React.FC = () => {
       'Fecha de postulación': formatearFecha(p.date_created),
       'Correo': p.email || '',
       'Nivel educativo': p.education_level || '',
+      'Puntaje IA': (p as any).ia_score ?? '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(datos);
     worksheet['!cols'] = [
       { wch: 6 }, { wch: 15 }, { wch: 32 }, { wch: 15 }, { wch: 15 },
-      { wch: 18 }, { wch: 35 }, { wch: 16 }, { wch: 20 }, { wch: 30 }, { wch: 20 },
+      { wch: 18 }, { wch: 35 }, { wch: 16 }, { wch: 20 }, { wch: 30 }, { wch: 20 }, { wch: 12 },
     ];
 
     const workbook = XLSX.utils.book_new();
@@ -322,6 +331,7 @@ const VacantesPage: React.FC = () => {
                       {h}
                     </TableCell>
                   ))}
+                  <TableCell align="center" sx={{ fontWeight: 700, py: 2 }}>Análisis IA</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700, py: 2 }}>Acción</TableCell>
                 </TableRow>
               </TableHead>
@@ -356,6 +366,15 @@ const VacantesPage: React.FC = () => {
                       <TableCell sx={{ fontSize: '0.8rem', color: '#64748B', py: 1.75, whiteSpace: 'nowrap' }}>
                         {formatearFecha(p.date_created)}
                       </TableCell>
+
+                      {/* ⭐ NUEVO: celda de Análisis IA */}
+                      <TableCell align="center" sx={{ py: 1.75 }}>
+                        <AccionIA
+                          postulacion={p}
+                          onClick={analizarCandidato}
+                        />
+                      </TableCell>
+
                       <TableCell align="center" sx={{ py: 1.75 }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                           <Tooltip title="Ver detalle" arrow>
@@ -405,9 +424,10 @@ const VacantesPage: React.FC = () => {
         cargoInicial={filtroCargo === 'Todos' ? '' : filtroCargo}
         ciudadInicial={filtroCiudad}
         onCambiarEstado={cambiarEstado}
+        candidatoParaIA={candidatoParaIA}
+        onLimpiarCandidatoParaIA={() => setCandidatoParaIA(null)}
       />
 
-      
       <Snackbar
         open={snack.open}
         autoHideDuration={3000}

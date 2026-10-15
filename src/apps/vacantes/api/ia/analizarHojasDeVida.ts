@@ -1,16 +1,16 @@
-// Análisis de hojas de vida con IA. Usa el mismo proxy que contabilización:
-// la clave sale del ia_key del usuario logueado.
-import { Postulacion, getModelosIAUsuario } from '../directus/read';
+// Análisis de hojas de vida con IA.
+// - Lee la descripción del cargo desde app_positions
+// - CACHÉ: si ya tiene ia_score + ai_analysis, NO llama a Gemini
+import { Postulacion, getModelosIAUsuario, getDescripcionCargo } from '../directus/read';
 import { leerHojaDeVida, HojaLeida } from './leerHojaDeVida';
-import { ResultadoIA, nivelEducativo } from '../ia';
+import { ResultadoIA, nivelEducativo, CandidatoEvaluado } from '../ia';
 import { cargarTokenStorage } from '@/auth/services/tokenDirectus';
 import { ensureValidToken } from '@/auth/services/directusInterceptor';
 import { obtenerModelosIA } from '@/apps/contabilizacion_factura/hooks/useHybridExtractor';
 
 const API_URL = import.meta.env.VITE_VENTAS_API_URL || '/api';
-const MAX_MB_TOTAL = 15; // Gemini limita los archivos adjuntos por petición (~20 MB)
+const MAX_MB_TOTAL = 15;
 
-// Último modelo que respondió bien en esta sesión: se prueba primero para no perder tiempo con los saturados
 let ultimoModeloExitoso: string | null = null;
 
 interface RespuestaGemini {
@@ -23,28 +23,36 @@ interface HojaDescargada {
   hoja: HojaLeida;
 }
 
-const INSTRUCCIONES = (cargo: string, total: number) => `Eres un asistente de selección de personal para KanCan, una marca colombiana de jeans con tiendas físicas.
-Cargo a evaluar: "${cargo}".
+const INSTRUCCIONES = (cargo: string, descripcion: string, total: number) => `Eres un asistente de selección de personal para KanCan, una marca colombiana de jeans con tiendas físicas.
+
+Cargo a evaluar: "${cargo}"
+
+DESCRIPCIÓN DEL CARGO (funciones y requisitos que busca la empresa):
+"""
+${descripcion || 'Sin descripción específica registrada.'}
+"""
+
 Vas a evaluar exactamente ${total} hojas de vida.
 
 Recibirás varias hojas de vida: unas como texto extraído del PDF y otras como PDF (escaneos o fotos). Antes de cada una hay una línea con el id del postulante, su nivel educativo y sus años de experiencia declarados.
 
-Reglas:
-- Evalúa solo la relación entre experiencia, formación y habilidades del postulante y el cargo.
+REGLAS:
+- Evalúa a cada postulante de forma INDEPENDIENTE comparando su hoja de vida contra la DESCRIPCIÓN DEL CARGO.
+- NO compares a los candidatos entre sí. El puntaje NO debe verse afectado por los demás.
 - Ignora nombre, foto, edad, género, estado civil, dirección y cualquier dato personal: no son criterio.
 - Más estudios no significa automáticamente mejor: pesa la experiencia relevante para el cargo.
 - Calcula el puntaje (0 a 100) sumando SOLO estos criterios, siempre los mismos:
-  * Experiencia en las funciones propias del cargo "${cargo}": hasta 40 puntos.
+  * Experiencia en las funciones propias del cargo "${cargo}" (según la descripción): hasta 40 puntos.
   * Experiencia en retail, comercio o moda: hasta 25 puntos.
-  * Habilidades clave para este cargo (por ejemplo atención al cliente, inventario, caja o liderazgo, según aplique): hasta 25 puntos.
+  * Habilidades clave para este cargo (atención al cliente, inventario, caja, liderazgo, etc.): hasta 25 puntos.
   * Formación relacionada con el cargo: hasta 10 puntos.
-- Experiencia en un sector distinto (bares, salud, docencia...) puntúa menos que la misma experiencia en retail o moda.
-- Da fortalezas concretas y puntos a verificar específicos para la entrevista (no genéricos como "verificar referencias").
+- Experiencia en un sector distinto puntúa menos que la misma experiencia en retail o moda.
+- Da fortalezas concretas y puntos a verificar específicos para la entrevista.
 - Si un PDF no se puede leer o no es una hoja de vida, dale puntaje 0 y explícalo en "aVerificar".
-- Incluye a todos los postulantes, usando exactamente el id que se te da.
+- Incluye a TODOS los postulantes, usando exactamente el id que se te da. Si hay ${total}, devuelves ${total}.
 - El resumen tiene máximo 3 frases cortas: (1) qué tan fuerte es el grupo frente al cargo, (2) quiénes destacan, máximo 3, y (3) la principal brecha del grupo.
 - En el resumen refiérete a cada persona solo como [id:N], por ejemplo [id:523]. Nunca escribas nombres.
-- Usa lenguaje neutro de género: escribe "[id:N] tiene..." o "la persona postulante", nunca "el postulante" ni "la postulante".
+- Usa lenguaje neutro de género.
 - No declares un ganador definitivo; la decisión final es de Gestión Humana.
 - Responde en español.
 
@@ -57,7 +65,6 @@ FORMATO DE SALIDA (JSON PURO):
 }
 Sin texto adicional y sin bloques de código \`\`\`json. Solo el objeto.`;
 
-// Lee todas las hojas a la vez (texto o PDF) y controla el tamaño total antes de enviar nada
 async function descargarHojas(seleccion: Postulacion[], signal?: AbortSignal): Promise<HojaDescargada[]> {
   const conCv = seleccion.filter((p) => p.cv);
   if (conCv.length === 0) throw new Error('Ninguna postulación seleccionada tiene hoja de vida');
@@ -80,9 +87,8 @@ async function descargarHojas(seleccion: Postulacion[], signal?: AbortSignal): P
   return hojas;
 }
 
-// Arma el mensaje: instrucciones y luego, por cada postulante, su línea de id y su hoja (texto o PDF)
-function construirContenido(cargo: string, hojas: HojaDescargada[]) {
-  const parts: object[] = [{ text: INSTRUCCIONES(cargo, hojas.length) }];
+function construirContenido(cargo: string, descripcion: string, hojas: HojaDescargada[]) {
+  const parts: object[] = [{ text: INSTRUCCIONES(cargo, descripcion, hojas.length) }];
   for (const { postulacion: p, hoja } of hojas) {
     parts.push({
       text: `--- Postulante id=${p.id} · Nivel educativo: ${nivelEducativo(p.education_level)} · Años de experiencia declarados: ${p.years_experience} ---`,
@@ -96,7 +102,6 @@ function construirContenido(cargo: string, hojas: HojaDescargada[]) {
   return [{ role: 'user', parts }];
 }
 
-// Igual que contabilización: tolera ```json ... ``` o texto alrededor del objeto
 function extraerJson(texto: string): RespuestaGemini {
   let s = texto.trim();
   const bloque = s.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -127,7 +132,6 @@ async function llamarProxy(contents: object[], modelo: string, signal?: AbortSig
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const msg = err.message || err.error || `HTTP ${res.status}`;
-    // Crítico: sin clave o sin sesión, probar otro modelo no sirve
     if (res.status === 400 || res.status === 401) throw Object.assign(new Error(msg), { definitivo: true });
     throw Object.assign(new Error(msg), { status: res.status });
   }
@@ -135,7 +139,6 @@ async function llamarProxy(contents: object[], modelo: string, signal?: AbortSig
   return data.text || '';
 }
 
-// Espera ms milisegundos; se corta si el usuario cancela
 function esperar(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const t = setTimeout(resolve, ms);
@@ -146,7 +149,6 @@ function esperar(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-// 503 = Google saturado: espera y reintenta una vez antes de rendirse con ese modelo
 async function llamarConReintento(contents: object[], modelo: string, signal?: AbortSignal): Promise<string> {
   try {
     return await llamarProxy(contents, modelo, signal);
@@ -158,12 +160,14 @@ async function llamarConReintento(contents: object[], modelo: string, signal?: A
   }
 }
 
-// Cambia [id:N] por el nombre real
 function ponerNombres(texto: string, seleccion: Postulacion[]): string {
   return texto.replace(/\[id:(-?\d+)\]/g, (original, id) =>
     seleccion.find((p) => p.id === Number(id))?.full_name ?? original);
 }
 
+// ============================================================
+// FUNCIÓN PRINCIPAL CON CACHÉ
+// ============================================================
 export async function analizarHojasDeVida(
   cargo: string,
   seleccion: Postulacion[],
@@ -172,24 +176,73 @@ export async function analizarHojasDeVida(
 ): Promise<ResultadoIA> {
   if (seleccion.length === 0) throw new Error('No hay postulantes para analizar');
 
-  // Se descarga una sola vez, antes de probar modelos
-  const hojas = await descargarHojas(seleccion, signal);
+  // ⭐ CACHÉ: separar los que ya tienen análisis guardado
+  const yaEvaluados: CandidatoEvaluado[] = [];
+  const pendientes: Postulacion[] = [];
+
+  for (const p of seleccion) {
+    const score = p.ia_score;
+    let analysis: any = null;
+
+    if (p.ai_analysis) {
+      try {
+        analysis = typeof p.ai_analysis === 'string'
+          ? JSON.parse(p.ai_analysis)
+          : p.ai_analysis;
+      } catch {
+        analysis = null;
+      }
+    }
+
+    if (analysis && score != null && Array.isArray(analysis.fortalezas)) {
+      yaEvaluados.push({
+        postulacion: p,
+        puntaje: score,
+        fortalezas: analysis.fortalezas || [],
+        aVerificar: analysis.aVerificar || [],
+      });
+    } else {
+      pendientes.push(p);
+    }
+  }
+
+  console.log(`[vacantes] 🔍 Caché: ${yaEvaluados.length} ya evaluados, ${pendientes.length} pendientes`);
+
+  // ⭐ Si todos ya están evaluados → NO llama a Gemini
+  if (pendientes.length === 0) {
+    console.log(`[vacantes] ✅ Todos en caché. NO se llama a Gemini.`);
+    return {
+      cargo,
+      fecha: new Date(),
+      resumen: 'Todos los candidatos ya fueron analizados previamente.',
+      ranking: yaEvaluados.sort((a, b) => b.puntaje - a.puntaje),
+      ejemplo: false,
+    };
+  }
+
+  // Leer descripción del cargo
+  const descripcionCargo = await getDescripcionCargo(cargo);
+  if (!descripcionCargo) {
+    console.warn(`[vacantes] El cargo "${cargo}" no tiene descripción en app_positions.`);
+  }
+
+  // Descargar SOLO las hojas de los pendientes
+  const hojas = await descargarHojas(pendientes, signal);
   const enviados = hojas.map((h) => h.postulacion);
-  const contents = construirContenido(cargo, hojas);
-  // Lista del perfil del usuario; si no tiene, la de por defecto. Excluye Gemma, que no lee PDF
+  const contents = construirContenido(cargo, descripcionCargo, hojas);
+
   let modelos = obtenerModelosIA(modelosIA ?? (await getModelosIAUsuario()));
   if (ultimoModeloExitoso && modelos.includes(ultimoModeloExitoso)) {
     modelos = [ultimoModeloExitoso, ...modelos.filter((m) => m !== ultimoModeloExitoso)];
   }
   let ultimoError = '';
-  let saturados = 0; // modelos que respondieron 503 (Google sin capacidad)
+  let saturados = 0;
 
   for (const modelo of modelos) {
     try {
       const r = extraerJson(await llamarConReintento(contents, modelo, signal));
 
-      // Solo se aceptan ids que se enviaron (descarta ids inventados por la IA)
-      const ranking = r.ranking
+      const rankingNuevos = r.ranking
         .map((e) => {
           const postulacion = enviados.find((p) => p.id === Number(e.id));
           if (!postulacion) return null;
@@ -201,15 +254,14 @@ export async function analizarHojasDeVida(
           };
         })
         .filter((c): c is NonNullable<typeof c> => c !== null)
-        // La IA a veces repite a una persona: se conserva solo su primera evaluación
-        .filter((c, i, todos) => todos.findIndex((x) => x.postulacion.id === c.postulacion.id) === i)
-        .sort((a, b) => b.puntaje - a.puntaje);
+        .filter((c, i, todos) => todos.findIndex((x) => x.postulacion.id === c.postulacion.id) === i);
 
-      if (ranking.length === 0) throw new Error('La IA no evaluó a ningún postulante');
+      if (rankingNuevos.length === 0 && yaEvaluados.length === 0) {
+        throw new Error('La IA no evaluó a ningún postulante');
+      }
 
-      // Crítico: nadie seleccionado puede desaparecer sin aviso (sin PDF u omitido por la IA)
-      const evaluados = new Set(ranking.map((c) => c.postulacion.id));
-      const faltantes = seleccion
+      const evaluados = new Set(rankingNuevos.map((c) => c.postulacion.id));
+      const faltantes = pendientes
         .filter((p) => !evaluados.has(p.id))
         .map((p) => ({
           postulacion: p,
@@ -220,35 +272,41 @@ export async function analizarHojasDeVida(
             ? 'La IA no evaluó esta hoja de vida: revísala manualmente'
             : 'No tiene hoja de vida adjunta'],
         }));
+
       if (faltantes.length > 0) {
         console.warn(`[vacantes] ${faltantes.length} sin evaluar:`, faltantes.map((f) => f.postulacion.id));
       }
+
+      // Combinar: nuevos + ya evaluados (caché) + faltantes
+      const rankingFinal = [...rankingNuevos, ...yaEvaluados, ...faltantes]
+        .sort((a, b) => b.puntaje - a.puntaje);
+
       const aviso = faltantes.length > 0
-        ? ` ⚠ ${faltantes.length} ${faltantes.length === 1 ? 'hoja de vida no fue evaluada' : 'hojas de vida no fueron evaluadas'}: están en la pestaña Sin evaluar.`
+        ? ` ⚠ ${faltantes.length} sin evaluar.`
         : '';
 
       ultimoModeloExitoso = modelo;
-      console.log(`[vacantes] Análisis con modelo: ${modelo}`);
+      console.log(`[vacantes] ✅ Análisis con ${modelo} (${yaEvaluados.length} caché, ${rankingNuevos.length} nuevos)`);
+
       return {
         cargo,
         fecha: new Date(),
         resumen: ponerNombres(r.resumen ?? '', enviados) + aviso,
-        ranking: [...ranking, ...faltantes],
+        ranking: rankingFinal,
         ejemplo: false,
       };
     } catch (err: any) {
       if (signal?.aborted || err?.definitivo) throw err;
       ultimoError = err?.message ?? String(err);
-      if (ultimoModeloExitoso === modelo) ultimoModeloExitoso = null; // dejó de funcionar: se olvida
+      if (ultimoModeloExitoso === modelo) ultimoModeloExitoso = null;
       console.warn(`[vacantes] Falló ${modelo}:`, ultimoError);
 
-      // Dos modelos saturados = casi seguro que los demás también: no hacer esperar más a RR. HH
       if (err?.status === 503 && ++saturados >= 2) break;
     }
   }
 
   if (saturados >= 2) {
-    throw new Error('El servicio de IA está saturado en este momento. Intenta de nuevo en unos minutos.');
+    throw new Error('El servicio de IA está saturado. Intenta en unos minutos.');
   }
   console.error('[vacantes] Todos los modelos fallaron. Último error:', ultimoError);
   throw new Error('No se pudo completar el análisis con la IA. Intenta de nuevo más tarde.');
