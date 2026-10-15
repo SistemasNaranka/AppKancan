@@ -18,6 +18,7 @@ type Paso = 'configurar' | 'analizando';
 
 interface Props {
   postulaciones: Postulacion[];
+  visibles: Postulacion[];
   cargoInicial: string;
   ciudadInicial: string;
   onCambiarEstado: (id: number, nuevo: EstadoContratacion) => void;
@@ -26,8 +27,13 @@ interface Props {
 }
 
 const AsistenteIA: React.FC<Props> = ({
-  postulaciones, cargoInicial, ciudadInicial, onCambiarEstado,
-  candidatoParaIA, onLimpiarCandidatoParaIA,
+  postulaciones,
+  visibles,
+  cargoInicial,
+  ciudadInicial,
+  onCambiarEstado,
+  candidatoParaIA,
+  onLimpiarCandidatoParaIA,
 }) => {
   const queryClient = useQueryClient();
 
@@ -70,7 +76,9 @@ const AsistenteIA: React.FC<Props> = ({
     setCargandoIndividual(false);
   };
 
-  // Análisis múltiple
+  // ============================================================
+  // ANÁLISIS MÚLTIPLE
+  // ============================================================
   const analizar = async (sel: Postulacion[], cargo: string) => {
     detener();
     const control = new AbortController();
@@ -85,7 +93,6 @@ const AsistenteIA: React.FC<Props> = ({
       const r = await analizarHojasDeVida(cargo, sel, control.signal);
       if (controlRef.current !== control) return;
 
-      // ⭐ Guardar TODOS los análisis en Directus
       try {
         const aGuardar = r.ranking.filter((c) => c.evaluado !== false);
         await Promise.all(
@@ -117,7 +124,9 @@ const AsistenteIA: React.FC<Props> = ({
     }
   };
 
-  // Análisis individual (desde el ✨ de la tabla)
+  // ============================================================
+  // ANÁLISIS INDIVIDUAL
+  // ============================================================
   const analizarIndividual = async (p: Postulacion, cargo: string) => {
     detener();
     const control = new AbortController();
@@ -142,7 +151,6 @@ const AsistenteIA: React.FC<Props> = ({
         return;
       }
 
-      // ⭐ Guardar en Directus (solo si fue evaluado por la IA)
       if (candidato.evaluado !== false) {
         try {
           await guardarAnalisisIA(p.id, candidato.puntaje, {
@@ -249,9 +257,9 @@ const AsistenteIA: React.FC<Props> = ({
         <DialogContent>
           {paso === 'configurar' && (
             <PasoConfigurar
-              postulaciones={postulaciones}
+              postulaciones={visibles}
               cargoInicial={cargoInicial}
-              ciudadInicial={ciudadInicial}
+
               onAnalizar={analizar}
             />
           )}

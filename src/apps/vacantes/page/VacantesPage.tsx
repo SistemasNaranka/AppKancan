@@ -419,10 +419,11 @@ const VacantesPage: React.FC = () => {
       )}
 
       <DetalleModal postulacion={detalle} onClose={() => setDetalle(null)} />
+      {/* postulaciones: todas (para el panel de resultado); visibles: lo que muestra la tabla */}
       <AsistenteIA
         postulaciones={postulaciones}
+        visibles={filtradas.slice(page * rowsPerPage)} // desde la primera fila de la página actual hacia abajo
         cargoInicial={filtroCargo === 'Todos' ? '' : filtroCargo}
-        ciudadInicial={filtroCiudad}
         onCambiarEstado={cambiarEstado}
         candidatoParaIA={candidatoParaIA}
         onLimpiarCandidatoParaIA={() => setCandidatoParaIA(null)}
