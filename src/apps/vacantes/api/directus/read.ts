@@ -156,3 +156,4 @@ export async function getDescripcionCargo(nombre: string): Promise<string> {
     return '';
   }
 }
+                                                                                                   

@@ -24,11 +24,28 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
   const [cargo, setCargo] = useState(cargoInicial);
   // null = selección automática (las primeras 10). Pasa a Set cuando RR. HH. toca una casilla
   const [manual, setManual] = useState<Set<number> | null>(null);
+  const [ciudad, setCiudad] = useState('');
 
   // Mismo orden de la tabla: no se reordena
-  const candidatos = useMemo(
+  const delCargo = useMemo(
     () => (cargo === '' ? [] : filas.filter((p) => getCargos(p).includes(cargo))),
     [filas, cargo],
+  );
+
+  // Solo ciudades con postulantes de ese cargo: ninguna opción puede dar 0
+  const ciudades = useMemo(
+    () => [...new Set(delCargo.map((p) => p.city).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'es')),
+    [delCargo],
+  );
+
+  // Si solo hay una ciudad con postulantes de ese cargo, se elige sola
+  const ciudadSel = ciudades.length === 1 ? ciudades[0] : ciudad;
+
+  // Sin ciudad no hay lista: no se mezclan postulantes de tiendas distintas
+  const candidatos = useMemo(
+    () => (ciudadSel === '' ? [] : delCargo.filter((p) => p.city === ciudadSel)),
+    [delCargo, ciudadSel],
   );
 
   const seleccion = manual
@@ -47,7 +64,9 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
   };
 
   // Cambiar de cargo vuelve a la selección automática
-  const cambiarCargo = (v: string) => { setCargo(v); setManual(null); };
+  const cambiarCargo = (v: string) => { setCargo(v); setCiudad(''); setManual(null); };
+  // Cambiar de ciudad también vuelve a la selección automática
+  const cambiarCiudad = (v: string) => { setCiudad(v); setManual(null); };
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '300px 1fr' }, gap: 3, mt: 3 }}>
@@ -59,6 +78,15 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
           helperText={cargo === '' ? 'Elige un cargo para comparar' : ' '}
         >
           {CARGOS.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+        </TextField>
+
+        <TextField
+          select size="small" label="Ciudad" value={ciudadSel}
+          onChange={(e) => cambiarCiudad(e.target.value)}
+          disabled={cargo === '' || ciudades.length === 0}
+          helperText={cargo !== '' && ciudadSel === '' ? 'Elige la ciudad de la tienda' : ' '}
+        >
+          {ciudades.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </TextField>
 
 
@@ -92,6 +120,7 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
         {candidatos.length === 0 ? (
           <Typography fontSize="0.85rem" color="#94A3B8" textAlign="center" py={4}>
             {cargo === '' ? 'Elige un cargo para ver los postulantes'
+              : ciudadSel === '' ? 'Elige una ciudad para ver los postulantes'
               : 'No hay postulaciones de este cargo con los filtros de la tabla'}
           </Typography>
         ) : (
