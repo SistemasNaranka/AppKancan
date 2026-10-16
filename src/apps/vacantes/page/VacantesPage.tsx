@@ -344,8 +344,8 @@ const VacantesPage: React.FC = () => {
                       <TableCell sx={{ fontSize: '0.85rem', color: '#64748B', py: 1.75 }}>
                         {p.document_number}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, py: 1.75 }}>{p.full_name}</TableCell>
-                      <TableCell sx={{ fontSize: '0.85rem', color: '#0F172A', py: 1.75, whiteSpace: 'nowrap', fontWeight: 600 }}>
+                      <TableCell sx={{ fontWeight: 600, py: 1.75, minWidth: 180 }}>{p.full_name}</TableCell>
+                      <TableCell sx={{ fontSize: '0.85rem', color: '#0F172A', py: 1.75, fontWeight: 600, minWidth: 140 }}>
                         {p.phone || '—'}
                       </TableCell>
                       <TableCell sx={{ fontSize: '0.85rem', py: 1.75 }}>{p.city}</TableCell>
@@ -384,7 +384,7 @@ const VacantesPage: React.FC = () => {
                             <IconButton size="small"
                               onClick={() => abrirCv(p.cv).catch((err) => {
                                 console.error('[vacantes] No se pudo abrir la hoja de vida:', err);
-                                alert('No se pudo abrir la hoja de vida. Intenta de nuevo.');
+                                setSnack({ open: true, message: 'No se pudo abrir la hoja de vida. Intenta de nuevo.', severity: 'error' });
                               })}
                               disabled={!p.cv}
                               sx={{ width: 36, height: 36, color: '#B91C1C', bgcolor: '#FEE2E2', '&:hover': { bgcolor: '#FECACA' } }}>
@@ -421,7 +421,6 @@ const VacantesPage: React.FC = () => {
         postulaciones={postulaciones}
         visibles={filtradas.slice(page * rowsPerPage)}
         cargoInicial={filtroCargo === 'Todos' ? '' : filtroCargo}
-        ciudadInicial={filtroCiudad}
         onCambiarEstado={cambiarEstado}
         candidatoParaIA={candidatoParaIA}
         onLimpiarCandidatoParaIA={() => setCandidatoParaIA(null)}
