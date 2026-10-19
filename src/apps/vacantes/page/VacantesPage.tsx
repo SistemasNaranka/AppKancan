@@ -14,7 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import EstadoSelect from '../components/EstadoSelect';
 import DetalleModal from '../components/DetalleModal';
-import AccionIA from '../components/AccionIA';                                    // ⭐ NUEVO
+import AccionIA from '../components/AccionIA';
 import AsistenteIA from '../api/ia/AsistenteIA';
 import {
   getApplications, abrirCv, formatearFecha, getCargos,
@@ -102,7 +102,6 @@ const VacantesPage: React.FC = () => {
     open: false, message: '', severity: 'success' as 'success' | 'error',
   });
 
-  // ⭐ NUEVO: candidato preseleccionado para analizar con IA desde la tabla
   const [candidatoParaIA, setCandidatoParaIA] = useState<Postulacion | null>(null);
 
   const {
@@ -157,7 +156,6 @@ const VacantesPage: React.FC = () => {
     }
   };
 
-  // ⭐ NUEVO: disparar análisis IA de un candidato específico
   const analizarCandidato = (p: Postulacion) => {
     setCandidatoParaIA(p);
   };
@@ -367,7 +365,6 @@ const VacantesPage: React.FC = () => {
                         {formatearFecha(p.date_created)}
                       </TableCell>
 
-                      {/* ⭐ NUEVO: celda de Análisis IA */}
                       <TableCell align="center" sx={{ py: 1.75 }}>
                         <AccionIA
                           postulacion={p}
@@ -419,10 +416,10 @@ const VacantesPage: React.FC = () => {
       )}
 
       <DetalleModal postulacion={detalle} onClose={() => setDetalle(null)} />
-      {/* postulaciones: todas (para el panel de resultado); visibles: lo que muestra la tabla */}
+
       <AsistenteIA
         postulaciones={postulaciones}
-        visibles={paginadas} // solo las filas de la página que se está viendo
+        visibles={filtradas} // todo lo filtrado en la tabla, en su orden; el diálogo toma las primeras 10
         cargoInicial={filtroCargo === 'Todos' ? '' : filtroCargo}
         onCambiarEstado={cambiarEstado}
         candidatoParaIA={candidatoParaIA}
