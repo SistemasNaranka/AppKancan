@@ -1,72 +1,64 @@
 import React from 'react';
-import { Chip, CircularProgress, Tooltip } from '@mui/material';
-import { AutoAwesome as SparkIcon } from '@mui/icons-material';
+import { Chip, Tooltip } from '@mui/material';
+import { AutoAwesome } from '@mui/icons-material';
 import { Postulacion } from '../api/directus/read';
-import { NIVELES_AJUSTE } from '../api/ia';
+
+type Nivel = 'alto' | 'medio' | 'bajo';
+
+// Mismos umbrales que el IA asistente
+export const nivelDe = (score: number): Nivel =>
+  score >= 75 ? 'alto' : score >= 50 ? 'medio' : 'bajo';
+
+const ESTILOS: Record<Nivel | 'analizar', { label: string; bg: string; color: string }> = {
+  alto:     { label: 'Alto',     bg: '#E6F4EA', color: '#1E7A3C' },
+  medio:    { label: 'Medio',    bg: '#FFF4D6', color: '#8A6100' },
+  bajo:     { label: 'Bajo',     bg: '#FDE8E8', color: '#B42318' },
+  analizar: { label: 'Sin analizar', bg: 'transparent', color: '#64748B' },
+};
 
 interface Props {
   postulacion: Postulacion;
   onClick: (p: Postulacion) => void;
-  cargando?: boolean;
 }
 
-// Mismos umbrales que el IA asistente: alto ≥75, medio 50–74, bajo <50
-const nivelPorPuntaje = (score: number): 'alto' | 'medio' | 'bajo' =>
-  score >= 75 ? 'alto' : score >= 50 ? 'medio' : 'bajo';
-
-const AccionIA: React.FC<Props> = ({ postulacion, onClick, cargando = false }) => {
-  const score = (postulacion as any).ia_score as number | null | undefined;
-  // != null (no > 0): un 0 real es un análisis hecho, no "sin analizar"
-  const analizado = typeof score === 'number';
-
-  const icono = cargando
-    ? <CircularProgress size={12} sx={{ color: 'inherit' }} />
-    : <SparkIcon sx={{ fontSize: 14 }} />;
-
-  if (!analizado) {
-    return (
-      <Tooltip title="Analizar con IA" arrow>
-        <Chip
-          icon={icono}
-          label={cargando ? 'Analizando…' : 'Sin analizar'}
-          variant="outlined"
-          size="small"
-          disabled={cargando}
-          onClick={() => onClick(postulacion)}
-          sx={{
-            fontWeight: 600,
-            fontSize: '0.72rem',
-            color: '#64748B',
-            borderStyle: 'dashed',
-            borderColor: '#CBD5E1',
-            bgcolor: 'transparent',
-            '& .MuiChip-icon': { color: 'inherit' },
-            '&:hover': { color: '#7C3AED', borderColor: '#7C3AED', bgcolor: 'transparent' },
-          }}
-        />
-      </Tooltip>
-    );
-  }
-
-  const cfg = NIVELES_AJUSTE[nivelPorPuntaje(score)];
+const AccionIA: React.FC<Props> = ({ postulacion, onClick }) => {
+  const score = (postulacion as any).ia_score;
+  const tieneScore = typeof score === 'number';
+  const estilo = ESTILOS[tieneScore ? nivelDe(score) : 'analizar'];
 
   return (
-    <Tooltip title="Ver análisis IA" arrow>
+    <Tooltip title={tieneScore ? 'Ver análisis IA' : 'Analizar con IA'} arrow>
       <Chip
-        icon={icono}
-        label={cfg.nombre}
         size="small"
-        disabled={cargando}
+        label={estilo.label}
+        icon={<AutoAwesome sx={{ fontSize: 14 }} />}
         onClick={() => onClick(postulacion)}
-        sx={{
-          fontWeight: 700,
-          fontSize: '0.72rem',
-          minWidth: 76,
-          bgcolor: cfg.fondo,
-          color: cfg.texto,
-          '& .MuiChip-icon': { color: 'inherit' },
-          '&:hover': { bgcolor: cfg.fondo, filter: 'brightness(0.95)' },
-        }}
+        sx={
+          tieneScore
+            ? {
+                bgcolor: estilo.bg,
+                color: estilo.color,
+                fontWeight: 700,
+                px: 0.5,
+                '& .MuiChip-icon': { color: estilo.color },
+                '&:hover': { bgcolor: estilo.bg, filter: 'brightness(0.95)' },
+              }
+            : {
+                // Sin análisis: borde punteado y sin relleno para no confundirse con los niveles
+                bgcolor: 'transparent',
+                color: estilo.color,
+                fontWeight: 600,
+                px: 0.5,
+                border: '1px dashed #CBD5E1',
+                '& .MuiChip-icon': { color: '#94A3B8' },
+                '&:hover': {
+                  bgcolor: '#F1ECFB',
+                  color: '#6B4FBB',
+                  borderColor: '#C9BDF0',
+                  '& .MuiChip-icon': { color: '#6B4FBB' },
+                },
+              }
+        }
       />
     </Tooltip>
   );
