@@ -430,7 +430,7 @@ const VacantesPage: React.FC = () => {
 
       <AsistenteIA
         postulaciones={postulaciones}
-        visibles={filtradas} // todo lo filtrado en la tabla, en su orden; el diálogo toma las primeras 10
+        visibles={paginadas} // solo las filas de la página en pantalla
         cargoInicial={filtroCargo === 'Todos' ? '' : filtroCargo}
         onCambiarEstado={cambiarEstado}
         candidatoParaIA={candidatoParaIA}

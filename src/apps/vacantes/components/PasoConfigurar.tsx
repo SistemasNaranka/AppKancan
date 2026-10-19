@@ -6,11 +6,11 @@ import { AutoAwesome as SparkIcon } from '@mui/icons-material';
 import { AZUL, AZUL_BG, CARGOS } from '../page/VacantesPage';
 import { getCargos, Postulacion } from '../api/directus/read';
 
-const MAX_HOJAS = 10; // Tope por análisis: las primeras 10 del cargo, en el orden de la tabla
+const MAX_HOJAS = 10; // Tope por análisis: las primeras 10 en pantalla, en el orden de la tabla
 
 interface Props {
-  postulaciones: Postulacion[]; // filas de la tabla (búsqueda, ciudad y estado ya aplicados)
-  cargoInicial: string;         // '' si en la página no hay cargo elegido
+  postulaciones: Postulacion[]; // filas en pantalla (página actual de la tabla)
+  cargoInicial: string;         // '' si en la tabla no hay cargo elegido
   onAnalizar: (seleccion: Postulacion[], cargo: string) => void;
 }
 
@@ -19,27 +19,38 @@ const iniciales = (nombre: string) =>
     .map((p) => p[0]?.toUpperCase() ?? '').join('');
 
 const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnalizar }) => {
-  // Foto de la tabla al abrir: si el refetch trae postulaciones nuevas, la selección no se corre
+  // Foto de la pantalla al abrir: si el refetch trae postulaciones nuevas, la selección no se corre
   const [filas] = useState(postulaciones);
   const [cargo, setCargo] = useState(cargoInicial);
   // null = selección automática (las primeras 10). Pasa a Set cuando RR. HH. toca una casilla
   const [manual, setManual] = useState<Set<number> | null>(null);
   const [ciudad, setCiudad] = useState('');
 
-  // Mismo orden de la tabla: no se reordena
-  const delCargo = useMemo(
-    () => (cargo === '' ? [] : filas.filter((p) => getCargos(p).includes(cargo))),
-    [filas, cargo],
+  // Solo cargos con postulantes en pantalla, en el orden fijo de CARGOS
+  const cargosEnPantalla = useMemo(
+    () => CARGOS.filter((c) => filas.some((p) => getCargos(p).includes(c))),
+    [filas],
   );
 
-  // Solo ciudades con postulantes de ese cargo: ninguna opción puede dar 0
+  // Si hay un solo cargo en pantalla se elige solo; si el elegido no está en pantalla, se ignora
+  const cargoSel = cargosEnPantalla.length === 1
+    ? cargosEnPantalla[0]
+    : cargosEnPantalla.includes(cargo) ? cargo : '';
+
+  // Mismo orden de la tabla: no se reordena
+  const delCargo = useMemo(
+    () => (cargoSel === '' ? [] : filas.filter((p) => getCargos(p).includes(cargoSel))),
+    [filas, cargoSel],
+  );
+
+  // Solo ciudades con postulantes de ese cargo en pantalla: ninguna opción puede dar 0
   const ciudades = useMemo(
     () => [...new Set(delCargo.map((p) => p.city).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, 'es')),
     [delCargo],
   );
 
-  // Si solo hay una ciudad con postulantes de ese cargo, se elige sola
+  // Si solo hay una ciudad, se elige sola
   const ciudadSel = ciudades.length === 1 ? ciudades[0] : ciudad;
 
   // Sin ciudad no hay lista: no se mezclan postulantes de tiendas distintas
@@ -63,37 +74,38 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
     setManual(s);
   };
 
-  // Cambiar de cargo vuelve a la selección automática
+  // Cambiar de cargo o de ciudad vuelve a la selección automática
   const cambiarCargo = (v: string) => { setCargo(v); setCiudad(''); setManual(null); };
-  // Cambiar de ciudad también vuelve a la selección automática
   const cambiarCiudad = (v: string) => { setCiudad(v); setManual(null); };
+
+  const sinFilas = filas.length === 0;
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '300px 1fr' }, gap: 3, mt: 3 }}>
       {/* Columna izquierda: filtros */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         <TextField
-          select size="small" label="Cargo a evaluar" value={cargo}
+          select size="small" label="Cargo a evaluar" value={cargoSel}
           onChange={(e) => cambiarCargo(e.target.value)}
-          helperText={cargo === '' ? 'Elige un cargo para comparar' : ' '}
+          disabled={sinFilas}
+          helperText={sinFilas ? 'No hay postulantes en pantalla'
+            : cargoSel === '' ? 'Elige un cargo de los que están en pantalla' : ' '}
         >
-          {CARGOS.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+          {cargosEnPantalla.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </TextField>
 
         <TextField
           select size="small" label="Ciudad" value={ciudadSel}
           onChange={(e) => cambiarCiudad(e.target.value)}
-          disabled={cargo === '' || ciudades.length === 0}
-          helperText={cargo !== '' && ciudadSel === '' ? 'Elige la ciudad de la tienda' : ' '}
+          disabled={cargoSel === '' || ciudades.length === 0}
+          helperText={cargoSel !== '' && ciudadSel === '' ? 'Elige la ciudad de la tienda' : ' '}
         >
           {ciudades.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </TextField>
 
-
-
         <Button
           variant="contained" startIcon={<SparkIcon />} disabled={n === 0}
-          onClick={() => onAnalizar(seleccion, cargo)}
+          onClick={() => onAnalizar(seleccion, cargoSel)}
           sx={{
             bgcolor: AZUL, '&:hover': { bgcolor: '#003366' },
             textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 44,
@@ -119,9 +131,10 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
 
         {candidatos.length === 0 ? (
           <Typography fontSize="0.85rem" color="#94A3B8" textAlign="center" py={4}>
-            {cargo === '' ? 'Elige un cargo para ver los postulantes'
+            {sinFilas ? 'No hay postulantes en pantalla'
+              : cargoSel === '' ? 'Elige un cargo para ver los postulantes'
               : ciudadSel === '' ? 'Elige una ciudad para ver los postulantes'
-              : 'No hay postulaciones de este cargo con los filtros de la tabla'}
+              : 'No hay postulantes de este cargo en pantalla'}
           </Typography>
         ) : (
           <Box sx={{ maxHeight: 360, overflowY: 'auto' }}>
