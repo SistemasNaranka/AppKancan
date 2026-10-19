@@ -8,9 +8,9 @@ const directus = createDirectus(process.env.DIRECTUS_URL)
   .with(staticToken(process.env.ADMIN_TOKEN))
   .with(rest());
 
-// ============================================================
-// Helpers
-// ============================================================
+// 🛑 CANDADO: Evita análisis duplicados del mismo candidato
+const enProceso = new Set();
+
 function extraerJson(texto) {
   let s = texto.trim();
   const bloque = s.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -24,37 +24,42 @@ function extraerJson(texto) {
   throw new Error("JSON inválido");
 }
 
-// ============================================================
-// POST /api/ia/vacantes/analizar
-// ============================================================
+const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 router.post("/ia/vacantes/analizar", async (req, res) => {
   const { applicationId } = req.body;
+
+  if (enProceso.has(applicationId)) {
+    console.warn(`[IA] ⚠️ La postulación ${applicationId} ya está siendo analizada. Ignorando.`);
+    return res.json({ ok: false, razon: "Ya está en proceso" });
+  }
+
+  enProceso.add(applicationId);
   console.log(`\n[IA] Analizando postulación ${applicationId}`);
 
   try {
-    // 1. Postulación
+    // ✅ USANDO ai_score
     const postulacion = await directus.request(
       readItem("app_applications", applicationId, {
-        fields: ["id", "full_name", "city", "years_experience", "education_level", "cv", "ia_score"],
+        fields: ["id", "full_name", "city", "years_experience", "education_level", "cv", "ai_score"],
       })
     );
 
     console.log(`[IA] Candidato: ${postulacion.full_name}`);
 
-    if (postulacion.ia_score != null) {
-      console.log(`[IA] Ya analizado (${postulacion.ia_score}). Saltando.`);
-      return res.json({ ok: true, yaExistia: true, puntaje: postulacion.ia_score });
+    if (postulacion.ai_score != null) {
+      console.log(`[IA] Ya analizado (${postulacion.ai_score}). Saltando.`);
+      return res.json({ ok: true, yaExistia: true, puntaje: postulacion.ai_score });
     }
     if (!postulacion.cv) {
       return res.json({ ok: false, razon: "Sin CV" });
     }
 
-    // 2. Leer el cargo Y su descripción desde la tabla M2M
+    // Leer cargo
     let cargoNombre = "";
     let descripcionCargo = "Sin descripción específica.";
 
     try {
-      // Buscar la relación
       const relaciones = await directus.request(
         readItems("app_applications_app_positions", {
           filter: { app_applications_id: { _eq: applicationId } },
@@ -64,7 +69,6 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
       );
 
       if (relaciones[0]?.app_positions_id) {
-        // Leer el cargo completo (nombre + descripción)
         const cargo = await directus.request(
           readItem("app_positions", relaciones[0].app_positions_id, {
             fields: ["id", "nombre", "descripcion"],
@@ -73,15 +77,12 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
         cargoNombre = cargo?.nombre || "";
         descripcionCargo = cargo?.descripcion || descripcionCargo;
         console.log(`[IA] Cargo: "${cargoNombre}"`);
-        console.log(`[IA] Descripción: ${descripcionCargo.slice(0, 80)}...`);
-      } else {
-        console.log(`[IA] Sin cargo asignado`);
       }
     } catch (err) {
       console.warn(`[IA] Error leyendo cargo: ${err.message}`);
     }
 
-    // 3. Descargar PDF
+    // Descargar PDF
     console.log(`[IA] Descargando CV...`);
     const directusUrl = process.env.DIRECTUS_URL || "http://192.168.19.245:8055";
     const token = process.env.ADMIN_TOKEN;
@@ -95,7 +96,7 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
     const pdfBase64 = pdfBuffer.toString("base64");
     console.log(`[IA] CV: ${(pdfBuffer.length / 1024).toFixed(1)} KB`);
 
-    // 4. API Key + modelos del usuario admin
+    // API Key y modelos
     const usuarios = await directus.request(
       readUsers({ fields: ["ia_key", "models_ia.name"], limit: 100 })
     );
@@ -108,97 +109,98 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
       .filter(Boolean);
 
     if (MODELOS.length === 0) {
-      MODELOS = ["gemini-3.7-flash", "gemini-3.5-flash", "gemma-4-31b-it"];
-      console.warn(`[IA] Sin models_ia. Fallback: ${MODELOS.join(", ")}`);
-    } else {
-      console.log(`[IA] Modelos: ${MODELOS.join(", ")}`);
+      MODELOS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
+      console.warn(`[IA] Sin models_ia en Directus. Usando Fallback.`);
     }
 
-    // 5. Prompt que COMPARA el CV con la descripción del cargo
+    // Prompt
     const prompt = `Eres un reclutador de KanCan, marca colombiana de jeans.
-
 CARGO: "${cargoNombre}"
-
-DESCRIPCIÓN DEL CARGO (funciones y requisitos que busca la empresa):
+DESCRIPCIÓN DEL CARGO:
 """
 ${descripcionCargo}
 """
-
 CANDIDATO:
 - Nombre: ${postulacion.full_name}
 - Ciudad: ${postulacion.city}
 - Experiencia: ${postulacion.years_experience} años
 - Educación: ${postulacion.education_level || "No especificada"}
-
-Analiza el CV adjunto (PDF). Compara CADA función de la descripción con lo que dice el CV del candidato.
-
+Analiza el CV adjunto (PDF). Compara CADA función con lo que dice el CV.
 Devuelve SOLO este JSON (sin texto extra):
 {
   "puntaje": número 0-100,
-  "fortalezas": ["3 puntos específicos del CV que coinciden con la descripción"],
-  "aVerificar": ["2-3 funciones de la descripción que NO se ven en el CV"],
-  "resumen": "1 frase sobre el candidato frente al cargo"
+  "fortalezas": ["3 puntos específicos"],
+  "aVerificar": ["2-3 funciones que NO se ven"],
+  "resumen": "1 frase sobre el candidato"
 }`;
 
-    // 6. Probar cada modelo
+    const responseSchema = {
+      type: "object",
+      properties: {
+        puntaje: { type: "number" },
+        fortalezas: { type: "array", items: { type: "string" } },
+        aVerificar: { type: "array", items: { type: "string" } },
+        resumen: { type: "string" }
+      },
+      required: ["puntaje", "fortalezas", "aVerificar", "resumen"]
+    };
+
+    // Bucle de modelos
     let resultado = null;
     let modeloUsado = "";
 
     for (const modelo of MODELOS) {
       console.log(`[IA] Probando ${modelo}...`);
-      try {
-        const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: prompt },
-                  { inline_data: { mime_type: "application/pdf", data: pdfBase64 } },
-                ],
-              }],
-              generationConfig: { responseMimeType: "application/json", temperature: 0 },
-            }),
+      let exitoModelo = false;
+      let textoResp = "";
+
+      for (let intento = 1; intento <= 3; intento++) {
+        try {
+          const r = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "application/pdf", data: pdfBase64 } }] }],
+                generationConfig: { responseMimeType: "application/json", responseSchema: responseSchema, temperature: 0 },
+              }),
+            }
+          );
+
+          if (r.status === 503 || r.status === 429) throw new Error("Saturado");
+          if (!r.ok) throw new Error(`Error HTTP ${r.status}`);
+
+          const data = await r.json();
+          textoResp = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (textoResp) { exitoModelo = true; break; }
+        } catch (err) {
+          if (intento < 3) {
+            const esperaMs = Math.pow(2, intento) * 1000;
+            console.warn(`[IA] ${modelo} falló. Reintentando en ${esperaMs / 1000}s...`);
+            await esperar(esperaMs);
           }
-        );
-
-        if (r.status === 503) { console.warn(`[IA] ${modelo} saturado`); continue; }
-        if (!r.ok) {
-          const err = await r.json().catch(() => ({}));
-          console.warn(`[IA] ${modelo} error ${r.status}: ${err?.error?.message || ""}`);
-          continue;
         }
+      }
 
-        const data = await r.json();
-        const textoResp = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!textoResp) continue;
-
+      if (exitoModelo && textoResp) {
         try {
           const parsed = extraerJson(textoResp);
           if (typeof parsed.puntaje === "number") {
             resultado = parsed;
             modeloUsado = modelo;
-            console.log(`[IA] ✅ ${modelo} respondió`);
             break;
           }
-        } catch {
-          console.warn(`[IA] ${modelo} JSON inválido`);
-          continue;
-        }
-      } catch (err) {
-        console.warn(`[IA] ${modelo}: ${err.message}`);
-        continue;
+        } catch { }
       }
     }
 
     if (!resultado) throw new Error("Todos los modelos fallaron");
 
-    // 7. Guardar
+    // ✅ GUARDANDO CON ai_score
     await directus.request(
       updateItem("app_applications", applicationId, {
-        ia_score: resultado.puntaje,
+        ai_score: resultado.puntaje, 
         ai_analysis: JSON.stringify({
           puntaje: resultado.puntaje,
           fortalezas: resultado.fortalezas || [],
@@ -214,75 +216,12 @@ Devuelve SOLO este JSON (sin texto extra):
 
     console.log(`[IA] ✅ Guardado: ${resultado.puntaje} pts (${modeloUsado})\n`);
     res.json({ ok: true, puntaje: resultado.puntaje, modelo: modeloUsado });
+    
   } catch (err) {
     console.error(`[IA] ❌ ${err.message}`);
     res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// ============================================================
-// POST /api/ia/vacantes/analizar-masivo
-// ============================================================
-router.post("/ia/vacantes/analizar-masivo", async (req, res) => {
-  const limite = Number(req.body?.limite) || 10;
-  console.log(`\n[IA MASIVO] Procesando hasta ${limite}`);
-
-  try {
-    const pendientes = await directus.request(
-      readItems("app_applications", {
-        filter: { ia_score: { _null: true }, cv: { _nnull: true } },
-        fields: ["id", "full_name"],
-        limit: limite,
-      })
-    );
-
-    console.log(`[IA MASIVO] ${pendientes.length} pendientes`);
-    if (pendientes.length === 0) {
-      return res.json({ ok: true, total: 0, exitosos: 0 });
-    }
-
-    const resultados = [];
-    const PORT = process.env.PORT || 11000;
-
-    for (const p of pendientes) {
-      try {
-        const r = await fetch(`http://localhost:${PORT}/api/ia/vacantes/analizar`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ applicationId: p.id }),
-        });
-        const data = await r.json();
-        resultados.push({ id: p.id, ok: data.ok, puntaje: data.puntaje });
-        console.log(`[IA MASIVO] ${p.full_name}: ${data.ok ? `✅ ${data.puntaje}` : `⚠️ ${data.error}`}`);
-      } catch (err) {
-        resultados.push({ id: p.id, ok: false, error: err.message });
-      }
-      await new Promise((r) => setTimeout(r, 2000));
-    }
-
-    const exitosos = resultados.filter((r) => r.ok).length;
-    console.log(`[IA MASIVO] ${exitosos}/${pendientes.length} exitosos\n`);
-    res.json({ ok: true, total: pendientes.length, exitosos, resultados });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// ============================================================
-// GET /api/ia/vacantes/pendientes
-// ============================================================
-router.get("/ia/vacantes/pendientes", async (_req, res) => {
-  try {
-    const pendientes = await directus.request(
-      readItems("app_applications", {
-        filter: { ia_score: { _null: true }, cv: { _nnull: true } },
-        fields: ["id", "full_name"],
-        limit: 500,
-      })
-    );
-    res.json({ ok: true, total: pendientes.length, pendientes });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+  } finally {
+    enProceso.delete(applicationId);
   }
 });
 

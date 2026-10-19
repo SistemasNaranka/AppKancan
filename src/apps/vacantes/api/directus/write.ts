@@ -48,7 +48,7 @@ export async function guardarAnalisisIA(
     await withAutoRefresh(() =>
       directus.request(
         updateItem('app_applications' as never, id, {
-          ia_score: puntaje,
+          ai_score: puntaje, // 👈 CAMBIADO AQUÍ
           ai_analysis: analisisString,
         } as never)
       )

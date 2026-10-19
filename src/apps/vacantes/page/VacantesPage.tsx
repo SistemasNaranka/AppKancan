@@ -176,7 +176,8 @@ const VacantesPage: React.FC = () => {
       'Fecha de postulación': formatearFecha(p.date_created),
       'Correo': p.email || '',
       'Nivel educativo': p.education_level || '',
-      'Puntaje IA': (p as any).ia_score ?? '',
+      // ✅ CAMBIADO A ai_score AQUÍ
+      'Puntaje IA': (p as any).ai_score ?? '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(datos);
@@ -299,7 +300,7 @@ const VacantesPage: React.FC = () => {
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3, border: '1px solid #FECACA', bgcolor: '#FEF2F2' }}>
           <Alert severity="error" sx={{ mb: 2 }}>No se pudieron cargar las postulaciones</Alert>
           <Typography color="#B91C1C" fontSize="0.85rem" mb={2}>
-            Verifica que Directus esté corriendo en 192.168.19.245:8055
+            Verifica que Directus esté corriendo y los campos sean correctos.
           </Typography>
           <Chip label="Reintentar" onClick={() => refetch()}
             sx={{ bgcolor: AZUL, color: '#fff', fontWeight: 700, cursor: 'pointer' }} />

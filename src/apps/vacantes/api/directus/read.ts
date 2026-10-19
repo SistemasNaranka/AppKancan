@@ -81,7 +81,7 @@ export interface Postulacion {
   date_created: string;
   status: string;
   positions?: any[] | null;
-  ia_score?: number | null;
+  ai_score?: number | null; // 👈 CAMBIADO AQUÍ
   ai_analysis?: string | null;
 }
 
@@ -109,7 +109,7 @@ export async function getApplications(): Promise<Postulacion[]> {
   const res = await withAutoRefresh(() =>
     directus.request(
       readItems('app_applications' as never, {
-        fields: ['*', 'positions.*.*', 'ia_score', 'ai_analysis'],
+        fields: ['*', 'positions.*.*', 'ai_score', 'ai_analysis'], // 👈 CAMBIADO AQUÍ
         sort: ['-date_created'],
         limit: -1,
       } as never)

@@ -14,7 +14,8 @@ const AZUL_BG = '#E6EEF5';
 const AZUL_BG_HOVER = '#CCDDEA';
 
 const AccionIA: React.FC<Props> = ({ postulacion, onClick, cargando = false }) => {
-  const score = (postulacion as any).ia_score as number | null | undefined;
+  // ✅ CAMBIADO A ai_score AQUÍ
+  const score = (postulacion as any).ai_score as number | null | undefined;
   const tieneScore = score != null && score > 0;
 
   const colorMeta = !tieneScore
@@ -32,7 +33,7 @@ const AccionIA: React.FC<Props> = ({ postulacion, onClick, cargando = false }) =
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 1, // Un poco más de espacio entre el puntaje y el botón
+        gap: 1,
         minWidth: 100,
         py: 0.5,
       }}
@@ -41,22 +42,22 @@ const AccionIA: React.FC<Props> = ({ postulacion, onClick, cargando = false }) =
         <Tooltip
           title={
             score >= 75 ? 'Nivel Alto' :
-            score >= 50 ? 'Nivel Medio' :
-            'Nivel Bajo'
+              score >= 50 ? 'Nivel Medio' :
+                'Nivel Bajo'
           }
           arrow
         >
           <Chip
             label={`${score}/100`}
             sx={{
-              fontWeight: 900,          // Letra más gruesa
-              fontSize: '1rem',         // Texto más grande (aprox 16px)
-              height: 32,               // Etiqueta más alta
-              minWidth: 75,             // Etiqueta más ancha
+              fontWeight: 900,
+              fontSize: '1rem',
+              height: 32,
+              minWidth: 75,
               bgcolor: colorMeta.bg,
               color: colorMeta.color,
               letterSpacing: '0.5px',
-              border: `1px solid ${colorMeta.color}22`, // Un borde sutil para resaltar
+              border: `1px solid ${colorMeta.color}22`,
             }}
           />
         </Tooltip>
@@ -64,12 +65,12 @@ const AccionIA: React.FC<Props> = ({ postulacion, onClick, cargando = false }) =
         <Box sx={{ height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Typography
             sx={{
-              fontSize: '0.8rem',       // Un poco más grande que antes (era 0.7rem)
+              fontSize: '0.8rem',
               color: '#94A3B8',
               fontStyle: 'italic',
               whiteSpace: 'nowrap',
               lineHeight: 1,
-              fontWeight: 600,          // Un poco más de peso visual
+              fontWeight: 600,
             }}
           >
             Sin analizar
@@ -85,7 +86,7 @@ const AccionIA: React.FC<Props> = ({ postulacion, onClick, cargando = false }) =
             disabled={cargando}
             onClick={() => onClick(postulacion)}
             sx={{
-              width: 36,                // Ligeramente más grande (era 32)
+              width: 36,
               height: 36,
               color: AZUL,
               bgcolor: AZUL_BG,
@@ -97,7 +98,7 @@ const AccionIA: React.FC<Props> = ({ postulacion, onClick, cargando = false }) =
             }}
           >
             {cargando ? (
-              <RefreshIcon sx={{ fontSize: 20 }} /> // Ícono un poco más grande
+              <RefreshIcon sx={{ fontSize: 20 }} />
             ) : (
               <SparkIcon sx={{ fontSize: 20 }} />
             )}

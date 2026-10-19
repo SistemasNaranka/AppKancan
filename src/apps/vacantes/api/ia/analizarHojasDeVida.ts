@@ -1,6 +1,6 @@
 // Análisis de hojas de vida con IA.
 // - Lee la descripción del cargo desde app_positions
-// - CACHÉ: si ya tiene ia_score + ai_analysis, NO llama a Gemini
+// - CACHÉ: si ya tiene ai_score + ai_analysis, NO llama a Gemini
 import { Postulacion, getModelosIAUsuario, getDescripcionCargo } from '../directus/read';
 import { leerHojaDeVida, HojaLeida } from './leerHojaDeVida';
 import { ResultadoIA, nivelEducativo, CandidatoEvaluado } from '../ia';
@@ -181,7 +181,8 @@ export async function analizarHojasDeVida(
   const pendientes: Postulacion[] = [];
 
   for (const p of seleccion) {
-    const score = p.ia_score;
+    // ✅ CAMBIO CRÍTICO AQUÍ: Usar ai_score en lugar de ia_score
+    const score = p.ai_score; 
     let analysis: any = null;
 
     if (p.ai_analysis) {
