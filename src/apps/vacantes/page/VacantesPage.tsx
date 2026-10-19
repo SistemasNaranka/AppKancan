@@ -9,6 +9,7 @@ import {
   Search as SearchIcon, Visibility as ViewIcon,
   PictureAsPdf as PictureAsPdfIcon, WorkOutline as WorkIcon,
   Clear as ClearIcon, FileDownload as FileDownloadIcon,
+  AutoAwesome as SparkIcon, // ✅ NUEVO ÍCONO IMPORTADO
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
@@ -176,8 +177,7 @@ const VacantesPage: React.FC = () => {
       'Fecha de postulación': formatearFecha(p.date_created),
       'Correo': p.email || '',
       'Nivel educativo': p.education_level || '',
-      // ✅ CAMBIADO A ai_score AQUÍ
-      'Puntaje IA': (p as any).ai_score ?? '',
+      'Puntaje IA': (p as any).ai_score ?? '', 
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(datos);
@@ -320,12 +320,7 @@ const VacantesPage: React.FC = () => {
                   {['Tipo', 'Documento', 'Nombre', 'Teléfono', 'Ciudad', 'Exp.', 'Cargos', 'Estado', 'Fecha de postulación'].map((h) => (
                     <TableCell
                       key={h}
-                      sx={{
-                        fontWeight: 700,
-                        py: 2,
-                        pl: 2,
-                        whiteSpace: 'nowrap',
-                      }}
+                      sx={{ fontWeight: 700, py: 2, pl: 2, whiteSpace: 'nowrap' }}
                     >
                       {h}
                     </TableCell>
@@ -366,21 +361,35 @@ const VacantesPage: React.FC = () => {
                         {formatearFecha(p.date_created)}
                       </TableCell>
 
+                      {/* ✅ COLUMNA ANÁLISIS IA (Solo el puntaje) */}
                       <TableCell align="center" sx={{ py: 1.75 }}>
-                        <AccionIA
-                          postulacion={p}
-                          onClick={analizarCandidato}
-                        />
+                        <AccionIA postulacion={p} />
                       </TableCell>
 
+                      {/* ✅ COLUMNA ACCIÓN (Ahora incluye el botón de Gemini) */}
                       <TableCell align="center" sx={{ py: 1.75 }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          
+                          {/* Botón de Gemini / IA */}
+                          <Tooltip title="Analizar con IA" arrow>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => analizarCandidato(p)}
+                              sx={{ width: 36, height: 36, color: AZUL, bgcolor: AZUL_BG, '&:hover': { bgcolor: '#CCDDEA' } }}
+                            >
+                              <SparkIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+
+                          {/* Botón Ver Detalle */}
                           <Tooltip title="Ver detalle" arrow>
                             <IconButton size="small" onClick={() => setDetalle(p)}
                               sx={{ width: 36, height: 36, color: AZUL, bgcolor: AZUL_BG, '&:hover': { bgcolor: '#CCDDEA' } }}>
                               <ViewIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                           </Tooltip>
+
+                          {/* Botón Ver PDF */}
                           <Tooltip title="Ver hoja de vida (PDF)" arrow>
                             <IconButton size="small"
                               onClick={() => abrirCv(p.cv).catch((err) => {
@@ -392,6 +401,7 @@ const VacantesPage: React.FC = () => {
                               <PictureAsPdfIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                           </Tooltip>
+
                         </Box>
                       </TableCell>
                     </TableRow>
