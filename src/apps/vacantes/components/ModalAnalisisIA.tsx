@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Drawer, Box, Typography, IconButton, Button, Avatar, Divider,
-  CircularProgress, Chip,
+  CircularProgress, Snackbar, Alert,
 } from '@mui/material';
 import {
   AutoAwesome as SparkIcon, Close as CloseIcon, CheckRounded as CheckIcon,
@@ -45,6 +45,9 @@ export const ModalAnalisisIA: React.FC<Props> = ({
   open, onClose, cargo, candidato, fecha, postulacionViva, onCambiarEstado,
   cargando = false, candidatoBase = null, error = null,
 }) => {
+  // Hook antes del return condicional (regla de hooks de React)
+  const [errorPdf, setErrorPdf] = useState(false);
+
   const p = candidato?.postulacion ?? candidatoBase;
   if (!p) return null;
 
@@ -53,7 +56,7 @@ export const ModalAnalisisIA: React.FC<Props> = ({
   const estadoActual = (postulacionViva?.status ?? p.status) as EstadoContratacion;
   const sinEvaluar = !candidato || nivel === 'sin';
 
-  const verPdf = () => abrirCv(p.cv).catch(() => alert('No se pudo abrir la hoja de vida.'));
+  const verPdf = () => abrirCv(p.cv).catch(() => setErrorPdf(true));
 
   return (
     <Drawer
@@ -79,17 +82,12 @@ export const ModalAnalisisIA: React.FC<Props> = ({
       {/* Cuerpo con scroll */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-        {/* Rango del nivel */}
+        {/* Nivel (único lugar donde se muestra) */}
         {!cargando && !error && candidato && (
           <Box
             sx={{
-              bgcolor: cfg.fondo,
-              borderRadius: 3,
-              px: 2,
-              py: 1.5,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              bgcolor: cfg.fondo, borderRadius: 3, px: 2, py: 1.5,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}
           >
             <Typography fontSize="0.9rem" color={cfg.texto} fontWeight={700}>
@@ -104,25 +102,16 @@ export const ModalAnalisisIA: React.FC<Props> = ({
         {/* Tarjeta del candidato */}
         <Box
           sx={{
-            bgcolor: '#fff',
-            borderRadius: 3,
-            p: 2.5,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-            border: `2px solid ${cargando ? '#E9D5FF' : cfg.fondo}`,
+            bgcolor: '#fff', borderRadius: 3, p: 2.5,
+            display: 'flex', flexDirection: 'column', gap: 1.5,
+            border: `2px solid ${cargando ? '#CCDDEA' : cfg.fondo}`,
           }}
         >
-          {/* Header del candidato */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Avatar
               sx={{
-                width: 48,
-                height: 48,
-                fontSize: '1rem',
-                fontWeight: 700,
-                bgcolor: FONDO_AVATAR[nivel],
-                color: cfg.texto,
+                width: 48, height: 48, fontSize: '1rem', fontWeight: 700,
+                bgcolor: FONDO_AVATAR[nivel], color: cfg.texto,
               }}
             >
               {iniciales(p.full_name)}
@@ -133,38 +122,20 @@ export const ModalAnalisisIA: React.FC<Props> = ({
                 {p.city} · {nivelEducativo(p.education_level)} · {p.years_experience} años
               </Typography>
             </Box>
-
-            {/* Chip de RANGO en lugar del puntaje numérico */}
-            {!cargando && !sinEvaluar && candidato && (
-              <Chip
-                label={cfg.nombre}
-                sx={{
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  height: 34,
-                  px: 1.75,
-                  bgcolor: cfg.texto,
-                  color: '#fff',
-                  letterSpacing: '0.05em',
-                }}
-              />
-            )}
           </Box>
 
           <Divider />
 
-          {/* ESTADO DE CARGA */}
           {cargando && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 2 }}>
-              <CircularProgress size={44} sx={{ color: '#7C3AED' }} />
-              <Typography fontWeight={700} color="#7C3AED">Analizando con IA...</Typography>
+              <CircularProgress size={44} sx={{ color: AZUL }} />
+              <Typography fontWeight={700} color={AZUL}>Analizando con IA...</Typography>
               <Typography fontSize="0.8rem" color="#64748B" textAlign="center">
                 Gemini está leyendo la hoja de vida y comparando contra la descripción del cargo.
               </Typography>
             </Box>
           )}
 
-          {/* ERROR */}
           {!cargando && error && (
             <Box sx={{ bgcolor: '#FEF2F2', borderRadius: 2, p: 2, border: '1px solid #FECACA' }}>
               <Typography fontSize="0.85rem" color="#B91C1C" fontWeight={600}>
@@ -173,19 +144,11 @@ export const ModalAnalisisIA: React.FC<Props> = ({
             </Box>
           )}
 
-          {/* RESULTADO */}
           {!cargando && !error && candidato && (
             <>
-              {/* Fortalezas */}
               {!sinEvaluar && candidato.fortalezas.length > 0 && (
                 <Box>
-                  <Typography
-                    fontSize="0.72rem"
-                    fontWeight={800}
-                    color="#16A34A"
-                    mb={0.75}
-                    letterSpacing="0.05em"
-                  >
+                  <Typography fontSize="0.72rem" fontWeight={800} color="#16A34A" mb={0.75} letterSpacing="0.05em">
                     FORTALEZAS
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -196,16 +159,9 @@ export const ModalAnalisisIA: React.FC<Props> = ({
                 </Box>
               )}
 
-              {/* A verificar */}
               {candidato.aVerificar.length > 0 && (
                 <Box>
-                  <Typography
-                    fontSize="0.72rem"
-                    fontWeight={800}
-                    color="#EA580C"
-                    mb={0.75}
-                    letterSpacing="0.05em"
-                  >
+                  <Typography fontSize="0.72rem" fontWeight={800} color="#EA580C" mb={0.75} letterSpacing="0.05em">
                     A VERIFICAR
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -218,7 +174,6 @@ export const ModalAnalisisIA: React.FC<Props> = ({
             </>
           )}
 
-          {/* Botones */}
           <Divider />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             {p.cv && (
@@ -227,13 +182,7 @@ export const ModalAnalisisIA: React.FC<Props> = ({
                 size="small"
                 startIcon={<DocIcon />}
                 onClick={verPdf}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  color: AZUL,
-                  borderColor: '#CBD5E1',
-                }}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, color: AZUL, borderColor: '#CBD5E1' }}
               >
                 Hoja de vida
               </Button>
@@ -250,6 +199,17 @@ export const ModalAnalisisIA: React.FC<Props> = ({
           La decisión final es de Gestión Humana.
         </Typography>
       </Box>
+
+      <Snackbar
+        open={errorPdf}
+        autoHideDuration={4000}
+        onClose={() => setErrorPdf(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" variant="filled" onClose={() => setErrorPdf(false)}>
+          No se pudo abrir la hoja de vida.
+        </Alert>
+      </Snackbar>
     </Drawer>
   );
 };
