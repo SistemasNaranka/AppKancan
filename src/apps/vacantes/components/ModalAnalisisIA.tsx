@@ -255,3 +255,5 @@ export const ModalAnalisisIA: React.FC<Props> = ({
 };
 
 export default ModalAnalisisIA;
+
+
