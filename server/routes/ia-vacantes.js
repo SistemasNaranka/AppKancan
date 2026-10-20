@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const {
-  createDirectus, rest, readItem, readItems, readUsers, updateItem, staticToken,
+  createDirectus, rest, readItem, readUsers, updateItem, staticToken,
 } = require("@directus/sdk");
 
 const directus = createDirectus(process.env.DIRECTUS_URL)
   .with(staticToken(process.env.ADMIN_TOKEN))
   .with(rest());
 
-// 🛑 CANDADO: Evita análisis duplicados del mismo candidato
+// 🛑 CANDADO: Evita análisis duplicados
 const enProceso = new Set();
 
 function extraerJson(texto) {
@@ -30,7 +30,7 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
   const { applicationId } = req.body;
 
   if (enProceso.has(applicationId)) {
-    console.warn(`[IA] ⚠️ La postulación ${applicationId} ya está siendo analizada. Ignorando.`);
+    console.warn(`[IA] ⚠️ La postulación ${applicationId} ya está en proceso. Ignorando.`);
     return res.json({ ok: false, razon: "Ya está en proceso" });
   }
 
@@ -38,10 +38,14 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
   console.log(`\n[IA] Analizando postulación ${applicationId}`);
 
   try {
-    // ✅ USANDO ai_score
+    // ✅ 1. Consulta anidada usando 'descripcion' en minúscula (exacto a tu Directus)
     const postulacion = await directus.request(
       readItem("app_applications", applicationId, {
-        fields: ["id", "full_name", "city", "years_experience", "education_level", "cv", "ai_score"],
+        fields: [
+          "id", "full_name", "city", "years_experience", "education_level", "cv", "ai_score",
+          "positions.app_positions_id.nombre",
+          "positions.app_positions_id.descripcion" // 👈 Corregido aquí
+        ],
       })
     );
 
@@ -55,34 +59,15 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
       return res.json({ ok: false, razon: "Sin CV" });
     }
 
-    // Leer cargo
-    let cargoNombre = "";
-    let descripcionCargo = "Sin descripción específica.";
+    // 2. Extraer Cargo y Descripción
+    const posData = postulacion.positions?.[0]?.app_positions_id;
+    const cargoNombre = posData?.nombre || "No especificado";
+    const descripcionCargo = posData?.descripcion || "Sin descripción específica.";
 
-    try {
-      const relaciones = await directus.request(
-        readItems("app_applications_app_positions", {
-          filter: { app_applications_id: { _eq: applicationId } },
-          fields: ["app_positions_id"],
-          limit: 1,
-        })
-      );
+    console.log(`[IA] Cargo: "${cargoNombre}"`);
+    console.log(`[IA] Descripción cargada: "${descripcionCargo.slice(0, 50)}..."`);
 
-      if (relaciones[0]?.app_positions_id) {
-        const cargo = await directus.request(
-          readItem("app_positions", relaciones[0].app_positions_id, {
-            fields: ["id", "nombre", "descripcion"],
-          })
-        );
-        cargoNombre = cargo?.nombre || "";
-        descripcionCargo = cargo?.descripcion || descripcionCargo;
-        console.log(`[IA] Cargo: "${cargoNombre}"`);
-      }
-    } catch (err) {
-      console.warn(`[IA] Error leyendo cargo: ${err.message}`);
-    }
-
-    // Descargar PDF
+    // 3. Descargar PDF
     console.log(`[IA] Descargando CV...`);
     const directusUrl = process.env.DIRECTUS_URL || "http://192.168.19.245:8055";
     const token = process.env.ADMIN_TOKEN;
@@ -96,7 +81,7 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
     const pdfBase64 = pdfBuffer.toString("base64");
     console.log(`[IA] CV: ${(pdfBuffer.length / 1024).toFixed(1)} KB`);
 
-    // API Key y modelos
+    // 4. API Key y Modelos
     const usuarios = await directus.request(
       readUsers({ fields: ["ia_key", "models_ia.name"], limit: 100 })
     );
@@ -107,45 +92,77 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
     let MODELOS = (usuario.models_ia || [])
       .map((m) => (typeof m === "string" ? m : m?.name))
       .filter(Boolean);
-
+    // ✅ Agregamos el 3.1-flash-lite al final como último salvavidas
     if (MODELOS.length === 0) {
-      MODELOS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
+      MODELOS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"];
       console.warn(`[IA] Sin models_ia en Directus. Usando Fallback.`);
     }
 
-    // Prompt
-    const prompt = `Eres un reclutador de KanCan, marca colombiana de jeans.
-CARGO: "${cargoNombre}"
-DESCRIPCIÓN DEL CARGO:
+    // ✅ 6. PROMPT ROBUSTO (Obliga a la IA a hacer el desglose matemático)
+    const prompt = `Actúa como un Analista de Talento Humano experto, estricto y objetivo para KanCan.
+
+CARGO A EVALUAR: "${cargoNombre}"
+
+REQUISITOS DEL CARGO (Directus):
 """
 ${descripcionCargo}
 """
+
 CANDIDATO:
 - Nombre: ${postulacion.full_name}
-- Ciudad: ${postulacion.city}
-- Experiencia: ${postulacion.years_experience} años
+- Experiencia declarada: ${postulacion.years_experience} años
 - Educación: ${postulacion.education_level || "No especificada"}
-Analiza el CV adjunto (PDF). Compara CADA función con lo que dice el CV.
-Devuelve SOLO este JSON (sin texto extra):
+
+INSTRUCCIONES DE EVALUACIÓN (No te desvíes de esto):
+Para calcular el puntaje, DEBES llenar el "desglose" sumando estos 4 criterios:
+1. Experiencia en el cargo exacto (0 a 40 pts). Basado en lo que pide la descripción.
+2. Experiencia en Retail/Moda/Ventas (0 a 25 pts).
+3. Habilidades técnicas clave: caja, inventario, atención al cliente (0 a 25 pts).
+4. Formación académica relacionada (0 a 10 pts).
+
+REGLAS ESTRICTAS E INQUEBRANTABLES:
+- NO INVENTES información. Si el CV no menciona algo, NO lo asumas.
+- Si el candidato tiene 0 años de experiencia en ventas/retail, el puntaje final NO puede superar los 45 puntos.
+- La media real de un candidato promedio es 50-65. Solo un candidato excepcional (con experiencia y formación exacta) supera los 80.
+- El "puntaje" final DEBE ser la suma matemática exacta de los 4 puntos del desglose.
+- El "resumen" debe tener máximo 2 frases.
+
+Devuelve ÚNICAMENTE este JSON (sin texto extra, sin saludos, sin bloques de código):
 {
-  "puntaje": número 0-100,
-  "fortalezas": ["3 puntos específicos"],
-  "aVerificar": ["2-3 funciones que NO se ven"],
-  "resumen": "1 frase sobre el candidato"
+  "desglose": {
+    "experiencia_cargo": 0,
+    "experiencia_retail": 0,
+    "habilidades_tecnicas": 0,
+    "formacion": 0
+  },
+  "puntaje": 0,
+  "fortalezas": ["3 puntos específicos del CV"],
+  "aVerificar": ["2-3 funciones del cargo que NO se ven en el CV"],
+  "resumen": "1 frase sobre el candidato frente al cargo"
 }`;
 
     const responseSchema = {
       type: "object",
       properties: {
+        desglose: {
+          type: "object",
+          properties: {
+            experiencia_cargo: { type: "number" },
+            experiencia_retail: { type: "number" },
+            habilidades_tecnicas: { type: "number" },
+            formacion: { type: "number" }
+          },
+          required: ["experiencia_cargo", "experiencia_retail", "habilidades_tecnicas", "formacion"]
+        },
         puntaje: { type: "number" },
         fortalezas: { type: "array", items: { type: "string" } },
         aVerificar: { type: "array", items: { type: "string" } },
         resumen: { type: "string" }
       },
-      required: ["puntaje", "fortalezas", "aVerificar", "resumen"]
+      required: ["desglose", "puntaje", "fortalezas", "aVerificar", "resumen"]
     };
 
-    // Bucle de modelos
+    // 7. Bucle de modelos con reintentos
     let resultado = null;
     let modeloUsado = "";
 
@@ -163,7 +180,11 @@ Devuelve SOLO este JSON (sin texto extra):
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "application/pdf", data: pdfBase64 } }] }],
-                generationConfig: { responseMimeType: "application/json", responseSchema: responseSchema, temperature: 0 },
+                generationConfig: {
+                  responseMimeType: "application/json",
+                  responseSchema: responseSchema,
+                  temperature: 0.1 // Temperatura baja para que no invente
+                },
               }),
             }
           );
@@ -197,12 +218,13 @@ Devuelve SOLO este JSON (sin texto extra):
 
     if (!resultado) throw new Error("Todos los modelos fallaron");
 
-    // ✅ GUARDANDO CON ai_score
+    // 8. Guardar en Directus
     await directus.request(
       updateItem("app_applications", applicationId, {
-        ai_score: resultado.puntaje, 
+        ai_score: resultado.puntaje,
         ai_analysis: JSON.stringify({
           puntaje: resultado.puntaje,
+          desglose: resultado.desglose,
           fortalezas: resultado.fortalezas || [],
           aVerificar: resultado.aVerificar || [],
           resumen: resultado.resumen || "",
@@ -216,7 +238,7 @@ Devuelve SOLO este JSON (sin texto extra):
 
     console.log(`[IA] ✅ Guardado: ${resultado.puntaje} pts (${modeloUsado})\n`);
     res.json({ ok: true, puntaje: resultado.puntaje, modelo: modeloUsado });
-    
+
   } catch (err) {
     console.error(`[IA] ❌ ${err.message}`);
     res.status(500).json({ ok: false, error: err.message });

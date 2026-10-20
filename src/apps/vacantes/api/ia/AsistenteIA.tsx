@@ -256,15 +256,15 @@ const AsistenteIA: React.FC<Props> = ({
         </DialogTitle>
 
         <DialogContent>
-          {paso === 'configurar' && (
+          {/* ✅ OPTIMIZACIÓN: Solo renderiza los hijos si el modal está abierto */}
+          {abierto && paso === 'configurar' && (
             <PasoConfigurar
               postulaciones={visibles}
               cargoInicial={cargoInicial}
-
               onAnalizar={analizar}
             />
           )}
-          {paso === 'analizando' && (
+          {abierto && paso === 'analizando' && (
             <PasoAnalizando
               seleccion={seleccion}
               cargo={cargoSel}
