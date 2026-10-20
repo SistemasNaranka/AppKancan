@@ -41,13 +41,13 @@ const AccionIA: React.FC<Props> = ({ postulacion }) => {
             label={`${score}/100`}
             sx={{
               fontWeight: 800,
-              fontSize: '0.85rem',       // ✅ Letra un poco más pequeña
-              height: 26,                // ✅ Etiqueta más delgada (antes 32)
+              fontSize: '0.85rem',       // ✅ Letra un poco más pequeb ña
+              height: 26,                // ✅ Etiqueta más delgada (antes32)
               // ✅ Quitamos el minWidth: 75 para que se ajuste al texto
               bgcolor: colorMeta.bg,
               color: colorMeta.color,
               border: `1px solid ${colorMeta.color}33`, // Borde sutil
-              // ✅ Quitamos el letterSpacing para que las letras estén juntas
+              // ✅ Quitamos el letterSpacing para que las letras estén junta s
               '& .MuiChip-label': {
                 px: 1.5,                 // Padding interno justo a los lados
               }
