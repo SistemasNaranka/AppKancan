@@ -44,7 +44,7 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
         fields: [
           "id", "full_name", "city", "years_experience", "education_level", "cv", "ai_score",
           "positions.app_positions_id.nombre",
-          "positions.app_positions_id.descripcion" // 👈 Corregido aquí
+          "positions.app_positions_id.descripcion" 
         ],
       })
     );
