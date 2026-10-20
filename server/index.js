@@ -31,7 +31,8 @@ app.use("/api", informeVentasRoutes);
 app.use("/api", contabilizacionRoutes);
 const ruletaRoutes = require("./routes/ruleta");
 app.use("/api", ruletaRoutes);
-// Desactivado temporalmente: falta @directus/sdk en el contenedor // const iaVacantesRoutes = require("./routes/ia-vacantes"); // app.use("/api", iaVacantesRoutes); 
+const iaVacantesRoutes = require("./routes/ia-vacantes");
+app.use("/api", iaVacantesRoutes);
 
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "../dist")));
