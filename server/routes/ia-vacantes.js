@@ -5,7 +5,7 @@ const {
 } = require("@directus/sdk");
 
 const directus = createDirectus(process.env.DIRECTUS_URL)
-  .with(staticToken(process.env.ADMIN_TOKEN))
+  .with(staticToken(process.env.DIRECTUS_ADMIN_TOKEN))
   .with(rest());
 
 // 🛑 CANDADO: Evita análisis duplicados
@@ -44,7 +44,7 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
         fields: [
           "id", "full_name", "city", "years_experience", "education_level", "cv", "ai_score",
           "positions.app_positions_id.nombre",
-          "positions.app_positions_id.descripcion" 
+          "positions.app_positions_id.descripcion"
         ],
       })
     );
@@ -70,7 +70,7 @@ router.post("/ia/vacantes/analizar", async (req, res) => {
     // 3. Descargar PDF
     console.log(`[IA] Descargando CV...`);
     const directusUrl = process.env.DIRECTUS_URL || "http://192.168.19.245:8055";
-    const token = process.env.ADMIN_TOKEN;
+    const token = process.env.DIRECTUS_ADMIN_TOKEN;
 
     const pdfRes = await fetch(`${directusUrl}/assets/${postulacion.cv}`, {
       headers: { Authorization: `Bearer ${token}` },
