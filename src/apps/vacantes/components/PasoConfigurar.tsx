@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Box, Typography, TextField, MenuItem, Checkbox, Avatar, Button, Alert, Chip
+  Box, Typography, TextField, MenuItem, Checkbox, Avatar, Button, Alert
 } from '@mui/material';
 import { AutoAwesome as SparkIcon } from '@mui/icons-material';
 import { AZUL, AZUL_BG, CARGOS } from '../page/VacantesPage';
@@ -9,7 +9,7 @@ import { getCargos, Postulacion } from '../api/directus/read';
 const MAX_HOJAS = 10;
 
 interface Props {
-  postulaciones: Postulacion[]; // Son las 10 de la página actual
+  postulaciones: Postulacion[];
   cargoInicial: string;
   onAnalizar: (seleccion: Postulacion[], cargo: string) => void;
 }
@@ -20,21 +20,18 @@ const iniciales = (nombre: string) =>
 
 const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnalizar }) => {
   const [filas] = useState(postulaciones);
-
-  // Filtros opcionales
   const [cargo, setCargo] = useState('');
   const [ciudad, setCiudad] = useState('');
   const [manual, setManual] = useState<Set<number> | null>(null);
 
-  // 1. Filtrar SOLO los pendientes (Sin analizar y con CV)
+  // ✅ CAMBIO 2: Solo los nulos son pendientes. Los del 0 ya fueron analizados.
   const pendientes = useMemo(() => {
     return filas.filter(p =>
-      (p.ai_score == null || p.ai_score === 0) &&
+      p.ai_score == null &&
       Boolean(p.cv)
     );
   }, [filas]);
 
-  // 2. Extraer opciones para los filtros
   const cargosDisponibles = useMemo(() => {
     const c = new Set<string>();
     pendientes.forEach(p => getCargos(p).forEach(cg => c.add(cg)));
@@ -47,7 +44,6 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
     return Array.from(c).sort();
   }, [pendientes]);
 
-  // 3. Aplicar filtros a los pendientes
   const candidatos = useMemo(() => {
     return pendientes.filter(p => {
       const matchCargo = cargo === '' || getCargos(p).includes(cargo);
@@ -56,7 +52,6 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
     });
   }, [pendientes, cargo, ciudad]);
 
-  // 4. Selección automática de los primeros 10 (o los que haya)
   const seleccion = manual
     ? candidatos.filter((p) => manual.has(p.id))
     : candidatos.slice(0, MAX_HOJAS);
@@ -65,7 +60,6 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
   const n = seleccion.length;
   const lleno = n >= MAX_HOJAS;
 
-  // Si cambian los filtros, reiniciamos la selección manual para autoseleccionar
   React.useEffect(() => {
     setManual(null);
   }, [cargo, ciudad]);
@@ -78,15 +72,11 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
     setManual(s);
   };
 
-  // Qué cargo enviar al backend si se analiza
   const cargoAEnviar = cargo !== '' ? cargo : (getCargos(seleccion[0])[0] || cargoInicial || 'Todos');
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '300px 1fr' }, gap: 3, mt: 3 }}>
-
-      {/* COLUMNA IZQUIERDA: Filtros y Botón */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-
         <Typography fontSize="0.85rem" color="#64748B" fontWeight={600}>
           Filtrar pendientes de esta página
         </Typography>
@@ -116,16 +106,14 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
         </Button>
       </Box>
 
-      {/* COLUMNA DERECHA: Lista */}
       <Box sx={{ border: '1px solid #E2E8F0', borderRadius: 2, p: 2 }}>
         <Typography fontWeight={700} fontSize="0.9rem">
           Se incluirán en el análisis ({n} de {candidatos.length} pendientes)
         </Typography>
 
-        {/* Aviso de ignorados */}
         {filas.length > pendientes.length && (
           <Alert severity="info" sx={{ mt: 1, mb: 2, py: 0, fontSize: '0.75rem' }}>
-            Se omitieron <b>{filas.length - pendientes.length}</b> postulantes porque ya tienen puntaje o no tienen CV.
+            Se omitieron <b>{filas.length - pendientes.length}</b> postulantes porque ya tienen puntaje (incluyendo los de 0) o no tienen CV.
           </Alert>
         )}
 

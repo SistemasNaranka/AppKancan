@@ -8,7 +8,9 @@ interface Props {
 
 const AccionIA: React.FC<Props> = ({ postulacion }) => {
   const score = (postulacion as any).ai_score as number | null | undefined;
-  const tieneScore = score != null && score > 0;
+  
+  // ✅ CAMBIO 1: El 0 ahora se considera un puntaje válido
+  const tieneScore = score != null; 
 
   const colorMeta = !tieneScore
     ? { bg: '#F1F5F9', color: '#64748B' }
@@ -16,7 +18,7 @@ const AccionIA: React.FC<Props> = ({ postulacion }) => {
       ? { bg: '#DCFCE7', color: '#15803D' }
       : score >= 50
         ? { bg: '#FEF3C7', color: '#B45309' }
-        : { bg: '#FEE2E2', color: '#B91C1C' };
+        : { bg: '#FEE2E2', color: '#B91C1C' }; // 0 cae aquí (Rojo)
 
   return (
     <Box
@@ -24,7 +26,6 @@ const AccionIA: React.FC<Props> = ({ postulacion }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        // ✅ Redujimos el minWidth de 100 a 60 para que ocupe menos espacio en la tabla
         minWidth: 60, 
       }}
     >
@@ -41,15 +42,13 @@ const AccionIA: React.FC<Props> = ({ postulacion }) => {
             label={`${score}/100`}
             sx={{
               fontWeight: 800,
-              fontSize: '0.85rem',       // ✅ Letra un poco más pequeb ña
-              height: 26,                // ✅ Etiqueta más delgada (antes32)
-              // ✅ Quitamos el minWidth: 75 para que se ajuste al texto
+              fontSize: '0.85rem',
+              height: 26,
               bgcolor: colorMeta.bg,
               color: colorMeta.color,
-              border: `1px solid ${colorMeta.color}33`, // Borde sutil
-              // ✅ Quitamos el letterSpacing para que las letras estén junta s
+              border: `1px solid ${colorMeta.color}33`,
               '& .MuiChip-label': {
-                px: 1.5,                 // Padding interno justo a los lados
+                px: 1.5,
               }
             }}
           />

@@ -39,7 +39,6 @@ export const CARGOS = [
 
 type FiltroEstado = EstadoContratacion | 'Todos';
 
-// Selector reutilizable con botón de limpiar (X)
 interface ClearableSelectProps {
   value: string;
   onChange: (v: string) => void;
@@ -90,8 +89,6 @@ const VacantesPage: React.FC = () => {
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('Todos');
   const [filtroCiudad, setFiltroCiudad] = useState('Todas');
   const [filtroCargo, setFiltroCargo] = useState('Todos');
-
-  // ✅ Solo mantenemos el ordenamiento
   const [ordenarPor, setOrdenarPor] = useState('mayor_puntaje');
 
   const [detalle, setDetalle] = useState<Postulacion | null>(null);
@@ -127,7 +124,6 @@ const VacantesPage: React.FC = () => {
   const filtradas = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
 
-    // 1. Filtrado de datos (Sin el filtro de puntaje)
     let resultado = postulaciones.filter((p) => {
       const cargos = getCargos(p);
       const mQ = !q || [
@@ -142,7 +138,6 @@ const VacantesPage: React.FC = () => {
       return mQ && mE && mC && mCa;
     });
 
-    // 2. Ordenamiento
     if (ordenarPor === 'mayor_puntaje') {
       resultado.sort((a, b) => (b.ai_score ?? -1) - (a.ai_score ?? -1));
     } else if (ordenarPor === 'menor_puntaje') {
@@ -256,7 +251,6 @@ const VacantesPage: React.FC = () => {
             defaultLabel="Todos los cargos"
           />
 
-          {/* ✅ SELECTOR DE ORDENAMIENTO */}
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>Ordenar por</InputLabel>
             <Select
