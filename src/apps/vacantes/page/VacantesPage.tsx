@@ -9,7 +9,7 @@ import {
   Search as SearchIcon, Visibility as ViewIcon,
   PictureAsPdf as PictureAsPdfIcon, WorkOutline as WorkIcon,
   Clear as ClearIcon, FileDownload as FileDownloadIcon,
-  AutoAwesome as SparkIcon,
+  AutoAwesome as SparkIcon, AccessTimeRounded as RecientesIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
@@ -94,7 +94,7 @@ const VacantesPage: React.FC = () => {
   const [detalle, setDetalle] = useState<Postulacion | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [snack, setSnack] = useState({
+  const [, setSnack] = useState({
     open: false, message: '', severity: 'success' as 'success' | 'error',
   });
 
@@ -250,18 +250,32 @@ const VacantesPage: React.FC = () => {
             options={CARGOS.map(c => ({ label: c, value: c }))}
             defaultLabel="Todos los cargos"
           />
-
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>Ordenar por</InputLabel>
             <Select
               value={ordenarPor}
               label="Ordenar por"
               onChange={(e) => setOrdenarPor(e.target.value)}
+              // Campo cerrado: solo texto, sin hueco ni reloj
+              renderValue={(v) => ({
+                mayor_puntaje: 'Mayor puntaje',
+                menor_puntaje: 'Menor puntaje',
+                recientes: 'Más recientes',
+              } as Record<string, string>)[v]}
               sx={{ borderRadius: 2, bgcolor: '#fff', height: 44 }}
             >
-              <MenuItem value="mayor_puntaje">⭐ Mayor Puntaje</MenuItem>
-              <MenuItem value="menor_puntaje">📉 Menor Puntaje</MenuItem>
-              <MenuItem value="recientes">🕒 Más Recientes</MenuItem>
+              <MenuItem value="mayor_puntaje">
+                <Box component="span" sx={{ display: 'inline-block', width: 20, mr: 1.25, flexShrink: 0 }} />
+                Mayor puntaje
+              </MenuItem>
+              <MenuItem value="menor_puntaje">
+                <Box component="span" sx={{ display: 'inline-block', width: 20, mr: 1.25, flexShrink: 0 }} />
+                Menor puntaje
+              </MenuItem>
+              <MenuItem value="recientes">
+                <RecientesIcon sx={{ fontSize: 20, mr: 1.25, color: '#64748B' }} />
+                Más recientes
+              </MenuItem>
             </Select>
           </FormControl>
         </Box>
