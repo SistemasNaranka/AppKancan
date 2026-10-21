@@ -6,11 +6,11 @@ import { AutoAwesome as SparkIcon } from '@mui/icons-material';
 import { AZUL, AZUL_BG, CARGOS } from '../page/VacantesPage';
 import { getCargos, Postulacion } from '../api/directus/read';
 
-const MAX_HOJAS = 10; 
+const MAX_HOJAS = 10;
 
 interface Props {
   postulaciones: Postulacion[]; // Son las 10 de la página actual
-  cargoInicial: string;         
+  cargoInicial: string;
   onAnalizar: (seleccion: Postulacion[], cargo: string) => void;
 }
 
@@ -20,16 +20,16 @@ const iniciales = (nombre: string) =>
 
 const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnalizar }) => {
   const [filas] = useState(postulaciones);
-  
+
   // Filtros opcionales
-  const [cargo, setCargo] = useState(''); 
+  const [cargo, setCargo] = useState('');
   const [ciudad, setCiudad] = useState('');
   const [manual, setManual] = useState<Set<number> | null>(null);
 
   // 1. Filtrar SOLO los pendientes (Sin analizar y con CV)
   const pendientes = useMemo(() => {
-    return filas.filter(p => 
-      (p.ai_score == null || p.ai_score === 0) && 
+    return filas.filter(p =>
+      (p.ai_score == null || p.ai_score === 0) &&
       Boolean(p.cv)
     );
   }, [filas]);
@@ -60,7 +60,7 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
   const seleccion = manual
     ? candidatos.filter((p) => manual.has(p.id))
     : candidatos.slice(0, MAX_HOJAS);
-    
+
   const idsSel = new Set(seleccion.map((p) => p.id));
   const n = seleccion.length;
   const lleno = n >= MAX_HOJAS;
@@ -74,7 +74,7 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
     const s = new Set(idsSel);
     if (s.has(id)) s.delete(id);
     else if (!lleno) s.add(id);
-    else return; 
+    else return;
     setManual(s);
   };
 
@@ -83,10 +83,10 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '300px 1fr' }, gap: 3, mt: 3 }}>
-      
+
       {/* COLUMNA IZQUIERDA: Filtros y Botón */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-        
+
         <Typography fontSize="0.85rem" color="#64748B" fontWeight={600}>
           Filtrar pendientes de esta página
         </Typography>
@@ -121,7 +121,7 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
         <Typography fontWeight={700} fontSize="0.9rem">
           Se incluirán en el análisis ({n} de {candidatos.length} pendientes)
         </Typography>
-        
+
         {/* Aviso de ignorados */}
         {filas.length > pendientes.length && (
           <Alert severity="info" sx={{ mt: 1, mb: 2, py: 0, fontSize: '0.75rem' }}>
@@ -162,7 +162,7 @@ const PasoConfigurar: React.FC<Props> = ({ postulaciones, cargoInicial, onAnaliz
                   <Checkbox
                     size="small" checked={marcado} disabled={bloqueado}
                     onChange={() => alternar(p.id)}
-                    onClick={(e) => e.stopPropagation()} 
+                    onClick={(e) => e.stopPropagation()}
                     sx={{ '&.Mui-checked': { color: AZUL } }}
                   />
                 </Box>
