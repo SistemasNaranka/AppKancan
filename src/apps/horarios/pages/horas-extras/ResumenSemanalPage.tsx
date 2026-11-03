@@ -27,7 +27,10 @@ import { useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 import { useMemo, useState } from 'react';
-import { getTimeRecordsBulkRange } from '../../api/directus/readBulk';
+import {
+	getEmpleadosBulk,
+	getTimeRecordsBulkRange,
+} from '../../api/directus/readBulk';
 import { ReporteTiendasPagination } from '../../components/com_time_record_store';
 import { BuscarEmpleado } from '../../components/horas-extras/BuscarEmpleado';
 import {
@@ -35,6 +38,7 @@ import {
 	useFiltroZonaTienda,
 } from '../../components/horas-extras/FiltrosZonaTienda';
 import { formatoMinutos } from '../../domain/horasExtras';
+import { horariosKeys } from '../../hooks/registro/keys';
 import { useHorariosLayout } from '../../hooks/useHorariosLayout';
 import { mensajeDeError } from '../../utils/errores';
 import { coincideEmpleado } from '../../utils/horasExtras';
@@ -84,6 +88,20 @@ export default function ResumenSemanalPage() {
 		staleTime: 5 * 60 * 1000,
 	});
 
+	// El cargo sale de los empleados activos: las marcaciones no lo traen.
+	const empleadosQ = useQuery({
+		queryKey: horariosKeys.empleados.tiendas(tiendas),
+		queryFn: () => getEmpleadosBulk(tiendas),
+		enabled: tiendas.length > 0,
+		staleTime: 5 * 60 * 1000,
+	});
+	const cargoDe = useMemo(
+		() =>
+			new Map(
+				(empleadosQ.data ?? []).map((e) => [Number(e.id), e.cargo ?? '']),
+			),
+		[empleadosQ.data],
+	);
 	const filas = useMemo(
 		() =>
 			resumenSemanal(marcacionesQ.data ?? [], desde, totalDias).filter((f) =>
@@ -268,6 +286,7 @@ export default function ResumenSemanalPage() {
 					<TableHead>
 						<TableRow>
 							<TableCell sx={head}>Persona</TableCell>
+							<TableCell sx={head}>Cargo</TableCell>
 							<TableCell sx={head}>Tienda</TableCell>
 							{fechas.map((d) => (
 								<TableCell key={d.format('YYYY-MM-DD')} sx={head} align="right">
@@ -291,6 +310,9 @@ export default function ResumenSemanalPage() {
 									</Typography>
 								</TableCell>
 								<TableCell>
+									{cargoDe.get(f.empleadoId) || 'Sin cargo'}
+								</TableCell>
+								<TableCell>
 									{f.tiendas
 										.map((t) => nombreTienda.get(t) ?? `Tienda ${t}`)
 										.join(', ')}
@@ -308,7 +330,7 @@ export default function ResumenSemanalPage() {
 						{!cargando && filas.length === 0 && (
 							<TableRow>
 								<TableCell
-									colSpan={totalDias + 3}
+									colSpan={totalDias + 4}
 									align="center"
 									sx={{ py: 4 }}
 								>
@@ -319,7 +341,7 @@ export default function ResumenSemanalPage() {
 						{cargando && tiendas.length > 0 && (
 							<TableRow>
 								<TableCell
-									colSpan={totalDias + 3}
+									colSpan={totalDias + 4}
 									align="center"
 									sx={{ py: 4 }}
 								>

@@ -312,6 +312,7 @@ export function PeriodoDetalleDialog({
 									{[
 										'Empleado',
 										'Documento',
+										'Cargo',
 										'Tiendas',
 										'Vinculadas',
 										'Total horas',
@@ -326,7 +327,7 @@ export function PeriodoDetalleDialog({
 								{resumen.length === 0 ? (
 									<TableRow>
 										<TableCell
-											colSpan={5}
+											colSpan={6}
 											align="center"
 											sx={{ py: 4, color: '#475569' }}
 										>
@@ -340,6 +341,7 @@ export function PeriodoDetalleDialog({
 												{r.empleado}
 											</TableCell>
 											<TableCell>{r.documento || '--'}</TableCell>
+											<TableCell>{r.cargo || 'Sin cargo'}</TableCell>
 											<TableCell>{r.tiendas.join(', ') || '--'}</TableCell>
 											<TableCell>{r.horasExtras}</TableCell>
 											<TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>

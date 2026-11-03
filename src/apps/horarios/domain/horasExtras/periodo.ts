@@ -126,6 +126,7 @@ export interface ResumenEmpleado {
 	empleadoId: number | null;
 	empleado: string;
 	documento: string;
+	cargo: string;
 	/** Tiendas donde trabajó, sin repetir. */
 	tiendas: string[];
 	horasExtras: number;
@@ -138,6 +139,7 @@ export function resumenPorEmpleado(
 		empleadoId: number | null;
 		empleado: string;
 		documento: string;
+		cargo?: string;
 		tienda: string;
 		minutos: number;
 	}[],
@@ -149,6 +151,7 @@ export function resumenPorEmpleado(
 			empleadoId: f.empleadoId,
 			empleado: f.empleado,
 			documento: f.documento,
+			cargo: f.cargo ?? '',
 			tiendas: [],
 			horasExtras: 0,
 			minutos: 0,

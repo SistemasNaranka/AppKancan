@@ -119,7 +119,11 @@ export async function exportarReporteZonaExcel({
 	desde: string;
 	hasta: string;
 	nombreTienda: (id: number) => string;
-	persona: (id: number) => { nombre: string; documento: string };
+	persona: (id: number) => {
+		nombre: string;
+		documento: string;
+		cargo?: string;
+	};
 }) {
 	const [excelModule, { saveAs }] = await Promise.all([
 		import('exceljs'),
@@ -203,31 +207,41 @@ export async function exportarReporteZonaExcel({
 			'Tienda',
 			'Empleado / asesor',
 			'Documento',
+			'Cargo',
 			'Total horas',
 			'Registros',
 			'Días con horas',
 		],
-		[28, 36, 18, 14, 12, 16],
+		[28, 36, 18, 24, 14, 12, 16],
 	);
 	const dias = hoja(
 		'Días',
-		['Tienda', 'Empleado / asesor', 'Documento', 'Fecha', 'Total horas'],
-		[28, 36, 18, 14, 14],
+		[
+			'Tienda',
+			'Empleado / asesor',
+			'Documento',
+			'Cargo',
+			'Fecha',
+			'Total horas',
+		],
+		[28, 36, 18, 24, 14, 14],
 	);
 	for (const t of reporte.tiendas)
 		for (const p of t.personas) {
-			const { nombre, documento } = persona(p.empleadoId);
+			const { nombre, documento, cargo } = persona(p.empleadoId);
+			const elCargo = cargo || 'Sin cargo';
 			numero(
 				personas,
 				[
 					nombreTienda(t.storeId),
 					nombre,
 					documento,
+					elCargo,
 					horas(p.minutos),
 					p.registros,
 					p.dias.length,
 				],
-				[4],
+				[5],
 			);
 			for (const d of p.dias)
 				numero(
@@ -236,10 +250,11 @@ export async function exportarReporteZonaExcel({
 						nombreTienda(t.storeId),
 						nombre,
 						documento,
+						elCargo,
 						fecha(d.fecha),
 						horas(d.minutos),
 					],
-					[5],
+					[6],
 				);
 		}
 

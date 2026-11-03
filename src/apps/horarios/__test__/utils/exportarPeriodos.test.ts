@@ -35,14 +35,14 @@ describe('hojasExportacionPeriodos', () => {
 		const a = hojas[0];
 		expect(a.bloques.map((b) => b.periodo.id)).toEqual([1, 2]);
 		expect(a.bloques[0].filas).toEqual([
-			{ empleado: 'Emp7 X', documento: '107', tienda: 'Ipiales', horasExtras: 2, minutos: 90 },
+			{ empleado: 'Emp7 X', documento: '107', cargo: '', tienda: 'Ipiales', horasExtras: 2, minutos: 90 },
 		]);
 		expect(a.bloques[0].totales).toEqual({ horasExtras: 2, minutos: 90, empleados: 1 });
 		expect(a.bloques[1].filas[0]).toMatchObject({ empleado: 'Emp8 X', minutos: 120 });
 
 		// El mismo empleado en otra empresa (rotación) va a la otra hoja.
 		expect(hojas[1].bloques[0].filas).toEqual([
-			{ empleado: 'Emp7 X', documento: '107', tienda: 'Pasto', horasExtras: 1, minutos: 60 },
+			{ empleado: 'Emp7 X', documento: '107', cargo: '', tienda: 'Pasto', horasExtras: 1, minutos: 60 },
 		]);
 		// Periodo sin horas de esa empresa: bloque vacío.
 		expect(hojas[1].bloques[1].filas).toEqual([]);

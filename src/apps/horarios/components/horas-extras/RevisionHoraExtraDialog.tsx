@@ -38,7 +38,7 @@ export function RevisionHoraExtraDialog({
 	const total = filas.reduce((s, f) => s + f.minutos, 0);
 	const quien =
 		filas.length === 1
-			? `${filas[0].empleado} · ${formatoMinutos(filas[0].minutos)}`
+			? `${filas[0].empleado} (${filas[0].cargo || 'Sin cargo'}) · ${formatoMinutos(filas[0].minutos)}`
 			: `${filas.length} registros vinculados · ${formatoMinutos(total)} en total`;
 
 	const confirmar = () => {

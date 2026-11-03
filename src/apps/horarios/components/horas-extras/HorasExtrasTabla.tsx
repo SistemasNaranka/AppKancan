@@ -21,6 +21,7 @@ import { HoraExtraEstadoChip } from './HoraExtraEstadoChip';
 const COLUMNAS = [
 	'Fecha',
 	'Asesor',
+	'Cargo',
 	'Tienda',
 	'Horas',
 	'Observación',
@@ -150,6 +151,7 @@ export function HorasExtrasTabla({
 										{f.empleado}
 									</Typography>
 								</TableCell>
+								<TableCell>{f.cargo || 'Sin cargo'}</TableCell>
 								<TableCell>
 									{f.tienda || '--'}
 									{f.rotacion && (

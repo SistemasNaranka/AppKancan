@@ -8,6 +8,8 @@ export interface HoraExtraFila {
 	empleadoId: number | null;
 	empleado: string;
 	documento: string;
+	/** Cargo del empleado ('' si no tiene): cambia el valor de la hora extra. */
+	cargo: string;
 	tiendaId: number | null;
 	tienda: string;
 	/** La tienda donde trabajó no es la del empleado (rotación). */

@@ -216,13 +216,17 @@ export function useReporteZona(
 	const empleados = empleadosQ.data;
 	const { plantilla, personas } = useMemo(() => {
 		const plantilla = new Map<number, number>();
-		const personas = new Map<number, { nombre: string; documento: string }>();
+		const personas = new Map<
+			number,
+			{ nombre: string; documento: string; cargo: string }
+		>();
 		for (const e of empleados ?? []) {
 			if (e.storeId != null)
 				plantilla.set(e.storeId, (plantilla.get(e.storeId) ?? 0) + 1);
 			personas.set(Number(e.id), {
 				nombre: formatNombrePropio(e.nombre),
 				documento: e.documento,
+				cargo: e.cargo ?? '',
 			});
 		}
 		return { plantilla, personas };

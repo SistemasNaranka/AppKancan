@@ -41,7 +41,7 @@ import HistorialPage from '@/apps/horarios/pages/horas-extras/HistorialPage';
 
 const dto = (id: number, nombre: string) => ({
 	id,
-	employee_id: { id: id + 100, first_name: nombre, last_name: 'X', store_id: 26 },
+	employee_id: { id: id + 100, first_name: nombre, last_name: 'X', store_id: 26, position_id: { id: 3, name: 'Asesor comercial' } },
 	store_id: { id: 26, name: 'Ipiales' },
 	work_date: '2026-10-19',
 	minutes: 60,
@@ -182,6 +182,9 @@ describe('AprobacionPage', () => {
 	it('solo muestra pendientes, sin el historial', async () => {
 		montar();
 		await screen.findByText('Ana X');
+		// El cargo cambia el valor de la hora extra: se ve en cada fila.
+		expect(screen.getByRole('columnheader', { name: 'Cargo' })).toBeInTheDocument();
+		expect(screen.getAllByText('Asesor comercial')).toHaveLength(2);
 		expect(screen.queryByText('Carla X')).not.toBeInTheDocument();
 		expect(screen.queryByText('Historial de horas extras')).not.toBeInTheDocument();
 	});

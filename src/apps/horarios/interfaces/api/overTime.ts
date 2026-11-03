@@ -18,6 +18,8 @@ export interface OverTimeDto {
 		document_number?: string | number | null;
 		/** Tienda del empleado (puede diferir de la tienda donde trabajó). */
 		store_id?: Relacion;
+		/** Cargo: cambia el valor de la hora extra a pagar. */
+		position_id?: Relacion<{ id?: number; name?: string | null }>;
 	}>;
 	store_id: Relacion<{ id: number | string; name?: string | null }>;
 	/** YYYY-MM-DD */

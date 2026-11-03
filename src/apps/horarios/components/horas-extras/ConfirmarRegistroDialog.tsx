@@ -22,6 +22,7 @@ import { formatoMinutos } from '../../domain/horasExtras';
 export interface PersonaResumen {
 	id: string;
 	nombre: string;
+	cargo?: string;
 	tienda: string;
 	observacion: string;
 	/** Sus horas extras, por día; `yaRegistrada` = coincide con una activa. */
@@ -120,6 +121,7 @@ export function ConfirmarRegistroDialog({
 							<TableRow>
 								{[
 									'Persona',
+									'Cargo',
 									'Tienda',
 									'Días y horas',
 									'Total',
@@ -135,6 +137,7 @@ export function ConfirmarRegistroDialog({
 							{personas.map((p) => (
 								<TableRow key={p.id}>
 									<TableCell sx={{ fontWeight: 600 }}>{p.nombre}</TableCell>
+									<TableCell>{p.cargo || 'Sin cargo'}</TableCell>
 									<TableCell>{p.tienda || '--'}</TableCell>
 									<TableCell>
 										<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>

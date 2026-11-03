@@ -17,7 +17,7 @@ import {
 	Typography,
 } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useAuth } from '@/auth/hooks/useAuth';
 import { crearHorasExtras } from '../../api/directus/horasExtras';
 import {
@@ -49,6 +49,33 @@ export interface RegistrarHoraExtraModalProps {
 
 const etiquetaEmpleado = (e: EmpleadoAsistencia) =>
 	`${formatNombrePropio(e.nombre)} · ${e.documento}`;
+
+function Dato({
+	titulo,
+	destacado = false,
+	children,
+}: {
+	titulo: string;
+	destacado?: boolean;
+	children: ReactNode;
+}) {
+	return (
+		<Box sx={{ minWidth: 0 }}>
+			<Typography variant="body2" sx={{ color: '#64748b' }}>
+				{titulo}
+			</Typography>
+			<Typography
+				sx={{
+					fontWeight: destacado ? 700 : 600,
+					fontSize: destacado ? '1.1rem' : '0.95rem',
+					color: destacado ? '#004680' : '#1e293b',
+				}}
+			>
+				{children}
+			</Typography>
+		</Box>
+	);
+}
 
 /**
  * Registro **individual**: una persona y un día. Busca entre todos los empleados
@@ -166,6 +193,18 @@ export function RegistrarHoraExtraModal({
 						}}
 						getOptionLabel={etiquetaEmpleado}
 						isOptionEqualToValue={(a, b) => a.id === b.id}
+						renderOption={({ key, ...props }, e) => (
+							<li key={key} {...props}>
+								<Box>
+									<Typography variant="body2" sx={{ fontWeight: 600 }}>
+										{etiquetaEmpleado(e)}
+									</Typography>
+									<Typography variant="body2" sx={{ color: '#334155' }}>
+										Cargo: {e.cargo || 'Sin cargo'}
+									</Typography>
+								</Box>
+							</li>
+						)}
 						noOptionsText="No hay empleados con ese nombre o documento"
 						loadingText="Cargando empleados..."
 						renderInput={(params) => (
@@ -174,11 +213,36 @@ export function RegistrarHoraExtraModal({
 								label="Empleado"
 								placeholder="Buscar por nombre o documento"
 								error={!!errores.empleado}
-								helperText={errores.empleado ?? empleado?.cargo}
+								helperText={errores.empleado}
 								autoFocus
 							/>
 						)}
 					/>
+					{/* El cargo define el valor de la hora extra: se muestra destacado, no como ayuda. */}
+					{empleado && (
+						<Box
+							role="group"
+							aria-label="Persona elegida"
+							sx={{
+								display: 'grid',
+								gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr 1fr' },
+								gap: 1.5,
+								p: 1.5,
+								borderRadius: 2,
+								border: '1px solid #bfdbfe',
+								bgcolor: '#eff6ff',
+							}}
+						>
+							<Dato titulo="Cargo" destacado>
+								{empleado.cargo || 'Sin cargo'}
+							</Dato>
+							<Dato titulo="Documento">{empleado.documento}</Dato>
+							<Dato titulo="Su tienda">
+								{tiendas.find((t) => Number(t.id) === tiendaEmpleado)?.name ??
+									'--'}
+							</Dato>
+						</Box>
+					)}
 
 					<FormControl fullWidth error={!!errores.tienda}>
 						<InputLabel id="he-tienda">Tienda donde trabajó</InputLabel>

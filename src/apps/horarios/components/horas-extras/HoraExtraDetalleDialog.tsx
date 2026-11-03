@@ -81,6 +81,7 @@ export function HoraExtraDetalleDialog({
 				<Box sx={grilla}>
 					<Dato label="Empleado">{fila.empleado}</Dato>
 					<Dato label="Documento">{fila.documento}</Dato>
+					<Dato label="Cargo">{fila.cargo || 'Sin cargo'}</Dato>
 					<Dato label="Fecha trabajada">{fecha(fila.fecha)}</Dato>
 					<Dato label="Horas extras">{formatoMinutos(fila.minutos)}</Dato>
 					<Dato label="Tienda donde trabajó">

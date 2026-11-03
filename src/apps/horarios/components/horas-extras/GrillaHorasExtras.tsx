@@ -127,7 +127,7 @@ const FilaPersona = memo(function FilaPersona({
 							{p.nombre}
 						</Typography>
 						<Typography variant="caption" sx={{ color: '#64748b' }} noWrap>
-							{[p.documento, p.cargo].filter(Boolean).join(' — ')}
+							{p.documento}
 						</Typography>
 					</Box>
 					<IconButton
@@ -139,6 +139,12 @@ const FilaPersona = memo(function FilaPersona({
 						<FormatColorFillIcon fontSize="inherit" />
 					</IconButton>
 				</Box>
+			</TableCell>
+			{/* El cargo define el valor de la hora extra: columna propia, no subtítulo. */}
+			<TableCell>
+				<Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>
+					{p.cargo || 'Sin cargo'}
+				</Typography>
 			</TableCell>
 			<TableCell>
 				{/* Nativo: mucho más liviano que el Select de MUI repetido en cada fila. */}
@@ -271,6 +277,7 @@ export function GrillaHorasExtras({
 								Persona
 							</Box>
 						</TableCell>
+						<TableCell sx={{ ...head, minWidth: 140 }}>Cargo</TableCell>
 						<TableCell sx={{ ...head, minWidth: 150 }}>Tienda</TableCell>
 						{dias.map((d) => (
 							<TableCell key={d} align="center" sx={{ ...head, minWidth: 104 }}>

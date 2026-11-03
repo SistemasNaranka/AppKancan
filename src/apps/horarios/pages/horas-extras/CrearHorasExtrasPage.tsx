@@ -4,8 +4,12 @@ import {
 	Box,
 	Button,
 	CircularProgress,
+	FormControl,
+	InputLabel,
 	LinearProgress,
+	MenuItem,
 	Paper,
+	Select,
 	TextField,
 	ToggleButton,
 	ToggleButtonGroup,
@@ -56,12 +60,12 @@ const REGISTRADAS = 'horas-extras/registradas';
 
 /**
  * Sub‑página "Registrar horas extras" (/horarios/horas-extras/registradas/nueva)
- * del líder: grilla personas × días (máx. 5) de las tiendas del header, con
+ * del líder: grilla personas × días (máx. 5) de sus tiendas (filtrable por tienda), con
  * accesos rápidos para rellenar filas y columnas y observación por persona.
  * Se crea una hora extra por celda con valor, todas en una petición.
  */
 export default function CrearHorasExtrasPage() {
-	const { tienda, acceso, irA } = useHorariosLayout();
+	const { acceso, irA } = useHorariosLayout();
 	const { user } = useAuth();
 	const { showSnackbar } = useAvisos();
 	const queryClient = useQueryClient();
@@ -70,6 +74,7 @@ export default function CrearHorasExtrasPage() {
 	const [desde, setDesde] = useState(hoy);
 	const [hasta, setHasta] = useState(hoy);
 	const [busqueda, setBusqueda] = useState('');
+	const [tiendaFiltro, setTiendaFiltro] = useState<number | ''>('');
 	const [valor, setValor] = useState(60);
 	const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set());
 	const [celdas, setCeldas] = useState<ReadonlyMap<string, number>>(new Map());
@@ -83,7 +88,18 @@ export default function CrearHorasExtrasPage() {
 		ReadonlyMap<string, number>
 	>(new Map());
 
-	const storeIds = tienda.storeIds;
+	// Todas las tiendas del líder: el filtro de tienda solo cambia qué filas se ven.
+	const storeIds = useMemo(
+		() => acceso.tiendasPermitidas.map((t) => Number(t.id)),
+		[acceso.tiendasPermitidas],
+	);
+	const opcionesTienda = useMemo(
+		() =>
+			[...acceso.tiendasPermitidas].sort((a, b) =>
+				a.name.localeCompare(b.name, 'es'),
+			),
+		[acceso.tiendasPermitidas],
+	);
 	// Sin tiendas no se consulta: getEmpleadosBulk sin filtro traería a todos.
 	const { data: empleados = [], isLoading: cargandoEmpleados } = useQuery({
 		queryKey: horariosKeys.empleados.tiendas(storeIds),
@@ -109,14 +125,16 @@ export default function CrearHorasExtrasPage() {
 			})),
 		[empleados],
 	);
+	// Las horas escritas en filas ocultas por los filtros se conservan y se registran igual.
 	const visibles = useMemo(() => {
 		const q = busqueda.trim();
-		return q
-			? personas.filter((p) =>
-					coincideEmpleado({ empleado: p.nombre, documento: p.documento }, q),
-				)
-			: personas;
-	}, [personas, busqueda]);
+		return personas.filter(
+			(p) =>
+				(tiendaFiltro === '' || p.storeId === tiendaFiltro) &&
+				(!q ||
+					coincideEmpleado({ empleado: p.nombre, documento: p.documento }, q)),
+		);
+	}, [personas, busqueda, tiendaFiltro]);
 	const tiendaDe = useMemo(() => {
 		const m = new Map<string, number>();
 		for (const p of personas) {
@@ -288,6 +306,7 @@ export default function CrearHorasExtrasPage() {
 			.map((p) => ({
 				id: p.id,
 				nombre: p.nombre,
+				cargo: p.cargo,
 				tienda: nombreTienda.get(tiendaDe.get(p.id) ?? -1) ?? '',
 				observacion: (observaciones.get(p.id) ?? '').trim(),
 				dias: lineas
@@ -395,6 +414,26 @@ export default function CrearHorasExtrasPage() {
 					}}
 					sx={{ minWidth: 220 }}
 				/>
+				<FormControl size="small" sx={{ minWidth: 200 }}>
+					<InputLabel id="che-tienda">Tienda</InputLabel>
+					<Select
+						labelId="che-tienda"
+						label="Tienda"
+						value={tiendaFiltro}
+						onChange={(e) => {
+							// Ids de tienda nunca son 0: '' (Todas) → ''.
+							setTiendaFiltro(Number(e.target.value) || '');
+							setPage(0);
+						}}
+					>
+						<MenuItem value="">Todas las tiendas</MenuItem>
+						{opcionesTienda.map((t) => (
+							<MenuItem key={t.id} value={Number(t.id)}>
+								{t.name}
+							</MenuItem>
+						))}
+					</Select>
+				</FormControl>
 			</Box>
 
 			<Box

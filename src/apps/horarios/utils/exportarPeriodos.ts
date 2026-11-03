@@ -8,6 +8,7 @@ import { aFilaHoraExtra } from './horasExtras';
 export interface FilaExportPeriodo {
 	empleado: string;
 	documento: string;
+	cargo: string;
 	tienda: string;
 	horasExtras: number;
 	minutos: number;
@@ -56,6 +57,7 @@ export function hojasExportacionPeriodos(
 			const fila = filas.get(clave) ?? {
 				empleado: f.empleado,
 				documento: f.documento,
+				cargo: f.cargo,
 				tienda: f.tienda,
 				horasExtras: 0,
 				minutos: 0,
@@ -114,7 +116,13 @@ export async function exportarPeriodosExcel(hojas: HojaEmpresa[]) {
 
 	for (const hoja of hojas) {
 		const ws = workbook.addWorksheet(nombreHoja(hoja.empresa));
-		ws.columns = [{ width: 38 }, { width: 18 }, { width: 28 }, { width: 16 }];
+		ws.columns = [
+			{ width: 38 },
+			{ width: 18 },
+			{ width: 24 },
+			{ width: 28 },
+			{ width: 16 },
+		];
 		const titulo = ws.addRow([`Horas extras por periodo · ${hoja.empresa}`]);
 		titulo.font = { bold: true, size: 14, color: azul };
 		ws.addRow([`Generado el ${dayjs().format('DD/MM/YYYY HH:mm')}`]).font = {
@@ -153,6 +161,7 @@ export async function exportarPeriodosExcel(hojas: HojaEmpresa[]) {
 			const encabezado = ws.addRow([
 				'Empleado / asesor',
 				'Documento',
+				'Cargo',
 				'Tienda',
 				'Total horas',
 			]);
@@ -164,14 +173,15 @@ export async function exportarPeriodosExcel(hojas: HojaEmpresa[]) {
 				const r = ws.addRow([
 					f.empleado,
 					f.documento,
+					f.cargo || 'Sin cargo',
 					f.tienda,
 					f.minutos / 60,
 				]);
-				r.getCell(4).numFmt = '0.00';
+				r.getCell(5).numFmt = '0.00';
 			}
-			const total = ws.addRow(['Total', '', '', totales.minutos / 60]);
+			const total = ws.addRow(['Total', '', '', '', totales.minutos / 60]);
 			total.font = { bold: true };
-			total.getCell(4).numFmt = '0.00';
+			total.getCell(5).numFmt = '0.00';
 		}
 	}
 

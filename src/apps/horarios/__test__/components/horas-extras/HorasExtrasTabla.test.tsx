@@ -8,6 +8,7 @@ const fila: HoraExtraFila = {
 	fecha: '2026-10-10',
 	empleado: 'Ana Pérez',
 	documento: '1 107',
+	cargo: 'Asesor comercial',
 	tiendaId: 26,
 	tienda: 'Ipiales Centro',
 	rotacion: true,
@@ -31,6 +32,13 @@ describe('HorasExtrasTabla', () => {
 		expect(screen.getByText('1 h 30 min')).toBeInTheDocument();
 		expect(screen.getByText('Pendiente')).toBeInTheDocument();
 		expect(screen.getByText('Rotación')).toBeInTheDocument();
+	});
+
+	it('muestra siempre el cargo (cambia el valor de la hora extra)', () => {
+		render(<HorasExtrasTabla filas={[fila, { ...fila, id: 2, cargo: '' }]} compacta />);
+		expect(screen.getByRole('columnheader', { name: 'Cargo' })).toBeInTheDocument();
+		expect(screen.getByText('Asesor comercial')).toBeInTheDocument();
+		expect(screen.getByText('Sin cargo')).toBeInTheDocument();
 	});
 
 	it('columna Periodo solo si se pide: rango o "Sin vincular"', () => {

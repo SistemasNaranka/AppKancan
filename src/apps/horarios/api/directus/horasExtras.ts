@@ -38,6 +38,7 @@ const CAMPOS = [
 	'employee_id.last_name',
 	'employee_id.document_number',
 	'employee_id.store_id',
+	'employee_id.position_id.name',
 	'store_id.id',
 	'store_id.name',
 	'created_by.id',

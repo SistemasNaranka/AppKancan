@@ -50,6 +50,15 @@ beforeEach(() => {
 });
 
 describe('RegistrarHoraExtraModal (individual)', () => {
+	it('al elegir a la persona muestra su cargo destacado, con documento y tienda', async () => {
+		montar();
+		await elegirEmpleado();
+		const tarjeta = screen.getByRole('group', { name: 'Persona elegida' });
+		expect(tarjeta).toHaveTextContent('CargoAsesor');
+		expect(tarjeta).toHaveTextContent('Documento1107');
+		expect(tarjeta).toHaveTextContent('Su tiendaIpiales Centro');
+	});
+
 	it('exige elegir un empleado', async () => {
 		montar();
 		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));

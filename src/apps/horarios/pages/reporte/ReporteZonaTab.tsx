@@ -146,7 +146,7 @@ export default function ReporteZonaTab({ tiendasJefe }: ReporteZonaTabProps) {
 			? zonaTexto
 			: `${zonaTexto}, tienda ${nombreTienda(tiendaId)}`;
 	const persona = (id: number) =>
-		personas.get(id) ?? { nombre: `Empleado ${id}`, documento: '' };
+		personas.get(id) ?? { nombre: `Empleado ${id}`, documento: '', cargo: '' };
 	const alternarEn =
 		<T,>(set: (f: (prev: ReadonlySet<T>) => ReadonlySet<T>) => void) =>
 		(id: T) =>
@@ -226,6 +226,7 @@ export default function ReporteZonaTab({ tiendasJefe }: ReporteZonaTabProps) {
 										{[
 											'Persona',
 											'Documento',
+											'Cargo',
 											'Total',
 											'Días con horas extras',
 										].map((c) => (
@@ -240,7 +241,7 @@ export default function ReporteZonaTab({ tiendasJefe }: ReporteZonaTabProps) {
 								</TableHead>
 								<TableBody>
 									{t.personas.map((p) => {
-										const { nombre, documento } = persona(p.empleadoId);
+										const { nombre, documento, cargo } = persona(p.empleadoId);
 										const clave = `${t.storeId}-${p.empleadoId}`;
 										const verDias = conDias.has(clave);
 										const nDias = `${p.dias.length} ${p.dias.length === 1 ? 'día' : 'días'}`;
@@ -251,6 +252,7 @@ export default function ReporteZonaTab({ tiendasJefe }: ReporteZonaTabProps) {
 														{nombre}
 													</TableCell>
 													<TableCell>{documento || '--'}</TableCell>
+													<TableCell>{cargo || 'Sin cargo'}</TableCell>
 													<TableCell sx={{ whiteSpace: 'nowrap' }}>
 														{formatoMinutos(p.minutos)}
 													</TableCell>
@@ -275,7 +277,7 @@ export default function ReporteZonaTab({ tiendasJefe }: ReporteZonaTabProps) {
 												</TableRow>
 												{verDias && (
 													<TableRow>
-														<TableCell colSpan={4} sx={{ pt: 0 }}>
+														<TableCell colSpan={5} sx={{ pt: 0 }}>
 															<Box
 																sx={{
 																	display: 'flex',
@@ -542,16 +544,25 @@ export default function ReporteZonaTab({ tiendasJefe }: ReporteZonaTabProps) {
 													gap: 1,
 												}}
 											>
-												<Typography variant="body2" noWrap>
-													{persona(p.empleadoId).nombre}
-													<Typography
-														component="span"
-														variant="caption"
-														sx={{ color: '#94a3b8', ml: 1 }}
-													>
-														{p.tiendas.map(nombreTienda).join(', ')}
+												<Box sx={{ minWidth: 0 }}>
+													<Typography variant="body2" noWrap>
+														{persona(p.empleadoId).nombre}
+														<Typography
+															component="span"
+															variant="caption"
+															sx={{ color: '#94a3b8', ml: 1 }}
+														>
+															{p.tiendas.map(nombreTienda).join(', ')}
+														</Typography>
 													</Typography>
-												</Typography>
+													<Typography
+														variant="body2"
+														sx={{ color: '#334155' }}
+														noWrap
+													>
+														{persona(p.empleadoId).cargo || 'Sin cargo'}
+													</Typography>
+												</Box>
 												<Typography
 													variant="body2"
 													sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}

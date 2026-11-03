@@ -25,7 +25,11 @@ const periodoDe = (v: unknown): HoraExtraFila['periodo'] => {
 /** DTO de `com_over_time` → fila de la tabla. */
 export function aFilaHoraExtra(dto: OverTimeDto): HoraExtraFila {
 	const empleado = objeto<
-		ConNombre & { document_number?: string | number | null; store_id?: unknown }
+		ConNombre & {
+			document_number?: string | number | null;
+			store_id?: unknown;
+			position_id?: unknown;
+		}
 	>(dto.employee_id);
 	const tiendaId = idRelacion(dto.store_id);
 	const tiendaEmpleado = idRelacion(empleado?.store_id);
@@ -37,6 +41,7 @@ export function aFilaHoraExtra(dto: OverTimeDto): HoraExtraFila {
 			nombre(empleado) ||
 			`Empleado ${idRelacion(dto.employee_id) ?? ''}`.trim(),
 		documento: formatDocumentNumber(empleado?.document_number ?? ''),
+		cargo: objeto<{ name?: string | null }>(empleado?.position_id)?.name ?? '',
 		tiendaId,
 		tienda: objeto<{ name?: string | null }>(dto.store_id)?.name ?? '',
 		rotacion:

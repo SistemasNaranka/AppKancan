@@ -12,7 +12,7 @@ vi.mock('@/apps/horarios/api/directus/reportesHorasExtras', () => ({
 }));
 vi.mock('@/apps/horarios/api/directus/readBulk', () => ({
 	getEmpleadosBulk: async () => [
-		{ id: '7', nombre: 'ANA PÉREZ', documento: '107', storeId: 26 },
+		{ id: '7', nombre: 'ANA PÉREZ', documento: '107', cargo: 'Asesor', storeId: 26 },
 		{ id: '8', nombre: 'BETO RUIZ', documento: '108', storeId: 26 },
 		{ id: '9', nombre: 'LUZ MORA', documento: '109', storeId: 30 },
 		{ id: '10', nombre: 'SIN HORAS', documento: '110', storeId: 30 },
@@ -113,7 +113,7 @@ describe('Reportes · Horas extras por zona', () => {
 		const personas = await screen.findByRole('table', { name: 'Personas de Ipiales' });
 		expect(screen.getByText('3 registros · 1 h 45 min por persona de plantilla')).toBeInTheDocument();
 		const ana = within(personas).getByRole('row', { name: /Ana Pérez/ });
-		expect(within(ana).getAllByRole('cell').map((c) => c.textContent)).toEqual(['Ana Pérez', '107', '3 h', '2 días']);
+		expect(within(ana).getAllByRole('cell').map((c) => c.textContent)).toEqual(['Ana Pérez', '107', 'Asesor', '3 h', '2 días']);
 		expect(within(personas).queryByText(/20\/10: 1 h/)).toBeNull();
 
 		fireEvent.click(within(ana).getByRole('button', { name: 'Ver días de Ana Pérez' }));

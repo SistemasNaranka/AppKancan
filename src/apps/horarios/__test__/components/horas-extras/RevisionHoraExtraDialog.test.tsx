@@ -8,6 +8,7 @@ const fila = (id: number, minutos: number): HoraExtraFila => ({
 	fecha: '2026-10-19',
 	empleado: `Asesor ${id}`,
 	documento: '',
+	cargo: 'Cajero',
 	tiendaId: 26,
 	tienda: 'Ipiales',
 	rotacion: false,

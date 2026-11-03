@@ -96,14 +96,14 @@ describe('clasificarParaPeriodo', () => {
 describe('resumenPorEmpleado', () => {
 	it('suma minutos por empleado, sin repetir tiendas, ordenado por nombre', () => {
 		const r = resumenPorEmpleado([
-			{ empleadoId: 2, empleado: 'Zoe', documento: '2', tienda: 'A', minutos: 60 },
+			{ empleadoId: 2, empleado: 'Zoe', documento: '2', cargo: 'Cajero', tienda: 'A', minutos: 60 },
 			{ empleadoId: 1, empleado: 'Ana', documento: '1', tienda: 'A', minutos: 30 },
 			{ empleadoId: 2, empleado: 'Zoe', documento: '2', tienda: 'B', minutos: 90 },
 			{ empleadoId: 2, empleado: 'Zoe', documento: '2', tienda: 'A', minutos: 30 },
 		]);
 		expect(r).toEqual([
-			{ empleadoId: 1, empleado: 'Ana', documento: '1', tiendas: ['A'], horasExtras: 1, minutos: 30 },
-			{ empleadoId: 2, empleado: 'Zoe', documento: '2', tiendas: ['A', 'B'], horasExtras: 3, minutos: 180 },
+			{ empleadoId: 1, empleado: 'Ana', documento: '1', cargo: '', tiendas: ['A'], horasExtras: 1, minutos: 30 },
+			{ empleadoId: 2, empleado: 'Zoe', documento: '2', cargo: 'Cajero', tiendas: ['A', 'B'], horasExtras: 3, minutos: 180 },
 		]);
 	});
 });
