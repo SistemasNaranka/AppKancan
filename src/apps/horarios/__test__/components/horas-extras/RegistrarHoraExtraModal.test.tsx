@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import dayjs from 'dayjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQueryWrapper } from '../../utils/test-utils';
@@ -107,13 +107,42 @@ describe('RegistrarHoraExtraModal (individual)', () => {
 		expect(crearHorasExtras).toHaveBeenCalledWith([expect.objectContaining({ minutes: 75 })]);
 	});
 
-	it('avisa si el empleado ya tiene una hora extra activa ese día', async () => {
+	it('si ya tiene horas ese día, registrar pasa por el aviso: volver no guarda, continuar sí', async () => {
 		listarHorasExtras.mockResolvedValue([{ id: 3, status: 'pendiente', minutes: 60 }]);
-		montar();
+		const onClose = vi.fn();
+		montar(onClose);
 		await elegirEmpleado();
-		expect(await screen.findByText(/ya tiene 1 h en estado Pendiente/)).toBeInTheDocument();
-		expect(listarHorasExtras).toHaveBeenCalledWith(
-			expect.objectContaining({ empleadoId: 7, desde: '2026-10-20', hasta: '2026-10-20' }),
+		await waitFor(() =>
+			expect(listarHorasExtras).toHaveBeenCalledWith(
+				expect.objectContaining({ empleadoId: 7, desde: '2026-10-20', hasta: '2026-10-20' }),
+			),
 		);
+		// Ya no hay alerta naranja en el formulario.
+		expect(screen.queryByRole('alert')).toBeNull();
+		fireEvent.change(screen.getByLabelText('Horas extras'), { target: { value: '2' } });
+		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
+
+		const aviso = await screen.findByRole('alertdialog', { name: 'Esta persona ya tiene horas extras ese día' });
+		expect(aviso).toHaveTextContent('1 persona ya tiene 1 h');
+		const fila = within(aviso).getByRole('row', { name: /Ana Pérez/ });
+		expect(within(fila).getAllByRole('cell').map((c) => c.textContent)).toEqual([
+			'Ana Pérez',
+			'Asesor',
+			'20/10/2026',
+			'1 h (pendiente)',
+			'+ 2 h',
+		]);
+		// El foco empieza en la acción segura.
+		expect(within(aviso).getByRole('button', { name: 'Volver y revisar' })).toHaveFocus();
+		fireEvent.click(within(aviso).getByRole('button', { name: 'Volver y revisar' }));
+		await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+		expect(crearHorasExtras).not.toHaveBeenCalled();
+
+		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
+		fireEvent.click(
+			within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Sí, continuar' }),
+		);
+		await waitFor(() => expect(onClose).toHaveBeenCalled());
+		expect(crearHorasExtras).toHaveBeenCalledWith([expect.objectContaining({ minutes: 120 })]);
 	});
 });

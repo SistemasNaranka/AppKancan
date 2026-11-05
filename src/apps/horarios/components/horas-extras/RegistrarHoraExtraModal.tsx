@@ -1,5 +1,4 @@
 import {
-	Alert,
 	Autocomplete,
 	Box,
 	Button,
@@ -25,7 +24,6 @@ import {
 	BLOQUE_MINUTOS,
 	buscarDuplicado,
 	type ErroresHoraExtra,
-	ETIQUETA_ESTADO_HORA_EXTRA,
 	formatoMinutos,
 	validarHoraExtra,
 } from '../../domain/horasExtras';
@@ -39,6 +37,7 @@ import type { Tienda } from '../../interfaces/tiendas';
 import { mensajeDeError } from '../../utils/errores';
 import { formatNombrePropio } from '../../utils/format';
 import { getRealColombiaTime } from '../../utils/timeSync';
+import { AvisoHorasExistentesDialog } from './AvisoHorasExistentesDialog';
 
 export interface RegistrarHoraExtraModalProps {
 	open: boolean;
@@ -104,6 +103,7 @@ export function RegistrarHoraExtraModal({
 	const [fecha, setFecha] = useState(hoy);
 	const [horas, setHoras] = useState('');
 	const [observacion, setObservacion] = useState('');
+	const [avisando, setAvisando] = useState(false);
 	const [errores, setErrores] = useState<
 		ErroresHoraExtra & { tienda?: string }
 	>({});
@@ -159,9 +159,15 @@ export function RegistrarHoraExtraModal({
 		if (tiendaId === '') e.tienda = 'La tienda es obligatoria';
 		setErrores(e);
 		if (Object.keys(e).length > 0 || tiendaId === '') return;
+		// Ya tiene una hora extra activa ese día: primero el paso de advertencia.
+		if (duplicado) setAvisando(true);
+		else registrar();
+	};
+	const registrar = () => {
+		setAvisando(false);
 		guardar.mutate({
 			employee_id: empleadoId,
-			store_id: tiendaId,
+			store_id: Number(tiendaId),
 			work_date: fecha,
 			minutes: minutos,
 			observations: observacion.trim(),
@@ -170,174 +176,191 @@ export function RegistrarHoraExtraModal({
 	};
 
 	return (
-		<Dialog
-			open={open}
-			onClose={guardar.isPending ? undefined : onClose}
-			fullWidth
-			maxWidth="sm"
-		>
-			<DialogTitle sx={{ fontWeight: 700, color: '#004680' }}>
-				Registrar hora extra individual
-				<Typography variant="body2" sx={{ color: '#64748b' }}>
-					Queda pendiente de aprobación del comercial
-				</Typography>
-			</DialogTitle>
-			<DialogContent dividers>
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
-					<Autocomplete
-						options={empleados}
-						value={empleado}
-						loading={cargandoEmpleados}
-						onChange={(_, e) => {
-							setEmpleado(e);
-							setTiendaId(e?.storeId ?? '');
-							setErrores({});
-						}}
-						getOptionLabel={etiquetaEmpleado}
-						isOptionEqualToValue={(a, b) => a.id === b.id}
-						renderOption={({ key, ...props }, e) => (
-							<li key={key} {...props}>
-								<Box>
-									<Typography variant="body2" sx={{ fontWeight: 600 }}>
-										{etiquetaEmpleado(e)}
-									</Typography>
-									<Typography variant="body2" sx={{ color: '#334155' }}>
-										Cargo: {e.cargo || 'Sin cargo'}
-									</Typography>
-								</Box>
-							</li>
-						)}
-						noOptionsText="No hay empleados con ese nombre o documento"
-						loadingText="Cargando empleados..."
-						renderInput={(params) => (
-							<TextField
-								{...params}
-								label="Empleado"
-								placeholder="Buscar por nombre o documento"
-								error={!!errores.empleado}
-								helperText={errores.empleado}
-								autoFocus
-							/>
-						)}
-					/>
-					{/* El cargo define el valor de la hora extra: se muestra destacado, no como ayuda. */}
-					{empleado && (
-						<Box
-							role="group"
-							aria-label="Persona elegida"
-							sx={{
-								display: 'grid',
-								gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr 1fr' },
-								gap: 1.5,
-								p: 1.5,
-								borderRadius: 2,
-								border: '1px solid #bfdbfe',
-								bgcolor: '#eff6ff',
+		<>
+			<Dialog
+				open={open}
+				onClose={guardar.isPending ? undefined : onClose}
+				fullWidth
+				maxWidth="sm"
+			>
+				<DialogTitle sx={{ fontWeight: 700, color: '#004680' }}>
+					Registrar hora extra individual
+					<Typography variant="body2" sx={{ color: '#64748b' }}>
+						Queda pendiente de aprobación del comercial
+					</Typography>
+				</DialogTitle>
+				<DialogContent dividers>
+					<Box
+						sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}
+					>
+						<Autocomplete
+							options={empleados}
+							value={empleado}
+							loading={cargandoEmpleados}
+							onChange={(_, e) => {
+								setEmpleado(e);
+								setTiendaId(e?.storeId ?? '');
+								setErrores({});
 							}}
-						>
-							<Dato titulo="Cargo" destacado>
-								{empleado.cargo || 'Sin cargo'}
-							</Dato>
-							<Dato titulo="Documento">{empleado.documento}</Dato>
-							<Dato titulo="Su tienda">
-								{tiendas.find((t) => Number(t.id) === tiendaEmpleado)?.name ??
-									'--'}
-							</Dato>
-						</Box>
-					)}
+							getOptionLabel={etiquetaEmpleado}
+							isOptionEqualToValue={(a, b) => a.id === b.id}
+							renderOption={({ key, ...props }, e) => (
+								<li key={key} {...props}>
+									<Box>
+										<Typography variant="body2" sx={{ fontWeight: 600 }}>
+											{etiquetaEmpleado(e)}
+										</Typography>
+										<Typography variant="body2" sx={{ color: '#334155' }}>
+											Cargo: {e.cargo || 'Sin cargo'}
+										</Typography>
+									</Box>
+								</li>
+							)}
+							noOptionsText="No hay empleados con ese nombre o documento"
+							loadingText="Cargando empleados..."
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									label="Empleado"
+									placeholder="Buscar por nombre o documento"
+									error={!!errores.empleado}
+									helperText={errores.empleado}
+									autoFocus
+								/>
+							)}
+						/>
+						{/* El cargo define el valor de la hora extra: se muestra destacado, no como ayuda. */}
+						{empleado && (
+							<Box
+								role="group"
+								aria-label="Persona elegida"
+								sx={{
+									display: 'grid',
+									gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr 1fr' },
+									gap: 1.5,
+									p: 1.5,
+									borderRadius: 2,
+									border: '1px solid #bfdbfe',
+									bgcolor: '#eff6ff',
+								}}
+							>
+								<Dato titulo="Cargo" destacado>
+									{empleado.cargo || 'Sin cargo'}
+								</Dato>
+								<Dato titulo="Documento">{empleado.documento}</Dato>
+								<Dato titulo="Su tienda">
+									{tiendas.find((t) => Number(t.id) === tiendaEmpleado)?.name ??
+										'--'}
+								</Dato>
+							</Box>
+						)}
 
-					<FormControl fullWidth error={!!errores.tienda}>
-						<InputLabel id="he-tienda">Tienda donde trabajó</InputLabel>
-						<Select
-							labelId="he-tienda"
-							label="Tienda donde trabajó"
-							value={tiendaId}
-							onChange={(e) => setTiendaId(Number(e.target.value))}
-						>
-							{tiendas.map((t) => (
-								<MenuItem key={t.id} value={Number(t.id)}>
-									{t.name}
-									{Number(t.id) === tiendaEmpleado ? ' (su tienda)' : ''}
-								</MenuItem>
-							))}
-						</Select>
-						<FormHelperText>
-							{errores.tienda ??
-								(tiendaId !== '' && tiendaId !== tiendaEmpleado
-									? 'Rotación: trabajó en una tienda distinta a la suya'
-									: 'Por defecto, la tienda del empleado')}
-						</FormHelperText>
-					</FormControl>
+						<FormControl fullWidth error={!!errores.tienda}>
+							<InputLabel id="he-tienda">Tienda donde trabajó</InputLabel>
+							<Select
+								labelId="he-tienda"
+								label="Tienda donde trabajó"
+								value={tiendaId}
+								onChange={(e) => setTiendaId(Number(e.target.value))}
+							>
+								{tiendas.map((t) => (
+									<MenuItem key={t.id} value={Number(t.id)}>
+										{t.name}
+										{Number(t.id) === tiendaEmpleado ? ' (su tienda)' : ''}
+									</MenuItem>
+								))}
+							</Select>
+							<FormHelperText>
+								{errores.tienda ??
+									(tiendaId !== '' && tiendaId !== tiendaEmpleado
+										? 'Rotación: trabajó en una tienda distinta a la suya'
+										: 'Por defecto, la tienda del empleado')}
+							</FormHelperText>
+						</FormControl>
 
-					<TextField
-						label="Fecha"
-						type="date"
-						value={fecha}
-						onChange={(e) => setFecha(e.target.value)}
-						slotProps={{
-							inputLabel: { shrink: true },
-							htmlInput: { max: hoy },
-						}}
-						error={!!errores.workDate}
-						helperText={errores.workDate}
-						fullWidth
-					/>
+						<TextField
+							label="Fecha"
+							type="date"
+							value={fecha}
+							onChange={(e) => setFecha(e.target.value)}
+							slotProps={{
+								inputLabel: { shrink: true },
+								htmlInput: { max: hoy },
+							}}
+							error={!!errores.workDate}
+							helperText={errores.workDate}
+							fullWidth
+						/>
 
-					<TextField
-						label="Horas extras"
-						type="number"
-						value={horas}
-						onChange={(e) => setHoras(e.target.value)}
-						slotProps={{
-							htmlInput: { min: BLOQUE_HORAS, step: BLOQUE_HORAS },
-						}}
-						error={!!errores.minutos}
-						helperText={
-							errores.minutos ??
-							(minutos > 0
-								? formatoMinutos(minutos)
-								: `En bloques de ${BLOQUE_MINUTOS} min (${BLOQUE_HORAS} = ${BLOQUE_MINUTOS} min)`)
+						<TextField
+							label="Horas extras"
+							type="number"
+							value={horas}
+							onChange={(e) => setHoras(e.target.value)}
+							slotProps={{
+								htmlInput: { min: BLOQUE_HORAS, step: BLOQUE_HORAS },
+							}}
+							error={!!errores.minutos}
+							helperText={
+								errores.minutos ??
+								(minutos > 0
+									? formatoMinutos(minutos)
+									: `En bloques de ${BLOQUE_MINUTOS} min (${BLOQUE_HORAS} = ${BLOQUE_MINUTOS} min)`)
+							}
+							fullWidth
+						/>
+
+						<TextField
+							label="Observación"
+							value={observacion}
+							onChange={(e) => setObservacion(e.target.value)}
+							multiline
+							minRows={2}
+							error={!!errores.observacion}
+							helperText={
+								errores.observacion ??
+								`${observacion.length}/${MAX_CARACTERES_OBSERVACION}`
+							}
+							fullWidth
+						/>
+					</Box>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, py: 2 }}>
+					<Button onClick={onClose} disabled={guardar.isPending}>
+						Cancelar
+					</Button>
+					<Button
+						variant="contained"
+						onClick={enviar}
+						disabled={guardar.isPending}
+						startIcon={
+							guardar.isPending ? <CircularProgress size={16} /> : undefined
 						}
-						fullWidth
-					/>
-
-					<TextField
-						label="Observación"
-						value={observacion}
-						onChange={(e) => setObservacion(e.target.value)}
-						multiline
-						minRows={2}
-						error={!!errores.observacion}
-						helperText={
-							errores.observacion ??
-							`${observacion.length}/${MAX_CARACTERES_OBSERVACION}`
-						}
-						fullWidth
-					/>
-
-					{duplicado && (
-						<Alert severity="warning">
-							Este empleado ya tiene {formatoMinutos(duplicado.minutes)} en
-							estado {ETIQUETA_ESTADO_HORA_EXTRA[duplicado.status]} ese día.
-						</Alert>
-					)}
-				</Box>
-			</DialogContent>
-			<DialogActions sx={{ px: 3, py: 2 }}>
-				<Button onClick={onClose} disabled={guardar.isPending}>
-					Cancelar
-				</Button>
-				<Button
-					variant="contained"
-					onClick={enviar}
-					disabled={guardar.isPending}
-					startIcon={
-						guardar.isPending ? <CircularProgress size={16} /> : undefined
-					}
-				>
-					Registrar
-				</Button>
-			</DialogActions>
-		</Dialog>
+					>
+						Registrar
+					</Button>
+				</DialogActions>
+			</Dialog>
+			<AvisoHorasExistentesDialog
+				open={avisando && duplicado != null}
+				coincidencias={
+					duplicado && empleado
+						? [
+								{
+									clave: `${empleado.id}|${fecha}`,
+									empleado: formatNombrePropio(empleado.nombre),
+									cargo: empleado.cargo,
+									fecha,
+									yaMinutos: duplicado.minutes,
+									estado: duplicado.status,
+									nuevosMinutos: minutos,
+								},
+							]
+						: []
+				}
+				onVolver={() => setAvisando(false)}
+				onContinuar={registrar}
+			/>
+		</>
 	);
 }

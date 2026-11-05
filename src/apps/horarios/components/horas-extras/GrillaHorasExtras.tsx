@@ -1,4 +1,5 @@
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import {
 	Box,
 	Checkbox,
@@ -194,26 +195,32 @@ const FilaPersona = memo(function FilaPersona({
 							...caja,
 							width: 84,
 							bgcolor: valor ? '#eff6ff' : undefined,
-							borderColor: error ? '#d32f2f' : aviso ? '#f59e0b' : '#cbd5e1',
+							borderColor: error ? '#d32f2f' : '#cbd5e1',
 						}}
 					/>
 				);
 				return (
 					<TableCell key={d} align="center" sx={{ px: 0.5 }}>
-						{/* Tooltip solo cuando hay algo que decir: cada uno registra listeners. */}
-						{error || aviso ? (
-							<Tooltip title={error ?? aviso}>{input}</Tooltip>
-						) : (
-							input
-						)}
-						{aviso && (
-							<Typography
-								variant="caption"
-								sx={{ display: 'block', color: '#b45309', lineHeight: 1.2 }}
-							>
-								{aviso}
-							</Typography>
-						)}
+						<Box
+							sx={{
+								display: 'inline-flex',
+								alignItems: 'center',
+								gap: 0.25,
+							}}
+						>
+							{/* Tooltip solo cuando hay algo que decir: cada uno registra listeners. */}
+							{error ? <Tooltip title={error}>{input}</Tooltip> : input}
+							{/* Marca discreta: el aviso fuerte es el paso de advertencia al registrar. */}
+							{aviso && (
+								<Tooltip title={aviso}>
+									<InfoOutlinedIcon
+										titleAccess={aviso}
+										tabIndex={0}
+										sx={{ fontSize: 16, color: '#64748b' }}
+									/>
+								</Tooltip>
+							)}
+						</Box>
 					</TableCell>
 				);
 			})}

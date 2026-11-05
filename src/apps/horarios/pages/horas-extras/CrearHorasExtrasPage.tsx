@@ -22,6 +22,7 @@ import { crearHorasExtras } from '../../api/directus/horasExtras';
 import { getEmpleadosBulk } from '../../api/directus/readBulk';
 import { idRelacion } from '../../api/directus/relacion';
 import { ReporteTiendasPagination } from '../../components/com_time_record_store';
+import { AvisoHorasExistentesDialog } from '../../components/horas-extras/AvisoHorasExistentesDialog';
 import {
 	ConfirmarRegistroDialog,
 	type PersonaResumen,
@@ -83,6 +84,7 @@ export default function CrearHorasExtrasPage() {
 		ReadonlyMap<string, string>
 	>(new Map());
 	const [confirmando, setConfirmando] = useState(false);
+	const [avisando, setAvisando] = useState(false);
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(25);
 	const [tiendaElegida, setTiendaElegida] = useState<
@@ -159,17 +161,24 @@ export default function CrearHorasExtrasPage() {
 			const k = claveDia(id, h.work_date);
 			porDia.set(k, [...(porDia.get(k) ?? []), h]);
 		}
-		const res = new Map<string, string>();
+		const res = new Map<string, OverTimeDto>();
 		for (const [k, delDia] of porDia) {
 			const d = buscarDuplicado(delDia);
-			if (d)
-				res.set(
-					k,
-					`Ya: ${formatoMinutos(d.minutes)} ${ETIQUETA_ESTADO_HORA_EXTRA[d.status].toLowerCase()}`,
-				);
+			if (d) res.set(k, d);
 		}
 		return res;
 	}, [registradas]);
+	// Texto de la marca discreta de cada celda.
+	const avisosCelda = useMemo(
+		() =>
+			new Map(
+				[...existentes].map(([k, d]) => [
+					k,
+					`Ya tiene ${formatoMinutos(d.minutes)} ${ETIQUETA_ESTADO_HORA_EXTRA[d.status].toLowerCase()} ese día`,
+				]),
+			),
+		[existentes],
+	);
 
 	const lineas = useMemo(
 		() =>
@@ -181,7 +190,27 @@ export default function CrearHorasExtrasPage() {
 		[celdas, dias, personas],
 	);
 	const errores = useMemo(() => validarLineas(lineas, hoy), [lineas, hoy]);
-	const conExistente = lineas.filter((l) => existentes.has(l.clave)).length;
+	// Líneas de personas que ya tienen una hora extra activa ese día (paso de advertencia).
+	const coincidencias = useMemo(() => {
+		const porId = new Map(personas.map((p) => [p.id, p]));
+		return lineas.flatMap((l) => {
+			const d = existentes.get(l.clave);
+			const p = porId.get(l.empleadoId);
+			return d && p
+				? [
+						{
+							clave: l.clave,
+							empleado: p.nombre,
+							cargo: p.cargo,
+							fecha: l.fecha,
+							yaMinutos: d.minutes,
+							estado: d.status,
+							nuevosMinutos: l.minutos,
+						},
+					]
+				: [];
+		});
+	}, [lineas, existentes, personas]);
 	const totalMinutos = lineas.reduce((s, l) => s + l.minutos, 0);
 	const personasConHoras = new Set(lineas.map((l) => l.empleadoId)).size;
 	const excede = lineas.length > MAX_LINEAS_LOTE;
@@ -269,6 +298,10 @@ export default function CrearHorasExtrasPage() {
 	const guardar = useMutation({
 		mutationFn: crearHorasExtras,
 		onSuccess: (_, datos) => {
+			// Cerrar antes de navegar: la página de destino carga en diferido y, mientras
+			// tanto, el resumen seguiría abierto marcando lo recién guardado como "(ya tenía)".
+			setConfirmando(false);
+			setAvisando(false);
 			void queryClient.invalidateQueries({
 				queryKey: horariosKeys.horasExtras.todos,
 			});
@@ -327,8 +360,15 @@ export default function CrearHorasExtrasPage() {
 		existentes,
 		acceso.tiendasPermitidas,
 	]);
+	// Se espera a conocer las ya registradas: sin ellas el paso de advertencia no saldría.
+	// Tras guardar queda deshabilitado hasta salir de la página (evita registrar dos veces).
 	const puedeRegistrar =
-		lineas.length > 0 && errores.size === 0 && !excede && !sinTienda;
+		lineas.length > 0 &&
+		errores.size === 0 &&
+		!excede &&
+		!sinTienda &&
+		!comprobando &&
+		!guardar.isSuccess;
 
 	return (
 		<Paper
@@ -559,7 +599,7 @@ export default function CrearHorasExtrasPage() {
 						personas={paginaDiferida}
 						dias={dias}
 						celdas={celdas}
-						existentes={existentes}
+						existentes={avisosCelda}
 						errores={errores}
 						seleccion={seleccion}
 						observaciones={observaciones}
@@ -597,12 +637,6 @@ export default function CrearHorasExtrasPage() {
 						(marcadas en rojo; pasa el cursor para ver el detalle).
 					</Alert>
 				)}
-				{conExistente > 0 && (
-					<Alert severity="warning">
-						{plural(conExistente, 'celda coincide', 'celdas coinciden')} con una
-						hora extra ya registrada ese día. Puedes registrar igual.
-					</Alert>
-				)}
 				{excede && (
 					<Alert severity="error">
 						El máximo por registro es {MAX_LINEAS_LOTE} horas extras.
@@ -637,7 +671,12 @@ export default function CrearHorasExtrasPage() {
 						</Button>
 						<Button
 							variant="contained"
-							onClick={() => setConfirmando(true)}
+							// Si alguien ya tiene horas ese día, primero el paso de advertencia.
+							onClick={() =>
+								coincidencias.length > 0
+									? setAvisando(true)
+									: setConfirmando(true)
+							}
 							disabled={!puedeRegistrar || guardar.isPending}
 							startIcon={
 								guardar.isPending ? <CircularProgress size={16} /> : undefined
@@ -648,6 +687,15 @@ export default function CrearHorasExtrasPage() {
 					</Box>
 				</Box>
 			</Box>
+			<AvisoHorasExistentesDialog
+				open={avisando}
+				coincidencias={coincidencias}
+				onVolver={() => setAvisando(false)}
+				onContinuar={() => {
+					setAvisando(false);
+					setConfirmando(true);
+				}}
+			/>
 			<ConfirmarRegistroDialog
 				open={confirmando}
 				personas={resumen}

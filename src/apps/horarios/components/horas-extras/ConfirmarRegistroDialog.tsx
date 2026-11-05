@@ -1,5 +1,4 @@
 import {
-	Alert,
 	Box,
 	Button,
 	Chip,
@@ -37,8 +36,6 @@ export interface ConfirmarRegistroDialogProps {
 	onConfirmar: () => void;
 }
 
-const plural = (n: number, uno: string, varios: string) =>
-	`${n} ${n === 1 ? uno : varios}`;
 const head = { fontWeight: 700, color: '#475569', bgcolor: '#f8fafc' };
 
 function Total({ label, valor }: { label: string; valor: string | number }) {
@@ -72,7 +69,6 @@ export function ConfirmarRegistroDialog({
 }: ConfirmarRegistroDialogProps) {
 	const dias = personas.flatMap((p) => p.dias);
 	const total = dias.reduce((s, d) => s + d.minutos, 0);
-	const yaRegistradas = dias.filter((d) => d.yaRegistrada).length;
 	const fechas = dias.map((d) => d.fecha).sort();
 	return (
 		<Dialog
@@ -146,8 +142,7 @@ export function ConfirmarRegistroDialog({
 													key={d.fecha}
 													size="small"
 													variant="outlined"
-													color={d.yaRegistrada ? 'warning' : 'default'}
-													label={`${dayjs(d.fecha).format('DD/MM')}: ${formatoMinutos(d.minutos)}`}
+													label={`${dayjs(d.fecha).format('DD/MM')}: ${formatoMinutos(d.minutos)}${d.yaRegistrada ? ' (ya tenía)' : ''}`}
 												/>
 											))}
 										</Box>
@@ -168,17 +163,6 @@ export function ConfirmarRegistroDialog({
 						</TableBody>
 					</Table>
 				</TableContainer>
-
-				{yaRegistradas > 0 && (
-					<Alert severity="warning" sx={{ mt: 2 }}>
-						{plural(
-							yaRegistradas,
-							'hora extra coincide',
-							'horas extras coinciden',
-						)}{' '}
-						con otra ya registrada ese día (en naranja). Se registrarán igual.
-					</Alert>
-				)}
 			</DialogContent>
 			<DialogActions sx={{ px: 3, py: 2 }}>
 				<Button onClick={onClose} disabled={guardando}>

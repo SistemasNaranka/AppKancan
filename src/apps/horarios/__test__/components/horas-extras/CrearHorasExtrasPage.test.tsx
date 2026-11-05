@@ -64,6 +64,8 @@ const celda = (nombre: string, ddmm: string) =>
 const registrar = () => screen.getByRole('button', { name: /^Registrar \(/ });
 /** Registrar abre la confirmación; devuelve el diálogo. */
 const abrirConfirmacion = async () => {
+	// Registrar se habilita al terminar de comprobar las ya registradas.
+	await waitFor(() => expect(registrar()).toBeEnabled());
 	fireEvent.click(registrar());
 	return screen.findByRole('dialog', { name: /Confirmar registro/ });
 };
@@ -89,7 +91,9 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 			{ ...emp(8, 'JOSÉ RUIZ'), cargo: 'Cajero', storeId: 30 },
 		]);
 		const grilla = await montar();
-		expect(within(grilla).getByRole('columnheader', { name: 'Cargo' })).toBeInTheDocument();
+		expect(
+			within(grilla).getByRole('columnheader', { name: 'Cargo' }),
+		).toBeInTheDocument();
 		expect(within(grilla).getByText('Cajero')).toBeInTheDocument();
 		fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Tienda' }));
 		fireEvent.click(await screen.findByRole('option', { name: 'Pasto' }));
@@ -241,7 +245,9 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 		});
 		expect(screen.getByText(/1 celda tiene errores/)).toBeInTheDocument();
 		expect(registrar()).toBeDisabled();
-		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '0.75' } });
+		fireEvent.change(celda('Ana Pérez', '22/10'), {
+			target: { value: '0.75' },
+		});
 		expect(registrar()).toBeEnabled();
 		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '1.5' } });
 
@@ -259,7 +265,7 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 		});
 	});
 
-	it('marca la hora extra ya registrada ese día sin bloquear', async () => {
+	it('si alguien ya tiene horas ese día: marca discreta en la celda y paso de advertencia antes del resumen', async () => {
 		listarHorasExtras.mockResolvedValue([
 			{
 				id: 3,
@@ -270,23 +276,110 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 			},
 		]);
 		await montar();
-		expect(await screen.findByText('Ya: 1 h pendiente')).toBeInTheDocument();
+		// Marca discreta (ícono con etiqueta), sin texto ni alertas naranjas.
+		expect(
+			await screen.findByRole('img', {
+				name: 'Ya tiene 1 h pendiente ese día',
+			}),
+		).toBeInTheDocument();
 		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '1' } });
+		expect(screen.queryByText(/coincide/)).toBeNull();
+
+		fireEvent.click(registrar());
+		const aviso = await screen.findByRole('alertdialog', {
+			name: 'Esta persona ya tiene horas extras ese día',
+		});
 		expect(
-			screen.getByText(/1 celda coincide con una hora extra ya registrada/),
-		).toBeInTheDocument();
-		const dialogo = await abrirConfirmacion();
-		expect(
-			within(dialogo).getByText(/1 hora extra coincide con otra ya registrada/),
-		).toBeInTheDocument();
-		// Volver a editar no registra.
+			within(aviso)
+				.getAllByRole('cell')
+				.map((c) => c.textContent),
+		).toEqual([
+			'Ana Pérez',
+			'Asesor',
+			'22/10/2026',
+			'1 h (pendiente)',
+			'+ 1 h',
+		]);
+		// Volver no registra ni abre el resumen.
 		fireEvent.click(
-			within(dialogo).getByRole('button', { name: 'Volver a editar' }),
+			within(aviso).getByRole('button', { name: 'Volver y revisar' }),
 		);
+		await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+		expect(
+			screen.queryByRole('dialog', { name: /Confirmar registro/ }),
+		).toBeNull();
+
+		// Continuar lleva al resumen, que ya no repite la alerta.
+		fireEvent.click(registrar());
+		fireEvent.click(
+			within(await screen.findByRole('alertdialog')).getByRole('button', {
+				name: 'Sí, continuar',
+			}),
+		);
+		const resumen = await screen.findByRole('dialog', {
+			name: /Confirmar registro/,
+		});
+		expect(
+			within(resumen).getByText('22/10: 1 h (ya tenía)'),
+		).toBeInTheDocument();
+		expect(within(resumen).queryByText(/coincide/)).toBeNull();
+		confirmar(resumen);
+		await waitFor(() => expect(crearHorasExtras).toHaveBeenCalled());
+	});
+
+	it('al confirmar, el resumen se cierra y no reaparece con lo recién guardado como "(ya tenía)"', async () => {
+		await montar();
+		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '1' } });
+		// Tras guardar, la recarga trae la hora recién creada (como haría Directus).
+		crearHorasExtras.mockImplementation(async () => {
+			listarHorasExtras.mockResolvedValue([
+				{
+					id: 50,
+					employee_id: 7,
+					work_date: '2026-10-22',
+					status: 'pendiente',
+					minutes: 60,
+				},
+			]);
+			return [];
+		});
+		const resumen = await abrirConfirmacion();
+		confirmar(resumen);
 		await waitFor(() =>
-			expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+			expect(irA).toHaveBeenCalledWith('horas-extras/registradas'),
 		);
-		expect(crearHorasExtras).not.toHaveBeenCalled();
+		// irA está simulado: la página sigue montada, como mientras carga la de destino.
+		await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+		expect(screen.queryByText(/ya tenía/)).toBeNull();
+		expect(screen.queryByRole('alertdialog')).toBeNull();
+		// No se puede registrar otra vez lo mismo.
+		expect(registrar()).toBeDisabled();
+		expect(crearHorasExtras).toHaveBeenCalledTimes(1);
+	});
+
+	it('espera a comprobar las ya registradas antes de dejar registrar', async () => {
+		let responder: (v: unknown[]) => void = () => {};
+		listarHorasExtras.mockImplementation(
+			() =>
+				new Promise((r) => {
+					responder = r;
+				}),
+		);
+		await montar();
+		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '1' } });
+		expect(registrar()).toBeDisabled();
+		responder([
+			{
+				id: 3,
+				employee_id: 7,
+				work_date: '2026-10-22',
+				status: 'pendiente',
+				minutes: 60,
+			},
+		]);
+		await waitFor(() => expect(registrar()).toBeEnabled());
+		fireEvent.click(registrar());
+		expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
 	});
 
 	it('valores rápidos desde 15 minutos', async () => {
