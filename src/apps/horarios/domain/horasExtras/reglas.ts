@@ -1,8 +1,10 @@
 import { MAX_CARACTERES_OBSERVACION } from '../registro/reglas';
 import { ESTADOS_ACTIVOS, type EstadoHoraExtra } from './estados';
 
-/** Las horas extras se registran en bloques de media hora */
-export const BLOQUE_MINUTOS = 30;
+/** Las horas extras se registran en bloques de 15 minutos. */
+export const BLOQUE_MINUTOS = 15;
+/** El bloque en horas, para los campos que se escriben en horas (0.25). */
+export const BLOQUE_HORAS = BLOQUE_MINUTOS / 60;
 
 export interface HoraExtraBorrador {
 	/** YYYY-MM-DD */
@@ -36,7 +38,7 @@ export function validarHoraExtra(
 	if (!Number.isInteger(b.minutos) || b.minutos <= 0)
 		errores.minutos = 'Las horas extras deben ser mayores que cero';
 	else if (b.minutos % BLOQUE_MINUTOS !== 0)
-		errores.minutos = 'Las horas extras van en bloques de media hora';
+		errores.minutos = `Las horas extras van en bloques de ${BLOQUE_MINUTOS} minutos`;
 
 	if ((b.observacion?.length ?? 0) > MAX_CARACTERES_OBSERVACION)
 		errores.observacion = `Máximo ${MAX_CARACTERES_OBSERVACION} caracteres`;

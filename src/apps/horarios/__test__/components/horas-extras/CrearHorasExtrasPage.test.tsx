@@ -235,13 +235,15 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 
 	it('una celda fuera de bloque bloquea; la tienda por fila (rotación) va en el envío', async () => {
 		await montar();
+		// 0.6 h = 36 min: no es múltiplo de 15 (0.75 = 45 min ya es válido).
 		fireEvent.change(celda('Ana Pérez', '22/10'), {
-			target: { value: '0.75' },
+			target: { value: '0.6' },
 		});
 		expect(screen.getByText(/1 celda tiene errores/)).toBeInTheDocument();
 		expect(registrar()).toBeDisabled();
-		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '1.5' } });
+		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '0.75' } });
 		expect(registrar()).toBeEnabled();
+		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '1.5' } });
 
 		fireEvent.change(screen.getByLabelText('Tienda donde trabajó Ana Pérez'), {
 			target: { value: '30' },
@@ -285,6 +287,11 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 			expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
 		);
 		expect(crearHorasExtras).not.toHaveBeenCalled();
+	});
+
+	it('valores rápidos desde 15 minutos', async () => {
+		await montar();
+		expect(screen.getByRole('button', { name: '15 min' })).toBeInTheDocument();
 	});
 
 	it('muestra el cargando mientras llegan las personas', async () => {

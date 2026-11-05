@@ -23,10 +23,14 @@ describe('validarHoraExtra', () => {
 		expect(validarHoraExtra({ ...valida, workDate: '' }, ctx).workDate).toBeDefined();
 	});
 
-	it('exige minutos > 0 y múltiplos de 30', () => {
+	it('exige minutos > 0 y múltiplos de 15', () => {
 		expect(validarHoraExtra({ ...valida, minutos: 0 }, ctx).minutos).toMatch(/mayores/);
 		expect(validarHoraExtra({ ...valida, minutos: -30 }, ctx).minutos).toMatch(/mayores/);
-		expect(validarHoraExtra({ ...valida, minutos: 45 }, ctx).minutos).toMatch(/media hora/);
+		expect(validarHoraExtra({ ...valida, minutos: 45 }, ctx).minutos).toBeUndefined();
+		expect(validarHoraExtra({ ...valida, minutos: 75 }, ctx).minutos).toBeUndefined();
+		expect(validarHoraExtra({ ...valida, minutos: 70 }, ctx).minutos).toBe(
+			'Las horas extras van en bloques de 15 minutos',
+		);
 		expect(validarHoraExtra({ ...valida, minutos: 30.5 }, ctx).minutos).toBeDefined();
 	});
 

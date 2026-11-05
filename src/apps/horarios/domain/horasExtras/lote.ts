@@ -38,7 +38,7 @@ export interface ErrorLinea {
 
 /**
  * Error de cada línea (por `clave`); vacío si todas son válidas. Reutiliza
- * `validarHoraExtra` (fecha no futura, bloques de 30 min) y marca la misma
+ * `validarHoraExtra` (fecha no futura, bloques de `BLOQUE_MINUTOS`) y marca la misma
  * persona + día repetida dentro del lote.
  */
 export function validarLineas(

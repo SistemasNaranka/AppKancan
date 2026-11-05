@@ -28,6 +28,7 @@ import {
 } from '../../components/horas-extras/ConfirmarRegistroDialog';
 import { GrillaHorasExtras } from '../../components/horas-extras/GrillaHorasExtras';
 import {
+	BLOQUE_HORAS,
 	BLOQUE_MINUTOS,
 	buscarDuplicado,
 	claveDia,
@@ -51,7 +52,7 @@ import { coincideEmpleado } from '../../utils/horasExtras';
 import { getRealColombiaTime } from '../../utils/timeSync';
 
 /** Valores rápidos (minutos) para rellenar. */
-const VALORES_RAPIDOS = [30, 60, 90, 120, 180];
+const VALORES_RAPIDOS = [15, 30, 60, 90, 120, 180];
 
 const plural = (n: number, uno: string, varios: string) =>
 	`${n} ${n === 1 ? uno : varios}`;
@@ -471,7 +472,9 @@ export default function CrearHorasExtrasPage() {
 					size="small"
 					value={valor / 60}
 					onChange={(e) => setValor(Math.round(Number(e.target.value) * 60))}
-					slotProps={{ htmlInput: { min: 0.5, step: 0.5 } }}
+					slotProps={{
+						htmlInput: { min: BLOQUE_HORAS, step: BLOQUE_HORAS },
+					}}
 					sx={{ width: 120 }}
 				/>
 				<Button
@@ -513,7 +516,7 @@ export default function CrearHorasExtrasPage() {
 				</Button>
 				{valor % BLOQUE_MINUTOS !== 0 && (
 					<Typography variant="caption" sx={{ color: '#d32f2f' }}>
-						El valor debe ir en bloques de media hora
+						El valor debe ir en bloques de {BLOQUE_MINUTOS} minutos
 					</Typography>
 				)}
 			</Box>

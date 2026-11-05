@@ -66,14 +66,15 @@ describe('RegistrarHoraExtraModal (individual)', () => {
 		expect(crearHorasExtras).not.toHaveBeenCalled();
 	});
 
-	it('no guarda sin horas ni con bloques que no son de media hora', async () => {
+	it('no guarda sin horas ni con bloques que no son de 15 minutos', async () => {
 		montar();
 		await elegirEmpleado();
 		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
 		expect(await screen.findByText('Las horas extras deben ser mayores que cero')).toBeInTheDocument();
-		fireEvent.change(screen.getByLabelText('Horas extras'), { target: { value: '1.25' } });
+		// 1.1 h = 66 min: no es múltiplo de 15.
+		fireEvent.change(screen.getByLabelText('Horas extras'), { target: { value: '1.1' } });
 		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
-		expect(await screen.findByText('Las horas extras van en bloques de media hora')).toBeInTheDocument();
+		expect(await screen.findByText('Las horas extras van en bloques de 15 minutos')).toBeInTheDocument();
 		expect(crearHorasExtras).not.toHaveBeenCalled();
 	});
 
@@ -94,6 +95,16 @@ describe('RegistrarHoraExtraModal (individual)', () => {
 			created_by: 'uuid-lider',
 		}]);
 		expect(showSnackbar).toHaveBeenCalledWith(expect.stringMatching(/pendiente/), 'success');
+	});
+
+	it('acepta bloques de 15 minutos (1.25 h = 1 h 15 min)', async () => {
+		const onClose = vi.fn();
+		montar(onClose);
+		await elegirEmpleado();
+		fireEvent.change(screen.getByLabelText('Horas extras'), { target: { value: '1.25' } });
+		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
+		await waitFor(() => expect(onClose).toHaveBeenCalled());
+		expect(crearHorasExtras).toHaveBeenCalledWith([expect.objectContaining({ minutes: 75 })]);
 	});
 
 	it('avisa si el empleado ya tiene una hora extra activa ese día', async () => {

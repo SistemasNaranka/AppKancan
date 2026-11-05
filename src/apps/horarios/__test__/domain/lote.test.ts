@@ -53,14 +53,14 @@ describe('validarLineas', () => {
 		const e = validarLineas(
 			[
 				linea('a', '7', '2026-10-21'),
-				linea('b', '8', '2026-10-19', 45),
+				linea('b', '8', '2026-10-19', 50),
 				linea('c', '9', '2026-10-18'),
 				linea('d', '9', '2026-10-18'), // editada a la misma fecha que c
 			],
 			hoy,
 		);
 		expect(e.get('a')).toEqual({ campo: 'fecha', mensaje: expect.stringMatching(/futuros/) });
-		expect(e.get('b')).toEqual({ campo: 'minutos', mensaje: expect.stringMatching(/media hora/) });
+		expect(e.get('b')).toEqual({ campo: 'minutos', mensaje: expect.stringMatching(/bloques de 15 minutos/) });
 		expect(e.get('c')?.mensaje).toMatch(/Repetida/);
 		expect(e.get('d')?.mensaje).toMatch(/Repetida/);
 	});

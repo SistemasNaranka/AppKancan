@@ -21,6 +21,8 @@ import { type ReactNode, useState } from 'react';
 import { useAuth } from '@/auth/hooks/useAuth';
 import { crearHorasExtras } from '../../api/directus/horasExtras';
 import {
+	BLOQUE_HORAS,
+	BLOQUE_MINUTOS,
 	buscarDuplicado,
 	type ErroresHoraExtra,
 	ETIQUETA_ESTADO_HORA_EXTRA,
@@ -286,13 +288,15 @@ export function RegistrarHoraExtraModal({
 						type="number"
 						value={horas}
 						onChange={(e) => setHoras(e.target.value)}
-						slotProps={{ htmlInput: { min: 0.5, step: 0.5 } }}
+						slotProps={{
+							htmlInput: { min: BLOQUE_HORAS, step: BLOQUE_HORAS },
+						}}
 						error={!!errores.minutos}
 						helperText={
 							errores.minutos ??
 							(minutos > 0
 								? formatoMinutos(minutos)
-								: 'En bloques de media hora (0.5 = 30 min)')
+								: `En bloques de ${BLOQUE_MINUTOS} min (${BLOQUE_HORAS} = ${BLOQUE_MINUTOS} min)`)
 						}
 						fullWidth
 					/>

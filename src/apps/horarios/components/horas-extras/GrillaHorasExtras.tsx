@@ -16,7 +16,11 @@ import {
 } from '@mui/material';
 import dayjs from 'dayjs';
 import { memo } from 'react';
-import { claveDia, type ErrorLinea } from '../../domain/horasExtras';
+import {
+	BLOQUE_HORAS,
+	claveDia,
+	type ErrorLinea,
+} from '../../domain/horasExtras';
 import { MAX_CARACTERES_OBSERVACION } from '../../domain/registro';
 
 export interface PersonaGrilla {
@@ -181,7 +185,7 @@ const FilaPersona = memo(function FilaPersona({
 						error={!!error}
 						inputProps={{
 							min: 0,
-							step: 0.5,
+							step: BLOQUE_HORAS,
 							'aria-label': `Horas de ${p.nombre} el ${dayjs(d).format('DD/MM')}`,
 							'aria-invalid': !!error,
 							style: { textAlign: 'center' },
