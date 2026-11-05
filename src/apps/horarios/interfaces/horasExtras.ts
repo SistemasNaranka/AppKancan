@@ -27,5 +27,11 @@ export interface HoraExtraFila {
 	/** Motivo del rechazo (`review_note`), o ''. */
 	motivoRechazo: string;
 	/** Periodo de nómina vinculado; `null` = sin vincular. Fechas YYYY-MM-DD ('' si no se expandieron). */
-	periodo: { id: number; inicio: string; fin: string } | null;
+	periodo: {
+		id: number;
+		/** Nombre del periodo ('' si no tiene o no se expandió). */
+		nombre?: string;
+		inicio: string;
+		fin: string;
+	} | null;
 }

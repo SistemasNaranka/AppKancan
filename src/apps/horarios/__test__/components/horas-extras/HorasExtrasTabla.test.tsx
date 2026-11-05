@@ -51,6 +51,16 @@ describe('HorasExtrasTabla', () => {
 		expect(screen.getByText('Sin vincular')).toBeInTheDocument();
 	});
 
+	it('columna Periodo con el nombre del periodo y sus fechas', () => {
+		const vinculada = {
+			...fila,
+			periodo: { id: 4, nombre: 'Quincena 1', inicio: '2026-10-01', fin: '2026-10-15' },
+		};
+		render(<HorasExtrasTabla filas={[vinculada]} conPeriodo />);
+		expect(screen.getByText('Quincena 1 (01/10/2026 – 15/10/2026)')).toBeInTheDocument();
+		expect(screen.queryByText(/Periodo 0/)).toBeNull();
+	});
+
 	it('muestra el estado vacío y el de carga', () => {
 		const { rerender } = render(<HorasExtrasTabla filas={[]} vacio="No hay horas extras pendientes" />);
 		expect(screen.getByText('No hay horas extras pendientes')).toBeInTheDocument();

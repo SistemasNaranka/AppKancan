@@ -82,26 +82,27 @@ describe('crearHorasExtras', () => {
 
 describe('revisarHorasExtras', () => {
 	it('aprobar guarda la revisión, sin nota', async () => {
-		await revisarHorasExtras([1, 2], { decision: 'aprobada' });
+		await revisarHorasExtras([1, 2], { decision: 'aprobada', revisor: 'uuid-comercial' });
 		const { op, ids, d } = request.mock.calls[0][0];
 		expect(op).toBe('updateMany');
 		expect(ids).toEqual([1, 2]);
 		expect(d).toMatchObject({ status: 'aprobada', review_note: null });
-		// Quién revisó lo pone Directus en updated_by.
+		// Quién aprueba o rechaza queda en updated_by (como created_by para quien crea).
+		expect(d).toMatchObject({ updated_by: 'uuid-comercial' });
 		expect(d).not.toHaveProperty('reviewed_by');
 		expect(d).not.toHaveProperty('period_id');
 		expect(Number.isNaN(Date.parse(d.reviewed_at))).toBe(false);
 	});
 
 	it('rechazar guarda el motivo', async () => {
-		await revisarHorasExtras([3], { decision: 'descartada_comercial', nota: ' sin soporte ' });
+		await revisarHorasExtras([3], { decision: 'descartada_comercial', nota: ' sin soporte ', revisor: 'uuid-comercial' });
 		const { d } = request.mock.calls[0][0];
-		expect(d).toMatchObject({ status: 'descartada_comercial', review_note: 'sin soporte' });
+		expect(d).toMatchObject({ status: 'descartada_comercial', review_note: 'sin soporte', updated_by: 'uuid-comercial' });
 	});
 
 	it('no llama a Directus sin motivo al rechazar ni con lote vacío', async () => {
-		await expect(revisarHorasExtras([1], { decision: 'descartada_comercial', nota: '  ' })).rejects.toThrow(/motivo/);
-		expect(await revisarHorasExtras([], { decision: 'aprobada' })).toEqual([]);
+		await expect(revisarHorasExtras([1], { decision: 'descartada_comercial', nota: '  ', revisor: 'u' })).rejects.toThrow(/motivo/);
+		expect(await revisarHorasExtras([], { decision: 'aprobada', revisor: 'u' })).toEqual([]);
 		expect(request).not.toHaveBeenCalled();
 	});
 });

@@ -12,6 +12,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Dayjs } from 'dayjs';
 import { useMemo, useState } from 'react';
+import { useAuth } from '@/auth/hooks/useAuth';
 import { revisarHorasExtras } from '../../api/directus/horasExtras';
 import { ESTADO_HORA_EXTRA, formatoMinutos } from '../../domain/horasExtras';
 import { horariosKeys } from '../../hooks/registro/keys';
@@ -38,6 +39,7 @@ const SOLO_PENDIENTES = [ESTADO_HORA_EXTRA.pendiente];
 export function PendientesAprobacion() {
 	const filtroZT = useFiltroZonaTienda();
 	const { tiendas } = filtroZT;
+	const { user } = useAuth();
 	const queryClient = useQueryClient();
 	const { showSnackbar } = useAvisos();
 	const [page, setPage] = useState(0);
@@ -94,7 +96,7 @@ export function PendientesAprobacion() {
 			ids: number[];
 			decision: DecisionRevision;
 			nota: string;
-		}) => revisarHorasExtras(ids, { decision, nota }),
+		}) => revisarHorasExtras(ids, { decision, nota, revisor: user?.id ?? '' }),
 		onSuccess: (_, { ids, decision }) => {
 			void queryClient.invalidateQueries({
 				queryKey: horariosKeys.horasExtras.todos,

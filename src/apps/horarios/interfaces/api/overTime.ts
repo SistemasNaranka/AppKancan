@@ -38,7 +38,12 @@ export interface OverTimeDto {
 	/** Lo llena Directus (*User Updated*): en una fila revisada, el comercial que decidió. */
 	updated_by?: UsuarioDirectus;
 	/** Periodo de nómina; lo escribe nómina al liquidar. */
-	period_id?: Relacion<{ id: number; start_date?: string; end_date?: string }>;
+	period_id?: Relacion<{
+		id: number;
+		name?: string | null;
+		start_date?: string;
+		end_date?: string;
+	}>;
 }
 
 /** Una hora extra de `crearHorasExtras` (una por empleado): siempre entra en `pendiente`. */
@@ -64,4 +69,6 @@ export interface ReviewOverTimeDto {
 	decision: 'aprobada' | 'descartada_comercial';
 	/** Obligatorio al rechazar. */
 	nota?: string;
+	/** Usuario (directus_users) de Dirección Comercial que aprueba o rechaza: va en `updated_by`. */
+	revisor: string;
 }

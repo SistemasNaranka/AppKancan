@@ -93,9 +93,14 @@ export function HoraExtraDetalleDialog({
 					</Dato>
 					{fila.periodo && (
 						<Dato label="Periodo de nómina">
-							{fila.periodo.inicio && fila.periodo.fin
-								? `${fecha(fila.periodo.inicio)} – ${fecha(fila.periodo.fin)}`
-								: `Periodo ${fila.periodo.id}`}
+							{[
+								fila.periodo.nombre,
+								fila.periodo.inicio && fila.periodo.fin
+									? `${fecha(fila.periodo.inicio)} – ${fecha(fila.periodo.fin)}`
+									: '',
+							]
+								.filter(Boolean)
+								.join(' · ') || `Periodo ${fila.periodo.id}`}
 						</Dato>
 					)}
 				</Box>

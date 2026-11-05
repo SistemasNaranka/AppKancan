@@ -18,8 +18,17 @@ const nombre = (v: unknown): string => {
 const periodoDe = (v: unknown): HoraExtraFila['periodo'] => {
 	const id = idRelacion(v);
 	if (id == null) return null;
-	const o = objeto<{ start_date?: string; end_date?: string }>(v);
-	return { id, inicio: o?.start_date ?? '', fin: o?.end_date ?? '' };
+	const o = objeto<{
+		name?: string | null;
+		start_date?: string;
+		end_date?: string;
+	}>(v);
+	return {
+		id,
+		nombre: o?.name ?? '',
+		inicio: o?.start_date ?? '',
+		fin: o?.end_date ?? '',
+	};
 };
 
 /** DTO de `com_over_time` → fila de la tabla. */
@@ -51,6 +60,7 @@ export function aFilaHoraExtra(dto: OverTimeDto): HoraExtraFila {
 		estado: dto.status,
 		creadaPor: nombre(dto.created_by),
 		creadaEl: dto.created_at ?? '',
+		// updated_by = quien aprobó o rechazó (Dirección Comercial); lo escribe la revisión.
 		revisadaPor: dto.reviewed_at ? nombre(dto.updated_by) : '',
 		revisadaEl: dto.reviewed_at ?? '',
 		motivoRechazo: dto.review_note ?? '',

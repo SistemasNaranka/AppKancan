@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OverTimeDto } from '@/apps/horarios/interfaces/api/overTime';
+import { idRelacion } from '@/apps/horarios/api/directus/relacion';
 import { aFilaHoraExtra, coincideEmpleado } from '@/apps/horarios/utils/horasExtras';
 
 const base: OverTimeDto = {
@@ -35,12 +36,15 @@ describe('aFilaHoraExtra', () => {
 
 	it('periodo: expandido, solo id o sin vincular', () => {
 		expect(aFilaHoraExtra(base).periodo).toBeNull();
-		expect(aFilaHoraExtra({ ...base, period_id: { id: 4, start_date: '2026-10-01', end_date: '2026-10-15' } }).periodo).toEqual({
-			id: 4,
-			inicio: '2026-10-01',
-			fin: '2026-10-15',
-		});
-		expect(aFilaHoraExtra({ ...base, period_id: 4 }).periodo).toEqual({ id: 4, inicio: '', fin: '' });
+		// Directus manda `null` (no ausente) cuando no hay periodo: no es el "Periodo 0".
+		expect(aFilaHoraExtra({ ...base, period_id: null }).periodo).toBeNull();
+		expect(
+			aFilaHoraExtra({
+				...base,
+				period_id: { id: 4, name: 'Quincena 1', start_date: '2026-10-01', end_date: '2026-10-15' },
+			}).periodo,
+		).toEqual({ id: 4, nombre: 'Quincena 1', inicio: '2026-10-01', fin: '2026-10-15' });
+		expect(aFilaHoraExtra({ ...base, period_id: 4 }).periodo).toEqual({ id: 4, nombre: '', inicio: '', fin: '' });
 	});
 
 	it('revisión: solo con reviewed_at se toma updated_by como revisor', () => {
@@ -54,11 +58,32 @@ describe('aFilaHoraExtra', () => {
 		expect(revisada).toMatchObject({ revisadaPor: 'Marta Ríos', revisadaEl: '2026-10-12T10:00:00Z', motivoRechazo: 'Sin soporte' });
 		// Pendiente editada: updated_by no es un revisor.
 		expect(aFilaHoraExtra({ ...base, updated_by: { id: 'u1', first_name: 'luis' } }).revisadaPor).toBe('');
+		// Liquidada: sigue mostrando a quien aprobó (updated_by lo escribe la revisión).
+		expect(
+			aFilaHoraExtra({
+				...base,
+				status: 'aprobada',
+				reviewed_at: '2026-10-12T10:00:00Z',
+				updated_by: { id: 'u2', first_name: 'marta', last_name: 'ríos' },
+				period_id: { id: 4, start_date: '2026-10-01', end_date: '2026-10-15' },
+			}).revisadaPor,
+		).toBe('Marta Ríos');
 	});
 
 	it('tolera relaciones sin expandir', () => {
 		const f = aFilaHoraExtra({ ...base, employee_id: 7, store_id: 26, created_by: 'u1', observations: null });
 		expect(f).toMatchObject({ empleado: 'Empleado 7', tienda: '', rotacion: false, creadaPor: '', observacion: '' });
+	});
+});
+
+describe('idRelacion', () => {
+	it('una relación vacía es null, no el id 0', () => {
+		expect(idRelacion(null)).toBeNull();
+		expect(idRelacion(undefined)).toBeNull();
+		expect(idRelacion('')).toBeNull();
+		expect(idRelacion({ id: null })).toBeNull();
+		expect(idRelacion({ id: '26' })).toBe(26);
+		expect(idRelacion(4)).toBe(4);
 	});
 });
 

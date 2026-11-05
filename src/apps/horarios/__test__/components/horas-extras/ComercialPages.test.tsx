@@ -10,6 +10,7 @@ vi.mock('@/apps/horarios/api/directus/horasExtras', () => ({
 	listarHorasExtras: (f: unknown) => listarHorasExtras(f),
 	revisarHorasExtras: (ids: unknown, r: unknown) => revisarHorasExtras(ids, r),
 }));
+vi.mock('@/auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'uuid-comercial' } }) }));
 vi.mock('@/apps/horarios/hooks/useAvisos', () => ({ useAvisos: () => ({ showSnackbar }) }));
 const listarPeriodos = vi.fn();
 vi.mock('@/apps/horarios/api/directus/periodos', () => ({
@@ -230,7 +231,7 @@ describe('AprobacionPage', () => {
 		fireEvent.click(aprobarLote);
 		fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Aprobar' }));
 		await waitFor(() =>
-			expect(revisarHorasExtras).toHaveBeenCalledWith([1, 2], { decision: 'aprobada', nota: '' }),
+			expect(revisarHorasExtras).toHaveBeenCalledWith([1, 2], { decision: 'aprobada', nota: '', revisor: 'uuid-comercial' }),
 		);
 		expect(showSnackbar).toHaveBeenCalledWith('2 horas extras aprobadas', 'success');
 	});
@@ -243,7 +244,7 @@ describe('AprobacionPage', () => {
 		fireEvent.change(within(dialogo).getByLabelText('Motivo del rechazo'), { target: { value: 'Sin soporte' } });
 		fireEvent.click(within(dialogo).getByRole('button', { name: 'Rechazar' }));
 		await waitFor(() =>
-			expect(revisarHorasExtras).toHaveBeenCalledWith([2], { decision: 'descartada_comercial', nota: 'Sin soporte' }),
+			expect(revisarHorasExtras).toHaveBeenCalledWith([2], { decision: 'descartada_comercial', nota: 'Sin soporte', revisor: 'uuid-comercial' }),
 		);
 	});
 });

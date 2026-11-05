@@ -31,10 +31,15 @@ const COLUMNAS = [
 
 const COLUMNAS_DETALLE = ['Observación', 'Creada por'];
 
-const rangoPeriodo = (p: NonNullable<HoraExtraFila['periodo']>) =>
-	p.inicio && p.fin
-		? `${dayjs(p.inicio).format('DD/MM/YYYY')} – ${dayjs(p.fin).format('DD/MM/YYYY')}`
-		: `Periodo ${p.id}`;
+/** "Quincena 1 (01/10 – 15/10)"; sin nombre, solo las fechas. */
+const rangoPeriodo = (p: NonNullable<HoraExtraFila['periodo']>) => {
+	const fechas =
+		p.inicio && p.fin
+			? `${dayjs(p.inicio).format('DD/MM/YYYY')} – ${dayjs(p.fin).format('DD/MM/YYYY')}`
+			: '';
+	if (p.nombre) return fechas ? `${p.nombre} (${fechas})` : p.nombre;
+	return fechas || `Periodo ${p.id}`;
+};
 
 const celdaHead = { fontWeight: 700, py: 1.5, color: '#1e293b' };
 

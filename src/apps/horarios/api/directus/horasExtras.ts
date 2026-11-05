@@ -48,6 +48,7 @@ const CAMPOS = [
 	'updated_by.first_name',
 	'updated_by.last_name',
 	'period_id.id',
+	'period_id.name',
 	'period_id.start_date',
 	'period_id.end_date',
 ];
@@ -170,6 +171,8 @@ export async function revisarHorasExtras(ids: number[], r: ReviewOverTimeDto) {
 					// shortcut: hora del dispositivo (UTC); si se exige la del servidor, preset $NOW en la política del comercial.
 					reviewed_at: new Date().toISOString(),
 					review_note: aprobar ? null : r.nota!.trim(),
+					// Quién aprueba o rechaza, como created_by guarda al jefe de zona que crea.
+					updated_by: r.revisor,
 				}),
 			),
 		);
