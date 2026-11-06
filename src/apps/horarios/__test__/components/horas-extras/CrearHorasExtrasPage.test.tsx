@@ -18,6 +18,47 @@ vi.mock('@/apps/horarios/api/directus/horasExtras', () => ({
 	crearHorasExtras: (d: unknown) => crearHorasExtras(d),
 	listarHorasExtras: (f: unknown) => listarHorasExtras(f),
 }));
+const MOTIVOS = [
+	{
+		id: 1,
+		nombre: 'Fuerza mayor',
+		descripcion: 'Imprevisto',
+		tipo: 'solicitud',
+		pideTexto: false,
+		activo: true,
+		orden: 1,
+	},
+	{
+		id: 2,
+		nombre: 'Toma física de inventario',
+		descripcion: '',
+		tipo: 'solicitud',
+		pideTexto: false,
+		activo: true,
+		orden: 2,
+	},
+	{
+		id: 9,
+		nombre: 'Otros',
+		descripcion: 'Escribe el motivo',
+		tipo: 'solicitud',
+		pideTexto: true,
+		activo: true,
+		orden: 99,
+	},
+	{
+		id: 5,
+		nombre: 'No autorizada',
+		descripcion: '',
+		tipo: 'rechazo',
+		pideTexto: false,
+		activo: true,
+		orden: 1,
+	},
+];
+vi.mock('@/apps/horarios/api/directus/motivos', () => ({
+	listarMotivos: async () => MOTIVOS,
+}));
 vi.mock('@/apps/horarios/api/directus/readBulk', () => ({
 	getEmpleadosBulk: (ids: unknown) => getEmpleadosBulk(ids),
 }));
@@ -53,10 +94,18 @@ const emp = (id: number, nombre: string) => ({
 	storeId: 26,
 });
 
-const montar = async () => {
+/** Pone un motivo a todas las personas filtradas con la barra "Motivo rápido". */
+const motivoATodas = async (nombre = 'Fuerza mayor') => {
+	fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Motivo' }));
+	fireEvent.click(await screen.findByRole('option', { name: nombre }));
+	fireEvent.click(screen.getByRole('button', { name: /Poner motivo a todas/ }));
+};
+/** Por defecto todas las personas quedan con "Fuerza mayor": el resto de pruebas no depende del motivo. */
+const montar = async ({ conMotivo = true } = {}) => {
 	render(<CrearHorasExtrasPage />, { wrapper: createQueryWrapper() });
 	// Las filas se pintan en segundo plano (useDeferredValue): esperar a la primera.
 	await screen.findByText('Ana Pérez', {}, { timeout: 5000 });
+	if (conMotivo) await motivoATodas();
 	return screen.getByRole('table', { name: 'Grilla de horas extras' });
 };
 const celda = (nombre: string, ddmm: string) =>
@@ -84,7 +133,10 @@ beforeEach(() => {
 	crearHorasExtras.mockResolvedValue([]);
 });
 
-describe('CrearHorasExtrasPage (grilla personas × días)', () => {
+// La grilla monta muchas filas con inputs: con todas las suites en paralelo, 5 s no alcanzan.
+describe('CrearHorasExtrasPage (grilla personas × días)', {
+	timeout: 15_000,
+}, () => {
 	it('filtra las filas por tienda y muestra el cargo en la grilla y en la confirmación', async () => {
 		getEmpleadosBulk.mockResolvedValue([
 			emp(7, 'ANA PÉREZ'),
@@ -135,7 +187,7 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 		).not.toBeInTheDocument();
 	});
 
-	it('rellenar fila y columna con el valor rápido, observación por persona y registrar en una llamada', async () => {
+	it('rellenar fila y columna con el valor rápido, motivo por persona y registrar en una llamada', async () => {
 		await montar();
 		fireEvent.change(screen.getByLabelText('Desde'), {
 			target: { value: '2026-10-21' },
@@ -150,7 +202,11 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 		fireEvent.click(
 			screen.getByRole('button', { name: 'Rellenar columna 22/10' }),
 		);
-		fireEvent.change(screen.getByLabelText('Observación de José Ruiz'), {
+		// José: "Otros" pide el texto del motivo.
+		fireEvent.change(screen.getByLabelText('Motivo de José Ruiz'), {
+			target: { value: '9' },
+		});
+		fireEvent.change(screen.getByLabelText('Texto del motivo de José Ruiz'), {
 			target: { value: ' Cierre ' },
 		});
 
@@ -177,7 +233,7 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 			'Ipiales',
 			'21/10: 1 h22/10: 2 h',
 			'3 h',
-			'Sin observación',
+			'Fuerza mayor',
 		]);
 		expect(fila('José Ruiz')).toEqual([
 			'José Ruiz',
@@ -185,7 +241,7 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 			'Ipiales',
 			'22/10: 2 h',
 			'2 h',
-			'Cierre',
+			'Otros: Cierre',
 		]);
 		expect(crearHorasExtras).not.toHaveBeenCalled();
 
@@ -197,15 +253,16 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 				work_date: string;
 				minutes: number;
 				observations: string;
+				reason_id: number;
 				store_id: number;
 				created_by: string;
 			}) =>
-				`${d.employee_id}|${d.work_date}|${d.minutes}|${d.store_id}|${d.observations}|${d.created_by}`,
+				`${d.employee_id}|${d.work_date}|${d.minutes}|${d.store_id}|${d.reason_id}|${d.observations}|${d.created_by}`,
 		);
 		expect(enviadas).toEqual([
-			'7|2026-10-21|60|26||uuid-lider',
-			'7|2026-10-22|120|26||uuid-lider',
-			'8|2026-10-22|120|26|Cierre|uuid-lider',
+			'7|2026-10-21|60|26|1||uuid-lider',
+			'7|2026-10-22|120|26|1||uuid-lider',
+			'8|2026-10-22|120|26|9|Cierre|uuid-lider',
 		]);
 		await waitFor(() =>
 			expect(irA).toHaveBeenCalledWith('horas-extras/registradas'),
@@ -380,6 +437,45 @@ describe('CrearHorasExtrasPage (grilla personas × días)', () => {
 		await waitFor(() => expect(registrar()).toBeEnabled());
 		fireEvent.click(registrar());
 		expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+	});
+
+	it('sin motivo, u "Otros" sin texto, no deja registrar', async () => {
+		await montar({ conMotivo: false });
+		fireEvent.change(celda('Ana Pérez', '22/10'), { target: { value: '1' } });
+		expect(
+			await screen.findByText(/1 persona con horas no tiene motivo completo/),
+		).toBeInTheDocument();
+		expect(screen.getByLabelText('Motivo de Ana Pérez')).toHaveAttribute(
+			'aria-invalid',
+			'true',
+		);
+		expect(registrar()).toBeDisabled();
+
+		fireEvent.change(screen.getByLabelText('Motivo de Ana Pérez'), {
+			target: { value: '9' },
+		});
+		expect(screen.getByText('Escribe el motivo')).toBeInTheDocument();
+		expect(registrar()).toBeDisabled();
+		fireEvent.change(screen.getByLabelText('Texto del motivo de Ana Pérez'), {
+			target: { value: 'Visita de auditoría' },
+		});
+		await waitFor(() => expect(registrar()).toBeEnabled());
+		// A quien no tiene horas no se le exige motivo.
+		expect(screen.queryByText(/no tiene motivo completo/)).toBeNull();
+	});
+
+	it('"Poner motivo" va a las seleccionadas o, si no hay, a todas las filtradas', async () => {
+		await montar({ conMotivo: false });
+		fireEvent.click(screen.getByLabelText('Seleccionar José Ruiz'));
+		fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Motivo' }));
+		fireEvent.click(
+			await screen.findByRole('option', { name: 'Toma física de inventario' }),
+		);
+		fireEvent.click(
+			screen.getByRole('button', { name: 'Poner motivo a seleccionadas (1)' }),
+		);
+		expect(screen.getByLabelText('Motivo de José Ruiz')).toHaveValue('2');
+		expect(screen.getByLabelText('Motivo de Ana Pérez')).toHaveValue('');
 	});
 
 	it('valores rápidos desde 15 minutos', async () => {

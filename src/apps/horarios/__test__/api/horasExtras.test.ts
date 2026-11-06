@@ -51,7 +51,7 @@ describe('filtroHorasExtras', () => {
 });
 
 describe('crearHorasExtras', () => {
-	const base = { store_id: 26, work_date: '2026-10-19', minutes: 60, created_by: 'uuid-lider' };
+	const base = { store_id: 26, work_date: '2026-10-19', minutes: 60, reason_id: 1, created_by: 'uuid-lider' };
 
 	it('siempre crea en pendiente', async () => {
 		await crearHorasExtras([{ ...base, employee_id: 5 }]);
@@ -71,6 +71,14 @@ describe('crearHorasExtras', () => {
 		const { d } = request.mock.calls[0][0];
 		expect(d.map((x: { employee_id: number }) => x.employee_id)).toEqual([5, 6]);
 		expect(d.every((x: { created_by: string }) => x.created_by === 'uuid-lider')).toBe(true);
+		expect(d.map((x: { reason_id: number }) => x.reason_id)).toEqual([1, 1]);
+	});
+
+	it('no llama a Directus si alguna hora extra no tiene motivo', async () => {
+		await expect(
+			crearHorasExtras([{ ...base, employee_id: 5 }, { ...base, employee_id: 6, reason_id: 0 }]),
+		).rejects.toThrow(/motivo/);
+		expect(request).not.toHaveBeenCalled();
 	});
 
 	it('no llama a Directus sin autor ni con la lista vacía', async () => {

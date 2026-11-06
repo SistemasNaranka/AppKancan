@@ -24,14 +24,19 @@ import {
 	BLOQUE_MINUTOS,
 	buscarDuplicado,
 	type ErroresHoraExtra,
+	type ErroresMotivo,
 	formatoMinutos,
+	TIPO_MOTIVO,
+	textoDelMotivo,
 	validarHoraExtra,
+	validarMotivo,
 } from '../../domain/horasExtras';
 import type { EmpleadoAsistencia } from '../../domain/registro';
 import { MAX_CARACTERES_OBSERVACION } from '../../domain/registro';
 import { horariosKeys } from '../../hooks/registro/keys';
 import { useAvisos } from '../../hooks/useAvisos';
 import { useHorasExtras } from '../../hooks/useHorasExtras';
+import { useMotivos } from '../../hooks/useMotivos';
 import type { CreateOverTimeDto } from '../../interfaces/api/overTime';
 import type { Tienda } from '../../interfaces/tiendas';
 import { mensajeDeError } from '../../utils/errores';
@@ -102,11 +107,14 @@ export function RegistrarHoraExtraModal({
 	const [tiendaId, setTiendaId] = useState<number | ''>('');
 	const [fecha, setFecha] = useState(hoy);
 	const [horas, setHoras] = useState('');
+	const [motivoId, setMotivoId] = useState<number | ''>('');
 	const [observacion, setObservacion] = useState('');
 	const [avisando, setAvisando] = useState(false);
 	const [errores, setErrores] = useState<
-		ErroresHoraExtra & { tienda?: string }
+		ErroresHoraExtra & ErroresMotivo & { tienda?: string }
 	>({});
+	const motivos = useMotivos(TIPO_MOTIVO.solicitud, open);
+	const motivo = motivoId === '' ? undefined : motivos.porId.get(motivoId);
 
 	const empleadoId = Number(empleado?.id);
 	const { data: delDia = [] } = useHorasExtras(
@@ -147,15 +155,18 @@ export function RegistrarHoraExtraModal({
 			setErrores({ empleado: 'Busca y elige un empleado' });
 			return;
 		}
-		const e: ErroresHoraExtra & { tienda?: string } = validarHoraExtra(
-			{ workDate: fecha, minutos, observacion },
-			{
-				hoy,
-				empleadoActivo: true, // la lista solo trae empleados activos
-				empleadoDelLider:
-					tiendaEmpleado != null && tiendasLider.includes(tiendaEmpleado),
-			},
-		);
+		const e: ErroresHoraExtra & ErroresMotivo & { tienda?: string } = {
+			...validarHoraExtra(
+				{ workDate: fecha, minutos },
+				{
+					hoy,
+					empleadoActivo: true, // la lista solo trae empleados activos
+					empleadoDelLider:
+						tiendaEmpleado != null && tiendasLider.includes(tiendaEmpleado),
+				},
+			),
+			...validarMotivo(motivo, observacion),
+		};
 		if (tiendaId === '') e.tienda = 'La tienda es obligatoria';
 		setErrores(e);
 		if (Object.keys(e).length > 0 || tiendaId === '') return;
@@ -170,7 +181,8 @@ export function RegistrarHoraExtraModal({
 			store_id: Number(tiendaId),
 			work_date: fecha,
 			minutes: minutos,
-			observations: observacion.trim(),
+			reason_id: Number(motivoId),
+			observations: textoDelMotivo(motivo, observacion),
 			created_by: user?.id ?? '',
 		});
 	};
@@ -310,19 +322,51 @@ export function RegistrarHoraExtraModal({
 							fullWidth
 						/>
 
-						<TextField
-							label="Observación"
-							value={observacion}
-							onChange={(e) => setObservacion(e.target.value)}
-							multiline
-							minRows={2}
-							error={!!errores.observacion}
-							helperText={
-								errores.observacion ??
-								`${observacion.length}/${MAX_CARACTERES_OBSERVACION}`
-							}
-							fullWidth
-						/>
+						<FormControl fullWidth required error={!!errores.motivo}>
+							<InputLabel id="he-motivo">Motivo</InputLabel>
+							<Select
+								labelId="he-motivo"
+								label="Motivo"
+								value={motivoId}
+								onChange={(e) => {
+									setMotivoId(Number(e.target.value) || '');
+									setErrores(({ motivo: _, texto: __, ...resto }) => resto);
+								}}
+							>
+								{motivos.opciones.map((m) => (
+									<MenuItem key={m.id} value={m.id}>
+										{m.nombre}
+									</MenuItem>
+								))}
+							</Select>
+							<FormHelperText>
+								{errores.motivo ??
+									(motivos.error
+										? 'No se pudieron cargar los motivos'
+										: motivo?.descripcion || 'Por qué se generó la hora extra')}
+							</FormHelperText>
+						</FormControl>
+
+						{/* Solo el motivo que lo pide ("Otros") lleva texto. */}
+						{motivo?.pideTexto && (
+							<TextField
+								label="Escribe el motivo"
+								required
+								value={observacion}
+								onChange={(e) => setObservacion(e.target.value)}
+								multiline
+								minRows={2}
+								error={!!errores.texto}
+								helperText={
+									errores.texto ??
+									`${observacion.length}/${MAX_CARACTERES_OBSERVACION}`
+								}
+								slotProps={{
+									htmlInput: { maxLength: MAX_CARACTERES_OBSERVACION },
+								}}
+								fullWidth
+							/>
+						)}
 					</Box>
 				</DialogContent>
 				<DialogActions sx={{ px: 3, py: 2 }}>

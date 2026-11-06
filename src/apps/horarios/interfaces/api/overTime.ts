@@ -49,6 +49,9 @@ export interface CreateOverTimeDto {
 	store_id: number;
 	work_date: string;
 	minutes: number;
+	/** `com_over_time_reasons.id` de tipo solicitud: obligatorio. */
+	reason_id: number;
+	/** Texto del motivo cuando este lo pide ("Otros"); vacío en los demás. */
 	observations?: string;
 	/** UUID (`directus_users.id`) de quien registra: trazabilidad "Creada por". */
 	created_by: string;

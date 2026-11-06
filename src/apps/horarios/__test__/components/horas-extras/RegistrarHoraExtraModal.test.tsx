@@ -10,6 +10,14 @@ vi.mock('@/apps/horarios/api/directus/horasExtras', () => ({
 	crearHorasExtras: (d: unknown) => crearHorasExtras(d),
 	listarHorasExtras: (f: unknown) => listarHorasExtras(f),
 }));
+vi.mock('@/apps/horarios/api/directus/motivos', () => ({
+	listarMotivos: async () => [
+		{ id: 1, nombre: 'Fuerza mayor', descripcion: 'Situación inesperada', tipo: 'solicitud', pideTexto: false, activo: true, orden: 1 },
+		{ id: 3, nombre: 'Viejo', descripcion: '', tipo: 'solicitud', pideTexto: false, activo: false, orden: 2 },
+		{ id: 9, nombre: 'Otros', descripcion: 'Escribe el motivo', tipo: 'solicitud', pideTexto: true, activo: true, orden: 99 },
+		{ id: 5, nombre: 'No autorizada', descripcion: '', tipo: 'rechazo', pideTexto: false, activo: true, orden: 1 },
+	],
+}));
 vi.mock('@/auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'uuid-lider' } }) }));
 vi.mock('@/apps/horarios/hooks/useAvisos', () => ({ useAvisos: () => ({ showSnackbar }) }));
 vi.mock('@/apps/horarios/utils/timeSync', () => ({ getRealColombiaTime: () => dayjs('2026-10-20T10:00:00') }));
@@ -42,6 +50,10 @@ const elegirEmpleado = async () => {
 	fireEvent.change(screen.getByLabelText('Empleado'), { target: { value: '1107' } });
 	fireEvent.click(await screen.findByText('Ana Pérez · 1107'));
 };
+const elegirMotivo = async (nombre = 'Fuerza mayor') => {
+	fireEvent.mouseDown(screen.getByRole('combobox', { name: /^Motivo/ }));
+	fireEvent.click(await screen.findByRole('option', { name: nombre }));
+};
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -57,6 +69,30 @@ describe('RegistrarHoraExtraModal (individual)', () => {
 		expect(tarjeta).toHaveTextContent('CargoAsesor');
 		expect(tarjeta).toHaveTextContent('Documento1107');
 		expect(tarjeta).toHaveTextContent('Su tiendaIpiales Centro');
+	});
+
+	it('motivo obligatorio: solo los activos de solicitud; "Otros" pide texto', async () => {
+		montar();
+		await elegirEmpleado();
+		fireEvent.change(screen.getByLabelText('Horas extras'), { target: { value: '1' } });
+		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
+		expect(await screen.findByText('Elige un motivo')).toBeInTheDocument();
+		expect(crearHorasExtras).not.toHaveBeenCalled();
+
+		fireEvent.mouseDown(screen.getByRole('combobox', { name: /^Motivo/ }));
+		const opciones = (await screen.findAllByRole('option')).map((o) => o.textContent);
+		expect(opciones).toEqual(['Fuerza mayor', 'Otros']);
+		fireEvent.click(screen.getByRole('option', { name: 'Fuerza mayor' }));
+		// La descripción ayuda a elegir; sin "Otros" no hay campo de texto.
+		expect(screen.getByText('Situación inesperada')).toBeInTheDocument();
+		expect(screen.queryByLabelText(/Escribe el motivo/)).toBeNull();
+
+		await elegirMotivo('Otros');
+		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
+		await waitFor(() =>
+			expect(screen.getByRole('textbox', { name: /Escribe el motivo/ })).toHaveAttribute('aria-invalid', 'true'),
+		);
+		expect(crearHorasExtras).not.toHaveBeenCalled();
 	});
 
 	it('exige elegir un empleado', async () => {
@@ -83,7 +119,8 @@ describe('RegistrarHoraExtraModal (individual)', () => {
 		montar(onClose);
 		await elegirEmpleado();
 		fireEvent.change(screen.getByLabelText('Horas extras'), { target: { value: '1.5' } });
-		fireEvent.change(screen.getByLabelText('Observación'), { target: { value: ' Inventario ' } });
+		await elegirMotivo('Otros');
+		fireEvent.change(screen.getByLabelText(/Escribe el motivo/), { target: { value: ' Inventario ' } });
 		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
 		await waitFor(() => expect(onClose).toHaveBeenCalled());
 		expect(crearHorasExtras).toHaveBeenCalledWith([{
@@ -91,6 +128,7 @@ describe('RegistrarHoraExtraModal (individual)', () => {
 			store_id: 26,
 			work_date: '2026-10-20',
 			minutes: 90,
+			reason_id: 9,
 			observations: 'Inventario',
 			created_by: 'uuid-lider',
 		}]);
@@ -101,6 +139,7 @@ describe('RegistrarHoraExtraModal (individual)', () => {
 		const onClose = vi.fn();
 		montar(onClose);
 		await elegirEmpleado();
+		await elegirMotivo();
 		fireEvent.change(screen.getByLabelText('Horas extras'), { target: { value: '1.25' } });
 		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
 		await waitFor(() => expect(onClose).toHaveBeenCalled());
@@ -112,6 +151,7 @@ describe('RegistrarHoraExtraModal (individual)', () => {
 		const onClose = vi.fn();
 		montar(onClose);
 		await elegirEmpleado();
+		await elegirMotivo();
 		await waitFor(() =>
 			expect(listarHorasExtras).toHaveBeenCalledWith(
 				expect.objectContaining({ empleadoId: 7, desde: '2026-10-20', hasta: '2026-10-20' }),

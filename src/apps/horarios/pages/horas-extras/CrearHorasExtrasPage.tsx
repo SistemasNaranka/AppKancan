@@ -39,13 +39,17 @@ import {
 	lineasDeCeldas,
 	MAX_DIAS_GRILLA,
 	MAX_LINEAS_LOTE,
+	TIPO_MOTIVO,
+	textoDelMotivo,
 	validarLineas,
+	validarMotivo,
 	validarRangoGrilla,
 } from '../../domain/horasExtras';
 import { horariosKeys } from '../../hooks/registro/keys';
 import { useAvisos } from '../../hooks/useAvisos';
 import { useHorariosLayout } from '../../hooks/useHorariosLayout';
 import { useHorasExtras } from '../../hooks/useHorasExtras';
+import { useMotivos } from '../../hooks/useMotivos';
 import type { OverTimeDto } from '../../interfaces/api/overTime';
 import { mensajeDeError } from '../../utils/errores';
 import { formatNombrePropio } from '../../utils/format';
@@ -80,6 +84,11 @@ export default function CrearHorasExtrasPage() {
 	const [valor, setValor] = useState(60);
 	const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set());
 	const [celdas, setCeldas] = useState<ReadonlyMap<string, number>>(new Map());
+	// Motivo (y su texto si es "Otros") por persona.
+	const [motivoDe, setMotivoDe] = useState<ReadonlyMap<string, number>>(
+		new Map(),
+	);
+	const [motivoRapido, setMotivoRapido] = useState<number | ''>('');
 	const [observaciones, setObservaciones] = useState<
 		ReadonlyMap<string, string>
 	>(new Map());
@@ -213,6 +222,42 @@ export default function CrearHorasExtrasPage() {
 	}, [lineas, existentes, personas]);
 	const totalMinutos = lineas.reduce((s, l) => s + l.minutos, 0);
 	const personasConHoras = new Set(lineas.map((l) => l.empleadoId)).size;
+
+	const motivos = useMotivos(TIPO_MOTIVO.solicitud);
+	// Cada persona con horas necesita motivo (y texto si es "Otros").
+	const erroresMotivo = useMemo(() => {
+		const res = new Map<string, string>();
+		for (const id of new Set(lineas.map((l) => l.empleadoId))) {
+			const e = validarMotivo(
+				motivos.porId.get(motivoDe.get(id) ?? 0),
+				observaciones.get(id) ?? '',
+			);
+			const mensaje = e.motivo ?? e.texto;
+			if (mensaje) res.set(id, mensaje);
+		}
+		return res;
+	}, [lineas, motivoDe, observaciones, motivos.porId]);
+	const etiquetaMotivo = useCallback(
+		(id: string) => {
+			const m = motivos.porId.get(motivoDe.get(id) ?? 0);
+			const texto = textoDelMotivo(m, observaciones.get(id) ?? '');
+			return m ? (texto ? `${m.nombre}: ${texto}` : m.nombre) : '';
+		},
+		[motivos.porId, motivoDe, observaciones],
+	);
+	/** A las personas seleccionadas o, si no hay, a todas las filtradas. */
+	const destinoMotivo = visibles.filter((p) => seleccion.has(p.id));
+	const aplicarMotivo = () => {
+		if (motivoRapido === '') return;
+		const ids = (destinoMotivo.length > 0 ? destinoMotivo : visibles).map(
+			(p) => p.id,
+		);
+		setMotivoDe((prev) => {
+			const sig = new Map(prev);
+			for (const id of ids) sig.set(id, motivoRapido);
+			return sig;
+		});
+	};
 	const excede = lineas.length > MAX_LINEAS_LOTE;
 
 	// Callbacks estables: las filas de la grilla están memorizadas y solo se repintan si cambian.
@@ -247,6 +292,16 @@ export default function CrearHorasExtrasPage() {
 	const onObservacion = useCallback(
 		(id: string, texto: string) =>
 			setObservaciones((prev) => new Map(prev).set(id, texto)),
+		[],
+	);
+	const onMotivo = useCallback(
+		(id: string, motivo: number) =>
+			setMotivoDe((prev) => {
+				const sig = new Map(prev);
+				if (motivo) sig.set(id, motivo);
+				else sig.delete(id);
+				return sig;
+			}),
 		[],
 	);
 	const onTienda = useCallback(
@@ -325,7 +380,11 @@ export default function CrearHorasExtrasPage() {
 				store_id: tiendaDe.get(l.empleadoId) ?? 0,
 				work_date: l.fecha,
 				minutes: l.minutos,
-				observations: (observaciones.get(l.empleadoId) ?? '').trim(),
+				reason_id: motivoDe.get(l.empleadoId) ?? 0,
+				observations: textoDelMotivo(
+					motivos.porId.get(motivoDe.get(l.empleadoId) ?? 0),
+					observaciones.get(l.empleadoId) ?? '',
+				),
 				created_by: user?.id ?? '',
 			})),
 		);
@@ -342,7 +401,7 @@ export default function CrearHorasExtrasPage() {
 				nombre: p.nombre,
 				cargo: p.cargo,
 				tienda: nombreTienda.get(tiendaDe.get(p.id) ?? -1) ?? '',
-				observacion: (observaciones.get(p.id) ?? '').trim(),
+				motivo: etiquetaMotivo(p.id),
 				dias: lineas
 					.filter((l) => l.empleadoId === p.id)
 					.map((l) => ({
@@ -356,13 +415,14 @@ export default function CrearHorasExtrasPage() {
 		personas,
 		lineas,
 		tiendaDe,
-		observaciones,
 		existentes,
 		acceso.tiendasPermitidas,
+		etiquetaMotivo,
 	]);
 	// Se espera a conocer las ya registradas: sin ellas el paso de advertencia no saldría.
 	// Tras guardar queda deshabilitado hasta salir de la página (evita registrar dos veces).
 	const puedeRegistrar =
+		erroresMotivo.size === 0 &&
 		lineas.length > 0 &&
 		errores.size === 0 &&
 		!excede &&
@@ -561,6 +621,54 @@ export default function CrearHorasExtrasPage() {
 				)}
 			</Box>
 
+			<Box
+				sx={{
+					display: 'flex',
+					flexWrap: 'wrap',
+					alignItems: 'center',
+					gap: 1.5,
+					mb: 2,
+					p: 1.5,
+					borderRadius: 2,
+					bgcolor: '#f8fafc',
+					border: '1px solid #e2e8f0',
+				}}
+			>
+				<Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>
+					Motivo rápido
+				</Typography>
+				<FormControl size="small" sx={{ minWidth: 240 }}>
+					<InputLabel id="che-motivo">Motivo</InputLabel>
+					<Select
+						labelId="che-motivo"
+						label="Motivo"
+						value={motivoRapido}
+						onChange={(e) => setMotivoRapido(Number(e.target.value) || '')}
+					>
+						{motivos.opciones.map((m) => (
+							<MenuItem key={m.id} value={m.id}>
+								{m.nombre}
+							</MenuItem>
+						))}
+					</Select>
+				</FormControl>
+				<Button
+					variant="outlined"
+					size="small"
+					disabled={motivoRapido === '' || visibles.length === 0}
+					onClick={aplicarMotivo}
+				>
+					{destinoMotivo.length > 0
+						? `Poner motivo a seleccionadas (${destinoMotivo.length})`
+						: `Poner motivo a todas (${visibles.length})`}
+				</Button>
+				{motivos.error && (
+					<Typography variant="caption" sx={{ color: '#d32f2f' }}>
+						No se pudieron cargar los motivos
+					</Typography>
+				)}
+			</Box>
+
 			{storeIds.length === 0 ? (
 				<Alert severity="info">No tienes tiendas asignadas.</Alert>
 			) : cargandoEmpleados ? (
@@ -603,6 +711,10 @@ export default function CrearHorasExtrasPage() {
 						errores={errores}
 						seleccion={seleccion}
 						observaciones={observaciones}
+						motivos={motivos.opciones}
+						motivoDe={motivoDe}
+						erroresMotivo={erroresMotivo}
+						onMotivo={onMotivo}
 						tiendaDe={tiendaDe}
 						tiendas={tiendasGrilla}
 						valorTexto={formatoMinutos(valor)}
@@ -631,6 +743,17 @@ export default function CrearHorasExtrasPage() {
 
 			{/* Resumen y acción */}
 			<Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+				{erroresMotivo.size > 0 && (
+					<Alert severity="error">
+						{plural(
+							erroresMotivo.size,
+							'persona con horas no tiene',
+							'personas con horas no tienen',
+						)}{' '}
+						motivo completo (elige el motivo y, si es "Otros", escribe el
+						texto).
+					</Alert>
+				)}
 				{errores.size > 0 && (
 					<Alert severity="error">
 						{plural(errores.size, 'celda tiene', 'celdas tienen')} errores

@@ -23,7 +23,8 @@ export interface PersonaResumen {
 	nombre: string;
 	cargo?: string;
 	tienda: string;
-	observacion: string;
+	/** Motivo elegido (con su texto si es "Otros"). */
+	motivo: string;
 	/** Sus horas extras, por día; `yaRegistrada` = coincide con una activa. */
 	dias: { fecha: string; minutos: number; yaRegistrada: boolean }[];
 }
@@ -121,7 +122,7 @@ export function ConfirmarRegistroDialog({
 									'Tienda',
 									'Días y horas',
 									'Total',
-									'Observación',
+									'Motivo',
 								].map((c) => (
 									<TableCell key={c} sx={head}>
 										{c}
@@ -153,9 +154,9 @@ export function ConfirmarRegistroDialog({
 									<TableCell sx={{ maxWidth: 220 }}>
 										<Typography
 											variant="body2"
-											sx={{ color: p.observacion ? 'inherit' : '#94a3b8' }}
+											sx={{ color: p.motivo ? 'inherit' : '#94a3b8' }}
 										>
-											{p.observacion || 'Sin observación'}
+											{p.motivo || 'Sin motivo'}
 										</Typography>
 									</TableCell>
 								</TableRow>

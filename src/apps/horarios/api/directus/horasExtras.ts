@@ -116,6 +116,9 @@ export async function crearHorasExtras(datos: CreateOverTimeDto[]) {
 		throw new Error(
 			'No se pudo identificar al usuario que registra la hora extra.',
 		);
+	// Sin motivo no entran a los informes: tampoco se envía nada.
+	if (datos.some((d) => !(Number(d.reason_id) > 0)))
+		throw new Error('Cada hora extra necesita un motivo.');
 	try {
 		return await withAutoRefresh(() =>
 			directus.request(
@@ -126,6 +129,7 @@ export async function crearHorasExtras(datos: CreateOverTimeDto[]) {
 						store_id: Number(d.store_id),
 						work_date: d.work_date,
 						minutes: d.minutes,
+						reason_id: Number(d.reason_id),
 						observations: d.observations ?? '',
 						created_by: d.created_by,
 					})),

@@ -21,6 +21,7 @@ import {
 	BLOQUE_HORAS,
 	claveDia,
 	type ErrorLinea,
+	type Motivo,
 } from '../../domain/horasExtras';
 import { MAX_CARACTERES_OBSERVACION } from '../../domain/registro';
 
@@ -35,6 +36,7 @@ interface Acciones {
 	onCelda: (clave: string, minutos: number) => void;
 	onSeleccion: (ids: string[], marcar: boolean) => void;
 	onObservacion: (id: string, texto: string) => void;
+	onMotivo: (id: string, motivo: number) => void;
 	onTienda: (id: string, tienda: number) => void;
 	onRellenarFila: (id: string) => void;
 }
@@ -48,7 +50,13 @@ export interface GrillaHorasExtrasProps extends Acciones {
 	existentes: ReadonlyMap<string, string>;
 	errores: ReadonlyMap<string, ErrorLinea>;
 	seleccion: ReadonlySet<string>;
+	/** Texto del motivo "Otros" por persona. */
 	observaciones: ReadonlyMap<string, string>;
+	/** Motivos de solicitud para elegir. */
+	motivos: Motivo[];
+	motivoDe: ReadonlyMap<string, number>;
+	/** Persona → falta el motivo o su texto. */
+	erroresMotivo: ReadonlyMap<string, string>;
 	/** Tienda donde trabajó cada persona (por defecto, la suya). */
 	tiendaDe: ReadonlyMap<string, number>;
 	tiendas: { id: number; name: string }[];
@@ -83,6 +91,10 @@ interface FilaProps extends Acciones {
 	avisos: (string | undefined)[];
 	marcada: boolean;
 	observacion: string;
+	motivoId: number | undefined;
+	pideTexto: boolean;
+	errorMotivo: string | undefined;
+	motivos: Motivo[];
 	tienda: number | undefined;
 	tiendas: { id: number; name: string }[];
 	valorTexto: string;
@@ -94,7 +106,7 @@ const mismosArrays = (a: unknown[], b: unknown[]) =>
 /** Igualdad superficial, comparando por contenido los arrays por día (se recrean en cada render). */
 function filaIgual(a: FilaProps, b: FilaProps) {
 	return (Object.keys(a) as (keyof FilaProps)[]).every((k) =>
-		Array.isArray(a[k]) && k !== 'dias' && k !== 'tiendas'
+		Array.isArray(a[k]) && k !== 'dias' && k !== 'tiendas' && k !== 'motivos'
 			? mismosArrays(a[k] as unknown[], b[k] as unknown[])
 			: a[k] === b[k],
 	);
@@ -108,12 +120,17 @@ const FilaPersona = memo(function FilaPersona({
 	avisos,
 	marcada,
 	observacion,
+	motivoId,
+	pideTexto,
+	errorMotivo,
+	motivos,
 	tienda,
 	tiendas,
 	valorTexto,
 	onCelda,
 	onSeleccion,
 	onObservacion,
+	onMotivo,
 	onTienda,
 	onRellenarFila,
 }: FilaProps) {
@@ -225,16 +242,45 @@ const FilaPersona = memo(function FilaPersona({
 				);
 			})}
 			<TableCell>
-				<InputBase
-					placeholder="Opcional"
-					value={observacion}
-					onChange={(e) => onObservacion(p.id, e.target.value)}
+				{/* Nativo, como la tienda: liviano aunque se repita en cada fila. */}
+				<NativeSelect
+					value={motivoId ?? ''}
+					onChange={(e) => onMotivo(p.id, Number(e.target.value))}
 					inputProps={{
-						maxLength: MAX_CARACTERES_OBSERVACION,
-						'aria-label': `Observación de ${p.nombre}`,
+						'aria-label': `Motivo de ${p.nombre}`,
+						'aria-invalid': !!errorMotivo,
 					}}
-					sx={{ ...caja, width: '100%', py: 0.25 }}
-				/>
+					error={!!errorMotivo}
+					sx={{ minWidth: 200, fontSize: '0.8rem' }}
+				>
+					<option value="">Elige un motivo</option>
+					{motivos.map((m) => (
+						<option key={m.id} value={m.id}>
+							{m.nombre}
+						</option>
+					))}
+				</NativeSelect>
+				{pideTexto && (
+					<InputBase
+						placeholder="Escribe el motivo"
+						value={observacion}
+						onChange={(e) => onObservacion(p.id, e.target.value)}
+						inputProps={{
+							maxLength: MAX_CARACTERES_OBSERVACION,
+							'aria-label': `Texto del motivo de ${p.nombre}`,
+						}}
+						sx={{ ...caja, width: '100%', py: 0.25, mt: 0.5 }}
+					/>
+				)}
+				{errorMotivo && (
+					<Typography
+						variant="caption"
+						role="alert"
+						sx={{ display: 'block', color: '#d32f2f' }}
+					>
+						{errorMotivo}
+					</Typography>
+				)}
 			</TableCell>
 		</TableRow>
 	);
@@ -249,6 +295,9 @@ export function GrillaHorasExtras({
 	errores,
 	seleccion,
 	observaciones,
+	motivos,
+	motivoDe,
+	erroresMotivo,
 	tiendaDe,
 	tiendas,
 	valorTexto,
@@ -316,7 +365,7 @@ export function GrillaHorasExtras({
 								</Box>
 							</TableCell>
 						))}
-						<TableCell sx={{ ...head, minWidth: 220 }}>Observación</TableCell>
+						<TableCell sx={{ ...head, minWidth: 240 }}>Motivo</TableCell>
 					</TableRow>
 				</TableHead>
 				<TableBody>
@@ -332,6 +381,13 @@ export function GrillaHorasExtras({
 								avisos={claves.map((k) => existentes.get(k))}
 								marcada={seleccion.has(p.id)}
 								observacion={observaciones.get(p.id) ?? ''}
+								motivoId={motivoDe.get(p.id)}
+								pideTexto={
+									motivos.find((m) => m.id === motivoDe.get(p.id))?.pideTexto ??
+									false
+								}
+								errorMotivo={erroresMotivo.get(p.id)}
+								motivos={motivos}
 								tienda={tiendaDe.get(p.id)}
 								tiendas={tiendas}
 								valorTexto={valorTexto}
