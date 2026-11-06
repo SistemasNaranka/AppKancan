@@ -22,22 +22,19 @@ export interface OverTimeDto {
 		position_id?: Relacion<{ id?: number; name?: string | null }>;
 	}>;
 	store_id: Relacion<{ id: number | string; name?: string | null }>;
-	/** YYYY-MM-DD */
 	work_date: string;
-	/** Minutos, en bloques de 30. */
 	minutes: number;
 	status: EstadoHoraExtra;
 	observations?: string | null;
-	/** Motivo del rechazo del comercial. */
 	review_note?: string | null;
-	/** Instante de la aprobación o del rechazo (Timestamp, UTC). */
 	reviewed_at?: string | null;
 	created_at?: string | null;
 	created_by?: UsuarioDirectus;
 	updated_at?: string | null;
 	/** Lo llena Directus (*User Updated*): en una fila revisada, el comercial que decidió. */
 	updated_by?: UsuarioDirectus;
-	/** Periodo de nómina; lo escribe nómina al liquidar. */
+	reason_id?: Relacion<{ id: number; name?: string | null }>;
+	review_reason_id?: Relacion<{ id: number; name?: string | null }>;
 	period_id?: Relacion<{
 		id: number;
 		name?: string | null;
@@ -71,4 +68,15 @@ export interface ReviewOverTimeDto {
 	nota?: string;
 	/** Usuario (directus_users) de Dirección Comercial que aprueba o rechaza: va en `updated_by`. */
 	revisor: string;
+}
+
+/** Fila de `com_over_time_reasons` (catálogo de motivos). */
+export interface OverTimeReasonDto {
+	id: number;
+	name: string;
+	description?: string | null;
+	type: string;
+	requires_note?: boolean | null;
+	status?: string | null;
+	sort?: number | null;
 }

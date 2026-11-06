@@ -47,6 +47,17 @@ describe('aFilaHoraExtra', () => {
 		expect(aFilaHoraExtra({ ...base, period_id: 4 }).periodo).toEqual({ id: 4, nombre: '', inicio: '', fin: '' });
 	});
 
+	it('motivos: nombre del de solicitud y del de revisión; horas viejas sin motivo', () => {
+		const f = aFilaHoraExtra({
+			...base,
+			reason_id: { id: 4, name: 'Otros' },
+			observations: 'Visita de auditoría',
+			review_reason_id: { id: 7, name: 'No autorizada' },
+		});
+		expect(f).toMatchObject({ motivo: 'Otros', observacion: 'Visita de auditoría', motivoRevision: 'No autorizada' });
+		expect(aFilaHoraExtra({ ...base, reason_id: null })).toMatchObject({ motivo: '', motivoRevision: '' });
+	});
+
 	it('revisión: solo con reviewed_at se toma updated_by como revisor', () => {
 		const revisada = aFilaHoraExtra({
 			...base,

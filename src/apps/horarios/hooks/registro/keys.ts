@@ -33,6 +33,7 @@ export const horariosKeys = {
 		lista: (filtros: object) => ['horasExtras', filtros] as const,
 	},
 	periodos: ['periodos'] as const,
+	motivosHorasExtras: ['motivosHorasExtras'] as const,
 	eventosHoy: {
 		todos: ['eventReportsToday'] as const,
 		tienda: (store: Store) => ['eventReportsToday', store] as const,

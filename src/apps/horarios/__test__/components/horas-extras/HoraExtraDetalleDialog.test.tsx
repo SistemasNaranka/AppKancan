@@ -14,6 +14,8 @@ const fila: HoraExtraFila = {
 	tienda: 'Ipiales',
 	rotacion: false,
 	minutos: 60,
+	motivo: 'Fuerza mayor',
+	motivoRevision: '',
 	observacion: '',
 	estado: 'aprobada',
 	creadaPor: 'Luis Gómez',

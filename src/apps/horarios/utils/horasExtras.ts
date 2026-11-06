@@ -56,6 +56,7 @@ export function aFilaHoraExtra(dto: OverTimeDto): HoraExtraFila {
 		rotacion:
 			tiendaId != null && tiendaEmpleado != null && tiendaId !== tiendaEmpleado,
 		minutos: dto.minutes,
+		motivo: objeto<{ name?: string | null }>(dto.reason_id)?.name ?? '',
 		observacion: dto.observations ?? '',
 		estado: dto.status,
 		creadaPor: nombre(dto.created_by),
@@ -63,6 +64,8 @@ export function aFilaHoraExtra(dto: OverTimeDto): HoraExtraFila {
 		// updated_by = quien aprobó o rechazó (Dirección Comercial); lo escribe la revisión.
 		revisadaPor: dto.reviewed_at ? nombre(dto.updated_by) : '',
 		revisadaEl: dto.reviewed_at ?? '',
+		motivoRevision:
+			objeto<{ name?: string | null }>(dto.review_reason_id)?.name ?? '',
 		motivoRechazo: dto.review_note ?? '',
 		periodo: periodoDe(dto.period_id),
 	};
