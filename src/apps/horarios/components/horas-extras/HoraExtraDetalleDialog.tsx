@@ -133,7 +133,12 @@ export function HoraExtraDetalleDialog({
 				</Box>
 				{rechazada && (
 					<Box sx={{ mt: 2 }}>
-						<Dato label="Motivo del rechazo">{fila.motivoRechazo}</Dato>
+						{/* Las horas anteriores a los motivos solo tienen el texto libre. */}
+						<Dato label="Motivo del rechazo">
+							{[fila.motivoRevision, fila.motivoRechazo]
+								.filter(Boolean)
+								.join(': ')}
+						</Dato>
 					</Box>
 				)}
 			</DialogContent>

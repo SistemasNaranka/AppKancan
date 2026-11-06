@@ -6,12 +6,25 @@ import {
 	DialogActions,
 	DialogContent,
 	DialogTitle,
+	FormControl,
+	FormHelperText,
+	InputLabel,
+	MenuItem,
+	Select,
+	Stack,
 	TextField,
 	Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { formatoMinutos } from '../../domain/horasExtras';
+import {
+	type ErroresMotivo,
+	formatoMinutos,
+	TIPO_MOTIVO,
+	textoDelMotivo,
+	validarMotivo,
+} from '../../domain/horasExtras';
 import { MAX_CARACTERES_OBSERVACION } from '../../domain/registro';
+import { useMotivos } from '../../hooks/useMotivos';
 import type { HoraExtraFila } from '../../interfaces/horasExtras';
 
 export type DecisionRevision = 'aprobada' | 'descartada_comercial';
@@ -22,7 +35,7 @@ export interface RevisionHoraExtraDialogProps {
 	filas: HoraExtraFila[];
 	guardando: boolean;
 	onClose: () => void;
-	onConfirmar: (nota: string) => void;
+	onConfirmar: (r: { motivoId: number | null; nota: string }) => void;
 }
 
 export function RevisionHoraExtraDialog({
@@ -32,9 +45,12 @@ export function RevisionHoraExtraDialog({
 	onClose,
 	onConfirmar,
 }: RevisionHoraExtraDialogProps) {
+	const [motivoId, setMotivoId] = useState<number | ''>('');
 	const [nota, setNota] = useState('');
-	const [error, setError] = useState('');
+	const [errores, setErrores] = useState<ErroresMotivo>({});
 	const rechazar = decision === 'descartada_comercial';
+	const motivos = useMotivos(TIPO_MOTIVO.rechazo, rechazar);
+	const motivo = motivoId === '' ? undefined : motivos.porId.get(motivoId);
 	const total = filas.reduce((s, f) => s + f.minutos, 0);
 	const quien =
 		filas.length === 1
@@ -42,15 +58,17 @@ export function RevisionHoraExtraDialog({
 			: `${filas.length} registros vinculados · ${formatoMinutos(total)} en total`;
 
 	const confirmar = () => {
-		if (rechazar && !nota.trim()) {
-			setError('El motivo del rechazo es obligatorio');
+		if (!rechazar) {
+			onConfirmar({ motivoId: null, nota: '' });
 			return;
 		}
-		if (nota.length > MAX_CARACTERES_OBSERVACION) {
-			setError(`Máximo ${MAX_CARACTERES_OBSERVACION} caracteres`);
-			return;
-		}
-		onConfirmar(nota.trim());
+		const e = validarMotivo(motivo, nota);
+		setErrores(e);
+		if (Object.keys(e).length > 0) return;
+		onConfirmar({
+			motivoId: Number(motivoId),
+			nota: textoDelMotivo(motivo, nota),
+		});
 	};
 
 	return (
@@ -70,20 +88,55 @@ export function RevisionHoraExtraDialog({
 			</DialogTitle>
 			<DialogContent dividers>
 				{rechazar ? (
-					<TextField
-						label="Motivo del rechazo"
-						value={nota}
-						onChange={(e) => {
-							setNota(e.target.value);
-							setError('');
-						}}
-						multiline
-						minRows={3}
-						fullWidth
-						autoFocus
-						error={!!error}
-						helperText={error || `${nota.length}/${MAX_CARACTERES_OBSERVACION}`}
-					/>
+					<Stack spacing={2} sx={{ pt: 1 }}>
+						<FormControl fullWidth required error={!!errores.motivo}>
+							<InputLabel id="rev-motivo">Motivo del rechazo</InputLabel>
+							<Select
+								labelId="rev-motivo"
+								label="Motivo del rechazo"
+								value={motivoId}
+								autoFocus
+								onChange={(e) => {
+									setMotivoId(Number(e.target.value) || '');
+									setErrores({});
+								}}
+							>
+								{motivos.opciones.map((m) => (
+									<MenuItem key={m.id} value={m.id}>
+										{m.nombre}
+									</MenuItem>
+								))}
+							</Select>
+							<FormHelperText>
+								{errores.motivo ??
+									(motivos.error
+										? 'No se pudieron cargar los motivos'
+										: motivo?.descripcion || 'Por qué no se aprueba')}
+							</FormHelperText>
+						</FormControl>
+						{motivo?.pideTexto && (
+							<TextField
+								label="Escribe el motivo"
+								required
+								value={nota}
+								onChange={(e) => {
+									setNota(e.target.value);
+									setErrores({});
+								}}
+								multiline
+								minRows={3}
+								fullWidth
+								error={!!errores.texto}
+								helperText={
+									errores.texto ??
+									`${nota.length}/${MAX_CARACTERES_OBSERVACION}`
+								}
+								slotProps={{
+									htmlInput: { maxLength: MAX_CARACTERES_OBSERVACION },
+								}}
+							/>
+						)}
+					</Stack>
 				) : (
 					<Alert severity="info">
 						Al aprobar, las horas extras quedan en estado <b>Aprobada</b> y ya

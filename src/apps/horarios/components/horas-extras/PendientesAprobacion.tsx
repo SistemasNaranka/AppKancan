@@ -91,12 +91,20 @@ export function PendientesAprobacion() {
 		mutationFn: ({
 			ids,
 			decision,
+			motivoId,
 			nota,
 		}: {
 			ids: number[];
 			decision: DecisionRevision;
+			motivoId: number | null;
 			nota: string;
-		}) => revisarHorasExtras(ids, { decision, nota, revisor: user?.id ?? '' }),
+		}) =>
+			revisarHorasExtras(ids, {
+				decision,
+				motivoId,
+				nota,
+				revisor: user?.id ?? '',
+			}),
 		onSuccess: (_, { ids, decision }) => {
 			void queryClient.invalidateQueries({
 				queryKey: horariosKeys.horasExtras.todos,
@@ -278,9 +286,7 @@ export function PendientesAprobacion() {
 				filas={filasRevision}
 				guardando={revisar.isPending}
 				onClose={() => setRevision(null)}
-				onConfirmar={(nota) =>
-					revision && revisar.mutate({ ...revision, nota })
-				}
+				onConfirmar={(r) => revision && revisar.mutate({ ...revision, ...r })}
 			/>
 		</Paper>
 	);

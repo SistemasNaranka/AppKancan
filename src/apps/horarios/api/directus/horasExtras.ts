@@ -169,7 +169,7 @@ export async function actualizarHoraExtra(id: number, data: UpdateOverTimeDto) {
 export async function revisarHorasExtras(ids: number[], r: ReviewOverTimeDto) {
 	if (ids.length === 0) return [];
 	const aprobar = r.decision === ESTADO_HORA_EXTRA.aprobada;
-	if (!aprobar && !r.nota?.trim())
+	if (!aprobar && !(Number(r.motivoId) > 0))
 		throw new Error('El motivo del rechazo es obligatorio.');
 	try {
 		return await withAutoRefresh(() =>
@@ -178,7 +178,9 @@ export async function revisarHorasExtras(ids: number[], r: ReviewOverTimeDto) {
 					status: r.decision,
 					// shortcut: hora del dispositivo (UTC); si se exige la del servidor, preset $NOW en la política del comercial.
 					reviewed_at: new Date().toISOString(),
-					review_note: aprobar ? null : r.nota!.trim(),
+					// Se aprueba con el motivo de la solicitud.
+					review_reason_id: aprobar ? null : Number(r.motivoId),
+					review_note: aprobar ? null : r.nota?.trim() || null,
 					// Quién aprueba o rechaza, como created_by guarda al jefe de zona que crea.
 					updated_by: r.revisor,
 				}),

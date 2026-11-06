@@ -94,7 +94,7 @@ describe('revisarHorasExtras', () => {
 		const { op, ids, d } = request.mock.calls[0][0];
 		expect(op).toBe('updateMany');
 		expect(ids).toEqual([1, 2]);
-		expect(d).toMatchObject({ status: 'aprobada', review_note: null });
+		expect(d).toMatchObject({ status: 'aprobada', review_note: null, review_reason_id: null });
 		// Quién aprueba o rechaza queda en updated_by (como created_by para quien crea).
 		expect(d).toMatchObject({ updated_by: 'uuid-comercial' });
 		expect(d).not.toHaveProperty('reviewed_by');
@@ -102,14 +102,24 @@ describe('revisarHorasExtras', () => {
 		expect(Number.isNaN(Date.parse(d.reviewed_at))).toBe(false);
 	});
 
-	it('rechazar guarda el motivo', async () => {
-		await revisarHorasExtras([3], { decision: 'descartada_comercial', nota: ' sin soporte ', revisor: 'uuid-comercial' });
+	it('rechazar guarda el motivo de la lista y su texto ("Otros")', async () => {
+		await revisarHorasExtras([3], { decision: 'descartada_comercial', motivoId: 9, nota: ' sin soporte ', revisor: 'uuid-comercial' });
 		const { d } = request.mock.calls[0][0];
-		expect(d).toMatchObject({ status: 'descartada_comercial', review_note: 'sin soporte', updated_by: 'uuid-comercial' });
+		expect(d).toMatchObject({
+			status: 'descartada_comercial',
+			review_reason_id: 9,
+			review_note: 'sin soporte',
+			updated_by: 'uuid-comercial',
+		});
+	});
+
+	it('rechazar con un motivo que no pide texto deja review_note en null', async () => {
+		await revisarHorasExtras([3], { decision: 'descartada_comercial', motivoId: 5, nota: '', revisor: 'u' });
+		expect(request.mock.calls[0][0].d).toMatchObject({ review_reason_id: 5, review_note: null });
 	});
 
 	it('no llama a Directus sin motivo al rechazar ni con lote vacío', async () => {
-		await expect(revisarHorasExtras([1], { decision: 'descartada_comercial', nota: '  ', revisor: 'u' })).rejects.toThrow(/motivo/);
+		await expect(revisarHorasExtras([1], { decision: 'descartada_comercial', nota: 'texto suelto', revisor: 'u' })).rejects.toThrow(/motivo/);
 		expect(await revisarHorasExtras([], { decision: 'aprobada', revisor: 'u' })).toEqual([]);
 		expect(request).not.toHaveBeenCalled();
 	});

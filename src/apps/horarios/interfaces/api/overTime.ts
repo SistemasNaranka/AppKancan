@@ -68,6 +68,8 @@ export interface UpdateOverTimeDto {
 export interface ReviewOverTimeDto {
 	decision: 'aprobada' | 'descartada_comercial';
 	/** Obligatorio al rechazar. */
+	motivoId?: number | null;
+	/** Solo con el motivo que pide texto ("Otros"). */
 	nota?: string;
 	/** Usuario (directus_users) de Dirección Comercial que aprueba o rechaza: va en `updated_by`. */
 	revisor: string;

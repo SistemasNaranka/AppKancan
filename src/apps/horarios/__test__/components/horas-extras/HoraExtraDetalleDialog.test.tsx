@@ -62,4 +62,32 @@ describe('HoraExtraDetalleDialog · trazabilidad', () => {
 		expect(screen.getByText('Rechazada por')).toBeInTheDocument();
 		expect(screen.getByText('Marta Ríos')).toBeInTheDocument();
 	});
+
+	it('rechazada: motivo de la lista y, con "Otros", su texto', () => {
+		const { rerender } = render(
+			<HoraExtraDetalleDialog
+				fila={{
+					...fila,
+					estado: 'descartada_comercial',
+					motivoRevision: 'No autorizada',
+					motivoRechazo: '',
+				}}
+				onClose={() => {}}
+			/>,
+		);
+		expect(screen.getByText('Motivo del rechazo')).toBeInTheDocument();
+		expect(screen.getByText('No autorizada')).toBeInTheDocument();
+		rerender(
+			<HoraExtraDetalleDialog
+				fila={{
+					...fila,
+					estado: 'descartada_comercial',
+					motivoRevision: 'Otros',
+					motivoRechazo: 'Sin soporte',
+				}}
+				onClose={() => {}}
+			/>,
+		);
+		expect(screen.getByText('Otros: Sin soporte')).toBeInTheDocument();
+	});
 });
