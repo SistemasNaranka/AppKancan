@@ -40,7 +40,7 @@ describe('agregadoHorasExtras', () => {
 			{ store_id: 26, work_date: '2026-10-05T00:00:00', period_id: '4', count: { id: '3' }, sum: { minutes: '180' } },
 		]);
 		const r = await agregadoHorasExtras({ estados: ['aprobada'] }, ['period_id', 'store_id', 'work_date']);
-		expect(r).toEqual([{ storeId: 26, empleadoId: null, fecha: '2026-10-05', periodoId: 4, estado: null, registros: 3, minutos: 180 }]);
+		expect(r).toEqual([{ storeId: 26, empleadoId: null, fecha: '2026-10-05', periodoId: 4, estado: null, motivoId: null, motivoRevisionId: null, creadaPor: null, registros: 3, minutos: 180 }]);
 		expect(request.mock.calls[0][0]).toMatchObject({
 			op: 'aggregate',
 			c: 'com_over_time',

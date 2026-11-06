@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useHorariosLayout } from '../../hooks/useHorariosLayout';
 import ReporteGerencia from './gerencia/ReporteGerencia';
 import ReporteHorasExtrasTab from './ReporteHorasExtrasTab';
+import ReporteMotivosTab from './ReporteMotivosTab';
 import ReporteZonaTab from './ReporteZonaTab';
 
 /**
@@ -26,7 +27,9 @@ export default function ReporteHorasExtrasVista() {
 			? [{ id: 'tiempo-real', label: 'Tiempo real' }]
 			: []),
 		...(comercial || jefe ? [{ id: 'zona', label: 'Por zona' }] : []),
+		{ id: 'motivos', label: 'Por motivo' },
 	];
+	const perfil = comercial ? 'comercial' : nomina ? 'nomina' : 'jefe';
 	const tiendasJefe = jefe
 		? acceso.tiendasPermitidas.map((t) => Number(t.id))
 		: null;
@@ -62,6 +65,11 @@ export default function ReporteHorasExtrasVista() {
 					)}
 					{pestana === 'tiempo-real' ? (
 						<ReporteHorasExtrasTab />
+					) : pestana === 'motivos' ? (
+						<ReporteMotivosTab
+							perfil={perfil}
+							tiendasJefe={perfil === 'jefe' ? tiendasJefe : null}
+						/>
 					) : (
 						<ReporteZonaTab tiendasJefe={tiendasJefe} />
 					)}

@@ -1,6 +1,9 @@
 import dayjs from 'dayjs';
 import {
 	ESTADO_PERIODO,
+	type JefeMotivos,
+	type RechazoMotivo,
+	type ReporteMotivos,
 	type ReporteZona,
 	type ResumenPeriodo,
 } from '../domain/horasExtras';
@@ -264,5 +267,153 @@ export async function exportarReporteZonaExcel({
 			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 		}),
 		`Horas_Extras_Zona_${zona.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD-HHmmss')}.xlsx`,
+	);
+}
+
+/**
+ * Reporte por motivo a Excel: hojas **Motivos**, **Rechazos** (si se pasan) y
+ * **Jefes de zona** (horas aprobadas por motivo). Horas en decimal.
+ */
+export async function exportarReporteMotivosExcel({
+	filtro,
+	reporte,
+	rechazos,
+	jefes,
+	columnasJefe,
+	nombreMotivo,
+	nombreJefe,
+}: {
+	filtro: string;
+	reporte: ReporteMotivos;
+	rechazos: RechazoMotivo[] | null;
+	jefes: JefeMotivos[];
+	columnasJefe: (number | null)[];
+	nombreMotivo: (id: number | null) => string;
+	nombreJefe: (id: string | null) => string;
+}) {
+	const [excelModule, { saveAs }] = await Promise.all([
+		import('exceljs'),
+		import('file-saver'),
+	]);
+	const ExcelJS = (excelModule.default ||
+		excelModule) as typeof import('exceljs');
+	const workbook = new ExcelJS.Workbook();
+	const hoja = (nombre: string, columnas: string[]) => {
+		const ws = workbook.addWorksheet(nombre);
+		ws.columns = columnas.map((c, i) => ({
+			width: i ? Math.max(14, c.length + 2) : 30,
+		}));
+		ws.addRow([`Horas extras por motivo · ${filtro}`]).font = {
+			bold: true,
+			size: 14,
+			color: { argb: 'FF004680' },
+		};
+		ws.addRow([`Generado el ${dayjs().format('DD/MM/YYYY HH:mm')}`]).font = {
+			italic: true,
+			color: { argb: 'FF64748B' },
+		};
+		ws.addRow([]);
+		ws.addRow(columnas).eachCell((c) => {
+			c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+			c.fill = {
+				type: 'pattern',
+				pattern: 'solid',
+				fgColor: { argb: 'FF004680' },
+			};
+		});
+		return ws;
+	};
+	const formato = (
+		r: import('exceljs').Row,
+		horasEn: number[],
+		pctEn: number[] = [],
+	) => {
+		for (const c of horasEn) r.getCell(c).numFmt = '0.00';
+		for (const c of pctEn) r.getCell(c).numFmt = '0.0%';
+	};
+
+	const motivos = hoja('Motivos', [
+		'Motivo',
+		'Horas aprobadas',
+		'% de las horas',
+		'Registros aprobados',
+		'Horas pendientes',
+		'Horas rechazadas',
+		'Se aprueban',
+	]);
+	for (const m of reporte.motivos)
+		formato(
+			motivos.addRow([
+				nombreMotivo(m.motivoId),
+				horas(m.aprobadas.minutos),
+				m.porcentaje,
+				m.aprobadas.registros,
+				horas(m.pendientes.minutos),
+				horas(m.rechazadas.minutos),
+				m.tasaAprobacion ?? '',
+			]),
+			[2, 5, 6],
+			[3, 7],
+		);
+	const total = motivos.addRow([
+		'Total',
+		horas(reporte.aprobadas.minutos),
+		1,
+		reporte.aprobadas.registros,
+		horas(reporte.pendientes.minutos),
+		horas(reporte.rechazadas.minutos),
+		reporte.tasaAprobacion ?? '',
+	]);
+	total.font = { bold: true };
+	formato(total, [2, 5, 6], [3, 7]);
+
+	if (rechazos) {
+		const ws = hoja('Rechazos', [
+			'Motivo del rechazo',
+			'Registros',
+			'Horas',
+			'% de los rechazos',
+		]);
+		for (const r of rechazos)
+			formato(
+				ws.addRow([
+					nombreMotivo(r.motivoId),
+					r.registros,
+					horas(r.minutos),
+					r.porcentaje,
+				]),
+				[3],
+				[4],
+			);
+	}
+
+	if (jefes.length > 0) {
+		const ws = hoja('Jefes de zona', [
+			'Jefe de zona',
+			...columnasJefe.map(nombreMotivo),
+			'Total aprobadas',
+			'Horas rechazadas',
+			'Registros rechazados',
+		]);
+		const n = columnasJefe.length;
+		for (const j of jefes)
+			formato(
+				ws.addRow([
+					nombreJefe(j.creadaPor),
+					...columnasJefe.map((id) => horas(j.porMotivo.get(id) ?? 0)),
+					horas(j.aprobadas.minutos),
+					horas(j.rechazadas.minutos),
+					j.rechazadas.registros,
+				]),
+				Array.from({ length: n + 2 }, (_, i) => i + 2),
+			);
+	}
+
+	const buffer = await workbook.xlsx.writeBuffer();
+	saveAs(
+		new Blob([buffer], {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		}),
+		`Horas_Extras_Motivos_${dayjs().format('YYYYMMDD-HHmmss')}.xlsx`,
 	);
 }

@@ -1,4 +1,4 @@
-import { aggregate, readItems } from '@directus/sdk';
+import { aggregate, readItems, readUsers } from '@directus/sdk';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
 import directus from '@/services/directus/directus';
 import type { EstadoHoraExtra } from '../../domain/horasExtras';
@@ -13,7 +13,10 @@ export type CampoAgrupacion =
 	| 'employee_id'
 	| 'work_date'
 	| 'period_id'
-	| 'status';
+	| 'status'
+	| 'reason_id'
+	| 'review_reason_id'
+	| 'created_by';
 
 export interface FiltrosAgregado {
 	estados: EstadoHoraExtra[];
@@ -33,6 +36,10 @@ export interface FilaAgregada {
 	fecha: string | null;
 	periodoId: number | null;
 	estado: string | null;
+	motivoId: number | null;
+	motivoRevisionId: number | null;
+	/** Usuario de Directus que la creó (el jefe de zona). */
+	creadaPor: string | null;
 	registros: number;
 	minutos: number;
 }
@@ -83,6 +90,13 @@ export async function agregadoHorasExtras(
 			periodoId: agrupar.includes('period_id') ? idRelacion(f.period_id) : null,
 			estado: agrupar.includes('status')
 				? String(f.status ?? '') || null
+				: null,
+			motivoId: agrupar.includes('reason_id') ? idRelacion(f.reason_id) : null,
+			motivoRevisionId: agrupar.includes('review_reason_id')
+				? idRelacion(f.review_reason_id)
+				: null,
+			creadaPor: agrupar.includes('created_by')
+				? String(f.created_by ?? '') || null
 				: null,
 			registros: Number((f.count as { id?: unknown })?.id ?? 0),
 			minutos: Number((f.sum as { minutes?: unknown })?.minutes ?? 0),
@@ -178,6 +192,40 @@ export async function listarZonas(): Promise<Zona[]> {
 			error,
 			'Error consultando zonas',
 			'Error al cargar las zonas de las tiendas',
+		);
+	}
+}
+
+/** Nombre de cada usuario de Directus (los jefes de zona que crean las horas). */
+export async function nombresDeUsuarios(
+	ids: readonly string[],
+): Promise<Map<string, string>> {
+	if (ids.length === 0) return new Map();
+	try {
+		const usuarios = (await withAutoRefresh(() =>
+			directus.request(
+				readUsers({
+					fields: ['id', 'first_name', 'last_name'],
+					filter: { id: { _in: [...ids] } },
+					limit: -1,
+				}),
+			),
+		)) as {
+			id: string;
+			first_name?: string | null;
+			last_name?: string | null;
+		}[];
+		return new Map(
+			usuarios.map((u) => [
+				u.id,
+				[u.first_name, u.last_name].filter(Boolean).join(' ') || 'Sin nombre',
+			]),
+		);
+	} catch (error) {
+		throw errorDeApi(
+			error,
+			'Error consultando usuarios',
+			'Error al cargar los nombres de los jefes de zona',
 		);
 	}
 }
