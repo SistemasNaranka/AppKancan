@@ -50,3 +50,14 @@ export function validarMotivo(
 /** El texto que se guarda: solo el del motivo que lo pide; en los demás, vacío. */
 export const textoDelMotivo = (motivo: Motivo | undefined, texto: string) =>
 	motivo?.pideTexto ? texto.trim() : '';
+
+export const SIN_MOTIVO = 'Sin motivo (histórico)';
+
+export type FiltroMotivo = number | 'todos' | 'sin';
+
+export const coincideMotivo = (
+	motivoId: number | null,
+	filtro: FiltroMotivo,
+): boolean =>
+	filtro === 'todos' ||
+	(filtro === 'sin' ? motivoId == null : motivoId === filtro);

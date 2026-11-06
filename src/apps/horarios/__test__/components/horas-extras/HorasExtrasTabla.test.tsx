@@ -13,6 +13,7 @@ const fila: HoraExtraFila = {
 	tienda: 'Ipiales Centro',
 	rotacion: true,
 	minutos: 90,
+	motivoId: 1,
 	motivo: 'Fuerza mayor',
 	motivoRevision: '',
 	observacion: 'Inventario',
@@ -68,5 +69,21 @@ describe('HorasExtrasTabla', () => {
 		expect(screen.getByText('No hay horas extras pendientes')).toBeInTheDocument();
 		rerender(<HorasExtrasTabla filas={[]} loading />);
 		expect(screen.getByText('Cargando horas extras...')).toBeInTheDocument();
+	});
+
+	it('columna Motivo con su texto; las horas viejas como "Sin motivo (histórico)"', () => {
+		render(
+			<HorasExtrasTabla
+				filas={[
+					{ ...fila, motivo: 'Otros', observacion: 'Visita de auditoría' },
+					{ ...fila, id: 2, motivoId: null, motivo: '', observacion: '' },
+				]}
+				compacta
+			/>,
+		);
+		expect(screen.getByRole('columnheader', { name: 'Motivo' })).toBeInTheDocument();
+		expect(screen.getByText('Otros')).toBeInTheDocument();
+		expect(screen.getByText('Visita de auditoría')).toBeInTheDocument();
+		expect(screen.getByText('Sin motivo (histórico)')).toBeInTheDocument();
 	});
 });

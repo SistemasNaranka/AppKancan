@@ -9,32 +9,63 @@ import {
 } from '@mui/material';
 import dayjs from 'dayjs';
 import type { ReactNode } from 'react';
-import { ESTADO_HORA_EXTRA, formatoMinutos } from '../../domain/horasExtras';
+import {
+	ESTADO_HORA_EXTRA,
+	formatoMinutos,
+	SIN_MOTIVO,
+} from '../../domain/horasExtras';
 import type { HoraExtraFila } from '../../interfaces/horasExtras';
 import { HoraExtraEstadoChip } from './HoraExtraEstadoChip';
 
 const fecha = (f: string) => dayjs(f).format('DD/MM/YYYY');
 const fechaHora = (f: string) => (f ? dayjs(f).format('DD/MM/YYYY HH:mm') : '');
 
-function Dato({ label, children }: { label: string; children: ReactNode }) {
+function Dato({
+	label,
+	children,
+	nota,
+	ancho = false,
+}: {
+	label: string;
+	children: ReactNode;
+	nota?: string;
+	ancho?: boolean;
+}) {
 	return (
-		<Box>
+		<Box sx={{ minWidth: 0, gridColumn: ancho ? '1 / -1' : undefined }}>
 			<Typography variant="caption" sx={{ color: '#64748b' }}>
 				{label}
 			</Typography>
 			<Typography variant="body2" component="div" sx={{ fontWeight: 600 }}>
 				{children || '--'}
 			</Typography>
+			{nota && (
+				<Typography
+					variant="caption"
+					component="div"
+					sx={{ color: '#64748b', whiteSpace: 'pre-wrap' }}
+				>
+					{nota}
+				</Typography>
+			)}
 		</Box>
 	);
 }
 
 const grilla = {
 	display: 'grid',
-	gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-	gap: 2,
+	gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+	columnGap: 2,
+	rowGap: 1.5,
 };
-const seccion = { fontWeight: 700, color: '#004680', mt: 3, mb: 1.5 };
+const seccion = {
+	fontWeight: 700,
+	color: '#004680',
+	mt: 2,
+	mb: 1,
+	pt: 1.5,
+	borderTop: '1px solid #e2e8f0',
+};
 
 export interface HoraExtraDetalleDialogProps {
 	/** `null` = cerrado. */
@@ -42,13 +73,22 @@ export interface HoraExtraDetalleDialogProps {
 	onClose: () => void;
 }
 
-/** Detalle de una hora extra: datos, observación y trazabilidad (quién creó y quién revisó). */
 export function HoraExtraDetalleDialog({
 	fila,
 	onClose,
 }: HoraExtraDetalleDialogProps) {
 	if (!fila) return null;
 	const rechazada = fila.estado === ESTADO_HORA_EXTRA.descartadaComercial;
+	const periodo = fila.periodo
+		? [
+				fila.periodo.nombre,
+				fila.periodo.inicio && fila.periodo.fin
+					? `${fecha(fila.periodo.inicio)} – ${fecha(fila.periodo.fin)}`
+					: '',
+			]
+				.filter(Boolean)
+				.join(' · ') || `Periodo ${fila.periodo.id}`
+		: '';
 	return (
 		<Dialog
 			open
@@ -59,16 +99,17 @@ export function HoraExtraDetalleDialog({
 		>
 			<DialogTitle
 				id="he-detalle-titulo"
-				sx={{ fontWeight: 700, color: '#004680', pr: 6 }}
+				sx={{
+					display: 'flex',
+					alignItems: 'center',
+					gap: 1.5,
+					fontWeight: 700,
+					color: '#004680',
+					pr: 6,
+				}}
 			>
 				Detalle de hora extra
-				<Typography
-					variant="body2"
-					component="span"
-					sx={{ display: 'block', color: '#64748b' }}
-				>
-					{fila.empleado}
-				</Typography>
+				<HoraExtraEstadoChip estado={fila.estado} />
 				<IconButton
 					aria-label="Cerrar"
 					onClick={onClose}
@@ -77,70 +118,68 @@ export function HoraExtraDetalleDialog({
 					<CloseIcon />
 				</IconButton>
 			</DialogTitle>
-			<DialogContent dividers>
+			<DialogContent dividers sx={{ pt: 2 }}>
+				<Typography
+					variant="subtitle2"
+					sx={{ ...seccion, mt: 0, pt: 0, borderTop: 0 }}
+				>
+					Persona
+				</Typography>
 				<Box sx={grilla}>
-					<Dato label="Empleado">{fila.empleado}</Dato>
-					<Dato label="Documento">{fila.documento}</Dato>
+					<Dato label="Nombre">{fila.empleado}</Dato>
+					<Dato label="Cédula">{fila.documento}</Dato>
 					<Dato label="Cargo">{fila.cargo || 'Sin cargo'}</Dato>
+				</Box>
+
+				<Typography variant="subtitle2" sx={seccion}>
+					Hora extra
+				</Typography>
+				<Box sx={grilla}>
 					<Dato label="Fecha trabajada">{fecha(fila.fecha)}</Dato>
 					<Dato label="Horas extras">{formatoMinutos(fila.minutos)}</Dato>
-					<Dato label="Tienda donde trabajó">
+					<Dato
+						label="Tienda donde trabajó"
+						nota={fila.rotacion ? 'Rotación: no es su tienda' : undefined}
+					>
 						{fila.tienda}
-						{fila.rotacion && ' (rotación: no es su tienda)'}
 					</Dato>
-					<Dato label="Estado">
-						<HoraExtraEstadoChip estado={fila.estado} />
+					<Dato label="Motivo" nota={fila.observacion || undefined} ancho>
+						<Box
+							component="span"
+							sx={{ color: fila.motivo ? 'inherit' : '#94a3b8' }}
+						>
+							{fila.motivo || SIN_MOTIVO}
+						</Box>
 					</Dato>
-					{fila.periodo && (
-						<Dato label="Periodo de nómina">
-							{[
-								fila.periodo.nombre,
-								fila.periodo.inicio && fila.periodo.fin
-									? `${fecha(fila.periodo.inicio)} – ${fecha(fila.periodo.fin)}`
-									: '',
-							]
-								.filter(Boolean)
-								.join(' · ') || `Periodo ${fila.periodo.id}`}
+					{periodo && (
+						<Dato label="Periodo de nómina" ancho>
+							{periodo}
 						</Dato>
 					)}
 				</Box>
 
 				<Typography variant="subtitle2" sx={seccion}>
-					Observación
-				</Typography>
-				<Typography
-					variant="body2"
-					sx={{
-						whiteSpace: 'pre-wrap',
-						color: fila.observacion ? 'inherit' : '#94a3b8',
-					}}
-				>
-					{fila.observacion || 'Sin observación'}
-				</Typography>
-
-				<Typography variant="subtitle2" sx={seccion}>
 					Trazabilidad
 				</Typography>
-				<Box sx={grilla}>
-					<Dato label="Creada por">{fila.creadaPor}</Dato>
-					<Dato label="Creada el">{fechaHora(fila.creadaEl)}</Dato>
-					<Dato label={rechazada ? 'Rechazada por' : 'Revisada por'}>
+				<Box sx={{ ...grilla, gridTemplateColumns: '1fr 1fr' }}>
+					<Dato label="Creada por" nota={fechaHora(fila.creadaEl)}>
+						{fila.creadaPor}
+					</Dato>
+					<Dato
+						label={rechazada ? 'Rechazada por' : 'Revisada por'}
+						nota={fechaHora(fila.revisadaEl)}
+					>
 						{fila.revisadaPor}
 					</Dato>
-					<Dato label={rechazada ? 'Rechazada el' : 'Revisada el'}>
-						{fechaHora(fila.revisadaEl)}
-					</Dato>
-				</Box>
-				{rechazada && (
-					<Box sx={{ mt: 2 }}>
-						{/* Las horas anteriores a los motivos solo tienen el texto libre. */}
-						<Dato label="Motivo del rechazo">
+					{rechazada && (
+						// Las horas anteriores a los motivos solo tienen el texto libre.
+						<Dato label="Motivo del rechazo" ancho>
 							{[fila.motivoRevision, fila.motivoRechazo]
 								.filter(Boolean)
 								.join(': ')}
 						</Dato>
-					</Box>
-				)}
+					)}
+				</Box>
 			</DialogContent>
 		</Dialog>
 	);

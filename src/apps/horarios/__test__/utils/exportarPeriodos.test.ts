@@ -35,16 +35,39 @@ describe('hojasExportacionPeriodos', () => {
 		const a = hojas[0];
 		expect(a.bloques.map((b) => b.periodo.id)).toEqual([1, 2]);
 		expect(a.bloques[0].filas).toEqual([
-			{ empleado: 'Emp7 X', documento: '107', cargo: '', tienda: 'Ipiales', horasExtras: 2, minutos: 90 },
+			{ empleado: 'Emp7 X', documento: '107', cargo: '', tienda: 'Ipiales', motivo: 'Sin motivo (histórico)', horasExtras: 2, minutos: 90 },
 		]);
 		expect(a.bloques[0].totales).toEqual({ horasExtras: 2, minutos: 90, empleados: 1 });
 		expect(a.bloques[1].filas[0]).toMatchObject({ empleado: 'Emp8 X', minutos: 120 });
 
 		// El mismo empleado en otra empresa (rotación) va a la otra hoja.
 		expect(hojas[1].bloques[0].filas).toEqual([
-			{ empleado: 'Emp7 X', documento: '107', cargo: '', tienda: 'Pasto', horasExtras: 1, minutos: 60 },
+			{ empleado: 'Emp7 X', documento: '107', cargo: '', tienda: 'Pasto', motivo: 'Sin motivo (histórico)', horasExtras: 1, minutos: 60 },
 		]);
 		// Periodo sin horas de esa empresa: bloque vacío.
 		expect(hojas[1].bloques[1].filas).toEqual([]);
+	});
+
+	it('separa las filas de una persona por motivo', () => {
+		const p = { id: 1, name: 'P', start_date: '2026-10-01', end_date: '2026-10-15', status: 'liquidado' } as const;
+		const h = (id: number, motivo: { id: number; name: string } | null, minutes: number) =>
+			({
+				id,
+				employee_id: { id: 7, first_name: 'Emp7', last_name: 'X', document_number: '107' },
+				store_id: { id: 26, name: 'Ipiales' },
+				work_date: '2026-10-02',
+				minutes,
+				status: 'aprobada',
+				reason_id: motivo,
+			}) as never;
+		const [hoja] = hojasExportacionPeriodos(
+			[{ periodo: p as never, horas: [h(1, { id: 1, name: 'Fuerza mayor' }, 60), h(2, { id: 2, name: 'Toma física de inventario' }, 30), h(3, { id: 1, name: 'Fuerza mayor' }, 30)] }],
+			[{ id: 26, name: 'Ipiales', company: 'Empresa A' }],
+		);
+		expect(hoja.bloques[0].filas.map((f) => [f.motivo, f.minutos])).toEqual([
+			['Fuerza mayor', 90],
+			['Toma física de inventario', 30],
+		]);
+		expect(hoja.bloques[0].totales.empleados).toBe(1);
 	});
 });

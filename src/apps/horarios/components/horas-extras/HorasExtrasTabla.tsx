@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import dayjs from 'dayjs';
 import type { ReactNode } from 'react';
-import { formatoMinutos } from '../../domain/horasExtras';
+import { formatoMinutos, SIN_MOTIVO } from '../../domain/horasExtras';
 import type { HoraExtraFila } from '../../interfaces/horasExtras';
 import { HoraExtraEstadoChip } from './HoraExtraEstadoChip';
 
@@ -24,12 +24,12 @@ const COLUMNAS = [
 	'Cargo',
 	'Tienda',
 	'Horas',
-	'Observación',
+	'Motivo',
 	'Creada por',
 	'Estado',
 ];
 
-const COLUMNAS_DETALLE = ['Observación', 'Creada por'];
+const COLUMNAS_DETALLE = ['Creada por'];
 
 /** "Quincena 1 (01/10 – 15/10)"; sin nombre, solo las fechas. */
 const rangoPeriodo = (p: NonNullable<HoraExtraFila['periodo']>) => {
@@ -54,7 +54,7 @@ export interface HorasExtrasTablaProps {
 	acciones?: (fila: HoraExtraFila) => ReactNode;
 	/** Columna "Periodo" (nómina). */
 	conPeriodo?: boolean;
-	/** Sin "Observación" ni "Creada por" (van en el detalle, p. ej. Historial). */
+	/** Sin "Creada por" (va en el detalle, p. ej. Historial). */
 	compacta?: boolean;
 }
 
@@ -173,13 +173,24 @@ export function HorasExtrasTabla({
 								<TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
 									{formatoMinutos(f.minutos)}
 								</TableCell>
-								{!compacta && (
-									<TableCell sx={{ maxWidth: 260 }}>
-										<Typography variant="body2" noWrap title={f.observacion}>
-											{f.observacion || '--'}
+								<TableCell sx={{ maxWidth: 260 }}>
+									<Typography
+										variant="body2"
+										sx={{ color: f.motivo ? 'inherit' : '#94a3b8' }}
+									>
+										{f.motivo || SIN_MOTIVO}
+									</Typography>
+									{f.observacion && (
+										<Typography
+											variant="caption"
+											noWrap
+											title={f.observacion}
+											sx={{ display: 'block', color: '#64748b' }}
+										>
+											{f.observacion}
 										</Typography>
-									</TableCell>
-								)}
+									)}
+								</TableCell>
 								{!compacta && (
 									<TableCell>
 										<Typography variant="body2">

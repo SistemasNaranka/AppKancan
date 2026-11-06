@@ -147,16 +147,15 @@ describe('HistorialPage', () => {
 		expect(screen.getByText('Historial de horas extras')).toBeInTheDocument();
 	});
 
-	it('la tabla no muestra observación ni creador; el detalle sí, con quién revisó y el motivo', async () => {
+	it('la tabla muestra el motivo pero no el creador; el detalle sí, con quién revisó y el motivo', async () => {
 		montarHistorial();
 		await screen.findByText('Carla X');
-		expect(
-			screen.queryByRole('columnheader', { name: 'Observación' }),
-		).not.toBeInTheDocument();
+		expect(screen.getByRole('columnheader', { name: 'Motivo' })).toBeInTheDocument();
 		expect(
 			screen.queryByRole('columnheader', { name: 'Creada por' }),
 		).not.toBeInTheDocument();
-		expect(screen.queryByText('Cierre de inventario')).not.toBeInTheDocument();
+		expect(screen.getByText('Sin motivo (histórico)')).toBeInTheDocument();
+		expect(screen.getByText('Cierre de inventario')).toBeInTheDocument();
 
 		fireEvent.click(
 			screen.getByRole('button', { name: 'Ver detalle de Carla X' }),
@@ -335,6 +334,23 @@ describe('AprobacionPage', () => {
 				expect.objectContaining({ tiendas: [30] }),
 			),
 		);
+	});
+
+	it('filtra por motivo, incluidas las horas sin motivo', async () => {
+		listarHorasExtras.mockImplementation(async () => [
+			{ ...dto(1, 'Ana'), reason_id: { id: 1, name: 'Fuerza mayor' } },
+			dto(2, 'Beto'),
+		]);
+		montar();
+		await screen.findByText('Ana X');
+		expect(screen.getByText('Fuerza mayor')).toBeInTheDocument();
+		fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Motivo' }));
+		fireEvent.click(await screen.findByRole('option', { name: 'Fuerza mayor' }));
+		expect(screen.queryByText('Beto X')).not.toBeInTheDocument();
+		fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Motivo' }));
+		fireEvent.click(await screen.findByRole('option', { name: 'Sin motivo (histórico)' }));
+		expect(screen.queryByText('Ana X')).not.toBeInTheDocument();
+		expect(screen.getByText('Beto X')).toBeInTheDocument();
 	});
 
 	it('el buscador acota lo que se ve y lo que se aprueba en lote', async () => {

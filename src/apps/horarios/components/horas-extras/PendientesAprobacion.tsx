@@ -14,7 +14,12 @@ import type { Dayjs } from 'dayjs';
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/auth/hooks/useAuth';
 import { revisarHorasExtras } from '../../api/directus/horasExtras';
-import { ESTADO_HORA_EXTRA, formatoMinutos } from '../../domain/horasExtras';
+import {
+	coincideMotivo,
+	ESTADO_HORA_EXTRA,
+	type FiltroMotivo as FiltroMotivoValor,
+	formatoMinutos,
+} from '../../domain/horasExtras';
 import { horariosKeys } from '../../hooks/registro/keys';
 import { useAvisos } from '../../hooks/useAvisos';
 import { useHorasExtras } from '../../hooks/useHorasExtras';
@@ -23,6 +28,7 @@ import { aFilaHoraExtra, coincideEmpleado } from '../../utils/horasExtras';
 import { ReporteTiendasPagination } from '../com_time_record_store';
 import DateRangeFilter from '../reportes/DateRangeFilter';
 import { BuscarEmpleado } from './BuscarEmpleado';
+import { FiltroMotivo } from './FiltroMotivo';
 import { FiltrosZonaTienda, useFiltroZonaTienda } from './FiltrosZonaTienda';
 import { HorasExtrasTabla } from './HorasExtrasTabla';
 import {
@@ -45,6 +51,7 @@ export function PendientesAprobacion() {
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(10);
 	const [busqueda, setBusqueda] = useState('');
+	const [motivo, setMotivo] = useState<FiltroMotivoValor>('todos');
 	// Sin rango por defecto: ninguna pendiente queda oculta.
 	const [fechaInicio, setFechaInicio] = useState<Dayjs | null>(null);
 	const [fechaFin, setFechaFin] = useState<Dayjs | null>(null);
@@ -68,8 +75,14 @@ export function PendientesAprobacion() {
 	const { data = [], isLoading, error } = useHorasExtras(filtros);
 	// Las marcadas que el buscador oculta no se aprueban: se revisa lo que se ve.
 	const filas = useMemo(
-		() => data.map(aFilaHoraExtra).filter((f) => coincideEmpleado(f, busqueda)),
-		[data, busqueda],
+		() =>
+			data
+				.map(aFilaHoraExtra)
+				.filter(
+					(f) =>
+						coincideEmpleado(f, busqueda) && coincideMotivo(f.motivoId, motivo),
+				),
+		[data, busqueda, motivo],
 	);
 
 	// Solo cuentan las marcadas que siguen en la lista (otra persona pudo revisarlas).
@@ -187,6 +200,13 @@ export function PendientesAprobacion() {
 						}}
 					/>
 					<FiltrosZonaTienda filtro={filtroZT} onCambio={() => setPage(0)} />
+					<FiltroMotivo
+						value={motivo}
+						onChange={(m) => {
+							setMotivo(m);
+							setPage(0);
+						}}
+					/>
 					{/* DateRangeFilter es fullWidth: sin ancho acotado ocuparía toda la fila. */}
 					<Box sx={{ width: { xs: '100%', sm: 280 } }}>
 						<DateRangeFilter

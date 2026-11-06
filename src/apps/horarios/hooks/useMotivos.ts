@@ -20,6 +20,15 @@ export function useMotivos(tipo: TipoMotivo, enabled = true) {
 	});
 	const todos = q.data ?? SIN_MOTIVOS;
 	const opciones = useMemo(() => motivosParaElegir(todos, tipo), [todos, tipo]);
+	// Las horas viejas pueden usar motivos ya inactivos.
+	const delTipo = useMemo(
+		() =>
+			motivosParaElegir(
+				todos.map((m) => ({ ...m, activo: true })),
+				tipo,
+			),
+		[todos, tipo],
+	);
 	const porId = useMemo(() => new Map(todos.map((m) => [m.id, m])), [todos]);
-	return { opciones, porId, isLoading: q.isLoading, error: q.error };
+	return { opciones, delTipo, porId, isLoading: q.isLoading, error: q.error };
 }

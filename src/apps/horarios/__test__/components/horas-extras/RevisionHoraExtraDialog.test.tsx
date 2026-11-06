@@ -47,6 +47,7 @@ const fila = (id: number, minutos: number): HoraExtraFila => ({
 	tienda: 'Ipiales',
 	rotacion: false,
 	minutos,
+	motivoId: 1,
 	motivo: 'Fuerza mayor',
 	motivoRevision: '',
 	observacion: '',

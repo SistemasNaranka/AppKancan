@@ -1,5 +1,9 @@
 import dayjs from 'dayjs';
-import { ESTADO_PERIODO, ETIQUETA_ESTADO_PERIODO } from '../domain/horasExtras';
+import {
+	ESTADO_PERIODO,
+	ETIQUETA_ESTADO_PERIODO,
+	SIN_MOTIVO,
+} from '../domain/horasExtras';
 import type { OverTimeDto } from '../interfaces/api/overTime';
 import type { PeriodDto } from '../interfaces/api/period';
 import type { Tienda } from '../interfaces/tiendas';
@@ -10,6 +14,7 @@ export interface FilaExportPeriodo {
 	documento: string;
 	cargo: string;
 	tienda: string;
+	motivo: string;
 	horasExtras: number;
 	minutos: number;
 }
@@ -29,7 +34,7 @@ const SIN_EMPRESA = 'Sin empresa';
 
 /**
  * Agrupa las horas de cada periodo por **empresa** (la de la tienda donde se
- * trabajó) y, dentro de cada periodo, por empleado + tienda. Una hoja por
+ * trabajó) y, dentro de cada periodo, por empleado + tienda + motivo. Una hoja por
  * empresa; en cada hoja, un bloque por periodo (aunque esté vacío).
  */
 export function hojasExportacionPeriodos(
@@ -53,12 +58,13 @@ export function hojasExportacionPeriodos(
 			acum.set(empresa, porPeriodo);
 			const filas = porPeriodo.get(periodo.id) ?? new Map();
 			porPeriodo.set(periodo.id, filas);
-			const clave = `${f.empleadoId ?? f.documento}|${f.tiendaId}`;
+			const clave = `${f.empleadoId ?? f.documento}|${f.tiendaId}|${f.motivoId ?? ''}`;
 			const fila = filas.get(clave) ?? {
 				empleado: f.empleado,
 				documento: f.documento,
 				cargo: f.cargo,
 				tienda: f.tienda,
+				motivo: f.motivo || SIN_MOTIVO,
 				horasExtras: 0,
 				minutos: 0,
 			};
@@ -79,7 +85,8 @@ export function hojasExportacionPeriodos(
 				const filas = [...porClave.values()].sort(
 					(a, b) =>
 						a.tienda.localeCompare(b.tienda, 'es') ||
-						a.empleado.localeCompare(b.empleado, 'es'),
+						a.empleado.localeCompare(b.empleado, 'es') ||
+						a.motivo.localeCompare(b.motivo, 'es'),
 				);
 				return {
 					periodo,
@@ -120,6 +127,7 @@ export async function exportarPeriodosExcel(hojas: HojaEmpresa[]) {
 			{ width: 38 },
 			{ width: 18 },
 			{ width: 24 },
+			{ width: 28 },
 			{ width: 28 },
 			{ width: 16 },
 		];
@@ -163,6 +171,7 @@ export async function exportarPeriodosExcel(hojas: HojaEmpresa[]) {
 				'Documento',
 				'Cargo',
 				'Tienda',
+				'Motivo',
 				'Total horas',
 			]);
 			encabezado.eachCell((c) => {
@@ -175,13 +184,14 @@ export async function exportarPeriodosExcel(hojas: HojaEmpresa[]) {
 					f.documento,
 					f.cargo || 'Sin cargo',
 					f.tienda,
+					f.motivo,
 					f.minutos / 60,
 				]);
-				r.getCell(5).numFmt = '0.00';
+				r.getCell(6).numFmt = '0.00';
 			}
-			const total = ws.addRow(['Total', '', '', '', totales.minutos / 60]);
+			const total = ws.addRow(['Total', '', '', '', '', totales.minutos / 60]);
 			total.font = { bold: true };
-			total.getCell(5).numFmt = '0.00';
+			total.getCell(6).numFmt = '0.00';
 		}
 	}
 

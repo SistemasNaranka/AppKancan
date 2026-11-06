@@ -18,13 +18,16 @@ import { getStores } from '../../api/directus/read';
 import { getEmpleadosBulk } from '../../api/directus/readBulk';
 import { ReporteTiendasPagination } from '../../components/com_time_record_store';
 import { BuscarEmpleado } from '../../components/horas-extras/BuscarEmpleado';
+import { FiltroMotivo } from '../../components/horas-extras/FiltroMotivo';
 import { HorasExtrasTabla } from '../../components/horas-extras/HorasExtrasTabla';
 import { RegistrarHoraExtraModal } from '../../components/horas-extras/RegistrarHoraExtraModal';
 import DateRangeFilter from '../../components/reportes/DateRangeFilter';
 import {
+	coincideMotivo,
 	ESTADOS_HORA_EXTRA,
 	type EstadoHoraExtra,
 	ETIQUETA_ESTADO_HORA_EXTRA,
+	type FiltroMotivo as FiltroMotivoValor,
 	formatoMinutos,
 } from '../../domain/horasExtras';
 import { horariosKeys } from '../../hooks/registro/keys';
@@ -45,6 +48,7 @@ export default function RegistradasPage() {
 	const { acceso, irA } = useHorariosLayout();
 	const [tiendaId, setTiendaId] = useState<number | ''>('');
 	const [estado, setEstado] = useState<FiltroEstado>('todos');
+	const [motivo, setMotivo] = useState<FiltroMotivoValor>('todos');
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(10);
 	const [busqueda, setBusqueda] = useState('');
@@ -95,8 +99,14 @@ export default function RegistradasPage() {
 	});
 
 	const filas = useMemo(
-		() => data.map(aFilaHoraExtra).filter((f) => coincideEmpleado(f, busqueda)),
-		[data, busqueda],
+		() =>
+			data
+				.map(aFilaHoraExtra)
+				.filter(
+					(f) =>
+						coincideEmpleado(f, busqueda) && coincideMotivo(f.motivoId, motivo),
+				),
+		[data, busqueda, motivo],
 	);
 	const totalMinutos = filas.reduce((s, f) => s + f.minutos, 0);
 	const totalPages = Math.max(1, Math.ceil(filas.length / rowsPerPage));
@@ -182,6 +192,13 @@ export default function RegistradasPage() {
 							))}
 						</Select>
 					</FormControl>
+					<FiltroMotivo
+						value={motivo}
+						onChange={(m) => {
+							setMotivo(m);
+							setPage(0);
+						}}
+					/>
 					{/* DateRangeFilter es fullWidth: sin ancho acotado ocuparía toda la fila. */}
 					<Box sx={{ width: { xs: '100%', sm: 280 } }}>
 						<DateRangeFilter

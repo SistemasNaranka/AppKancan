@@ -13,11 +13,13 @@ import {
 import dayjs, { type Dayjs } from 'dayjs';
 import { useMemo, useState } from 'react';
 import {
+	coincideMotivo,
 	ESTADO_HORA_EXTRA,
 	ESTADOS_HORA_EXTRA,
 	type EstadoHoraExtra,
 	ETIQUETA_ESTADO_HORA_EXTRA,
 	ETIQUETA_ESTADO_PERIODO,
+	type FiltroMotivo as FiltroMotivoValor,
 	formatoMinutos,
 	periodoActual,
 } from '../../domain/horasExtras';
@@ -30,6 +32,7 @@ import { aFilaHoraExtra, coincideEmpleado } from '../../utils/horasExtras';
 import { ReporteTiendasPagination } from '../com_time_record_store';
 import DateRangeFilter from '../reportes/DateRangeFilter';
 import { BuscarEmpleado } from './BuscarEmpleado';
+import { FiltroMotivo } from './FiltroMotivo';
 import { FiltrosZonaTienda, useFiltroZonaTienda } from './FiltrosZonaTienda';
 import { HoraExtraDetalleDialog } from './HoraExtraDetalleDialog';
 import { HorasExtrasTabla } from './HorasExtrasTabla';
@@ -55,6 +58,7 @@ export function HistorialHorasExtras() {
 	const [fechaInicio, setFechaInicio] = useState<Dayjs | null>(() => dayjs());
 	const [fechaFin, setFechaFin] = useState<Dayjs | null>(() => dayjs());
 	const [estado, setEstado] = useState<FiltroEstado>('todos');
+	const [motivo, setMotivo] = useState<FiltroMotivoValor>('todos');
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(10);
 	const [detalle, setDetalle] = useState<HoraExtraFila | null>(null);
@@ -92,8 +96,14 @@ export function HistorialHorasExtras() {
 		error,
 	} = useHorasExtras(filtros, !porPeriodo || periodo != null);
 	const filas = useMemo(
-		() => data.map(aFilaHoraExtra).filter((f) => coincideEmpleado(f, busqueda)),
-		[data, busqueda],
+		() =>
+			data
+				.map(aFilaHoraExtra)
+				.filter(
+					(f) =>
+						coincideEmpleado(f, busqueda) && coincideMotivo(f.motivoId, motivo),
+				),
+		[data, busqueda, motivo],
 	);
 
 	const totalMinutos = filas.reduce((s, f) => s + f.minutos, 0);
@@ -141,6 +151,13 @@ export function HistorialHorasExtras() {
 						}}
 					/>
 					<FiltrosZonaTienda filtro={filtroZT} onCambio={() => setPage(0)} />
+					<FiltroMotivo
+						value={motivo}
+						onChange={(m) => {
+							setMotivo(m);
+							setPage(0);
+						}}
+					/>
 					<FormControl size="small" sx={{ minWidth: 180 }}>
 						<InputLabel id="hh-estado">Estado</InputLabel>
 						<Select

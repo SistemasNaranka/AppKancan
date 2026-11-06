@@ -56,6 +56,7 @@ export function aFilaHoraExtra(dto: OverTimeDto): HoraExtraFila {
 		rotacion:
 			tiendaId != null && tiendaEmpleado != null && tiendaId !== tiendaEmpleado,
 		minutos: dto.minutes,
+		motivoId: idRelacion(dto.reason_id),
 		motivo: objeto<{ name?: string | null }>(dto.reason_id)?.name ?? '',
 		observacion: dto.observations ?? '',
 		estado: dto.status,

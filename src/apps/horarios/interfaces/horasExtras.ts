@@ -15,7 +15,9 @@ export interface HoraExtraFila {
 	/** La tienda donde trabajó no es la del empleado (rotación). */
 	rotacion: boolean;
 	minutos: number;
-	/** Motivo de la solicitud (`reason_id.name`); '' en horas anteriores a los motivos. */
+	/** `null` en horas anteriores a los motivos. */
+	motivoId: number | null;
+	/** '' en horas anteriores a los motivos. */
 	motivo: string;
 	/** Texto del motivo "Otros" o, en horas viejas, la observación libre. */
 	observacion: string;
