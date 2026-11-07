@@ -28,6 +28,7 @@ import {
 	Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import { BloqueTiempo } from '../../components/admin/BloqueTiempo';
 import { MotivoDialog } from '../../components/admin/MotivoDialog';
 import {
 	hayCupoMotivo,
@@ -43,11 +44,29 @@ import { mensajeDeError } from '../../utils/errores';
 const GRIS = '#64748b';
 const head = { fontWeight: 700, color: '#1e293b', bgcolor: '#f0f7ff' };
 const LISTAS = [
-	{ tipo: TIPO_MOTIVO.solicitud, label: 'Solicitud', nombre: 'solicitud' },
-	{ tipo: TIPO_MOTIVO.rechazo, label: 'Rechazo', nombre: 'rechazo' },
+	{
+		tipo: TIPO_MOTIVO.solicitud,
+		label: 'Motivos de solicitud',
+		nombre: 'solicitud',
+		quien: 'Los elige el jefe de zona al registrar.',
+	},
+	{
+		tipo: TIPO_MOTIVO.rechazo,
+		label: 'Motivos de rechazo',
+		nombre: 'rechazo',
+		quien: 'Los elige Dirección Comercial al rechazar.',
+	},
 ] as const;
 
-function ListaMotivos({ tipo, nombre }: { tipo: TipoMotivo; nombre: string }) {
+function ListaMotivos({
+	tipo,
+	nombre,
+	quien,
+}: {
+	tipo: TipoMotivo;
+	nombre: string;
+	quien: string;
+}) {
 	const { showSnackbar } = useAvisos();
 	const { motivos, usos, isLoading, error, crear, editar, borrar } =
 		useAdminMotivos(tipo);
@@ -71,6 +90,7 @@ function ListaMotivos({ tipo, nombre }: { tipo: TipoMotivo; nombre: string }) {
 				}}
 			>
 				<Typography variant="body2" sx={{ color: GRIS, maxWidth: 560 }}>
+					{quien} Los del sistema (con candado) no se pueden modificar.{' '}
 					{hayCupo
 						? 'Las opciones nuevas aparecen antes de "Otros".'
 						: `Ya hay ${MAX_MOTIVOS_ACTIVOS} motivos activos. Desactiva uno para agregar otro.`}
@@ -274,16 +294,16 @@ function ListaMotivos({ tipo, nombre }: { tipo: TipoMotivo; nombre: string }) {
 	);
 }
 
+type Pestana = TipoMotivo | 'bloque';
+
 /**
- * Admin → Motivos de horas extras: listas de solicitud y de rechazo. Los motivos
- * del sistema no se modifican; las opciones nuevas se crean, editan, activan y,
- * si nunca se usaron, se borran.
+ * Admin → Horas extras: listas de motivos (solicitud y rechazo) y bloque de
+ * tiempo. Los motivos del sistema no se modifican; las opciones nuevas se crean,
+ * editan, activan y, si nunca se usaron, se borran.
  */
-export default function MotivosPage() {
-	const [lista, setLista] = useState<(typeof LISTAS)[number]['tipo']>(
-		TIPO_MOTIVO.solicitud,
-	);
-	const actual = LISTAS.find((l) => l.tipo === lista) ?? LISTAS[0];
+export default function HorasExtrasAdminPage() {
+	const [pestana, setPestana] = useState<Pestana>(TIPO_MOTIVO.solicitud);
+	const lista = LISTAS.find((l) => l.tipo === pestana);
 	return (
 		<Paper
 			elevation={0}
@@ -294,28 +314,35 @@ export default function MotivosPage() {
 			}}
 		>
 			<Typography variant="h6" sx={{ fontWeight: 700, color: '#004680' }}>
-				Motivos de horas extras
+				Configuración de horas extras
 			</Typography>
 			<Typography variant="body2" sx={{ color: GRIS, mb: 2 }}>
-				Solicitud: los elige el jefe de zona al registrar. Rechazo: los elige
-				Dirección Comercial al rechazar. Los motivos del sistema no se pueden
-				modificar.
+				Motivos para registrar y rechazar horas extras, y el bloque de tiempo en
+				que se registran.
 			</Typography>
 			<Tabs
-				value={lista}
-				onChange={(_, v: TipoMotivo) => setLista(v as typeof lista)}
-				aria-label="Lista de motivos"
+				value={pestana}
+				onChange={(_, v: Pestana) => setPestana(v)}
+				variant="scrollable"
+				allowScrollButtonsMobile
+				aria-label="Configuración de horas extras"
 				sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
 			>
 				{LISTAS.map((l) => (
 					<Tab key={l.tipo} value={l.tipo} label={l.label} />
 				))}
+				<Tab value="bloque" label="Bloque de tiempo" />
 			</Tabs>
-			<ListaMotivos
-				key={actual.tipo}
-				tipo={actual.tipo}
-				nombre={actual.nombre}
-			/>
+			{lista ? (
+				<ListaMotivos
+					key={lista.tipo}
+					tipo={lista.tipo}
+					nombre={lista.nombre}
+					quien={lista.quien}
+				/>
+			) : (
+				<BloqueTiempo />
+			)}
 		</Paper>
 	);
 }

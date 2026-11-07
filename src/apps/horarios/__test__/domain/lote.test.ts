@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { diasDelRango, lineasDeCeldas, validarLineas, validarRangoGrilla } from '@/apps/horarios/domain/horasExtras';
+import {
+	diasDelRango,
+	lineasDeCeldas,
+	validarLineas,
+	validarRangoGrilla,
+} from '@/apps/horarios/domain/horasExtras';
 
 describe('diasDelRango', () => {
 	it('incluye ambos extremos y cruza meses', () => {
-		expect(diasDelRango('2026-10-30', '2026-11-02')).toEqual(['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02']);
+		expect(diasDelRango('2026-10-30', '2026-11-02')).toEqual([
+			'2026-10-30',
+			'2026-10-31',
+			'2026-11-01',
+			'2026-11-02',
+		]);
 		expect(diasDelRango('2026-10-20', '2026-10-20')).toEqual(['2026-10-20']);
 	});
 
@@ -20,9 +30,15 @@ describe('validarRangoGrilla', () => {
 		expect(validarRangoGrilla('2026-10-22', '2026-10-22', hoy)).toBeNull();
 	});
 	it('rechaza más de 5 días, al revés, futuro o vacío', () => {
-		expect(validarRangoGrilla('2026-10-17', '2026-10-22', hoy)).toMatch(/máximo 5/);
-		expect(validarRangoGrilla('2026-10-21', '2026-10-20', hoy)).toMatch(/anterior/);
-		expect(validarRangoGrilla('2026-10-22', '2026-10-23', hoy)).toMatch(/futuros/);
+		expect(validarRangoGrilla('2026-10-17', '2026-10-22', hoy)).toMatch(
+			/máximo 5/,
+		);
+		expect(validarRangoGrilla('2026-10-21', '2026-10-20', hoy)).toMatch(
+			/anterior/,
+		);
+		expect(validarRangoGrilla('2026-10-22', '2026-10-23', hoy)).toMatch(
+			/futuros/,
+		);
 		expect(validarRangoGrilla('', '2026-10-22', hoy)).toMatch(/rango/);
 	});
 });
@@ -37,16 +53,29 @@ describe('lineasDeCeldas', () => {
 			['9|2026-10-20', 60], // persona no incluida
 		]);
 		const l = lineasDeCeldas(celdas, ['2026-10-20', '2026-10-21'], ['7', '8']);
-		expect(l.map((x) => `${x.clave}:${x.minutos}`)).toEqual(['7|2026-10-20:60', '8|2026-10-21:90']);
+		expect(l.map((x) => `${x.clave}:${x.minutos}`)).toEqual([
+			'7|2026-10-20:60',
+			'8|2026-10-21:90',
+		]);
 	});
 });
 
 describe('validarLineas', () => {
 	const hoy = '2026-10-20';
-	const linea = (clave: string, empleadoId: string, fecha: string, minutos = 60) => ({ clave, empleadoId, fecha, minutos });
+	const linea = (
+		clave: string,
+		empleadoId: string,
+		fecha: string,
+		minutos = 60,
+	) => ({ clave, empleadoId, fecha, minutos });
 
 	it('válidas: sin errores', () => {
-		expect(validarLineas([linea('a', '7', '2026-10-19'), linea('b', '8', '2026-10-19', 30)], hoy).size).toBe(0);
+		expect(
+			validarLineas(
+				[linea('a', '7', '2026-10-19'), linea('b', '8', '2026-10-19', 30)],
+				hoy,
+			).size,
+		).toBe(0);
 	});
 
 	it('marca fecha futura, horas fuera de bloque y la misma persona + día repetida', () => {
@@ -59,9 +88,22 @@ describe('validarLineas', () => {
 			],
 			hoy,
 		);
-		expect(e.get('a')).toEqual({ campo: 'fecha', mensaje: expect.stringMatching(/futuros/) });
-		expect(e.get('b')).toEqual({ campo: 'minutos', mensaje: expect.stringMatching(/bloques de 15 minutos/) });
+		expect(e.get('a')).toEqual({
+			campo: 'fecha',
+			mensaje: expect.stringMatching(/futuros/),
+		});
+		expect(e.get('b')).toEqual({
+			campo: 'minutos',
+			mensaje: expect.stringMatching(/bloques de 15 min/),
+		});
 		expect(e.get('c')?.mensaje).toMatch(/Repetida/);
 		expect(e.get('d')?.mensaje).toMatch(/Repetida/);
+	});
+
+	it('con bloque 30, 45 min no es válido', () => {
+		expect(
+			validarLineas([linea('a', '7', '2026-10-19', 45)], hoy, 30).get('a')
+				?.mensaje,
+		).toMatch(/bloques de 30 min/);
 	});
 });

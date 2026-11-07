@@ -29,8 +29,6 @@ import {
 } from '../../components/horas-extras/ConfirmarRegistroDialog';
 import { GrillaHorasExtras } from '../../components/horas-extras/GrillaHorasExtras';
 import {
-	BLOQUE_HORAS,
-	BLOQUE_MINUTOS,
 	buscarDuplicado,
 	claveDia,
 	diasDelRango,
@@ -40,13 +38,16 @@ import {
 	MAX_DIAS_GRILLA,
 	MAX_LINEAS_LOTE,
 	TIPO_MOTIVO,
+	textoBloque,
 	textoDelMotivo,
 	validarLineas,
 	validarMotivo,
 	validarRangoGrilla,
+	valoresRapidos,
 } from '../../domain/horasExtras';
 import { horariosKeys } from '../../hooks/registro/keys';
 import { useAvisos } from '../../hooks/useAvisos';
+import { useBloqueHorasExtras } from '../../hooks/useBloqueHorasExtras';
 import { useHorariosLayout } from '../../hooks/useHorariosLayout';
 import { useHorasExtras } from '../../hooks/useHorasExtras';
 import { useMotivos } from '../../hooks/useMotivos';
@@ -57,7 +58,6 @@ import { coincideEmpleado } from '../../utils/horasExtras';
 import { getRealColombiaTime } from '../../utils/timeSync';
 
 /** Valores rápidos (minutos) para rellenar. */
-const VALORES_RAPIDOS = [15, 30, 60, 90, 120, 180];
 
 const plural = (n: number, uno: string, varios: string) =>
 	`${n} ${n === 1 ? uno : varios}`;
@@ -81,6 +81,8 @@ export default function CrearHorasExtrasPage() {
 	const [hasta, setHasta] = useState(hoy);
 	const [busqueda, setBusqueda] = useState('');
 	const [tiendaFiltro, setTiendaFiltro] = useState<number | ''>('');
+	const { bloque, cargando: cargandoBloque, aviso } = useBloqueHorasExtras();
+	const rapidos = valoresRapidos(bloque);
 	const [valor, setValor] = useState(60);
 	const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set());
 	const [celdas, setCeldas] = useState<ReadonlyMap<string, number>>(new Map());
@@ -198,7 +200,10 @@ export default function CrearHorasExtrasPage() {
 			),
 		[celdas, dias, personas],
 	);
-	const errores = useMemo(() => validarLineas(lineas, hoy), [lineas, hoy]);
+	const errores = useMemo(
+		() => validarLineas(lineas, hoy, bloque),
+		[lineas, hoy, bloque],
+	);
 	// Líneas de personas que ya tienen una hora extra activa ese día (paso de advertencia).
 	const coincidencias = useMemo(() => {
 		const porId = new Map(personas.map((p) => [p.id, p]));
@@ -428,6 +433,7 @@ export default function CrearHorasExtrasPage() {
 		!excede &&
 		!sinTienda &&
 		!comprobando &&
+		!cargandoBloque &&
 		!guardar.isSuccess;
 
 	return (
@@ -556,11 +562,11 @@ export default function CrearHorasExtrasPage() {
 				<ToggleButtonGroup
 					exclusive
 					size="small"
-					value={VALORES_RAPIDOS.includes(valor) ? valor : null}
+					value={rapidos.includes(valor) ? valor : null}
 					onChange={(_, v: number | null) => v != null && setValor(v)}
 					aria-label="Valor rápido"
 				>
-					{VALORES_RAPIDOS.map((v) => (
+					{rapidos.map((v) => (
 						<ToggleButton key={v} value={v} sx={{ textTransform: 'none' }}>
 							{formatoMinutos(v)}
 						</ToggleButton>
@@ -573,7 +579,7 @@ export default function CrearHorasExtrasPage() {
 					value={valor / 60}
 					onChange={(e) => setValor(Math.round(Number(e.target.value) * 60))}
 					slotProps={{
-						htmlInput: { min: BLOQUE_HORAS, step: BLOQUE_HORAS },
+						htmlInput: { min: bloque / 60, step: bloque / 60 },
 					}}
 					sx={{ width: 120 }}
 				/>
@@ -614,9 +620,9 @@ export default function CrearHorasExtrasPage() {
 				>
 					Limpiar horas
 				</Button>
-				{valor % BLOQUE_MINUTOS !== 0 && (
+				{valor % bloque !== 0 && (
 					<Typography variant="caption" sx={{ color: '#d32f2f' }}>
-						El valor debe ir en bloques de {BLOQUE_MINUTOS} minutos
+						El valor debe ir en bloques de {textoBloque(bloque)}
 					</Typography>
 				)}
 			</Box>
@@ -669,6 +675,11 @@ export default function CrearHorasExtrasPage() {
 				)}
 			</Box>
 
+			{aviso && (
+				<Alert severity="warning" sx={{ mb: 2 }}>
+					{aviso}
+				</Alert>
+			)}
 			{storeIds.length === 0 ? (
 				<Alert severity="info">No tienes tiendas asignadas.</Alert>
 			) : cargandoEmpleados ? (
@@ -717,6 +728,7 @@ export default function CrearHorasExtrasPage() {
 						onMotivo={onMotivo}
 						tiendaDe={tiendaDe}
 						tiendas={tiendasGrilla}
+						bloque={bloque}
 						valorTexto={formatoMinutos(valor)}
 						onCelda={onCelda}
 						onSeleccion={onSeleccion}

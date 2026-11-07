@@ -18,7 +18,6 @@ import {
 import dayjs from 'dayjs';
 import { memo } from 'react';
 import {
-	BLOQUE_HORAS,
 	claveDia,
 	type ErrorLinea,
 	type Motivo,
@@ -62,6 +61,8 @@ export interface GrillaHorasExtrasProps extends Acciones {
 	tiendas: { id: number; name: string }[];
 	/** Texto del valor rápido, para los tooltips de rellenar. */
 	valorTexto: string;
+	/** Minutos del bloque configurado (paso de cada celda). */
+	bloque: number;
 	onRellenarColumna: (dia: string) => void;
 }
 
@@ -98,6 +99,7 @@ interface FilaProps extends Acciones {
 	tienda: number | undefined;
 	tiendas: { id: number; name: string }[];
 	valorTexto: string;
+	bloque: number;
 }
 
 const mismosArrays = (a: unknown[], b: unknown[]) =>
@@ -127,6 +129,7 @@ const FilaPersona = memo(function FilaPersona({
 	tienda,
 	tiendas,
 	valorTexto,
+	bloque,
 	onCelda,
 	onSeleccion,
 	onObservacion,
@@ -203,7 +206,7 @@ const FilaPersona = memo(function FilaPersona({
 						error={!!error}
 						inputProps={{
 							min: 0,
-							step: BLOQUE_HORAS,
+							step: bloque / 60,
 							'aria-label': `Horas de ${p.nombre} el ${dayjs(d).format('DD/MM')}`,
 							'aria-invalid': !!error,
 							style: { textAlign: 'center' },
@@ -301,6 +304,7 @@ export function GrillaHorasExtras({
 	tiendaDe,
 	tiendas,
 	valorTexto,
+	bloque,
 	onRellenarColumna,
 	...acciones
 }: GrillaHorasExtrasProps) {
@@ -391,6 +395,7 @@ export function GrillaHorasExtras({
 								tienda={tiendaDe.get(p.id)}
 								tiendas={tiendas}
 								valorTexto={valorTexto}
+								bloque={bloque}
 								{...acciones}
 							/>
 						);

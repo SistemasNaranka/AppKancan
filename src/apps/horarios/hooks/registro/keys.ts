@@ -34,6 +34,7 @@ export const horariosKeys = {
 	},
 	periodos: ['periodos'] as const,
 	motivosHorasExtras: ['motivosHorasExtras'] as const,
+	configHorasExtras: ['configHorasExtras'] as const,
 	eventosHoy: {
 		todos: ['eventReportsToday'] as const,
 		tienda: (store: Store) => ['eventReportsToday', store] as const,

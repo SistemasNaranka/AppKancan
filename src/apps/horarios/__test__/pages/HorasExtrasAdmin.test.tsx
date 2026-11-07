@@ -34,16 +34,51 @@ vi.mock('@/apps/horarios/api/directus/motivos', () => ({
 	actualizarMotivo: (...a: unknown[]) => actualizarMotivo(...a),
 	borrarMotivo: (...a: unknown[]) => borrarMotivo(...a),
 }));
+const guardarBloque = vi.fn();
+vi.mock('@/apps/horarios/api/directus/configHorasExtras', () => ({
+	leerConfigBloqueAdmin: async () => ({
+		bloque: 15,
+		cambiadoPor: 'Ana Pérez',
+		cambiadoEl: '2026-11-06T10:30:00',
+	}),
+	minutosPendientes: async () =>
+		new Map([
+			[45, 2],
+			[60, 1],
+		]),
+	guardarBloqueHorasExtras: (m: number) => guardarBloque(m),
+}));
+let periodosError = false;
+vi.mock('@/apps/horarios/api/directus/periodos', () => ({
+	listarPeriodosResumen: async () => {
+		if (periodosError) throw new Error('403 com_period');
+		return [
+			{
+				id: 3,
+				name: 'Nov 1',
+				start_date: '2026-11-01',
+				end_date: '2026-11-15',
+				status: 'preliquidado',
+			},
+		];
+	},
+}));
+vi.mock('@/apps/horarios/utils/timeSync', async () => {
+	const dayjs = (await import('dayjs')).default;
+	return { getRealColombiaTime: () => dayjs('2026-11-07T10:00:00') };
+});
 const showSnackbar = vi.fn();
 vi.mock('@/apps/horarios/hooks/useAvisos', () => ({
 	useAvisos: () => ({ showSnackbar }),
 }));
 
-import MotivosPage from '@/apps/horarios/pages/admin/MotivosPage';
+import HorasExtrasAdminPage from '@/apps/horarios/pages/admin/HorasExtrasAdminPage';
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	crearMotivo.mockResolvedValue({});
+	guardarBloque.mockResolvedValue({});
+	periodosError = false;
 	actualizarMotivo.mockResolvedValue({});
 	borrarMotivo.mockResolvedValue(undefined);
 	catalogo = [
@@ -56,7 +91,7 @@ beforeEach(() => {
 });
 
 const montar = async () => {
-	render(<MotivosPage />, { wrapper: createQueryWrapper() });
+	render(<HorasExtrasAdminPage />, { wrapper: createQueryWrapper() });
 	return screen.findByRole('table', { name: 'Motivos de solicitud' });
 };
 const fila = (nombre: string) =>
@@ -136,7 +171,7 @@ describe('Admin · Motivos de horas extras', () => {
 
 	it(`la pestaña Rechazo muestra su lista`, async () => {
 		await montar();
-		fireEvent.click(screen.getByRole('tab', { name: 'Rechazo' }));
+		fireEvent.click(screen.getByRole('tab', { name: 'Motivos de rechazo' }));
 		const tabla = await screen.findByRole('table', {
 			name: 'Motivos de rechazo',
 		});
@@ -156,5 +191,67 @@ describe('Admin · Motivos de horas extras', () => {
 		expect(
 			screen.getByRole('switch', { name: 'Activo: Apagado' }),
 		).toBeDisabled();
+	});
+});
+
+describe('Admin · Bloque de tiempo', () => {
+	const irABloque = async () => {
+		render(<HorasExtrasAdminPage />, { wrapper: createQueryWrapper() });
+		fireEvent.click(screen.getByRole('tab', { name: 'Bloque de tiempo' }));
+		return screen.findByRole('radiogroup');
+	};
+
+	it('muestra el bloque vigente y el último cambio; guardar solo con otro valor', async () => {
+		await irABloque();
+		expect(screen.getByRole('radio', { name: /15 min/ })).toBeChecked();
+		expect(
+			screen.getByText('Último cambio: Ana Pérez · 06/11/2026 10:30'),
+		).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled();
+	});
+
+	it('pide confirmar con las implicaciones reales y guarda', async () => {
+		await irABloque();
+		fireEvent.click(screen.getByRole('radio', { name: /30 min/ }));
+		fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+		const dialogo = screen.getByRole('dialog', {
+			name: '¿Cambiar el bloque de 15 min a 30 min?',
+		});
+		// 45 min no es múltiplo de 30; el periodo Nov 1 contiene hoy.
+		expect(
+			await within(dialogo).findByText(/2 horas pendientes/),
+		).toBeInTheDocument();
+		expect(await within(dialogo).findByText('Nov 1')).toBeInTheDocument();
+		expect(
+			within(dialogo).getByRole('button', { name: 'Cancelar' }),
+		).toHaveFocus();
+		expect(guardarBloque).not.toHaveBeenCalled();
+		fireEvent.click(
+			within(dialogo).getByRole('button', { name: 'Cambiar a 30 min' }),
+		);
+		await waitFor(() => expect(guardarBloque).toHaveBeenCalledWith(30));
+		expect(showSnackbar).toHaveBeenCalledWith(
+			'Bloque cambiado a 30 min (0.5 h)',
+			'success',
+		);
+	});
+
+	it('sin permiso sobre los periodos lo dice y aun así guarda', async () => {
+		periodosError = true;
+		await irABloque();
+		fireEvent.click(screen.getByRole('radio', { name: /60 min/ }));
+		fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+		const dialogo = screen.getByRole('dialog');
+		expect(
+			await within(dialogo).findByText(
+				'No se pudo revisar si hay un periodo en curso.',
+				{},
+				{ timeout: 5000 },
+			),
+		).toBeInTheDocument();
+		fireEvent.click(
+			within(dialogo).getByRole('button', { name: 'Cambiar a 60 min' }),
+		);
+		await waitFor(() => expect(guardarBloque).toHaveBeenCalledWith(60));
 	});
 });

@@ -18,6 +18,10 @@ vi.mock('@/apps/horarios/api/directus/horasExtras', () => ({
 	crearHorasExtras: (d: unknown) => crearHorasExtras(d),
 	listarHorasExtras: (f: unknown) => listarHorasExtras(f),
 }));
+let bloque = 15;
+vi.mock('@/apps/horarios/api/directus/configHorasExtras', () => ({
+	leerBloqueHorasExtras: async () => bloque,
+}));
 const MOTIVOS = [
 	{
 		id: 1,
@@ -125,6 +129,7 @@ const confirmar = (d: HTMLElement) =>
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	bloque = 15;
 	getEmpleadosBulk.mockResolvedValue([
 		emp(7, 'ANA PÉREZ'),
 		emp(8, 'JOSÉ RUIZ'),
@@ -480,7 +485,18 @@ describe('CrearHorasExtrasPage (grilla personas × días)', {
 
 	it('valores rápidos desde 15 minutos', async () => {
 		await montar();
-		expect(screen.getByRole('button', { name: '15 min' })).toBeInTheDocument();
+		expect(
+			await screen.findByRole('button', { name: '15 min' }),
+		).toBeInTheDocument();
+	});
+
+	it('con bloque de 30 min, los valores rápidos empiezan en 30', async () => {
+		bloque = 30;
+		await montar();
+		expect(
+			await screen.findByRole('button', { name: '30 min' }),
+		).toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: '15 min' })).toBeNull();
 	});
 
 	it('muestra el cargando mientras llegan las personas', async () => {

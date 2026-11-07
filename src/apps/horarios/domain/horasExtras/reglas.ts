@@ -1,10 +1,22 @@
 import { MAX_CARACTERES_OBSERVACION } from '../registro/reglas';
 import { ESTADOS_ACTIVOS, type EstadoHoraExtra } from './estados';
 
-/** Las horas extras se registran en bloques de 15 minutos. */
+/** Bloque por defecto, si no se puede leer el configurado en Directus. */
 export const BLOQUE_MINUTOS = 15;
-/** El bloque en horas, para los campos que se escriben en horas (0.25). */
-export const BLOQUE_HORAS = BLOQUE_MINUTOS / 60;
+/** Solo bloques que en horas dan un decimal exacto (nómina): 0.25, 0.5, 1. */
+export const BLOQUES_PERMITIDOS = [15, 30, 60] as const;
+
+export const esBloquePermitido = (minutos: unknown): minutos is number =>
+	(BLOQUES_PERMITIDOS as readonly unknown[]).includes(minutos);
+
+/** "15 min (0.25 h)". */
+export const textoBloque = (bloque: number) =>
+	`${bloque} min (${bloque / 60} h)`;
+
+/** Atajos del registro masivo: múltiplos del bloque, sin repetir. */
+export const valoresRapidos = (bloque: number) => [
+	...new Set([1, 2, 4, 6, 8, 12].map((n) => n * bloque)),
+];
 
 export interface HoraExtraBorrador {
 	/** YYYY-MM-DD */
@@ -18,6 +30,8 @@ export interface ContextoValidacion {
 	hoy: string;
 	empleadoActivo: boolean;
 	empleadoDelLider: boolean;
+	/** Minutos del bloque configurado; por defecto `BLOQUE_MINUTOS`. */
+	bloque?: number;
 }
 
 export type ErroresHoraExtra = Partial<
@@ -37,8 +51,8 @@ export function validarHoraExtra(
 
 	if (!Number.isInteger(b.minutos) || b.minutos <= 0)
 		errores.minutos = 'Las horas extras deben ser mayores que cero';
-	else if (b.minutos % BLOQUE_MINUTOS !== 0)
-		errores.minutos = `Las horas extras van en bloques de ${BLOQUE_MINUTOS} minutos`;
+	else if (b.minutos % (ctx.bloque ?? BLOQUE_MINUTOS) !== 0)
+		errores.minutos = `Las horas extras van en bloques de ${textoBloque(ctx.bloque ?? BLOQUE_MINUTOS)}`;
 
 	if ((b.observacion?.length ?? 0) > MAX_CARACTERES_OBSERVACION)
 		errores.observacion = `Máximo ${MAX_CARACTERES_OBSERVACION} caracteres`;
@@ -65,3 +79,13 @@ export function formatoMinutos(minutos: number): string {
 	if (h === 0) return `${m} min`;
 	return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
+
+/** Cuántas horas (registros) no son múltiplo de `bloque`, de un conteo minutos → registros. */
+export const fueraDeBloque = (
+	porMinutos: ReadonlyMap<number, number>,
+	bloque: number,
+) =>
+	[...porMinutos].reduce(
+		(n, [minutos, registros]) => n + (minutos % bloque === 0 ? 0 : registros),
+		0,
+	);

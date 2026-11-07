@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { validarHoraExtra } from './reglas';
+import { BLOQUE_MINUTOS, validarHoraExtra } from './reglas';
 
 /** Tope de líneas por lote: una petición razonable y una revisión humana posible. */
 export const MAX_LINEAS_LOTE = 200;
@@ -38,12 +38,13 @@ export interface ErrorLinea {
 
 /**
  * Error de cada línea (por `clave`); vacío si todas son válidas. Reutiliza
- * `validarHoraExtra` (fecha no futura, bloques de `BLOQUE_MINUTOS`) y marca la misma
+ * `validarHoraExtra` (fecha no futura, bloques de `bloque` minutos) y marca la misma
  * persona + día repetida dentro del lote.
  */
 export function validarLineas(
 	lineas: readonly LineaHoraExtra[],
 	hoy: string,
+	bloque = BLOQUE_MINUTOS,
 ): Map<string, ErrorLinea> {
 	const errores = new Map<string, ErrorLinea>();
 	const vistas = new Map<string, number>();
@@ -54,7 +55,7 @@ export function validarLineas(
 	for (const l of lineas) {
 		const e = validarHoraExtra(
 			{ workDate: l.fecha, minutos: l.minutos },
-			{ hoy, empleadoActivo: true, empleadoDelLider: true },
+			{ hoy, empleadoActivo: true, empleadoDelLider: true, bloque },
 		);
 		const repetida = (vistas.get(claveDia(l.empleadoId, l.fecha)) ?? 0) > 1;
 		if (e.workDate)

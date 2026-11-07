@@ -189,14 +189,14 @@ export const SECCIONES: readonly Seccion[] = [
 		path: 'admin',
 		label: 'ADMIN',
 		titulo: 'Panel Administrativo',
-		subtitulo: 'Empleados de todas las tiendas y motivos de horas extras',
+		subtitulo: 'Empleados de todas las tiendas y configuración de horas extras',
 		icon: AdminPanelSettingsIcon,
 		roles: ['admin'],
 		tienda: 'ninguno',
 		mostrarNormas: false,
 		subsecciones: [
 			{ path: 'empleados', label: 'Empleados' },
-			{ path: 'motivos', label: 'Motivos de horas extras' },
+			{ path: 'horas-extras', label: 'Horas extras' },
 		],
 	},
 ];

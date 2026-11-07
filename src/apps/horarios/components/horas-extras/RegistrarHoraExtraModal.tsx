@@ -1,4 +1,5 @@
 import {
+	Alert,
 	Autocomplete,
 	Box,
 	Button,
@@ -20,13 +21,12 @@ import { type ReactNode, useState } from 'react';
 import { useAuth } from '@/auth/hooks/useAuth';
 import { crearHorasExtras } from '../../api/directus/horasExtras';
 import {
-	BLOQUE_HORAS,
-	BLOQUE_MINUTOS,
 	buscarDuplicado,
 	type ErroresHoraExtra,
 	type ErroresMotivo,
 	formatoMinutos,
 	TIPO_MOTIVO,
+	textoBloque,
 	textoDelMotivo,
 	validarHoraExtra,
 	validarMotivo,
@@ -35,6 +35,7 @@ import type { EmpleadoAsistencia } from '../../domain/registro';
 import { MAX_CARACTERES_OBSERVACION } from '../../domain/registro';
 import { horariosKeys } from '../../hooks/registro/keys';
 import { useAvisos } from '../../hooks/useAvisos';
+import { useBloqueHorasExtras } from '../../hooks/useBloqueHorasExtras';
 import { useHorasExtras } from '../../hooks/useHorasExtras';
 import { useMotivos } from '../../hooks/useMotivos';
 import type { CreateOverTimeDto } from '../../interfaces/api/overTime';
@@ -114,6 +115,11 @@ export function RegistrarHoraExtraModal({
 		ErroresHoraExtra & ErroresMotivo & { tienda?: string }
 	>({});
 	const motivos = useMotivos(TIPO_MOTIVO.solicitud, open);
+	const {
+		bloque,
+		cargando: cargandoBloque,
+		aviso,
+	} = useBloqueHorasExtras(open);
 	const motivo = motivoId === '' ? undefined : motivos.porId.get(motivoId);
 
 	const empleadoId = Number(empleado?.id);
@@ -163,6 +169,7 @@ export function RegistrarHoraExtraModal({
 					empleadoActivo: true, // la lista solo trae empleados activos
 					empleadoDelLider:
 						tiendaEmpleado != null && tiendasLider.includes(tiendaEmpleado),
+					bloque,
 				},
 			),
 			...validarMotivo(motivo, observacion),
@@ -205,6 +212,7 @@ export function RegistrarHoraExtraModal({
 					<Box
 						sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}
 					>
+						{aviso && <Alert severity="warning">{aviso}</Alert>}
 						<Autocomplete
 							options={empleados}
 							value={empleado}
@@ -310,14 +318,14 @@ export function RegistrarHoraExtraModal({
 							value={horas}
 							onChange={(e) => setHoras(e.target.value)}
 							slotProps={{
-								htmlInput: { min: BLOQUE_HORAS, step: BLOQUE_HORAS },
+								htmlInput: { min: bloque / 60, step: bloque / 60 },
 							}}
 							error={!!errores.minutos}
 							helperText={
 								errores.minutos ??
 								(minutos > 0
 									? formatoMinutos(minutos)
-									: `En bloques de ${BLOQUE_MINUTOS} min (${BLOQUE_HORAS} = ${BLOQUE_MINUTOS} min)`)
+									: `En bloques de ${textoBloque(bloque)}`)
 							}
 							fullWidth
 						/>
@@ -376,7 +384,7 @@ export function RegistrarHoraExtraModal({
 					<Button
 						variant="contained"
 						onClick={enviar}
-						disabled={guardar.isPending}
+						disabled={guardar.isPending || cargandoBloque}
 						startIcon={
 							guardar.isPending ? <CircularProgress size={16} /> : undefined
 						}
