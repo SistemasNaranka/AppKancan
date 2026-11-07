@@ -1,5 +1,5 @@
 /**
- * App Kancan - Software Propietario
+ *App Kancan - Software Propietario
  * Copyright (c) 2025 Kancan. Todos los derechos reservados.
  */
 

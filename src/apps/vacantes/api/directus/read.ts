@@ -1,6 +1,6 @@
 import directus from '@/services/directus/directus';
 import { withAutoRefresh } from '@/auth/services/directusInterceptor';
-import { readItems, readAssetRaw } from '@directus/sdk';
+import { readItems, readAssetRaw, readMe } from '@directus/sdk';
 
 export const ESTADOS = [
   'Recibido', 'En revisión', 'Preseleccionado',
@@ -30,8 +30,6 @@ const EDUCACION: Record<string, string> = {
 export const formatearEducacion = (v?: string | null) =>
   v ? EDUCACION[v] ?? v : 'No especificado';
 
-// Lee los cargos desde la relación M2M "positions",
-// sin depender del nombre del campo intermedio
 export const getCargos = (p: any): string[] => {
   const rows: any[] = Array.isArray(p?.positions) ? p.positions : [];
   const nombres = rows
@@ -52,10 +50,9 @@ export const formatearFecha = (iso: string) =>
     day: '2-digit', month: 'short', year: 'numeric',
   });
 
-// Abre la hoja de vida con la sesión del usuario (un enlace directo a /assets no lleva token → 403)
 export async function abrirCv(cv: string | null) {
   if (!cv) return;
-  const ventana = window.open('', '_blank'); // abrir ya, o el navegador la bloquea
+  const ventana = window.open('', '_blank');
   try {
     const stream = await withAutoRefresh(() => directus.request(readAssetRaw(cv)));
     const datos = await new Response(stream as ReadableStream).arrayBuffer();
@@ -84,13 +81,35 @@ export interface Postulacion {
   date_created: string;
   status: string;
   positions?: any[] | null;
+  ai_score?: number | null; // 👈 CAMBIADO AQUÍ
+  ai_analysis?: string | null;
+}
+
+// Helper: parsea el string ai_analysis a objeto
+export function parsearAnalisisIA(p: Postulacion): {
+  puntaje: number;
+  fortalezas: string[];
+  aVerificar: string[];
+  resumen: string;
+  cargo: string;
+  fecha: string;
+  modelo?: string;
+} | null {
+  if (!p.ai_analysis) return null;
+  try {
+    return typeof p.ai_analysis === 'string'
+      ? JSON.parse(p.ai_analysis)
+      : (p.ai_analysis as any);
+  } catch {
+    return null;
+  }
 }
 
 export async function getApplications(): Promise<Postulacion[]> {
   const res = await withAutoRefresh(() =>
     directus.request(
       readItems('app_applications' as never, {
-        fields: ['*', 'positions.*.*'],
+        fields: ['*', 'positions.*.*', 'ai_score', 'ai_analysis'], // 👈 CAMBIADO AQUÍ
         sort: ['-date_created'],
         limit: -1,
       } as never)
@@ -98,3 +117,43 @@ export async function getApplications(): Promise<Postulacion[]> {
   );
   return res as unknown as Postulacion[];
 }
+
+export async function getModelosIAUsuario(): Promise<unknown> {
+  try {
+    const yo = await withAutoRefresh(() =>
+      directus.request(readMe({ fields: ['models_ia'] } as never))
+    );
+    return (yo as any)?.models_ia ?? null;
+  } catch (err) {
+    console.warn('[vacantes] No se pudo leer models_ia del usuario:', err);
+    return null;
+  }
+}
+
+export async function descargarCvBytes(cv: string): Promise<ArrayBuffer> {
+  const stream = await withAutoRefresh(() => directus.request(readAssetRaw(cv)));
+  return new Response(stream as ReadableStream).arrayBuffer();
+}
+
+export async function getDescripcionCargo(nombre: string): Promise<string> {
+  if (!nombre) return '';
+  try {
+    const res = await withAutoRefresh(() =>
+      directus.request(
+        readItems('app_positions' as never, {
+          filter: { nombre: { _eq: nombre } },
+          fields: ['id', 'nombre', 'descripcion'],
+          limit: 1,
+        } as never)
+      )
+    );
+    const arr = res as any[];
+    const desc = arr?.[0]?.descripcion ?? '';
+    console.log(`[vacantes] Descripción del cargo "${nombre}":`, desc ? 'ok' : 'vacía');
+    return desc;
+  } catch (err) {
+    console.warn('[vacantes] No se pudo leer la descripción del cargo:', err);
+    return '';
+  }
+}
+                                                                                                   

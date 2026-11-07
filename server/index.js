@@ -33,6 +33,8 @@ const ruletaRoutes = require('./routes/ruleta');
 app.use('/api', ruletaRoutes);
 
 const DIST_PATH = path.resolve(process.cwd(), 'dist');
+const iaVacantesRoutes = require('./routes/ia-vacantes');
+app.use('/api', iaVacantesRoutes);
 
 // Servir archivos estáticos del frontend
 app.use(express.static(DIST_PATH));
