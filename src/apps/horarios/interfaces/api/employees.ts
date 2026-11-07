@@ -10,6 +10,8 @@ export interface CreateEmployeeDto {
 	second_last_name?: string;
 	store_id: number;
 	position_id: number;
+	/** Firmó la política de tratamiento de datos (foto y GPS). */
+	data_consent: boolean;
 }
 
 /** Entrada de `actualizarEmpleado`: solo se envían los campos definidos. */
@@ -37,6 +39,7 @@ export interface EmployeeDto {
 	phone_number?: string | null;
 	store_id?: Relacion;
 	position_id?: Relacion<{ id?: number | string; name?: string | null }>;
+	data_consent?: boolean | null;
 }
 
 /** Fila de `core_positions`. */

@@ -26,6 +26,8 @@ export interface EmpleadoAsistencia {
 	registros: RegistrosAsistencia;
 	pausasActivasCount?: number;
 	storeId?: number | null;
+	/** Autoriza el tratamiento de datos; sin autorización no se toma foto ni GPS. */
+	autorizaDatos?: boolean;
 }
 
 /** Lo mínimo de una fila de `com_time_records` que necesita el registro. */

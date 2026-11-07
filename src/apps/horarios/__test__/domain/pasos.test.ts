@@ -31,4 +31,12 @@ describe('pasosPrevios (R9)', () => {
 			pasosPrevios(LOG_TYPE.inicioJornada, { ...real, esDemo: true }),
 		).toEqual([]);
 	});
+
+	it('sin autorización de datos: no pide foto + GPS, pero sí normas', () => {
+		const sinAutorizacion = { ...real, autorizaDatos: false };
+		expect(pasosPrevios(LOG_TYPE.inicioJornada, sinAutorizacion)).toEqual([
+			'normas',
+		]);
+		expect(pasosPrevios(LOG_TYPE.finJornada, sinAutorizacion)).toEqual([]);
+	});
 });

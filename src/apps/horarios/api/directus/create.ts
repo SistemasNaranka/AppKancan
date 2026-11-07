@@ -200,6 +200,7 @@ export async function crearEmpleado(data: CreateEmployeeDto) {
 			last_name: data.last_name.trim(),
 			store_id: Number(data.store_id),
 			position_id: Number(data.position_id),
+			data_consent: data.data_consent,
 			status: 'Activo',
 			email: EMAIL_DEFECTO,
 			phone_number: TELEFONO_DEFECTO,

@@ -8,6 +8,8 @@ export interface ContextoPasos {
 	esDemo: boolean;
 	/** Hay normas vigentes publicadas. */
 	hayNormas: boolean;
+	/** Sin autorización de tratamiento de datos no se toma foto ni GPS. Por defecto, autorizado. */
+	autorizaDatos?: boolean;
 }
 
 export function pasosPrevios(
@@ -18,6 +20,7 @@ export function pasosPrevios(
 	const pasos: PasoPrevio[] = [];
 	if (marcacion === LOG_TYPE.inicioJornada && ctx.hayNormas)
 		pasos.push('normas');
-	if (requiereVerificacion(marcacion)) pasos.push('verificacion');
+	if (requiereVerificacion(marcacion) && ctx.autorizaDatos !== false)
+		pasos.push('verificacion');
 	return pasos;
 }

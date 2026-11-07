@@ -36,6 +36,7 @@ export const getEmpleadosBulk = async (
 						'second_last_name',
 						'store_id',
 						'position_id.name',
+						'data_consent',
 					],
 					filter,
 					limit: -1,
@@ -60,6 +61,8 @@ export const getEmpleadosBulk = async (
 				estadoActual: ESTADO.entradaPendiente,
 				storeId: e.store_id ? idRelacion(e.store_id) : null,
 				registros: crearRegistrosVacios(),
+				// Vacío cuenta como autorizado: solo un "no" explícito quita foto y GPS.
+				autorizaDatos: e.data_consent !== false,
 			};
 		});
 	} catch (err) {

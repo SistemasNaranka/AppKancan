@@ -7,10 +7,9 @@ import {
 	ESTADO,
 	LOG_TYPE,
 } from '../../../domain/registro';
-import type { AccionesTarjeta } from '../../../interfaces/registro';
 import type { EmpleadoAsistencia } from '../../../domain/registro/modelo';
 import type { TipoNovedad } from '../../../interfaces/novedades';
-import type { Motivo } from '../../../interfaces/registro';
+import type { AccionesTarjeta, Motivo } from '../../../interfaces/registro';
 
 vi.mock('../../../components/verification/TimeRecordVerificationModal', () => ({
 	TimeRecordVerificationModal: ({ open }: { open: boolean }) =>
@@ -269,5 +268,27 @@ describe('EmployeeCard', () => {
 
 		// Verification modal is triggered since normas are already accepted
 		expect(screen.getByTestId('mock-verification-modal')).toBeInTheDocument();
+	});
+
+	it('sin autorización de datos, Comenzar Jornada guarda sin abrir la cámara', async () => {
+		const user = userEvent.setup();
+
+		render(
+			<EmployeeCard
+				empleado={{ ...mockEmpleado, autorizaDatos: false }}
+				catalogos={mockCatalogos}
+				normas={mockNormas}
+				acciones={mockAcciones}
+			/>,
+		);
+
+		await user.click(screen.getByRole('button', { name: /Comenzar Jornada/i }));
+
+		expect(screen.queryByTestId('mock-verification-modal')).toBeNull();
+		expect(mockAcciones.registrar).toHaveBeenCalledWith({
+			empleadoId: 'emp-101',
+			marcacion: LOG_TYPE.inicioJornada,
+			verificacion: undefined,
+		});
 	});
 });

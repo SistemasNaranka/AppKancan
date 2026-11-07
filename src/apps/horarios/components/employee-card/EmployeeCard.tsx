@@ -108,6 +108,7 @@ function EmployeeCardContent({
 	const flujo = useFlujoMarcacion(id, acciones, {
 		esDemo: demo,
 		hayNormas: !!normas.vigentes,
+		autorizaDatos: empleado.autorizaDatos,
 	});
 
 	const normasPorAceptar =

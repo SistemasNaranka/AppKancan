@@ -28,6 +28,7 @@ export interface NuevoEmpleadoPayload {
 	second_last_name?: string;
 	store_id: number;
 	position_id: number;
+	data_consent: boolean;
 	email?: string;
 	phone?: string;
 }

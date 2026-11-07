@@ -2,7 +2,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box,
   TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete,
-  Typography, Divider, FormHelperText, CircularProgress,
+  Typography, Divider, FormHelperText, CircularProgress, FormControlLabel, Checkbox,
 } from '@mui/material';
 import * as yup from 'yup';
 import PersonIcon from '@mui/icons-material/Person';
@@ -48,6 +48,7 @@ const initialForm = (tipoDocDefault: string) => ({
   document_number: '',
   store_id: 0,
   position_id: 0,
+  data_consent: false,
   email: '',
   phone: '',
 });
@@ -189,6 +190,7 @@ export default function DialogNuevoEmpleado({
         second_last_name: partes.second_last_name || undefined,
         store_id: datosForm.store_id,
         position_id: datosForm.position_id,
+        data_consent: datosForm.data_consent,
         email: datosForm.email || undefined,
         phone: datosForm.phone || undefined,
       });
@@ -303,6 +305,16 @@ export default function DialogNuevoEmpleado({
             </Select>
             {errors.position_id && <FormHelperText>{errors.position_id}</FormHelperText>}
           </FormControl>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={form.data_consent}
+                onChange={(e) => setCampo('data_consent', e.target.checked)}
+              />
+            }
+            label="Política de tratamiento de datos (autoriza foto y GPS)"
+          />
 
           <Divider textAlign="left">
             <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>CONTACTO (opcional)</Typography>

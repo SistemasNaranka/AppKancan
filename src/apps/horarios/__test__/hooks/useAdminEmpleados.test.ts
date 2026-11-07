@@ -188,6 +188,7 @@ describe('useAdminEmpleados', () => {
 				last_name: 'López',
 				store_id: 1,
 				position_id: 1,
+				data_consent: false,
 			};
 
 			await act(async () => {
