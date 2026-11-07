@@ -220,17 +220,16 @@ export default function ReportePage({
 	return (
 		<Box
 			sx={{
-				p: { xs: 1.5, sm: 3 },
 				display: 'flex',
 				flexDirection: 'column',
-				gap: 3,
+				gap: 2,
 			}}
 		>
 			{showFakeExport && <FakeExportModal />}
 			<Paper
 				elevation={0}
 				sx={{
-					p: { xs: 2, sm: 3 },
+					p: { xs: 1.5, sm: 3 },
 					borderRadius: 4,
 					border: '1px solid #e2e8f0',
 					boxShadow: '0 4px 12px rgba(0,0,0,0.02)',

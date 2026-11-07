@@ -23,6 +23,8 @@ const MonitoreoSeccion = lazy(
 );
 const ReportesSeccion = lazy(() => import('./pages/secciones/ReportesSeccion'));
 const AdminSeccion = lazy(() => import('./pages/secciones/AdminSeccion'));
+const AdminEmpleados = lazy(() => import('./pages/admin/EmpleadosPage'));
+const AdminMotivos = lazy(() => import('./pages/admin/MotivosPage'));
 const HorasExtrasSeccion = lazy(
 	() => import('./pages/secciones/HorasExtrasSeccion'),
 );
@@ -87,7 +89,11 @@ const rutasHorarios: RouteObject[] = [
 			seccion('historial', <HistorialSeccion />),
 			seccion('monitoreo', <MonitoreoSeccion />),
 			seccion('reportes', <ReportesSeccion />),
-			seccion('admin', <AdminSeccion />),
+			seccion('admin', <AdminSeccion />, [
+				{ index: true, element: <IndexSubseccion seccion="admin" /> },
+				subseccion('admin', 'empleados', <AdminEmpleados />),
+				subseccion('admin', 'motivos', <AdminMotivos />),
+			]),
 			seccion('horas-extras', <HorasExtrasSeccion />, [
 				{ index: true, element: <IndexSubseccion seccion="horas-extras" /> },
 				subseccion('horas-extras', 'registradas', <HorasExtrasRegistradas />),

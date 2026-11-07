@@ -1,13 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { aMotivo } from '@/apps/horarios/api/directus/motivos';
 import {
+	hayCupoMotivo,
+	MAX_MOTIVOS_ACTIVOS,
 	type Motivo,
 	motivosParaElegir,
+	ordenNuevoMotivo,
 	textoDelMotivo,
 	validarMotivo,
+	validarNuevoMotivo,
 } from '@/apps/horarios/domain/horasExtras';
 
-const m = (id: number, nombre: string, extra: Partial<Motivo> = {}): Motivo => ({
+const m = (
+	id: number,
+	nombre: string,
+	extra: Partial<Motivo> = {},
+): Motivo => ({
 	id,
 	nombre,
 	descripcion: '',
@@ -15,6 +23,7 @@ const m = (id: number, nombre: string, extra: Partial<Motivo> = {}): Motivo => (
 	pideTexto: false,
 	activo: true,
 	orden: id,
+	sistema: false,
 	...extra,
 });
 const otros = m(99, 'Otros', { pideTexto: true });
@@ -33,7 +42,9 @@ describe('motivosParaElegir', () => {
 			'Inventario',
 			'Otros',
 		]);
-		expect(motivosParaElegir(lista, 'rechazo').map((x) => x.nombre)).toEqual(['No autorizada']);
+		expect(motivosParaElegir(lista, 'rechazo').map((x) => x.nombre)).toEqual([
+			'No autorizada',
+		]);
 	});
 });
 
@@ -56,16 +67,98 @@ describe('validarMotivo', () => {
 describe('textoDelMotivo', () => {
 	it('solo se guarda el texto del motivo que lo pide', () => {
 		expect(textoDelMotivo(otros, ' Auditoría ')).toBe('Auditoría');
-		expect(textoDelMotivo(m(1, 'Fuerza mayor'), 'texto que quedó escrito')).toBe('');
+		expect(
+			textoDelMotivo(m(1, 'Fuerza mayor'), 'texto que quedó escrito'),
+		).toBe('');
 	});
 });
 
 describe('aMotivo (catálogo de Directus)', () => {
 	it('mapea los campos y descarta tipos desconocidos', () => {
 		expect(
-			aMotivo({ id: 4, name: ' Otros ', description: null, type: 'solicitud', requires_note: true, status: 'active', sort: 99 }),
-		).toEqual({ id: 4, nombre: 'Otros', descripcion: '', tipo: 'solicitud', pideTexto: true, activo: true, orden: 99 });
-		expect(aMotivo({ id: 5, name: 'X', type: 'rechazo', status: 'inactive' })?.activo).toBe(false);
+			aMotivo({
+				id: 4,
+				name: ' Otros ',
+				description: null,
+				type: 'solicitud',
+				requires_note: true,
+				status: 'active',
+				sort: 99,
+				is_system: true,
+			}),
+		).toEqual({
+			id: 4,
+			nombre: 'Otros',
+			descripcion: '',
+			tipo: 'solicitud',
+			pideTexto: true,
+			activo: true,
+			orden: 99,
+			sistema: true,
+		});
+		expect(aMotivo({ id: 7, name: 'Nuevo', type: 'rechazo' })?.sistema).toBe(
+			false,
+		);
+		expect(
+			aMotivo({ id: 5, name: 'X', type: 'rechazo', status: 'inactive' })
+				?.activo,
+		).toBe(false);
 		expect(aMotivo({ id: 6, name: 'X', type: 'otro' })).toBeNull();
+	});
+});
+
+describe('opciones nuevas (Admin)', () => {
+	const lista = [
+		m(1, 'Fuerza mayor', { sistema: true }),
+		m(2, 'Toma física de inventario', { sistema: true }),
+		{ ...otros, sistema: true },
+	];
+
+	it('nombre requerido, con largo máximo y sin repetir (ni por mayúsculas ni tildes)', () => {
+		expect(
+			validarNuevoMotivo({ nombre: '  ', descripcion: '' }, lista),
+		).toEqual({ nombre: 'Escribe el nombre' });
+		expect(
+			validarNuevoMotivo({ nombre: 'x'.repeat(61), descripcion: '' }, lista)
+				.nombre,
+		).toBe('Máximo 60 caracteres');
+		expect(
+			validarNuevoMotivo(
+				{ nombre: ' toma  fisica de INVENTARIO', descripcion: '' },
+				lista,
+			).nombre,
+		).toBe('Ya existe un motivo con ese nombre');
+		expect(
+			validarNuevoMotivo(
+				{ nombre: 'Auditoría', descripcion: 'd'.repeat(151) },
+				lista,
+			),
+		).toEqual({
+			descripcion: 'Máximo 150 caracteres',
+		});
+		// Al editar, su propio nombre no cuenta como repetido.
+		const propio = m(10, 'Auditoría');
+		expect(
+			validarNuevoMotivo(
+				{ nombre: 'auditoria', descripcion: '' },
+				[...lista, propio],
+				10,
+			),
+		).toEqual({});
+	});
+
+	it('va después de los demás y antes de "Otros"', () => {
+		expect(ordenNuevoMotivo(lista)).toBe(3);
+		expect(ordenNuevoMotivo([...lista, m(10, 'Auditoría')])).toBe(11);
+		expect(ordenNuevoMotivo([...lista, m(98, 'Tope')])).toBe(98);
+	});
+
+	it(`máximo ${MAX_MOTIVOS_ACTIVOS} activos por lista; los inactivos no cuentan`, () => {
+		const nueve = Array.from({ length: 9 }, (_, i) => m(i + 1, `M${i}`));
+		expect(hayCupoMotivo(nueve)).toBe(true);
+		expect(hayCupoMotivo([...nueve, m(20, 'Uno más')])).toBe(false);
+		expect(
+			hayCupoMotivo([...nueve, m(20, 'Inactivo', { activo: false })]),
+		).toBe(true);
 	});
 });

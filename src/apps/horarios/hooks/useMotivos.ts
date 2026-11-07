@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { listarMotivos } from '../api/directus/motivos';
 import {
 	type Motivo,
+	motivosDelTipo,
 	motivosParaElegir,
 	type TipoMotivo,
 } from '../domain/horasExtras';
@@ -21,14 +22,7 @@ export function useMotivos(tipo: TipoMotivo, enabled = true) {
 	const todos = q.data ?? SIN_MOTIVOS;
 	const opciones = useMemo(() => motivosParaElegir(todos, tipo), [todos, tipo]);
 	// Las horas viejas pueden usar motivos ya inactivos.
-	const delTipo = useMemo(
-		() =>
-			motivosParaElegir(
-				todos.map((m) => ({ ...m, activo: true })),
-				tipo,
-			),
-		[todos, tipo],
-	);
+	const delTipo = useMemo(() => motivosDelTipo(todos, tipo), [todos, tipo]);
 	const porId = useMemo(() => new Map(todos.map((m) => [m.id, m])), [todos]);
 	return { opciones, delTipo, porId, isLoading: q.isLoading, error: q.error };
 }

@@ -84,4 +84,5 @@ export interface OverTimeReasonDto {
 	requires_note?: boolean | null;
 	status?: string | null;
 	sort?: number | null;
+	is_system?: boolean | null;
 }

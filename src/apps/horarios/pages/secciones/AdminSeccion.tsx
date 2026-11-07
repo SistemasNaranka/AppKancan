@@ -1,13 +1,6 @@
-import { useState } from 'react';
-import AdminEmpleadosPage from '../AdminEmpleadosPage';
+import SubSeccionLayout from '../../layouts/SubSeccionLayout';
 
-/**
- * Sección "Admin" (/horarios/admin). Adaptador sobre `AdminEmpleadosPage`.
- * Admin tiene su propio filtro de tienda (`tienda: 'ninguno'` en el header) y lo
- * mantiene en estado local: así su reset al montarse ya no borra la tienda
- * seleccionada del resto de secciones.
- */
+/** Sección "Admin" (/horarios/admin). Las sub‑pestañas son rutas hijas. */
 export default function AdminSeccion() {
-	const [storeSel, setStoreSel] = useState<number | null>(null);
-	return <AdminEmpleadosPage storeSel={storeSel} onStoreChange={setStoreSel} />;
+	return <SubSeccionLayout seccion="admin" />;
 }
