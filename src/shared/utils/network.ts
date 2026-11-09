@@ -1,73 +1,95 @@
 export function resolveNetworkUrl(url: string | undefined): string {
-  if (!url) return "";
+	if (!url) return '';
 
-  if (typeof window === "undefined") return url;
+	if (typeof window === 'undefined') return url;
 
-  const hostname = window.location.hostname;
+	const hostname = window.location.hostname;
 
-  const localDirectusUrl = import.meta.env.VITE_DIRECTUS_URL;
-  const externalDirectusUrl = import.meta.env.VITE_DIRECTUS_URL_EXTERNAL;
-  const localWebhookUrl = import.meta.env.VITE_WEBHOOK_URL_TRASLADOS;
-  const externalWebhookHost = import.meta.env.VITE_WEBHOOK_HOST_EXTERNAL;
+	const localDirectusUrl = import.meta.env.VITE_DIRECTUS_URL;
+	const externalDirectusUrl = import.meta.env.VITE_DIRECTUS_URL_EXTERNAL;
+	const localWebhookUrl = import.meta.env.VITE_WEBHOOK_URL_TRASLADOS;
+	const externalWebhookHost = import.meta.env.VITE_WEBHOOK_HOST_EXTERNAL;
 
-  if (!localDirectusUrl || !externalDirectusUrl || !localWebhookUrl || !externalWebhookHost) {
-    return url;
-  }
+	let localSubnet = '';
+	let localDirectusOrigin = '';
+	let externalDirectusOrigin = '';
+	let localWebhookOrigin = '';
+	let externalWebhookOrigin = '';
 
-  let localSubnet = "";
-  let localHostAndPort = "";
-  let externalHostAndPort = "";
-  let localWebhookHost = "";
+	if (localDirectusUrl) {
+		try {
+			const parsedLocal = new URL(localDirectusUrl);
+			localDirectusOrigin = parsedLocal.origin;
 
-  try {
-    const parsedLocal = new URL(localDirectusUrl);
-    localHostAndPort = parsedLocal.host;
-    
-    const ipMatch = parsedLocal.hostname.match(/^(\d+\.\d+\.\d+\.)/);
-    if (ipMatch) {
-      localSubnet = ipMatch[1];
-    } else {
-      localSubnet = parsedLocal.hostname;
-    }
-  } catch (e) {
-    console.warn("Error parsing VITE_DIRECTUS_URL in resolveNetworkUrl:", e);
-    return url;
-  }
+			const ipMatch = parsedLocal.hostname.match(/^(\d+\.\d+\.\d+\.)/);
+			localSubnet = ipMatch ? ipMatch[1] : parsedLocal.hostname;
+		} catch (e) {
+			console.warn('Error parsing VITE_DIRECTUS_URL in resolveNetworkUrl:', e);
+		}
+	}
 
-  try {
-    const parsedExternal = new URL(externalDirectusUrl);
-    externalHostAndPort = parsedExternal.host;
-  } catch (e) {
-    console.warn("Error parsing VITE_DIRECTUS_URL_EXTERNAL in resolveNetworkUrl:", e);
-    return url;
-  }
+	if (externalDirectusUrl) {
+		try {
+			externalDirectusOrigin = new URL(externalDirectusUrl).origin;
+		} catch (e) {
+			console.warn(
+				'Error parsing VITE_DIRECTUS_URL_EXTERNAL in resolveNetworkUrl:',
+				e,
+			);
+		}
+	}
 
-  try {
-    const parsedWebhook = new URL(localWebhookUrl);
-    localWebhookHost = parsedWebhook.hostname;
-  } catch (e) {
-    console.warn("Error parsing VITE_WEBHOOK_URL_TRASLADOS in resolveNetworkUrl:", e);
-    return url;
-  }
+	if (localWebhookUrl && externalWebhookHost) {
+		try {
+			const parsedWebhook = new URL(localWebhookUrl);
+			localWebhookOrigin = parsedWebhook.origin;
 
-  const isLocal =
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    (localSubnet && hostname.startsWith(localSubnet));
+			const externalWebhookUrl = /^https?:\/\//i.test(externalWebhookHost)
+				? externalWebhookHost
+				: `${parsedWebhook.protocol}//${externalWebhookHost}`;
+			externalWebhookOrigin = new URL(externalWebhookUrl).origin;
+		} catch (e) {
+			console.warn('Error parsing webhook URLs in resolveNetworkUrl:', e);
+		}
+	}
 
-  if (isLocal) {
-    return url;
-  }
+	const isLocal =
+		hostname === 'localhost' ||
+		hostname === '127.0.0.1' ||
+		(localSubnet && hostname.startsWith(localSubnet));
 
-  let resolved = url.trim();
+	if (isLocal) {
+		return url;
+	}
 
-  if (resolved.includes(localHostAndPort)) {
-    resolved = resolved.replace(localHostAndPort, externalHostAndPort);
-  }
+	const resolved = url.trim();
 
-  if (localWebhookHost && resolved.includes(localWebhookHost)) {
-    resolved = resolved.replace(localWebhookHost, externalWebhookHost);
-  }
+	let parsedUrl: URL;
+	try {
+		parsedUrl = new URL(resolved);
+	} catch {
+		return resolved;
+	}
 
-  return resolved;
+	if (
+		localDirectusOrigin &&
+		externalDirectusOrigin &&
+		parsedUrl.origin === localDirectusOrigin
+	) {
+		const externalOrigin = new URL(externalDirectusOrigin);
+		parsedUrl.protocol = externalOrigin.protocol;
+		parsedUrl.host = externalOrigin.host;
+	}
+
+	if (
+		localWebhookOrigin &&
+		externalWebhookOrigin &&
+		parsedUrl.origin === localWebhookOrigin
+	) {
+		const externalOrigin = new URL(externalWebhookOrigin);
+		parsedUrl.protocol = externalOrigin.protocol;
+		parsedUrl.host = externalOrigin.host;
+	}
+
+	return parsedUrl.toString();
 }
