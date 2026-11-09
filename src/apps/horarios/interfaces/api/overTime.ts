@@ -1,0 +1,88 @@
+import type { EstadoHoraExtra } from '../../domain/horasExtras';
+import type { Relacion } from './relacion';
+
+/** Usuario de Directus (`directus_users`) tal como se expande en las filas. */
+type UsuarioDirectus = Relacion<{
+	id: string;
+	first_name?: string | null;
+	last_name?: string | null;
+}>;
+
+/** Fila de `com_over_time` (horas extras). */
+export interface OverTimeDto {
+	id: number;
+	employee_id: Relacion<{
+		id: number;
+		first_name?: string | null;
+		last_name?: string | null;
+		document_number?: string | number | null;
+		/** Tienda del empleado (puede diferir de la tienda donde trabajó). */
+		store_id?: Relacion;
+		/** Cargo: cambia el valor de la hora extra a pagar. */
+		position_id?: Relacion<{ id?: number; name?: string | null }>;
+	}>;
+	store_id: Relacion<{ id: number | string; name?: string | null }>;
+	work_date: string;
+	minutes: number;
+	status: EstadoHoraExtra;
+	observations?: string | null;
+	review_note?: string | null;
+	reviewed_at?: string | null;
+	created_at?: string | null;
+	created_by?: UsuarioDirectus;
+	updated_at?: string | null;
+	/** Lo llena Directus (*User Updated*): en una fila revisada, el comercial que decidió. */
+	updated_by?: UsuarioDirectus;
+	reason_id?: Relacion<{ id: number; name?: string | null }>;
+	review_reason_id?: Relacion<{ id: number; name?: string | null }>;
+	period_id?: Relacion<{
+		id: number;
+		name?: string | null;
+		start_date?: string;
+		end_date?: string;
+	}>;
+}
+
+/** Una hora extra de `crearHorasExtras` (una por empleado): siempre entra en `pendiente`. */
+export interface CreateOverTimeDto {
+	employee_id: number;
+	store_id: number;
+	work_date: string;
+	minutes: number;
+	/** `com_over_time_reasons.id` de tipo solicitud: obligatorio. */
+	reason_id: number;
+	/** Texto del motivo cuando este lo pide ("Otros"); vacío en los demás. */
+	observations?: string;
+	/** UUID (`directus_users.id`) de quien registra: trazabilidad "Creada por". */
+	created_by: string;
+}
+
+/** Edición del líder mientras está `pendiente`. */
+export interface UpdateOverTimeDto {
+	store_id?: number;
+	minutes?: number;
+	observations?: string;
+}
+
+/** Decisión del comercial sobre una o varias pendientes. */
+export interface ReviewOverTimeDto {
+	decision: 'aprobada' | 'descartada_comercial';
+	/** Obligatorio al rechazar. */
+	motivoId?: number | null;
+	/** Solo con el motivo que pide texto ("Otros"). */
+	nota?: string;
+	/** Usuario (directus_users) de Dirección Comercial que aprueba o rechaza: va en `updated_by`. */
+	revisor: string;
+}
+
+/** Fila de `com_over_time_reasons` (catálogo de motivos). */
+export interface OverTimeReasonDto {
+	id: number;
+	name: string;
+	description?: string | null;
+	type: string;
+	requires_note?: boolean | null;
+	status?: string | null;
+	sort?: number | null;
+	is_system?: boolean | null;
+}

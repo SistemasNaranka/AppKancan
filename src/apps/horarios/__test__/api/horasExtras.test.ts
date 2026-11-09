@@ -1,0 +1,126 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const request = vi.fn();
+vi.mock('@/services/directus/directus', () => ({ default: { request: (q: unknown) => request(q) } }));
+vi.mock('@/auth/services/directusInterceptor', () => ({ withAutoRefresh: (fn: () => unknown) => fn() }));
+vi.mock('@directus/sdk', () => ({
+	createItems: (c: string, d: unknown[]) => ({ op: 'createMany', c, d }),
+	readItems: (c: string, q: unknown) => ({ op: 'read', c, q }),
+	updateItem: (c: string, id: number, d: unknown) => ({ op: 'update', c, id, d }),
+	updateItems: (c: string, ids: number[], d: unknown) => ({ op: 'updateMany', c, ids, d }),
+}));
+
+import {
+	crearHorasExtras,
+	filtroHorasExtras,
+	revisarHorasExtras,
+} from '@/apps/horarios/api/directus/horasExtras';
+
+beforeEach(() => request.mockReset().mockResolvedValue({}));
+
+describe('filtroHorasExtras', () => {
+	it('sin filtros solo excluye la tienda de pruebas', () => {
+		expect(filtroHorasExtras({})).toEqual({ _and: [{ store_id: { _neq: 90 } }] });
+		expect(filtroHorasExtras({ incluirPruebas: true })).toEqual({});
+	});
+
+	it('tiendas: la trabajada o la del empleado (rotación)', () => {
+		const f = filtroHorasExtras({ tiendas: [1, 2], incluirPruebas: true });
+		expect(f).toEqual({
+			_and: [
+				{ _or: [{ store_id: { _in: [1, 2] } }, { employee_id: { store_id: { _in: [1, 2] } } }] },
+			],
+		});
+	});
+
+	it('combina empleado, rango y estados', () => {
+		const f = filtroHorasExtras({
+			empleadoId: 7,
+			desde: '2026-10-01',
+			hasta: '2026-10-15',
+			estados: ['pendiente'],
+			incluirPruebas: true,
+		});
+		expect(f._and).toEqual([
+			{ employee_id: { _eq: 7 } },
+			{ work_date: { _gte: '2026-10-01' } },
+			{ work_date: { _lte: '2026-10-15' } },
+			{ status: { _in: ['pendiente'] } },
+		]);
+	});
+});
+
+describe('crearHorasExtras', () => {
+	const base = { store_id: 26, work_date: '2026-10-19', minutes: 60, reason_id: 1, created_by: 'uuid-lider' };
+
+	it('siempre crea en pendiente', async () => {
+		await crearHorasExtras([{ ...base, employee_id: 5 }]);
+		expect(request.mock.calls[0][0]).toMatchObject({
+			op: 'createMany',
+			c: 'com_over_time',
+			d: [{ employee_id: 5, store_id: 26, minutes: 60, status: 'pendiente' }],
+		});
+	});
+
+	it('varios empleados en una sola petición, con el uuid de quien crea', async () => {
+		await crearHorasExtras([
+			{ ...base, employee_id: 5 },
+			{ ...base, employee_id: 6, observations: 'Inventario' },
+		]);
+		expect(request).toHaveBeenCalledTimes(1);
+		const { d } = request.mock.calls[0][0];
+		expect(d.map((x: { employee_id: number }) => x.employee_id)).toEqual([5, 6]);
+		expect(d.every((x: { created_by: string }) => x.created_by === 'uuid-lider')).toBe(true);
+		expect(d.map((x: { reason_id: number }) => x.reason_id)).toEqual([1, 1]);
+	});
+
+	it('no llama a Directus si alguna hora extra no tiene motivo', async () => {
+		await expect(
+			crearHorasExtras([{ ...base, employee_id: 5 }, { ...base, employee_id: 6, reason_id: 0 }]),
+		).rejects.toThrow(/motivo/);
+		expect(request).not.toHaveBeenCalled();
+	});
+
+	it('no llama a Directus sin autor ni con la lista vacía', async () => {
+		await expect(crearHorasExtras([{ ...base, employee_id: 5, created_by: ' ' }])).rejects.toThrow(/usuario/);
+		expect(await crearHorasExtras([])).toEqual([]);
+		expect(request).not.toHaveBeenCalled();
+	});
+});
+
+describe('revisarHorasExtras', () => {
+	it('aprobar guarda la revisión, sin nota', async () => {
+		await revisarHorasExtras([1, 2], { decision: 'aprobada', revisor: 'uuid-comercial' });
+		const { op, ids, d } = request.mock.calls[0][0];
+		expect(op).toBe('updateMany');
+		expect(ids).toEqual([1, 2]);
+		expect(d).toMatchObject({ status: 'aprobada', review_note: null, review_reason_id: null });
+		// Quién aprueba o rechaza queda en updated_by (como created_by para quien crea).
+		expect(d).toMatchObject({ updated_by: 'uuid-comercial' });
+		expect(d).not.toHaveProperty('reviewed_by');
+		expect(d).not.toHaveProperty('period_id');
+		expect(Number.isNaN(Date.parse(d.reviewed_at))).toBe(false);
+	});
+
+	it('rechazar guarda el motivo de la lista y su texto ("Otros")', async () => {
+		await revisarHorasExtras([3], { decision: 'descartada_comercial', motivoId: 9, nota: ' sin soporte ', revisor: 'uuid-comercial' });
+		const { d } = request.mock.calls[0][0];
+		expect(d).toMatchObject({
+			status: 'descartada_comercial',
+			review_reason_id: 9,
+			review_note: 'sin soporte',
+			updated_by: 'uuid-comercial',
+		});
+	});
+
+	it('rechazar con un motivo que no pide texto deja review_note en null', async () => {
+		await revisarHorasExtras([3], { decision: 'descartada_comercial', motivoId: 5, nota: '', revisor: 'u' });
+		expect(request.mock.calls[0][0].d).toMatchObject({ review_reason_id: 5, review_note: null });
+	});
+
+	it('no llama a Directus sin motivo al rechazar ni con lote vacío', async () => {
+		await expect(revisarHorasExtras([1], { decision: 'descartada_comercial', nota: 'texto suelto', revisor: 'u' })).rejects.toThrow(/motivo/);
+		expect(await revisarHorasExtras([], { decision: 'aprobada', revisor: 'u' })).toEqual([]);
+		expect(request).not.toHaveBeenCalled();
+	});
+});
