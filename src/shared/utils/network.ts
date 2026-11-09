@@ -77,8 +77,10 @@ export function resolveNetworkUrl(url: string | undefined): string {
 		parsedUrl.origin === localDirectusOrigin
 	) {
 		const externalOrigin = new URL(externalDirectusOrigin);
-		parsedUrl.protocol = externalOrigin.protocol;
-		parsedUrl.host = externalOrigin.host;
+		externalOrigin.pathname = parsedUrl.pathname;
+		externalOrigin.search = parsedUrl.search;
+		externalOrigin.hash = parsedUrl.hash;
+		parsedUrl = externalOrigin;
 	}
 
 	if (
@@ -87,8 +89,10 @@ export function resolveNetworkUrl(url: string | undefined): string {
 		parsedUrl.origin === localWebhookOrigin
 	) {
 		const externalOrigin = new URL(externalWebhookOrigin);
-		parsedUrl.protocol = externalOrigin.protocol;
-		parsedUrl.host = externalOrigin.host;
+		externalOrigin.pathname = parsedUrl.pathname;
+		externalOrigin.search = parsedUrl.search;
+		externalOrigin.hash = parsedUrl.hash;
+		parsedUrl = externalOrigin;
 	}
 
 	return parsedUrl.toString();
