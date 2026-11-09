@@ -63,6 +63,8 @@ export function resolveNetworkUrl(url: string | undefined): string {
 	}
 
 	const resolved = url.trim();
+	const hasExplicitRootSlash =
+		/^[a-z][a-z\d+.-]*:\/\/[^/?#]+\/(?:[?#]|$)/i.test(resolved);
 
 	let parsedUrl: URL;
 	try {
@@ -95,5 +97,13 @@ export function resolveNetworkUrl(url: string | undefined): string {
 		parsedUrl = externalOrigin;
 	}
 
-	return parsedUrl.toString();
+	const resolvedUrl = parsedUrl.toString();
+	if (parsedUrl.pathname === '/' && !hasExplicitRootSlash) {
+		const rootPrefix = `${parsedUrl.origin}/`;
+		if (resolvedUrl.startsWith(rootPrefix)) {
+			return `${parsedUrl.origin}${resolvedUrl.slice(rootPrefix.length)}`;
+		}
+	}
+
+	return resolvedUrl;
 }
