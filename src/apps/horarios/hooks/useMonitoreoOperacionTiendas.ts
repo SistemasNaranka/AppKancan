@@ -33,9 +33,9 @@ export function useMonitoreoOperacionTiendas({
 	initialFechaInicio,
 	initialFechaFin,
 }: UseMonitoreoOperacionTiendasProps) {
-	// Default to current month start through today for supervisors
+	// Por defecto, solo el día de hoy.
 	const [fechaInicio, setFechaInicio] = useState<Dayjs | null>(
-		() => initialFechaInicio ?? dayjs().add(-7, 'day'),
+		() => initialFechaInicio ?? dayjs(),
 	);
 	const [fechaFin, setFechaFin] = useState<Dayjs | null>(
 		() => initialFechaFin ?? dayjs(),
